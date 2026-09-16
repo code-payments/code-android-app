@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,24 +34,46 @@ import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.chat.ChatParticipant
-import com.flipcash.app.messenger.internal.asSubject
+import com.flipcash.app.messenger.internal.ChatSubject
+import com.flipcash.app.messenger.internal.balanceRequirement
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 
+/**
+ * The identity card at the head of a transcript.
+ *
+ * Was `ContactInfoContainer`, which opened with `participant as? ChatParticipant.Contact` and
+ * rendered a bare avatar and name for anything else. Driving it from [ChatSubject] makes each arm
+ * say what it shows: the contact arm keeps its phone line and add-to-contacts pill, the tip arm
+ * keeps its handle, and the group arm gets the rules line from node 10125:19201.
+ */
 @Composable
-internal fun ContactInfoContainer(
-    participant: ChatParticipant?,
+internal fun ChatInfoCard(
+    subject: ChatSubject?,
     modifier: Modifier = Modifier,
     includeBorder: Boolean = true,
     onOpenProfile: (() -> Unit)? = null,
     onRefreshContact: () -> Unit = {},
+    /**
+     * The symbol of the token a group's balance rule names, once the token cache has it.
+     *
+     * Resolved in the view model rather than read here: `observeTokenCache()` starts empty and
+     * fills in, so a snapshot read would render the rule with no token and never correct itself.
+     */
+    ticker: String? = null,
 ) {
+    val participant = subject?.asParticipant()
     // Phone number and the add-to-contacts pill only apply to a device contact; a tip DM's
     // counterparty (a server profile) has neither.
-    val contact = (participant as? ChatParticipant.Contact)?.contact
+    val contact = (subject as? ChatSubject.Contact)?.participant?.contact
     Column(
         modifier = modifier
             .addIf(includeBorder) {
@@ -69,7 +92,7 @@ internal fun ContactInfoContainer(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ChatSubjectAvatar(
-            subject = participant.asSubject(),
+            subject = subject,
             modifier = Modifier
                 .size(CodeTheme.dimens.staticGrid.x17)
                 .clip(CircleShape),
@@ -82,7 +105,7 @@ internal fun ContactInfoContainer(
         ) {
             Text(
                 modifier = if (onOpenProfile != null) Modifier.weight(1f, fill = false) else Modifier,
-                text = participant?.name.orEmpty(),
+                text = subject?.title.orEmpty(),
                 autoSize = TextAutoSize.StepBased(
                     minFontSize = CodeTheme.typography.textSmall.fontSize,
                     maxFontSize = CodeTheme.typography.textLarge.fontSize,
@@ -120,6 +143,31 @@ internal fun ContactInfoContainer(
                 text = contact.displayNumber,
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
+            )
+        }
+
+        // Node 10125:19201. Rendered for a member as well as a non-member: it is the chat's
+        // standing requirement, not a gate message, and it is the one thing the card can say
+        // about a group that it cannot say about a person.
+        val requirement = (subject as? ChatSubject.Group)?.rules.balanceRequirement()
+        if (requirement != null) {
+            Text(
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+                text = if (ticker != null) {
+                    stringResource(
+                        R.string.label_chat_balanceRequirement,
+                        requirement.amount.formatted(),
+                        ticker,
+                    )
+                } else {
+                    stringResource(
+                        R.string.label_chat_balanceRequirement_anyToken,
+                        requirement.amount.formatted(),
+                    )
+                },
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
             )
         }
 
@@ -249,7 +297,7 @@ private fun TipPill(
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
-private fun Preview_AllStates() {
+private fun Preview_ChatInfoCard() {
     // A saved device contact: name + number + the "From your contacts" pill.
     val knownContact = ChatParticipant.Contact(
         DeviceContact(
@@ -286,16 +334,35 @@ private fun Preview_AllStates() {
         profile = UserProfile.Empty.copy(username = "sally_streamer"),
     )
 
+    // The group arm: title, member count, and the balance rule from node 10125:19201.
+    val group = ChatSubject.Group(
+        chatId = ChatId(byteArrayOf(1)),
+        groupTitle = "Bad Boys",
+        picture = null,
+        memberCount = 412L,
+        rules = ChatRules(
+            listener = listOf(
+                ChatRuleRequirement.MinimumBalance(
+                    amount = Fiat(100.0),
+                    mints = listOf(Mint(List(32) { 7.toByte() })),
+                ),
+            ),
+            speaker = emptyList(),
+        ),
+        isMember = false,
+    )
+
     // Fixed width so every state renders at the same size regardless of name/number length.
     val cardWidth = Modifier.width(300.dp)
     Column(
         modifier = Modifier.padding(CodeTheme.dimens.grid.x4),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4),
     ) {
-        ContactInfoContainer(participant = knownContact, modifier = cardWidth)
-        ContactInfoContainer(participant = unknownContact, modifier = cardWidth)
-        ContactInfoContainer(participant = tipUser, modifier = cardWidth)
-        ContactInfoContainer(participant = handleOnlyUser, modifier = cardWidth)
+        ChatInfoCard(subject = ChatSubject.Contact(knownContact), modifier = cardWidth)
+        ChatInfoCard(subject = ChatSubject.Contact(unknownContact), modifier = cardWidth)
+        ChatInfoCard(subject = ChatSubject.TipUser(tipUser), modifier = cardWidth)
+        ChatInfoCard(subject = ChatSubject.TipUser(handleOnlyUser), modifier = cardWidth)
+        ChatInfoCard(subject = group, modifier = cardWidth, ticker = "BADBOYS")
     }
 }
 

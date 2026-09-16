@@ -322,8 +322,8 @@ internal fun MessageList(
                             .fillParentMaxWidth(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        ContactInfoContainer(
-                            participant = state.participant,
+                        ChatInfoCard(
+                            subject = state.subject,
                             modifier = Modifier
                                 .fillMaxWidth(0.63f),
                             onRefreshContact = { onAction(ChatAction.RefreshContact) },
@@ -334,6 +334,7 @@ internal fun MessageList(
                             } else {
                                 null
                             },
+                            ticker = state.ruleTicker,
                         )
                     }
                 }

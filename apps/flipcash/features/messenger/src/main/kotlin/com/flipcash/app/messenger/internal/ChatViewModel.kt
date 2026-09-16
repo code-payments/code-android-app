@@ -51,6 +51,7 @@ import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.getcode.solana.keys.Mint
 import com.getcode.opencode.model.core.ID
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -219,6 +220,11 @@ internal class ChatViewModel @Inject constructor(
          * the reducer is where the selection is set.
          */
         val messagePolicy: MessagePolicy = MessagePolicy.Default,
+        /**
+         * The symbol of the token a group's balance requirement names — "BadBoys", not its mint.
+         * Null until the token cache has it, and null for any chat without such a rule.
+         */
+        val ruleTicker: String? = null,
     ) {
         /**
          * The DM counterparty, or `null` for a group.
@@ -261,6 +267,9 @@ internal class ChatViewModel @Inject constructor(
 
         /** The chat this screen is showing turned out to be a group, with this metadata. */
         data class OnGroupResolved(val membership: ChatMembership) : Event
+
+        /** The token cache learned the symbol behind the group's balance requirement. */
+        data class OnRuleTickerResolved(val ticker: String?) : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data class OnChatInitFeeUpdated(val formatted: String?) : Event
         data object RefreshContact : Event
@@ -721,6 +730,20 @@ internal class ChatViewModel @Inject constructor(
             .filter { it.metadata.type == ChatType.GROUP }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnGroupResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // The cache starts empty and fills in, so this is observed rather than read once — a
+        // requirement resolved against an empty cache would render its amount with no token beside
+        // it and never correct itself.
+        combine(
+            stateFlow.map { (it.subject as? ChatSubject.Group)?.rules.balanceRequirement() }
+                .distinctUntilChanged(),
+            tokenCoordinator.observeTokenCache(),
+        ) { requirement, tokens ->
+            requirement?.mints?.firstOrNull()?.let { tokens[Mint(it.bytes)]?.symbol }
+        }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnRuleTickerResolved(it)) }
             .launchIn(viewModelScope)
 
         // Observe member identity — if the other member loses identity (e.g. unlinked
@@ -1357,6 +1380,7 @@ internal class ChatViewModel @Inject constructor(
                         resolveState = ResolveState.Resolved,
                     )
                 }
+                is Event.OnRuleTickerResolved -> { state -> state.copy(ruleTicker = event.ticker) }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the

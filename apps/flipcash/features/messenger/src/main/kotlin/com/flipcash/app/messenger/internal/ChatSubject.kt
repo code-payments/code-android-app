@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal
 
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.MediaItem
 
@@ -98,4 +99,20 @@ internal fun ChatParticipant?.asSubject(): ChatSubject? = when (this) {
     is ChatParticipant.Contact -> ChatSubject.Contact(this)
     is ChatParticipant.TipUser -> ChatSubject.TipUser(this)
     null -> null
+}
+
+/**
+ * The balance requirement to show the user, or `null` when there is nothing actionable to show.
+ *
+ * Listener rules gate reading and joining, speaker rules gate sending, and speaker rules apply on
+ * top of listener rules — so the first thing standing between the viewer and the chat is the
+ * listener requirement when there is one.
+ *
+ * [ChatRuleRequirement.Staff] deliberately produces nothing: it is not a bar a user can clear by
+ * doing something, and rendering it as a requirement would read as an instruction.
+ */
+internal fun ChatRules?.balanceRequirement(): ChatRuleRequirement.MinimumBalance? {
+    val rules = this ?: return null
+    return rules.listener.filterIsInstance<ChatRuleRequirement.MinimumBalance>().firstOrNull()
+        ?: rules.speaker.filterIsInstance<ChatRuleRequirement.MinimumBalance>().firstOrNull()
 }

@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
-import com.flipcash.app.messenger.internal.screens.components.ContactInfoContainer
+import com.flipcash.app.messenger.internal.screens.components.ChatInfoCard
 import com.flipcash.app.messenger.internal.screens.profile.ProfileHeader
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.models.UserProfile
@@ -83,9 +83,12 @@ class ChatIdentityScreenshotTest {
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     val cardWidth = Modifier.width(300.dp)
-                    ContactInfoContainer(participant = knownContact, modifier = cardWidth)
-                    ContactInfoContainer(participant = namedTipUser, modifier = cardWidth)
-                    ContactInfoContainer(participant = handleOnlyTipUser, modifier = cardWidth)
+                    ChatInfoCard(subject = ChatSubject.Contact(knownContact), modifier = cardWidth)
+                    ChatInfoCard(subject = ChatSubject.TipUser(namedTipUser), modifier = cardWidth)
+                    ChatInfoCard(
+                        subject = ChatSubject.TipUser(handleOnlyTipUser),
+                        modifier = cardWidth,
+                    )
                 }
             }
         }
