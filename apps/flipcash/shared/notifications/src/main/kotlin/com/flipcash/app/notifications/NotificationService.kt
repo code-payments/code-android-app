@@ -29,6 +29,7 @@ import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
@@ -47,6 +48,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
 import com.getcode.utils.TraceType
+import com.getcode.utils.hexEncodedString
 import com.getcode.utils.trace
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -67,6 +69,13 @@ class NotificationService : FirebaseMessagingService(),
         private const val KEY_TITLE = "push_notification_title"
         private const val KEY_BODY = "push_notification_body"
         private const val KEY_PAYLOAD = "flipcash_payload"
+
+        /**
+         * Request code for the content intent of any notification that only launches the app.
+         * Arbitrary, and shared on purpose — every such intent is identical, so it does not
+         * matter which notification's the system keeps.
+         */
+        private const val LAUNCH_REQUEST_CODE = 99
 
         // Correlation id for measurement runs. scripts/spike/ sends a known
         // sequence number with every push so a missing delivery and a late one
@@ -113,6 +122,9 @@ class NotificationService : FirebaseMessagingService(),
 
     @Inject
     lateinit var userProfileDataSource: UserProfileDataSource
+
+    @Inject
+    lateinit var chatMetadataDataSource: ChatMetadataDataSource
 
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
@@ -248,6 +260,16 @@ class NotificationService : FirebaseMessagingService(),
 
         if (chatId != null && chatCoordinator.isActiveChat(chatId)) return
 
+        // Resolved once, here, because the tap target and the message style both turn on what
+        // kind of chat this is and neither can take the payload's word for it.
+        val styling = chatId?.let {
+            planConversationStyling(
+                payloadChatType = payload?.chatMetadata?.chatType,
+                storedChatType = chatMetadataDataSource.getChatType(it),
+                storedTitle = chatMetadataDataSource.getTitle(it),
+            )
+        }
+
         val groupKey = payload?.groupKey?.takeIf { it.isNotEmpty() }
 
         val builder = NotificationCompat.Builder(this, channel.id)
@@ -256,13 +278,13 @@ class NotificationService : FirebaseMessagingService(),
             .setSmallIcon(R.drawable.flipcash_logo)
             .setColor(getColor(R.color.notification_color))
             .setAutoCancel(true)
-            .setContentIntent(buildContentIntent(payload?.chatMetadata, payload?.navigation))
+            .setContentIntent(buildContentIntent(styling?.chatType, payload?.navigation))
             .apply {
                 if (groupKey != null) setGroup(groupKey)
             }
 
-        val notificationId = if (chatId != null) {
-            builder.applyChatStyle(chatId, groupKey, title, body)
+        val notificationId = if (chatId != null && styling != null) {
+            builder.applyChatStyle(chatId, styling, groupKey, title, body, payload?.chatMetadata)
         } else {
             builder.setContentTitle(title).setContentText(body)
             SecureRandom().nextInt(Int.MAX_VALUE)
@@ -285,43 +307,63 @@ class NotificationService : FirebaseMessagingService(),
 
     private suspend fun NotificationCompat.Builder.applyChatStyle(
         chatId: ChatId,
+        styling: ConversationStyling,
         groupKey: String?,
         title: String?,
         body: String?,
+        metadata: PushChatMetadata?,
     ): Int {
         val notificationId = chatId.hashCode()
 
         // Prefer the device-contact identity (CONTACT_DM, or a counterparty saved
-        // in the address book): the user's own name + photo for them. Only when
-        // that's absent do we fetch the chat member and fall back to their
-        // server-side profile — which is the only identity a TIP_DM has.
-        val contactE164 = contactCoordinator.lookupContactByDmChatId(chatId.toString())?.e164
-        val member = if (contactE164 == null) chatCoordinator.getOtherMember(chatId) else null
-        val e164 = contactE164 ?: member?.userProfile?.verifiedPhoneNumber
+        // in the address book): the user's own name + photo for them. The row is
+        // keyed by DM chat id, so a group can never match it — don't ask.
+        val contactE164 = if (!styling.isGroupConversation) {
+            contactCoordinator.lookupContactByDmChatId(chatId.toString())?.e164
+        } else {
+            null
+        }
+
+        // Otherwise fall back to the sender's server-side profile — which is the only
+        // identity a TIP_DM has, and the only one a group participant has at all.
+        val lookup = planSenderLookup(
+            chatType = styling.chatType,
+            sendingUserId = metadata?.sendingUserId,
+            hasDeviceContact = contactE164 != null,
+        )
+        val sender = when (lookup) {
+            is SenderLookup.ByUserId ->
+                resolveSenderProfile(lookup.userId)?.let { Sender(lookup.userId, it) }
+            SenderLookup.OtherMember ->
+                chatCoordinator.getOtherMember(chatId)?.let { Sender(it.userId, it.userProfile) }
+            SenderLookup.None -> null
+        }
+        val e164 = contactE164 ?: sender?.profile?.verifiedPhoneNumber
 
         val senderName = e164?.let { contactResolver.resolveName(it) }
-            ?: member?.userProfile?.displayName?.takeIf { it.isNotBlank() }
-            ?: member?.userProfile?.socialHandle()
+            ?: sender?.profile?.displayName?.takeIf { it.isNotBlank() }
+            ?: sender?.profile?.socialHandle()
             ?: title
             ?: ""
 
         // Device-contact photo (local, synchronous) first; otherwise the profile
         // picture URL loaded through the app's shared Coil loader (cache-first,
-        // network-bounded). Works for CONTACT_DM and TIP_DM alike.
+        // network-bounded). Works for every chat type: a group sender who is in the
+        // address book resolves through their profile's phone number.
         //
         // Size the rendition to the platform's large-icon dimension (density-scaled) rather than
         // grabbing the smallest THUMBNAIL — the server ships several thumbnail/display sizes and
         // the tiny 32px one looks grainy on the notification's person icon.
         val avatarPx = resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
         val avatar = e164?.let { resolveContactPhoto(it) }
-            ?: member?.userProfile?.profilePicture?.let { picture ->
+            ?: sender?.profile?.profilePicture?.let { picture ->
                 // Through the resolver, not `picture.urlForSize` — the stored download URL expires
                 // and the profile it came from may have been persisted days ago.
                 mediaUrlResolver.urlForSize(
                     media = picture,
                     targetLongestSidePx = avatarPx,
-                    // The counterparty's picture, so their profile is what authorizes a re-mint.
-                    access = BlobAccessContext.profile(member?.userId),
+                    // The sender's picture, so their profile is what authorizes a re-mint.
+                    access = BlobAccessContext.profile(sender.userId),
                 )?.let { url ->
                     loadRemoteAvatar(url, picture.cacheKeyForSize(avatarPx))
                 }
@@ -329,15 +371,21 @@ class NotificationService : FirebaseMessagingService(),
 
         trace(
             tag = "NotificationService",
-            message = "applyChatStyle: chatId=$chatId, groupKey=$groupKey, e164=$e164, hasMember=${member != null}, hasAvatar=${avatar != null}, authenticated=${userManager.accountCluster != null}",
+            message = "applyChatStyle: chatId=$chatId, groupKey=$groupKey, chatType=${styling.chatType}, isGroup=${styling.isGroupConversation}, hasTitle=${styling.conversationTitle != null}, lookup=${lookup::class.simpleName}, e164=$e164, hasSender=${sender != null}, hasAvatar=${avatar != null}, authenticated=${userManager.accountCluster != null}",
             type = TraceType.Log,
         )
 
         val selfPerson = buildSelfPerson(this@NotificationService, userManager.profile, contactResolver)
 
+        // Key the sender by their user id. MessagingStyle tells participants apart by
+        // Person key, and groupKey is per-chat — under it every sender in a group
+        // collapses into one person, so the name and icon of whoever spoke first get
+        // stamped on all of their messages.
+        val senderKey = metadata?.sendingUserId?.hexEncodedString() ?: groupKey ?: "unknown"
+
         val senderPerson = Person.Builder()
             .setName(senderName)
-            .setKey(groupKey ?: "unknown")
+            .setKey(senderKey)
             .apply {
                 if (avatar != null) setIcon(IconCompat.createWithBitmap(avatar.toCircularBitmap()))
             }
@@ -351,6 +399,13 @@ class NotificationService : FirebaseMessagingService(),
 
         style.addMessage(body.orEmpty(), System.currentTimeMillis(), senderPerson)
 
+        // After the extract above, not before: a re-post rebuilds the style from the notification
+        // already on screen, which carries the old flag and title back with it.
+        style.setGroupConversation(styling.isGroupConversation)
+        // Only when there is one to set, so a push that lands before the group's row syncs leaves
+        // the title a previous push managed to resolve rather than blanking it.
+        styling.conversationTitle?.let { style.setConversationTitle(it) }
+
         setStyle(style)
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
             .addAction(buildReplyAction(chatId, notificationId, groupKey))
@@ -358,6 +413,27 @@ class NotificationService : FirebaseMessagingService(),
 
         return notificationId
     }
+
+    /** Who a chat push is attributed to: their id (for blob access) and their profile. */
+    private data class Sender(val userId: ID, val profile: UserProfile)
+
+    /**
+     * The sender's profile, cache-first.
+     *
+     * `user_profiles` is a superset of the chat roster —
+     * [com.flipcash.app.persistence.sources.ChatMemberDataSource] writes every synced member's
+     * profile into it — so this is a local read for anyone the app has already seen, and only
+     * reaches the network for a group participant it hasn't. The result is written back so the
+     * next push from them doesn't.
+     *
+     * The transcript's [com.flipcash.shared.chat.ChatCoordinator.requestSenderProfile] resolves
+     * the same profiles, but it is fire-and-forget by design (it must not stall Paging), and a
+     * notification has to render now.
+     */
+    private suspend fun resolveSenderProfile(userId: ID): UserProfile? =
+        userProfileDataSource.getCachedProfile(userId)
+            ?: profileController.getProfileForUser(userId).getOrNull()
+                ?.also { userProfileDataSource.store(userId, it) }
 
     /** First social handle (e.g. an X username) to render as a display name, if any. */
     private fun UserProfile.socialHandle(): String? =
@@ -496,33 +572,47 @@ class NotificationService : FirebaseMessagingService(),
         ).build()
     }
 
+    /**
+     * Where this notification's tap goes.
+     *
+     * @param chatType the type resolved by [planConversationStyling], null for a non-chat push
+     */
     internal fun Context.buildContentIntent(
-        metadata: PushChatMetadata?,
+        chatType: ChatType?,
         navigation: NavigationTrigger?,
         ): PendingIntent {
-        val target = when (navigation) {
-            is NavigationTrigger.CurrencyInfo -> Intent(Intent.ACTION_VIEW).apply {
-                data = Linkify.tokenInfo(navigation.mint).toUri()
-            }
-
-            // Only tip DMs deep-link (via /tip/chat/…). Non-tip chat notifications — and all
-            // contact/phone-addressed chats — no longer have an in-app entry point (the Send
-            // tab / direct-send flow was removed), so fall through to a plain launch that opens
-            // the app on the camera instead of firing a now-unhandled /chat/ deeplink.
-            is NavigationTrigger.Chat.ById -> if (metadata?.chatType == ChatType.TIP_DM) {
+        // The request code travels with the target: `FLAG_UPDATE_CURRENT` rewrites the extras of
+        // whichever PendingIntent is already held under it, and `filterEquals` — which decides
+        // what "already held" means — ignores extras. Under one shared code every posted
+        // notification ends up pointing at whatever was notified last.
+        val (target, requestCode) = when (navigation) {
+            is NavigationTrigger.CurrencyInfo ->
                 Intent(Intent.ACTION_VIEW).apply {
-                    data = Linkify.tipChatById(navigation.chatId).toUri()
+                    data = Linkify.tokenInfo(navigation.mint).toUri()
+                } to navigation.mint.hashCode()
+
+            is NavigationTrigger.Chat.ById -> {
+                // /tip/chat/… is named for where it was first used, but it resolves to the Chats
+                // tab and the conversation by id, which is the destination for a group too.
+                val intent = when (planChatTapTarget(chatType)) {
+                    ChatTapTarget.Conversation -> Intent(Intent.ACTION_VIEW).apply {
+                        data = Linkify.tipChatById(navigation.chatId).toUri()
+                    }
+
+                    ChatTapTarget.AppLauncher -> packageManager.getLaunchIntentForPackage(packageName)
                 }
-            } else {
-                packageManager.getLaunchIntentForPackage(packageName)
+                // The same code the reply action uses, which is not a collision: a PendingIntent
+                // is identified by its type too, and that one is a broadcast.
+                intent to navigation.chatId.hashCode()
             }
 
-            else -> packageManager.getLaunchIntentForPackage(packageName)
+            // Every one of these is the same launcher intent, so they can share a code.
+            else -> packageManager.getLaunchIntentForPackage(packageName) to LAUNCH_REQUEST_CODE
         }
 
         return PendingIntent.getActivity(
             this,
-            99,
+            requestCode,
             target,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
