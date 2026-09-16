@@ -8,8 +8,11 @@ import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ClientMessageId
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
@@ -228,4 +231,37 @@ internal fun TypingState.asTypingState(): MessagingModel.IsTypingNotification.St
         TypingState.TYPING_TIMED_OUT -> MessagingModel.IsTypingNotification.State.TYPING_TIMED_OUT
         TypingState.UNKNOWN -> MessagingModel.IsTypingNotification.State.UNKNOWN_TYPING_STATE
     }
+}
+internal fun IdempotencyKey.asProtoIdempotencyKey(): ChatModel.IdempotencyKey {
+    return ChatModel.IdempotencyKey.newBuilder().setValue(bytes.toByteString()).build()
+}
+
+internal fun ChatRules.asProtoRules(): ChatModel.Rules {
+    return ChatModel.Rules.newBuilder()
+        .addAllListener(listener.map { it.asProtoListenerRules() })
+        .addAllSpeaker(speaker.map { it.asProtoSpeakerRules() })
+        .build()
+}
+
+internal fun ChatRuleRequirement.asProtoListenerRules(): ChatModel.ListenerRules {
+    val builder = ChatModel.ListenerRules.newBuilder()
+    return when (this) {
+        is ChatRuleRequirement.MinimumBalance -> builder.setMinimumBalance(asProtoMinimumBalanceRequirement()).build()
+        ChatRuleRequirement.Staff -> builder.setStaff(ChatModel.StaffRequirement.getDefaultInstance()).build()
+    }
+}
+
+internal fun ChatRuleRequirement.asProtoSpeakerRules(): ChatModel.SpeakerRules {
+    val builder = ChatModel.SpeakerRules.newBuilder()
+    return when (this) {
+        is ChatRuleRequirement.MinimumBalance -> builder.setMinimumBalance(asProtoMinimumBalanceRequirement()).build()
+        ChatRuleRequirement.Staff -> builder.setStaff(ChatModel.StaffRequirement.getDefaultInstance()).build()
+    }
+}
+
+internal fun ChatRuleRequirement.MinimumBalance.asProtoMinimumBalanceRequirement(): ChatModel.MinimumBalanceRequirement {
+    return ChatModel.MinimumBalanceRequirement.newBuilder()
+        .setAmount(amount.asFiatPaymentAmount())
+        .addAllMints(mints.map { it.asPublicKey() })
+        .build()
 }

@@ -5,6 +5,8 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -322,6 +324,7 @@ private class FakeChatRepository : ChatRepository {
     var getChatResult: Result<ChatMetadata> = Result.failure(RuntimeException("not configured"))
     var getDmChatFeedResult: Result<ChatFeedPage> = Result.failure(RuntimeException("not configured"))
     var getGroupChatFeedResult: Result<ChatFeedPage> = Result.failure(RuntimeException("not configured"))
+    var startChatResult: Result<ChatMetadata> = Result.failure(RuntimeException("not configured"))
     var joinChatResult: Result<ChatMetadata> = Result.failure(RuntimeException("not configured"))
     var leaveChatResult: Result<Unit> = Result.failure(RuntimeException("not configured"))
     var lastChatId: ChatId? = null
@@ -349,6 +352,14 @@ private class FakeChatRepository : ChatRepository {
     ): Result<ChatFeedPage> {
         lastQueryOptions = queryOptions
         return getGroupChatFeedResult
+    }
+
+    override suspend fun startChat(
+        owner: Ed25519.KeyPair,
+        parameters: StartChatParameters,
+        idempotencyKey: IdempotencyKey,
+    ): Result<ChatMetadata> {
+        return startChatResult
     }
 
     override suspend fun joinChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ChatMetadata> {

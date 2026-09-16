@@ -9,6 +9,8 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.repository.ChatRepository
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.utils.ErrorUtils
@@ -50,6 +52,14 @@ internal class InternalChatRepository(
                 hasMore = response.hasMore,
             )
         }
+
+    override suspend fun startChat(
+        owner: KeyPair,
+        parameters: StartChatParameters,
+        idempotencyKey: IdempotencyKey,
+    ): Result<ChatMetadata> = service.startChat(owner, parameters, idempotencyKey)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { mapper.map(it) }
 
     override suspend fun joinChat(
         owner: KeyPair,

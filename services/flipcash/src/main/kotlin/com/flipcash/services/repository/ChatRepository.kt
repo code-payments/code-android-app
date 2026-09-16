@@ -5,6 +5,8 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.StartChatParameters
 import com.getcode.ed25519.Ed25519.KeyPair
 
 interface ChatRepository {
@@ -27,6 +29,17 @@ interface ChatRepository {
         owner: KeyPair,
         queryOptions: QueryOptions,
     ): Result<ChatFeedPage>
+
+    /**
+     * Starts a new chat from [parameters]. [idempotencyKey] must be minted by the caller once
+     * per logical attempt and reused across retries of that attempt — a retry with the same key
+     * returns the originally created chat (result OK) even if [parameters] differ.
+     */
+    suspend fun startChat(
+        owner: KeyPair,
+        parameters: StartChatParameters,
+        idempotencyKey: IdempotencyKey,
+    ): Result<ChatMetadata>
 
     /** Adds the caller to [chatId]'s roster, returning the chat as the caller now sees it. */
     suspend fun joinChat(
