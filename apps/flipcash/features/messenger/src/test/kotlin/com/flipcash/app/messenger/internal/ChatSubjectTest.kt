@@ -87,12 +87,17 @@ class ChatSubjectTest {
         assertFalse(subject.isMember)
     }
 
+    /**
+     * A contact DM is the only subject with no profile behind it: its counterparty is a phone
+     * number in the address book, not an account. A group's profile is its own — which is why it
+     * says yes here while [ChatSubject.asParticipant] still says there is no one to open one on.
+     */
     @Test
-    fun `only a tip subject opens a profile`() {
+    fun `every subject but a contact DM opens a profile`() {
         assertTrue(ChatSubject.TipUser(ChatParticipant.TipUser(userId, profile)).canViewProfile)
-        assertFalse(ChatSubject.Contact(ChatParticipant.Contact(contact)).canViewProfile)
-        assertFalse(
+        assertTrue(
             ChatSubject.Group(chatId, "Flipcash Staff", null, 3L, null, true).canViewProfile
         )
+        assertFalse(ChatSubject.Contact(ChatParticipant.Contact(contact)).canViewProfile)
     }
 }

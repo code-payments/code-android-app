@@ -56,7 +56,7 @@ sealed interface ChatSubject {
         override fun asParticipant(): ChatParticipant = participant
     }
 
-    /** A `TIP_DM`. The only arm with a profile to open — blocking is reached through it. */
+    /** A `TIP_DM`. Blocking is reached through its profile. */
     data class TipUser(val participant: ChatParticipant.TipUser) : ChatSubject {
         override val title: String get() = participant.name.orEmpty()
         // `handle` already carries the leading `@` (see `String.asHandle`), so this is the raw
@@ -83,7 +83,10 @@ sealed interface ChatSubject {
     ) : ChatSubject {
         override val title: String get() = groupTitle.orEmpty()
         override val subtitle: String? get() = null
-        override val canViewProfile: Boolean get() = false
+        // The group's own profile, not a counterparty's — which is why this is true while
+        // [asParticipant] stays null. The route the tap takes is decided per arm, in
+        // MessengerScreen's ChatAction.ViewProfile handler.
+        override val canViewProfile: Boolean get() = true
         override fun asParticipant(): ChatParticipant? = null
     }
 }

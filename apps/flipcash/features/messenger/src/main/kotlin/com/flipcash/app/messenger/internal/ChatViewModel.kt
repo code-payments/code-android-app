@@ -76,6 +76,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -283,6 +284,15 @@ internal class ChatViewModel @Inject constructor(
 
         /** The gate's "Join Chat" button. */
         data object JoinChat : Event
+
+        /** The group profile's "Leave Chat" row, which puts the confirmation up. */
+        data object LeaveChat : Event
+
+        /** The user confirmed the leave. */
+        data object LeaveConfirmed : Event
+
+        /** The leave went through, so whatever is showing the group's profile should close. */
+        data object LeftChat : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data class OnChatInitFeeUpdated(val formatted: String?) : Event
         data object RefreshContact : Event
@@ -401,12 +411,27 @@ internal class ChatViewModel @Inject constructor(
      * See SenderResolver.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val senderProfiles: Flow<Map<String, UserProfile>?> =
+    private val senderProfiles: StateFlow<Map<String, UserProfile>?> =
         stateFlow.map { it.chatType == ChatType.GROUP }
             .distinctUntilChanged()
             .flatMapLatest { isGroup ->
                 if (isGroup) chatCoordinator.observeSenderProfiles() else flowOf(null)
             }
+            // Held rather than cold so a tap on a sender's picture can read the profile that drew
+            // it. The transcript is the only thing that asks for these, so the map the paging
+            // stream is using is the one to answer from — looking the sender up again would be a
+            // second source for an identity already on screen.
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /**
+     * The member behind [userId], as a participant a profile screen can be opened on.
+     *
+     * Null until the transcript has resolved them, which it has by the time their picture is
+     * drawn — the picture is what this is reached from.
+     */
+    fun memberParticipant(userId: ID): ChatParticipant.TipUser? =
+        senderProfiles.value?.get(userId.hexEncodedString())
+            ?.let { ChatParticipant.TipUser(userId, it) }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatListItem>> =
@@ -1067,6 +1092,42 @@ internal class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        eventFlow.filterIsInstance<Event.LeaveChat>()
+            .mapNotNull { stateFlow.value.subject as? ChatSubject.Group }
+            .onEach { group ->
+                BottomBarManager.showAlert(
+                    title = resources.getString(
+                        R.string.prompt_title_leaveChat,
+                        group.title,
+                    ),
+                    message = resources.getString(R.string.prompt_description_leaveChat),
+                    actions = listOf(
+                        BottomBarAction(text = resources.getString(R.string.action_leaveChat)) {
+                            dispatchEvent(Event.LeaveConfirmed)
+                        }
+                    ),
+                    showCancel = true,
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.LeaveConfirmed>()
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                // `leave` clears the membership locally before the call, so the gate is back in
+                // place by the time the profile closes — the same single source the join reads.
+                chatCoordinator.leave(chatId)
+                    .onSuccess { dispatchEvent(Event.LeftChat) }
+                    .onFailure {
+                        trace("failed to leave chat - ${it.localizedMessage}")
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToLeave),
+                            message = resources.getString(R.string.error_description_failedToLeave),
+                        )
+                    }
+            }
+            .launchIn(viewModelScope)
+
         // A bubble is what the UI has; a citation is what the composer needs, and building one
         // reads the stored message. A message this device never stored drops the request rather
         // than opening a strip with nothing in it.
@@ -1478,7 +1539,10 @@ internal class ChatViewModel @Inject constructor(
                 }
                 is Event.OnRuleTickerResolved -> { state -> state.copy(ruleTicker = event.ticker) }
                 is Event.OnGroupAccessResolved -> { state -> state.copy(groupAccess = event.access) }
-                Event.JoinChat -> { state -> state }
+                Event.JoinChat,
+                Event.LeaveChat,
+                Event.LeaveConfirmed,
+                Event.LeftChat -> { state -> state }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the

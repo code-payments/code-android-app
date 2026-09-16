@@ -24,6 +24,7 @@ import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
+import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowHost
@@ -88,6 +89,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.Profile> { step ->
         FlowChatProfileScreen(step.contact)
+    }
+    annotatedEntry<ChatStep.GroupProfile> {
+        FlowGroupProfileScreen()
     }
 }
 
@@ -229,4 +233,15 @@ private fun FlowChatProfileScreen(participant: ChatParticipant) {
                 flowNavigator.exitCanceled()
             }.launchIn(this)
     }
+}
+
+/**
+ * The group's profile, on the conversation's own view model.
+ *
+ * No [LaunchedEffect] seeding it the way [FlowChatProfileScreen] seeds a participant: the shared
+ * view model is already open on this group, so there is nothing to hand it.
+ */
+@Composable
+private fun FlowGroupProfileScreen() {
+    GroupProfileScreen(flowSharedViewModel<ChatViewModel>())
 }

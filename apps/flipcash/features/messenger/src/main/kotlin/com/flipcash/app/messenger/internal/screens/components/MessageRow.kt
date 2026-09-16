@@ -5,6 +5,7 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -235,7 +236,15 @@ internal fun MessageRow(
                                     access = BlobAccessContext.profile(sender.userId),
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(CircleShape),
+                                        .clip(CircleShape)
+                                        // The picture is the only handle the transcript gives on
+                                        // the person behind a bubble. Inert while the backdrop is
+                                        // up, like every other target on the row.
+                                        .addIf(!selecting) {
+                                            Modifier.clickable {
+                                                onAction(ChatAction.ViewMemberProfile(sender.userId))
+                                            }
+                                        },
                                 )
                             }
                         }

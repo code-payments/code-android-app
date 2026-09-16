@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupAccess
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
@@ -109,12 +110,23 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             ChatAction.JoinChat -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)
 
             is ChatAction.ViewProfile -> {
-                // The triggers (top-bar tap, contact-card chevron) are only clickable for tip DMs
-                // (see State.canViewProfile), so no gating is needed here.
-                state.participant?.let {
-                    keyboard.hideIfVisible {
-                        navigator.push(ChatStep.Profile(it))
+                // The triggers (top-bar tap, info-card chevron) are only clickable for subjects
+                // that have a profile (see State.canViewProfile), so no gating is needed here.
+                // Which profile depends on the subject: a DM's is its counterparty's, and a group
+                // is its own — it has no participant to open one on.
+                keyboard.hideIfVisible {
+                    when (state.subject) {
+                        is ChatSubject.Group -> navigator.push(ChatStep.GroupProfile)
+                        else -> state.participant?.let { navigator.push(ChatStep.Profile(it)) }
                     }
+                }
+            }
+
+            is ChatAction.ViewMemberProfile -> {
+                // Resolved in the view model: the profile that drew the picture in the gutter is
+                // the one to open, and the transcript already holds it.
+                viewModel.memberParticipant(action.userId)?.let {
+                    keyboard.hideIfVisible { navigator.push(ChatStep.Profile(it)) }
                 }
             }
         }
