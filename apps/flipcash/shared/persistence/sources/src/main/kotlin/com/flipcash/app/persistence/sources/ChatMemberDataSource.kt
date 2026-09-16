@@ -109,6 +109,17 @@ class ChatMemberDataSource @Inject constructor(
         }
     }
 
+    /**
+     * Drops one member of [chatId]. What a `MemberLeft` roster change applies — [replaceMembers]
+     * cannot, because a roster change names who left rather than who remains.
+     */
+    suspend fun deleteMember(chatId: ChatId, userId: ID) {
+        db?.chatMemberDao()?.deleteMember(
+            chatIdHex = mapper.chatIdHex(chatId),
+            userIdHex = mapper.userIdHex(userId),
+        )
+    }
+
     suspend fun deleteForChat(chatId: ChatId) {
         db?.chatMemberDao()?.deleteForChat(mapper.chatIdHex(chatId))
     }

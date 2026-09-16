@@ -14,6 +14,9 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+
     implementation(libs.bundles.kotlinx.serialization)
 
     implementation(libs.bundles.room)
