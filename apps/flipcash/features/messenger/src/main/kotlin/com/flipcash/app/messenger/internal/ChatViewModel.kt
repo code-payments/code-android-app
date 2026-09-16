@@ -524,16 +524,32 @@ internal class ChatViewModel @Inject constructor(
      * [ChatParticipant.Contact] wraps a device contact and carries no user id, so the participant
      * is not a usable source for a counterparty's colour.
      */
+    /**
+     * Who the citation says said it.
+     *
+     * A DM's counterparty is the chat's, so the participant answers for every message they sent.
+     * A group has no counterparty and a different name per message, so the answer is the cited
+     * sender's own profile — the same map the transcript draws their bubble from. Missing means
+     * the device has never seen them, which a request fixes for the next emission; the strip
+     * showing a blank name is what it looked like before.
+     */
+    private suspend fun ChatMessage.quoteAuthorName(): String {
+        if (isFromSelf) return resources.getString(R.string.title_you)
+
+        val profiles = senderProfiles.value ?: return stateFlow.value.participant?.name.orEmpty()
+        val senderId = senderId ?: return ""
+        val profile = profiles[senderId.hexEncodedString()]
+            ?: return "".also { chatCoordinator.requestSenderProfile(senderId) }
+
+        return profile.displayName
+    }
+
     private suspend fun ChatMessage.toQuote(): ChatQuote {
         val body = content.firstOrNull()
         val palette = senderId?.let { generateComplementaryColorPalette(it) }
         return ChatQuote(
             messageId = messageId,
-            authorName = if (isFromSelf) {
-                resources.getString(R.string.title_you)
-            } else {
-                stateFlow.value.participant?.name.orEmpty()
-            },
+            authorName = quoteAuthorName(),
             snippet = when (body) {
                 is MessageContent.Cash -> ChatQuoteSnippet.Cash(
                     amount = body.amount,
