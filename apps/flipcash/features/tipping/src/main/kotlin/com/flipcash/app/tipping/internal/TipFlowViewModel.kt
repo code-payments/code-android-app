@@ -4,8 +4,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.data.Loadable
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.shareable.ShareSheetController
@@ -21,18 +19,15 @@ import com.flipcash.shared.chat.ui.toConversationReference
 import com.flipcash.shared.tipping.TippingCoordinator
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 internal class TipFlowViewModel @Inject constructor(
     chatCoordinator: ChatCoordinator,
@@ -41,7 +36,6 @@ internal class TipFlowViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     shareable: ShareSheetController,
     tipCodePreviewCache: TipCodePreviewCache,
-    featureFlags: FeatureFlagController,
     private val resources: ResourceHelper,
 ) : BaseViewModel<TipFlowViewModel.State, TipFlowViewModel.Event>(
     initialState = State(),
@@ -93,14 +87,7 @@ internal class TipFlowViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         combine(
-            featureFlags.observe(FeatureFlag.GroupChats)
-                .flatMapLatest { groupsOn ->
-                    if (groupsOn) {
-                        chatCoordinator.feed(ChatType.TIP_DM, ChatType.GROUP)
-                    } else {
-                        chatCoordinator.feed(ChatType.TIP_DM)
-                    }
-                },
+            chatCoordinator.feed(ChatType.TIP_DM, ChatType.GROUP),
             tokenCoordinator.tokens,
         ) { summaries, tokens ->
             val selfId = userManager.accountId
