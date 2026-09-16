@@ -167,8 +167,6 @@ class GroupChatRoutingTest {
         subject.onUserLoggedIn(mockk<AccountCluster>(relaxed = true))
         runCurrent()
 
-        // Unconditional: the GroupChats flag filters the list, it does not decide whether the
-        // cache is populated. Gating the fetch here made the toggle a no-op until the next launch.
         coVerify { groupFeedDelegate.syncGroupFeed() }
         subject.teardown()
     }

@@ -123,11 +123,6 @@ class RealChatCoordinator @Inject constructor(
         feedDelegate.observeFeedFromDb()
         feedDelegate.syncFeed()
         groupFeedDelegate.initialize(scope)
-        // Synced unconditionally. The GroupChats flag filters the chat list, and every read of
-        // this cache is already scoped to the chat types its caller asked for, so a group sitting
-        // in the database with the flag off is invisible rather than latent. Gating the fetch
-        // instead made the toggle do nothing until the process restarted, and contradicted the
-        // roster-change routing below, which was never gated.
         groupFeedDelegate.syncGroupFeed()
         eventStreamDelegate.open()
         eventStreamDelegate.startHeartbeat { feedDelegate.syncFeed() }
