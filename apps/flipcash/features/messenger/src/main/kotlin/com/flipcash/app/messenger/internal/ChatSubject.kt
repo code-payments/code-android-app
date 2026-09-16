@@ -86,3 +86,16 @@ sealed interface ChatSubject {
         override fun asParticipant(): ChatParticipant? = null
     }
 }
+
+/**
+ * The subject for a DM counterparty.
+ *
+ * The bridge in the other direction from [ChatSubject.asParticipant]: the profile route still
+ * carries a [ChatParticipant] through navigation, and its header renders the same avatar the
+ * conversation bar does. A group has no participant to arrive here with, so `null` in is `null` out.
+ */
+internal fun ChatParticipant?.asSubject(): ChatSubject? = when (this) {
+    is ChatParticipant.Contact -> ChatSubject.Contact(this)
+    is ChatParticipant.TipUser -> ChatSubject.TipUser(this)
+    null -> null
+}

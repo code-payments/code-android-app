@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.messenger.internal.asSubject
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.UserProfile
@@ -67,8 +68,8 @@ internal fun ContactInfoContainer(
             },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ParticipantAvatar(
-            participant = participant,
+        ChatSubjectAvatar(
+            subject = participant.asSubject(),
             modifier = Modifier
                 .size(CodeTheme.dimens.staticGrid.x17)
                 .clip(CircleShape),

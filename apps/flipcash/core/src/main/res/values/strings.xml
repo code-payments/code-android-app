@@ -250,6 +250,12 @@
         <item quantity="other">%1$s members</item>
     </plurals>
 
+    <plurals name="subtitle_chatMemberCount">
+        <item quantity="zero">0 people</item>
+        <item quantity="one">1 person</item>
+        <item quantity="other">%1$s people</item>
+    </plurals>
+
     <string name="action_addCash">Add Cash</string>
     <string name="title_selectMethod">Select Method</string>
     <string name="title_amountToAdd">Amount to Add</string>

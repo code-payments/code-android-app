@@ -22,7 +22,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.menu.MenuList
-import com.flipcash.app.messenger.internal.screens.components.ParticipantAvatar
+import com.flipcash.app.messenger.internal.asSubject
+import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.features.messenger.R
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
@@ -91,8 +92,8 @@ internal fun ProfileHeader(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ParticipantAvatar(
-            participant = participant,
+        ChatSubjectAvatar(
+            subject = participant.asSubject(),
             modifier = Modifier
                 .size(CodeTheme.dimens.staticGrid.x17)
                 .clip(CircleShape),
