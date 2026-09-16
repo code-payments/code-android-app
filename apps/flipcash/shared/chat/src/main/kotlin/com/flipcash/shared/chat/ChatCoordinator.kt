@@ -169,6 +169,16 @@ interface MessagingOperations {
     /** Observes the member list for [chatId]. */
     fun observeMembers(chatId: ChatId): Flow<List<ChatMember>>
 
+    /**
+     * One chat's metadata and this device's membership of it, re-emitted on change, or `null`
+     * while the chat is not stored locally.
+     *
+     * Rebuilt per emission the way the feed builds a summary: the row supplies title, picture,
+     * roster summary and rules, the member table supplies the roster subset, and the message table
+     * supplies the last message.
+     */
+    fun observeMetadata(chatId: ChatId): Flow<ChatMembership?>
+
     /** Observes the other member's read pointer in [chatId] (for read receipts). */
     fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?>
 
