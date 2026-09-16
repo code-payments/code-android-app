@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.converters.ChatRulesSerialized
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
+import com.flipcash.services.models.chat.MediaItem
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -47,6 +49,12 @@ class ChatMetadataDaoTest {
         latestEventSequence: Long = 0,
         isHidden: Boolean = false,
         analyticsCountedThrough: Long = 0,
+        title: String? = null,
+        pictureJson: MediaItem? = null,
+        memberCount: Long = 0,
+        rosterVersion: Long = 0,
+        rulesJson: ChatRulesSerialized? = null,
+        isMember: Boolean = true,
     ) = ChatMetadataEntity(
         chatIdHex = chatIdHex,
         chatType = chatType,
@@ -55,6 +63,12 @@ class ChatMetadataDaoTest {
         latestEventSequence = latestEventSequence,
         isHidden = isHidden,
         analyticsCountedThrough = analyticsCountedThrough,
+        title = title,
+        pictureJson = pictureJson,
+        memberCount = memberCount,
+        rosterVersion = rosterVersion,
+        rulesJson = rulesJson,
+        isMember = isMember,
     )
 
     @Test
@@ -114,6 +128,59 @@ class ChatMetadataDaoTest {
 
         assertEquals(9L, dao.getLatestEventSequence(CHAT_HEX))
         assertEquals(4L, dao.getLatestEventSequence(OTHER_HEX))
+    }
+
+    @Test
+    fun `group columns round-trip through an insert`() = runTest {
+        dao.upsert(
+            entity(
+                chatType = "GROUP",
+                title = "Flipcash Staff",
+                memberCount = 12,
+                rosterVersion = 4,
+                isMember = true,
+            )
+        )
+
+        val stored = dao.getById(CHAT_HEX)
+
+        assertEquals("Flipcash Staff", stored?.title)
+        assertEquals(12L, stored?.memberCount)
+        assertEquals(4L, stored?.rosterVersion)
+        assertEquals(true, stored?.isMember)
+    }
+
+    @Test
+    fun `upsert refreshes the flat group columns`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", title = "Old title", isMember = true))
+
+        dao.upsert(entity(chatType = "GROUP", title = "New title", isMember = false))
+
+        val stored = dao.getById(CHAT_HEX)
+        assertEquals("New title", stored?.title)
+        assertEquals(false, stored?.isMember)
+    }
+
+    @Test
+    fun `a newer roster version replaces the roster columns`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", memberCount = 12, rosterVersion = 4))
+
+        dao.upsert(entity(chatType = "GROUP", memberCount = 13, rosterVersion = 5))
+
+        val stored = dao.getById(CHAT_HEX)
+        assertEquals(13L, stored?.memberCount)
+        assertEquals(5L, stored?.rosterVersion)
+    }
+
+    @Test
+    fun `an older roster version leaves the roster columns alone`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", memberCount = 12, rosterVersion = 4))
+
+        dao.upsert(entity(chatType = "GROUP", memberCount = 0, rosterVersion = 0))
+
+        val stored = dao.getById(CHAT_HEX)
+        assertEquals(12L, stored?.memberCount)
+        assertEquals(4L, stored?.rosterVersion)
     }
 
     private companion object {

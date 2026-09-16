@@ -7,4 +7,7 @@ data class ChatUpdate(
     val metadataUpdates: List<MetadataUpdate> = emptyList(),
     val events: List<ChatEvent> = emptyList(),
     val reactionUpdates: List<ReactionUpdate> = emptyList(),
+    // Convergent, like reactionUpdates and unlike events: applied by RosterSummary.version,
+    // never gap-filled. See RosterChange.
+    val rosterUpdates: List<RosterChange> = emptyList(),
 )

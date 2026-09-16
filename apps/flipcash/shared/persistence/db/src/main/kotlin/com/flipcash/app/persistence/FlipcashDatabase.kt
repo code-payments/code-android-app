@@ -94,8 +94,9 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 30, to = 31), // user_profiles.username (nullable)
         AutoMigration(from = 31, to = 32, spec = FlipcashDatabase.Migration31To32::class),
         AutoMigration(from = 32, to = 33), // chat_messages index on (chat_id_hex, timestamp_epoch_ms)
+        AutoMigration(from = 33, to = 34), // chat_metadata group columns: title, picture, roster, rules, membership
     ],
-    version = 33,
+    version = 34,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {

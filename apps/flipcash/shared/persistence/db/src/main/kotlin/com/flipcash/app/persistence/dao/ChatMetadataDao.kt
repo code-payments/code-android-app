@@ -5,7 +5,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import com.flipcash.app.persistence.converters.ChatRulesSerialized
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
+import com.flipcash.services.models.chat.MediaItem
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -23,13 +25,18 @@ interface ChatMetadataDao {
     /**
      * Overwrites only the columns the server owns. `latest_event_sequence` and
      * `analytics_counted_through` are client-owned watermarks that no server payload
-     * carries, so they are deliberately absent here.
+     * carries, so they are deliberately absent here. The roster columns are absent too —
+     * they are versioned, and go through [updateRosterIfNewer].
      */
     @Query(
         "UPDATE chat_metadata SET chat_type = :chatType, " +
             "last_activity_epoch_ms = :lastActivityEpochMs, " +
             "last_message_id = :lastMessageId, " +
-            "is_hidden = :isHidden " +
+            "is_hidden = :isHidden, " +
+            "title = :title, " +
+            "picture_json = :pictureJson, " +
+            "rules_json = :rulesJson, " +
+            "is_member = :isMember " +
             "WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun updateServerOwnedFields(
@@ -38,7 +45,25 @@ interface ChatMetadataDao {
         lastActivityEpochMs: Long,
         lastMessageId: Long?,
         isHidden: Boolean,
+        title: String?,
+        pictureJson: MediaItem?,
+        rulesJson: ChatRulesSerialized?,
+        isMember: Boolean,
     )
+
+    /**
+     * Applies a roster snapshot only when it is strictly newer than the stored one.
+     *
+     * `RosterSummary.version` advances by exactly one on every membership change, so a write
+     * carrying an older or equal version has nothing new to say. Guarding on it here is what
+     * stops a `ChatMetadata` rebuilt from the database — which reports version 0 — from
+     * clobbering a real member count on its way back through an upsert.
+     */
+    @Query(
+        "UPDATE chat_metadata SET member_count = :memberCount, roster_version = :rosterVersion " +
+            "WHERE chat_id_hex = :chatIdHex AND :rosterVersion > roster_version"
+    )
+    suspend fun updateRosterIfNewer(chatIdHex: String, memberCount: Long, rosterVersion: Long)
 
     /**
      * Inserts a new chat, or refreshes an existing one's server-owned columns in place.
@@ -59,6 +84,15 @@ interface ChatMetadataDao {
             lastActivityEpochMs = entity.lastActivityEpochMs,
             lastMessageId = entity.lastMessageId,
             isHidden = entity.isHidden,
+            title = entity.title,
+            pictureJson = entity.pictureJson,
+            rulesJson = entity.rulesJson,
+            isMember = entity.isMember,
+        )
+        updateRosterIfNewer(
+            chatIdHex = entity.chatIdHex,
+            memberCount = entity.memberCount,
+            rosterVersion = entity.rosterVersion,
         )
     }
 

@@ -10,7 +10,12 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.handle
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.RosterSummary
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import kotlin.time.Instant
@@ -117,6 +122,76 @@ class ChatEntityMapperTest {
             entity(MessageContent.Deleted(deletedTs = Instant.fromEpochSeconds(2_000), deletedBy = listOf(0xAB.toByte()))).isDeleted,
         )
         assertEquals(false, entity(MessageContent.Text("still here")).isDeleted)
+    }
+
+    private fun groupMetadata() = ChatMetadata(
+        chatId = ChatId(CHAT_HEX),
+        type = ChatType.GROUP,
+        members = emptyList(),
+        lastMessage = null,
+        lastActivity = Instant.fromEpochSeconds(1_000),
+        title = "Flipcash Staff",
+        picture = null,
+        rosterSummary = RosterSummary(memberCount = 12, version = 4),
+        rules = ChatRules(
+            listener = listOf(ChatRuleRequirement.Staff),
+            speaker = listOf(
+                ChatRuleRequirement.MinimumBalance(
+                    amount = Fiat(quarks = 500, currencyCode = CurrencyCode.USD),
+                    mints = emptyList(),
+                )
+            ),
+        ),
+    )
+
+    @Test
+    fun `group metadata writes its identity and roster onto the row`() {
+        val entity = mapper.toEntity(groupMetadata())
+
+        assertEquals("Flipcash Staff", entity.title)
+        assertEquals(12L, entity.memberCount)
+        assertEquals(4L, entity.rosterVersion)
+        assertEquals(true, entity.isMember)
+    }
+
+    @Test
+    fun `a chat written as a non-member is marked as one`() {
+        val entity = mapper.toEntity(groupMetadata(), isMember = false)
+
+        assertEquals(false, entity.isMember)
+    }
+
+    @Test
+    fun `group rules survive the round trip`() {
+        val entity = mapper.toEntity(groupMetadata())
+
+        val restored = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
+
+        assertEquals(listOf(ChatRuleRequirement.Staff), restored.rules?.listener)
+        val speaker = restored.rules?.speaker?.single() as ChatRuleRequirement.MinimumBalance
+        assertEquals(500L, speaker.amount.quarks)
+        assertEquals(CurrencyCode.USD, speaker.amount.currencyCode)
+    }
+
+    @Test
+    fun `group identity and roster survive the round trip`() {
+        val entity = mapper.toEntity(groupMetadata())
+
+        val restored = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
+
+        assertEquals("Flipcash Staff", restored.title)
+        assertEquals(12L, restored.rosterSummary.memberCount)
+        assertEquals(4L, restored.rosterSummary.version)
+    }
+
+    @Test
+    fun `a DM keeps a null title and an empty roster`() {
+        val entity = mapper.toEntity(metadata(latestEventSequence = 0))
+
+        assertEquals(null, entity.title)
+        assertEquals(0L, entity.memberCount)
+        assertEquals(0L, entity.rosterVersion)
+        assertEquals(null, entity.rulesJson)
     }
 
     private companion object {
