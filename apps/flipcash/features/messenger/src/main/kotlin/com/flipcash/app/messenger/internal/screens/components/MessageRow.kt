@@ -214,7 +214,9 @@ internal fun MessageRow(
                 val sender = item.sender
                 val runStart = startsSenderRun(
                     current = item,
-                    older = messages.peek(index + 1),
+                    // Bounded: `peek` throws off the end of the snapshot, and the oldest loaded
+                    // message has no item above it — a one-message transcript crashed here.
+                    older = if (index + 1 < messages.itemCount) messages.peek(index + 1) else null,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
