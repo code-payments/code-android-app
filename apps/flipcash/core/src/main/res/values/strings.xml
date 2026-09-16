@@ -662,6 +662,7 @@
 
     <string name="title_settingsSectionFeatures">Features</string>
     <string name="title_settingsSectionDeveloper">Developer</string>
+    <string name="title_settingsSectionContracts">Contracts</string>
     <string name="subtitle_settingsUserFlags">User Flags</string>
     <string name="title_settingsSectionAccount">Account</string>
     <string name="title_userFlags">User Flags</string>

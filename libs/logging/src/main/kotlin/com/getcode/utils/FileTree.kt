@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import com.codeinc.flipcash.gen.Flipcash2ContractInfo
+import com.codeinc.opencode.gen.OcpContractInfo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -146,6 +148,8 @@ private fun buildDeviceHeader(context: Context): String {
         appendLine("=".repeat(60))
         appendLine("App Version:    $versionName ($versionCode)")
         appendLine("Package:        ${context.packageName}")
+        appendLine("OCP Contract:   ${OcpContractInfo.VERSION} (${OcpContractInfo.shortProtoCommit})")
+        appendLine("FC2 Contract:   ${Flipcash2ContractInfo.VERSION} (${Flipcash2ContractInfo.shortProtoCommit})")
         appendLine("User ID:        ${userId ?: "not set"}")
         appendLine("Device:         ${Build.MANUFACTURER} ${Build.MODEL}")
         appendLine("Android:        ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")

@@ -263,4 +263,12 @@ class FileTreeTest {
         assertTrue(content.contains("Android:"))
         assertTrue(content.contains("Exported:"))
     }
+
+    @Test
+    fun `exported log file names both contract packages`() {
+        Timber.d("contract check")
+        val content = fileTree.getLogFile()!!.readText()
+        assertTrue(content.contains("OCP Contract:"), "header has no OCP contract line")
+        assertTrue(content.contains("FC2 Contract:"), "header has no flipcash2 contract line")
+    }
 }
