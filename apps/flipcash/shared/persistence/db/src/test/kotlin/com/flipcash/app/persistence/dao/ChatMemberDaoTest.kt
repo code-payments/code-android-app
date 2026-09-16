@@ -123,6 +123,22 @@ class ChatMemberDaoTest {
         assertEquals(9L, dao.getMember(CHAT_HEX, SELF_HEX)?.pointersJson?.single()?.value)
     }
 
+    /**
+     * What a `MemberLeft` roster change applies. `deleteMembersNotIn` cannot express it: a roster
+     * change names who left, not who remains, and the stored member list for a large group is only
+     * a subset — passing it as the keep-list would delete everyone the subset omits.
+     */
+    @Test
+    fun `deleteMember drops one member and leaves the rest intact`() = runTest {
+        dao.upsert(member(readPointer(9)))
+        dao.upsert(member(readPointer(4, OTHER_HEX)).copy(userIdHex = OTHER_HEX))
+
+        dao.deleteMember(CHAT_HEX, OTHER_HEX)
+
+        assertNull(dao.getMember(CHAT_HEX, OTHER_HEX))
+        assertEquals(9L, dao.getMember(CHAT_HEX, SELF_HEX)?.pointersJson?.single()?.value)
+    }
+
     private companion object {
         const val CHAT_HEX = "aabb"
         const val SELF_HEX = "ccdd"

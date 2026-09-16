@@ -10,6 +10,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.paging.testing)
 
     implementation(libs.bundles.kotlinx.serialization)
 

@@ -5,6 +5,8 @@ package com.flipcash.shared.chat.internal
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
@@ -13,9 +15,11 @@ import com.flipcash.shared.chat.ChatState
 import com.flipcash.shared.chat.DmChatResolver
 import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.FeedOperations
+import com.flipcash.shared.chat.GroupOperations
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.internal.delegates.EventStreamDelegate
 import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
+import com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate
 import com.flipcash.shared.chat.internal.delegates.DmChatResolverDelegate
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -72,9 +76,11 @@ class RealChatCoordinator @Inject constructor(
     private val eventStreamDelegate: EventStreamDelegate,
     private val dmChatResolverDelegate: DmChatResolverDelegate,
     private val messagingDelegate: MessagingDelegate,
+    private val groupFeedDelegate: GroupFeedDelegate,
     private val stateHolder: ChatStateHolder,
     private val userManager: UserManager,
     private val networkObserver: NetworkConnectivityListener,
+    private val featureFlags: FeatureFlagController,
     private val dispatchers: DispatcherProvider,
 ) : ChatCoordinator,
     SessionListener,
@@ -82,7 +88,8 @@ class RealChatCoordinator @Inject constructor(
     FeedOperations by feedDelegate,
     EventStreamOperations by eventStreamDelegate,
     DmChatResolver by dmChatResolverDelegate,
-    MessagingOperations by messagingDelegate {
+    MessagingOperations by messagingDelegate,
+    GroupOperations by groupFeedDelegate {
 
     companion object {
         private const val TAG = "ChatCoordinator"
@@ -118,6 +125,12 @@ class RealChatCoordinator @Inject constructor(
         eventStreamDelegate.initialize(scope)
         feedDelegate.observeFeedFromDb()
         feedDelegate.syncFeed()
+        groupFeedDelegate.initialize(scope)
+        // The only gate on the branch. Everything behind it is built and tested; what it decides
+        // is whether the device asks the server for groups at all.
+        if (featureFlags.get(FeatureFlag.GroupChats)) {
+            groupFeedDelegate.syncGroupFeed()
+        }
         eventStreamDelegate.open()
         eventStreamDelegate.startHeartbeat { feedDelegate.syncFeed() }
     }
@@ -162,6 +175,16 @@ class RealChatCoordinator @Inject constructor(
                     is EventStreamDelegate.Event.SyncFeedRequested ->
                         feedDelegate.syncFeed()
                     is EventStreamDelegate.Event.LoadMessages ->
+                        messagingDelegate.loadMessages(event.chatId)
+                    is EventStreamDelegate.Event.RosterChanged ->
+                        groupFeedDelegate.applyRosterChanges(event.chatId, event.changes)
+                }
+            }.launchIn(scope)
+
+        groupFeedDelegate.events
+            .onEach { event ->
+                when (event) {
+                    is GroupFeedDelegate.Event.LoadMessages ->
                         messagingDelegate.loadMessages(event.chatId)
                 }
             }.launchIn(scope)
@@ -209,6 +232,7 @@ class RealChatCoordinator @Inject constructor(
         eventStreamDelegate.stopHeartbeat()
         eventStreamDelegate.close()
         feedDelegate.cancelJobs()
+        groupFeedDelegate.cancelJobs()
         networkObserverJob?.cancel()
         stateHolder.reset()
         eventStreamDelegate.clearAll()

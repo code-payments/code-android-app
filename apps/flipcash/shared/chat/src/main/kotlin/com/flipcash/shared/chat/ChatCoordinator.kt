@@ -23,11 +23,26 @@ import kotlinx.coroutines.flow.StateFlow
  * Implemented by [com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate].
  */
 interface FeedOperations {
-    /** Reactive list of [chatType] conversations, sorted by last activity. */
-    fun feed(chatType: ChatType): Flow<List<ChatSummary>>
+    /**
+     * Reactive list of conversations of any of [chatTypes], sorted by last activity.
+     *
+     * Several types at once because a group and a DM share one list on screen; asking for one
+     * type is still the common case and reads the same as it did.
+     */
+    fun feed(vararg chatTypes: ChatType): Flow<List<ChatSummary>>
 
-    /** Emits the number of [chatType] conversations that have unread messages. */
-    fun observeUnreadConversations(chatType: ChatType): Flow<Int>
+    /** Emits the number of conversations of any of [chatTypes] that have unread messages. */
+    fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int>
+
+    /**
+     * The same conversations as [feed], paged.
+     *
+     * Room is the page source and [com.flipcash.app.persistence.sources.mediator.ChatFeedRemoteMediator]
+     * fetches more when the local rows run out, so the list is not bounded by what one sync put in
+     * memory. Unlike [feed] it does not read [ChatState.feed], so the two can be collected at once
+     * without one starving the other.
+     */
+    fun feedPaged(vararg chatTypes: ChatType): Flow<PagingData<ChatSummary>>
 
     /** Triggers a server-side feed sync. Safe to call redundantly. */
     fun refreshFeed()
@@ -229,7 +244,28 @@ interface MessagingOperations {
  *
  * @see com.flipcash.shared.chat.internal.RealChatCoordinator
  */
-interface ChatCoordinator : FeedOperations, EventStreamOperations, DmChatResolver, MessagingOperations {
+/**
+ * Membership of a group chat.
+ *
+ * Implemented by [com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate].
+ */
+interface GroupOperations {
+    /** Joins [chatId], caching the chat so it is in the list before the next sync. */
+    suspend fun join(chatId: ChatId): Result<Unit>
+
+    /**
+     * Leaves [chatId]. The chat drops out of the list immediately and comes back if the call
+     * fails.
+     */
+    suspend fun leave(chatId: ChatId): Result<Unit>
+}
+
+interface ChatCoordinator :
+    FeedOperations,
+    EventStreamOperations,
+    DmChatResolver,
+    MessagingOperations,
+    GroupOperations {
     /** Full observable snapshot of chat state (feed, typing, reactions, active chat). */
     val state: StateFlow<ChatState>
 

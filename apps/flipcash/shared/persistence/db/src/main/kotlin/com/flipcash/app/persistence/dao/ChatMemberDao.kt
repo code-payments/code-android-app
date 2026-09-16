@@ -114,6 +114,10 @@ interface ChatMemberDao {
     )
     suspend fun deleteMembersNotIn(chatIdHex: String, keepUserIdHexes: List<String>)
 
+    /** Drops one member of [chatIdHex]. What a `MemberLeft` roster change applies. */
+    @Query("DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex AND user_id_hex = :userIdHex")
+    suspend fun deleteMember(chatIdHex: String, userIdHex: String)
+
     @Query("DELETE FROM chat_members")
     suspend fun deleteAll()
 }

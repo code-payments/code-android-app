@@ -1,5 +1,6 @@
 package com.flipcash.app.persistence.sources
 
+import androidx.paging.PagingSource
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
@@ -24,6 +25,44 @@ class ChatMetadataDataSource @Inject constructor(
 
     fun observeAll(): Flow<List<ChatMetadataEntity>> =
         db?.chatMetadataDao()?.observeAll() ?: emptyFlow()
+
+    /**
+     * The merged feed of [chatTypes] as a Paging source.
+     *
+     * Unlike every other read here, a closed database cannot answer with an empty result: Paging
+     * would present that as "no conversations" and stop asking. An error keeps the list in its
+     * loading state and lets the caller retry once the database is open.
+     */
+    fun observeFeedPaged(chatTypes: List<ChatType>): PagingSource<Int, ChatMetadataEntity> =
+        db?.chatMetadataDao()?.observeFeedPaged(chatTypes.map { it.name })
+            ?: emptyPagingSource()
+
+    /** The chats of [chatType] this device still considers the user a member of, keyed by hex. */
+    suspend fun getChatIdsOfType(chatType: ChatType): List<String> =
+        db?.chatMetadataDao()?.getChatIdsOfType(chatType.name).orEmpty()
+
+    suspend fun setMembership(chatId: ChatId, isMember: Boolean) {
+        setMembership(mapper.chatIdHex(chatId), isMember)
+    }
+
+    suspend fun setMembership(chatIdHex: String, isMember: Boolean) {
+        db?.chatMetadataDao()?.updateMembership(chatIdHex, isMember)
+    }
+
+    /** The roster version already applied to [chatId]; 0 when the chat is not stored yet. */
+    suspend fun getRosterVersion(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getRosterVersion(mapper.chatIdHex(chatId)) ?: 0L
+
+    suspend fun updateRoster(chatId: ChatId, memberCount: Long, rosterVersion: Long) {
+        db?.chatMetadataDao()?.updateRosterIfNewer(
+            chatIdHex = mapper.chatIdHex(chatId),
+            memberCount = memberCount,
+            rosterVersion = rosterVersion,
+        )
+    }
+
+    /** The hex a [chatId] is keyed by. Callers comparing against [getChatIdsOfType] need it. */
+    fun chatIdHex(chatId: ChatId): String = mapper.chatIdHex(chatId)
 
     suspend fun upsert(metadata: ChatMetadata) {
         db?.chatMetadataDao()?.upsert(mapper.toEntity(metadata))
@@ -81,5 +120,11 @@ class ChatMetadataDataSource @Inject constructor(
 
     suspend fun clear() {
         db?.chatMetadataDao()?.deleteAll()
+    }
+
+    private fun emptyPagingSource() = object : PagingSource<Int, ChatMetadataEntity>() {
+        override fun getRefreshKey(state: androidx.paging.PagingState<Int, ChatMetadataEntity>): Int? = null
+        override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ChatMetadataEntity> =
+            LoadResult.Error(Exception("Database not initialized"))
     }
 }

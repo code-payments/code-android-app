@@ -1,6 +1,7 @@
 package com.flipcash.app.persistence.dao
 
 import android.content.Context
+import androidx.paging.PagingSource
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.flipcash.app.persistence.FlipcashDatabase
@@ -181,6 +182,102 @@ class ChatMetadataDaoTest {
         val stored = dao.getById(CHAT_HEX)
         assertEquals(12L, stored?.memberCount)
         assertEquals(4L, stored?.rosterVersion)
+    }
+
+    /**
+     * One ordering across every type is the whole point of the merged feed: a group that belongs
+     * between two DMs has to come back between them, not after all of them.
+     */
+    @Test
+    fun `the paged feed orders every type together, newest first`() = runTest {
+        dao.upsert(entity(chatIdHex = "01", chatType = "CONTACT_DM", lastActivityEpochMs = 3_000))
+        dao.upsert(entity(chatIdHex = "02", chatType = "GROUP", lastActivityEpochMs = 2_000))
+        dao.upsert(entity(chatIdHex = "03", chatType = "TIP_DM", lastActivityEpochMs = 1_000))
+
+        val page = dao.observeFeedPaged(listOf("CONTACT_DM", "TIP_DM", "GROUP")).load(
+            PagingSource.LoadParams.Refresh(null, 10, false)
+        ) as PagingSource.LoadResult.Page
+
+        assertEquals(listOf("01", "02", "03"), page.data.map { it.chatIdHex })
+    }
+
+    @Test
+    fun `the paged feed leaves out a type the caller did not ask for`() = runTest {
+        dao.upsert(entity(chatIdHex = "01", chatType = "CONTACT_DM", lastActivityEpochMs = 3_000))
+        dao.upsert(entity(chatIdHex = "02", chatType = "GROUP", lastActivityEpochMs = 2_000))
+
+        val page = dao.observeFeedPaged(listOf("CONTACT_DM")).load(
+            PagingSource.LoadParams.Refresh(null, 10, false)
+        ) as PagingSource.LoadResult.Page
+
+        assertEquals(listOf("01"), page.data.map { it.chatIdHex })
+    }
+
+    @Test
+    fun `the paged feed leaves out hidden chats and chats you are not in`() = runTest {
+        dao.upsert(entity(chatIdHex = "01", chatType = "GROUP", lastActivityEpochMs = 3_000))
+        dao.upsert(entity(chatIdHex = "02", chatType = "GROUP", lastActivityEpochMs = 2_000, isHidden = true))
+        dao.upsert(entity(chatIdHex = "03", chatType = "GROUP", lastActivityEpochMs = 1_000, isMember = false))
+
+        val page = dao.observeFeedPaged(listOf("GROUP")).load(
+            PagingSource.LoadParams.Refresh(null, 10, false)
+        ) as PagingSource.LoadResult.Page
+
+        assertEquals(listOf("01"), page.data.map { it.chatIdHex })
+    }
+
+    /**
+     * Two chats can share a last-activity timestamp, and `ORDER BY` alone would then leave their
+     * relative order up to SQLite. Paging asks for the next page by offset, so an unstable order
+     * duplicates one row and drops the other.
+     */
+    @Test
+    fun `chats sharing a last activity break the tie on chat id`() = runTest {
+        dao.upsert(entity(chatIdHex = "01", lastActivityEpochMs = 3_000))
+        dao.upsert(entity(chatIdHex = "02", lastActivityEpochMs = 3_000))
+        dao.upsert(entity(chatIdHex = "03", lastActivityEpochMs = 3_000))
+
+        val page = dao.observeFeedPaged(listOf("CONTACT_DM")).load(
+            PagingSource.LoadParams.Refresh(null, 10, false)
+        ) as PagingSource.LoadResult.Page
+
+        assertEquals(listOf("03", "02", "01"), page.data.map { it.chatIdHex })
+    }
+
+    /**
+     * What the mediator compares a complete pass against. Only the chats the caller is still in —
+     * one already cleared is not a removal to rediscover.
+     */
+    @Test
+    fun `the id listing covers the chats of one type you are still in`() = runTest {
+        dao.upsert(entity(chatIdHex = "01", chatType = "GROUP"))
+        dao.upsert(entity(chatIdHex = "02", chatType = "GROUP", isMember = false))
+        dao.upsert(entity(chatIdHex = "03", chatType = "CONTACT_DM"))
+
+        assertEquals(listOf("01"), dao.getChatIdsOfType("GROUP"))
+    }
+
+    @Test
+    fun `membership can be taken away and given back without touching the row`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", title = "Flipcash Staff", memberCount = 12, rosterVersion = 4))
+
+        dao.updateMembership(CHAT_HEX, isMember = false)
+
+        val left = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(false, left.isMember)
+        assertEquals("Flipcash Staff", left.title)
+        assertEquals(12L, left.memberCount)
+
+        dao.updateMembership(CHAT_HEX, isMember = true)
+        assertEquals(true, dao.getById(CHAT_HEX)?.isMember)
+    }
+
+    @Test
+    fun `the roster version reads back, and is null for a chat that is not there`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", memberCount = 12, rosterVersion = 4))
+
+        assertEquals(4L, dao.getRosterVersion(CHAT_HEX))
+        assertEquals(null, dao.getRosterVersion(OTHER_HEX))
     }
 
     private companion object {
