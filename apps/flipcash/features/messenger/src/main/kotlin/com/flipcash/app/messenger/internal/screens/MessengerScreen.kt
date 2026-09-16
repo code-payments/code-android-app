@@ -16,11 +16,13 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.GroupAccess
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
+import com.getcode.ui.components.BlurredContent
 import com.flipcash.shared.chat.models.ChatAction
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.theme.CodeScaffold
@@ -104,6 +106,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
             }
 
+            ChatAction.JoinChat -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)
+
             is ChatAction.ViewProfile -> {
                 // The triggers (top-bar tap, contact-card chevron) are only clickable for tip DMs
                 // (see State.canViewProfile), so no gating is needed here.
@@ -151,20 +155,28 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             )
         },
     ) { overlapPadding ->
-        MessageList(
-            modifier = Modifier
-                .fillMaxSize()
-                .testTag("chat_message_list")
-                .softTopEdge(ChatTopEdge.blurHold(barHeight))
-                .hazeSource(hazeState),
-            state = state,
-            contentPadding = overlapPadding,
-            messages = messages,
-            separatorConfig = state.separatorConfig,
-            otherReadPointer = otherReadPointer,
-            onAction = chatActionHandler,
-            canViewProfile = state.canViewProfile,
-            onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
-        )
+        // The transcript and the info card go behind a blur together, because they are one surface
+        // to the reader: legible metadata over an unreadable conversation would be the gate half
+        // open. The title bar stays sharp — it is how a non-member knows what they are looking at.
+        BlurredContent(
+            modifier = Modifier.fillMaxSize(),
+            enabled = state.groupAccess != null && state.groupAccess != GroupAccess.Membered,
+        ) {
+            MessageList(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("chat_message_list")
+                    .softTopEdge(ChatTopEdge.blurHold(barHeight))
+                    .hazeSource(hazeState),
+                state = state,
+                contentPadding = overlapPadding,
+                messages = messages,
+                separatorConfig = state.separatorConfig,
+                otherReadPointer = otherReadPointer,
+                onAction = chatActionHandler,
+                canViewProfile = state.canViewProfile,
+                onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
+            )
+        }
     }
 }

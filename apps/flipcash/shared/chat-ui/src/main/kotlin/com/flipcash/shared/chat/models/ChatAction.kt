@@ -10,6 +10,9 @@ sealed interface ChatAction {
     data class ViewToken(val mint: Mint) : ChatAction
     data object ViewProfile : ChatAction
 
+    /** Joins the group this screen is showing. */
+    data object JoinChat : ChatAction
+
     /**
      * Adds [bubble] to the selection, or removes it if it is already selected.
      *

@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.GroupAccess
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.features.messenger.R
@@ -69,6 +70,15 @@ internal fun UserControlBottomBar(
 ) {
     if (state.isAnonymous) {
         DeactivatedChatBottomBar()
+        return
+    }
+
+    // The same shape as the block above it, and for the same reason: there is no composer to
+    // configure when the viewer cannot post. Membered is not a gate, so it falls through to the
+    // composer like any DM.
+    val access = state.groupAccess
+    if (access != null && access != GroupAccess.Membered) {
+        GroupGateBar(access = access, ticker = state.ruleTicker)
         return
     }
 

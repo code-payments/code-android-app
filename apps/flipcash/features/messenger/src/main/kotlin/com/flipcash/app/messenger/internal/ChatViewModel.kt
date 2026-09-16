@@ -227,6 +227,11 @@ internal class ChatViewModel @Inject constructor(
          * Null until the token cache has it, and null for any chat without such a rule.
          */
         val ruleTicker: String? = null,
+        /**
+         * What this viewer may do here. Null for anything that is not a group — a DM has no gate,
+         * and rendering one from a default would blur every contact conversation in the app.
+         */
+        val groupAccess: GroupAccess? = null,
     ) {
         /**
          * The DM counterparty, or `null` for a group.
@@ -272,6 +277,12 @@ internal class ChatViewModel @Inject constructor(
 
         /** The token cache learned the symbol behind the group's balance requirement. */
         data class OnRuleTickerResolved(val ticker: String?) : Event
+
+        /** The gate re-decided, because membership, the rules, or the balance moved. */
+        data class OnGroupAccessResolved(val access: GroupAccess) : Event
+
+        /** The gate's "Join Chat" button. */
+        data object JoinChat : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data class OnChatInitFeeUpdated(val formatted: String?) : Event
         data object RefreshContact : Event
@@ -793,6 +804,22 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnRuleTickerResolved(it)) }
             .launchIn(viewModelScope)
 
+        // Re-resolved whenever membership or the rules move, and internally whenever the balance
+        // does. flatMapLatest rather than combine because the balance flow is the inner one: a new
+        // subject must cancel the gate it was deciding, not race it.
+        stateFlow.map { it.subject as? ChatSubject.Group }
+            .distinctUntilChanged()
+            .flatMapLatest { group ->
+                if (group == null) {
+                    flowOf(null)
+                } else {
+                    tokenCoordinator.groupAccess(isMember = group.isMember, rules = group.rules)
+                }
+            }
+            .filterNotNull()
+            .onEach { dispatchEvent(Event.OnGroupAccessResolved(it)) }
+            .launchIn(viewModelScope)
+
         // Observe member identity — if the other member loses identity (e.g. unlinked
         // their phone), mark the chat as read-only. Gated by chat type through the same rule the
         // feed filters on, so a tip DM — addressed by user id, named by handle — is never
@@ -1015,6 +1042,17 @@ internal class ChatViewModel @Inject constructor(
                     // out of, which reads as a second confirmation still pending.
                     onDismiss = { dispatchEvent(Event.ClearMessageSelection) },
                 )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.JoinChat>()
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                // No optimistic flip. `join` caches the chat and the membership flag comes back
+                // through observeMetadata, which is the same path a join from another device takes —
+                // one source for the gate rather than two that can disagree.
+                chatCoordinator.join(chatId)
+                    .onFailure { trace("failed to join chat - ${it.localizedMessage}") }
             }
             .launchIn(viewModelScope)
 
@@ -1428,6 +1466,8 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 is Event.OnRuleTickerResolved -> { state -> state.copy(ruleTicker = event.ticker) }
+                is Event.OnGroupAccessResolved -> { state -> state.copy(groupAccess = event.access) }
+                Event.JoinChat -> { state -> state }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the

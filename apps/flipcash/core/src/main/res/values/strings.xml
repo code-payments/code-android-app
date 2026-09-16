@@ -893,6 +893,11 @@
     <string name="label_addContact">Add Contact</string>
     <string name="label_chat_balanceRequirement">Balance Requirement: %1$s of $%2$s</string>
     <string name="label_chat_balanceRequirement_anyToken">Balance Requirement: %1$s</string>
+    <string name="subtitle_chatGate_minimumBalance">Minimum Balance: %1$s of $%2$s</string>
+    <string name="subtitle_chatGate_minimumBalance_anyToken">Minimum Balance: %1$s</string>
+    <string name="subtitle_chatGate_staffOnly">This chat is open to Flipcash staff only.</string>
+    <string name="action_buyMoreToken">Buy More $%1$s</string>
+    <string name="action_joinChat">Join Chat</string>
 
     <string name="prompt_title_cancelCashLinkPostShare">Are You Sure?</string>
     <string name="prompt_description_cancelCashLinkPostShare">Anyone you sent the link to won\'t be able to collect the cash</string>
