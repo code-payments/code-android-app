@@ -34,6 +34,16 @@ interface FeedOperations {
     /** Emits the number of conversations of any of [chatTypes] that have unread messages. */
     fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int>
 
+    /**
+     * The same conversations as [feed], paged.
+     *
+     * Room is the page source and [com.flipcash.app.persistence.sources.mediator.ChatFeedRemoteMediator]
+     * fetches more when the local rows run out, so the list is not bounded by what one sync put in
+     * memory. Unlike [feed] it does not read [ChatState.feed], so the two can be collected at once
+     * without one starving the other.
+     */
+    fun feedPaged(vararg chatTypes: ChatType): Flow<PagingData<ChatSummary>>
+
     /** Triggers a server-side feed sync. Safe to call redundantly. */
     fun refreshFeed()
 

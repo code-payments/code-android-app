@@ -1,9 +1,18 @@
+@file:OptIn(ExperimentalPagingApi::class)
+
 package com.flipcash.shared.chat.internal.delegates
 
+import androidx.paging.ExperimentalPagingApi
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.filter
+import androidx.paging.map
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.mediator.ChatFeedRemoteMediator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
@@ -62,6 +71,10 @@ class FeedSyncDelegate @Inject constructor(
 
     companion object {
         private const val TAG = "FeedSyncDelegate"
+
+        // The feed's rows are cheap and the merge in the mediator costs a round trip per source
+        // per page, so this is larger than it would be for a transcript.
+        private const val FEED_PAGE_SIZE = 20
     }
 
     sealed interface Event {
@@ -118,6 +131,42 @@ class FeedSyncDelegate @Inject constructor(
 
     override fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int> {
         return feed(*chatTypes).map { summaries -> summaries.count { it.unreadCount > 0 } }
+    }
+
+    override fun feedPaged(vararg chatTypes: ChatType): Flow<PagingData<ChatSummary>> {
+        val types = chatTypes.toList()
+        return Pager(
+            config = PagingConfig(pageSize = FEED_PAGE_SIZE),
+            remoteMediator = ChatFeedRemoteMediator(
+                chatTypes = types,
+                controller = chatController,
+                metadataDataSource = metadataDataSource,
+                memberDataSource = memberDataSource,
+                messageDataSource = messageDataSource,
+            ),
+        ) {
+            metadataDataSource.observeFeedPaged(types)
+        }.flow.map { page ->
+            val selfId = userManager.accountId
+            val selfPhone = userManager.profile?.verifiedPhoneNumber
+            page
+                .map { entity -> toSummary(entity, selfId) }
+                // After the map, not before: the rules read a ChatMetadata, and PagingData carries
+                // entities until this point.
+                .filter { isRenderable(it.metadata, selfId, selfPhone) }
+        }
+    }
+
+    /**
+     * Rebuilds one row into a [ChatSummary], the same way [buildFeedFromDb] rebuilds the whole
+     * list — the members and the newest visible message are separate reads because the row holds
+     * neither.
+     */
+    private suspend fun toSummary(entity: ChatMetadataEntity, selfId: ID?): ChatSummary {
+        val members = memberDataSource.getMembersForChat(entity.chatIdHex)
+        val lastMessage = entity.lastMessageId?.let { messageDataSource.getLatestVisible(entity.chatIdHex) }
+        val metadata = metadataDataSource.toMetadata(entity, members, lastMessage)
+        return ChatSummary(metadata = metadata, unreadCount = unreadCount(metadata, selfId))
     }
 
     override fun refreshFeed() {
