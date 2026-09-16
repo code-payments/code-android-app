@@ -189,6 +189,17 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
                     navigator.navigate(AppRoute.UserFlags)
                 }
             }
+
+            item(contentType = "section_header") {
+                SectionHeader(
+                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                    title = stringResource(R.string.title_settingsSectionContracts)
+                )
+            }
+
+            items(contractInfo(), key = { it.name }, contentType = { "contract_info" }) { info ->
+                ContractInfoRow(info)
+            }
         }
     }
 }
