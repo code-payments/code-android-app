@@ -6,7 +6,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.chat.ui.ChatListRow
 import com.flipcash.shared.chat.ui.ChatRowSubtitle
 import com.flipcash.shared.chat.ui.ChatRowTrailing
@@ -29,7 +28,7 @@ internal fun TipChatRow(
             ContactAvatar(
                 image = chat.image,
                 displayName = chat.name.orEmpty(),
-                access = BlobAccessContext.profile(chat.userId),
+                access = chat.avatarAccess,
                 modifier = Modifier
                     .requiredSize(CodeTheme.dimens.staticGrid.x8)
                     .clip(CircleShape),

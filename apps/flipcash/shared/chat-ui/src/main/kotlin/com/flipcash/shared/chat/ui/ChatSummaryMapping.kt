@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.ui
 
 import com.flipcash.core.R
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.ChatSummary
@@ -27,13 +28,18 @@ fun ChatSummary.toConversationReference(
     tokensByMint: Map<Mint, Token>,
     resources: ResourceHelper,
 ): ConversationReference {
+    val isGroup = metadata.type == ChatType.GROUP
     val other = metadata.members.firstOrNull { it.userId != selfId }
     return ConversationReference(
         chatId = metadata.chatId,
-        userId = other?.userId,
-        displayName = other?.userProfile?.displayName,
-        handle = other?.userProfile?.handle,
-        image = other?.userProfile?.profilePicture,
+        // A group has no single counterparty, and passing one would name the row after whichever
+        // member happened to be first in a truncated roster.
+        userId = other?.userId.takeUnless { isGroup },
+        displayName = other?.userProfile?.displayName.takeUnless { isGroup },
+        handle = other?.userProfile?.handle.takeUnless { isGroup },
+        image = if (isGroup) metadata.picture else other?.userProfile?.profilePicture,
+        title = metadata.title,
+        isGroup = isGroup,
         lastMessagePreview = formatPreview(selfId, tokensByMint, resources),
         lastActivity = metadata.lastActivity,
         unreadCount = unreadCount,
@@ -47,7 +53,16 @@ private fun ChatSummary.formatPreview(
 ): String? {
     val lastMsg = metadata.lastMessage ?: return null
     val sentBySelf = lastMsg.senderId != null && lastMsg.senderId == selfId
-    return lastMsg.content.firstOrNull()?.previewText(sentBySelf, tokensByMint, resources)
+    // Only a group attributes, and only someone else's message: "You:" already covers the viewer's,
+    // and a DM's counterparty is the row's own name. Null when the roster subset does not have the
+    // sender — the list does not fetch profiles, so an unattributed body is the honest fallback.
+    val senderName = if (metadata.type == ChatType.GROUP && !sentBySelf) {
+        metadata.members.firstOrNull { it.userId == lastMsg.senderId }?.userProfile?.displayName
+    } else {
+        null
+    }
+    return lastMsg.content.firstOrNull()
+        ?.previewText(sentBySelf, senderName, tokensByMint, resources)
 }
 
 /**
@@ -58,6 +73,7 @@ private fun ChatSummary.formatPreview(
  */
 private fun MessageContent.previewText(
     sentBySelf: Boolean,
+    senderName: String?,
     tokensByMint: Map<Mint, Token>,
     resources: ResourceHelper,
     depth: Int = 0,
@@ -67,6 +83,8 @@ private fun MessageContent.previewText(
         when {
             message == null -> null
             sentBySelf -> resources.getString(R.string.label_chat_preview_sentMessage, message)
+            senderName != null ->
+                resources.getString(R.string.label_chat_preview_senderMessage, senderName, message)
             else -> message
         }
     }
@@ -85,13 +103,23 @@ private fun MessageContent.previewText(
         } else {
             formatted
         }
-        val previewRes = when (action) {
-            MessageContent.Cash.Action.TIPPED ->
-                if (sentBySelf) R.string.label_chat_preview_tippedCash else R.string.label_chat_preview_receivedCash
-            MessageContent.Cash.Action.SENT ->
-                if (sentBySelf) R.string.label_chat_preview_sentCash else R.string.label_chat_preview_receivedCash
+        // "You received" does not carry over: in a DM the cash came to the viewer, in a group it
+        // went to the group and the viewer may have got none of it.
+        if (senderName != null) {
+            val previewRes = when (action) {
+                MessageContent.Cash.Action.TIPPED -> R.string.label_chat_preview_tippedCash_bySender
+                MessageContent.Cash.Action.SENT -> R.string.label_chat_preview_sentCash_bySender
+            }
+            resources.getString(previewRes, senderName, label)
+        } else {
+            val previewRes = when (action) {
+                MessageContent.Cash.Action.TIPPED ->
+                    if (sentBySelf) R.string.label_chat_preview_tippedCash else R.string.label_chat_preview_receivedCash
+                MessageContent.Cash.Action.SENT ->
+                    if (sentBySelf) R.string.label_chat_preview_sentCash else R.string.label_chat_preview_receivedCash
+            }
+            resources.getString(previewRes, label)
         }
-        resources.getString(previewRes, label)
     }
 
     // A reply wraps what the sender actually typed, so it previews as that content would have
@@ -101,7 +129,7 @@ private fun MessageContent.previewText(
     is MessageContent.Reply -> if (depth >= MAX_REPLY_UNWRAP_DEPTH) {
         null
     } else {
-        content.firstOrNull()?.previewText(sentBySelf, tokensByMint, resources, depth + 1)
+        content.firstOrNull()?.previewText(sentBySelf, senderName, tokensByMint, resources, depth + 1)
     }
 
     // The feed carries the newest message that still has content, so a tombstone only

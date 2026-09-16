@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.ui
 
 import com.getcode.opencode.model.core.ID
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.nameOrHandle
@@ -24,6 +25,10 @@ data class ConversationReference(
     val handle: String? = null,
     /** Counterparty avatar media; resolve a URL via [MediaItem.url]. */
     val image: MediaItem? = null,
+    /** The chat's own title. Only groups have one; a DM is named by its counterparty. */
+    val title: String? = null,
+    /** Whether this row is a group. Decides where the name and the avatar's authority come from. */
+    val isGroup: Boolean = false,
     val lastMessagePreview: String? = null,
     /** The chat's last-activity timestamp; drives recency sorting and the row's trailing timestamp. */
     val lastActivity: Instant? = null,
@@ -31,10 +36,25 @@ data class ConversationReference(
     val isTyping: Boolean = false,
 ) {
     /**
-     * What to call the counterparty: [displayName] when they have one, [handle] when they don't.
+     * What to call this row: the chat's [title] for a group, otherwise the counterparty's
+     * [displayName], or their [handle] when they have no name.
      *
      * The same rule [com.flipcash.app.core.chat.ChatParticipant.name] applies in the messenger, so a
      * tip DM reads the same in the list as it does once opened.
      */
-    val name: String? get() = nameOrHandle(displayName, handle)
+    val name: String? get() = if (isGroup) title else nameOrHandle(displayName, handle)
+
+    /**
+     * What authorizes re-minting [image]'s download URL.
+     *
+     * A group's picture hangs off the chat's public profile, not a member's — passing a user id for
+     * it resolves nothing and the row falls back to initials. Answered here rather than at the call
+     * site so a row cannot get it wrong.
+     */
+    val avatarAccess: BlobAccessContext
+        get() = if (isGroup) {
+            BlobAccessContext.ChatProfile(chatId)
+        } else {
+            BlobAccessContext.profile(userId)
+        }
 }
