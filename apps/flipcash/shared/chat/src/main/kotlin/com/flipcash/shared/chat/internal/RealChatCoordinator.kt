@@ -45,7 +45,7 @@ import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Thin orchestration shell that implements [ChatCoordinator] by composing three
+ * Thin orchestration shell that implements [ChatCoordinator] by composing five
  * focused delegates via Kotlin `by` interface delegation:
  *
  * | Delegate | Interface | Responsibility |
@@ -54,13 +54,17 @@ import kotlin.time.Duration.Companion.seconds
  * | [EventStreamDelegate] | [EventStreamOperations] | Event stream, real-time updates, gap-aware sequencing, reactions, typing |
  * | [DmChatResolverDelegate] | [DmChatResolver] | Resolve a DM's [ChatId] from its participants (derive or look up) |
  * | [MessagingDelegate] | [MessagingOperations] | Per-chat send/receive, read pointers, paging, notifications |
+ * | [GroupFeedDelegate] | [GroupOperations] | Group feed sync, join/leave, roster changes |
  *
  * **What lives here (and why):**
  * - **Event routing** — each delegate exposes a `Flow<Event>` (backed by a `Channel`);
  *   the `init` block collects both and dispatches cross-delegate calls (e.g.
  *   feed-delegate's `DeltaSyncNeeded` → `eventStreamDelegate.performDeltaSync`,
- *   event-stream-delegate's `SyncFeedRequested` → `feedDelegate.syncFeed`).
+ *   event-stream-delegate's `SyncFeedRequested` → [syncFeeds]).
  *   All cross-delegate wiring is visible in one place.
+ * - **Feed composition** — the conversation list is [FeedSyncDelegate]'s DM feeds plus
+ *   [GroupFeedDelegate]'s group feed, so every refresh trigger goes through [syncFeeds]
+ *   rather than either delegate directly. See [refreshFeed].
  * - **Lifecycle methods** — [onStart]/[onStop] are inherently cross-cutting
  *   (stream connect/disconnect, heartbeat start/stop, active-chat save/restore).
  * - **Flow observers** — network reconnect re-syncing the chat feed.
@@ -120,12 +124,11 @@ class RealChatCoordinator @Inject constructor(
         this.cluster.value = cluster
         feedDelegate.initialize(scope)
         eventStreamDelegate.initialize(scope)
-        feedDelegate.observeFeedFromDb()
-        feedDelegate.syncFeed()
         groupFeedDelegate.initialize(scope)
-        groupFeedDelegate.syncGroupFeed()
+        feedDelegate.observeFeedFromDb()
+        syncFeeds()
         eventStreamDelegate.open()
-        eventStreamDelegate.startHeartbeat { feedDelegate.syncFeed() }
+        eventStreamDelegate.startHeartbeat { syncFeeds() }
     }
 
     // endregion
@@ -166,7 +169,7 @@ class RealChatCoordinator @Inject constructor(
             .onEach { event ->
                 when (event) {
                     is EventStreamDelegate.Event.SyncFeedRequested ->
-                        feedDelegate.syncFeed()
+                        syncFeeds()
                     is EventStreamDelegate.Event.LoadMessages ->
                         messagingDelegate.loadMessages(event.chatId)
                     is EventStreamDelegate.Event.RosterChanged ->
@@ -191,7 +194,7 @@ class RealChatCoordinator @Inject constructor(
             .debounce(1.seconds)
             .onEach {
                 trace(tag = TAG, message = "Network connected, re-syncing chat feed", type = TraceType.Process)
-                feedDelegate.syncFeed()
+                syncFeeds()
                 eventStreamDelegate.open()
             }
             .launchIn(scope)
@@ -205,9 +208,9 @@ class RealChatCoordinator @Inject constructor(
         scope.launch {
             if (cluster.value != null) {
                 trace(tag = TAG, message = "Lifecycle resumed, syncing chat feed", type = TraceType.Process)
-                feedDelegate.syncFeed()
+                syncFeeds()
                 eventStreamDelegate.open()
-                eventStreamDelegate.startHeartbeat { feedDelegate.syncFeed() }
+                eventStreamDelegate.startHeartbeat { syncFeeds() }
             }
         }
     }
@@ -222,6 +225,33 @@ class RealChatCoordinator @Inject constructor(
     // endregion
 
     // region ChatCoordinator
+
+    /**
+     * Overrides the [FeedOperations] delegation, which would otherwise refresh the DM half alone.
+     *
+     * The callers — a chat push, a contact payment, a tip payment — are asking for the
+     * conversation list, and none of them know which half a chat belongs to.
+     */
+    override fun refreshFeed() {
+        syncFeeds()
+    }
+
+    /**
+     * Fetches both halves of the conversation list.
+     *
+     * The list is two feeds behind one surface: [FeedSyncDelegate] fetches `CONTACT_DM` and
+     * `TIP_DM`, and a group's row comes from [GroupFeedDelegate] alone. Every trigger that
+     * re-syncs means "the list may be stale", which is never true of only one half, so pairing
+     * them is this class's job rather than something each trigger site remembers.
+     *
+     * Both are launch-and-return, and the delegates hold separate jobs, so the two fetches
+     * overlap rather than queue. A group feed that fails is traced and dropped by
+     * [GroupFeedDelegate.performGroupFeedSync]; it cannot take the DM list down with it.
+     */
+    private fun syncFeeds() {
+        feedDelegate.syncFeed()
+        groupFeedDelegate.syncGroupFeed()
+    }
 
     override suspend fun teardown() {
         eventStreamDelegate.stopHeartbeat()
