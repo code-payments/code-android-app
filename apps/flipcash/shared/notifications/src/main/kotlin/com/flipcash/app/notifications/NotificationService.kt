@@ -70,6 +70,13 @@ class NotificationService : FirebaseMessagingService(),
         private const val KEY_BODY = "push_notification_body"
         private const val KEY_PAYLOAD = "flipcash_payload"
 
+        /**
+         * Request code for the content intent of any notification that only launches the app.
+         * Arbitrary, and shared on purpose — every such intent is identical, so it does not
+         * matter which notification's the system keeps.
+         */
+        private const val LAUNCH_REQUEST_CODE = 99
+
         // Correlation id for measurement runs. scripts/spike/ sends a known
         // sequence number with every push so a missing delivery and a late one
         // can be told apart in the log rather than reading as the same silence.
@@ -253,6 +260,16 @@ class NotificationService : FirebaseMessagingService(),
 
         if (chatId != null && chatCoordinator.isActiveChat(chatId)) return
 
+        // Resolved once, here, because the tap target and the message style both turn on what
+        // kind of chat this is and neither can take the payload's word for it.
+        val styling = chatId?.let {
+            planConversationStyling(
+                payloadChatType = payload?.chatMetadata?.chatType,
+                storedChatType = chatMetadataDataSource.getChatType(it),
+                storedTitle = chatMetadataDataSource.getTitle(it),
+            )
+        }
+
         val groupKey = payload?.groupKey?.takeIf { it.isNotEmpty() }
 
         val builder = NotificationCompat.Builder(this, channel.id)
@@ -261,13 +278,13 @@ class NotificationService : FirebaseMessagingService(),
             .setSmallIcon(R.drawable.flipcash_logo)
             .setColor(getColor(R.color.notification_color))
             .setAutoCancel(true)
-            .setContentIntent(buildContentIntent(payload?.chatMetadata, payload?.navigation))
+            .setContentIntent(buildContentIntent(styling?.chatType, payload?.navigation))
             .apply {
                 if (groupKey != null) setGroup(groupKey)
             }
 
-        val notificationId = if (chatId != null) {
-            builder.applyChatStyle(chatId, groupKey, title, body, payload?.chatMetadata)
+        val notificationId = if (chatId != null && styling != null) {
+            builder.applyChatStyle(chatId, styling, groupKey, title, body, payload?.chatMetadata)
         } else {
             builder.setContentTitle(title).setContentText(body)
             SecureRandom().nextInt(Int.MAX_VALUE)
@@ -290,18 +307,13 @@ class NotificationService : FirebaseMessagingService(),
 
     private suspend fun NotificationCompat.Builder.applyChatStyle(
         chatId: ChatId,
+        styling: ConversationStyling,
         groupKey: String?,
         title: String?,
         body: String?,
         metadata: PushChatMetadata?,
     ): Int {
         val notificationId = chatId.hashCode()
-
-        val styling = planConversationStyling(
-            payloadChatType = metadata?.chatType,
-            storedChatType = chatMetadataDataSource.getChatType(chatId),
-            storedTitle = chatMetadataDataSource.getTitle(chatId),
-        )
 
         // Prefer the device-contact identity (CONTACT_DM, or a counterparty saved
         // in the address book): the user's own name + photo for them. The row is
@@ -560,33 +572,47 @@ class NotificationService : FirebaseMessagingService(),
         ).build()
     }
 
+    /**
+     * Where this notification's tap goes.
+     *
+     * @param chatType the type resolved by [planConversationStyling], null for a non-chat push
+     */
     internal fun Context.buildContentIntent(
-        metadata: PushChatMetadata?,
+        chatType: ChatType?,
         navigation: NavigationTrigger?,
         ): PendingIntent {
-        val target = when (navigation) {
-            is NavigationTrigger.CurrencyInfo -> Intent(Intent.ACTION_VIEW).apply {
-                data = Linkify.tokenInfo(navigation.mint).toUri()
-            }
-
-            // Only tip DMs deep-link (via /tip/chat/…). Non-tip chat notifications — and all
-            // contact/phone-addressed chats — no longer have an in-app entry point (the Send
-            // tab / direct-send flow was removed), so fall through to a plain launch that opens
-            // the app on the camera instead of firing a now-unhandled /chat/ deeplink.
-            is NavigationTrigger.Chat.ById -> if (metadata?.chatType == ChatType.TIP_DM) {
+        // The request code travels with the target: `FLAG_UPDATE_CURRENT` rewrites the extras of
+        // whichever PendingIntent is already held under it, and `filterEquals` — which decides
+        // what "already held" means — ignores extras. Under one shared code every posted
+        // notification ends up pointing at whatever was notified last.
+        val (target, requestCode) = when (navigation) {
+            is NavigationTrigger.CurrencyInfo ->
                 Intent(Intent.ACTION_VIEW).apply {
-                    data = Linkify.tipChatById(navigation.chatId).toUri()
+                    data = Linkify.tokenInfo(navigation.mint).toUri()
+                } to navigation.mint.hashCode()
+
+            is NavigationTrigger.Chat.ById -> {
+                // /tip/chat/… is named for where it was first used, but it resolves to the Chats
+                // tab and the conversation by id, which is the destination for a group too.
+                val intent = when (planChatTapTarget(chatType)) {
+                    ChatTapTarget.Conversation -> Intent(Intent.ACTION_VIEW).apply {
+                        data = Linkify.tipChatById(navigation.chatId).toUri()
+                    }
+
+                    ChatTapTarget.AppLauncher -> packageManager.getLaunchIntentForPackage(packageName)
                 }
-            } else {
-                packageManager.getLaunchIntentForPackage(packageName)
+                // The same code the reply action uses, which is not a collision: a PendingIntent
+                // is identified by its type too, and that one is a broadcast.
+                intent to navigation.chatId.hashCode()
             }
 
-            else -> packageManager.getLaunchIntentForPackage(packageName)
+            // Every one of these is the same launcher intent, so they can share a code.
+            else -> packageManager.getLaunchIntentForPackage(packageName) to LAUNCH_REQUEST_CODE
         }
 
         return PendingIntent.getActivity(
             this,
-            99,
+            requestCode,
             target,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
