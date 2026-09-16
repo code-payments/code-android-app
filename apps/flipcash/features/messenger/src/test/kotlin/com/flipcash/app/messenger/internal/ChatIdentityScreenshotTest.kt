@@ -108,7 +108,10 @@ class ChatIdentityScreenshotTest {
                         ChatTopBar(
                             navigator = navigator,
                             state = ChatViewModel.State(
-                                participant = participant,
+                                subject = when (participant) {
+                                    is ChatParticipant.TipUser -> ChatSubject.TipUser(participant)
+                                    is ChatParticipant.Contact -> ChatSubject.Contact(participant)
+                                },
                                 chatType = if (participant is ChatParticipant.TipUser) {
                                     ChatType.TIP_DM
                                 } else {

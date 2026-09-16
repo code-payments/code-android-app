@@ -48,6 +48,7 @@ import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.opencode.model.core.ID
@@ -137,7 +138,7 @@ internal class ChatViewModel @Inject constructor(
     data class State(
         val separatorConfig: SeparatorConfig = SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
-        val participant: ChatParticipant? = null,
+        val subject: ChatSubject? = null,
         // The kind of DM this conversation is, resolved from the fast local contact lookup ahead of
         // the participant's server profile (which resolves over the network for tip DMs). Starts
         // UNKNOWN and settles to CONTACT_DM / TIP_DM as soon as the chat opens; the send button and
@@ -219,9 +220,20 @@ internal class ChatViewModel @Inject constructor(
          */
         val messagePolicy: MessagePolicy = MessagePolicy.Default,
     ) {
-        // Opening the participant's profile (the entry point to blocking) is only available for tip DMs.
+        /**
+         * The DM counterparty, or `null` for a group.
+         *
+         * Kept as a derived property so the paths that predate [ChatSubject] — the quote accent,
+         * the tip recipient flow and the payment branches — keep reading what they always read.
+         * None of them is reachable from a group, which is exactly what a `null` says here.
+         */
+        val participant: ChatParticipant?
+            get() = subject?.asParticipant()
+
+        // Opening the participant's profile (the entry point to blocking) is the tip arm's answer
+        // alone. Asking the subject rather than comparing chat types means a new arm has to say.
         val canViewProfile: Boolean
-            get() = chatType == ChatType.TIP_DM
+            get() = subject?.canViewProfile == true
 
         /** What the selection bar may offer, straight from what the transcript already resolved. */
         val selectionCapabilities: Set<MessageCapability>
@@ -246,6 +258,9 @@ internal class ChatViewModel @Inject constructor(
         data class OnContactFound(val contact: DeviceContact): Event
         data class OnTipUserResolved(val userId: ID, val profile: UserProfile): Event
         data object OnTipDmDetected : Event
+
+        /** The chat this screen is showing turned out to be a group, with this metadata. */
+        data class OnGroupResolved(val membership: ChatMembership) : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data class OnChatInitFeeUpdated(val formatted: String?) : Event
         data object RefreshContact : Event
@@ -694,6 +709,18 @@ internal class ChatViewModel @Inject constructor(
             .mapNotNull { members -> members.firstOrNull { it.userId != userManager.accountId } }
             .distinctUntilChanged()
             .onEach { member -> dispatchEvent(Event.OnTipUserResolved(member.userId, member.userProfile)) }
+            .launchIn(viewModelScope)
+
+        // A group's identity is its own row, not a counterparty. Observed rather than read once
+        // because every field the chrome shows moves under the user: a roster event changes the
+        // member count, a join flips membership, a rules change moves the gate.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeMetadata(it) }
+            .filterNotNull()
+            .filter { it.metadata.type == ChatType.GROUP }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnGroupResolved(it)) }
             .launchIn(viewModelScope)
 
         // Observe member identity — if the other member loses identity (e.g. unlinked
@@ -1290,7 +1317,7 @@ internal class ChatViewModel @Inject constructor(
                     when (val id = event.identifier) {
                         is ChatIdentifier.ByContact ->
                             state.copy(
-                                participant = ChatParticipant.Contact(id.contact),
+                                subject = ChatSubject.Contact(ChatParticipant.Contact(id.contact)),
                                 chatType = ChatType.CONTACT_DM,
                             )
                         is ChatIdentifier.ByChatId -> state
@@ -1300,7 +1327,9 @@ internal class ChatViewModel @Inject constructor(
                         // profile to observe.
                         is ChatIdentifier.ByUser ->
                             state.copy(
-                                participant = ChatParticipant.TipUser(id.userId, id.profile),
+                                subject = ChatSubject.TipUser(
+                                    ChatParticipant.TipUser(id.userId, id.profile)
+                                ),
                                 chatType = ChatType.TIP_DM,
                                 resolveState = ResolveState.Resolved,
                             )
@@ -1308,19 +1337,36 @@ internal class ChatViewModel @Inject constructor(
                 }
                 is Event.OnContactFound -> { state ->
                     state.copy(
-                        participant = ChatParticipant.Contact(event.contact),
+                        subject = ChatSubject.Contact(ChatParticipant.Contact(event.contact)),
                         chatType = ChatType.CONTACT_DM,
                     )
                 }
                 Event.OnTipDmDetected -> { state -> state.copy(chatType = ChatType.TIP_DM) }
+                is Event.OnGroupResolved -> { state ->
+                    val metadata = event.membership.metadata
+                    state.copy(
+                        subject = ChatSubject.Group(
+                            chatId = metadata.chatId,
+                            groupTitle = metadata.title,
+                            picture = metadata.picture,
+                            memberCount = metadata.rosterSummary.memberCount,
+                            rules = metadata.rules,
+                            isMember = event.membership.isMember,
+                        ),
+                        chatType = ChatType.GROUP,
+                        resolveState = ResolveState.Resolved,
+                    )
+                }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the
                     // profile identity and mark the recipient resolved so the send can proceed (the
                     // tip user is known to exist; the tip send resolves their address at send time).
-                    if (state.participant is ChatParticipant.Contact) state
+                    if (state.subject is ChatSubject.Contact) state
                     else state.copy(
-                        participant = ChatParticipant.TipUser(event.userId, event.profile),
+                        subject = ChatSubject.TipUser(
+                            ChatParticipant.TipUser(event.userId, event.profile)
+                        ),
                         chatType = ChatType.TIP_DM,
                         resolveState = ResolveState.Resolved,
                     )
