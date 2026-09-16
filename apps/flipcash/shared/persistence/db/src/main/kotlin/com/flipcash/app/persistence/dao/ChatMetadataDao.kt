@@ -1,5 +1,6 @@
 package com.flipcash.app.persistence.dao
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -15,6 +16,40 @@ interface ChatMetadataDao {
 
     @Query("SELECT * FROM chat_metadata ORDER BY last_activity_epoch_ms DESC")
     fun observeAll(): Flow<List<ChatMetadataEntity>>
+
+    /**
+     * The merged conversation list, as a Paging source.
+     *
+     * One ordering across every type in [chatTypes] — a group ranks against DMs by activity like
+     * anything else, so ordering per type and interleaving afterwards would put it in the wrong
+     * place. `chat_id_hex` breaks a tie: Paging asks for the next page by offset, and an order
+     * that is not total lets two rows swap between page loads, which duplicates one and loses the
+     * other.
+     *
+     * Chats you are not in are filtered here rather than in the projection so they do not consume
+     * a page slot.
+     */
+    @Query(
+        "SELECT * FROM chat_metadata WHERE chat_type IN (:chatTypes) " +
+            "AND is_hidden = 0 AND is_member = 1 " +
+            "ORDER BY last_activity_epoch_ms DESC, chat_id_hex DESC"
+    )
+    fun observeFeedPaged(chatTypes: List<String>): PagingSource<Int, ChatMetadataEntity>
+
+    /** The chats of [chatType] this device still considers you a member of. */
+    @Query("SELECT chat_id_hex FROM chat_metadata WHERE chat_type = :chatType AND is_member = 1")
+    suspend fun getChatIdsOfType(chatType: String): List<String>
+
+    /**
+     * Sets membership without disturbing the rest of the row. Leaving a group keeps its title,
+     * rules and transcript — the gate reads them to decide what a non-member is allowed to see.
+     */
+    @Query("UPDATE chat_metadata SET is_member = :isMember WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateMembership(chatIdHex: String, isMember: Boolean)
+
+    /** The roster version already applied to [chatIdHex], or null when the chat is not stored. */
+    @Query("SELECT roster_version FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getRosterVersion(chatIdHex: String): Long?
 
     @Query("SELECT * FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getById(chatIdHex: String): ChatMetadataEntity?
