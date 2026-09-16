@@ -16,6 +16,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ReactionUpdate
+import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.models.chat.TypingNotification
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.GetDeltaError
@@ -97,6 +98,12 @@ class EventStreamDelegate @Inject constructor(
     sealed interface Event {
         data object SyncFeedRequested : Event
         data class LoadMessages(val chatId: ChatId) : Event
+
+        /**
+         * [chatId]'s roster changed. Emitted rather than applied here: the roster is the group
+         * delegate's, and this delegate has no business knowing what a membership means.
+         */
+        data class RosterChanged(val chatId: ChatId, val changes: List<RosterChange>) : Event
     }
 
     private val _events = Channel<Event>(Channel.UNLIMITED)
@@ -360,6 +367,15 @@ class EventStreamDelegate @Inject constructor(
         lastMsg?.let { msg ->
             metadataDataSource.updateLastMessageId(chatId, msg.messageId)
             metadataDataSource.updateLastActivity(chatId, msg.timestamp.toEpochMilliseconds())
+        }
+
+        // --- Roster changes ---
+
+        // Convergent like the reaction overlay below, and unlike the event log above: applied by
+        // version rather than gap-filled by sequence. Routed out because the version arbitration
+        // and the membership writes both live on the group side.
+        if (update.rosterUpdates.isNotEmpty()) {
+            _events.send(Event.RosterChanged(chatId, update.rosterUpdates))
         }
 
         // --- Process reaction updates ---

@@ -244,7 +244,28 @@ interface MessagingOperations {
  *
  * @see com.flipcash.shared.chat.internal.RealChatCoordinator
  */
-interface ChatCoordinator : FeedOperations, EventStreamOperations, DmChatResolver, MessagingOperations {
+/**
+ * Membership of a group chat.
+ *
+ * Implemented by [com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate].
+ */
+interface GroupOperations {
+    /** Joins [chatId], caching the chat so it is in the list before the next sync. */
+    suspend fun join(chatId: ChatId): Result<Unit>
+
+    /**
+     * Leaves [chatId]. The chat drops out of the list immediately and comes back if the call
+     * fails.
+     */
+    suspend fun leave(chatId: ChatId): Result<Unit>
+}
+
+interface ChatCoordinator :
+    FeedOperations,
+    EventStreamOperations,
+    DmChatResolver,
+    MessagingOperations,
+    GroupOperations {
     /** Full observable snapshot of chat state (feed, typing, reactions, active chat). */
     val state: StateFlow<ChatState>
 

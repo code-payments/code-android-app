@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.GroupOperations
 import com.flipcash.shared.chat.internal.RosterStateHolder
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -44,7 +45,7 @@ class GroupFeedDelegate @Inject constructor(
     private val messageDataSource: ChatMessageDataSource,
     private val rosterStateHolder: RosterStateHolder,
     private val userManager: UserManager,
-) {
+) : GroupOperations {
 
     sealed interface Event {
         /** A group whose transcript the device does not have yet. */
@@ -91,7 +92,7 @@ class GroupFeedDelegate @Inject constructor(
     /**
      * Joins [chatId], caching the chat the server returns so the list has it before any sync runs.
      */
-    suspend fun join(chatId: ChatId): Result<Unit> {
+    override suspend fun join(chatId: ChatId): Result<Unit> {
         return chatController.joinChat(chatId)
             .onSuccess { metadata ->
                 persist(listOf(metadata))
@@ -108,7 +109,7 @@ class GroupFeedDelegate @Inject constructor(
      * trip later, and put back if the call fails — the same optimistic shape as
      * [FeedSyncDelegate.setChatHidden], with the restore that a remote call needs.
      */
-    suspend fun leave(chatId: ChatId): Result<Unit> {
+    override suspend fun leave(chatId: ChatId): Result<Unit> {
         metadataDataSource.setMembership(chatId, isMember = false)
         return chatController.leaveChat(chatId)
             .onFailure {

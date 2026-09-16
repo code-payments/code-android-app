@@ -155,6 +155,8 @@ class ReceivedEventTest {
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,
+            groupFeedDelegate = mockk(relaxed = true),
+            featureFlags = mockk(relaxed = true),
         )
     }
 
