@@ -171,6 +171,15 @@ interface ChatMetadataDao {
     @Query("SELECT chat_type FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getChatType(chatIdHex: String): String?
 
+    /**
+     * A group's name, or null when the chat is not stored or is a DM.
+     *
+     * The two nulls read the same here on purpose: a DM has no title to return, so a caller that
+     * wants one is asking about a group either way.
+     */
+    @Query("SELECT title FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getTitle(chatIdHex: String): String?
+
     @Query("SELECT analytics_counted_through FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getAnalyticsCountedThrough(chatIdHex: String): Long?
 

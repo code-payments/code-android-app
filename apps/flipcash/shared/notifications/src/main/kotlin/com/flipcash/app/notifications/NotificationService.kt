@@ -29,6 +29,7 @@ import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
@@ -114,6 +115,9 @@ class NotificationService : FirebaseMessagingService(),
 
     @Inject
     lateinit var userProfileDataSource: UserProfileDataSource
+
+    @Inject
+    lateinit var chatMetadataDataSource: ChatMetadataDataSource
 
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
@@ -293,10 +297,16 @@ class NotificationService : FirebaseMessagingService(),
     ): Int {
         val notificationId = chatId.hashCode()
 
+        val styling = planConversationStyling(
+            payloadChatType = metadata?.chatType,
+            storedChatType = chatMetadataDataSource.getChatType(chatId),
+            storedTitle = chatMetadataDataSource.getTitle(chatId),
+        )
+
         // Prefer the device-contact identity (CONTACT_DM, or a counterparty saved
         // in the address book): the user's own name + photo for them. The row is
         // keyed by DM chat id, so a group can never match it — don't ask.
-        val contactE164 = if (metadata?.chatType != ChatType.GROUP) {
+        val contactE164 = if (!styling.isGroupConversation) {
             contactCoordinator.lookupContactByDmChatId(chatId.toString())?.e164
         } else {
             null
@@ -305,7 +315,7 @@ class NotificationService : FirebaseMessagingService(),
         // Otherwise fall back to the sender's server-side profile — which is the only
         // identity a TIP_DM has, and the only one a group participant has at all.
         val lookup = planSenderLookup(
-            chatType = metadata?.chatType,
+            chatType = styling.chatType,
             sendingUserId = metadata?.sendingUserId,
             hasDeviceContact = contactE164 != null,
         )
@@ -349,7 +359,7 @@ class NotificationService : FirebaseMessagingService(),
 
         trace(
             tag = "NotificationService",
-            message = "applyChatStyle: chatId=$chatId, groupKey=$groupKey, chatType=${metadata?.chatType}, lookup=${lookup::class.simpleName}, e164=$e164, hasSender=${sender != null}, hasAvatar=${avatar != null}, authenticated=${userManager.accountCluster != null}",
+            message = "applyChatStyle: chatId=$chatId, groupKey=$groupKey, chatType=${styling.chatType}, isGroup=${styling.isGroupConversation}, hasTitle=${styling.conversationTitle != null}, lookup=${lookup::class.simpleName}, e164=$e164, hasSender=${sender != null}, hasAvatar=${avatar != null}, authenticated=${userManager.accountCluster != null}",
             type = TraceType.Log,
         )
 
@@ -376,6 +386,13 @@ class NotificationService : FirebaseMessagingService(),
             ?: NotificationCompat.MessagingStyle(selfPerson)
 
         style.addMessage(body.orEmpty(), System.currentTimeMillis(), senderPerson)
+
+        // After the extract above, not before: a re-post rebuilds the style from the notification
+        // already on screen, which carries the old flag and title back with it.
+        style.setGroupConversation(styling.isGroupConversation)
+        // Only when there is one to set, so a push that lands before the group's row syncs leaves
+        // the title a previous push managed to resolve rather than blanking it.
+        styling.conversationTitle?.let { style.setConversationTitle(it) }
 
         setStyle(style)
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)

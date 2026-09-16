@@ -102,6 +102,10 @@ class ChatMetadataDataSource @Inject constructor(
         return ChatType.entries.firstOrNull { it.name == stored } ?: ChatType.UNKNOWN
     }
 
+    /** [chatId]'s group name, or null when the chat is a DM or is not stored on this device. */
+    suspend fun getTitle(chatId: ChatId): String? =
+        db?.chatMetadataDao()?.getTitle(mapper.chatIdHex(chatId))
+
     suspend fun getAnalyticsCountedThrough(chatId: ChatId): Long =
         db?.chatMetadataDao()?.getAnalyticsCountedThrough(mapper.chatIdHex(chatId)) ?: 0L
 
