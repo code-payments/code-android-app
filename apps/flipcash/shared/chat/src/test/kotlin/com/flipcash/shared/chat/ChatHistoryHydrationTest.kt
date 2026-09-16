@@ -146,7 +146,6 @@ class ChatHistoryHydrationTest {
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = TestDispatchers(testScheduler),
             groupFeedDelegate = mockk(relaxed = true),
-            featureFlags = mockk(relaxed = true),
         )
     }
 

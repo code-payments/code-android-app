@@ -19,7 +19,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:persistence:db"))
     implementation(project(":apps:flipcash:shared:contacts"))
-    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":services:flipcash"))

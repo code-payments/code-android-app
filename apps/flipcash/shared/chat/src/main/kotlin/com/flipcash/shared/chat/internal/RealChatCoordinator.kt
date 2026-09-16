@@ -5,8 +5,6 @@ package com.flipcash.shared.chat.internal
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
@@ -80,7 +78,6 @@ class RealChatCoordinator @Inject constructor(
     private val stateHolder: ChatStateHolder,
     private val userManager: UserManager,
     private val networkObserver: NetworkConnectivityListener,
-    private val featureFlags: FeatureFlagController,
     private val dispatchers: DispatcherProvider,
 ) : ChatCoordinator,
     SessionListener,
@@ -126,11 +123,12 @@ class RealChatCoordinator @Inject constructor(
         feedDelegate.observeFeedFromDb()
         feedDelegate.syncFeed()
         groupFeedDelegate.initialize(scope)
-        // The only gate on the branch. Everything behind it is built and tested; what it decides
-        // is whether the device asks the server for groups at all.
-        if (featureFlags.get(FeatureFlag.GroupChats)) {
-            groupFeedDelegate.syncGroupFeed()
-        }
+        // Synced unconditionally. The GroupChats flag filters the chat list, and every read of
+        // this cache is already scoped to the chat types its caller asked for, so a group sitting
+        // in the database with the flag off is invisible rather than latent. Gating the fetch
+        // instead made the toggle do nothing until the process restarted, and contradicted the
+        // roster-change routing below, which was never gated.
+        groupFeedDelegate.syncGroupFeed()
         eventStreamDelegate.open()
         eventStreamDelegate.startHeartbeat { feedDelegate.syncFeed() }
     }
