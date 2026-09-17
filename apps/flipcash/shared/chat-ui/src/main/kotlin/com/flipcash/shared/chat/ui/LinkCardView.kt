@@ -1,35 +1,57 @@
 package com.flipcash.shared.chat.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.core.ui.TokenCard
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.shared.chat.models.LinkCard
+import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.text.AnimatedNumberText
+import com.getcode.ui.utils.ConstraintMode
 
 /**
  * The card, in place of the link.
  *
- * A resolved cash link is the same bill the wallet and the token screen draw — [TokenCard] with
- * the link's own mint, so a link to a token is recognisably that token before it is opened. The
- * URL it came from is cut from the body text, so the card is the link rather than an ornament
- * above it; [onClick] hands the URL to the handler the link span used to go through.
+ * A cash link is a voucher: one amount, made once, spent once. It is drawn as one — the token it
+ * pays out named along the top, the amount in the middle, and a perforated stub across the bottom
+ * carrying what can be done with it. The bill's colours belong to the token rather than to the
+ * link, so they are left for a card that stands for a token; a voucher for $15 and a card about
+ * Dollars should not be the same gold rectangle. The URL the card came from is cut from the body
+ * text, so the card is the link rather than an ornament above it; [onClick] hands the URL to the
+ * handler the link span used to go through.
  */
 @Composable
 internal fun LinkCardView(
@@ -37,11 +59,11 @@ internal fun LinkCardView(
     onClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // The bill's proportions, not its size: the wallet draws a 224dp card across the full screen
-    // width less the inset, and a bubble is a good deal narrower than that. Scaling the height with
-    // the width is what keeps it a bill in chat instead of a tall, square panel.
+    // The voucher's proportions, not its size: a bubble is a good deal narrower than the wallet's
+    // card, and scaling the height with the width is what keeps it a card in chat instead of a
+    // tall panel.
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val height: Dp = maxWidth * LinkCardDefaults.BILL_ASPECT
+        val height: Dp = maxWidth * LinkCardDefaults.CARD_ASPECT
         when (card) {
             is LinkCard.Cash -> CashLinkCard(
                 card = card,
@@ -58,79 +80,328 @@ private fun CashLinkCard(
     height: Dp,
     onClick: () -> Unit,
 ) {
-    // Unresolved is also the unavailable state: a lookup that failed, timed out or was switched
-    // off renders here. No token, so no bill — the mint's name and colours are the bill, and
-    // guessing them would brand the card as a token the link may not pay out. A neutral panel of
-    // the same size instead, which is also what stops the card resizing when the amount lands.
+    // Unresolved is also the unavailable state: a lookup that failed, timed out or was switched off
+    // renders here. The same voucher, with nothing filled in — same size, same chrome — so nothing
+    // moves or resizes when the amount lands.
     val state = card.state as? LinkCard.Cash.State.Resolved
-    if (state == null) {
-        UnresolvedCashCard(height = height, onClick = onClick)
-        return
-    }
 
-    TokenCard(
-        token = state.token,
-        balanceText = state.amount,
-        // The reserve is branded Dollars everywhere the user meets it; `token.name` off the wire
-        // is "USDF", which is the mint, not the thing they hold.
-        displayName = when (state.token.address) {
-            Mint.usdf -> stringResource(R.string.displayName_dollars)
-            else -> state.token.name
-        },
+    CashVoucher(
         height = height,
+        tokenName = state?.token?.let { displayNameOf(it) }
+            ?: stringResource(R.string.label_linkCard_cash),
+        tokenImage = state?.token?.imageUrl,
+        amount = state?.amount,
+        // Claimed and expired are both spent: the voucher is dimmed as a whole, so it reads as
+        // used before the label under the tear is read at all.
+        spent = state?.claim == LinkCard.Cash.Claim.Claimed ||
+            state?.claim == LinkCard.Cash.Claim.Expired,
+        // Only claimed, because only claimed means someone tore it off. An expired link lapsed
+        // where it sat; drawing it torn would say a person acted on it when nobody did.
+        torn = state?.claim == LinkCard.Cash.Claim.Claimed,
         onClick = onClick,
-        footer = {
-            Text(
-                text = stringResource(
-                    when (state.claim) {
-                        LinkCard.Cash.Claim.Claimed -> R.string.label_linkCard_claimed
-                        LinkCard.Cash.Claim.Expired -> R.string.label_linkCard_expired
-                        LinkCard.Cash.Claim.Claimable ->
-                            // The issuer gets told it is theirs rather than invited to claim it:
-                            // `validateClaimEligibility` refuses a self-claim, so "Tap to claim"
-                            // here would be an invitation the claim path declines.
-                            if (state.issuedByViewer) {
-                                R.string.label_linkCard_sentByYou
-                            } else {
-                                R.string.label_linkCard_claim
-                            }
-                    },
-                ),
-                style = CodeTheme.typography.textSmall,
-                color = Color.White,
-                maxLines = 1,
-            )
-        },
-    )
+    ) {
+        state ?: return@CashVoucher
+        when (state.claim) {
+            LinkCard.Cash.Claim.Claimed ->
+                // Off the paper: the stub this used to sit on left with whoever claimed it.
+                StubLabel(stringResource(R.string.label_linkCard_claimed), onPaper = false)
+            LinkCard.Cash.Claim.Expired -> StubLabel(stringResource(R.string.label_linkCard_expired))
+            LinkCard.Cash.Claim.Claimable ->
+                // The issuer gets told it is theirs rather than invited to claim it:
+                // `validateClaimEligibility` refuses a self-claim, so a claim button here would be
+                // an invitation the claim path declines.
+                if (state.issuedByViewer) {
+                    StubLabel(stringResource(R.string.label_linkCard_sentByYou))
+                } else {
+                    ClaimPill(stringResource(R.string.label_linkCard_claim))
+                }
+        }
+    }
 }
 
+/**
+ * The reserve is branded Dollars everywhere the user meets it; `token.name` off the wire is "USDF",
+ * which is the mint, not the thing they hold.
+ */
 @Composable
-private fun UnresolvedCashCard(
+private fun displayNameOf(token: Token): String = when (token.address) {
+    Mint.usdf -> stringResource(R.string.displayName_dollars)
+    else -> token.name
+}
+
+/**
+ * A ticket: the token along the top, the amount under it, and a perforated stub holding [stub].
+ *
+ * Drawn as two pieces rather than one card with a line across it, because [torn] has to be able to
+ * take one away. Intact, they meet edge to edge and the notches each cuts at the seam combine into
+ * one hole, so the tear reads as a perforation. Torn, the stub is simply not drawn: what is left is
+ * the half of each notch that stayed behind, which is the evidence that a stub was there and was
+ * pulled off.
+ *
+ * The cuts are cleared out of the pieces rather than painted over them: each composites offscreen,
+ * so the notches show whatever the card is sitting on instead of a colour guessed at here.
+ *
+ * Tearing costs no height. The stub's band is held open whether or not the stub is drawn in it,
+ * because the claim state arrives from the lookup after the row is first drawn — a card that
+ * changed size on resolve would shove the transcript around under the reader.
+ */
+@Composable
+private fun CashVoucher(
     height: Dp,
+    tokenName: String,
+    tokenImage: Any?,
+    amount: String?,
+    spent: Boolean,
+    torn: Boolean,
     onClick: () -> Unit,
+    stub: @Composable () -> Unit,
 ) {
-    val shape = CodeTheme.shapes.medium
-    Box(
+    val corner = CodeTheme.shapes.medium.topStart
+    val square = CornerSize(0.dp)
+    val inset = CodeTheme.dimens.inset
+    val stubHeight = height * LinkCardDefaults.STUB_FRACTION
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .height(height)
-            .clip(shape)
-            .background(Color.White.copy(alpha = LinkCardDefaults.GROUND_ALPHA))
-            .border(CodeTheme.dimens.border, CodeTheme.colors.surfaceVariant, shape)
-            // Tappable in this state too: the link is what is unresolved, not broken.
-            .clickable(onClick = onClick)
-            .padding(CodeTheme.dimens.inset),
+            // Tappable in every state: an unresolved link is unresolved, not broken, and a spent
+            // one still opens to the page that says so.
+            .clickable(onClick = onClick),
     ) {
-        TokenIconWithName(
-            modifier = Modifier.align(Alignment.TopStart),
-            tokenName = stringResource(R.string.label_linkCard_cash),
-            tokenImage = null,
-            imageSize = 24.dp,
-            spacing = CodeTheme.dimens.grid.x1,
-            textStyle = CodeTheme.typography.textSmall,
-            textColor = CodeTheme.colors.textMain,
+        VoucherPiece(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(corner, corner, square, square),
+            spent = spent,
+            notchAtBottom = true,
+            // Nothing left to tear along once it has been torn.
+            scored = !torn,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = inset),
+                verticalArrangement = Arrangement.spacedBy(
+                    CodeTheme.dimens.grid.x2,
+                    Alignment.CenterVertically,
+                ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                TokenIconWithName(
+                    tokenName = tokenName,
+                    tokenImage = tokenImage,
+                    imageSize = 20.dp,
+                    spacing = CodeTheme.dimens.grid.x1,
+                    textStyle = CodeTheme.typography.textSmall,
+                    textColor = LinkCardDefaults.INK.copy(alpha = LinkCardDefaults.INK_MUTED),
+                )
+                amount?.let {
+                    AnimatedNumberText(
+                        value = it,
+                        style = CodeTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                        color = LinkCardDefaults.INK,
+                        constraintMode = ConstraintMode.AutoSize(
+                            minimum = CodeTheme.typography.textMedium,
+                        ),
+                    )
+                }
+            }
+        }
+
+        if (torn) {
+            // The band is kept, the paper in it is not: an outline of the stub that left, with
+            // [stub] standing inside it.
+            GhostStub(
+                modifier = Modifier.height(stubHeight),
+                corner = corner,
+                content = stub,
+            )
+        } else {
+            VoucherPiece(
+                modifier = Modifier.height(stubHeight),
+                shape = RoundedCornerShape(square, square, corner, corner),
+                spent = spent,
+                notchAtBottom = false,
+                scored = false,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = inset),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    stub()
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Where the stub was. The silhouette it would have had, dashed, with its own half-notches traced
+ * around rather than struck through — an outline across a notch would close the bite that is the
+ * whole evidence of the tear.
+ *
+ * Drawn rather than left empty because the band is held open in every state, and an empty one reads
+ * as a gap in the layout instead of as something taken.
+ */
+@Composable
+private fun GhostStub(
+    modifier: Modifier,
+    corner: CornerSize,
+    content: @Composable () -> Unit,
+) {
+    val density = LocalDensity.current
+    val notchRadius = with(density) { LinkCardDefaults.NOTCH_RADIUS.toPx() }
+    val hairline = with(density) { CodeTheme.dimens.border.toPx() }
+    val dash = with(density) {
+        PathEffect.dashPathEffect(
+            floatArrayOf(LinkCardDefaults.DASH.toPx(), LinkCardDefaults.DASH.toPx()),
         )
     }
+    val ghost = LinkCardDefaults.PAPER.copy(alpha = LinkCardDefaults.GHOST_ALPHA)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .drawBehind {
+                val r = notchRadius
+                val c = corner.toPx(size, this)
+                val w = size.width
+                val h = size.height
+                val outline = Path().apply {
+                    moveTo(0f, r)
+                    // The bite the left notch took out of the stub's top corner.
+                    arcTo(Rect(Offset(-r, -r), Size(r * 2, r * 2)), 90f, -90f, false)
+                    lineTo(w - r, 0f)
+                    arcTo(Rect(Offset(w - r, -r), Size(r * 2, r * 2)), 180f, -90f, false)
+                    lineTo(w, h - c)
+                    arcTo(Rect(Offset(w - c * 2, h - c * 2), Size(c * 2, c * 2)), 0f, 90f, false)
+                    lineTo(c, h)
+                    arcTo(Rect(Offset(0f, h - c * 2), Size(c * 2, c * 2)), 90f, 90f, false)
+                    close()
+                }
+                drawPath(
+                    path = outline,
+                    color = ghost,
+                    style = Stroke(width = hairline, pathEffect = dash),
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+/**
+ * One side of the tear: paper, dimmed if [spent], with half a notch cut from each end of the torn
+ * edge — the bottom edge when [notchAtBottom], the top edge otherwise. [scored] draws the
+ * perforation the piece would be torn along, which only the upper piece of an intact voucher has.
+ */
+@Composable
+private fun VoucherPiece(
+    modifier: Modifier,
+    shape: RoundedCornerShape,
+    spent: Boolean,
+    notchAtBottom: Boolean,
+    scored: Boolean,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val density = LocalDensity.current
+    val notchRadius = with(density) { LinkCardDefaults.NOTCH_RADIUS.toPx() }
+    val hairline = with(density) { CodeTheme.dimens.border.toPx() }
+    val dash = with(density) {
+        PathEffect.dashPathEffect(
+            floatArrayOf(LinkCardDefaults.DASH.toPx(), LinkCardDefaults.DASH.toPx()),
+        )
+    }
+    val ink = LinkCardDefaults.INK
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            // Everything from here down draws into one offscreen layer, which is what lets the
+            // notches be cleared out of the ground rather than painted over it. There is no border:
+            // an outline drawn straight across a notch would fill in the bite it takes out, and the
+            // cut edge is what makes the card read as torn.
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .background(LinkCardDefaults.PAPER)
+            .drawWithContent {
+                drawContent()
+                if (spent) {
+                    drawRect(Color.Black, alpha = LinkCardDefaults.SPENT_DIM)
+                }
+                val edge = if (notchAtBottom) size.height else 0f
+                if (scored) {
+                    // Pulled inside the edge by half its width so the stroke is not itself clipped.
+                    val y = edge - hairline / 2f
+                    drawLine(
+                        color = ink.copy(alpha = LinkCardDefaults.TEAR_ALPHA),
+                        start = Offset(notchRadius, y),
+                        end = Offset(size.width - notchRadius, y),
+                        strokeWidth = hairline,
+                        pathEffect = dash,
+                    )
+                }
+                // Cleared, not filled: the hole shows the transcript, so the notch is right on the
+                // background and on a bubble both.
+                drawCircle(
+                    color = Color.Transparent,
+                    radius = notchRadius,
+                    center = Offset(0f, edge),
+                    blendMode = BlendMode.Clear,
+                )
+                drawCircle(
+                    color = Color.Transparent,
+                    radius = notchRadius,
+                    center = Offset(size.width, edge),
+                    blendMode = BlendMode.Clear,
+                )
+            },
+        content = content,
+    )
+}
+
+/**
+ * What is left to say about a voucher nothing can be done with. [onPaper] is what it is printed on:
+ * a stub that is still attached takes ink, one that has been torn off leaves the label standing on
+ * the transcript, where ink would be unreadable.
+ */
+@Composable
+private fun StubLabel(text: String, onPaper: Boolean = true) {
+    Text(
+        text = text,
+        style = CodeTheme.typography.textSmall,
+        color = if (onPaper) {
+            LinkCardDefaults.INK.copy(alpha = LinkCardDefaults.INK_MUTED)
+        } else {
+            CodeTheme.colors.textSecondary
+        },
+        maxLines = 1,
+    )
+}
+
+/**
+ * The claimable stub. A filled pill rather than a line of text, because this is the one state where
+ * the card is an offer — tapping it opens the link, which is where the claim happens.
+ */
+@Composable
+private fun ClaimPill(text: String) {
+    Text(
+        modifier = Modifier
+            .background(LinkCardDefaults.INK, RoundedCornerShape(percent = 50))
+            .padding(
+                horizontal = CodeTheme.dimens.grid.x3,
+                vertical = CodeTheme.dimens.grid.x1,
+            ),
+        text = text,
+        style = CodeTheme.typography.textSmall,
+        color = LinkCardDefaults.PAPER,
+        maxLines = 1,
+    )
 }
 
 private object LinkCardDefaults {
@@ -138,11 +409,33 @@ private object LinkCardDefaults {
      * 224dp of card across 328dp of usable width — the wallet deck's own numbers on a 360dp phone
      * (`TokenCard`'s default height, full width less two screen insets).
      */
-    const val BILL_ASPECT = 224f / 328f
+    const val CARD_ASPECT = 224f / 328f
+
+    /** How much of the card the stub under the tear takes. */
+    const val STUB_FRACTION = 0.28f
+
+    /** The score line between the notches — a crease, not a border. */
+    const val TEAR_ALPHA = 0.45f
+
+    /** How far a claimed or expired voucher is pushed back. */
+    const val SPENT_DIM = 0.35f
 
     /**
-     * The unresolved panel's ground: neutral, because there is no token colour to take yet, and
-     * only dark enough to separate the card from the bubble it sits on.
+     * The voucher is paper. The transcript's payment cards are dark panels on a dark ground and a
+     * token's bill is the token's own colour; a light card is neither, which is the point -- a cash
+     * link is the one thing in a transcript someone can still pick up.
      */
-    const val GROUND_ALPHA = 0.10f
+    val PAPER = Color(0xFFF2F0EA)
+
+    /** What is printed on the paper. */
+    val INK = Color(0xFF14121F)
+
+    /** The outline left where a claimed voucher's stub was. */
+    const val GHOST_ALPHA = 0.25f
+
+    /** Secondary ink: the token's name and a spent voucher's label. */
+    const val INK_MUTED = 0.55f
+
+    val NOTCH_RADIUS = 9.dp
+    val DASH = 4.dp
 }
