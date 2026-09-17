@@ -296,6 +296,31 @@ private fun TextBubble(
         return
     }
 
+    // The card is the link, drawn. Leaving the URL in the body underneath it would say the
+    // same thing twice, so the span the card was built from goes with it and the prose around
+    // it closes up; a message that was nothing but the link leaves no body at all.
+    val bodyString = if (linkCard == null) {
+        text
+    } else {
+        text.withoutLinkSpan(linkCard.start, linkCard.end)
+    }
+
+    // Nothing left to put in a bubble. The card is already a surface with its own fill and its own
+    // rounded shape, so a bubble behind it draws a second, slightly larger card around the first.
+    // A citation and the edited marker belong to the message rather than to the link, and either
+    // one keeps the bubble.
+    if (linkCard != null && bodyString.isEmpty() && quote == null && !isEdited) {
+        BareLinkCard(
+            card = linkCard,
+            isFromSelf = isFromSelf,
+            position = position,
+            maxWidth = maxWidth,
+            modifier = modifier,
+            attention = attention,
+        )
+        return
+    }
+
     // A reply hands the bubble the narrower surround, so the citation clears the body's own inset
     // on both sides; the body then puts the difference back and keeps the inset it has without a
     // quote. A bubble with no quote never widens, because the two are equal there.
@@ -313,14 +338,6 @@ private fun TextBubble(
             color = CodeTheme.colors.textMain,
             textDecoration = TextDecoration.Underline,
         )
-        // The card is the link, drawn. Leaving the URL in the body underneath it would say the
-        // same thing twice, so the span the card was built from goes with it and the prose around
-        // it closes up; a message that was nothing but the link leaves no body at all.
-        val bodyString = if (linkCard == null) {
-            text
-        } else {
-            text.withoutLinkSpan(linkCard.start, linkCard.end)
-        }
         // A tombstone carries no link and nothing worth selecting; it is a notice, not a message.
         val body = if (isTombstone) {
             AnnotatedString(bodyString)
@@ -425,12 +442,9 @@ private fun TextBubble(
                     // the card changed what the message looks like and not what tapping it does.
                     onClick = { uriHandler.openUri(it) },
                 )
-                // A link on its own leaves nothing to draw. The exceptions are a citation, which
-                // is the sender's and not the link's, and the edited marker, which is pinned to
-                // the bubble and needs the body flow to reserve its hole.
-                if (bodyString.isNotEmpty() || quote != null || isEdited) {
-                    quotedOrPlainBody()
-                }
+                // A link on its own never reaches here -- it is drawn bubble-less above -- so
+                // what is left is a citation, an edited marker, or prose the link sat inside.
+                quotedOrPlainBody()
             }
         }
 
@@ -497,6 +511,40 @@ private fun JumboEmoji(
 private val JUMBO_EMOJI_SIZE = 44.sp
 
 internal const val JUMBO_EMOJI_TAG = "bubble_jumbo_emoji"
+
+/**
+ * A card standing in for the whole message, with no bubble behind it.
+ *
+ * Everything the bubble would have contributed is already the card's: the fill, the rounded corners
+ * and the tap. What is not the card's is the flash a jump leaves on the message it landed on, which
+ * belongs to the transcript rather than to the bubble -- so this goes through [Bubble] as the jumbo
+ * emoji does, with `bare` dropping the fill and the horizontal inset and leaving the flash, the
+ * width ceiling and the corner clip where every other bubble already gets them.
+ */
+@Composable
+private fun BareLinkCard(
+    card: LinkCard,
+    isFromSelf: Boolean,
+    position: BubblePosition,
+    maxWidth: Dp,
+    modifier: Modifier = Modifier,
+    attention: () -> Float = { 0f },
+) {
+    val uriHandler = LocalUriHandler.current
+    Bubble(
+        isFromSelf = isFromSelf,
+        position = position,
+        maxWidth = maxWidth,
+        modifier = modifier,
+        bare = true,
+        // The card runs to the full width the bubble would have had. Its own inset is inside its
+        // frame, so any padding here would be a second one, drawn outside the card's edge.
+        horizontalPadding = 0.dp,
+        attention = attention,
+    ) {
+        LinkCardView(card = card, onClick = { uriHandler.openUri(it) })
+    }
+}
 
 @Composable
 private fun CashBubble(
