@@ -28,10 +28,11 @@ class BubblePositionTest {
         secondsIn: Long,
         sender: SenderIdentity? = null,
         senderId: List<Byte>? = null,
+        text: String = "m$id",
     ) = ChatListItem.ContentBubble(
         messageId = id,
         contentIndex = 0,
-        content = MessageContent.Text("m$id"),
+        content = MessageContent.Text(text),
         isFromSelf = false,
         timestamp = start + secondsIn.seconds,
         sender = sender,
@@ -81,6 +82,47 @@ class BubblePositionTest {
                 BubblePosition.First,
                 BubblePosition.Last,
                 BubblePosition.First,
+            ),
+            positionsOf(items),
+        )
+    }
+
+    @Test
+    fun `a bare emoji breaks the run around it`() {
+        // One sender the whole way, close enough together to group. Without the break, the two
+        // words either side would corner as one run through the emoji and square themselves
+        // against a bubble that is not drawn.
+        val items = listOf(
+            bubble(3, secondsIn = 20, sender = alice),
+            bubble(2, secondsIn = 10, sender = alice, text = "\uD83D\uDE00"),
+            bubble(1, secondsIn = 0, sender = alice),
+        )
+
+        assertEquals(
+            listOf(
+                BubblePosition.Solo, // newest word, closed against the emoji above it
+                BubblePosition.Solo, // the emoji, which draws no corners either way
+                BubblePosition.Solo, // oldest word, closed against the emoji below it
+            ),
+            positionsOf(items),
+        )
+    }
+
+    @Test
+    fun `a run still forms on the far side of an emoji`() {
+        val items = listOf(
+            bubble(4, secondsIn = 30, sender = alice),
+            bubble(3, secondsIn = 20, sender = alice),
+            bubble(2, secondsIn = 10, sender = alice, text = "\uD83D\uDE00"),
+            bubble(1, secondsIn = 0, sender = alice),
+        )
+
+        assertEquals(
+            listOf(
+                BubblePosition.Last,
+                BubblePosition.First,
+                BubblePosition.Solo,
+                BubblePosition.Solo,
             ),
             positionsOf(items),
         )
