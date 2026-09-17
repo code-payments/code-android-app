@@ -96,10 +96,10 @@ internal fun LinkCardView(
             )
 
             // Sized from the width rather than handed the shared height: the tip card is the one
-            // portrait figure of the three, so it is the width that has to give.
+            // portrait figure of the three, so it is the height that has to give.
             is LinkCard.TipCard -> TipLinkCard(
                 card = card,
-                width = maxWidth * LinkCardDefaults.TIP_CARD_WIDTH_FRACTION,
+                width = maxWidth,
                 onClick = { onClick(card) },
             )
         }
@@ -193,9 +193,10 @@ private fun TokenLinkCard(
  * the size everything around it is read at, and a name shrunk to fit a card in a bubble is a name
  * nobody reads.
  *
- * It keeps its proportions instead of filling the bubble, because the other two stand for an amount
- * and a currency and read as bills, while a portrait card stretched to a bubble's width stops being
- * one. A link-only message drops its bubble entirely, so that is a card centred on the transcript.
+ * It takes the bubble's full width, as the other two do, and gives on height instead: it is the one
+ * portrait figure of the three, so holding `TipCard`'s own proportion means standing taller rather
+ * than sitting narrower. Narrower was the wrong give -- a card inset from the bubble the rest fill
+ * reads as an attachment to the message instead of as the message.
  */
 @Composable
 private fun TipLinkCard(
@@ -643,16 +644,6 @@ private object LinkCardDefaults {
     /** `TipCard`'s own proportion, 269 x 333 (node 9277:121417) — the card this one stands in for. */
     const val TIP_CARD_ASPECT = 333f / 269f
 
-    /**
-     * How much of the bubble the portrait card takes.
-     *
-     * Wide enough that a handle fits on one line -- `@sally_streamer` wrapped at 0.62 -- and that
-     * the picture at [TIP_CARD_AVATAR] is a portrait rather than a bullet. It is the one card of
-     * the three that is taller than it is wide, so it stands taller than the other two rather than
-     * being squashed into their landscape frame.
-     */
-    const val TIP_CARD_WIDTH_FRACTION = 0.72f
-
     /** The corner as a fraction of the card's own width, the way `TipCard` derives its own. */
     const val TIP_CARD_CORNER = 0.08f
 
@@ -662,7 +653,7 @@ private object LinkCardDefaults {
      * the middle here, so the picture does: at the real card's fraction it would be a bullet point
      * on a mostly empty portrait.
      */
-    const val TIP_CARD_AVATAR = 0.56f
+    const val TIP_CARD_AVATAR = 0.44f
 
     /** What separates the handle from the name above it, as on the real card. */
     const val TIP_CARD_HANDLE_ALPHA = 0.5f
