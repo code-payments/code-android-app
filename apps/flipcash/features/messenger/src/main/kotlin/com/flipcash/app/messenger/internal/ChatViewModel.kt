@@ -30,12 +30,15 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
+import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.session.CashLinkClaims
+import com.flipcash.app.session.SettledClaim
+import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
 import com.flipcash.app.tokens.TokenCoordinator
@@ -379,6 +382,14 @@ internal class ChatViewModel @Inject constructor(
         data class ReplyToMessage(val quote: ChatQuote) : Event
         data object CancelReply : Event
 
+        /**
+         * The reader tapped a cash voucher in this transcript, naming the link.
+         *
+         * Only the name: the tap has already left through the URL handler by the time this
+         * arrives, and nothing here claims anything. See [initClaimReplies].
+         */
+        data class CashLinkOpened(val entropy: String) : Event
+
         /** Asks the transcript to scroll to [messageId] — a tap on a quote. */
         data class JumpToMessage(val messageId: Long) : Event
 
@@ -457,6 +468,15 @@ internal class ChatViewModel @Inject constructor(
      */
     private val cardRevision = MutableStateFlow(0)
 
+    /**
+     * Where a claim goes back to, for a voucher tapped in this transcript.
+     *
+     * Held here rather than carried down to the bubble: neither `TextBubble` nor `BareLinkCard` is
+     * given a message id, and the card is drawn from several places inside them, so threading one
+     * through would touch every call site to answer a question this side already knows.
+     */
+    private val claimReplyTargets = ClaimReplyTargets()
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatListItem>> =
         combine(
@@ -494,6 +514,15 @@ internal class ChatViewModel @Inject constructor(
                     val linkCard = enriched.linkableText()
                         ?.let { text -> linkCardClassifier.firstCard(detectUrls(text)) }
                         ?.let { card -> linkCardResolver.resolve(card) }
+
+                    // Noted while the voucher and the message it came on are in the same hand;
+                    // see [ClaimReplyTargets]. Skipped for the reader's own messages, which is what
+                    // makes "do not thank yourself for your own link" structural rather than a
+                    // check at send time.
+                    if (!message.isFromSelf) {
+                        (linkCard as? LinkCard.Cash)
+                            ?.let { claimReplyTargets.note(it.entropy, message.messageId) }
+                    }
 
                     val receiptStatus = if (message.isFromSelf) {
                         when (message.deliveryStatus) {
@@ -721,6 +750,7 @@ internal class ChatViewModel @Inject constructor(
         // Essential — needed immediately for chat display
         initChatHandlers()
         initLinkCardFreshness()
+        initClaimReplies()
 
         viewModelScope.launch {
             // Yield to let the first frame render before setting up remaining collectors
@@ -747,12 +777,20 @@ internal class ChatViewModel @Inject constructor(
      * sender watches their own voucher say "Tap to claim" for cash that is gone. There is no
      * signal to wait for, so the alternative is to ask — see [refreshLinkCards] for why that is
      * cheaper than it sounds, and [CashLinkClaims] for the signal that would retire it.
+     *
+     * The same claim is also the other side's news, which is why [thankForClaim] hangs off this
+     * collector: a claim made here is the one thing this device knows that the sender does not, and
+     * a reply on the transcript is how it tells them.
      */
     private fun initLinkCardFreshness() {
+        // One collector for two consequences rather than one each. The flow is replay-less over a
+        // single-slot buffer that drops rather than suspends, so a second collector is a second
+        // chance to be the one that misses an emission.
         cashLinkClaims.settledClaims
-            .onEach { entropy ->
-                linkCardResolver.invalidateCash(entropy)
+            .onEach { claim ->
+                linkCardResolver.invalidateCash(claim.entropy)
                 cardRevision.update { it + 1 }
+                thankForClaim(claim)
             }
             .launchIn(viewModelScope)
 
@@ -782,6 +820,46 @@ internal class ChatViewModel @Inject constructor(
     private suspend fun refreshLinkCards() {
         if (linkCardResolver.refreshClaimable()) {
             cardRevision.update { it + 1 }
+        }
+    }
+
+    /**
+     * Records which voucher the reader just tapped, so the claim that comes back has a message to
+     * answer. Recorded, not acted on — [ClaimReplyTargets] says why a tap is not yet a claim.
+     */
+    private fun initClaimReplies() {
+        eventFlow.filterIsInstance<Event.CashLinkOpened>()
+            .onEach { claimReplyTargets.tapped(it.entropy) }
+            .flowOn(Dispatchers.Main.immediate)
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Replies to the voucher with a thank-you, once a link tapped here has actually been collected.
+     *
+     * This is what closes the loop for everyone else in the chat without a server change. The
+     * sender is watching a card they cannot be told about — nothing pushes a claim, and the poll in
+     * [refreshLinkCards] is the fallback for exactly that — but a message arrives on a transcript
+     * that already fans out to every participant on both platforms, and it stays there for whoever
+     * opens the chat tomorrow. It reads as the claimer because it is: a plain text reply, sent the
+     * way the composer sends one, attributed to them.
+     *
+     * Which claims qualify is [ClaimReplyTargets]'s to answer: it is what limits this to a link the
+     * reader opened from this transcript and a claim that actually moved money.
+     */
+    private fun thankForClaim(claim: SettledClaim) {
+        val messageId = claimReplyTargets.settled(claim) ?: return
+        val chatId = stateFlow.value.chatId ?: return
+
+        // Decided on the collector, sent off it. The claim is consumed before this returns, so the
+        // next one is not waiting behind a network call on a single-slot flow that drops rather
+        // than suspends -- and a card's freshness does not wait on a thank-you either.
+        viewModelScope.launch {
+            chatCoordinator.sendMessage(
+                chatId,
+                resources.getString(R.string.message_cash_link_thanks),
+                messageId,
+            ).onFailure { trace("claim reply failed to send - ${it.localizedMessage}") }
         }
     }
 
@@ -1785,6 +1863,9 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 Event.CancelReply -> { state -> state.copy(replyingTo = null) }
+                // Nothing on screen moves when a voucher is tapped -- the link leaves, the card
+                // keeps saying what it said, and the claim comes back as its own signal.
+                is Event.CashLinkOpened -> { state -> state }
                 // The request itself changes nothing: the target is only worth holding once the
                 // walk's bound resolves, and that read is what decides whether it can be reached.
                 is Event.JumpToMessage -> { state -> state }

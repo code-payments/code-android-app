@@ -103,6 +103,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.CancelReply)
             }
 
+            is ChatAction.CashLinkOpened -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.CashLinkOpened(action.entropy))
+            }
+
             is ChatAction.JumpToMessage -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
             }

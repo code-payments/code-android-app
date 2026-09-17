@@ -183,6 +183,8 @@
     <string name="title_shareCashLink">Send %1$s</string>
     <string name="title_inviteContact">Invite to Flipcash</string>
     <string name="message_invite_contact">You should download Flipcash, a new way to send cash\n\n%1$s</string>
+    <!-- Posted by the claimer's own device as a reply to the voucher they just collected in a chat. -->
+    <string name="message_cash_link_thanks">Thanks for the cash!</string>
 
     <string name="title_enterAddress">Enter Solana address</string>
     <!-- v2 app-bar title for the withdrawal destination step; title_enterAddress stays the field placeholder. -->

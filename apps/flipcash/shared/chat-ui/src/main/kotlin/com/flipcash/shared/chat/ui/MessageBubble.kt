@@ -566,7 +566,13 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
     val uriHandler = LocalUriHandler.current
     return { card ->
         when (card) {
-            is LinkCard.Cash -> uriHandler.openUri(card.url)
+            // The entropy is reported and the link still leaves through the URL handler, in that
+            // order and unconditionally. Nothing here waits on the report or reads it back, so a
+            // tap opens the link whatever the transcript does with the name.
+            is LinkCard.Cash -> {
+                actionHandler(ChatAction.CashLinkOpened(card.entropy))
+                uriHandler.openUri(card.url)
+            }
             is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
         }
     }
