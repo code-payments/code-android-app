@@ -1,114 +1,129 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.splineBasedDecay
-import androidx.compose.foundation.gestures.AnchoredDraggableState
-import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.getcode.util.vibration.LocalVibrator
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-
-internal enum class ReplyDragAnchor { Rest, Reply }
 
 /**
  * A trailing-ward drag on a message row that dispatches a reply.
  *
- * The row never settles open — `confirmValueChange` always refuses — so the gesture is a pull that
- * springs back: the haptic fires the moment the threshold is crossed, and the action fires as the
- * row returns, which is what makes an abandoned drag cost nothing.
+ * The row never settles open: the gesture is a pull that springs back. The haptic fires the moment
+ * the threshold is crossed, and the reply fires on release, which is what makes an abandoned drag
+ * cost nothing — a drag that passes the threshold and comes back sends nothing.
+ *
+ * Past [MAX_TRANSLATION] the row keeps following the finger with diminishing returns rather than
+ * stopping dead, so a hard swipe still feels connected. The affordance does not follow it there —
+ * it holds at the end of its own travel, because it marks where the gesture fires and there is
+ * nothing further along to mark.
+ *
+ * [senderGutter] is the width of the avatar column at the row's leading edge, if the row reserves
+ * one. A drag that starts inside it is inert — that column is the target for the person, not for
+ * the message, and a row that opened there would promise a reply it is not going to send.
  *
  * The distances are iOS's, in absolute units rather than the fractions of screen width this was
- * ported with. They have to be: [progress] is the fraction of the trigger distance travelled, and it
- * is what draws the affordance, so a threshold that moves with the screen would put the icon at a
- * different point of its reveal on every device — and on a 411dp screen the old 0.40 fraction put
- * the trigger at roughly three times iOS's.
+ * ported with. They have to be: [SwipeToReplyState.progress] is the fraction of the trigger
+ * distance travelled, and it is what draws the affordance, so a threshold that moves with the
+ * screen would put the icon at a different point of its reveal on every device — and on a 411dp
+ * screen the old 0.40 fraction put the trigger at roughly three times iOS's.
  */
 @Composable
 internal fun rememberSwipeToReply(
     enabled: Boolean,
+    senderGutter: Dp,
     onReply: () -> Unit,
 ): SwipeToReplyState {
     val density = LocalDensity.current
     val vibrator = LocalVibrator.current
+    val scope = rememberCoroutineScope()
+
     val maxPx = with(density) { MAX_TRANSLATION.toPx() }
     val triggerPx = with(density) { TRIGGER_THRESHOLD.toPx() }
-    var crossed by remember { mutableStateOf(false) }
+    val gutterPx = with(density) { senderGutter.toPx() }
 
-    val anchors = remember(maxPx) {
-        DraggableAnchors {
-            ReplyDragAnchor.Rest at 0f
-            ReplyDragAnchor.Reply at maxPx
+    val reply by rememberUpdatedState(onReply)
+
+    // The finger's raw travel, before resistance; the row's own offset is derived from it on every
+    // read. Keeping the raw value is what lets the rubber band be a pure function: a drag 200dp
+    // along is at 200dp of travel whatever the row is showing, so dragging back out of the band
+    // retraces the same curve instead of starting a second one.
+    val travel = remember { mutableFloatStateOf(0f) }
+    val latch = remember { DragLatch() }
+
+    val dragState = rememberDraggableState { delta ->
+        // A drag off the message moves nothing: the row opening under a finger that cannot reply
+        // would promise an action it is not going to take.
+        if (!latch.armed) return@rememberDraggableState
+        travel.floatValue = (travel.floatValue + delta).coerceAtLeast(0f)
+        if (!latch.crossed && resist(travel.floatValue, maxPx) > triggerPx) {
+            latch.crossed = true
+            vibrator.tick()
         }
     }
 
-    // The deprecated constructor, deliberately. Its replacement drops confirmValueChange, and that
-    // veto is the whole gesture: without it a fling past the threshold settles the row open, which
-    // is a state this interaction has no way back out of.
-    @Suppress("DEPRECATION")
-    val dragState = remember(anchors) {
-        AnchoredDraggableState(
-            initialValue = ReplyDragAnchor.Rest,
-            anchors = anchors,
-            // A fraction of the distance between the anchors, so the trigger lands at
-            // TRIGGER_THRESHOLD rather than at the full travel.
-            positionalThreshold = { it * (triggerPx / maxPx) },
-            velocityThreshold = { Float.POSITIVE_INFINITY },
-            confirmValueChange = { target ->
-                if (target == ReplyDragAnchor.Reply && !crossed) {
-                    crossed = true
-                    vibrator.tick()
-                }
-                false
-            },
-            snapAnimationSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMediumLow,
-            ),
-            decayAnimationSpec = splineBasedDecay(density),
-        )
-    }
-
-    LaunchedEffect(crossed, dragState.targetValue) {
-        if (crossed &&
-            dragState.targetValue == ReplyDragAnchor.Rest &&
-            dragState.isAnimationRunning
-        ) {
-            onReply()
-            crossed = false
-        }
-    }
+    // A row that loses the gesture mid-drag — the backdrop coming up is the way that happens —
+    // drops its modifier with it, so the travel has to be cleared here or the next enabled frame
+    // would draw the row still held open.
+    LaunchedEffect(enabled) { if (!enabled) travel.floatValue = 0f }
 
     // Nothing to drag and nothing to draw, but the hooks above still have to be called in the same
     // order on every composition, so the disabled case is decided here rather than at the top.
     if (!enabled) return SwipeToReplyState.Disabled
 
-    return remember(dragState, maxPx, triggerPx) {
+    return remember(dragState, maxPx, triggerPx, gutterPx) {
         SwipeToReplyState(
             modifier = Modifier
-                .anchoredDraggable(
+                .draggable(
                     state = dragState,
                     orientation = Orientation.Horizontal,
+                    onDragStarted = { start ->
+                        latch.settle?.cancel()
+                        latch.armed = start.x >= gutterPx
+                        latch.crossed = false
+                    },
+                    onDragStopped = {
+                        val fires = latch.armed && resist(travel.floatValue, maxPx) > triggerPx
+                        latch.armed = false
+                        latch.crossed = false
+                        // Sent before the row is back: the reply is the answer to the gesture, and
+                        // waiting out the spring reads as lag.
+                        if (fires) reply()
+                        // Launched on the composition's scope, not the gesture's, which ends with
+                        // the finger — the spring outlives it.
+                        latch.settle = scope.launch {
+                            animate(travel.floatValue, 0f, animationSpec = SpringBack) { value, _ ->
+                                travel.floatValue = value
+                            }
+                        }
+                    },
                 )
                 .offset {
-                    IntOffset(x = dragState.clampedOffset(maxPx).roundToInt(), y = 0)
+                    IntOffset(x = resist(travel.floatValue, maxPx).roundToInt(), y = 0)
                 },
             // Read through a lambda, not captured: this is sampled inside a graphicsLayer block, so
             // the affordance redraws on every frame of the drag without recomposing the row.
-            offsetPx = { dragState.clampedOffset(maxPx) },
+            offsetPx = { resist(travel.floatValue, maxPx) },
             triggerPx = triggerPx,
+            affordanceEndPx = maxPx,
         )
     }
 }
@@ -121,24 +136,63 @@ internal class SwipeToReplyState(
     val modifier: Modifier,
     private val offsetPx: () -> Float,
     private val triggerPx: Float,
+    private val affordanceEndPx: Float,
 ) {
     /** How far the drag has come as a fraction of the distance that fires the reply, capped at 1. */
     fun progress(): Float = (offsetPx() / triggerPx).coerceIn(0f, 1f)
 
+    /**
+     * How far the affordance has to be pulled back against its row to stay put once the drag is
+     * past [affordanceEndPx]. The affordance is a child of the row, so it is already carried by the
+     * row's offset; holding it still means cancelling whatever of that offset runs past the end.
+     */
+    fun affordanceTranslationPx(): Float = -(offsetPx() - affordanceEndPx).coerceAtLeast(0f)
+
     companion object {
-        val Disabled = SwipeToReplyState(Modifier, { 0f }, 1f)
+        val Disabled = SwipeToReplyState(Modifier, { 0f }, 1f, 0f)
     }
 }
 
 /**
- * The drag's travel, capped at the full translation and never NaN — `offset` has no value until the
- * anchors have been applied, and a NaN reaching `IntOffset` throws.
+ * Per-drag bookkeeping, written from the gesture's own callbacks.
+ *
+ * Plain fields rather than snapshot state on purpose: only the gesture reads them, nothing drawn
+ * depends on them, and a write mid-drag that recomposed the row would cost a frame of the transcript
+ * for no visible change.
  */
-@Suppress("DEPRECATION")
-private fun AnchoredDraggableState<ReplyDragAnchor>.clampedOffset(maxPx: Float): Float =
-    offset.takeIf { !it.isNaN() }?.coerceIn(0f, maxPx) ?: 0f
+private class DragLatch {
+    /** Whether this drag may reply at all — false for one that started in the sender gutter. */
+    var armed = false
 
-/** iOS's `maxTranslation`: how far the row itself can move. */
+    /** Whether the threshold haptic has fired. Latched for the rest of the drag, so a finger held
+     *  just past the threshold ticks once and not on every frame. */
+    var crossed = false
+
+    /** The spring-back, kept so a new drag can interrupt it and carry on from where the row is. */
+    var settle: Job? = null
+}
+
+/**
+ * How far the row moves for a raw travel: itself up to [maxPx], resisted past it.
+ *
+ * The rubber band approaches one more [maxPx] of travel and never reaches it, so the row stays
+ * connected to a hard swipe without running out from under the transcript.
+ */
+internal fun resist(travel: Float, maxPx: Float): Float = when {
+    travel <= 0f -> 0f
+    travel <= maxPx -> travel
+    else -> {
+        val overshoot = travel - maxPx
+        maxPx + maxPx * overshoot / (overshoot + maxPx)
+    }
+}
+
+private val SpringBack = spring<Float>(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessMediumLow,
+)
+
+/** iOS's `maxTranslation`: how far the row travels before the drag starts to resist. */
 private val MAX_TRANSLATION = 64.dp
 
 /** iOS's `triggerThreshold`: the travel that arms the reply and fires the haptic. */
