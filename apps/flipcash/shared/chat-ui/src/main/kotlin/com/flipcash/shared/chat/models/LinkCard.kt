@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.models
 
 import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 
 /**
  * A link in a message that renders as a card in place of the link text.
@@ -49,10 +50,45 @@ sealed interface LinkCard {
                  * [Token.billCustomizations]. A link whose mint has no metadata never resolves.
                  */
                 val token: Token,
-                val issuedByViewer: Boolean,
             ) : State
         }
 
         enum class Claim { Claimable, Claimed, Expired }
+    }
+
+    /**
+     * A link to a token's page. Drawn as that token's bill — the card the link opens to — so the
+     * colours a creator picked for their currency are what identifies it in the transcript.
+     */
+    data class TokenInfo(
+        override val url: String,
+        override val start: Int,
+        override val end: Int,
+        val mint: Mint,
+        val state: State,
+    ) : LinkCard {
+
+        sealed interface State {
+            /**
+             * No metadata yet, and what a failed, timed-out or offline lookup renders as. The mint
+             * is all that is known, so the card names it and nothing else — a link to a token
+             * nobody can describe is still a link that opens.
+             */
+            data object Unresolved : State
+
+            /**
+             * The token, and only the token. The card says which currency the link opens, not what
+             * the reader holds of it: a balance on a card in a transcript is the reader's own
+             * position shown against someone else's message, and it would go stale in place while
+             * the wallet moved on.
+             */
+            data class Resolved(
+                /**
+                 * Carried whole: the bill's gradient comes from [Token.billCustomizations], and its
+                 * header from the name and icon. A mint with no metadata never resolves.
+                 */
+                val token: Token,
+            ) : State
+        }
     }
 }

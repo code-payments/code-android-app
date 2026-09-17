@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.ui.TokenCard
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.opencode.model.financial.Token
@@ -47,16 +49,19 @@ import com.getcode.ui.utils.ConstraintMode
  *
  * A cash link is a voucher: one amount, made once, spent once. It is drawn as one — the token it
  * pays out named along the top, the amount in the middle, and a perforated stub across the bottom
- * carrying what can be done with it. The bill's colours belong to the token rather than to the
- * link, so they are left for a card that stands for a token; a voucher for $15 and a card about
- * Dollars should not be the same gold rectangle. The URL the card came from is cut from the body
- * text, so the card is the link rather than an ornament above it; [onClick] hands the URL to the
- * handler the link span used to go through.
+ * carrying what can be done with it. A token link is drawn as that token's bill instead, the card
+ * the link opens to. The split is the point: a voucher for $15 and a card about Dollars should not
+ * be the same gold rectangle, so the bill's colours stay with the card that stands for the token.
+ *
+ * The URL the card came from is cut from the body text, so the card is the link rather than an
+ * ornament above it, so [onClick] has to carry the tap — a link-only message would otherwise draw
+ * something that opens nothing. The whole card is handed back rather than its URL, because where a
+ * tap should land differs by kind and only the caller knows the transcript it is landing in.
  */
 @Composable
 internal fun LinkCardView(
     card: LinkCard,
-    onClick: (String) -> Unit,
+    onClick: (LinkCard) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // The voucher's proportions, not its size: a bubble is a good deal narrower than the wallet's
@@ -68,7 +73,13 @@ internal fun LinkCardView(
             is LinkCard.Cash -> CashLinkCard(
                 card = card,
                 height = height,
-                onClick = { onClick(card.url) },
+                onClick = { onClick(card) },
+            )
+
+            is LinkCard.TokenInfo -> TokenLinkCard(
+                card = card,
+                height = height,
+                onClick = { onClick(card) },
             )
         }
     }
@@ -106,18 +117,92 @@ private fun CashLinkCard(
                 // Off the paper: the stub this used to sit on left with whoever claimed it.
                 StubLabel(stringResource(R.string.label_linkCard_claimed), onPaper = false)
             LinkCard.Cash.Claim.Expired -> StubLabel(stringResource(R.string.label_linkCard_expired))
-            LinkCard.Cash.Claim.Claimable ->
-                // The issuer gets told it is theirs rather than invited to claim it:
-                // `validateClaimEligibility` refuses a self-claim, so a claim button here would be
-                // an invitation the claim path declines.
-                if (state.issuedByViewer) {
-                    StubLabel(stringResource(R.string.label_linkCard_sentByYou))
-                } else {
-                    ClaimPill(stringResource(R.string.label_linkCard_claim))
-                }
+            // The same voucher whoever is reading it. The transcript already says who sent the
+            // link -- the bubble sits on the sender's side -- so a card that read differently for
+            // the issuer would be saying it twice, and saying it in the one place both people are
+            // looking at the same object.
+            LinkCard.Cash.Claim.Claimable -> ClaimPill(stringResource(R.string.label_linkCard_claim))
         }
     }
 }
+
+/**
+ * A token link is the token's own bill — the card the link opens to, so the colours the creator
+ * chose are what the reader recognises before reading a word. The wallet's card carries a balance;
+ * this one does not. The link is about the currency, not about the reader's position in it, and a
+ * balance printed into a transcript would keep saying what the wallet said at the moment the
+ * message was scrolled past.
+ */
+@Composable
+private fun TokenLinkCard(
+    card: LinkCard.TokenInfo,
+    height: Dp,
+    onClick: () -> Unit,
+) {
+    when (val state = card.state) {
+        is LinkCard.TokenInfo.State.Resolved -> TokenCard(
+            token = state.token,
+            // Empty rather than absent: the header lays the balance out at the end of the row, so
+            // an empty string leaves the name alone on the row with nothing to collide with.
+            balanceText = "",
+            displayName = displayNameOf(state.token),
+            height = height,
+            onClick = onClick,
+        )
+
+        LinkCard.TokenInfo.State.Unresolved -> UnresolvedTokenCard(
+            mint = card.mint,
+            height = height,
+            onClick = onClick,
+        )
+    }
+}
+
+/**
+ * The same card with nothing known in it. There is no honest bill for a mint whose name and colours
+ * have not arrived — and `AppRouter` does not check that a token path holds a real mint, so this is
+ * also what `app.flipcash.com/token/junk` renders as, permanently.
+ *
+ * So it names the mint. The URL has already been cut from the message text, and a blank rectangle
+ * where readable text used to be would leave the reader with less than the raw link gave them; the
+ * address at least says which token was meant and can be read back against the link.
+ */
+@Composable
+private fun UnresolvedTokenCard(
+    mint: Mint,
+    height: Dp,
+    onClick: () -> Unit,
+) {
+    val shape = CodeTheme.shapes.medium
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(shape)
+            .background(CodeTheme.colors.surfaceVariant)
+            .border(CodeTheme.dimens.border, CodeTheme.colors.surfaceVariant, shape)
+            .clickable(onClick = onClick)
+            .padding(CodeTheme.dimens.inset),
+    ) {
+        Text(
+            modifier = Modifier.align(Alignment.TopStart),
+            text = mint.abbreviated(),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+        )
+    }
+}
+
+/** Head and tail of the address, the way every explorer shows one. */
+private fun Mint.abbreviated(): String = description.let { address ->
+    if (address.length <= ABBREVIATED_MINT_CHARS * 2) {
+        address
+    } else {
+        "${address.take(ABBREVIATED_MINT_CHARS)}…${address.takeLast(ABBREVIATED_MINT_CHARS)}"
+    }
+}
+
+private const val ABBREVIATED_MINT_CHARS = 4
 
 /**
  * The reserve is branded Dollars everywhere the user meets it; `token.name` off the wire is "USDF",

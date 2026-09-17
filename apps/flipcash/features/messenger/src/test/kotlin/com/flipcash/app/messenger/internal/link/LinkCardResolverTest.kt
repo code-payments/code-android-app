@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.link
 
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.test.runTest
 import org.mockito.kotlin.mock
 import kotlin.test.Test
@@ -9,6 +10,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class LinkCardResolverTest {
+
+    private companion object {
+        const val MINT = "So11111111111111111111111111111111111111112"
+    }
 
     private val card = LinkCard.Cash(
         url = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3",
@@ -18,18 +23,26 @@ class LinkCardResolverTest {
         state = LinkCard.Cash.State.Unresolved,
     )
 
+    private val tokenCard = LinkCard.TokenInfo(
+        url = "https://app.flipcash.com/token/$MINT",
+        start = 0,
+        end = 74,
+        mint = Mint(MINT),
+        state = LinkCard.TokenInfo.State.Unresolved,
+    )
+
     private fun snapshot() = LinkCardResolver.Snapshot(
         amount = "$15.00",
         claim = LinkCard.Cash.Claim.Claimable,
         token = mock<Token>(),
-        issuedByViewer = false,
     )
 
     @Test
     fun `a failed lookup stays unresolved rather than erroring`() = runTest {
         val resolver = LinkCardResolver(
             scope = backgroundScope,
-            lookup = { Result.failure(IllegalStateException("offline")) },
+            giftCard = { Result.failure(IllegalStateException("offline")) },
+            tokenMetadata = { Result.failure(IllegalStateException("offline")) },
         )
         assertEquals(LinkCard.Cash.State.Unresolved, (resolver.resolve(card) as LinkCard.Cash).state)
     }
@@ -38,7 +51,8 @@ class LinkCardResolverTest {
     fun `a successful lookup fills the card in`() = runTest {
         val resolver = LinkCardResolver(
             scope = backgroundScope,
-            lookup = { Result.success(snapshot()) },
+            giftCard = { Result.success(snapshot()) },
+            tokenMetadata = { Result.success(mock<Token>()) },
         )
         val state = (resolver.resolve(card) as LinkCard.Cash).state
         assertTrue(state is LinkCard.Cash.State.Resolved)
@@ -50,10 +64,11 @@ class LinkCardResolverTest {
         var calls = 0
         val resolver = LinkCardResolver(
             scope = backgroundScope,
-            lookup = {
+            giftCard = {
                 calls++
                 Result.success(snapshot())
             },
+            tokenMetadata = { Result.success(mock<Token>()) },
         )
         resolver.resolve(card)
         resolver.resolve(card)
@@ -65,15 +80,53 @@ class LinkCardResolverTest {
         var calls = 0
         val resolver = LinkCardResolver(
             scope = backgroundScope,
-            lookup = {
+            giftCard = {
                 calls++
                 Result.failure(IllegalStateException("offline"))
             },
+            tokenMetadata = { Result.failure(IllegalStateException("offline")) },
         )
         resolver.resolve(card)
         resolver.resolve(card)
         // The transcript re-maps constantly; one cancelled or offline moment cannot be what
         // decides the card until the reader leaves the chat.
         assertEquals(2, calls)
+    }
+
+    @Test
+    fun `a token link resolves to the mint's metadata`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("not asked")) },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+        val resolved = resolver.resolve(tokenCard) as LinkCard.TokenInfo
+        assertTrue(resolved.state is LinkCard.TokenInfo.State.Resolved)
+    }
+
+    @Test
+    fun `an unknown mint stays unresolved rather than erroring`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("not asked")) },
+            tokenMetadata = { Result.failure(IllegalStateException("no metadata")) },
+        )
+        val resolved = resolver.resolve(tokenCard) as LinkCard.TokenInfo
+        assertEquals(LinkCard.TokenInfo.State.Unresolved, resolved.state)
+    }
+
+    @Test
+    fun `a cash link and a token link do not share a query`() = runTest {
+        var cashCalls = 0
+        var tokenCalls = 0
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { cashCalls++; Result.success(snapshot()) },
+            tokenMetadata = { tokenCalls++; Result.success(mock<Token>()) },
+        )
+        resolver.resolve(card)
+        resolver.resolve(tokenCard)
+        assertEquals(1, cashCalls)
+        assertEquals(1, tokenCalls)
     }
 }

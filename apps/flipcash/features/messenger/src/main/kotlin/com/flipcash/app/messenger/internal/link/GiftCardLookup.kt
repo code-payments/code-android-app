@@ -63,7 +63,6 @@ internal class GiftCardLookup @Inject constructor(
                 AccountInfo.ClaimState.NotClaimed -> LinkCard.Cash.Claim.Claimable
             },
             token = token,
-            issuedByViewer = info.isGiftCardIssuer,
         )
     }
 }

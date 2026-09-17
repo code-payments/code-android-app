@@ -61,6 +61,13 @@ internal class LinkCardClassifier @Inject constructor(
                         state = LinkCard.Cash.State.Unresolved,
                     )
                 }
+            is DeeplinkType.TokenInfo -> LinkCard.TokenInfo(
+                url = target,
+                start = link.start,
+                end = link.end,
+                mint = type.mint,
+                state = LinkCard.TokenInfo.State.Unresolved,
+            )
             else -> null
         }
     }

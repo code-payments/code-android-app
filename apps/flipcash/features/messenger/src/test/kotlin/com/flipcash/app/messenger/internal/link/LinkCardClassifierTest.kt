@@ -4,6 +4,7 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
+import com.getcode.solana.keys.Mint
 import dev.theolm.rinku.DeepLink
 import org.json.JSONObject
 import org.junit.runner.RunWith
@@ -35,6 +36,8 @@ class LinkCardClassifierTest {
             val path = link.pathSegmentsForTest().firstOrNull()
             return when (path) {
                 "c", "cash" -> DeeplinkType.CashLink(link.entropyFragmentForTest().orEmpty())
+                "token" -> link.pathSegmentsForTest().getOrNull(1)
+                    ?.let { DeeplinkType.TokenInfo(Mint(it)) }
                 else -> null
             }
         }
@@ -75,15 +78,40 @@ class LinkCardClassifierTest {
             if (expectedCard == null) {
                 assertEquals(null, actual, "vector `$name`: ${vector.getString("note")}")
             } else {
-                assertEquals("cash", expectedCard.getString("kind"), "vector `$name` is not a cash case")
-                val card = actual as? LinkCard.Cash
-                assertEquals(expectedCard.getString("url"), card?.url, "vector `$name`: ${vector.getString("note")}")
-                assertEquals(LinkCard.Cash.State.Unresolved, card?.state, "vector `$name` must start unresolved")
+                val note = vector.getString("note")
+                when (val kind = expectedCard.getString("kind")) {
+                    "cash" -> {
+                        val card = actual as? LinkCard.Cash
+                        assertEquals(expectedCard.getString("url"), card?.url, "vector `$name`: $note")
+                        assertEquals(
+                            LinkCard.Cash.State.Unresolved,
+                            card?.state,
+                            "vector `$name` must start unresolved",
+                        )
+                    }
+
+                    "token" -> {
+                        val card = actual as? LinkCard.TokenInfo
+                        assertEquals(expectedCard.getString("url"), card?.url, "vector `$name`: $note")
+                        assertEquals(
+                            expectedCard.getString("mint"),
+                            card?.mint?.description,
+                            "vector `$name` must carry the mint from the path",
+                        )
+                        assertEquals(
+                            LinkCard.TokenInfo.State.Unresolved,
+                            card?.state,
+                            "vector `$name` must start unresolved",
+                        )
+                    }
+
+                    else -> error("vector `$name` has an unknown card kind `$kind`")
+                }
                 // The card carries one of the spans the transcript would have underlined, which is
                 // what lets the bubble draw it in place of exactly that text. Its own url can
                 // differ from the span's -- a jump wrapper is unwrapped -- so the span is the link.
                 assertTrue(
-                    links.any { it.start == card?.start && it.end == card.end },
+                    links.any { it.start == actual?.start && it.end == actual.end },
                     "vector `$name` must carry the span its link was detected at",
                 )
             }

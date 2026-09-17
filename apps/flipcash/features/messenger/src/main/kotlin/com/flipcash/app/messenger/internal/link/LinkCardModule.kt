@@ -14,19 +14,24 @@ import kotlinx.coroutines.SupervisorJob
 internal object LinkCardModule {
 
     /**
-     * Scoped to the chat rather than the process. The resolver memoizes by entropy and never
-     * evicts, which is what stops a scroll from re-querying the same link — but claim state moves:
-     * a link claimed on another device stays `Claimable` for as long as the cache holds it. Tying
-     * the cache to the screen bounds that to one visit, and re-entering the chat asks again.
+     * Scoped to the chat rather than the process. The resolver memoizes by entropy and by mint
+     * and never evicts, which is what stops a scroll from re-querying the same link — but claim
+     * state moves: a link claimed elsewhere, or on this device, stays `Claimable` for as long as
+     * the cache holds it. Tying the cache to the screen bounds that to one visit, and re-entering
+     * the chat asks again.
      */
     @Provides
     @ViewModelScoped
-    fun provideLinkCardResolver(lookup: GiftCardLookup): LinkCardResolver =
+    fun provideLinkCardResolver(
+        giftCard: GiftCardLookup,
+        token: TokenLinkLookup,
+    ): LinkCardResolver =
         LinkCardResolver(
             // The resolver's own scope, ended by `ChatViewModel.onCleared`. A query outlives the
             // paging pass that asked for it -- see `LinkCardResolver` -- so it needs a scope that
             // is not the transform's, and one bounded by the same screen as the cache it fills.
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-            lookup = { lookup(it) },
+            giftCard = { giftCard(it) },
+            tokenMetadata = { token(it) },
         )
 }

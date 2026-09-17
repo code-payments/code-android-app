@@ -434,13 +434,11 @@ private fun TextBubble(
         if (linkCard == null) {
             quotedOrPlainBody()
         } else {
-            val uriHandler = LocalUriHandler.current
+            val onCardClick = rememberLinkCardClick()
             Column(verticalArrangement = Arrangement.spacedBy(BubbleDefaults.surroundInset)) {
                 LinkCardView(
                     card = linkCard,
-                    // The handler the link span used to go through, so replacing the text with
-                    // the card changed what the message looks like and not what tapping it does.
-                    onClick = { uriHandler.openUri(it) },
+                    onClick = onCardClick,
                 )
                 // A link on its own never reaches here -- it is drawn bubble-less above -- so
                 // what is left is a citation, an edited marker, or prose the link sat inside.
@@ -530,19 +528,47 @@ private fun BareLinkCard(
     modifier: Modifier = Modifier,
     attention: () -> Float = { 0f },
 ) {
-    val uriHandler = LocalUriHandler.current
+    val onCardClick = rememberLinkCardClick()
     Bubble(
         isFromSelf = isFromSelf,
         position = position,
         maxWidth = maxWidth,
         modifier = modifier,
         bare = true,
-        // The card runs to the full width the bubble would have had. Its own inset is inside its
-        // frame, so any padding here would be a second one, drawn outside the card's edge.
+        // The card runs to the full width the bubble would have had, and to the full height. Its
+        // own inset is inside its frame, so padding here would be a second one -- and with no fill
+        // to hide inside, it is drawn outside the card's edge, where it reads as a gap rather than
+        // as padding. A text bubble's inset sits within its fill, so leaving these at the bubble's
+        // defaults would space a card away from its neighbours further than two bubbles ever are.
         horizontalPadding = 0.dp,
+        verticalPadding = 0.dp,
         attention = attention,
     ) {
-        LinkCardView(card = card, onClick = { uriHandler.openUri(it) })
+        LinkCardView(card = card, onClick = onCardClick)
+    }
+}
+
+/**
+ * What a tap on a card does.
+ *
+ * A cash link goes back out through the URL handler its link span used, so replacing the text with
+ * a card changed how the message looks and not what tapping it does.
+ *
+ * A token link does not. Its URL classifies as a deep link, and the router answers that with the
+ * wallet sheet plus the token's card expanded in place — right for a link arriving from outside the
+ * app, wrong from inside a chat, where it swaps the transcript for the wallet on the way to a
+ * screen the reader asked for directly. There is no wallet card here for the detail to grow out of.
+ * So it pushes, exactly as the cash bubble's own token tap does, and back returns to the message.
+ */
+@Composable
+private fun rememberLinkCardClick(): (LinkCard) -> Unit {
+    val actionHandler = LocalChatActionHandler.current
+    val uriHandler = LocalUriHandler.current
+    return { card ->
+        when (card) {
+            is LinkCard.Cash -> uriHandler.openUri(card.url)
+            is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
+        }
     }
 }
 
@@ -697,6 +723,7 @@ private fun Bubble(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     horizontalPadding: Dp = BubbleDefaults.paddingHorizontal,
+    verticalPadding: Dp = BubbleDefaults.paddingVertical,
     bare: Boolean = false,
     attention: () -> Float = { 0f },
     content: @Composable BoxScope.() -> Unit,
@@ -741,7 +768,7 @@ private fun Bubble(
             }
             .padding(
                 horizontal = horizontalPadding,
-                vertical = BubbleDefaults.paddingVertical,
+                vertical = verticalPadding,
             ),
     ) {
         content()
@@ -904,7 +931,6 @@ private fun Preview_TextBubble_LinkCard_Claimable() {
                 amount = "$5.00",
                 claim = LinkCard.Cash.Claim.Claimable,
                 token = Token.usdf,
-                issuedByViewer = false,
             ),
         ),
     )
@@ -925,7 +951,6 @@ private fun Preview_TextBubble_LinkCard_Claimed() {
                 amount = "$5.00",
                 claim = LinkCard.Cash.Claim.Claimed,
                 token = Token.usdf,
-                issuedByViewer = true,
             ),
         ),
     )
