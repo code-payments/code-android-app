@@ -28,6 +28,8 @@ class ChatListItemContentTypeTest {
 
     private val card = LinkCard.Cash(
         url = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3",
+        start = 0,
+        end = 54,
         entropy = "KNi8pQr1n5hRU65vKJGge3",
         state = LinkCard.Cash.State.Unresolved,
     )

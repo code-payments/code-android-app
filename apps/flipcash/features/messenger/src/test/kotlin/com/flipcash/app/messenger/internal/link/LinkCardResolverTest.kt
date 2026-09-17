@@ -1,7 +1,9 @@
 package com.flipcash.app.messenger.internal.link
 
 import com.flipcash.shared.chat.models.LinkCard
+import com.getcode.opencode.model.financial.Token
 import kotlinx.coroutines.test.runTest
+import org.mockito.kotlin.mock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -10,6 +12,8 @@ class LinkCardResolverTest {
 
     private val card = LinkCard.Cash(
         url = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3",
+        start = 0,
+        end = 54,
         entropy = "KNi8pQr1n5hRU65vKJGge3",
         state = LinkCard.Cash.State.Unresolved,
     )
@@ -27,8 +31,7 @@ class LinkCardResolverTest {
                 LinkCardResolver.Snapshot(
                     amount = "$15.00",
                     claim = LinkCard.Cash.Claim.Claimable,
-                    tokenSymbol = "Cash",
-                    iconUrl = null,
+                    token = mock<Token>(),
                     issuedByViewer = false,
                 )
             )

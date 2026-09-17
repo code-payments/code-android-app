@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.link
 
 import com.flipcash.shared.chat.models.LinkCard
+import com.getcode.opencode.model.financial.Token
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -24,8 +25,7 @@ internal class LinkCardResolver(
     data class Snapshot(
         val amount: String,
         val claim: LinkCard.Cash.Claim,
-        val tokenSymbol: String,
-        val iconUrl: String?,
+        val token: Token,
         val issuedByViewer: Boolean,
     )
 
@@ -44,8 +44,7 @@ internal class LinkCardResolver(
                 LinkCard.Cash.State.Resolved(
                     amount = snapshot.amount,
                     claim = snapshot.claim,
-                    tokenSymbol = snapshot.tokenSymbol,
-                    iconUrl = snapshot.iconUrl,
+                    token = snapshot.token,
                     issuedByViewer = snapshot.issuedByViewer,
                 )
             },

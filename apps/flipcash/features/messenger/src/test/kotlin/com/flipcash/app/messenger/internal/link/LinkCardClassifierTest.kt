@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.link
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.chat.ui.DetectedUrl
 import dev.theolm.rinku.DeepLink
 import org.json.JSONObject
 import org.junit.runner.RunWith
@@ -11,6 +12,7 @@ import org.robolectric.annotation.Config
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Card half of `test-vectors/link_detection.json`. Synced copy — a failure is fixed in the
@@ -58,10 +60,16 @@ class LinkCardClassifierTest {
         for (vector in vectors()) {
             val name = vector.getString("name")
             val spansArray = vector.getJSONArray("spans")
-            val urls = (0 until spansArray.length())
-                .map { spansArray.getJSONObject(it).getString("url") }
+            val links = (0 until spansArray.length()).map {
+                val span = spansArray.getJSONObject(it)
+                DetectedUrl(
+                    start = span.getInt("start"),
+                    end = span.getInt("end"),
+                    url = span.getString("url"),
+                )
+            }
 
-            val actual = classifier.firstCard(urls)
+            val actual = classifier.firstCard(links)
 
             val expectedCard = vector.optJSONObject("card")
             if (expectedCard == null) {
@@ -71,6 +79,13 @@ class LinkCardClassifierTest {
                 val card = actual as? LinkCard.Cash
                 assertEquals(expectedCard.getString("url"), card?.url, "vector `$name`: ${vector.getString("note")}")
                 assertEquals(LinkCard.Cash.State.Unresolved, card?.state, "vector `$name` must start unresolved")
+                // The card carries one of the spans the transcript would have underlined, which is
+                // what lets the bubble draw it in place of exactly that text. Its own url can
+                // differ from the span's -- a jump wrapper is unwrapped -- so the span is the link.
+                assertTrue(
+                    links.any { it.start == card?.start && it.end == card.end },
+                    "vector `$name` must carry the span its link was detected at",
+                )
             }
         }
     }
@@ -98,7 +113,7 @@ class LinkCardClassifierTest {
         val hostile = "https://jump.flipcash.com/#source=" +
             "https%3A%2F%2Fevil.com%2Fc%2F%23%2Fe%3DKNi8pQr1n5hRU65vKJGge3"
 
-        assertNull(classifier.firstCard(listOf(hostile)))
+        assertNull(classifier.firstCard(listOf(DetectedUrl(0, hostile.length, hostile))))
     }
 
     /** A jump wrapper is unwrapped once. One pointing at another jump is malformed, not a card. */
@@ -109,7 +124,7 @@ class LinkCardClassifierTest {
         val nested = "https://jump.flipcash.com/#source=" +
             "https%3A%2F%2Fjump.flipcash.com%2F%23source%3Dhttps%253A%252F%252Fsend.flipcash.com%252Fc%252F%2523%252Fe%253DKNi8pQr1n5hRU65vKJGge3"
 
-        assertNull(classifier.firstCard(listOf(nested)))
+        assertNull(classifier.firstCard(listOf(DetectedUrl(0, nested.length, nested))))
     }
 }
 

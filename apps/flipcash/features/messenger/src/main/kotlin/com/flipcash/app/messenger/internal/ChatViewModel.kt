@@ -473,7 +473,7 @@ internal class ChatViewModel @Inject constructor(
                     // query, every re-map after it is free, and a message whose query has not
                     // returned renders unresolved and picks the amount up on the next pass.
                     val linkCard = enriched.linkableText()
-                        ?.let { text -> linkCardClassifier.firstCard(detectUrls(text).map { it.url }) }
+                        ?.let { text -> linkCardClassifier.firstCard(detectUrls(text)) }
                         ?.let { card -> linkCardResolver.resolve(card) }
 
                     val receiptStatus = if (message.isFromSelf) {

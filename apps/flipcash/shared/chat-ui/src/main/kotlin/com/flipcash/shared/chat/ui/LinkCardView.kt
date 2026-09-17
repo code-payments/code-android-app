@@ -1,33 +1,35 @@
 package com.flipcash.shared.chat.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.max
+import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.ui.TokenCard
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.shared.chat.models.LinkCard
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 
 /**
- * The card, above the sender's text.
+ * The card, in place of the link.
  *
- * Additive by construction: the URL stays a tappable span in the text below, the card is another
- * way in to the same link, and a message renders correctly with the card removed. Tapping it does
- * what tapping the text does — [onClick] hands the URL to the same handler the link span uses.
+ * A resolved cash link is the same bill the wallet and the token screen draw — [TokenCard] with
+ * the link's own mint, so a link to a token is recognisably that token before it is opened. The
+ * URL it came from is cut from the body text, so the card is the link rather than an ornament
+ * above it; [onClick] hands the URL to the handler the link span used to go through.
  */
 @Composable
 internal fun LinkCardView(
@@ -35,56 +37,49 @@ internal fun LinkCardView(
     onClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (card) {
-        is LinkCard.Cash -> CashLinkCard(
-            card = card,
-            onClick = { onClick(card.url) },
-            modifier = modifier,
-        )
+    // The bill's proportions, not its size: the wallet draws a 224dp card across the full screen
+    // width less the inset, and a bubble is a good deal narrower than that. Scaling the height with
+    // the width is what keeps it a bill in chat instead of a tall, square panel.
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val height: Dp = maxWidth * LinkCardDefaults.BILL_ASPECT
+        when (card) {
+            is LinkCard.Cash -> CashLinkCard(
+                card = card,
+                height = height,
+                onClick = { onClick(card.url) },
+            )
+        }
     }
 }
 
 @Composable
 private fun CashLinkCard(
     card: LinkCard.Cash,
+    height: Dp,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(LinkCardDefaults.shape)
-            .background(Color.White.copy(alpha = LinkCardDefaults.groundAlpha))
-            .clickable(onClick = onClick)
-            .padding(
-                horizontal = LinkCardDefaults.horizontalPadding,
-                vertical = LinkCardDefaults.verticalPadding,
-            ),
-        verticalArrangement = Arrangement.spacedBy(LinkCardDefaults.rowGap),
-    ) {
-        // Unresolved is also the unavailable state: a lookup that failed, timed out or was
-        // switched off renders here. Branded, no amount, no error — the link underneath still
-        // works, and a card that shouted about a failed read would be worse than one that waits.
-        val state = card.state as? LinkCard.Cash.State.Resolved
+    // Unresolved is also the unavailable state: a lookup that failed, timed out or was switched
+    // off renders here. No token, so no bill — the mint's name and colours are the bill, and
+    // guessing them would brand the card as a token the link may not pay out. A neutral panel of
+    // the same size instead, which is also what stops the card resizing when the amount lands.
+    val state = card.state as? LinkCard.Cash.State.Resolved
+    if (state == null) {
+        UnresolvedCashCard(height = height, onClick = onClick)
+        return
+    }
 
-        TokenIconWithName(
-            tokenName = state?.tokenSymbol?.takeIf { it.isNotBlank() }
-                ?: stringResource(R.string.label_linkCard_cash),
-            tokenImage = state?.iconUrl,
-            imageSize = CodeTheme.dimens.staticGrid.x4,
-            spacing = CodeTheme.dimens.grid.x1,
-            textStyle = CodeTheme.typography.caption,
-            textColor = CodeTheme.colors.textSecondary,
-        )
-
-        if (state != null) {
-            Text(
-                text = state.amount,
-                style = CodeTheme.typography.screenTitle.copy(fontWeight = FontWeight.Bold),
-                color = CodeTheme.colors.textMain,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+    TokenCard(
+        token = state.token,
+        balanceText = state.amount,
+        // The reserve is branded Dollars everywhere the user meets it; `token.name` off the wire
+        // is "USDF", which is the mint, not the thing they hold.
+        displayName = when (state.token.address) {
+            Mint.usdf -> stringResource(R.string.displayName_dollars)
+            else -> state.token.name
+        },
+        height = height,
+        onClick = onClick,
+        footer = {
             Text(
                 text = stringResource(
                     when (state.claim) {
@@ -101,39 +96,53 @@ private fun CashLinkCard(
                             }
                     },
                 ),
-                style = CodeTheme.typography.caption,
-                color = CodeTheme.colors.textSecondary,
+                style = CodeTheme.typography.textSmall,
+                color = Color.White,
                 maxLines = 1,
             )
-        }
+        },
+    )
+}
+
+@Composable
+private fun UnresolvedCashCard(
+    height: Dp,
+    onClick: () -> Unit,
+) {
+    val shape = CodeTheme.shapes.medium
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(shape)
+            .background(Color.White.copy(alpha = LinkCardDefaults.GROUND_ALPHA))
+            .border(CodeTheme.dimens.border, CodeTheme.colors.surfaceVariant, shape)
+            // Tappable in this state too: the link is what is unresolved, not broken.
+            .clickable(onClick = onClick)
+            .padding(CodeTheme.dimens.inset),
+    ) {
+        TokenIconWithName(
+            modifier = Modifier.align(Alignment.TopStart),
+            tokenName = stringResource(R.string.label_linkCard_cash),
+            tokenImage = null,
+            imageSize = 24.dp,
+            spacing = CodeTheme.dimens.grid.x1,
+            textStyle = CodeTheme.typography.textSmall,
+            textColor = CodeTheme.colors.textMain,
+        )
     }
 }
 
-/**
- * The card's measurements, taken from [ChatQuotePanel] rather than invented: the two are siblings —
- * a panel nested inside a filled bubble — and a second set of numbers for the same relationship is
- * what makes one of them look wrong against the bubble's edge.
- */
 private object LinkCardDefaults {
-    /** Concentric with the bubble, floored at its flattened corner, exactly as the citation is. */
-    val shape: Shape
-        @Composable get() = RoundedCornerShape(
-            max(
-                BubbleDefaults.cornerLarge - BubbleDefaults.surroundInset,
-                BubbleDefaults.cornerSmall,
-            )
-        )
-
-    val horizontalPadding: Dp
-        @Composable get() = CodeTheme.dimens.staticGrid.x2
-    val verticalPadding: Dp
-        @Composable get() = CodeTheme.dimens.staticGrid.x2
-    val rowGap: Dp
-        @Composable get() = CodeTheme.dimens.staticGrid.x1
+    /**
+     * 224dp of card across 328dp of usable width — the wallet deck's own numbers on a 360dp phone
+     * (`TokenCard`'s default height, full width less two screen insets).
+     */
+    const val BILL_ASPECT = 224f / 328f
 
     /**
-     * Neutral rather than the citation's author tint: a link card has no author colour to take,
-     * and the ground only has to separate the card from the bubble it sits on.
+     * The unresolved panel's ground: neutral, because there is no token colour to take yet, and
+     * only dark enough to separate the card from the bubble it sits on.
      */
-    const val groundAlpha = 0.10f
+    const val GROUND_ALPHA = 0.10f
 }

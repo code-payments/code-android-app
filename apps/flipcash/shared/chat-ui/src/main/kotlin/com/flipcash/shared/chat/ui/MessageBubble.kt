@@ -68,6 +68,8 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.cornerRadius
 import com.getcode.theme.tiny
@@ -311,11 +313,19 @@ private fun TextBubble(
             color = CodeTheme.colors.textMain,
             textDecoration = TextDecoration.Underline,
         )
+        // The card is the link, drawn. Leaving the URL in the body underneath it would say the
+        // same thing twice, so the span the card was built from goes with it and the prose around
+        // it closes up; a message that was nothing but the link leaves no body at all.
+        val bodyString = if (linkCard == null) {
+            text
+        } else {
+            text.withoutLinkSpan(linkCard.start, linkCard.end)
+        }
         // A tombstone carries no link and nothing worth selecting; it is a notice, not a message.
         val body = if (isTombstone) {
-            AnnotatedString(text)
+            AnnotatedString(bodyString)
         } else {
-            rememberRichText(text = text, annotators = listOf(UrlAnnotator(linkStyle)))
+            rememberRichText(text = bodyString, annotators = listOf(UrlAnnotator(linkStyle)))
         }
         val bodyStyle = CodeTheme.typography.textMedium.copy(
             fontWeight = FontWeight.Medium,
@@ -402,8 +412,8 @@ private fun TextBubble(
             }
         }
 
-        // Inside the bubble, above the body, on the same surround the citation uses — the card and
-        // the message it came from are one message, and the link is still underlined beneath it.
+        // Inside the bubble, above what is left of the body, on the same surround the citation
+        // uses — the card and the message it came from are one message.
         if (linkCard == null) {
             quotedOrPlainBody()
         } else {
@@ -411,11 +421,16 @@ private fun TextBubble(
             Column(verticalArrangement = Arrangement.spacedBy(BubbleDefaults.surroundInset)) {
                 LinkCardView(
                     card = linkCard,
-                    // The same handler the link span in the text below goes through, so the card
-                    // and the text are two ways into one behaviour rather than two behaviours.
+                    // The handler the link span used to go through, so replacing the text with
+                    // the card changed what the message looks like and not what tapping it does.
                     onClick = { uriHandler.openUri(it) },
                 )
-                quotedOrPlainBody()
+                // A link on its own leaves nothing to draw. The exceptions are a citation, which
+                // is the sender's and not the link's, and the edited marker, which is pinned to
+                // the bubble and needs the body flow to reserve its hole.
+                if (bodyString.isNotEmpty() || quote != null || isEdited) {
+                    quotedOrPlainBody()
+                }
             }
         }
 
@@ -800,21 +815,30 @@ fun bubblePositionOf(
 // region Previews
 
 private const val PREVIEW_CASH_LINK = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
+private const val PREVIEW_CASH_TEXT = "here you go $PREVIEW_CASH_LINK"
+
+/** Spans the real detection pass would produce, so the preview strips the same text the app does. */
+private fun previewCard(
+    state: LinkCard.Cash.State,
+    text: String = PREVIEW_CASH_TEXT,
+) = LinkCard.Cash(
+    url = PREVIEW_CASH_LINK,
+    start = text.indexOf(PREVIEW_CASH_LINK),
+    end = text.indexOf(PREVIEW_CASH_LINK) + PREVIEW_CASH_LINK.length,
+    entropy = "KNi8pQr1n5hRU65vKJGge3",
+    state = state,
+)
 
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_TextBubble_LinkCard_Unresolved() {
     TextBubble(
-        text = "here you go $PREVIEW_CASH_LINK",
+        text = PREVIEW_CASH_TEXT,
         isFromSelf = false,
         position = BubblePosition.Solo,
         maxWidth = 300.dp,
-        linkCard = LinkCard.Cash(
-            url = PREVIEW_CASH_LINK,
-            entropy = "KNi8pQr1n5hRU65vKJGge3",
-            state = LinkCard.Cash.State.Unresolved,
-        ),
+        linkCard = previewCard(state = LinkCard.Cash.State.Unresolved),
     )
 }
 
@@ -823,18 +847,15 @@ private fun Preview_TextBubble_LinkCard_Unresolved() {
 @Composable
 private fun Preview_TextBubble_LinkCard_Claimable() {
     TextBubble(
-        text = "here you go $PREVIEW_CASH_LINK",
+        text = PREVIEW_CASH_TEXT,
         isFromSelf = false,
         position = BubblePosition.Solo,
         maxWidth = 300.dp,
-        linkCard = LinkCard.Cash(
-            url = PREVIEW_CASH_LINK,
-            entropy = "KNi8pQr1n5hRU65vKJGge3",
+        linkCard = previewCard(
             state = LinkCard.Cash.State.Resolved(
                 amount = "$5.00",
                 claim = LinkCard.Cash.Claim.Claimable,
-                tokenSymbol = "USDC",
-                iconUrl = null,
+                token = Token.usdf,
                 issuedByViewer = false,
             ),
         ),
@@ -850,14 +871,12 @@ private fun Preview_TextBubble_LinkCard_Claimed() {
         isFromSelf = true,
         position = BubblePosition.Solo,
         maxWidth = 300.dp,
-        linkCard = LinkCard.Cash(
-            url = PREVIEW_CASH_LINK,
-            entropy = "KNi8pQr1n5hRU65vKJGge3",
+        linkCard = previewCard(
+            text = "sent you this $PREVIEW_CASH_LINK",
             state = LinkCard.Cash.State.Resolved(
                 amount = "$5.00",
                 claim = LinkCard.Cash.Claim.Claimed,
-                tokenSymbol = "USDC",
-                iconUrl = null,
+                token = Token.usdf,
                 issuedByViewer = true,
             ),
         ),

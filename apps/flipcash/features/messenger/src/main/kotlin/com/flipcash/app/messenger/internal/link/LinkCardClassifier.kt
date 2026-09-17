@@ -5,6 +5,7 @@ import androidx.core.net.toUri
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.chat.ui.DetectedUrl
 import dev.theolm.rinku.DeepLink
 import javax.inject.Inject
 
@@ -34,11 +35,17 @@ internal class LinkCardClassifier @Inject constructor(
     private val router: Router,
 ) {
 
-    /** The first card-eligible link wins; at most one card per message. */
-    fun firstCard(urls: List<String>): LinkCard? = urls.firstNotNullOfOrNull { classify(it) }
+    /**
+     * The first card-eligible link wins; at most one card per message.
+     *
+     * Takes the detected links rather than their URLs because the card carries the span it came
+     * from: the bubble draws the card in place of that text, and only the detection pass knows
+     * where it sat.
+     */
+    fun firstCard(links: List<DetectedUrl>): LinkCard? = links.firstNotNullOfOrNull { classify(it) }
 
-    private fun classify(url: String): LinkCard? {
-        val target = unwrapJumpTarget(url) ?: url
+    private fun classify(link: DetectedUrl): LinkCard? {
+        val target = unwrapJumpTarget(link.url) ?: link.url
         val host = runCatching { target.toUri().host }.getOrNull() ?: return null
         if (host.lowercase() !in CARD_HOSTS) return null
 
@@ -48,6 +55,8 @@ internal class LinkCardClassifier @Inject constructor(
                 ?.let {
                     LinkCard.Cash(
                         url = target,
+                        start = link.start,
+                        end = link.end,
                         entropy = it,
                         state = LinkCard.Cash.State.Unresolved,
                     )

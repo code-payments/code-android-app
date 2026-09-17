@@ -39,7 +39,12 @@ internal class GiftCardLookup @Inject constructor(
             .accounts.values.first()
 
         // Same lookup the chat mapper already does for a cash bubble's token name and icon.
-        val token = tokenCoordinator.getTokenMetadata(info.mint).getOrNull()?.token
+        // Required, not decorative: the card is painted as that token's bill, and there is no
+        // honest bill for a mint whose name and colours are unknown. A miss fails the lookup,
+        // which renders the card in its unresolved state -- the link underneath still works.
+        val token = requireNotNull(tokenCoordinator.getTokenMetadata(info.mint).getOrNull()?.token) {
+            "no metadata for mint ${info.mint}"
+        }
 
         LinkCardResolver.Snapshot(
             amount = info.originalExchangeData.let { data ->
@@ -57,8 +62,7 @@ internal class GiftCardLookup @Inject constructor(
                 AccountInfo.ClaimState.Unknown -> LinkCard.Cash.Claim.Expired
                 AccountInfo.ClaimState.NotClaimed -> LinkCard.Cash.Claim.Claimable
             },
-            tokenSymbol = token?.symbol?.takeIf { it.isNotBlank() } ?: token?.name.orEmpty(),
-            iconUrl = token?.imageUrl?.takeIf { it.isNotBlank() },
+            token = token,
             issuedByViewer = info.isGiftCardIssuer,
         )
     }

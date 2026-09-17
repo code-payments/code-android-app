@@ -75,6 +75,12 @@ fun TokenCard(
     )
 }
 
+/**
+ * [footer] fills the bill's empty lower half, under the header row and inside the same inset. The
+ * wallet's cards leave it empty; a card that has something to say about the token it stands for —
+ * a cash link's claim state, say — says it there rather than under the card, where it would read
+ * as a caption on the card instead of part of the bill.
+ */
 @Composable
 fun TokenCard(
     token: Token,
@@ -84,6 +90,7 @@ fun TokenCard(
     appreciationText: String? = null,
     height: Dp = 224.dp,
     onClick: (() -> Unit)? = null,
+    footer: (@Composable () -> Unit)? = null,
 ) {
     val isUsdf = token.address == Mint.usdf
     val shape = CodeTheme.shapes.medium
@@ -181,6 +188,10 @@ fun TokenCard(
                     constraintMode = ConstraintMode.AutoSize(minimum = CodeTheme.typography.textMedium),
                 )
             }
+        }
+
+        footer?.let {
+            Box(modifier = Modifier.align(Alignment.BottomStart)) { it() }
         }
     }
 }
