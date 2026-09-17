@@ -45,6 +45,12 @@ sealed interface ChatListItem {
          */
         val quote: ChatQuote? = null,
         /**
+         * A link in this bubble's text that renders as a card above it, or `null` when the text
+         * carries no card-eligible link. Built in the chat mapper, which is the only layer that
+         * can see both the router and the network; `chat-ui` only draws what it is handed.
+         */
+        val linkCard: LinkCard? = null,
+        /**
          * Who sent this, when that is not implied. Null for the viewer's own messages and for every
          * message in a DM; set only for another member's message in a group.
          */
@@ -104,13 +110,21 @@ sealed interface ChatListItem {
         // A tombstone shares the text bubble's content type on purpose: deleting a message is an
         // in-place update of a row the list already holds, and giving it a type of its own would
         // make the list drop that row and insert a new one.
-        override val itemContentType: Any = when (content) {
-            is MessageContent.Text -> "text-bubble"
-            is MessageContent.Deleted -> "text-bubble"
-            is MessageContent.Cash -> "cash-bubble"
-            is MessageContent.Media -> "media"
-            is MessageContent.Reply -> "reply-message"
-            is MessageContent.System -> "system-message"
+        //
+        // A carded bubble is the exception, and deliberately so: it is a taller, differently
+        // shaped subtree, and recycling it against a plain text bubble would hand the card's
+        // slot to text. Deleting one does drop and re-insert the row, which is right -- the
+        // card has to go, and there is no in-place update that removes it.
+        override val itemContentType: Any = when {
+            linkCard != null -> "link-card-bubble"
+            else -> when (content) {
+                is MessageContent.Text -> "text-bubble"
+                is MessageContent.Deleted -> "text-bubble"
+                is MessageContent.Cash -> "cash-bubble"
+                is MessageContent.Media -> "media"
+                is MessageContent.Reply -> "reply-message"
+                is MessageContent.System -> "system-message"
+            }
         }
     }
 }
