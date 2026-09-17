@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -33,11 +36,20 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.tipping.TipCardOpaqueFallback
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.core.ui.TokenCard
 import com.flipcash.app.core.ui.TokenIconWithName
+import com.flipcash.services.models.asHandle
+import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.services.models.handle
+import com.flipcash.services.models.nameOrHandle
 import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
@@ -51,7 +63,8 @@ import com.getcode.ui.utils.ConstraintMode
  * pays out named along the top, the amount in the middle, and a perforated stub across the bottom
  * carrying what can be done with it. A token link is drawn as that token's bill instead, the card
  * the link opens to. The split is the point: a voucher for $15 and a card about Dollars should not
- * be the same gold rectangle, so the bill's colours stay with the card that stands for the token.
+ * be the same gold rectangle, so the bill's colours stay with the card that stands for the token. A
+ * tip card link is that person's tip card, on the same principle.
  *
  * The URL the card came from is cut from the body text, so the card is the link rather than an
  * ornament above it, so [onClick] has to carry the tap — a link-only message would otherwise draw
@@ -79,6 +92,14 @@ internal fun LinkCardView(
             is LinkCard.TokenInfo -> TokenLinkCard(
                 card = card,
                 height = height,
+                onClick = { onClick(card) },
+            )
+
+            // Sized from the width rather than handed the shared height: the tip card is the one
+            // portrait figure of the three, so it is the width that has to give.
+            is LinkCard.TipCard -> TipLinkCard(
+                card = card,
+                width = maxWidth * LinkCardDefaults.TIP_CARD_WIDTH_FRACTION,
                 onClick = { onClick(card) },
             )
         }
@@ -155,6 +176,93 @@ private fun TokenLinkCard(
             height = height,
             onClick = onClick,
         )
+    }
+}
+
+/**
+ * A tip card link is that tip card: the same near-black portrait, the person named under their
+ * picture. Two things are missing from the figure and both are deliberate.
+ *
+ * The scannable code is not drawn. Its payload is a round trip the chat does not make, and a code is
+ * what a camera is aimed at — useless to a reader holding the phone it is printed on. The picture
+ * takes its place, which is the half of the figure that says whose card this is.
+ *
+ * And the type does not scale with the card, though the real one's does. That card is a fixed
+ * geometry rendered for export, so its name holds a proportion; this one is read in a transcript at
+ * the size everything around it is read at, and a name shrunk to fit a card in a bubble is a name
+ * nobody reads.
+ *
+ * It keeps its proportions instead of filling the bubble, because the other two stand for an amount
+ * and a currency and read as bills, while a portrait card stretched to a bubble's width stops being
+ * one. A link-only message drops its bubble entirely, so that is a card centred on the transcript.
+ */
+@Composable
+private fun TipLinkCard(
+    card: LinkCard.TipCard,
+    width: Dp,
+    onClick: () -> Unit,
+) {
+    val profile = (card.state as? LinkCard.TipCard.State.Resolved)?.profile
+
+    // Who the card can say it belongs to. A resolved profile names the person; an unresolved
+    // by-handle link still has the handle, which came out of the URL and cost nothing; an unresolved
+    // by-id link has a UUID, which names nobody, so that card names the object instead.
+    val person: String? = profile?.let { nameOrHandle(it.displayName, it.handle) }
+        ?: (card.owner as? TipCardOwner.ByUsername)?.username?.asHandle()
+
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier
+                .width(width)
+                .height(width * LinkCardDefaults.TIP_CARD_ASPECT)
+                .clip(RoundedCornerShape(width * LinkCardDefaults.TIP_CARD_CORNER))
+                .background(TipCardOpaqueFallback)
+                .clickable(onClick = onClick)
+                .padding(horizontal = CodeTheme.dimens.inset),
+            verticalArrangement = Arrangement.spacedBy(
+                CodeTheme.dimens.grid.x2,
+                Alignment.CenterVertically,
+            ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ContactAvatar(
+                image = profile?.profilePicture,
+                // Empty rather than a stand-in label: the avatar initials whatever it is given, and
+                // initialling "Tip Card" would put someone's monogram on a card belonging to nobody.
+                displayName = person.orEmpty(),
+                // The id the link carried beats the profile's own, which is null until a by-handle
+                // lookup fills it in -- and it is what authorizes re-minting an expired picture URL.
+                access = BlobAccessContext.profile(
+                    profile?.userId ?: (card.owner as? TipCardOwner.ById)?.userId,
+                ),
+                modifier = Modifier
+                    .size(width * LinkCardDefaults.TIP_CARD_AVATAR)
+                    .clip(CircleShape),
+            )
+
+            Text(
+                text = person ?: stringResource(R.string.label_linkCard_tipCard),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textMain,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            // Under the name, as the real card draws it, and only when it is not already the name:
+            // an account with no display name is named by its handle, which would print twice.
+            profile?.handle?.takeIf { it != person }?.let {
+                Text(
+                    text = it,
+                    style = CodeTheme.typography.caption,
+                    color = CodeTheme.colors.textMain.copy(
+                        alpha = LinkCardDefaults.TIP_CARD_HANDLE_ALPHA,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 
@@ -523,4 +631,21 @@ private object LinkCardDefaults {
 
     val NOTCH_RADIUS = 9.dp
     val DASH = 4.dp
+
+    /** `TipCard`'s own proportion, 269 x 333 (node 9277:121417) — the card this one stands in for. */
+    const val TIP_CARD_ASPECT = 333f / 269f
+
+    /**
+     * How much of the bubble the portrait card takes. Its height lands a little over [CARD_ASPECT],
+     * so a transcript mixing card kinds keeps one rhythm without the tip card being squashed into
+     * the other two's landscape frame.
+     */
+    const val TIP_CARD_WIDTH_FRACTION = 0.62f
+
+    /** Corner and picture as fractions of the card's own width, the way `TipCard` derives its own. */
+    const val TIP_CARD_CORNER = 0.08f
+    const val TIP_CARD_AVATAR = 0.44f
+
+    /** What separates the handle from the name above it, as on the real card. */
+    const val TIP_CARD_HANDLE_ALPHA = 0.5f
 }

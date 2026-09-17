@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.models
 
+import com.flipcash.app.core.tipping.TipCardOwner
+import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 
@@ -89,6 +91,44 @@ sealed interface LinkCard {
                  */
                 val token: Token,
             ) : State
+        }
+    }
+
+    /**
+     * A link to someone's tip card. Drawn as that card — the same near-black portrait the link opens
+     * to, the person named under their picture.
+     *
+     * Not the whole card: the scannable code at its centre is a payload only the session can fetch,
+     * and it is what a camera is aimed at rather than what a reader needs. The picture stands where
+     * it was, which is the part of the figure that says whose card this is.
+     *
+     * [owner] is how the link named them, carried rather than normalised — turning a handle into an
+     * id is a server round trip, which is the whole reason [TipCardOwner] exists. It is also the
+     * resolution key, so the same person linked twice by two addresses is two lookups. That is the
+     * cost of not being able to tell they are the same person without asking.
+     */
+    data class TipCard(
+        override val url: String,
+        override val start: Int,
+        override val end: Int,
+        val owner: TipCardOwner,
+        val state: State,
+    ) : LinkCard {
+
+        sealed interface State {
+            /**
+             * Nobody named yet, and what a failed, timed-out or offline lookup renders as. A
+             * by-handle link can still print its handle with no network, because the handle is in
+             * the URL; a by-id link holds a UUID, so that card names the object instead.
+             */
+            data object Unresolved : State
+
+            /**
+             * The profile whole, the way the other two carry their token: the card draws a name, a
+             * handle and a picture, and `ContactAvatar` takes the profile itself. A profile that
+             * names nobody — no display name, no claimed handle — never resolves.
+             */
+            data class Resolved(val profile: UserProfile) : State
         }
     }
 }

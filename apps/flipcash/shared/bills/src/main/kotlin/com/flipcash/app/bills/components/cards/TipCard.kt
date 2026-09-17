@@ -20,13 +20,13 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.bills.components.ScannableCode
+import com.flipcash.app.core.tipping.TipCardOpaqueFallback
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.handle
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -47,14 +47,6 @@ val LocalTipCardBaseAlpha = staticCompositionLocalOf { 1f }
  * tip-card screen) may override it. The tip card is always rendered as a solid card.
  */
 val LocalTipCardColor = staticCompositionLocalOf { TipCardOpaqueFallback }
-
-/**
- * Opaque stand-in for the frosted-glass tone, used on devices where the live blurred-camera
- * backdrop is disabled (pre-API-31 / low-RAM). Rendered at full opacity so the card stays cheap and
- * never shows the stutter-prone live feed through a translucent fill. Tune to taste to match the
- * average frosted output.
- */
-val TipCardOpaqueFallback = Color(0xFF1A1A1C)
 
 /**
  * The card's height-to-width proportion, from Figma (269 x 333 dp).

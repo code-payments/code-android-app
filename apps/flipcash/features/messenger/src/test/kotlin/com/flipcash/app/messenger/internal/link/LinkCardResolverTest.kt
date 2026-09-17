@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.app.core.tipping.TipCardOwner
+import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
@@ -32,6 +34,16 @@ class LinkCardResolverTest {
         state = LinkCard.TokenInfo.State.Unresolved,
     )
 
+    private val tipCard = LinkCard.TipCard(
+        url = "https://flipcash.com/ada",
+        start = 0,
+        end = 29,
+        owner = TipCardOwner.ByUsername("ada"),
+        state = LinkCard.TipCard.State.Unresolved,
+    )
+
+    private fun profile(name: String) = UserProfile.Empty.copy(displayName = name)
+
     private fun snapshot() = LinkCardResolver.Snapshot(
         amount = "$15.00",
         claim = LinkCard.Cash.Claim.Claimable,
@@ -44,6 +56,7 @@ class LinkCardResolverTest {
             scope = backgroundScope,
             giftCard = { Result.failure(IllegalStateException("offline")) },
             tokenMetadata = { Result.failure(IllegalStateException("offline")) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         assertEquals(LinkCard.Cash.State.Unresolved, (resolver.resolve(card) as LinkCard.Cash).state)
     }
@@ -54,6 +67,7 @@ class LinkCardResolverTest {
             scope = backgroundScope,
             giftCard = { Result.success(snapshot()) },
             tokenMetadata = { Result.success(mock<Token>()) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         val state = (resolver.resolve(card) as LinkCard.Cash).state
         assertTrue(state is LinkCard.Cash.State.Resolved)
@@ -70,6 +84,7 @@ class LinkCardResolverTest {
                 Result.success(snapshot())
             },
             tokenMetadata = { Result.success(mock<Token>()) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         resolver.resolve(card)
         resolver.resolve(card)
@@ -86,6 +101,7 @@ class LinkCardResolverTest {
                 Result.failure(IllegalStateException("offline"))
             },
             tokenMetadata = { Result.failure(IllegalStateException("offline")) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         resolver.resolve(card)
         resolver.resolve(card)
@@ -100,6 +116,7 @@ class LinkCardResolverTest {
             scope = backgroundScope,
             giftCard = { Result.failure(IllegalStateException("not asked")) },
             tokenMetadata = { Result.success(mock<Token>()) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         val resolved = resolver.resolve(tokenCard) as LinkCard.TokenInfo
         assertTrue(resolved.state is LinkCard.TokenInfo.State.Resolved)
@@ -111,6 +128,7 @@ class LinkCardResolverTest {
             scope = backgroundScope,
             giftCard = { Result.failure(IllegalStateException("not asked")) },
             tokenMetadata = { Result.failure(IllegalStateException("no metadata")) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         val resolved = resolver.resolve(tokenCard) as LinkCard.TokenInfo
         assertEquals(LinkCard.TokenInfo.State.Unresolved, resolved.state)
@@ -134,6 +152,7 @@ class LinkCardResolverTest {
                 )
             },
             tokenMetadata = { Result.success(mock<Token>()) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         val before = (resolver.resolve(card) as LinkCard.Cash).state
         assertEquals(LinkCard.Cash.Claim.Claimable, (before as LinkCard.Cash.State.Resolved).claim)
@@ -152,6 +171,7 @@ class LinkCardResolverTest {
             scope = backgroundScope,
             giftCard = { calls++; Result.success(snapshot()) },
             tokenMetadata = { Result.success(mock<Token>()) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         val other = card.copy(entropy = "8mXeQ2vTb4pLzRw9dKcHfA")
         resolver.resolve(card)
@@ -178,6 +198,7 @@ class LinkCardResolverTest {
                 Result.success(snapshot().copy(claim = claims.getValue(entropy)))
             },
             tokenMetadata = { Result.success(mock<Token>()) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         val claimed = card.copy(entropy = "8mXeQ2vTb4pLzRw9dKcHfA")
         resolver.resolve(card)
@@ -205,6 +226,7 @@ class LinkCardResolverTest {
                 Result.success(snapshot().copy(claim = LinkCard.Cash.Claim.Expired))
             },
             tokenMetadata = { Result.success(mock<Token>()) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         resolver.resolve(card)
 
@@ -220,6 +242,7 @@ class LinkCardResolverTest {
             scope = backgroundScope,
             giftCard = { Result.failure(IllegalStateException("not asked")) },
             tokenMetadata = { Result.success(mock<Token>()) },
+            profile = { Result.failure(IllegalStateException("not asked")) },
         )
         resolver.resolve(tokenCard)
 
@@ -232,14 +255,82 @@ class LinkCardResolverTest {
     fun `a cash link and a token link do not share a query`() = runTest {
         var cashCalls = 0
         var tokenCalls = 0
+        var profileCalls = 0
         val resolver = LinkCardResolver(
             scope = backgroundScope,
             giftCard = { cashCalls++; Result.success(snapshot()) },
             tokenMetadata = { tokenCalls++; Result.success(mock<Token>()) },
+            profile = { profileCalls++; Result.success(profile("Ada")) },
         )
         resolver.resolve(card)
         resolver.resolve(tokenCard)
+        resolver.resolve(tipCard)
         assertEquals(1, cashCalls)
         assertEquals(1, tokenCalls)
+        assertEquals(1, profileCalls)
+    }
+
+    @Test
+    fun `a tip card link resolves to its owner's profile`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("not asked")) },
+            tokenMetadata = { Result.failure(IllegalStateException("not asked")) },
+            profile = { Result.success(profile("Ada")) },
+        )
+        val state = (resolver.resolve(tipCard) as LinkCard.TipCard).state
+        assertTrue(state is LinkCard.TipCard.State.Resolved)
+        assertEquals("Ada", state.profile.displayName)
+    }
+
+    @Test
+    fun `a tip card lookup is given the owner the link named`() = runTest {
+        val asked = mutableListOf<TipCardOwner>()
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("not asked")) },
+            tokenMetadata = { Result.failure(IllegalStateException("not asked")) },
+            profile = { asked += it; Result.success(profile("Ada")) },
+        )
+        val byId = tipCard.copy(owner = TipCardOwner.ById(listOf(1, 2, 3)))
+        resolver.resolve(tipCard)
+        resolver.resolve(byId)
+
+        // No normalisation on the way through: a handle stays a handle, so `GetProfile` answers the
+        // question the link asked and nothing has to turn one address into the other first.
+        assertEquals(listOf(tipCard.owner, byId.owner), asked)
+    }
+
+    @Test
+    fun `an unnameable owner stays unresolved rather than erroring`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("not asked")) },
+            tokenMetadata = { Result.failure(IllegalStateException("not asked")) },
+            profile = { Result.failure(IllegalStateException("no such user")) },
+        )
+        assertEquals(
+            LinkCard.TipCard.State.Unresolved,
+            (resolver.resolve(tipCard) as LinkCard.TipCard).state,
+        )
+    }
+
+    @Test
+    fun `a failed profile lookup is asked again rather than held`() = runTest {
+        var calls = 0
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("not asked")) },
+            tokenMetadata = { Result.failure(IllegalStateException("not asked")) },
+            profile = {
+                calls++
+                if (calls == 1) Result.failure(IllegalStateException("offline"))
+                else Result.success(profile("Ada"))
+            },
+        )
+        resolver.resolve(tipCard)
+        val state = (resolver.resolve(tipCard) as LinkCard.TipCard).state
+        assertEquals(2, calls)
+        assertTrue(state is LinkCard.TipCard.State.Resolved)
     }
 }

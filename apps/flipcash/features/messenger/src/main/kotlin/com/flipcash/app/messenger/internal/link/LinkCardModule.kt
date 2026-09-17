@@ -29,6 +29,7 @@ internal object LinkCardModule {
     fun provideLinkCardResolver(
         giftCard: GiftCardLookup,
         token: TokenLinkLookup,
+        tipCard: TipCardLookup,
     ): LinkCardResolver =
         LinkCardResolver(
             // The resolver's own scope, ended by `ChatViewModel.onCleared`. A query outlives the
@@ -37,5 +38,6 @@ internal object LinkCardModule {
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
             giftCard = { giftCard(it) },
             tokenMetadata = { token(it) },
+            profile = { tipCard(it) },
         )
 }

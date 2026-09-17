@@ -935,6 +935,9 @@
     <string name="label_linkCard_claimed">Claimed</string>
     <string name="label_linkCard_expired">Expired</string>
 
+    <!-- Tip card link card: what the card is, when the link names its owner by an id nothing has resolved yet -->
+    <string name="label_linkCard_tipCard">Tip Card</string>
+
     <!-- Chat message selection bar and its actions -->
     <string name="action_copy">Copy</string>
     <string name="action_edit">Edit</string>

@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.app.core.tipping.TipCardOwner
+import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
@@ -20,7 +22,9 @@ import kotlinx.coroutines.sync.withLock
  * hard stop. Nothing on this path may reach `BillController.receiveGiftCard`, because that claims
  * the link, and a card that claimed what it rendered would empty a link by scrolling past it.
  *
- * A token link needs only the mint's metadata, which the wallet already caches.
+ * A token link needs only the mint's metadata, which the wallet already caches. A tip card link
+ * needs its owner's profile, which is one `GetProfile` and nothing else — the card the link opens to
+ * is assembled from the same answer.
  *
  * The query runs in [scope] rather than in the caller's coroutine. The caller is a paging
  * transform, which is re-run and cancelled every time anything upstream of the transcript emits —
@@ -38,6 +42,7 @@ internal class LinkCardResolver(
     private val scope: CoroutineScope,
     private val giftCard: suspend (entropy: String) -> Result<Snapshot>,
     private val tokenMetadata: suspend (mint: Mint) -> Result<Token>,
+    private val profile: suspend (owner: TipCardOwner) -> Result<UserProfile>,
 ) {
 
     data class Snapshot(
@@ -51,14 +56,16 @@ internal class LinkCardResolver(
     /**
      * The query per key, not the answer: memoizing the [Deferred] is what makes the several passes
      * that map the same message at once share one query instead of racing each other to the same
-     * result. Kept per card kind so an entropy and a mint cannot collide on one key.
+     * result. Kept per card kind so an entropy, a mint and a card owner cannot collide on one key.
      */
     private val cashQueries = mutableMapOf<String, Deferred<LinkCard.Cash.State>>()
     private val tokenQueries = mutableMapOf<Mint, Deferred<LinkCard.TokenInfo.State>>()
+    private val tipCardQueries = mutableMapOf<TipCardOwner, Deferred<LinkCard.TipCard.State>>()
 
     suspend fun resolve(card: LinkCard): LinkCard = when (card) {
         is LinkCard.Cash -> card.copy(state = cashState(card.entropy))
         is LinkCard.TokenInfo -> card.copy(state = tokenState(card.mint))
+        is LinkCard.TipCard -> card.copy(state = tipCardState(card.owner))
     }
 
     /**
@@ -122,6 +129,19 @@ internal class LinkCardResolver(
             tokenMetadata(mint).fold(
                 onSuccess = { LinkCard.TokenInfo.State.Resolved(token = it) },
                 onFailure = { forget(tokenQueries, mint); LinkCard.TokenInfo.State.Unresolved },
+            )
+        }
+
+    /**
+     * Keyed on the owner as the link named them, which is the only key there is: a handle and an id
+     * for the same person are indistinguishable until the profile comes back, and by then both
+     * queries have been made. A transcript linking one person both ways is rare enough to pay for.
+     */
+    private suspend fun tipCardState(owner: TipCardOwner): LinkCard.TipCard.State =
+        memoized(tipCardQueries, owner) {
+            profile(owner).fold(
+                onSuccess = { LinkCard.TipCard.State.Resolved(profile = it) },
+                onFailure = { forget(tipCardQueries, owner); LinkCard.TipCard.State.Unresolved },
             )
         }
 

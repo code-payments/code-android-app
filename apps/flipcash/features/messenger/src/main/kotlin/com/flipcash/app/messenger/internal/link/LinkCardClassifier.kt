@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.link
 import android.net.Uri
 import androidx.core.net.toUri
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
@@ -68,9 +69,23 @@ internal class LinkCardClassifier @Inject constructor(
                 mint = type.mint,
                 state = LinkCard.TokenInfo.State.Unresolved,
             )
+            // Both ways of naming a card owner, mapped the same way `AppRouter.handle` maps them.
+            // A link to your own card is still a card and still draws; what a tap does with it is
+            // the router's decision, and it already diverts that one to the You tab.
+            is DeeplinkType.Tipcard -> tipCard(target, link, TipCardOwner.ById(type.userId))
+            is DeeplinkType.TipcardByUsername ->
+                tipCard(target, link, TipCardOwner.ByUsername(type.username))
             else -> null
         }
     }
+
+    private fun tipCard(url: String, link: DetectedUrl, owner: TipCardOwner) = LinkCard.TipCard(
+        url = url,
+        start = link.start,
+        end = link.end,
+        owner = owner,
+        state = LinkCard.TipCard.State.Unresolved,
+    )
 
     /**
      * Mirrors `AppRouter`'s own unwrap, which is private to that module. Duplicated rather than

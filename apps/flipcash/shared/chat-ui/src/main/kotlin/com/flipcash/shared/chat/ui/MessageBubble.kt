@@ -559,6 +559,12 @@ private fun BareLinkCard(
  * app, wrong from inside a chat, where it swaps the transcript for the wallet on the way to a
  * screen the reader asked for directly. There is no wallet card here for the detail to grow out of.
  * So it pushes, exactly as the cash bubble's own token tap does, and back returns to the message.
+ *
+ * A tip card link goes back out through the URL handler, like the cash link and for a different
+ * reason: presenting a card is the session's, reached through `TipCardOperations.resolveTipCard`,
+ * and a chat has no route of its own to it. The router already holds the two ways of naming an owner
+ * and the diversion for a link to your own card, so handing it the URL is handing it the one thing
+ * it needs.
  */
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
@@ -574,6 +580,7 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
                 uriHandler.openUri(card.url)
             }
             is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
+            is LinkCard.TipCard -> uriHandler.openUri(card.url)
         }
     }
 }
