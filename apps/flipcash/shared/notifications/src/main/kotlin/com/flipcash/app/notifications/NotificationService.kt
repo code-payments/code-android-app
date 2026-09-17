@@ -340,11 +340,16 @@ class NotificationService : FirebaseMessagingService(),
         }
         val e164 = contactE164 ?: sender?.profile?.verifiedPhoneNumber
 
-        val senderName = e164?.let { contactResolver.resolveName(it) }
-            ?: sender?.profile?.displayName?.takeIf { it.isNotBlank() }
-            ?: sender?.profile?.socialHandle()
-            ?: title
-            ?: ""
+        // Every name this sender is known by, not just the one rendered: the server composed the
+        // body from one of them and the line is drawn with another, so stripping the sender's name
+        // out of their own message needs all of them. See [planMessageBody].
+        val senderNames = listOf(
+            e164?.let { contactResolver.resolveName(it) },
+            sender?.profile?.displayName,
+            sender?.profile?.socialHandle(),
+            title,
+        )
+        val senderName = senderNames.firstOrNull { !it.isNullOrBlank() }.orEmpty()
 
         // Device-contact photo (local, synchronous) first; otherwise the profile
         // picture URL loaded through the app's shared Coil loader (cache-first,
@@ -397,7 +402,7 @@ class NotificationService : FirebaseMessagingService(),
             ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
             ?: NotificationCompat.MessagingStyle(selfPerson)
 
-        style.addMessage(body.orEmpty(), System.currentTimeMillis(), senderPerson)
+        style.addMessage(planMessageBody(body, senderNames), System.currentTimeMillis(), senderPerson)
 
         // After the extract above, not before: a re-post rebuilds the style from the notification
         // already on screen, which carries the old flag and title back with it.
