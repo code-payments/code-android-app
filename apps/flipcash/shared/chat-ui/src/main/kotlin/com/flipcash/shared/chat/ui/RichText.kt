@@ -1,6 +1,5 @@
 package com.flipcash.shared.chat.ui
 
-import android.util.Patterns
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.AnnotatedString
@@ -15,17 +14,14 @@ fun interface SpanAnnotator {
 
 class UrlAnnotator(private val linkStyle: SpanStyle) : SpanAnnotator {
     override fun AnnotatedString.Builder.annotate(text: String) {
-        val matcher = Patterns.WEB_URL.matcher(text)
-        while (matcher.find()) {
-            val url = matcher.group() ?: continue
-            val resolved = if (!url.startsWith("http")) "https://$url" else url
+        detectUrls(text).forEach { link ->
             addLink(
                 LinkAnnotation.Url(
-                    url = resolved,
+                    url = link.url,
                     styles = TextLinkStyles(style = linkStyle),
                 ),
-                start = matcher.start(),
-                end = matcher.end(),
+                start = link.start,
+                end = link.end,
             )
         }
     }

@@ -3,21 +3,28 @@ package com.flipcash.app.session.internal.delegates
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.internal.bill.BillController
+import com.flipcash.app.session.SettledClaim
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -179,6 +186,56 @@ class CashLinkDelegateTest {
                 onError = any(),
             )
         }
+    }
+
+    @Test
+    fun `a claim that lands settles as collected`() = runTest {
+        val delegate = createDelegate()
+        val settled = mutableListOf<SettledClaim>()
+        backgroundScope.launch { delegate.settledClaims.collect { settled += it } }
+        runCurrent()
+
+        val onReceived = slot<suspend (Token, LocalFiat) -> Unit>()
+        delegate.openCashLink("validEntropy123")
+        verify {
+            billController.receiveGiftCard(
+                entropy = any(),
+                owner = any(),
+                claimIfOwned = any(),
+                onReceived = capture(onReceived),
+                onError = any(),
+            )
+        }
+        onReceived.captured.invoke(mockk(relaxed = true), mockk(relaxed = true))
+        runCurrent()
+
+        assertEquals(listOf(SettledClaim("validEntropy123", collected = true)), settled)
+    }
+
+    @Test
+    fun `a claim that fails settles as not collected`() = runTest {
+        val delegate = createDelegate()
+        val settled = mutableListOf<SettledClaim>()
+        backgroundScope.launch { delegate.settledClaims.collect { settled += it } }
+        runCurrent()
+
+        // Every failure reports the same way, which is what lets a listener treat "already claimed"
+        // and "your own link" as the non-collections they are without naming either.
+        val onError = slot<(Throwable) -> Unit>()
+        delegate.openCashLink("validEntropy123")
+        verify {
+            billController.receiveGiftCard(
+                entropy = any(),
+                owner = any(),
+                claimIfOwned = any(),
+                onReceived = any(),
+                onError = capture(onError),
+            )
+        }
+        onError.captured.invoke(IllegalStateException("already claimed"))
+        runCurrent()
+
+        assertEquals(listOf(SettledClaim("validEntropy123", collected = false)), settled)
     }
 
     @Test

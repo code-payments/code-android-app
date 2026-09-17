@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
@@ -59,6 +60,7 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
@@ -66,6 +68,8 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.cornerRadius
 import com.getcode.theme.tiny
@@ -121,6 +125,7 @@ fun ContentBubble(
                     maxWidth = bubbleMaxWidth,
                     isEdited = item.isEdited,
                     jumbo = jumbo,
+                    linkCard = item.linkCard,
                     attention = attention,
                 )
 
@@ -170,13 +175,13 @@ fun ContentBubble(
                 // identical to any other message, which is what it is.
                 is MessageContent.Reply -> TextBubble(
                     modifier = modifier,
-                    text = content.content.filterIsInstance<MessageContent.Text>()
-                        .firstOrNull()?.text.orEmpty(),
+                    text = content.linkableText().orEmpty(),
                     isFromSelf = item.isFromSelf,
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     isEdited = item.isEdited,
                     quote = item.quote,
+                    linkCard = item.linkCard,
                     // Dropped with the backdrop up, as the cash bubble's target is: the tap
                     // should dismiss the backdrop, not jump the transcript out from under it.
                     onQuoteClick = item.quote?.takeIf { interactive }?.let { quote ->
@@ -273,6 +278,7 @@ private fun TextBubble(
     isEdited: Boolean = false,
     isTombstone: Boolean = false,
     quote: ChatQuote? = null,
+    linkCard: LinkCard? = null,
     onQuoteClick: (() -> Unit)? = null,
     onQuoteLongClick: (() -> Unit)? = null,
     jumbo: Boolean = false,
@@ -281,6 +287,31 @@ private fun TextBubble(
     if (jumbo) {
         JumboEmoji(
             text = text,
+            isFromSelf = isFromSelf,
+            position = position,
+            maxWidth = maxWidth,
+            modifier = modifier,
+            attention = attention,
+        )
+        return
+    }
+
+    // The card is the link, drawn. Leaving the URL in the body underneath it would say the
+    // same thing twice, so the span the card was built from goes with it and the prose around
+    // it closes up; a message that was nothing but the link leaves no body at all.
+    val bodyString = if (linkCard == null) {
+        text
+    } else {
+        text.withoutLinkSpan(linkCard.start, linkCard.end)
+    }
+
+    // Nothing left to put in a bubble. The card is already a surface with its own fill and its own
+    // rounded shape, so a bubble behind it draws a second, slightly larger card around the first.
+    // A citation and the edited marker belong to the message rather than to the link, and either
+    // one keeps the bubble.
+    if (linkCard != null && bodyString.isEmpty() && quote == null && !isEdited) {
+        BareLinkCard(
+            card = linkCard,
             isFromSelf = isFromSelf,
             position = position,
             maxWidth = maxWidth,
@@ -309,9 +340,9 @@ private fun TextBubble(
         )
         // A tombstone carries no link and nothing worth selecting; it is a notice, not a message.
         val body = if (isTombstone) {
-            AnnotatedString(text)
+            AnnotatedString(bodyString)
         } else {
-            rememberRichText(text = text, annotators = listOf(UrlAnnotator(linkStyle)))
+            rememberRichText(text = bodyString, annotators = listOf(UrlAnnotator(linkStyle)))
         }
         val bodyStyle = CodeTheme.typography.textMedium.copy(
             fontWeight = FontWeight.Medium,
@@ -377,23 +408,42 @@ private fun TextBubble(
             )
         }
 
-        if (quote == null) {
-            bodyText()
+        val quotedOrPlainBody = @Composable {
+            if (quote == null) {
+                bodyText()
+            } else {
+                QuotedBody(
+                    gap = BubbleDefaults.surroundInset,
+                    quote = {
+                        ChatQuotePanel(
+                            quote = quote,
+                            onClick = onQuoteClick,
+                            onLongClick = onQuoteLongClick,
+                            // Tagged because the citation repeats the quoted message's own text, so a
+                            // UI test matching on that text cannot tell the two apart.
+                            modifier = Modifier.testTag("bubble_reply_quote"),
+                        )
+                    },
+                    body = bodyText,
+                )
+            }
+        }
+
+        // Inside the bubble, above what is left of the body, on the same surround the citation
+        // uses — the card and the message it came from are one message.
+        if (linkCard == null) {
+            quotedOrPlainBody()
         } else {
-            QuotedBody(
-                gap = BubbleDefaults.surroundInset,
-                quote = {
-                    ChatQuotePanel(
-                        quote = quote,
-                        onClick = onQuoteClick,
-                        onLongClick = onQuoteLongClick,
-                        // Tagged because the citation repeats the quoted message's own text, so a
-                        // UI test matching on that text cannot tell the two apart.
-                        modifier = Modifier.testTag("bubble_reply_quote"),
-                    )
-                },
-                body = bodyText,
-            )
+            val onCardClick = rememberLinkCardClick()
+            Column(verticalArrangement = Arrangement.spacedBy(BubbleDefaults.surroundInset)) {
+                LinkCardView(
+                    card = linkCard,
+                    onClick = onCardClick,
+                )
+                // A link on its own never reaches here -- it is drawn bubble-less above -- so
+                // what is left is a citation, an edited marker, or prose the link sat inside.
+                quotedOrPlainBody()
+            }
         }
 
         if (isEdited) {
@@ -459,6 +509,74 @@ private fun JumboEmoji(
 private val JUMBO_EMOJI_SIZE = 44.sp
 
 internal const val JUMBO_EMOJI_TAG = "bubble_jumbo_emoji"
+
+/**
+ * A card standing in for the whole message, with no bubble behind it.
+ *
+ * Everything the bubble would have contributed is already the card's: the fill, the rounded corners
+ * and the tap. What is not the card's is the flash a jump leaves on the message it landed on, which
+ * belongs to the transcript rather than to the bubble -- so this goes through [Bubble] as the jumbo
+ * emoji does, with `bare` dropping the fill and the horizontal inset and leaving the flash, the
+ * width ceiling and the corner clip where every other bubble already gets them.
+ */
+@Composable
+private fun BareLinkCard(
+    card: LinkCard,
+    isFromSelf: Boolean,
+    position: BubblePosition,
+    maxWidth: Dp,
+    modifier: Modifier = Modifier,
+    attention: () -> Float = { 0f },
+) {
+    val onCardClick = rememberLinkCardClick()
+    Bubble(
+        isFromSelf = isFromSelf,
+        position = position,
+        maxWidth = maxWidth,
+        modifier = modifier,
+        bare = true,
+        // The card runs to the full width the bubble would have had, and to the full height. Its
+        // own inset is inside its frame, so padding here would be a second one -- and with no fill
+        // to hide inside, it is drawn outside the card's edge, where it reads as a gap rather than
+        // as padding. A text bubble's inset sits within its fill, so leaving these at the bubble's
+        // defaults would space a card away from its neighbours further than two bubbles ever are.
+        horizontalPadding = 0.dp,
+        verticalPadding = 0.dp,
+        attention = attention,
+    ) {
+        LinkCardView(card = card, onClick = onCardClick)
+    }
+}
+
+/**
+ * What a tap on a card does.
+ *
+ * A cash link goes back out through the URL handler its link span used, so replacing the text with
+ * a card changed how the message looks and not what tapping it does.
+ *
+ * A token link does not. Its URL classifies as a deep link, and the router answers that with the
+ * wallet sheet plus the token's card expanded in place — right for a link arriving from outside the
+ * app, wrong from inside a chat, where it swaps the transcript for the wallet on the way to a
+ * screen the reader asked for directly. There is no wallet card here for the detail to grow out of.
+ * So it pushes, exactly as the cash bubble's own token tap does, and back returns to the message.
+ */
+@Composable
+private fun rememberLinkCardClick(): (LinkCard) -> Unit {
+    val actionHandler = LocalChatActionHandler.current
+    val uriHandler = LocalUriHandler.current
+    return { card ->
+        when (card) {
+            // The entropy is reported and the link still leaves through the URL handler, in that
+            // order and unconditionally. Nothing here waits on the report or reads it back, so a
+            // tap opens the link whatever the transcript does with the name.
+            is LinkCard.Cash -> {
+                actionHandler(ChatAction.CashLinkOpened(card.entropy))
+                uriHandler.openUri(card.url)
+            }
+            is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
+        }
+    }
+}
 
 @Composable
 private fun CashBubble(
@@ -611,6 +729,7 @@ private fun Bubble(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     horizontalPadding: Dp = BubbleDefaults.paddingHorizontal,
+    verticalPadding: Dp = BubbleDefaults.paddingVertical,
     bare: Boolean = false,
     attention: () -> Float = { 0f },
     content: @Composable BoxScope.() -> Unit,
@@ -655,7 +774,7 @@ private fun Bubble(
             }
             .padding(
                 horizontal = horizontalPadding,
-                vertical = BubbleDefaults.paddingVertical,
+                vertical = verticalPadding,
             ),
     ) {
         content()
@@ -775,6 +894,73 @@ fun bubblePositionOf(
 }
 
 // region Previews
+
+private const val PREVIEW_CASH_LINK = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
+private const val PREVIEW_CASH_TEXT = "here you go $PREVIEW_CASH_LINK"
+
+/** Spans the real detection pass would produce, so the preview strips the same text the app does. */
+private fun previewCard(
+    state: LinkCard.Cash.State,
+    text: String = PREVIEW_CASH_TEXT,
+) = LinkCard.Cash(
+    url = PREVIEW_CASH_LINK,
+    start = text.indexOf(PREVIEW_CASH_LINK),
+    end = text.indexOf(PREVIEW_CASH_LINK) + PREVIEW_CASH_LINK.length,
+    entropy = "KNi8pQr1n5hRU65vKJGge3",
+    state = state,
+)
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_LinkCard_Unresolved() {
+    TextBubble(
+        text = PREVIEW_CASH_TEXT,
+        isFromSelf = false,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        linkCard = previewCard(state = LinkCard.Cash.State.Unresolved),
+    )
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_LinkCard_Claimable() {
+    TextBubble(
+        text = PREVIEW_CASH_TEXT,
+        isFromSelf = false,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        linkCard = previewCard(
+            state = LinkCard.Cash.State.Resolved(
+                amount = "$5.00",
+                claim = LinkCard.Cash.Claim.Claimable,
+                token = Token.usdf,
+            ),
+        ),
+    )
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_LinkCard_Claimed() {
+    TextBubble(
+        text = "sent you this $PREVIEW_CASH_LINK",
+        isFromSelf = true,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        linkCard = previewCard(
+            text = "sent you this $PREVIEW_CASH_LINK",
+            state = LinkCard.Cash.State.Resolved(
+                amount = "$5.00",
+                claim = LinkCard.Cash.Claim.Claimed,
+                token = Token.usdf,
+            ),
+        ),
+    )
+}
 
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)

@@ -17,6 +17,8 @@ dependencies {
     implementation(project(":apps:flipcash:shared:funding"))
     implementation(project(":apps:flipcash:shared:menu"))
     implementation(project(":apps:flipcash:shared:payments"))
+    implementation(project(":apps:flipcash:shared:router"))
+    implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":libs:vibrator:bindings"))
@@ -25,6 +27,8 @@ dependencies {
     implementation(project(":services:opencode"))
     implementation(project(":libs:datetime"))
     implementation(libs.compose.paging)
+    // ProcessLifecycleOwner, for re-asking about a claimable card on every foreground edge.
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.bundles.haze)
 
     testImplementation(libs.bundles.unit.testing)

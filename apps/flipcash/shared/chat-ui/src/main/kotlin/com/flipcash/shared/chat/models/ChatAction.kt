@@ -47,6 +47,16 @@ sealed interface ChatAction {
 
     /** Takes the reply strip back down, leaving the draft where it is. */
     data object CancelReply : ChatAction
+
+    /**
+     * The reader tapped a cash voucher, naming the link they are about to open.
+     *
+     * Not a request to claim it, and not what opens it: the tap still leaves through the URL
+     * handler and comes back as a deeplink, which is what keeps the card path off the claim path.
+     * This is the chat saying which link left from here, because that is the one thing lost at
+     * that boundary — a claim arrives back knowing an entropy and nothing about a transcript.
+     */
+    data class CashLinkOpened(val entropy: String) : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit
