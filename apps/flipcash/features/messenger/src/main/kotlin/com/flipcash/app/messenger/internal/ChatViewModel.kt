@@ -29,7 +29,11 @@ import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
+import com.flipcash.shared.chat.ui.detectUrls
+import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.messenger.internal.link.LinkCardClassifier
+import com.flipcash.app.messenger.internal.link.LinkCardResolver
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
@@ -125,6 +129,8 @@ internal class ChatViewModel @Inject constructor(
     private val analytics: FlipcashAnalyticsService,
     private val clipboardManager: ClipboardManager,
     private val userFlags: UserFlagsCoordinator,
+    private val linkCardClassifier: LinkCardClassifier,
+    private val linkCardResolver: LinkCardResolver,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -461,6 +467,15 @@ internal class ChatViewModel @Inject constructor(
                             ?.toQuote()
                     }
 
+                    // Built from the same detection pass the bubble underlines with, so the
+                    // link that becomes a card is always one the reader can see is a link.
+                    // Resolution is memoized per entropy: the first pass over a message pays the
+                    // query, every re-map after it is free, and a message whose query has not
+                    // returned renders unresolved and picks the amount up on the next pass.
+                    val linkCard = enriched.linkableText()
+                        ?.let { text -> linkCardClassifier.firstCard(detectUrls(text).map { it.url }) }
+                        ?.let { card -> linkCardResolver.resolve(card) }
+
                     val receiptStatus = if (message.isFromSelf) {
                         when (message.deliveryStatus) {
                             DeliveryStatus.SENDING -> ReceiptStatus.SENDING
@@ -511,6 +526,7 @@ internal class ChatViewModel @Inject constructor(
                         // author from the first frame, and the map that names the authors lands
                         // after the first page does.
                         senderId = message.senderId?.takeIf { !message.isFromSelf },
+                        linkCard = linkCard,
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->

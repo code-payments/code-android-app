@@ -170,8 +170,7 @@ fun ContentBubble(
                 // identical to any other message, which is what it is.
                 is MessageContent.Reply -> TextBubble(
                     modifier = modifier,
-                    text = content.content.filterIsInstance<MessageContent.Text>()
-                        .firstOrNull()?.text.orEmpty(),
+                    text = content.linkableText().orEmpty(),
                     isFromSelf = item.isFromSelf,
                     position = position,
                     maxWidth = bubbleMaxWidth,
