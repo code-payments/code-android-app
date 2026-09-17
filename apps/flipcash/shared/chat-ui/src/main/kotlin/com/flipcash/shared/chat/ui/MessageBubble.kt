@@ -708,6 +708,24 @@ private data class BubbleCorners(
     val bottomStart: Dp
 )
 
+/**
+ * Whether [item] tucks into the same run as the bubble [other] next to it.
+ *
+ * A bare emoji breaks the run on both sides. It draws no bubble, so there is no edge for its
+ * neighbour to square itself against, and a squared corner facing open space reads as half a bubble
+ * with the other half missing. Either side being bare is enough, so the message under an emoji
+ * closes its top corners the same way the message above it closes its bottom ones.
+ */
+private fun groupsWith(
+    item: ChatListItem.ContentBubble,
+    other: ChatListItem.ContentBubble?,
+    config: SeparatorConfig,
+): Boolean = other != null &&
+        item.isSameAuthorAs(other) &&
+        config.isGrouped(item.timestamp, other.timestamp) &&
+        !item.rendersBareEmoji() &&
+        !other.rendersBareEmoji()
+
 fun bubblePositionOf(
     index: Int,
     item: ChatListItem.ContentBubble,
@@ -721,13 +739,8 @@ fun bubblePositionOf(
         messages.peek(index - 1) as? ChatListItem.ContentBubble
     } else null
 
-    val groupedAbove = above != null &&
-            item.isSameAuthorAs(above) &&
-            config.isGrouped(item.timestamp, above.timestamp)
-
-    val groupedBelow = below != null &&
-            item.isSameAuthorAs(below) &&
-            config.isGrouped(item.timestamp, below.timestamp)
+    val groupedAbove = groupsWith(item, above, config)
+    val groupedBelow = groupsWith(item, below, config)
 
     return when {
         groupedAbove && groupedBelow -> BubblePosition.Middle
@@ -750,13 +763,8 @@ fun bubblePositionOf(
         messages[index - 1] as? ChatListItem.ContentBubble
     } else null
 
-    val groupedAbove = above != null &&
-            item.isSameAuthorAs(above) &&
-            config.isGrouped(item.timestamp, above.timestamp)
-
-    val groupedBelow = below != null &&
-            item.isSameAuthorAs(below) &&
-            config.isGrouped(item.timestamp, below.timestamp)
+    val groupedAbove = groupsWith(item, above, config)
+    val groupedBelow = groupsWith(item, below, config)
 
     return when {
         groupedAbove && groupedBelow -> BubblePosition.Middle
