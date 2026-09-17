@@ -846,6 +846,10 @@ internal class ChatViewModel @Inject constructor(
      *
      * Which claims qualify is [ClaimReplyTargets]'s to answer: it is what limits this to a link the
      * reader opened from this transcript and a claim that actually moved money.
+     *
+     * A message because a message is what there is. A reaction on the voucher is the smaller thing
+     * to say, and is where this goes once the transcript can carry one; only the last line here
+     * changes, because what decides to thank anyone does not.
      */
     private fun thankForClaim(claim: SettledClaim) {
         val messageId = claimReplyTargets.settled(claim) ?: return
