@@ -50,6 +50,25 @@ interface CashLinkOperations {
     fun openCashLink(cashLink: String?)
 }
 
+/**
+ * Cash links whose claim attempt has settled, named by entropy.
+ *
+ * Deliberately not part of [CashLinkOperations]. A surface that *draws* a link's claim state needs
+ * to know when that state has moved, and must not be able to move it — chat renders cash links as
+ * cards, and the card path is barred from the claim path. Handing chat the operations interface
+ * would put `openCashLink` back within its reach.
+ *
+ * Emitted on every settled attempt, not only a successful one: "already claimed" and "expired" are
+ * the server correcting what the caller believed about the link, which is exactly the case a stale
+ * card is in. A failure that moved nothing costs the listener one repeated query.
+ *
+ * Hot and replay-less, like [TipCardOperations.tipCardEvents]: a claim with nothing listening is a
+ * claim no rendered card was stale for.
+ */
+interface CashLinkClaims {
+    val settledClaims: Flow<String>
+}
+
 /** One-shot signals from tip card resolution that only the UI can act on. */
 sealed interface TipCardEvent {
     /**

@@ -60,6 +60,16 @@ internal class LinkCardResolver(
         is LinkCard.TokenInfo -> card.copy(state = tokenState(card.mint))
     }
 
+    /**
+     * Drops what is held about [entropy], so the next pass over the transcript asks again.
+     *
+     * Claim state is the one thing a card draws that moves while the reader is looking at it, and
+     * the memo is what makes a scroll cheap. Both hold: the answer is kept until something says it
+     * has changed. Invalidating alone does not redraw anything — it makes the next mapping pass
+     * honest, and the caller is responsible for there being one.
+     */
+    suspend fun invalidateCash(entropy: String) = forget(cashQueries, entropy)
+
     /** Ends the queries with the screen that asked for them. */
     fun dispose() {
         scope.cancel()

@@ -32,6 +32,7 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.session.CashLinkClaims
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
 import com.flipcash.app.tokens.TokenCoordinator
@@ -80,6 +81,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -95,6 +97,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -131,6 +134,7 @@ internal class ChatViewModel @Inject constructor(
     private val userFlags: UserFlagsCoordinator,
     private val linkCardClassifier: LinkCardClassifier,
     private val linkCardResolver: LinkCardResolver,
+    private val cashLinkClaims: CashLinkClaims,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -439,6 +443,16 @@ internal class ChatViewModel @Inject constructor(
         senderProfiles.value?.get(userId.hexEncodedString())
             ?.let { ChatParticipant.TipUser(userId, it) }
 
+    /**
+     * Bumped when a link card's answer is known to have moved, so the transcript maps again.
+     *
+     * The transform below only re-runs when one of the flows it combines emits, and none of them
+     * notices a claim: claiming a cash link refreshes the activity feed, not this chat's messages.
+     * Without this the reader taps a voucher, claims it, comes back to the transcript and finds a
+     * card that still says "Tap to claim".
+     */
+    private val cardRevision = MutableStateFlow(0)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatListItem>> =
         combine(
@@ -446,7 +460,8 @@ internal class ChatViewModel @Inject constructor(
             pendingMutations,
             messagePolicy,
             senderProfiles,
-        ) { pagingData, mutations, policy, profiles ->
+            cardRevision,
+        ) { pagingData, mutations, policy, profiles, _ ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.mapIndexed { index, content ->
@@ -701,6 +716,7 @@ internal class ChatViewModel @Inject constructor(
     init {
         // Essential — needed immediately for chat display
         initChatHandlers()
+        initLinkCardFreshness()
 
         viewModelScope.launch {
             // Yield to let the first frame render before setting up remaining collectors
@@ -709,6 +725,32 @@ internal class ChatViewModel @Inject constructor(
             initSendHandlers()
             initMessageActionHandlers()
         }
+    }
+
+    /**
+     * Keeps a rendered cash link honest about its own claim state.
+     *
+     * A claim settles somewhere else entirely — the reader taps a voucher, the link goes back out
+     * through the URL handler, and the shell claims it over a bill drawn on top of this screen.
+     * The transcript is never told; it is still composed, still holding the answer it drew the
+     * voucher from, and the answer has just stopped being true. So the resolver is told to forget
+     * that entropy and the transcript is mapped again, which re-queries it and tears the voucher
+     * in place.
+     *
+     * Every settled attempt, not only a successful one, because "already claimed" and "expired"
+     * are the same news arriving as an error.
+     *
+     * A link claimed by someone *else* while the reader watches is not covered and cannot be from
+     * here: nothing tells this device. That one is bounded by the resolver's scope — leaving the
+     * chat and returning asks again. See `LinkCardModule`.
+     */
+    private fun initLinkCardFreshness() {
+        cashLinkClaims.settledClaims
+            .onEach { entropy ->
+                linkCardResolver.invalidateCash(entropy)
+                cardRevision.update { it + 1 }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun initChatHandlers() {

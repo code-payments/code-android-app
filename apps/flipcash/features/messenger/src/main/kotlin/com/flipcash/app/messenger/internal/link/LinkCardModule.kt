@@ -14,11 +14,14 @@ import kotlinx.coroutines.SupervisorJob
 internal object LinkCardModule {
 
     /**
-     * Scoped to the chat rather than the process. The resolver memoizes by entropy and by mint
-     * and never evicts, which is what stops a scroll from re-querying the same link — but claim
-     * state moves: a link claimed elsewhere, or on this device, stays `Claimable` for as long as
-     * the cache holds it. Tying the cache to the screen bounds that to one visit, and re-entering
-     * the chat asks again.
+     * Scoped to the chat rather than the process. The resolver memoizes by entropy and by mint,
+     * which is what stops a scroll from re-querying the same link — but claim state moves, and a
+     * cached `Claimable` outlives the claim that made it wrong.
+     *
+     * Two things bound that. A claim on this device is heard and evicted by entropy, so a voucher
+     * the reader claims tears in place — see `ChatViewModel.initLinkCardFreshness`. A claim by
+     * anyone else is not heard at all, and is bounded only by this scope: the cache dies with the
+     * screen, so re-entering the chat asks again.
      */
     @Provides
     @ViewModelScoped

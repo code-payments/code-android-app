@@ -5,6 +5,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.session.CashLinkClaims
 import com.flipcash.app.session.CashLinkOperations
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.TokenCoordinator
@@ -17,9 +18,12 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.consumeAsFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,6 +38,8 @@ import javax.inject.Singleton
  *    [Event.CheckPendingFeed], and [Event.RefreshFeed] for the shell to route.
  * 5. On error: shows the appropriate error dialog (already claimed, expired,
  *    user's own gift card with a "collect anyway?" prompt, or generic error).
+ * 6. Either way, names the entropy on [settledClaims] for surfaces that are
+ *    drawing that link's claim state and would otherwise keep drawing it stale.
  *
  * @see com.flipcash.app.session.internal.RealSessionController
  */
@@ -45,7 +51,7 @@ class CashLinkDelegate @Inject constructor(
     private val analytics: FlipcashAnalyticsService,
     private val resources: ResourceHelper,
     private val userManager: UserManager,
-) : CashLinkOperations {
+) : CashLinkOperations, CashLinkClaims {
 
     sealed interface Event {
         data class BillReady(val bill: Scannable.Payable) : Event
@@ -55,6 +61,14 @@ class CashLinkDelegate @Inject constructor(
 
     private val _events = Channel<Event>(Channel.UNLIMITED)
     val events: Flow<Event> = _events.consumeAsFlow()
+
+    // Separate from [events]: that channel is the shell's (single-consumer, consumeAsFlow), while
+    // this one is for surfaces that render a link's claim state. See [CashLinkClaims].
+    private val _settledClaims = MutableSharedFlow<String>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    override val settledClaims: Flow<String> = _settledClaims.asSharedFlow()
 
     private val giftCardClaimInProgress = MutableStateFlow<String?>(null)
 
@@ -127,6 +141,7 @@ class CashLinkDelegate @Inject constructor(
             onReceived = { token, amount ->
                 tokenCoordinator.add(token, amount)
                 giftCardClaimInProgress.value = null
+                _settledClaims.tryEmit(entropy)
                 analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
                 val bill = Scannable.Payable.forToken(
                     amount = amount,
@@ -139,6 +154,7 @@ class CashLinkDelegate @Inject constructor(
             },
             onError = { cause ->
                 giftCardClaimInProgress.value = null
+                _settledClaims.tryEmit(entropy)
                 if (cause !is ReceiveGiftTransactorError.UsersGiftCard) {
                     analytics.transfer(
                         Analytics.Transfer.ClaimedCashLink,

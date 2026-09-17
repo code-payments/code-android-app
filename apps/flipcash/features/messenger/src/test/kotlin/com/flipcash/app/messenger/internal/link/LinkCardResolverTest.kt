@@ -116,6 +116,54 @@ class LinkCardResolverTest {
     }
 
     @Test
+    fun `an invalidated cash link is asked again and reports the new claim state`() = runTest {
+        var calls = 0
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = {
+                calls++
+                Result.success(
+                    snapshot().copy(
+                        claim = if (calls == 1) {
+                            LinkCard.Cash.Claim.Claimable
+                        } else {
+                            LinkCard.Cash.Claim.Claimed
+                        },
+                    ),
+                )
+            },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+        val before = (resolver.resolve(card) as LinkCard.Cash).state
+        assertEquals(LinkCard.Cash.Claim.Claimable, (before as LinkCard.Cash.State.Resolved).claim)
+
+        resolver.invalidateCash(card.entropy)
+
+        val after = (resolver.resolve(card) as LinkCard.Cash).state
+        assertEquals(LinkCard.Cash.Claim.Claimed, (after as LinkCard.Cash.State.Resolved).claim)
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun `invalidating one cash link leaves the others held`() = runTest {
+        var calls = 0
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { calls++; Result.success(snapshot()) },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+        val other = card.copy(entropy = "8mXeQ2vTb4pLzRw9dKcHfA")
+        resolver.resolve(card)
+        resolver.resolve(other)
+        assertEquals(2, calls)
+
+        // The claim signal names one entropy, so it must not cost every other card its answer.
+        resolver.invalidateCash(card.entropy)
+        resolver.resolve(other)
+        assertEquals(2, calls)
+    }
+
+    @Test
     fun `a cash link and a token link do not share a query`() = runTest {
         var cashCalls = 0
         var tokenCalls = 0
