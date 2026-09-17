@@ -1426,6 +1426,7 @@ internal class ChatViewModel @Inject constructor(
 
     override fun onCleared() {
         chatCoordinator.setActiveChatId(null)
+        linkCardResolver.dispose()
     }
 
     private fun checkBalanceLimit(amount: Fiat): Boolean {

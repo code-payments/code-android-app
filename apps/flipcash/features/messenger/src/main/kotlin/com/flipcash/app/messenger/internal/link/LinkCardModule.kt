@@ -5,6 +5,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.scopes.ViewModelScoped
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 @Module
 @InstallIn(ViewModelComponent::class)
@@ -19,5 +22,11 @@ internal object LinkCardModule {
     @Provides
     @ViewModelScoped
     fun provideLinkCardResolver(lookup: GiftCardLookup): LinkCardResolver =
-        LinkCardResolver(lookup = { lookup(it) })
+        LinkCardResolver(
+            // The resolver's own scope, ended by `ChatViewModel.onCleared`. A query outlives the
+            // paging pass that asked for it -- see `LinkCardResolver` -- so it needs a scope that
+            // is not the transform's, and one bounded by the same screen as the cache it fills.
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            lookup = { lookup(it) },
+        )
 }
