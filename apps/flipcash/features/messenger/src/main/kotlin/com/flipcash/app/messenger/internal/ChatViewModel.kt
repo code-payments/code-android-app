@@ -4,6 +4,9 @@ import android.content.ClipboardManager
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
@@ -99,6 +102,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
@@ -728,21 +732,21 @@ internal class ChatViewModel @Inject constructor(
     }
 
     /**
-     * Keeps a rendered cash link honest about its own claim state.
+     * Keeps a rendered cash link honest about its claim state, from the two directions a claim can
+     * come from.
      *
-     * A claim settles somewhere else entirely — the reader taps a voucher, the link goes back out
-     * through the URL handler, and the shell claims it over a bill drawn on top of this screen.
-     * The transcript is never told; it is still composed, still holding the answer it drew the
-     * voucher from, and the answer has just stopped being true. So the resolver is told to forget
-     * that entropy and the transcript is mapped again, which re-queries it and tears the voucher
-     * in place.
+     * **This device.** The reader taps a voucher, the link goes back out through the URL handler,
+     * and the shell claims it over a bill drawn on top of this screen. The transcript is never
+     * told; it is still composed, still holding the answer it drew the voucher from, and the
+     * answer has just stopped being true. [CashLinkClaims] names the entropy, the resolver forgets
+     * it, and the re-map tears that one voucher in place. Every settled attempt, not only a
+     * successful one, because "already claimed" and "expired" are the same news arriving as an
+     * error.
      *
-     * Every settled attempt, not only a successful one, because "already claimed" and "expired"
-     * are the same news arriving as an error.
-     *
-     * A link claimed by someone *else* while the reader watches is not covered and cannot be from
-     * here: nothing tells this device. That one is bounded by the resolver's scope — leaving the
-     * chat and returning asks again. See `LinkCardModule`.
+     * **Anyone else.** Nothing tells this device that a link it is drawing was collected, so the
+     * sender watches their own voucher say "Tap to claim" for cash that is gone. There is no
+     * signal to wait for, so the alternative is to ask — see [refreshLinkCards] for why that is
+     * cheaper than it sounds, and [CashLinkClaims] for the signal that would retire it.
      */
     private fun initLinkCardFreshness() {
         cashLinkClaims.settledClaims
@@ -751,6 +755,34 @@ internal class ChatViewModel @Inject constructor(
                 cardRevision.update { it + 1 }
             }
             .launchIn(viewModelScope)
+
+        // STARTED rather than a timer of its own, which makes one construct cover both cases worth
+        // covering: the first pass runs on every foreground edge, so a reader who put the phone
+        // down and came back gets a fresh answer immediately, and the loop then carries the case
+        // they are actually in -- watching the chat while the other side collects. Backgrounding
+        // ends it, so nothing is asked on behalf of a screen nobody is looking at.
+        viewModelScope.launch {
+            ProcessLifecycleOwner.get().lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    refreshLinkCards()
+                    delay(CLAIM_REFRESH_INTERVAL)
+                }
+            }
+        }
+    }
+
+    /**
+     * Re-asks about any voucher still drawn as claimable.
+     *
+     * Not a poll in the expensive sense: [LinkCardResolver.refreshClaimable] drops nothing unless
+     * the transcript is holding a card that says `Claimable`, and no drop means no re-map and so
+     * no query. A chat with no cash link in view — nearly all of them — costs a lock and a walk of
+     * an empty map per tick. A claimed or expired card is terminal and is never asked about again.
+     */
+    private suspend fun refreshLinkCards() {
+        if (linkCardResolver.refreshClaimable()) {
+            cardRevision.update { it + 1 }
+        }
     }
 
     private fun initChatHandlers() {
@@ -1570,6 +1602,16 @@ internal class ChatViewModel @Inject constructor(
     }
 
     companion object {
+        /**
+         * How often a visible claimable voucher is re-asked about.
+         *
+         * Picked against what the reader is doing rather than against load: they sent cash in a
+         * chat and are waiting to see it collected, so a card that stays stale for the better part
+         * of a minute reads as broken. Only a transcript actually showing an unclaimed voucher
+         * queries at all — see [refreshLinkCards].
+         */
+        private val CLAIM_REFRESH_INTERVAL = 15.seconds
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnChatOpened -> { state ->

@@ -7,6 +7,7 @@ import kotlinx.coroutines.test.runTest
 import org.mockito.kotlin.mock
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class LinkCardResolverTest {
@@ -161,6 +162,70 @@ class LinkCardResolverTest {
         resolver.invalidateCash(card.entropy)
         resolver.resolve(other)
         assertEquals(2, calls)
+    }
+
+    @Test
+    fun `refreshing drops a claimable card and keeps a claimed one`() = runTest {
+        val claims = mutableMapOf(
+            card.entropy to LinkCard.Cash.Claim.Claimable,
+            "8mXeQ2vTb4pLzRw9dKcHfA" to LinkCard.Cash.Claim.Claimed,
+        )
+        var calls = 0
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { entropy ->
+                calls++
+                Result.success(snapshot().copy(claim = claims.getValue(entropy)))
+            },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+        val claimed = card.copy(entropy = "8mXeQ2vTb4pLzRw9dKcHfA")
+        resolver.resolve(card)
+        resolver.resolve(claimed)
+        assertEquals(2, calls)
+
+        assertTrue(resolver.refreshClaimable())
+
+        // Only the claimable one is asked again: a claimed link does not become claimable, so
+        // holding it is the whole reason this is cheap enough to run on a timer.
+        claims[card.entropy] = LinkCard.Cash.Claim.Claimed
+        val after = (resolver.resolve(card) as LinkCard.Cash).state
+        resolver.resolve(claimed)
+        assertEquals(3, calls)
+        assertEquals(LinkCard.Cash.Claim.Claimed, (after as LinkCard.Cash.State.Resolved).claim)
+    }
+
+    @Test
+    fun `refreshing an expired card keeps it`() = runTest {
+        var calls = 0
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = {
+                calls++
+                Result.success(snapshot().copy(claim = LinkCard.Cash.Claim.Expired))
+            },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+        resolver.resolve(card)
+
+        assertFalse(resolver.refreshClaimable())
+
+        resolver.resolve(card)
+        assertEquals(1, calls)
+    }
+
+    @Test
+    fun `refreshing a transcript with no claimable card reports nothing to do`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("not asked")) },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+        resolver.resolve(tokenCard)
+
+        // What makes the tick free for nearly every chat: nothing dropped, so the caller has no
+        // reason to re-map and nothing is queried.
+        assertFalse(resolver.refreshClaimable())
     }
 
     @Test

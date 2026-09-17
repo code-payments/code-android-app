@@ -5,6 +5,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.sync.Mutex
@@ -69,6 +70,33 @@ internal class LinkCardResolver(
      * honest, and the caller is responsible for there being one.
      */
     suspend fun invalidateCash(entropy: String) = forget(cashQueries, entropy)
+
+    /**
+     * Drops every cash link still sitting on [LinkCard.Cash.Claim.Claimable], and reports whether
+     * it dropped any.
+     *
+     * The blind spot [invalidateCash] cannot cover: a link claimed by someone else, which nothing
+     * tells this device about. Asking is the only way to find out, so the caller asks on a timer —
+     * and the return value is what keeps that from being a poll in the usual sense. A transcript
+     * with no claimable card drops nothing, the caller re-maps nothing, and the tick costs a lock
+     * and a walk of a map that is almost always empty. Only a chat that is actually showing an
+     * unclaimed voucher pays for a query, which is the only chat whose answer can still move.
+     *
+     * [LinkCard.Cash.Claim.Claimed] and [LinkCard.Cash.Claim.Expired] are terminal and kept: a
+     * claimed link does not become claimable again. An in-flight query is kept too — it is already
+     * asking, and dropping it would only start the same question over.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    suspend fun refreshClaimable(): Boolean = mutex.withLock {
+        val stale = cashQueries.filterValues { query ->
+            val state = query.takeIf { it.isCompleted }
+                ?.runCatching { getCompleted() }
+                ?.getOrNull()
+            (state as? LinkCard.Cash.State.Resolved)?.claim == LinkCard.Cash.Claim.Claimable
+        }.keys.toList()
+        stale.forEach { cashQueries.remove(it) }
+        stale.isNotEmpty()
+    }
 
     /** Ends the queries with the screen that asked for them. */
     fun dispose() {

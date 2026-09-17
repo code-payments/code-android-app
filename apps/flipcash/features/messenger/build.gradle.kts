@@ -27,6 +27,8 @@ dependencies {
     implementation(project(":services:opencode"))
     implementation(project(":libs:datetime"))
     implementation(libs.compose.paging)
+    // ProcessLifecycleOwner, for re-asking about a claimable card on every foreground edge.
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.bundles.haze)
 
     testImplementation(libs.bundles.unit.testing)

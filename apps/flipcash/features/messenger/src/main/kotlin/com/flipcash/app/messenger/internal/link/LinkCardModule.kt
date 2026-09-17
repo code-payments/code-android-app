@@ -18,10 +18,11 @@ internal object LinkCardModule {
      * which is what stops a scroll from re-querying the same link — but claim state moves, and a
      * cached `Claimable` outlives the claim that made it wrong.
      *
-     * Two things bound that. A claim on this device is heard and evicted by entropy, so a voucher
-     * the reader claims tears in place — see `ChatViewModel.initLinkCardFreshness`. A claim by
-     * anyone else is not heard at all, and is bounded only by this scope: the cache dies with the
-     * screen, so re-entering the chat asks again.
+     * Two things bound that, both in `ChatViewModel.initLinkCardFreshness`: a claim on this
+     * device is heard and evicted by entropy, and a claim by anyone else — which nothing tells
+     * this device about — is caught by re-asking about claimable cards while the screen is
+     * foregrounded. This scope is the backstop under both: the cache dies with the screen, so
+     * re-entering the chat asks again regardless.
      */
     @Provides
     @ViewModelScoped

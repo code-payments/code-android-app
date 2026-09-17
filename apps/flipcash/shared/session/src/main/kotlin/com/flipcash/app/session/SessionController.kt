@@ -64,6 +64,25 @@ interface CashLinkOperations {
  *
  * Hot and replay-less, like [TipCardOperations.tipCardEvents]: a claim with nothing listening is a
  * claim no rendered card was stale for.
+ *
+ * Only claims made *here*, which is the limit worth naming. A link collected on someone else's
+ * device is invisible to this one — no push category names a claim, and the feed refresh a claim
+ * triggers is the wallet's, not a chat's — so a surface that must stay honest about a link it did
+ * not claim has to ask on a timer instead (`ChatViewModel.refreshLinkCards`).
+ *
+ * Closing that is server work, and the cheaper shape is the claim writing a message into the chat
+ * the link came from: the transcript already fans out to every participant on both platforms, it
+ * is durable for whoever opens the chat tomorrow, and it needs no new notification category. It
+ * cannot be the claimer's client that sends it — [CashLinkOperations.openCashLink] takes an
+ * entropy and nothing else, and is reached from a scanned code or a pasted link as readily as
+ * from a chat, so the client does not know which chat to write to. The server does, because it
+ * knows which message carried the entropy.
+ *
+ * Either way this flow is the seam, and it is needed even for the message: an arriving message
+ * re-maps the transcript, but the resolver would hand the same memoized `Claimable` back, so the
+ * card only moves if something names the entropy. A claim message names it, and a pushed claim
+ * would name it too, emitted from the push handler rather than from `openCashLink`. The consumer
+ * is written for both, so either one is a producer to add and a timer to delete.
  */
 interface CashLinkClaims {
     val settledClaims: Flow<String>
