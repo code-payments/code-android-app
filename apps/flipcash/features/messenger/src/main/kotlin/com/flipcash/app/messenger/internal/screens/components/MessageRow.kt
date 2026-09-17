@@ -155,6 +155,14 @@ internal fun MessageRow(
         enabled = bubble != null &&
             !selecting &&
             MessageCapability.Reply in bubble.capabilities,
+        // The avatar column is the target for the person, not for the message: a drag that starts
+        // on someone's picture is reaching for them, and the picture is small enough that arming a
+        // reply from it would mostly catch fingers that missed the tap.
+        senderGutter = if (showsSenderGutter && bubble?.isFromSelf == false) {
+            CodeTheme.dimens.staticGrid.x6
+        } else {
+            0.dp
+        },
         onReply = { bubble?.let { onAction(ChatAction.ReplyTo(it)) } },
     )
 
@@ -320,6 +328,7 @@ internal fun MessageRow(
 
         SwipeToReplyAffordance(
             progress = swipe::progress,
+            pullBackPx = swipe::affordanceTranslationPx,
             modifier = Modifier.align(Alignment.CenterStart),
         )
     }
@@ -334,10 +343,15 @@ internal fun MessageRow(
  * (`affordanceInset + radius - maxTranslation`) restated as a leading edge, which drops the radius:
  * the circle lands 20dp from the row's leading edge at full travel, and off that edge — clipped by
  * the list, and transparent besides — at rest.
+ *
+ * [pullBackPx] is what stops it there. The row runs on past full travel under a hard swipe, and
+ * riding that would carry the circle across the space the bubble is opening and out the other side;
+ * cancelling the overshoot leaves it at the 20dp it was drawn for while the row keeps moving.
  */
 @Composable
 private fun SwipeToReplyAffordance(
     progress: () -> Float,
+    pullBackPx: () -> Float,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -346,6 +360,7 @@ private fun SwipeToReplyAffordance(
             .size(AFFORDANCE_SIZE)
             .graphicsLayer {
                 val fraction = progress()
+                translationX = pullBackPx()
                 alpha = fraction
                 // Never from nothing: the circle is already most of its size when it starts to
                 // show, so it reads as arriving rather than as inflating.
