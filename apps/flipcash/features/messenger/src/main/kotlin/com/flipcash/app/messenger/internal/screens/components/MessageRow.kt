@@ -67,7 +67,9 @@ import com.getcode.util.vibration.LocalVibrator
  * the row below — and takes the rest as flags, because they are decided across the whole list:
  * [selecting] is true for every row while the backdrop is up, [focused] for the single row it leaves
  * sharp, [attention] carries the flash the list points at a jumped-to message, and
- * [animateInsertion] is granted once per message and never again.
+ * [animateInsertion] is granted once per message and never again, and [showsSenderGutter] says
+ * whether incoming rows reserve the avatar column — true for a group, where every message is
+ * attributed, and false for a DM, where none is.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -80,6 +82,7 @@ internal fun MessageRow(
     selecting: Boolean,
     focused: Boolean,
     animateInsertion: Boolean,
+    showsSenderGutter: Boolean,
     attention: () -> Float = { 0f },
 ) {
     val onAction = LocalChatActionHandler.current
@@ -224,12 +227,15 @@ internal fun MessageRow(
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                 ) {
-                    // The gutter is reserved on every row of a sender run, not only the labelled
-                    // one, so the bubbles above and below line up on the same left edge instead of
-                    // stepping in and out as the run starts.
-                    if (sender != null) {
+                    // The gutter is reserved on every incoming row of a group, not only the
+                    // labelled ones, so bubbles line up on the same left edge instead of stepping
+                    // in and out as runs start. Keyed off the transcript rather than off this row's
+                    // `sender`, which is also null while a member's profile is still resolving — a
+                    // row that reserved no gutter would sit out at the inset and then jump inward
+                    // when the name arrived.
+                    if (showsSenderGutter && !item.isFromSelf) {
                         Box(modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x6)) {
-                            if (runStart) {
+                            if (sender != null && runStart) {
                                 ContactAvatar(
                                     image = sender.picture,
                                     displayName = sender.displayName,
@@ -368,27 +374,47 @@ private fun bottomSpacingFor(
     messages: LazyPagingItems<ChatListItem>,
     config: SeparatorConfig,
 ): Dp {
-    val tight = CodeTheme.dimens.grid.x1
-    val normal = CodeTheme.dimens.grid.x2
-    val wide = CodeTheme.dimens.grid.x3
     // index-1 is the item below (newer) in reverseLayout
-    val itemBelow = (if (index > 0) messages.peek(index - 1) else null) ?: return tight
+    val gap = rowGapBelow(item, if (index > 0) messages.peek(index - 1) else null, config)
+    return when (gap) {
+        RowGap.Tight -> CodeTheme.dimens.grid.x1
+        RowGap.Normal -> CodeTheme.dimens.grid.x2
+        RowGap.Wide -> CodeTheme.dimens.grid.x3
+    }
+}
+
+/** The three gaps the transcript puts between rows, resolved to `grid.x1`/`x2`/`x3`. */
+internal enum class RowGap { Tight, Normal, Wide }
+
+/**
+ * The gap under [item], where [below] is the row drawn beneath it — the newer message, `peek(index
+ * - 1)` under `reverseLayout`.
+ *
+ * A change of author opens the widest gap, because that is where the next run's name and picture
+ * go. `isFromSelf` alone used to stand in for the author, which is right in a DM and wrong in a
+ * group: two members' messages are both incoming, so a whole conversation between them ran at the
+ * tight same-sender gap.
+ *
+ * Pure so it can be tested without a `PagingData`, like [startsSenderRun]: the messenger module has
+ * no `paging-testing` dependency, and the peek belongs to the caller.
+ */
+internal fun rowGapBelow(item: ChatListItem, below: ChatListItem?, config: SeparatorConfig): RowGap {
+    below ?: return RowGap.Tight
 
     // Separator adjacent → normal gap
-    if (item is ChatListItem.DateSeparator || itemBelow is ChatListItem.DateSeparator) {
-        return normal
+    if (item is ChatListItem.DateSeparator || below is ChatListItem.DateSeparator) {
+        return RowGap.Normal
     }
 
-    val current = item as? ChatListItem.ContentBubble ?: return tight
-    val below = itemBelow as? ChatListItem.ContentBubble ?: return tight
+    val current = item as? ChatListItem.ContentBubble ?: return RowGap.Tight
+    val newer = below as? ChatListItem.ContentBubble ?: return RowGap.Tight
 
     return when {
-        // Different sender → wide
-        current.isFromSelf != below.isFromSelf -> wide
+        !current.isSameAuthorAs(newer) -> RowGap.Wide
         // Same sender, outside grouping window → normal
-        !config.isGrouped(current.timestamp, below.timestamp) -> normal
+        !config.isGrouped(current.timestamp, newer.timestamp) -> RowGap.Normal
         // Same sender, close together → tight
-        else -> tight
+        else -> RowGap.Tight
     }
 }
 

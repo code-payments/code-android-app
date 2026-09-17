@@ -36,6 +36,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
@@ -69,6 +70,9 @@ internal fun MessageList(
     val keyboard = rememberKeyboardController()
     val listState = rememberLazyListState()
     val vibrator = LocalVibrator.current
+    // Whether messages are attributed at all, which is a property of the chat and not of any one
+    // row: a DM needs no avatar column, a group reserves one on every incoming row.
+    val isGroup = state.chatType == ChatType.GROUP
 
     CompositionLocalProvider(LocalChatActionHandler provides onAction) {
         HandleMessageReads(listState, messages)
@@ -280,6 +284,7 @@ internal fun MessageList(
                     selecting = selecting,
                     focused = focused,
                     animateInsertion = animateInsertion,
+                    showsSenderGutter = isGroup,
                     attention = if (bubble != null && bubble.messageId == attentionId) {
                         readAttention
                     } else {
