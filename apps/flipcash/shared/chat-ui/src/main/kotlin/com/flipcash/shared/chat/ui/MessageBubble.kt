@@ -560,11 +560,12 @@ private fun BareLinkCard(
  * screen the reader asked for directly. There is no wallet card here for the detail to grow out of.
  * So it pushes, exactly as the cash bubble's own token tap does, and back returns to the message.
  *
- * A tip card link goes back out through the URL handler, like the cash link and for a different
- * reason: presenting a card is the session's, reached through `TipCardOperations.resolveTipCard`,
- * and a chat has no route of its own to it. The router already holds the two ways of naming an owner
- * and the diversion for a link to your own card, so handing it the URL is handing it the one thing
- * it needs.
+ * A tip card link opens the tip DM with its owner, which is where the real card leads too: the card
+ * is presented, and on dismissal `TipCardDecorator` pushes exactly that chat. From a transcript the
+ * presentation is the part with nothing to add — it is a card animating in over a chat on its way
+ * to another chat — so the tap goes straight to the conversation. That needs a user id, so only a
+ * resolved card takes this route; an unresolved one still has only a URL and leaves through the URL
+ * handler, where the router resolves the owner the long way and diverts a link to your own card.
  */
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
@@ -580,7 +581,15 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
                 uriHandler.openUri(card.url)
             }
             is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
-            is LinkCard.TipCard -> uriHandler.openUri(card.url)
+            is LinkCard.TipCard -> {
+                // The id is server-provided, so a profile assembled locally has no chat to open.
+                // `TipCardDecorator` guards the same null for the same reason.
+                val profile = (card.state as? LinkCard.TipCard.State.Resolved)?.profile
+                when (val userId = profile?.userId) {
+                    null -> uriHandler.openUri(card.url)
+                    else -> actionHandler(ChatAction.OpenTipChat(userId, profile))
+                }
+            }
         }
     }
 }

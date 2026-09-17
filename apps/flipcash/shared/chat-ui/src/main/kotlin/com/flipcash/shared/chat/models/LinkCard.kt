@@ -98,9 +98,9 @@ sealed interface LinkCard {
      * A link to someone's tip card. Drawn as that card — the same near-black portrait the link opens
      * to, the person named under their picture.
      *
-     * Not the whole card: the scannable code at its centre is a payload only the session can fetch,
-     * and it is what a camera is aimed at rather than what a reader needs. The picture stands where
-     * it was, which is the part of the figure that says whose card this is.
+     * Not the whole card: the scannable code at its centre is what a camera is aimed at, and the
+     * reader is holding the phone it would be printed on. The picture stands where it was, which is
+     * the part of the figure that says whose card this is.
      *
      * [owner] is how the link named them, carried rather than normalised — turning a handle into an
      * id is a server round trip, which is the whole reason [TipCardOwner] exists. It is also the

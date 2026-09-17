@@ -107,6 +107,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.CashLinkOpened(action.entropy))
             }
 
+            is ChatAction.OpenTipChat -> {
+                keyboard.hideIfVisible {
+                    viewModel.dispatchEvent(
+                        ChatViewModel.Event.OpenTipChat(action.userId, action.profile)
+                    )
+                }
+            }
+
             is ChatAction.JumpToMessage -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
             }

@@ -183,9 +183,10 @@ private fun TokenLinkCard(
  * A tip card link is that tip card: the same near-black portrait, the person named under their
  * picture. Two things are missing from the figure and both are deliberate.
  *
- * The scannable code is not drawn. Its payload is a round trip the chat does not make, and a code is
- * what a camera is aimed at — useless to a reader holding the phone it is printed on. The picture
- * takes its place, which is the half of the figure that says whose card this is.
+ * The scannable code is not drawn. A code is what a camera is aimed at, and nobody points a camera
+ * at the phone they are reading the message on; drawing one would spend the middle of the card on
+ * the part of the figure a reader cannot use. The picture takes its place, which is the half that
+ * says whose card this is.
  *
  * And the type does not scale with the card, though the real one's does. That card is a fixed
  * geometry rendered for export, so its name holds a proportion; this one is read in a transcript at
@@ -210,15 +211,22 @@ private fun TipLinkCard(
     val person: String? = profile?.let { nameOrHandle(it.displayName, it.handle) }
         ?: (card.owner as? TipCardOwner.ByUsername)?.username?.asHandle()
 
+    val shape = RoundedCornerShape(width * LinkCardDefaults.TIP_CARD_CORNER)
+
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier
                 .width(width)
                 .height(width * LinkCardDefaults.TIP_CARD_ASPECT)
-                .clip(RoundedCornerShape(width * LinkCardDefaults.TIP_CARD_CORNER))
+                .clip(shape)
                 .background(TipCardOpaqueFallback)
+                // The real card is frosted glass over a blurred camera feed, which is what gives it
+                // an edge; [TipCardOpaqueFallback] is the tone that stands in for it, and against a
+                // transcript that is also near-black it leaves the card with no edge at all. The
+                // hairline is that edge, so the fill can stay the colour the card it stands for is.
+                .border(CodeTheme.dimens.border, CodeTheme.colors.divider, shape)
                 .clickable(onClick = onClick)
-                .padding(horizontal = CodeTheme.dimens.inset),
+                .padding(horizontal = CodeTheme.dimens.grid.x2),
             verticalArrangement = Arrangement.spacedBy(
                 CodeTheme.dimens.grid.x2,
                 Alignment.CenterVertically,
@@ -242,7 +250,7 @@ private fun TipLinkCard(
 
             Text(
                 text = person ?: stringResource(R.string.label_linkCard_tipCard),
-                style = CodeTheme.typography.textSmall,
+                style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textMain,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
@@ -636,15 +644,25 @@ private object LinkCardDefaults {
     const val TIP_CARD_ASPECT = 333f / 269f
 
     /**
-     * How much of the bubble the portrait card takes. Its height lands a little over [CARD_ASPECT],
-     * so a transcript mixing card kinds keeps one rhythm without the tip card being squashed into
-     * the other two's landscape frame.
+     * How much of the bubble the portrait card takes.
+     *
+     * Wide enough that a handle fits on one line -- `@sally_streamer` wrapped at 0.62 -- and that
+     * the picture at [TIP_CARD_AVATAR] is a portrait rather than a bullet. It is the one card of
+     * the three that is taller than it is wide, so it stands taller than the other two rather than
+     * being squashed into their landscape frame.
      */
-    const val TIP_CARD_WIDTH_FRACTION = 0.62f
+    const val TIP_CARD_WIDTH_FRACTION = 0.72f
 
-    /** Corner and picture as fractions of the card's own width, the way `TipCard` derives its own. */
+    /** The corner as a fraction of the card's own width, the way `TipCard` derives its own. */
     const val TIP_CARD_CORNER = 0.08f
-    const val TIP_CARD_AVATAR = 0.44f
+
+    /**
+     * The picture, also as a fraction of the width -- but not the real card's 0.09, which is the
+     * thumbnail beside the name on a card whose middle is taken by the scannable code. Nothing takes
+     * the middle here, so the picture does: at the real card's fraction it would be a bullet point
+     * on a mostly empty portrait.
+     */
+    const val TIP_CARD_AVATAR = 0.56f
 
     /** What separates the handle from the name above it, as on the real card. */
     const val TIP_CARD_HANDLE_ALPHA = 0.5f

@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.models
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
 
@@ -57,6 +58,17 @@ sealed interface ChatAction {
      * that boundary — a claim arrives back knowing an entropy and nothing about a transcript.
      */
     data class CashLinkOpened(val entropy: String) : ChatAction
+
+    /**
+     * The reader tapped a tip card link, asking for the tip DM with its owner.
+     *
+     * Carries what the card already resolved rather than the URL. [userId] is what the canonical
+     * TIP_DM id is derived from, so the conversation opens whether or not it exists yet, and
+     * [profile] is what draws its header on the first frame — a chat with no messages has no
+     * members fetch to wait on. It is the same pair the real tip card hands the navigator when it
+     * is dismissed (`TipCardDecorator`), which is what makes the link and the card the same door.
+     */
+    data class OpenTipChat(val userId: ID, val profile: UserProfile) : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit
