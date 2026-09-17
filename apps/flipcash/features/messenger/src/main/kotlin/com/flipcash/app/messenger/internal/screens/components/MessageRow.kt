@@ -222,6 +222,11 @@ internal fun MessageRow(
                     // message has no item above it — a one-message transcript crashed here.
                     older = if (index + 1 < messages.itemCount) messages.peek(index + 1) else null,
                 )
+                val runEnd = endsSenderRun(
+                    current = item,
+                    // index - 1 is the row drawn below — the newer message, under `reverseLayout`.
+                    newer = if (index > 0) messages.peek(index - 1) else null,
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.Bottom,
@@ -235,7 +240,7 @@ internal fun MessageRow(
                     // when the name arrived.
                     if (showsSenderGutter && !item.isFromSelf) {
                         Box(modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x6)) {
-                            if (sender != null && runStart) {
+                            if (sender != null && runEnd) {
                                 ContactAvatar(
                                     image = sender.picture,
                                     displayName = sender.displayName,
@@ -419,17 +424,36 @@ internal fun rowGapBelow(item: ChatListItem, below: ChatListItem?, config: Separ
 }
 
 /**
- * Whether [current] is the bubble that wears its sender's name and picture.
+ * Whether [current] is the bubble that wears its sender's name — the top of a run.
  *
  * `older` is the item drawn *above* [current] — under `reverseLayout` that is `peek(index + 1)`,
- * the mirror of [bottomSpacingFor]'s `index - 1`. A run is labelled at its top, so the bubble that
+ * the mirror of [bottomSpacingFor]'s `index - 1`. A run is named at its top, so the bubble that
  * starts one is the one whose upper neighbour came from someone else.
+ *
+ * Keyed off `authorId` rather than off the resolved `sender`, so the runs hold their shape from the
+ * first frame: a group's profile map arrives after the first page, and until it does every member's
+ * bubble has a null `sender`.
  *
  * Pure so it can be tested without a `PagingData`: the messenger module has no `paging-testing`
  * dependency, and the peek belongs to the caller anyway.
  */
 internal fun startsSenderRun(current: ChatListItem.ContentBubble, older: ChatListItem?): Boolean {
-    val sender = current.sender ?: return false
+    val author = current.authorId ?: return false
     val olderBubble = older as? ChatListItem.ContentBubble ?: return true
-    return olderBubble.sender?.userId != sender.userId
+    return olderBubble.authorId != author
+}
+
+/**
+ * Whether [current] is the bubble that wears its sender's picture — the bottom of a run.
+ *
+ * The picture sits on the run's last message, next to the newest thing that person said, while the
+ * name stays on its first: the two mark the run's ends rather than stacking on one bubble.
+ *
+ * `newer` is the item drawn *below* [current] — `peek(index - 1)` under `reverseLayout`, the mirror
+ * of [startsSenderRun]'s `older`.
+ */
+internal fun endsSenderRun(current: ChatListItem.ContentBubble, newer: ChatListItem?): Boolean {
+    val author = current.authorId ?: return false
+    val newerBubble = newer as? ChatListItem.ContentBubble ?: return true
+    return newerBubble.authorId != author
 }

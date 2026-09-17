@@ -507,6 +507,10 @@ internal class ChatViewModel @Inject constructor(
                         capabilities = resolveCapabilities(message, policy),
                         quote = quote,
                         sender = sender,
+                        // Independent of the profile lookup above: the runs have to break by
+                        // author from the first frame, and the map that names the authors lands
+                        // after the first page does.
+                        senderId = message.senderId?.takeIf { !message.isFromSelf },
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->

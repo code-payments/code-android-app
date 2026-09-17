@@ -2,6 +2,7 @@ package com.flipcash.shared.chat.models
 
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.MessageCapability
+import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
 enum class ReceiptStatus { SENDING, SENT, READ, FAILED }
@@ -48,20 +49,34 @@ sealed interface ChatListItem {
          * message in a DM; set only for another member's message in a group.
          */
         val sender: SenderIdentity? = null,
+        /**
+         * The id of whoever sent this, for every incoming message — set whether or not their
+         * profile has resolved, and whether or not the chat attributes its bubbles.
+         *
+         * [sender] cannot stand in for it: a group's profile map arrives after the first page does,
+         * so early on every member's bubble has a null [sender] and two members read as one author.
+         */
+        val senderId: ID? = null,
     ) : ChatListItem {
+        /**
+         * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the
+         * pipeline supplies it; [sender] covers a caller that builds a bubble from a resolved
+         * profile alone.
+         */
+        val authorId: ID? get() = senderId ?: sender?.userId
+
         /**
          * Whether [other] was sent by the same person as this bubble.
          *
          * `isFromSelf` cannot answer this in a group, where every other member's message is
-         * incoming alike: two members' bubbles would read as one run. [sender] is what tells them
-         * apart, and it is null only for the viewer's own messages and for DMs — cases
-         * `isFromSelf` already decides. Two bubbles whose sender profiles have not resolved yet do
-         * read as one author until they do.
+         * incoming alike: two members' bubbles would read as one run. [authorId] is what tells them
+         * apart, and it is null only for the viewer's own messages — a case `isFromSelf` already
+         * decides — and for an incoming message whose sender the backend did not name.
          */
         fun isSameAuthorAs(other: ContentBubble): Boolean = when {
             isFromSelf != other.isFromSelf -> false
             isFromSelf -> true
-            else -> sender?.userId == other.sender?.userId
+            else -> authorId == other.authorId
         }
 
         /** The body a Copy or an Edit acts on, or `null` for a bubble that carries no text. */

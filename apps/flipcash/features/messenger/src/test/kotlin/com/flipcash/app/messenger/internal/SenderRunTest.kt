@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.app.messenger.internal.screens.components.endsSenderRun
 import com.flipcash.app.messenger.internal.screens.components.startsSenderRun
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.SenderIdentity
@@ -10,26 +11,31 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
- * Which bubble in a run wears the name and the picture.
+ * Which bubble in a run wears the name, and which wears the picture.
  *
- * The list is `reverseLayout`, so index 0 is the newest message at the bottom and index + 1 is the
- * message drawn *above*. A run therefore starts at its oldest message — the topmost one — which is
- * the one whose upper neighbour is someone else, a date separator, or nothing.
+ * The list is `reverseLayout`, so index 0 is the newest message at the bottom, index + 1 is the
+ * message drawn *above* and index - 1 the one drawn *below*. A run therefore starts at its oldest
+ * message — the topmost one, which wears the name — and ends at its newest, the bottom one, which
+ * wears the picture.
  */
 class SenderRunTest {
 
     private val alice = SenderIdentity(userId = listOf<Byte>(1), displayName = "Alice", picture = null)
     private val bob = SenderIdentity(userId = listOf<Byte>(2), displayName = "Bob", picture = null)
 
-    private fun bubble(sender: SenderIdentity?, isFromSelf: Boolean = false) =
-        ChatListItem.ContentBubble(
-            messageId = 1L,
-            contentIndex = 0,
-            content = MessageContent.Text("hi"),
-            isFromSelf = isFromSelf,
-            timestamp = Instant.fromEpochMilliseconds(1_000),
-            sender = sender,
-        )
+    private fun bubble(
+        sender: SenderIdentity?,
+        isFromSelf: Boolean = false,
+        senderId: List<Byte>? = null,
+    ) = ChatListItem.ContentBubble(
+        messageId = 1L,
+        contentIndex = 0,
+        content = MessageContent.Text("hi"),
+        isFromSelf = isFromSelf,
+        timestamp = Instant.fromEpochMilliseconds(1_000),
+        sender = sender,
+        senderId = senderId,
+    )
 
     @Test
     fun `a bubble with no sender never starts a run`() {
@@ -61,5 +67,49 @@ class SenderRunTest {
     fun `a bubble under a date separator starts a run`() {
         val separator = ChatListItem.DateSeparator(Instant.fromEpochMilliseconds(1_000))
         assertTrue(startsSenderRun(bubble(alice), older = separator))
+    }
+
+    @Test
+    fun `an unresolved profile still breaks the run at its sender`() {
+        // A group's profile map lands after the first page, so `sender` is null on every member's
+        // bubble to begin with. The id is what has to tell them apart until then.
+        val unnamedAlice = bubble(sender = null, senderId = alice.userId)
+        val unnamedBob = bubble(sender = null, senderId = bob.userId)
+        assertTrue(startsSenderRun(unnamedAlice, older = unnamedBob))
+        assertFalse(startsSenderRun(unnamedAlice, older = unnamedAlice))
+        assertTrue(endsSenderRun(unnamedAlice, newer = unnamedBob))
+        assertFalse(endsSenderRun(unnamedAlice, newer = unnamedAlice))
+    }
+
+    @Test
+    fun `a bubble with no sender never ends a run`() {
+        assertFalse(endsSenderRun(bubble(sender = null), newer = null))
+        assertFalse(endsSenderRun(bubble(sender = null, isFromSelf = true), newer = bubble(alice)))
+    }
+
+    @Test
+    fun `the newest loaded bubble ends a run`() {
+        assertTrue(endsSenderRun(bubble(alice), newer = null))
+    }
+
+    @Test
+    fun `a bubble over a different sender ends a run`() {
+        assertTrue(endsSenderRun(bubble(alice), newer = bubble(bob)))
+    }
+
+    @Test
+    fun `a bubble over the same sender continues the run`() {
+        assertFalse(endsSenderRun(bubble(alice), newer = bubble(alice)))
+    }
+
+    @Test
+    fun `a bubble over one of the viewer's own ends a run`() {
+        assertTrue(endsSenderRun(bubble(alice), newer = bubble(sender = null, isFromSelf = true)))
+    }
+
+    @Test
+    fun `a bubble over a date separator ends a run`() {
+        val separator = ChatListItem.DateSeparator(Instant.fromEpochMilliseconds(1_000))
+        assertTrue(endsSenderRun(bubble(alice), newer = separator))
     }
 }
