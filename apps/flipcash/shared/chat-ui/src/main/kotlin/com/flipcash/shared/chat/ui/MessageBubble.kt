@@ -627,11 +627,11 @@ fun bubblePositionOf(
     } else null
 
     val groupedAbove = above != null &&
-            above.isFromSelf == item.isFromSelf &&
+            item.isSameAuthorAs(above) &&
             config.isGrouped(item.timestamp, above.timestamp)
 
     val groupedBelow = below != null &&
-            below.isFromSelf == item.isFromSelf &&
+            item.isSameAuthorAs(below) &&
             config.isGrouped(item.timestamp, below.timestamp)
 
     return when {
@@ -656,11 +656,11 @@ fun bubblePositionOf(
     } else null
 
     val groupedAbove = above != null &&
-            above.isFromSelf == item.isFromSelf &&
+            item.isSameAuthorAs(above) &&
             config.isGrouped(item.timestamp, above.timestamp)
 
     val groupedBelow = below != null &&
-            below.isFromSelf == item.isFromSelf &&
+            item.isSameAuthorAs(below) &&
             config.isGrouped(item.timestamp, below.timestamp)
 
     return when {

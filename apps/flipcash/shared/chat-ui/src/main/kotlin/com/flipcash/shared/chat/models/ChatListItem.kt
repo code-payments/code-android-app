@@ -49,6 +49,21 @@ sealed interface ChatListItem {
          */
         val sender: SenderIdentity? = null,
     ) : ChatListItem {
+        /**
+         * Whether [other] was sent by the same person as this bubble.
+         *
+         * `isFromSelf` cannot answer this in a group, where every other member's message is
+         * incoming alike: two members' bubbles would read as one run. [sender] is what tells them
+         * apart, and it is null only for the viewer's own messages and for DMs — cases
+         * `isFromSelf` already decides. Two bubbles whose sender profiles have not resolved yet do
+         * read as one author until they do.
+         */
+        fun isSameAuthorAs(other: ContentBubble): Boolean = when {
+            isFromSelf != other.isFromSelf -> false
+            isFromSelf -> true
+            else -> sender?.userId == other.sender?.userId
+        }
+
         /** The body a Copy or an Edit acts on, or `null` for a bubble that carries no text. */
         val plainText: String?
             get() = when (val content = content) {
