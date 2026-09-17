@@ -927,6 +927,13 @@
     <string name="label_messageDeletedByYou">You deleted this message</string>
     <string name="label_messageDeleted">This message was deleted</string>
 
+    <!-- Cash link card: the state of the link a message carries, read without claiming it -->
+    <string name="label_linkCard_cash">Cash</string>
+    <string name="label_linkCard_claim">Tap to claim</string>
+    <string name="label_linkCard_claimed">Claimed</string>
+    <string name="label_linkCard_expired">Expired</string>
+    <string name="label_linkCard_sentByYou">You sent this</string>
+
     <!-- Chat message selection bar and its actions -->
     <string name="action_copy">Copy</string>
     <string name="action_edit">Edit</string>

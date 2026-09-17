@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
@@ -59,6 +60,7 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
@@ -121,6 +123,7 @@ fun ContentBubble(
                     maxWidth = bubbleMaxWidth,
                     isEdited = item.isEdited,
                     jumbo = jumbo,
+                    linkCard = item.linkCard,
                     attention = attention,
                 )
 
@@ -176,6 +179,7 @@ fun ContentBubble(
                     maxWidth = bubbleMaxWidth,
                     isEdited = item.isEdited,
                     quote = item.quote,
+                    linkCard = item.linkCard,
                     // Dropped with the backdrop up, as the cash bubble's target is: the tap
                     // should dismiss the backdrop, not jump the transcript out from under it.
                     onQuoteClick = item.quote?.takeIf { interactive }?.let { quote ->
@@ -272,6 +276,7 @@ private fun TextBubble(
     isEdited: Boolean = false,
     isTombstone: Boolean = false,
     quote: ChatQuote? = null,
+    linkCard: LinkCard? = null,
     onQuoteClick: (() -> Unit)? = null,
     onQuoteLongClick: (() -> Unit)? = null,
     jumbo: Boolean = false,
@@ -376,23 +381,42 @@ private fun TextBubble(
             )
         }
 
-        if (quote == null) {
-            bodyText()
+        val quotedOrPlainBody = @Composable {
+            if (quote == null) {
+                bodyText()
+            } else {
+                QuotedBody(
+                    gap = BubbleDefaults.surroundInset,
+                    quote = {
+                        ChatQuotePanel(
+                            quote = quote,
+                            onClick = onQuoteClick,
+                            onLongClick = onQuoteLongClick,
+                            // Tagged because the citation repeats the quoted message's own text, so a
+                            // UI test matching on that text cannot tell the two apart.
+                            modifier = Modifier.testTag("bubble_reply_quote"),
+                        )
+                    },
+                    body = bodyText,
+                )
+            }
+        }
+
+        // Inside the bubble, above the body, on the same surround the citation uses — the card and
+        // the message it came from are one message, and the link is still underlined beneath it.
+        if (linkCard == null) {
+            quotedOrPlainBody()
         } else {
-            QuotedBody(
-                gap = BubbleDefaults.surroundInset,
-                quote = {
-                    ChatQuotePanel(
-                        quote = quote,
-                        onClick = onQuoteClick,
-                        onLongClick = onQuoteLongClick,
-                        // Tagged because the citation repeats the quoted message's own text, so a
-                        // UI test matching on that text cannot tell the two apart.
-                        modifier = Modifier.testTag("bubble_reply_quote"),
-                    )
-                },
-                body = bodyText,
-            )
+            val uriHandler = LocalUriHandler.current
+            Column(verticalArrangement = Arrangement.spacedBy(BubbleDefaults.surroundInset)) {
+                LinkCardView(
+                    card = linkCard,
+                    // The same handler the link span in the text below goes through, so the card
+                    // and the text are two ways into one behaviour rather than two behaviours.
+                    onClick = { uriHandler.openUri(it) },
+                )
+                quotedOrPlainBody()
+            }
         }
 
         if (isEdited) {
@@ -774,6 +798,71 @@ fun bubblePositionOf(
 }
 
 // region Previews
+
+private const val PREVIEW_CASH_LINK = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_LinkCard_Unresolved() {
+    TextBubble(
+        text = "here you go $PREVIEW_CASH_LINK",
+        isFromSelf = false,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        linkCard = LinkCard.Cash(
+            url = PREVIEW_CASH_LINK,
+            entropy = "KNi8pQr1n5hRU65vKJGge3",
+            state = LinkCard.Cash.State.Unresolved,
+        ),
+    )
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_LinkCard_Claimable() {
+    TextBubble(
+        text = "here you go $PREVIEW_CASH_LINK",
+        isFromSelf = false,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        linkCard = LinkCard.Cash(
+            url = PREVIEW_CASH_LINK,
+            entropy = "KNi8pQr1n5hRU65vKJGge3",
+            state = LinkCard.Cash.State.Resolved(
+                amount = "$5.00",
+                claim = LinkCard.Cash.Claim.Claimable,
+                tokenSymbol = "USDC",
+                iconUrl = null,
+                issuedByViewer = false,
+            ),
+        ),
+    )
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_LinkCard_Claimed() {
+    TextBubble(
+        text = "sent you this $PREVIEW_CASH_LINK",
+        isFromSelf = true,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        linkCard = LinkCard.Cash(
+            url = PREVIEW_CASH_LINK,
+            entropy = "KNi8pQr1n5hRU65vKJGge3",
+            state = LinkCard.Cash.State.Resolved(
+                amount = "$5.00",
+                claim = LinkCard.Cash.Claim.Claimed,
+                tokenSymbol = "USDC",
+                iconUrl = null,
+                issuedByViewer = true,
+            ),
+        ),
+    )
+}
 
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
