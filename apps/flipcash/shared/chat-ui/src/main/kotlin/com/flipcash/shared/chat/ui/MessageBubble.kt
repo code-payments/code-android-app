@@ -97,6 +97,7 @@ fun ContentBubble(
     attention: () -> Float = { 0f },
 ) {
     val actionHandler = LocalChatActionHandler.current
+    val jumbo = remember(item) { item.rendersBareEmoji() }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val bubbleMaxWidth = when (item.content) {
             is MessageContent.Text -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
@@ -119,6 +120,7 @@ fun ContentBubble(
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     isEdited = item.isEdited,
+                    jumbo = jumbo,
                     attention = attention,
                 )
 
@@ -181,6 +183,7 @@ fun ContentBubble(
                         { actionHandler(ChatAction.JumpToMessage(quote.messageId)) }
                     },
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
+                    jumbo = jumbo,
                     attention = attention,
                 )
 
@@ -190,6 +193,31 @@ fun ContentBubble(
             }
         }
     }
+}
+
+/**
+ * Whether this message draws as a bare emoji rather than inside a bubble — a short all-emoji
+ * message, which is a reaction rather than a sentence and is drawn large with nothing around it.
+ *
+ * Public because the decision reaches past the bubble: with no bubble there is no corner to pin
+ * the "Edited" marker into, so the row has to draw it on the line below and needs to know.
+ *
+ * A tombstone is excluded — its words are the app's, not the sender's — and so is a reply, whose
+ * citation is a filled surface: stripping the bubble there would leave a panel with an emoji loose
+ * beneath it.
+ */
+fun ChatListItem.ContentBubble.rendersBareEmoji(): Boolean {
+    val text = when (val content = content) {
+        is MessageContent.Text -> content.text
+        is MessageContent.Reply -> if (quote != null) {
+            return false
+        } else {
+            content.content.filterIsInstance<MessageContent.Text>().firstOrNull()?.text.orEmpty()
+        }
+
+        else -> return false
+    }
+    return EmojiOnlyText.clusterCountOrNull(text) != null
 }
 
 private const val EDITED_MARKER_SLOT = "edited-marker"
@@ -247,8 +275,21 @@ private fun TextBubble(
     quote: ChatQuote? = null,
     onQuoteClick: (() -> Unit)? = null,
     onQuoteLongClick: (() -> Unit)? = null,
+    jumbo: Boolean = false,
     attention: () -> Float = { 0f },
 ) {
+    if (jumbo) {
+        JumboEmoji(
+            text = text,
+            isFromSelf = isFromSelf,
+            position = position,
+            maxWidth = maxWidth,
+            modifier = modifier,
+            attention = attention,
+        )
+        return
+    }
+
     // A reply hands the bubble the narrower surround, so the citation clears the body's own inset
     // on both sides; the body then puts the difference back and keeps the inset it has without a
     // quote. A bubble with no quote never widens, because the two are equal there.
@@ -367,6 +408,57 @@ private fun TextBubble(
         }
     }
 }
+
+/**
+ * A message that is only emoji: no bubble, and the emoji drawn at something like its own size.
+ *
+ * One size at every count rather than a size per count. Stepping down as emoji are added would
+ * make the same emoji a different size depending on what was sent beside it, and three at this
+ * size still sit well inside the bubble's own width ceiling.
+ *
+ * Laid out through [Bubble] rather than beside it so the run's corner geometry, the jump flash and
+ * that width ceiling stay in one place; `bare` only drops the fill and the wider inset. The corner
+ * radius still clips, which is what the flash needs: without it the highlight would be a rectangle
+ * floating where no bubble is.
+ *
+ * The "Edited" marker is not here. With the bubble gone there is no corner to pin it into, so the
+ * row draws it below, on the line the receipt label already occupies.
+ */
+@Composable
+private fun JumboEmoji(
+    text: String,
+    isFromSelf: Boolean,
+    position: BubblePosition,
+    maxWidth: Dp,
+    modifier: Modifier = Modifier,
+    attention: () -> Float = { 0f },
+) {
+    Bubble(
+        isFromSelf = isFromSelf,
+        position = position,
+        maxWidth = maxWidth,
+        modifier = modifier,
+        bare = true,
+        horizontalPadding = BubbleDefaults.surroundInset,
+        attention = attention,
+    ) {
+        Text(
+            modifier = Modifier.testTag(JUMBO_EMOJI_TAG),
+            text = text,
+            // An emoji fills its line box, so the line height has to be given explicitly: the body
+            // style's would crop the glyph at this size.
+            style = CodeTheme.typography.textMedium.copy(
+                fontSize = JUMBO_EMOJI_SIZE,
+                lineHeight = JUMBO_EMOJI_SIZE * 1.25f,
+            ),
+            color = CodeTheme.colors.textMain,
+        )
+    }
+}
+
+private val JUMBO_EMOJI_SIZE = 44.sp
+
+internal const val JUMBO_EMOJI_TAG = "bubble_jumbo_emoji"
 
 @Composable
 private fun CashBubble(
@@ -519,6 +611,7 @@ private fun Bubble(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     horizontalPadding: Dp = BubbleDefaults.paddingHorizontal,
+    bare: Boolean = false,
     attention: () -> Float = { 0f },
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -532,10 +625,12 @@ private fun Bubble(
         modifier = modifier
             .widthIn(min = minWidth, max = maxWidth)
             .clip(shape)
-            .addIf(bubble.hasBorder) {
+            .addIf(!bare && bubble.hasBorder) {
                 Modifier.border(1.dp, bubble.border, shape)
             }
-            .background(bubble.background)
+            .addIf(!bare) {
+                Modifier.background(bubble.background)
+            }
             // Over the content, not under it: a scrim behind the text would be hidden by the
             // bubble's own fill. Drawn here rather than as a background layer so it also lightens
             // the words, which is what makes a lit bubble read as one thing.

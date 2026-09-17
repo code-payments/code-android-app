@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -51,7 +52,9 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
+import com.flipcash.features.messenger.R
 import com.flipcash.shared.chat.ui.ContentBubble
+import com.flipcash.shared.chat.ui.rendersBareEmoji
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
@@ -297,20 +300,38 @@ internal fun MessageRow(
                         }
                         val showReceipt =
                             shouldShowReceiptLabel(index, item, messages, otherReadPointer)
-                        AnimatedVisibility(
-                            visible = showReceipt && effectiveStatus != null,
-                            enter = EnterTransition.None,
-                            exit = ChatAnimations.receiptExit,
-                        ) {
-                            if (effectiveStatus != null) {
-                                ReceiptLabel(
-                                    status = effectiveStatus,
-                                    readPointer = otherReadPointer,
-                                    animateEntrance = wasSending,
-                                    onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
-                                        { onAction(ChatAction.RetryMessage(item)) }
-                                    } else null,
+                        // An emoji-only message has no bubble, so its "Edited" marker has nowhere
+                        // to sit inside the message and comes out here instead — on the same line
+                        // as the receipt, and ahead of it, so the two read as one trailing note.
+                        // It stands alone on rows that carry no receipt, which is every incoming
+                        // one.
+                        Row(verticalAlignment = Alignment.Top) {
+                            if (item.isEdited && item.rendersBareEmoji()) {
+                                Text(
+                                    modifier = Modifier.padding(
+                                        top = CodeTheme.dimens.grid.x1,
+                                        end = CodeTheme.dimens.grid.x2,
+                                    ),
+                                    text = stringResource(R.string.label_edited),
+                                    style = CodeTheme.typography.caption,
+                                    color = CodeTheme.colors.textSecondary,
                                 )
+                            }
+                            AnimatedVisibility(
+                                visible = showReceipt && effectiveStatus != null,
+                                enter = EnterTransition.None,
+                                exit = ChatAnimations.receiptExit,
+                            ) {
+                                if (effectiveStatus != null) {
+                                    ReceiptLabel(
+                                        status = effectiveStatus,
+                                        readPointer = otherReadPointer,
+                                        animateEntrance = wasSending,
+                                        onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
+                                            { onAction(ChatAction.RetryMessage(item)) }
+                                        } else null,
+                                    )
+                                }
                             }
                         }
                     }

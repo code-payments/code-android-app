@@ -3,7 +3,9 @@ package com.flipcash.shared.chat.ui
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.models.ChatListItem
@@ -78,6 +80,31 @@ class MessageBubbleTest {
         setBubble(bubble(MessageContent.Text("hello")))
 
         composeTestRule.onNodeWithText("hello").assertIsDisplayed()
+        composeTestRule.onAllNodesWithText("Edited").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a message of nothing but emoji drops its bubble`() {
+        setBubble(bubble(MessageContent.Text("\uD83D\uDE00\uD83C\uDF89")))
+
+        composeTestRule.onNodeWithTag(JUMBO_EMOJI_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `emoji alongside words stay in a bubble`() {
+        setBubble(bubble(MessageContent.Text("\uD83D\uDE00 nice")))
+
+        composeTestRule.onAllNodesWithTag(JUMBO_EMOJI_TAG).assertCountEquals(0)
+        composeTestRule.onNodeWithText("\uD83D\uDE00 nice").assertIsDisplayed()
+    }
+
+    // The marker has left the bubble for the row below, which is where the receipt sits; a
+    // transcript row draws it there. All this asserts is that the bubble no longer does.
+    @Test
+    fun `an edited emoji message carries no marker inside the bubble`() {
+        setBubble(bubble(MessageContent.Text("\uD83D\uDE00"), isEdited = true))
+
+        composeTestRule.onNodeWithTag(JUMBO_EMOJI_TAG).assertIsDisplayed()
         composeTestRule.onAllNodesWithText("Edited").assertCountEquals(0)
     }
 }
