@@ -30,6 +30,7 @@ import com.flipcash.services.internal.network.services.ProfileService
 import com.flipcash.services.internal.network.services.PurchaseService
 import com.flipcash.services.internal.network.services.PushService
 import com.flipcash.services.internal.network.services.ResolverService
+import com.flipcash.services.internal.network.services.ReportingService
 import com.flipcash.services.internal.network.services.SettingsService
 import com.flipcash.services.internal.network.services.ThirdPartyService
 import com.flipcash.services.internal.repositories.InternalAccountRepository
@@ -46,6 +47,7 @@ import com.flipcash.services.internal.repositories.InternalProfileRepository
 import com.flipcash.services.internal.repositories.InternalPurchaseRepository
 import com.flipcash.services.internal.repositories.InternalPushRepository
 import com.flipcash.services.internal.repositories.InternalResolverRepository
+import com.flipcash.services.internal.repositories.InternalReportingRepository
 import com.flipcash.services.internal.repositories.InternalSettingsRepository
 import com.flipcash.services.internal.repositories.InternalThirdPartyRepository
 import com.flipcash.services.repository.AccountRepository
@@ -62,6 +64,7 @@ import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
 import com.flipcash.services.repository.BlobStorageRepository
 import com.flipcash.services.repository.ResolverRepository
+import com.flipcash.services.repository.ReportingRepository
 import com.flipcash.services.repository.SettingsRepository
 import com.flipcash.services.repository.ThirdPartyRepository
 import com.getcode.opencode.ProtocolConfig
@@ -254,4 +257,9 @@ internal object FlipcashModule {
         textModerationResponseMapper,
         imageModerationResponseMapper
     )
+
+    @Provides
+    internal fun providesReportingRepository(
+        service: ReportingService,
+    ): ReportingRepository = InternalReportingRepository(service)
 }

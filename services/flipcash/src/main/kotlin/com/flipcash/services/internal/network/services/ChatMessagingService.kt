@@ -29,6 +29,7 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewMode
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
@@ -43,9 +44,10 @@ internal class ChatMessagingService @Inject constructor(
         owner: KeyPair,
         chatId: ChatId,
         messageId: Long,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Result<MessagingModel.Message> {
         return runCatching {
-            api.getMessage(owner, chatId, messageId)
+            api.getMessage(owner, chatId, messageId, viewMode)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -66,9 +68,10 @@ internal class ChatMessagingService @Inject constructor(
         owner: KeyPair,
         chatId: ChatId,
         queryOptions: QueryOptions,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Result<List<MessagingModel.Message>> {
         return runCatching {
-            api.getMessages(owner, chatId, queryOptions)
+            api.getMessages(owner, chatId, queryOptions, viewMode)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -90,9 +93,10 @@ internal class ChatMessagingService @Inject constructor(
         owner: KeyPair,
         chatId: ChatId,
         messageIds: List<Long>,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Result<List<MessagingModel.Message>> {
         return runCatching {
-            api.getMessagesByIds(owner, chatId, messageIds)
+            api.getMessagesByIds(owner, chatId, messageIds, viewMode)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -183,8 +187,9 @@ internal class ChatMessagingService @Inject constructor(
         owner: KeyPair,
         chatId: ChatId,
         afterSequence: Long,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Flow<Result<GetDeltaResult>> {
-        return api.getDelta(owner, chatId, afterSequence).map { response ->
+        return api.getDelta(owner, chatId, afterSequence, viewMode).map { response ->
             when (response.result) {
                 RpcMessagingService.GetDeltaResponse.Result.OK -> Result.success(
                     GetDeltaResult(

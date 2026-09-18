@@ -9,12 +9,16 @@ import com.flipcash.services.models.GetDmChatFeedError
 import com.flipcash.services.models.GetGroupChatFeedError
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.LeaveChatError
+import com.flipcash.services.models.MuteChatError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.StartChatError
+import com.flipcash.services.models.UnmuteChatError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ViewMode
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
@@ -26,9 +30,10 @@ internal class ChatService @Inject constructor(
     suspend fun getChat(
         owner: KeyPair,
         chatId: ChatId,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Result<ChatModel.Metadata> {
         return runCatching {
-            api.getChat(owner, chatId)
+            api.getChat(owner, chatId, viewMode)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -158,6 +163,51 @@ internal class ChatService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { LeaveChatError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun muteChat(
+        owner: KeyPair,
+        chatId: ChatId,
+        mute: MuteState,
+    ): Result<ChatModel.ViewerState> {
+        return runCatching {
+            api.muteChat(owner, chatId, mute)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.MuteChatResponse.Result.OK -> Result.success(response.viewerState)
+                    RpcChatService.MuteChatResponse.Result.DENIED -> Result.failure(MuteChatError.Denied())
+                    RpcChatService.MuteChatResponse.Result.NOT_FOUND -> Result.failure(MuteChatError.NotFound())
+                    RpcChatService.MuteChatResponse.Result.UNRECOGNIZED -> Result.failure(MuteChatError.Unrecognized())
+                    else -> Result.failure(MuteChatError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { MuteChatError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun unmuteChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<ChatModel.ViewerState> {
+        return runCatching {
+            api.unmuteChat(owner, chatId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.UnmuteChatResponse.Result.OK -> Result.success(response.viewerState)
+                    RpcChatService.UnmuteChatResponse.Result.DENIED -> Result.failure(UnmuteChatError.Denied())
+                    RpcChatService.UnmuteChatResponse.Result.NOT_FOUND -> Result.failure(UnmuteChatError.NotFound())
+                    RpcChatService.UnmuteChatResponse.Result.UNRECOGNIZED -> Result.failure(UnmuteChatError.Unrecognized())
+                    else -> Result.failure(UnmuteChatError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { UnmuteChatError.Other(cause = it) })
             }
         )
     }

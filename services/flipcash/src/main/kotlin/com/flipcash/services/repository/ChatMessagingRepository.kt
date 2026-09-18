@@ -11,6 +11,7 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewMode
 import com.getcode.ed25519.Ed25519.KeyPair
 import kotlinx.coroutines.flow.Flow
 
@@ -19,24 +20,28 @@ interface ChatMessagingRepository {
         owner: KeyPair,
         chatId: ChatId,
         messageId: Long,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Result<ChatMessage>
 
     suspend fun getMessages(
         owner: KeyPair,
         chatId: ChatId,
         queryOptions: QueryOptions,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Result<List<ChatMessage>>
 
     suspend fun getMessagesByIds(
         owner: KeyPair,
         chatId: ChatId,
         messageIds: List<Long>,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Result<List<ChatMessage>>
 
     fun getDelta(
         owner: KeyPair,
         chatId: ChatId,
         afterSequence: Long,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Flow<Result<DeltaUpdate>>
 
     suspend fun sendMessage(

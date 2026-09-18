@@ -6,13 +6,17 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.StartChatParameters
+import com.flipcash.services.models.chat.ViewerState
+import com.flipcash.services.models.chat.ViewMode
 import com.getcode.ed25519.Ed25519.KeyPair
 
 interface ChatRepository {
     suspend fun getChat(
         owner: KeyPair,
         chatId: ChatId,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Result<ChatMetadata>
 
     suspend fun getDmChatFeed(
@@ -55,4 +59,17 @@ interface ChatRepository {
         owner: KeyPair,
         chatId: ChatId,
     ): Result<Unit>
+
+    /** Sets [chatId] muted for the caller until [mute] lapses (or forever), returning the new viewer state. */
+    suspend fun muteChat(
+        owner: KeyPair,
+        chatId: ChatId,
+        mute: MuteState,
+    ): Result<ViewerState>
+
+    /** Clears any mute on [chatId] for the caller, returning the new viewer state. */
+    suspend fun unmuteChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<ViewerState>
 }

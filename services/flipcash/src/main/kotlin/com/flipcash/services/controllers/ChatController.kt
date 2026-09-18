@@ -6,7 +6,10 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.StartChatParameters
+import com.flipcash.services.models.chat.ViewerState
+import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
 import javax.inject.Inject
@@ -17,11 +20,14 @@ class ChatController @Inject constructor(
     private val repository: ChatRepository,
     private val userManager: UserManager,
 ) {
-    suspend fun getChat(chatId: ChatId): Result<ChatMetadata> {
+    suspend fun getChat(
+        chatId: ChatId,
+        viewMode: ViewMode = ViewMode.FULL,
+    ): Result<ChatMetadata> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
-        return repository.getChat(owner, chatId)
+        return repository.getChat(owner, chatId, viewMode)
     }
 
     suspend fun getDmChatFeed(
@@ -74,5 +80,21 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.leaveChat(owner, chatId)
+    }
+
+    /** Mutes [chatId] for the caller per [mute], returning the caller's new viewer state. */
+    suspend fun muteChat(chatId: ChatId, mute: MuteState): Result<ViewerState> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.muteChat(owner, chatId, mute)
+    }
+
+    /** Clears any mute on [chatId] for the caller, returning the caller's new viewer state. */
+    suspend fun unmuteChat(chatId: ChatId): Result<ViewerState> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.unmuteChat(owner, chatId)
     }
 }

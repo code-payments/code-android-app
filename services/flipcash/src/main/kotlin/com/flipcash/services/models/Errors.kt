@@ -669,6 +669,36 @@ sealed class SetMinDmChatInitFeeError(
     data class Other(override val cause: Throwable? = null) : SetMinDmChatInitFeeError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class MuteChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: MuteChatError("Caller is not a member")
+    class NotFound: MuteChatError("Not found")
+    class Unrecognized : MuteChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : MuteChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class UnmuteChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: UnmuteChatError("Caller is not a member")
+    class NotFound: UnmuteChatError("Not found")
+    class Unrecognized : UnmuteChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnmuteChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class ReportError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: ReportError("Denied")
+    class NotFound: ReportError("Not found")
+    class Unrecognized : ReportError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ReportError(message = cause?.message, cause = cause), NotifiableError
+}
+
 // Thrown when a reserved blob failed server-side finalization (moderation / decode / size).
 // Terminal: the client must reserve a fresh upload to retry.
 class BlobRejectedException(val rejection: BlobRejection) :

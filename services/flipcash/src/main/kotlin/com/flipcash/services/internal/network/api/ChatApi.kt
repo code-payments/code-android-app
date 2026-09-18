@@ -7,14 +7,18 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asChatId
 import com.flipcash.services.internal.network.extensions.asProtoChatType
 import com.flipcash.services.internal.network.extensions.asProtoIdempotencyKey
+import com.flipcash.services.internal.network.extensions.asProtoMuteState
 import com.flipcash.services.internal.network.extensions.asProtoRules
 import com.flipcash.services.internal.network.extensions.asQueryOptions
+import com.flipcash.services.internal.network.extensions.asViewMode
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.StartChatParameters
+import com.flipcash.services.models.chat.ViewMode
 import com.getcode.utils.toByteString
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -37,9 +41,11 @@ internal class ChatApi @Inject constructor(
     suspend fun getChat(
         owner: KeyPair,
         chatId: ChatId,
+        viewMode: ViewMode = ViewMode.FULL,
     ): RpcChatService.GetChatResponse {
         val request = RpcChatService.GetChatRequest.newBuilder()
             .setChatId(chatId.asChatId())
+            .setViewMode(viewMode.asViewMode())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -152,6 +158,40 @@ internal class ChatApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.leaveChat(request)
+        }
+    }
+
+    suspend fun muteChat(
+        owner: KeyPair,
+        chatId: ChatId,
+        mute: MuteState,
+    ): RpcChatService.MuteChatResponse {
+        val request = RpcChatService.MuteChatRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setMute(mute.asProtoMuteState())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.muteChat(request)
+        }
+    }
+
+    suspend fun unmuteChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.UnmuteChatResponse {
+        val request = RpcChatService.UnmuteChatRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.unmuteChat(request)
         }
     }
 }

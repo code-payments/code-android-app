@@ -44,6 +44,7 @@ import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MetadataUpdate
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -54,6 +55,7 @@ import com.flipcash.services.models.chat.ReactionUpdate
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.TypingNotification
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewerState
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -115,6 +117,7 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
             sendingUserId = if (chatMetadata.hasSendingUserId()) chatMetadata.sendingUserId.toId() else null,
             chatType = chatMetadata.type.toChatType(),
             message = if (chatMetadata.hasMessage()) chatMetadata.message.toChatMessage() else null,
+            muted = chatMetadata.muted,
         )
     } else null
 
@@ -246,6 +249,7 @@ internal fun MessagingModel.Message.toChatMessage(): ChatMessage {
         lastEditedTs = if (hasLastEditedTs()) Instant.fromEpochSeconds(lastEditedTs.seconds, lastEditedTs.nanos) else null,
         eventSequence = eventSequence,
         reactions = if (hasReactions()) reactions.toReactionSummary() else null,
+        redacted = redacted,
     )
 }
 
@@ -260,7 +264,7 @@ internal fun MessagingModel.EmojiReaction.toEmojiReaction(): EmojiReaction {
     return EmojiReaction(
         emoji = Emoji(emoji.value),
         count = count,
-        reactedBySelf = reactedBySelf,
+        selfReactor = if (hasSelfReactor()) selfReactor.toReactor() else null,
         sampleReactors = sampleReactorsList.map { it.toReactor() },
         sequence = version,
     )
@@ -270,6 +274,7 @@ internal fun MessagingModel.Reactor.toReactor(): Reactor {
     return Reactor(
         userId = userId.toId(),
         reactedAt = Instant.fromEpochSeconds(reactedTs.seconds, reactedTs.nanos),
+        version = version,
     )
 }
 
@@ -357,6 +362,8 @@ internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
                     lastActivityChanged.newLastActivity.nanos,
                 )
             )
+        ChatModel.MetadataUpdate.KindCase.VIEWER_STATE_CHANGED ->
+            MetadataUpdate.ViewerStateChanged(viewerStateChanged.viewerState.toViewerState())
         else -> MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(0))
     }
 }
@@ -387,7 +394,26 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         picture = if (hasPicture()) picture.toMediaItem() else null,
         rosterSummary = rosterSummary.toRosterSummary(),
         rules = if (hasRules()) rules.toChatRules() else null,
+        viewerState = if (hasViewerState()) viewerState.toViewerState() else null,
     )
+}
+
+// -- Viewer state / mute state --
+
+internal fun ChatModel.ViewerState.toViewerState(): ViewerState {
+    return ViewerState(
+        mute = if (hasSettings() && settings.hasMute()) settings.mute.toMuteState() else null,
+        version = version,
+    )
+}
+
+internal fun ChatModel.MuteState.toMuteState(): MuteState {
+    return when (durationCase) {
+        ChatModel.MuteState.DurationCase.UNTIL ->
+            MuteState.Until(Instant.fromEpochSeconds(until.seconds, until.nanos))
+        ChatModel.MuteState.DurationCase.FOREVER -> MuteState.Forever
+        else -> MuteState.Forever
+    }
 }
 
 // -- Chat member --

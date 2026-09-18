@@ -19,7 +19,7 @@ class ChatTypeConvertersTest {
                 EmojiReactionSerialized(
                     emoji = "\uD83D\uDE00",
                     count = 3,
-                    reactedBySelf = true,
+                    selfReactor = ReactorSerialized(userIdHex = "1234", reactedAtEpochSeconds = 1500L),
                     sampleReactors = listOf(
                         ReactorSerialized(userIdHex = "aabb", reactedAtEpochSeconds = 1000L),
                         ReactorSerialized(userIdHex = "ccdd", reactedAtEpochSeconds = 2000L),
@@ -29,7 +29,7 @@ class ChatTypeConvertersTest {
                 EmojiReactionSerialized(
                     emoji = "\uD83D\uDC4D",
                     count = 1,
-                    reactedBySelf = false,
+                    selfReactor = null,
                     sampleReactors = emptyList(),
                     sequence = 3,
                 ),

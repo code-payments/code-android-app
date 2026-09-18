@@ -14,8 +14,10 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewMode
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
@@ -264,4 +266,20 @@ internal fun ChatRuleRequirement.MinimumBalance.asProtoMinimumBalanceRequirement
         .setAmount(amount.asFiatPaymentAmount())
         .addAllMints(mints.map { it.asPublicKey() })
         .build()
+}
+
+internal fun ViewMode.asViewMode(): MessagingModel.ViewMode {
+    return when (this) {
+        ViewMode.FULL -> MessagingModel.ViewMode.FULL
+        ViewMode.FULL_OR_REDACTED -> MessagingModel.ViewMode.FULL_OR_REDACTED
+        ViewMode.REDACTED -> MessagingModel.ViewMode.REDACTED
+    }
+}
+
+internal fun MuteState.asProtoMuteState(): ChatModel.MuteState {
+    val builder = ChatModel.MuteState.newBuilder()
+    return when (this) {
+        is MuteState.Until -> builder.setUntil(until.asTimestamp()).build()
+        MuteState.Forever -> builder.setForever(ChatModel.MuteState.Forever.getDefaultInstance()).build()
+    }
 }
