@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -95,11 +94,9 @@ internal fun LinkCardView(
                 onClick = { onClick(card) },
             )
 
-            // Sized from the width rather than handed the shared height: the tip card is the one
-            // portrait figure of the three, so it is the height that has to give.
             is LinkCard.TipCard -> TipLinkCard(
                 card = card,
-                width = maxWidth,
+                height = height,
                 onClick = { onClick(card) },
             )
         }
@@ -193,15 +190,15 @@ private fun TokenLinkCard(
  * the size everything around it is read at, and a name shrunk to fit a card in a bubble is a name
  * nobody reads.
  *
- * It takes the bubble's full width, as the other two do, and gives on height instead: it is the one
- * portrait figure of the three, so holding `TipCard`'s own proportion means standing taller rather
- * than sitting narrower. Narrower was the wrong give -- a card inset from the bubble the rest fill
- * reads as an attachment to the message instead of as the message.
+ * And it is not portrait. `TipCard` is 269 x 333, which at a bubble's width stands half again as
+ * tall as the cash and token cards beside it -- one link in a transcript taking the height of two.
+ * The proportion belongs to a card held up to a camera; in a transcript what a card is is the frame
+ * the other two already set, so this one takes that frame and lays the same three things out in it.
  */
 @Composable
 private fun TipLinkCard(
     card: LinkCard.TipCard,
-    width: Dp,
+    height: Dp,
     onClick: () -> Unit,
 ) {
     val profile = (card.state as? LinkCard.TipCard.State.Resolved)?.profile
@@ -212,65 +209,64 @@ private fun TipLinkCard(
     val person: String? = profile?.let { nameOrHandle(it.displayName, it.handle) }
         ?: (card.owner as? TipCardOwner.ByUsername)?.username?.asHandle()
 
-    val shape = RoundedCornerShape(width * LinkCardDefaults.TIP_CARD_CORNER)
+    // The other two cards' shape and inset, for the same reason it takes their height.
+    val shape = CodeTheme.shapes.medium
 
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Column(
-            modifier = Modifier
-                .width(width)
-                .height(width * LinkCardDefaults.TIP_CARD_ASPECT)
-                .clip(shape)
-                .background(TipCardOpaqueFallback)
-                // The real card is frosted glass over a blurred camera feed, which is what gives it
-                // an edge; [TipCardOpaqueFallback] is the tone that stands in for it, and against a
-                // transcript that is also near-black it leaves the card with no edge at all. The
-                // hairline is that edge, so the fill can stay the colour the card it stands for is.
-                .border(CodeTheme.dimens.border, CodeTheme.colors.divider, shape)
-                .clickable(onClick = onClick)
-                .padding(horizontal = CodeTheme.dimens.grid.x2),
-            verticalArrangement = Arrangement.spacedBy(
-                CodeTheme.dimens.grid.x2,
-                Alignment.CenterVertically,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(shape)
+            .background(TipCardOpaqueFallback)
+            // The real card is frosted glass over a blurred camera feed, which is what gives it an
+            // edge; [TipCardOpaqueFallback] is the tone that stands in for it, and against a
+            // transcript that is also near-black it leaves the card with no edge at all. The
+            // hairline is that edge, so the fill can stay the colour the card it stands for is.
+            .border(CodeTheme.dimens.border, CodeTheme.colors.divider, shape)
+            .clickable(onClick = onClick)
+            .padding(CodeTheme.dimens.inset),
+        verticalArrangement = Arrangement.spacedBy(
+            CodeTheme.dimens.grid.x1,
+            Alignment.CenterVertically,
+        ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        ContactAvatar(
+            image = profile?.profilePicture,
+            // Empty rather than a stand-in label: the avatar initials whatever it is given, and
+            // initialling "Tip Card" would put someone's monogram on a card belonging to nobody.
+            displayName = person.orEmpty(),
+            // The id the link carried beats the profile's own, which is null until a by-handle
+            // lookup fills it in -- and it is what authorizes re-minting an expired picture URL.
+            access = BlobAccessContext.profile(
+                profile?.userId ?: (card.owner as? TipCardOwner.ById)?.userId,
             ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            ContactAvatar(
-                image = profile?.profilePicture,
-                // Empty rather than a stand-in label: the avatar initials whatever it is given, and
-                // initialling "Tip Card" would put someone's monogram on a card belonging to nobody.
-                displayName = person.orEmpty(),
-                // The id the link carried beats the profile's own, which is null until a by-handle
-                // lookup fills it in -- and it is what authorizes re-minting an expired picture URL.
-                access = BlobAccessContext.profile(
-                    profile?.userId ?: (card.owner as? TipCardOwner.ById)?.userId,
-                ),
-                modifier = Modifier
-                    .size(width * LinkCardDefaults.TIP_CARD_AVATAR)
-                    .clip(CircleShape),
-            )
+            modifier = Modifier
+                .size(height * LinkCardDefaults.TIP_CARD_AVATAR)
+                .clip(CircleShape),
+        )
 
+        Text(
+            text = person ?: stringResource(R.string.label_linkCard_tipCard),
+            style = CodeTheme.typography.textMedium,
+            color = CodeTheme.colors.textMain,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        // Under the name, as the real card draws it, and only when it is not already the name: an
+        // account with no display name is named by its handle, which would print twice.
+        profile?.handle?.takeIf { it != person }?.let {
             Text(
-                text = person ?: stringResource(R.string.label_linkCard_tipCard),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textMain,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
+                text = it,
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textMain.copy(
+                    alpha = LinkCardDefaults.TIP_CARD_HANDLE_ALPHA,
+                ),
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-
-            // Under the name, as the real card draws it, and only when it is not already the name:
-            // an account with no display name is named by its handle, which would print twice.
-            profile?.handle?.takeIf { it != person }?.let {
-                Text(
-                    text = it,
-                    style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textMain.copy(
-                        alpha = LinkCardDefaults.TIP_CARD_HANDLE_ALPHA,
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
     }
 }
@@ -641,19 +637,15 @@ private object LinkCardDefaults {
     val NOTCH_RADIUS = 9.dp
     val DASH = 4.dp
 
-    /** `TipCard`'s own proportion, 269 x 333 (node 9277:121417) — the card this one stands in for. */
-    const val TIP_CARD_ASPECT = 333f / 269f
-
-    /** The corner as a fraction of the card's own width, the way `TipCard` derives its own. */
-    const val TIP_CARD_CORNER = 0.08f
-
     /**
-     * The picture, also as a fraction of the width -- but not the real card's 0.09, which is the
-     * thumbnail beside the name on a card whose middle is taken by the scannable code. Nothing takes
-     * the middle here, so the picture does: at the real card's fraction it would be a bullet point
-     * on a mostly empty portrait.
+     * The picture, as a fraction of the card's height -- the binding dimension once the tip card
+     * shares [CARD_ASPECT] with the other two.
+     *
+     * Not the real card's 0.09 of its width, which is a thumbnail beside the name on a card whose
+     * middle is taken by the scannable code (node 9277:121417). Nothing takes the middle here, so
+     * the picture does; at that fraction it would be a bullet point on an empty card.
      */
-    const val TIP_CARD_AVATAR = 0.44f
+    const val TIP_CARD_AVATAR = 0.42f
 
     /** What separates the handle from the name above it, as on the real card. */
     const val TIP_CARD_HANDLE_ALPHA = 0.5f
