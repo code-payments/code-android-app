@@ -36,6 +36,7 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.balanceRequirement
+import com.flipcash.app.messenger.internal.requiresStaff
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.UserProfile
@@ -63,12 +64,15 @@ internal fun ChatInfoCard(
     onOpenProfile: (() -> Unit)? = null,
     onRefreshContact: () -> Unit = {},
     /**
-     * The symbol of the token a group's balance rule names, once the token cache has it.
+     * The name of the token a group's balance rule names, once the token cache has it, or `null` to
+     * state the amount on its own — which is what the reserve does, since "$100 of Dollars" says
+     * dollars twice. Callers pass [com.flipcash.app.messenger.internal.RuleCurrency.nameInRequirement]
+     * rather than deciding that here.
      *
      * Resolved in the view model rather than read here: `observeTokenCache()` starts empty and
      * fills in, so a snapshot read would render the rule with no token and never correct itself.
      */
-    ticker: String? = null,
+    currencyName: String? = null,
 ) {
     val participant = subject?.asParticipant()
     // Phone number and the add-to-contacts pill only apply to a device contact; a tip DM's
@@ -149,15 +153,16 @@ internal fun ChatInfoCard(
         // Node 10125:19201. Rendered for a member as well as a non-member: it is the chat's
         // standing requirement, not a gate message, and it is the one thing the card can say
         // about a group that it cannot say about a person.
-        val requirement = (subject as? ChatSubject.Group)?.rules.balanceRequirement()
+        val rules = (subject as? ChatSubject.Group)?.rules
+        val requirement = rules.balanceRequirement()
         if (requirement != null) {
             Text(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
-                text = if (ticker != null) {
+                text = if (currencyName != null) {
                     stringResource(
                         R.string.label_chat_balanceRequirement,
                         requirement.amount.formatted(),
-                        ticker,
+                        currencyName,
                     )
                 } else {
                     stringResource(
@@ -165,6 +170,18 @@ internal fun ChatInfoCard(
                         requirement.amount.formatted(),
                     )
                 },
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+            )
+        }
+
+        // Stated here as well as on the gate, and for the same reason the balance line is: it is
+        // what the card can say about this group. Both can be set on one chat, so both get a line.
+        if (rules.requiresStaff()) {
+            Text(
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+                text = stringResource(R.string.label_chat_staffRequirement),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
@@ -362,7 +379,7 @@ private fun Preview_ChatInfoCard() {
         ChatInfoCard(subject = ChatSubject.Contact(unknownContact), modifier = cardWidth)
         ChatInfoCard(subject = ChatSubject.TipUser(tipUser), modifier = cardWidth)
         ChatInfoCard(subject = ChatSubject.TipUser(handleOnlyUser), modifier = cardWidth)
-        ChatInfoCard(subject = group, modifier = cardWidth, ticker = "BADBOYS")
+        ChatInfoCard(subject = group, modifier = cardWidth, currencyName = "Bad Boys")
     }
 }
 

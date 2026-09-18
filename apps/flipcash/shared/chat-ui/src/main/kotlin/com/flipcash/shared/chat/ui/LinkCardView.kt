@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.tokens.brandedName
 import com.flipcash.app.core.ui.TokenCard
 import com.flipcash.app.core.ui.TokenIcon
 import com.flipcash.app.core.ui.rememberShimmerAlpha
@@ -163,7 +164,7 @@ private fun CashLinkCard(
     CashVoucher(
         height = height,
         loading = loading,
-        tokenName = state?.token?.let { displayNameOf(it) }
+        tokenName = state?.token?.brandedName()
             ?: stringResource(R.string.label_linkCard_cash),
         tokenImage = state?.token?.imageUrl,
         amount = state?.amount,
@@ -255,7 +256,7 @@ private fun TokenLinkCard(
             // Empty rather than absent: the header lays the balance out at the end of the row, so
             // an empty string leaves the name alone on the row with nothing to collide with.
             balanceText = "",
-            displayName = displayNameOf(state.token),
+            displayName = state.token.brandedName(),
             height = height,
             onClick = onClick,
         )
@@ -328,16 +329,6 @@ private fun Mint.abbreviated(): String = description.let { address ->
 }
 
 private const val ABBREVIATED_MINT_CHARS = 4
-
-/**
- * The reserve is branded Dollars everywhere the user meets it; `token.name` off the wire is "USDF",
- * which is the mint, not the thing they hold.
- */
-@Composable
-private fun displayNameOf(token: Token): String = when (token.address) {
-    Mint.usdf -> stringResource(R.string.displayName_dollars)
-    else -> token.name
-}
 
 /**
  * A ticket: the token along the top, the amount under it, and a perforated stub holding [stub].

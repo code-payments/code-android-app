@@ -894,12 +894,13 @@
 
     <string name="label_fromYourContacts">From Your Contacts</string>
     <string name="label_addContact">Add Contact</string>
-    <string name="label_chat_balanceRequirement">Balance Requirement: %1$s of $%2$s</string>
+    <string name="label_chat_balanceRequirement">Balance Requirement: %1$s of %2$s</string>
     <string name="label_chat_balanceRequirement_anyToken">Balance Requirement: %1$s</string>
-    <string name="subtitle_chatGate_minimumBalance">Minimum Balance: %1$s of $%2$s</string>
+    <string name="label_chat_staffRequirement">Flipcash Staff Only</string>
+    <string name="subtitle_chatGate_minimumBalance">Minimum Balance: %1$s of %2$s</string>
     <string name="subtitle_chatGate_minimumBalance_anyToken">Minimum Balance: %1$s</string>
     <string name="subtitle_chatGate_staffOnly">This chat is open to Flipcash staff only.</string>
-    <string name="action_buyMoreToken">Buy More $%1$s</string>
+    <string name="action_buyMoreToken">Buy More %1$s</string>
     <string name="action_joinChat">Join Chat</string>
     <string name="title_leaveChat">Leave Chat</string>
     <string name="action_leaveChat">Leave</string>
@@ -907,6 +908,11 @@
     <string name="prompt_description_leaveChat">You won’t receive new messages from this chat. You can join it again if it still lets you in</string>
     <string name="error_title_failedToLeave">Something Went Wrong</string>
     <string name="error_description_failedToLeave">We were unable to leave the chat. Please try again</string>
+    <string name="error_title_failedToJoin">Couldn\'t Join</string>
+    <string name="error_description_failedToJoin">We were unable to join the chat. Please try again</string>
+    <string name="error_description_joinChat_rulesNotSatisfied">Your balance doesn\'t meet this chat\'s requirement yet</string>
+    <string name="error_description_joinChat_denied">This chat isn\'t open to you</string>
+    <string name="error_description_joinChat_notFound">This chat no longer exists</string>
 
     <string name="prompt_title_cancelCashLinkPostShare">Are You Sure?</string>
     <string name="prompt_description_cancelCashLinkPostShare">Anyone you sent the link to won\'t be able to collect the cash</string>
@@ -978,6 +984,42 @@
     <string name="error_description_newChatUsernameNotFound">Please try a different username</string>
     <string name="error_title_newChatOwnUsername">That\'s Your Username</string>
     <string name="error_description_newChatOwnUsername">You can\'t start a chat with yourself</string>
+
+    <!-- The "+" chooser that now sits between the Chats list and the two ways to start one
+         (node 10127:117987). -->
+    <string name="title_startNewChat">New Chat</string>
+    <string name="action_createPublicGroup">Create a Public Group</string>
+    <string name="action_findByUsername">Find by Username</string>
+
+    <!-- Creating a public group (node 10153:22901). -->
+    <string name="title_newPublicGroup">New Public Group</string>
+    <string name="hint_groupName">Group Name (Required)</string>
+    <!-- The section label before a token is picked; it names the rule the creator is about to set. -->
+    <string name="title_minimumBalanceRequired">Minimum Balance Required</string>
+    <!-- And after, when the row below it already says which token (node 10127:118194). -->
+    <string name="title_balanceRequirement">Balance Requirement</string>
+    <string name="subtitle_groupBalanceRequirement">People won\'t be able to join this chat if their balance is less than this amount</string>
+    <string name="action_create">Create</string>
+    <!-- StartChat rejects a creator who does not meet their own bar, so the form says so before the
+         call rather than surfacing RULES_NOT_SATISFIED as a failure. -->
+    <string name="error_title_groupRuleNotSelfSatisfied">You Need More %1$s</string>
+    <string name="error_description_groupRuleNotSelfSatisfied">You have to meet the balance requirement you set to create this group</string>
+    <string name="error_title_groupTitleNotAllowed">This Group Name is Not Allowed</string>
+    <string name="error_title_groupRulesInvalid">These Rules Aren\'t Allowed</string>
+    <string name="error_description_groupRulesInvalid">Try a different balance requirement</string>
+    <string name="error_title_groupCreateDenied">Can\'t Create This Group</string>
+    <string name="error_description_groupCreateDenied">Your account isn\'t able to create public groups</string>
+    <!-- Anything StartChat can fail on that the form cannot explain: an unrecognised result, or the
+         transport. The key survives a retry, so trying again resumes the same attempt. -->
+    <string name="error_title_groupCreateFailed">Something Went Wrong</string>
+    <string name="error_description_groupCreateFailed">We couldn\'t create this group. Please try again.</string>
+
+    <!-- Handing out the group's invite link, straight after it is created (node 10127:118315). -->
+    <string name="title_inviteToJoinGroup">Invite to Join Group</string>
+    <string name="action_sendInviteLink">Send Invite Link</string>
+    <string name="action_copyInviteLink">Copy Invite Link</string>
+    <string name="action_invitePeopleToJoin">Invite People To Join</string>
+    <string name="subtitle_shareGroupInvite">Join me on Flipcash</string>
     <string name="title_tipIntro">Receive Tips From Everyone</string>
     <string name="subtitle_tipIntro">Add your name to receive tips</string>
     <string name="action_startReceivingTips">Start Receiving Tips</string>
@@ -1104,6 +1146,7 @@
     <string name="action_closeFullScreen">Close</string>
     <string name="action_download">Download</string>
     <string name="title_clipboardLabelTipCardLink">Tip Card Link</string>
+    <string name="title_clipboardLabelGroupInviteLink">Group Invite Link</string>
     <string name="title_downloadTipCardAs">Download As</string>
     <string name="label_exportPng">PNG</string>
     <string name="subtitle_exportPng">Social, chats, overlays</string>

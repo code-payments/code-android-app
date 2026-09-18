@@ -597,11 +597,9 @@ class NotificationService : FirebaseMessagingService(),
                 } to navigation.mint.hashCode()
 
             is NavigationTrigger.Chat.ById -> {
-                // /tip/chat/… is named for where it was first used, but it resolves to the Chats
-                // tab and the conversation by id, which is the destination for a group too.
-                val intent = when (planChatTapTarget(chatType)) {
-                    ChatTapTarget.Conversation -> Intent(Intent.ACTION_VIEW).apply {
-                        data = Linkify.tipChatById(navigation.chatId).toUri()
+                val intent = when (val target = planChatTapTarget(chatType, navigation.chatId)) {
+                    is ChatTapTarget.Conversation -> Intent(Intent.ACTION_VIEW).apply {
+                        data = target.link.toUri()
                     }
 
                     ChatTapTarget.AppLauncher -> packageManager.getLaunchIntentForPackage(packageName)

@@ -15,6 +15,7 @@ import com.flipcash.app.messenger.internal.screens.components.ChatInfoCard
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.GroupGateBar
 import com.flipcash.app.theme.FlipcashPreview
+import com.flipcash.shared.chat.GroupAccess
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
@@ -22,6 +23,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
+import com.getcode.view.LoadingSuccessState
 import io.mockk.mockk
 import org.junit.Rule
 import org.junit.Test
@@ -72,6 +74,21 @@ class GroupChromeScreenshotTest {
     // The outsider's view: same group, carrying the balance rule the gate reports.
     private val gatedGroup = memberedGroup.copy(rules = balanceRule, isMember = false)
 
+    // Staff-only, with no balance to state: the card's staff line is the only rule it shows.
+    private val staffGroup = memberedGroup.copy(
+        rules = ChatRules(listener = listOf(ChatRuleRequirement.Staff), speaker = emptyList()),
+        isMember = false,
+    )
+
+    // Both rules on one chat, which the proto allows and the card states as two lines.
+    private val bothRules = ChatRules(
+        listener = listOf(
+            ChatRuleRequirement.MinimumBalance(mints = listOf(mint), amount = Fiat(100.0)),
+            ChatRuleRequirement.Staff,
+        ),
+        speaker = emptyList(),
+    )
+
     // The degenerate roster: the plural string's "1 person" arm and an untitled group.
     private val soloGroup = memberedGroup.copy(groupTitle = null, memberCount = 1)
 
@@ -116,10 +133,21 @@ class GroupChromeScreenshotTest {
                 ) {
                     val cardWidth = Modifier.width(300.dp)
                     ChatInfoCard(subject = memberedGroup, modifier = cardWidth)
-                    // The ticker resolved, as it is once the token cache fills in.
-                    ChatInfoCard(subject = gatedGroup, modifier = cardWidth, ticker = "BADBOYS")
-                    // The ticker not yet resolved — the frame the card renders first.
+                    // The currency resolved, as it is once the token cache fills in.
+                    ChatInfoCard(
+                        subject = gatedGroup,
+                        modifier = cardWidth,
+                        currencyName = "Bad Boys",
+                    )
+                    // The currency not yet resolved — the frame the card renders first.
                     ChatInfoCard(subject = gatedGroup, modifier = cardWidth)
+                    // A staff-only group, and one asking for both: the card states each rule it has.
+                    ChatInfoCard(subject = staffGroup, modifier = cardWidth)
+                    ChatInfoCard(
+                        subject = staffGroup.copy(rules = bothRules),
+                        modifier = cardWidth,
+                        currencyName = "Bad Boys",
+                    )
                 }
             }
         }
@@ -137,17 +165,21 @@ class GroupChromeScreenshotTest {
                     modifier = Modifier.width(360.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    // Blocked on a balance, ticker resolved: "Buy More $BADBOYS", enabled.
-                    GroupGateBar(
-                        access = GroupAccess.Blocked(
-                            unmet = ChatRuleRequirement.MinimumBalance(
-                                mints = listOf(mint),
-                                amount = Fiat(100.0),
-                            ),
-                        ),
-                        ticker = "BADBOYS",
+                    val balanceRule = ChatRuleRequirement.MinimumBalance(
+                        mints = listOf(mint),
+                        amount = Fiat(100.0),
                     )
-                    // The same state before the ticker resolves: the button is disabled.
+                    val badBoys = RuleCurrency(name = "Bad Boys", isReserve = false)
+                    // Blocked on a balance, currency resolved: "Buy More Bad Boys", enabled.
+                    GroupGateBar(
+                        access = GroupAccess.Blocked(unmet = balanceRule),
+                        requirement = balanceRule,
+                        onAction = {},
+                        staffOnly = false,
+                        currency = badBoys,
+                    )
+                    // The same state before the currency resolves: the button is disabled and the
+                    // caption falls back to the amount alone.
                     GroupGateBar(
                         access = GroupAccess.Blocked(
                             unmet = ChatRuleRequirement.MinimumBalance(
@@ -155,21 +187,122 @@ class GroupChromeScreenshotTest {
                                 amount = Fiat(100.0),
                             ),
                         ),
-                        ticker = null,
+                        requirement = ChatRuleRequirement.MinimumBalance(
+                            mints = emptyList(),
+                            amount = Fiat(100.0),
+                        ),
+                        onAction = {},
+                        staffOnly = false,
+                        currency = null,
                     )
-                    // Blocked on staff: no action the viewer can take.
+                    // Gated on the reserve: the caption drops "of Dollars" because the amount is
+                    // already a dollar figure, while the button still names what to go and buy.
+                    GroupGateBar(
+                        access = GroupAccess.Blocked(unmet = balanceRule),
+                        requirement = balanceRule,
+                        onAction = {},
+                        staffOnly = false,
+                        currency = RuleCurrency(name = "Dollars", isReserve = true),
+                    )
+                    // Blocked on staff: no action the viewer can take, and no balance to state —
+                    // but the line says why the button is dead rather than leaving it bare.
                     GroupGateBar(
                         access = GroupAccess.Blocked(unmet = ChatRuleRequirement.Staff),
-                        ticker = null,
+                        requirement = null,
+                        onAction = {},
+                        staffOnly = true,
+                        currency = null,
                     )
-                    // Eligible: one button, "Join Chat".
-                    GroupGateBar(access = GroupAccess.Eligible, ticker = null)
+                    // Eligible for a gated group — node 10127:117120. The requirement is stated over
+                    // a Join that works: it is the group's rule, not this viewer's shortfall.
+                    GroupGateBar(
+                        access = GroupAccess.Eligible,
+                        requirement = balanceRule,
+                        onAction = {},
+                        staffOnly = false,
+                        currency = badBoys,
+                    )
+                    // Mid-join: the roster has not confirmed membership yet.
+                    GroupGateBar(
+                        access = GroupAccess.Eligible,
+                        requirement = balanceRule,
+                        onAction = {},
+                        staffOnly = false,
+                        currency = badBoys,
+                        joinProgress = LoadingSuccessState(loading = true),
+                    )
+                    // The join came back accepted: the checkmark the gate holds while the blur
+                    // lifts, before the composer takes its place.
+                    GroupGateBar(
+                        access = GroupAccess.Membered,
+                        requirement = balanceRule,
+                        onAction = {},
+                        staffOnly = false,
+                        currency = badBoys,
+                        joinProgress = LoadingSuccessState(success = true),
+                    )
+                    // A group with no rules at all: nothing to state, one button.
+                    GroupGateBar(
+                        access = GroupAccess.Eligible,
+                        requirement = null,
+                        onAction = {},
+                        staffOnly = false,
+                        currency = null,
+                    )
                 }
             }
         }
         repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
 
         capture("group_gate_bar.png")
+    }
+
+    @Test
+    fun rendersStaffGateBar() {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            FlipcashPreview(showBackground = true) {
+                Column(
+                    modifier = Modifier.width(360.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    val balanceRule = ChatRuleRequirement.MinimumBalance(
+                        mints = listOf(mint),
+                        amount = Fiat(100.0),
+                    )
+                    // Staff, in a staff-only group they are not in: the same line over a Join that
+                    // works. This is the case that used to arrive as a disabled button, because the
+                    // gate treated the staff rule as unsatisfiable by anyone.
+                    GroupGateBar(
+                        access = GroupAccess.Eligible,
+                        requirement = null,
+                        onAction = {},
+                        staffOnly = true,
+                        currency = null,
+                    )
+                    // A group asking for both: two lines, one per rule.
+                    GroupGateBar(
+                        access = GroupAccess.Blocked(unmet = balanceRule),
+                        requirement = balanceRule,
+                        onAction = {},
+                        staffOnly = true,
+                        currency = RuleCurrency(name = "Bad Boys", isReserve = false),
+                    )
+                    // Staff who clear the staff rule but not the balance one: the balance line is
+                    // still what is holding them up, so Buy More is what they get.
+                    GroupGateBar(
+                        access = GroupAccess.Blocked(unmet = balanceRule),
+                        requirement = balanceRule,
+                        onAction = {},
+                        staffOnly = true,
+                        currency = RuleCurrency(name = "Dollars", isReserve = true),
+                    )
+                }
+            }
+        }
+        repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
+
+        capture("group_gate_bar_staff.png")
     }
 
     private fun capture(name: String) {

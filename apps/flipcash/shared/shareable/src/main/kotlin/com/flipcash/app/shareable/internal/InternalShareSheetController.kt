@@ -103,6 +103,7 @@ internal class InternalShareSheetController(
                 Shareable.DownloadLink -> Unit
                 is Shareable.TokenInfo -> Unit
                 is Shareable.Invite -> Unit
+                is Shareable.GroupInvite -> Unit
                 is Shareable.TipCard -> Unit
                 is Shareable.TipCodeImage -> Unit
             }
@@ -148,6 +149,10 @@ internal class InternalShareSheetController(
 
             is Shareable.Invite -> {
                 shareInviteLink()
+            }
+
+            is Shareable.GroupInvite -> {
+                shareGroupInvite(shareable)
             }
 
             is Shareable.TipCard -> shareTipCard(shareable)
@@ -282,6 +287,25 @@ internal class InternalShareSheetController(
                 resources.getString(R.string.title_shareToken, token.name)
             )
             putExtra(Intent.EXTRA_TEXT, url)
+            type = "text/plain"
+        }
+
+        val share = Intent.createChooser(intent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+
+        context.startActivity(share)
+    }
+
+    private fun shareGroupInvite(shareable: Shareable.GroupInvite) {
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            // No heading when the group has no title yet — an empty one reads as a broken share.
+            shareable.title?.let {
+                putExtra(Intent.EXTRA_TITLE, it)
+                putExtra(Intent.EXTRA_SUBJECT, it)
+            }
+            putExtra(Intent.EXTRA_TEXT, shareable.url)
             type = "text/plain"
         }
 

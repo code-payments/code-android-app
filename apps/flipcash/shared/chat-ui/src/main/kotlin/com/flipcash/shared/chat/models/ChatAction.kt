@@ -25,6 +25,15 @@ sealed interface ChatAction {
     data object JoinChat : ChatAction
 
     /**
+     * Shares the link that invites someone into this group.
+     *
+     * The link itself is not carried: the screen state already builds it from the chat id, and the
+     * handler reads it from there, so the action stays a verb rather than a payload the transcript
+     * would have to keep in sync.
+     */
+    data object InviteToGroup : ChatAction
+
+    /**
      * Adds [bubble] to the selection, or removes it if it is already selected.
      *
      * The bubble travels whole rather than as an id because the selection bar needs what the

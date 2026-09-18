@@ -1,4 +1,4 @@
-package com.flipcash.app.messenger.internal
+package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
@@ -56,6 +56,7 @@ class GroupAccessTest {
             isMember = true,
             rules = rules(ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))),
             balances = emptyList(),
+            isStaff = false,
         )
 
         assertEquals(GroupAccess.Membered, access)
@@ -65,11 +66,21 @@ class GroupAccessTest {
     fun `no rules means anyone may join`() {
         assertEquals(
             GroupAccess.Eligible,
-            GroupAccess.evaluate(isMember = false, rules = null, balances = emptyList()),
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = null,
+                balances = emptyList(),
+                isStaff = false,
+            ),
         )
         assertEquals(
             GroupAccess.Eligible,
-            GroupAccess.evaluate(isMember = false, rules = rules(), balances = emptyList()),
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = rules(),
+                balances = emptyList(),
+                isStaff = false,
+            ),
         )
     }
 
@@ -79,6 +90,7 @@ class GroupAccessTest {
             isMember = false,
             rules = rules(ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))),
             balances = listOf(held(1, "BadBoys", 100.0)),
+            isStaff = false,
         )
 
         assertEquals(GroupAccess.Eligible, access)
@@ -92,6 +104,7 @@ class GroupAccessTest {
             isMember = false,
             rules = rules(requirement),
             balances = listOf(held(1, "BadBoys", 99.99)),
+            isStaff = false,
         )
 
         assertEquals(GroupAccess.Blocked(requirement), access)
@@ -105,6 +118,7 @@ class GroupAccessTest {
             isMember = false,
             rules = rules(requirement),
             balances = listOf(held(2, "Other", 1_000.0)),
+            isStaff = false,
         )
 
         assertEquals(GroupAccess.Blocked(requirement), access)
@@ -116,6 +130,7 @@ class GroupAccessTest {
             isMember = false,
             rules = rules(ChatRuleRequirement.MinimumBalance(Fiat(100.0), emptyList())),
             balances = listOf(held(2, "Other", 150.0)),
+            isStaff = false,
         )
 
         assertEquals(GroupAccess.Eligible, access)
@@ -132,6 +147,7 @@ class GroupAccessTest {
                 isMember = false,
                 rules = rules(requirement),
                 balances = listOf(held(1, "BadBoys", 60.0), held(2, "Other", 60.0)),
+                isStaff = false,
             ),
         )
         assertEquals(
@@ -140,19 +156,49 @@ class GroupAccessTest {
                 isMember = false,
                 rules = rules(requirement),
                 balances = listOf(held(1, "BadBoys", 40.0), held(2, "Other", 120.0)),
+                isStaff = false,
             ),
         )
     }
 
     @Test
-    fun `a staff rule blocks with nothing to buy`() {
+    fun `a staff rule blocks a non-staff viewer, with nothing to buy`() {
         val access = GroupAccess.evaluate(
             isMember = false,
             rules = rules(ChatRuleRequirement.Staff),
             balances = listOf(held(1, "BadBoys", 1_000.0)),
+            isStaff = false,
         )
 
         assertEquals(GroupAccess.Blocked(ChatRuleRequirement.Staff), access)
+    }
+
+    @Test
+    fun `staff are eligible for a staff chat, holding nothing`() {
+        // `UserFlags.is_staff` is the field the rule is written against, so the client can answer
+        // it. Treating it as never satisfiable left staff unable to rejoin a chat they had left.
+        val access = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules(ChatRuleRequirement.Staff),
+            balances = emptyList(),
+            isStaff = true,
+        )
+
+        assertEquals(GroupAccess.Eligible, access)
+    }
+
+    @Test
+    fun `staff still have to hold the balance a chat asks for`() {
+        val requirement = ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))
+
+        val access = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules(requirement, ChatRuleRequirement.Staff),
+            balances = emptyList(),
+            isStaff = true,
+        )
+
+        assertEquals(GroupAccess.Blocked(requirement), access)
     }
 
     @Test
@@ -166,6 +212,7 @@ class GroupAccessTest {
                 speaker = emptyList(),
             ),
             balances = emptyList(),
+            isStaff = false,
         )
 
         assertEquals(GroupAccess.Blocked(balance), access)
@@ -180,6 +227,7 @@ class GroupAccessTest {
                 speaker = listOf(ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys))),
             ),
             balances = emptyList(),
+            isStaff = false,
         )
 
         assertEquals(GroupAccess.Eligible, access)

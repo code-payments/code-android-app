@@ -44,6 +44,22 @@ sealed interface Shareable {
         override val pendingData: ShareablePendingData? = null
     }
 
+    /**
+     * An invite to a group chat — node 10127:118315's "Send Invite Link".
+     *
+     * Carries the built [url] rather than the chat it points at: this module sees `:libs:messaging`
+     * and nothing of `:services:flipcash`, so a `ChatId` is not a type it can name. Building the
+     * link is [com.flipcash.app.core.util.Linkify.groupChatInvite]'s job anyway — the caller has the
+     * chat, and one place deciding the link's shape is what keeps the share and the copy identical.
+     */
+    data class GroupInvite(
+        val url: String,
+        // The group's title, for the Sharesheet heading. Null shares the link with no heading.
+        val title: String? = null,
+    ) : Shareable {
+        override val pendingData: ShareablePendingData? = null
+    }
+
     data class TipCard(
         val userId: ID,
         // Optional pre-rendered Sharesheet preview. Null degrades to sharing the URL alone.

@@ -111,11 +111,46 @@ internal fun ChatParticipant?.asSubject(): ChatSubject? = when (this) {
  * top of listener rules — so the first thing standing between the viewer and the chat is the
  * listener requirement when there is one.
  *
- * [ChatRuleRequirement.Staff] deliberately produces nothing: it is not a bar a user can clear by
- * doing something, and rendering it as a requirement would read as an instruction.
+ * [ChatRuleRequirement.Staff] is not a balance and has no amount to state — [requiresStaff] answers
+ * for it separately, because the two can both be set on one chat.
  */
 internal fun ChatRules?.balanceRequirement(): ChatRuleRequirement.MinimumBalance? {
     val rules = this ?: return null
     return rules.listener.filterIsInstance<ChatRuleRequirement.MinimumBalance>().firstOrNull()
         ?: rules.speaker.filterIsInstance<ChatRuleRequirement.MinimumBalance>().firstOrNull()
+}
+
+/**
+ * Whether the chat is open to Flipcash staff only.
+ *
+ * Worth stating even though it is not a bar the user can go and clear: it is the reason the button
+ * is dead, and a disabled Join over no explanation is the screen saying nothing. Staff read the same
+ * line over a Join that works, which is how the balance requirement is already handled.
+ *
+ * Either list counts, unlike [balanceRequirement], which picks one requirement to state: this
+ * answers yes or no, so there is nothing to prefer between them.
+ */
+internal fun ChatRules?.requiresStaff(): Boolean {
+    val rules = this ?: return false
+    return ChatRuleRequirement.Staff in rules.listener ||
+        ChatRuleRequirement.Staff in rules.speaker
+}
+
+/**
+ * How the token behind a balance requirement is written on screen.
+ *
+ * Two answers rather than one, because the reserve is named in a button but not in a sentence: "Buy
+ * More Dollars" is what the user taps, while "Minimum Balance: $100 of Dollars" says dollars twice —
+ * the amount is already a dollar figure. Every other token is named in both places, since "$100"
+ * alone would not say which holding clears the bar.
+ */
+internal data class RuleCurrency(
+    /** What the user calls this token — [com.flipcash.app.core.tokens.brandedName]. */
+    val name: String,
+    /** The reserve, which an amount in dollars has already named. */
+    val isReserve: Boolean,
+) {
+    /** The token to name in the requirement line, or `null` to state the amount alone. */
+    val nameInRequirement: String?
+        get() = name.takeUnless { isReserve }
 }

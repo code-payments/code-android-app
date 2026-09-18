@@ -28,6 +28,9 @@ internal class InternalShareConfirmationController(
             is Shareable.DownloadLink -> ShareConfirmationResult.Confirmed(shareResult)
             is Shareable.TokenInfo -> ShareConfirmationResult.Confirmed(shareResult)
             is Shareable.Invite -> ShareConfirmationResult.Confirmed(shareResult)
+            // Nothing to take back if the link never leaves — the chat exists either way, and
+            // the same link can be shared again. Only a cash link needs confirming.
+            is Shareable.GroupInvite -> ShareConfirmationResult.Confirmed(shareResult)
             is Shareable.TipCard -> ShareConfirmationResult.Confirmed(shareResult)
             is Shareable.TipCodeImage -> ShareConfirmationResult.Confirmed(shareResult)
         }

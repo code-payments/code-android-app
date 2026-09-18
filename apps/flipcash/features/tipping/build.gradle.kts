@@ -9,6 +9,7 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(testFixtures(project(":ui:resources")))
     testImplementation(libs.robolectric)
 
     implementation(project(":services:flipcash"))
@@ -16,6 +17,7 @@ dependencies {
     implementation(project(":libs:messaging"))
     implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:bills"))
+    implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:chat-ui"))

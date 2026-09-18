@@ -129,6 +129,16 @@ internal class AppRouter(
                 listOf(AppRoute.Sheets.Tips(), AppRoute.Messaging.Chat(type.identifier))
             )
 
+            // The same destination a group push tap resolves to (see ChatTapTargetPlanner): the
+            // chat screen is the gated preview when the viewer is not a member, so an invite and
+            // a push land on one screen rather than on two that would have to agree.
+            is DeeplinkType.GroupChatInvite -> DeeplinkAction.Navigate(
+                listOf(
+                    AppRoute.Sheets.Tips(),
+                    AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(type.chatId)),
+                )
+            )
+
             is DeeplinkType.Tipcard -> tipCard(TipCardOwner.ById(type.userId))
 
             is DeeplinkType.TipcardByUsername -> tipCard(TipCardOwner.ByUsername(type.username))
@@ -202,12 +212,10 @@ internal class AppRouter(
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
             deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
+            // Checked before the profile link, which is host-gated to the apex and so cannot
+            // match this one, but the ordering is what keeps that true if either widens.
+            deepLink.isGroupChatInvite() -> deepLink.handleGroupChatInvite()
             deepLink.isProfileLink() -> deepLink.handleProfileLink()
-            // `/chat/{id}` links are intentionally NOT handled: the Send tab / direct-send
-            // flow they opened was removed. The manifest no longer claims that path either, so
-            // such a link opens in the browser rather than dead-ending here. Re-add routing and
-            // the App Link filter together, or not at all.
-            // (Tip DMs use `/tip/chat/{id}` — handled above via isTipChat.)
             else -> null
         }
     }
@@ -382,6 +390,25 @@ private fun DeepLink.handleTipChat(): DeeplinkType.TipChat? {
     val chatId = ChatId(chatTarget.decodeBase64UrlSafe().toList())
 
     return DeeplinkType.TipChat(ChatIdentifier.ByChatId(chatId))
+}
+
+/**
+ * A group chat invite: `app.flipcash.com/chat/{uuid}`.
+ *
+ * Shape-checked here rather than only in [handleGroupChatInvite] so that a `/chat/` path which is
+ * not an invite falls through to [DeepLink.unrouted] instead of being claimed and dropped.
+ *
+ * `/tip/chat/{id}` cannot reach this: [DeepLink.isTipChat] matches `tip` at segment 0 and is tested
+ * first, and this requires `chat` at segment 0.
+ */
+private fun DeepLink.isGroupChatInvite(): Boolean =
+    chat.contains(pathSegments.getOrNull(0)) &&
+            pathSegments.getOrNull(1)?.lowercase()?.isUuidShaped() == true
+
+private fun DeepLink.handleGroupChatInvite(): DeeplinkType.GroupChatInvite? {
+    val segment = pathSegments.getOrNull(1)?.lowercase() ?: return null
+    val chatId = runCatching { ChatId(UUID.fromString(segment).bytes) }.getOrNull() ?: return null
+    return DeeplinkType.GroupChatInvite(chatId)
 }
 
 private fun DeepLink.handleTipCard(): DeeplinkType.Tipcard? {

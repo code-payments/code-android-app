@@ -9,10 +9,13 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.ReactionSummary
+import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.TypingState
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
@@ -275,6 +278,20 @@ interface MessagingOperations {
  * Implemented by [com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate].
  */
 interface GroupOperations {
+    /**
+     * Creates a group from [parameters], caching it so it is in the list before the next sync, and
+     * returns the chat the server created.
+     *
+     * [idempotencyKey] is the caller's to mint, once, where the intent to create originates — the
+     * server derives the chat's identity from the caller and this key, so the same key retried
+     * returns the chat the first attempt created instead of a second chat. Minting it here would
+     * make every retry a new chat.
+     */
+    suspend fun create(
+        parameters: StartChatParameters,
+        idempotencyKey: IdempotencyKey,
+    ): Result<ChatMetadata>
+
     /** Joins [chatId], caching the chat so it is in the list before the next sync. */
     suspend fun join(chatId: ChatId): Result<Unit>
 

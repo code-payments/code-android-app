@@ -20,7 +20,10 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.extensions.setText
+import com.flipcash.app.core.tokens.brandedName
+import com.flipcash.app.core.tokens.isReserve
 import com.flipcash.app.core.ui.ConfirmationStyle
+import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.MessagePolicy
 import com.flipcash.shared.chat.withinWindows
@@ -45,9 +48,12 @@ import com.flipcash.app.messenger.internal.link.LinkCardResolver
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
+import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.groupAccess
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
@@ -242,15 +248,22 @@ internal class ChatViewModel @Inject constructor(
          */
         val messagePolicy: MessagePolicy = MessagePolicy.Default,
         /**
-         * The symbol of the token a group's balance requirement names — "BadBoys", not its mint.
-         * Null until the token cache has it, and null for any chat without such a rule.
+         * The token a group's balance requirement names, and how to write it — "Jeffy", not its mint
+         * and not its ticker. Null until the token cache has it, and null for any chat without such
+         * a rule.
          */
-        val ruleTicker: String? = null,
+        val ruleCurrency: RuleCurrency? = null,
         /**
          * What this viewer may do here. Null for anything that is not a group — a DM has no gate,
          * and rendering one from a default would blur every contact conversation in the app.
          */
         val groupAccess: GroupAccess? = null,
+        /**
+         * The gate's Join button, same shape as [sendProgress]. Membership arrives from the roster
+         * rather than from the join's own reply, so without this the button would sit unchanged for
+         * the whole round trip and read as dead — which is what it looked like before it had one.
+         */
+        val joinProgress: LoadingSuccessState = LoadingSuccessState(),
     ) {
         /**
          * The DM counterparty, or `null` for a group.
@@ -270,6 +283,42 @@ internal class ChatViewModel @Inject constructor(
         /** What the selection bar may offer, straight from what the transcript already resolved. */
         val selectionCapabilities: Set<MessageCapability>
             get() = selection?.capabilities.orEmpty()
+
+        /**
+         * Whether this conversation is being read from outside the group.
+         *
+         * Drives the blur over the transcript, the placeholder standing in for it, and the gate that
+         * stands where the composer does.
+         *
+         * Read off the subject rather than off [groupAccess], even though `Membered` is the same
+         * fact, because this one has to be right on the frame the group first renders. [groupAccess]
+         * arrives through the balance and staff flows, so it is null for as long as those take — and
+         * a withheld transcript that starts unblurred and then blurs has already shown what it was
+         * withholding. The subject is what the info card and the title bar draw from, so tying the
+         * blur to it means the three cannot disagree by a frame.
+         *
+         * [groupAccess] still decides what the gate's button does, which is the part that genuinely
+         * depends on the balance.
+         *
+         * A succeeded join keeps it true through the button's checkmark: one flag for all three
+         * renderers means the composer cannot arrive while the transcript is still blurred, and the
+         * roster — which can confirm membership on the next frame — cannot cut the confirmation
+         * short.
+         */
+        val isGatedPreview: Boolean
+            get() = joinProgress.success || (subject as? ChatSubject.Group)?.isMember == false
+
+        /**
+         * The link that invites someone into this group, or `null` when there is nobody to invite:
+         * a DM, or a group this viewer has not joined.
+         *
+         * Built from the chat's id — there is no invite RPC, and [Linkify] is the one place that
+         * decides the link's shape, so what the empty state shares is what the create flow shares.
+         */
+        val groupInviteUrl: String?
+            get() = (subject as? ChatSubject.Group)
+                ?.takeIf { it.isMember }
+                ?.let { Linkify.groupChatInvite(it.chatId) }
     }
 
     /**
@@ -294,14 +343,26 @@ internal class ChatViewModel @Inject constructor(
         /** The chat this screen is showing turned out to be a group, with this metadata. */
         data class OnGroupResolved(val membership: ChatMembership) : Event
 
-        /** The token cache learned the symbol behind the group's balance requirement. */
-        data class OnRuleTickerResolved(val ticker: String?) : Event
+        /** The token cache learned the currency behind the group's balance requirement. */
+        data class OnRuleCurrencyResolved(val currency: RuleCurrency?) : Event
 
         /** The gate re-decided, because membership, the rules, or the balance moved. */
         data class OnGroupAccessResolved(val access: GroupAccess) : Event
 
         /** The gate's "Join Chat" button. */
         data object JoinChat : Event
+
+        /**
+         * The Join button's own state. Success is dispatched for the length of the checkmark and
+         * then cleared, which is what releases the gate to the composer.
+         */
+        data class JoinStateUpdated(
+            val loading: Boolean = false,
+            val success: Boolean = false,
+        ) : Event
+
+        /** The invite sheet's "Copy Invite Link" row. */
+        data object CopyInviteLink : Event
 
         /** The group profile's "Leave Chat" row, which puts the confirmation up. */
         data object LeaveChat : Event
@@ -1013,10 +1074,21 @@ internal class ChatViewModel @Inject constructor(
                 .distinctUntilChanged(),
             tokenCoordinator.observeTokenCache(),
         ) { requirement, tokens ->
-            requirement?.mints?.firstOrNull()?.let { tokens[Mint(it.bytes)]?.symbol }
+            // The name rather than the symbol, matching the create form's own mint row: the two
+            // screens name one holding, and the balance list a requirement is satisfied from
+            // renders the name as well (`TokenWithBalance.displayName`). `brandedName` is the same
+            // rule the link cards use, so the reserve reads "Dollars" here too rather than "USDF".
+            requirement?.mints?.firstOrNull()
+                ?.let { tokens[Mint(it.bytes)] }
+                ?.let { token ->
+                    RuleCurrency(
+                        name = token.brandedName(resources),
+                        isReserve = token.isReserve,
+                    )
+                }
         }
             .distinctUntilChanged()
-            .onEach { dispatchEvent(Event.OnRuleTickerResolved(it)) }
+            .onEach { dispatchEvent(Event.OnRuleCurrencyResolved(it)) }
             .launchIn(viewModelScope)
 
         // Re-resolved whenever membership or the rules move, and internally whenever the balance
@@ -1028,7 +1100,11 @@ internal class ChatViewModel @Inject constructor(
                 if (group == null) {
                     flowOf(null)
                 } else {
-                    tokenCoordinator.groupAccess(isMember = group.isMember, rules = group.rules)
+                    tokenCoordinator.groupAccess(
+                        isMember = group.isMember,
+                        rules = group.rules,
+                        isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+                    )
                 }
             }
             .filterNotNull()
@@ -1194,6 +1270,18 @@ internal class ChatViewModel @Inject constructor(
     }
 
     private fun initMessageActionHandlers() {
+        // Read off the state rather than carried on the event, so the row that copies the link and
+        // the row that shares it are handing out the one url [State.groupInviteUrl] builds.
+        eventFlow.filterIsInstance<Event.CopyInviteLink>()
+            .mapNotNull { stateFlow.value.groupInviteUrl }
+            .onEach { url ->
+                clipboardManager.setText(
+                    text = url,
+                    label = resources.getString(R.string.title_clipboardLabelGroupInviteLink),
+                )
+            }
+            .launchIn(viewModelScope)
+
         eventFlow.filterIsInstance<Event.CopyMessage>()
             .onEach { event ->
                 clipboardManager.setText(
@@ -1273,12 +1361,46 @@ internal class ChatViewModel @Inject constructor(
 
         eventFlow.filterIsInstance<Event.JoinChat>()
             .onEach {
-                val chatId = stateFlow.value.chatId ?: return@onEach
+                val chatId = stateFlow.value.chatId ?: run {
+                    dispatchEvent(Event.JoinStateUpdated())
+                    return@onEach
+                }
                 // No optimistic flip. `join` caches the chat and the membership flag comes back
                 // through observeMetadata, which is the same path a join from another device takes —
                 // one source for the gate rather than two that can disagree.
                 chatCoordinator.join(chatId)
-                    .onFailure { trace("failed to join chat - ${it.localizedMessage}") }
+                    .onSuccess {
+                        // The gate holds its own confirmation rather than waiting to be replaced:
+                        // membership comes back through the roster, which can land on the next frame
+                        // and swap the checkmark away before it has been drawn. Clearing the success
+                        // after the hold is what releases the gate, so the blur fades and the
+                        // composer arrives when the button is done rather than when the roster is.
+                        dispatchSuccessThen(Event.JoinStateUpdated(success = true)) {
+                            dispatchEvent(Event.JoinStateUpdated())
+                        }
+                    }
+                    .onFailure { cause ->
+                        trace("failed to join chat - ${cause.localizedMessage}")
+                        // A refusal is the only thing that tells the user anything: the gate itself
+                        // does not change, because the rules and the balance it reads are what the
+                        // server just disagreed with. Saying which refusal it was is the difference
+                        // between "buy more" and "this link is dead".
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToJoin),
+                            message = resources.getString(
+                                when (cause) {
+                                    is JoinChatError.RulesNotSatisfied ->
+                                        R.string.error_description_joinChat_rulesNotSatisfied
+                                    is JoinChatError.Denied ->
+                                        R.string.error_description_joinChat_denied
+                                    is JoinChatError.NotFound ->
+                                        R.string.error_description_joinChat_notFound
+                                    else -> R.string.error_description_failedToJoin
+                                }
+                            ),
+                        )
+                        dispatchEvent(Event.JoinStateUpdated())
+                    }
             }
             .launchIn(viewModelScope)
 
@@ -1738,9 +1860,21 @@ internal class ChatViewModel @Inject constructor(
                         resolveState = ResolveState.Resolved,
                     )
                 }
-                is Event.OnRuleTickerResolved -> { state -> state.copy(ruleTicker = event.ticker) }
+                is Event.OnRuleCurrencyResolved ->
+                    { state -> state.copy(ruleCurrency = event.currency) }
                 is Event.OnGroupAccessResolved -> { state -> state.copy(groupAccess = event.access) }
-                Event.JoinChat,
+                Event.JoinChat -> { state ->
+                    state.copy(joinProgress = LoadingSuccessState(loading = true))
+                }
+                is Event.JoinStateUpdated -> { state ->
+                    state.copy(
+                        joinProgress = LoadingSuccessState(
+                            event.loading,
+                            event.success,
+                        )
+                    )
+                }
+                Event.CopyInviteLink,
                 Event.LeaveChat,
                 Event.LeaveConfirmed,
                 Event.LeftChat -> { state -> state }

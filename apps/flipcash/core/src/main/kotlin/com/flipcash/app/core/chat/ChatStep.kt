@@ -42,6 +42,18 @@ sealed interface ChatStep : FlowStep, Parcelable {
     data object InitPayment :
         ChatStep, NavigationRetVal<ChatSendResult>, Sheet, WrapContentSheet
 
+    /**
+     * Node 10127:118315 — the two ways to hand out a group's invite link.
+     *
+     * A [WrapContentSheet] over the conversation rather than a screen of its own: it is two rows,
+     * and inviting is something you do *from* the group, not a place you go. Reached from the empty
+     * transcript's CTA and from the group's profile, which is why it hangs off the chat flow rather
+     * than the create flow that used to end on it.
+     */
+    @Parcelize
+    @Serializable
+    data object InviteToGroup : ChatStep, Sheet, WrapContentSheet
+
     @Parcelize
     @Serializable
     data class Profile(val contact: ChatParticipant): ChatStep
