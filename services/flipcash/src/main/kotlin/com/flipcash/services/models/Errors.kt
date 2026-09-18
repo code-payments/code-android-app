@@ -689,6 +689,16 @@ sealed class UnmuteChatError(
     data class Other(override val cause: Throwable? = null) : UnmuteChatError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class ReportError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: ReportError("Denied")
+    class NotFound: ReportError("Not found")
+    class Unrecognized : ReportError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ReportError(message = cause?.message, cause = cause), NotifiableError
+}
+
 // Thrown when a reserved blob failed server-side finalization (moderation / decode / size).
 // Terminal: the client must reserve a fresh upload to retry.
 class BlobRejectedException(val rejection: BlobRejection) :
