@@ -54,7 +54,7 @@ sealed interface Shareable {
      */
     data class GroupInvite(
         val url: String,
-        // The group's title, for the Sharesheet heading. Null shares the link with no heading.
+        // The group's name, which the invitation sentence names. Null shares the bare link.
         val title: String? = null,
     ) : Shareable {
         override val pendingData: ShareablePendingData? = null

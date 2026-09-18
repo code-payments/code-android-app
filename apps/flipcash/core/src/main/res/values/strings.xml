@@ -1019,7 +1019,8 @@
     <string name="action_sendInviteLink">Send Invite Link</string>
     <string name="action_copyInviteLink">Copy Invite Link</string>
     <string name="action_invitePeopleToJoin">Invite People To Join</string>
-    <string name="subtitle_shareGroupInvite">Join me on Flipcash</string>
+    <!-- Sent ahead of the invite link in the share sheet; %1$s is the group title. Same wording as iOS. -->
+    <string name="message_groupInvite">Join %1$s on Flipcash and let\'s chat</string>
     <string name="title_tipIntro">Receive Tips From Everyone</string>
     <string name="subtitle_tipIntro">Add your name to receive tips</string>
     <string name="action_startReceivingTips">Start Receiving Tips</string>

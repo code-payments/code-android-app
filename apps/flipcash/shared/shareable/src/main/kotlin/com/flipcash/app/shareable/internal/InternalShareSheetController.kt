@@ -298,14 +298,21 @@ internal class InternalShareSheetController(
     }
 
     private fun shareGroupInvite(shareable: Shareable.GroupInvite) {
+        // The invitation names the group, so with no title there is nothing to say — share the bare
+        // link rather than an invitation with a hole in it. Same wording as iOS' GroupInviteSheet.
+        val invitation = shareable.title
+            ?.let { resources.getString(R.string.message_groupInvite, it) }
+
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
-            // No heading when the group has no title yet — an empty one reads as a broken share.
-            shareable.title?.let {
+            invitation?.let {
                 putExtra(Intent.EXTRA_TITLE, it)
                 putExtra(Intent.EXTRA_SUBJECT, it)
             }
-            putExtra(Intent.EXTRA_TEXT, shareable.url)
+            putExtra(
+                Intent.EXTRA_TEXT,
+                if (invitation != null) "$invitation\n\n${shareable.url}" else shareable.url
+            )
             type = "text/plain"
         }
 
