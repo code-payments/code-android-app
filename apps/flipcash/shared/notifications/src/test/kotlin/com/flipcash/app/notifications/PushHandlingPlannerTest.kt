@@ -35,10 +35,11 @@ class PushHandlingPlannerTest {
         eventSequence = eventSequence,
     )
 
-    private fun chatMetadata(message: ChatMessage?) = PushChatMetadata(
+    private fun chatMetadata(message: ChatMessage?, muted: Boolean = false) = PushChatMetadata(
         sendingUserId = null,
         chatType = ChatType.CONTACT_DM,
         message = message,
+        muted = muted,
     )
 
     // region A titled push
@@ -195,6 +196,66 @@ class PushHandlingPlannerTest {
             planPushHandling(null, null, p),
             planPushHandling("Title", "Body", p).filterNot { it is PushAction.PostNotification },
         )
+    }
+
+    // endregion
+
+    // region A muted chat
+
+    @Test
+    fun `a muted chat push stores its message and posts nothing`() {
+        val chatId = ChatId("aa12")
+        val message = inlinedMessage()
+        val p = payload(
+            navigation = NavigationTrigger.Chat.ById(chatId),
+            chatMetadata = chatMetadata(message, muted = true),
+        )
+        val actions = planPushHandling("Title", "Body", p)
+        assertEquals(listOf(PushAction.RefreshFeed, PushAction.ApplyMessage(chatId, message)), actions)
+    }
+
+    @Test
+    fun `a muted chat push with no inlined message still fetches it`() {
+        val chatId = ChatId("aa13")
+        val p = payload(
+            navigation = NavigationTrigger.Chat.ById(chatId),
+            chatMetadata = chatMetadata(message = null, muted = true),
+        )
+        val actions = planPushHandling("Title", "Body", p)
+        assertEquals(listOf(PushAction.RefreshFeed, PushAction.LoadMessages(chatId)), actions)
+    }
+
+    @Test
+    fun `muting changes only the notification, not the sync plan`() {
+        val chatId = ChatId("aa14")
+        val message = inlinedMessage()
+        val audible = payload(
+            navigation = NavigationTrigger.Chat.ById(chatId),
+            chatMetadata = chatMetadata(message),
+        )
+        val silenced = payload(
+            navigation = NavigationTrigger.Chat.ById(chatId),
+            chatMetadata = chatMetadata(message, muted = true),
+        )
+        assertEquals(
+            planPushHandling("Title", "Body", audible).filterNot { it is PushAction.PostNotification },
+            planPushHandling("Title", "Body", silenced),
+        )
+    }
+
+    @Test
+    fun `the same chat posts once it is no longer muted`() {
+        val p = payload(
+            navigation = NavigationTrigger.Chat.ById(ChatId("aa14")),
+            chatMetadata = chatMetadata(inlinedMessage(), muted = false),
+        )
+        assertTrue(planPushHandling("Title", "Body", p).last() is PushAction.PostNotification)
+    }
+
+    @Test
+    fun `a muted push that names no chat is silenced too`() {
+        val p = payload(chatMetadata = chatMetadata(message = null, muted = true))
+        assertEquals(emptyList(), planPushHandling("Title", "Body", p))
     }
 
     // endregion

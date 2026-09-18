@@ -21,9 +21,23 @@ fun planPushHandling(
 ): List<PushAction> {
     val sync = syncActionsFor(payload)
 
-    // The sync half is the same either way; a title only adds the notification on top.
-    return if (title == null) sync else sync + PushAction.PostNotification(title, body, payload)
+    // The sync half is the same either way; a title adds the notification on top, unless the
+    // chat was silenced when the push was sent.
+    if (title == null || isMuted(payload)) return sync
+    return sync + PushAction.PostNotification(title, body, payload)
 }
+
+/**
+ * Whether this push arrived for a chat the recipient has silenced.
+ *
+ * Read off the payload rather than off the local mute, because the flag is what the server decided
+ * when it sent: a timed mute lapses with nothing sent to say so, so the two can disagree, and the
+ * send is the moment that matters. The server delivers a muted push anyway, deliberately, so the
+ * message still reaches the database — which is why suppression lands here, on the one action that
+ * is user-visible, and not on the push as a whole.
+ */
+private fun isMuted(payload: NotificationPayload?): Boolean =
+    payload?.chatMetadata?.muted == true
 
 /**
  * The sync work an event class implies, independent of where the push
