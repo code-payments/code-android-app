@@ -9,6 +9,10 @@ import com.getcode.solana.keys.Mint
  * Display-ready by construction: whoever builds it has already classified the URL and formatted
  * the amount, so `chat-ui` needs neither the router nor a currency formatter. See
  * `LinkCardClassifier` and `LinkCardResolver` in `:apps:flipcash:features:messenger`.
+ *
+ * The classifier builds the card in its [Cash.State.Loading] / [TokenInfo.State.Loading] state and
+ * the card view carries it the rest of the way through [LinkCardResolution], so a transcript is
+ * never held back by a lookup and only a link somebody is looking at costs a query.
  */
 sealed interface LinkCard {
 
@@ -34,9 +38,18 @@ sealed interface LinkCard {
 
         sealed interface State {
             /**
+             * The lookup is out. Drawn as [Unresolved] with the fields that are about to change
+             * shimmering, rather than as a skeleton of its own: the branded ticket is already
+             * real information, and replacing it with a grey rectangle would show the reader less
+             * than the raw link did while they waited.
+             */
+            data object Loading : State
+
+            /**
              * Branded, no network. Also what a failed, timed-out, offline or switched-off
              * resolution renders as — a cash link card never shows an error, because the
-             * link is still perfectly openable and the card is decoration over it.
+             * link is still perfectly openable and the card is decoration over it. A failure is
+             * therefore the shimmer stopping, and nothing else moving.
              */
             data object Unresolved : State
 
@@ -69,6 +82,9 @@ sealed interface LinkCard {
     ) : LinkCard {
 
         sealed interface State {
+            /** The lookup is out. [Unresolved], shimmering; see [Cash.State.Loading]. */
+            data object Loading : State
+
             /**
              * No metadata yet, and what a failed, timed-out or offline lookup renders as. The mint
              * is all that is known, so the card names it and nothing else — a link to a token

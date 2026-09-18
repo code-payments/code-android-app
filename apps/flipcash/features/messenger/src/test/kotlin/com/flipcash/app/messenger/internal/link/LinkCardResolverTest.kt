@@ -8,6 +8,7 @@ import org.mockito.kotlin.mock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class LinkCardResolverTest {
@@ -21,7 +22,7 @@ class LinkCardResolverTest {
         start = 0,
         end = 54,
         entropy = "KNi8pQr1n5hRU65vKJGge3",
-        state = LinkCard.Cash.State.Unresolved,
+        state = LinkCard.Cash.State.Loading,
     )
 
     private val tokenCard = LinkCard.TokenInfo(
@@ -29,7 +30,7 @@ class LinkCardResolverTest {
         start = 0,
         end = 74,
         mint = Mint(MINT),
-        state = LinkCard.TokenInfo.State.Unresolved,
+        state = LinkCard.TokenInfo.State.Loading,
     )
 
     private fun snapshot() = LinkCardResolver.Snapshot(
@@ -241,5 +242,84 @@ class LinkCardResolverTest {
         resolver.resolve(tokenCard)
         assertEquals(1, cashCalls)
         assertEquals(1, tokenCalls)
+    }
+
+    @Test
+    fun `peek answers nothing until the lookup has landed`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.success(snapshot()) },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+
+        assertNull(resolver.peek(card), "nothing has been asked yet")
+
+        resolver.resolve(card)
+
+        // The point of the whole memo: a card scrolled back into view has its answer without
+        // suspending, so it paints resolved on its first frame instead of shimmering for a hop.
+        val peeked = resolver.peek(card) as? LinkCard.Cash
+        assertTrue(peeked?.state is LinkCard.Cash.State.Resolved)
+    }
+
+    @Test
+    fun `peek answers nothing for a lookup that failed`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("offline")) },
+            tokenMetadata = { Result.failure(IllegalStateException("offline")) },
+        )
+        resolver.resolve(card)
+
+        // A failure is forgotten rather than remembered, so the next card to draw this link asks
+        // again -- and shimmers while it does, rather than peeking a stale "unavailable".
+        assertNull(resolver.peek(card))
+    }
+
+    @Test
+    fun `a claim bumps the revision so a drawn card asks again`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.success(snapshot()) },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+        resolver.resolve(card)
+        val before = resolver.revision.value
+
+        resolver.invalidateCash(card.entropy)
+
+        assertTrue(resolver.revision.value > before, "the card on screen has nothing else to hear")
+        assertNull(resolver.peek(card), "the answer it would have peeked is the stale one")
+    }
+
+    @Test
+    fun `a tick that drops nothing bumps nothing`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.success(snapshot().copy(claim = LinkCard.Cash.Claim.Claimed)) },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+        resolver.resolve(card)
+        val before = resolver.revision.value
+
+        assertFalse(resolver.refreshClaimable())
+
+        // What keeps the claim timer from being a poll: a transcript with nothing claimable in it
+        // re-asks nothing, because nothing told it to.
+        assertEquals(before, resolver.revision.value)
+    }
+
+    @Test
+    fun `a claimable tick bumps the revision`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.success(snapshot()) },
+            tokenMetadata = { Result.success(mock<Token>()) },
+        )
+        resolver.resolve(card)
+        val before = resolver.revision.value
+
+        assertTrue(resolver.refreshClaimable())
+        assertTrue(resolver.revision.value > before)
     }
 }

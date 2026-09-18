@@ -11,10 +11,17 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -37,7 +45,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.TokenCard
 import com.flipcash.app.core.ui.TokenIconWithName
+import com.flipcash.app.core.ui.rememberShimmerAlpha
+import com.flipcash.app.core.ui.shimmer
 import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.chat.models.LocalLinkCardResolution
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
@@ -57,6 +68,10 @@ import com.getcode.ui.utils.ConstraintMode
  * ornament above it, so [onClick] has to carry the tap — a link-only message would otherwise draw
  * something that opens nothing. The whole card is handed back rather than its URL, because where a
  * tap should land differs by kind and only the caller knows the transcript it is landing in.
+ *
+ * [card] arrives with its lookup still to do and the card runs it — see [rememberResolvedCard].
+ * The transcript hands over what it can read off the message text, which is everything but the
+ * amount and the claim, and is not held up by the rest.
  */
 @Composable
 internal fun LinkCardView(
@@ -64,25 +79,65 @@ internal fun LinkCardView(
     onClick: (LinkCard) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val live = rememberResolvedCard(card)
+
     // The voucher's proportions, not its size: a bubble is a good deal narrower than the wallet's
     // card, and scaling the height with the width is what keeps it a card in chat instead of a
     // tall panel.
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val height: Dp = maxWidth * LinkCardDefaults.CARD_ASPECT
-        when (card) {
+        when (live) {
             is LinkCard.Cash -> CashLinkCard(
-                card = card,
+                card = live,
                 height = height,
-                onClick = { onClick(card) },
+                onClick = { onClick(live) },
             )
 
             is LinkCard.TokenInfo -> TokenLinkCard(
-                card = card,
+                card = live,
                 height = height,
-                onClick = { onClick(card) },
+                onClick = { onClick(live) },
             )
         }
     }
+}
+
+/**
+ * [card] with whatever the lookup has to say about it, asked for here rather than upstream.
+ *
+ * The transcript used to await this while mapping a page, which meant a chat painted nothing until
+ * every link in the first window had come back from the network, and that every link in it was
+ * queried whether or not it was ever scrolled to. Asking from the card inverts both: the transcript
+ * paints at once, and only a card someone is looking at costs a query.
+ *
+ * Three pieces, and each is load-bearing.
+ *
+ * [LinkCardResolution.peek] runs during composition, so a link that has already resolved — scrolled
+ * off and back, or drawn a second time — paints resolved on its first frame. Without it the memo is
+ * still a suspension away and every such card would shimmer for a hop, which is worse than the wait
+ * it stands for because the reader has already seen the answer.
+ *
+ * The held value is seeded once per card and written over, never reset, so a re-ask keeps the
+ * answer on screen while it runs. A voucher re-checked on the claim timer must not blink back to a
+ * shimmer to tell the reader nothing changed.
+ *
+ * [LinkCardResolution.revision] is what a claim reaches a drawn card through. It replaces a re-map
+ * of the whole paging window, which is what the transcript needed when it was the one holding the
+ * answer.
+ */
+@Composable
+private fun rememberResolvedCard(card: LinkCard): LinkCard {
+    val resolution = LocalLinkCardResolution.current
+    val revision by resolution.revision.collectAsState()
+    var live by remember(card) { mutableStateOf(resolution.peek(card) ?: card) }
+
+    // Keyed on the card, so a row recomposed onto a different message drops the previous link's
+    // query instead of finishing it into the new card.
+    LaunchedEffect(card, revision) {
+        live = resolution.resolve(card)
+    }
+
+    return live
 }
 
 @Composable
@@ -96,8 +151,16 @@ private fun CashLinkCard(
     // moves or resizes when the amount lands.
     val state = card.state as? LinkCard.Cash.State.Resolved
 
+    // Loading is that same voucher with the two slots the lookup fills standing in place and
+    // pulsing. It is not a third rendering: the ticket, its brand and its proportions are known
+    // without the network and are drawn the moment the message is, so what is left to say is which
+    // parts are still coming. A failure stops the pulse and the slots go quiet and empty, which is
+    // the unresolved card, which is the one a reader can still tap.
+    val loading = card.state is LinkCard.Cash.State.Loading
+
     CashVoucher(
         height = height,
+        loading = loading,
         tokenName = state?.token?.let { displayNameOf(it) }
             ?: stringResource(R.string.label_linkCard_cash),
         tokenImage = state?.token?.imageUrl,
@@ -111,7 +174,10 @@ private fun CashLinkCard(
         torn = state?.claim == LinkCard.Cash.Claim.Claimed,
         onClick = onClick,
     ) {
-        state ?: return@CashVoucher
+        if (state == null) {
+            if (loading) StubPlaceholder()
+            return@CashVoucher
+        }
         when (state.claim) {
             LinkCard.Cash.Claim.Claimed ->
                 // Off the paper: the stub this used to sit on left with whoever claimed it.
@@ -150,9 +216,20 @@ private fun TokenLinkCard(
             onClick = onClick,
         )
 
+        // The address is the one thing known about the mint before the network answers, and it is
+        // what the raw link text showed. So the loading card is the unresolved card, shimmering —
+        // not a blank panel, which would leave the reader with less while they waited.
+        LinkCard.TokenInfo.State.Loading -> UnresolvedTokenCard(
+            mint = card.mint,
+            height = height,
+            loading = true,
+            onClick = onClick,
+        )
+
         LinkCard.TokenInfo.State.Unresolved -> UnresolvedTokenCard(
             mint = card.mint,
             height = height,
+            loading = false,
             onClick = onClick,
         )
     }
@@ -171,6 +248,7 @@ private fun TokenLinkCard(
 private fun UnresolvedTokenCard(
     mint: Mint,
     height: Dp,
+    loading: Boolean,
     onClick: () -> Unit,
 ) {
     val shape = CodeTheme.shapes.medium
@@ -180,6 +258,9 @@ private fun UnresolvedTokenCard(
             .height(height)
             .clip(shape)
             .background(CodeTheme.colors.surfaceVariant)
+            // Behind the address rather than over it: the shimmer says the bill is still coming,
+            // and the one thing already known about the token stays readable while it does.
+            .then(if (loading) Modifier.shimmer(shape) else Modifier)
             .border(CodeTheme.dimens.border, CodeTheme.colors.surfaceVariant, shape)
             .clickable(onClick = onClick)
             .padding(CodeTheme.dimens.inset),
@@ -238,6 +319,7 @@ private fun CashVoucher(
     amount: String?,
     spent: Boolean,
     torn: Boolean,
+    loading: Boolean,
     onClick: () -> Unit,
     stub: @Composable () -> Unit,
 ) {
@@ -281,14 +363,19 @@ private fun CashVoucher(
                     textStyle = CodeTheme.typography.textSmall,
                     textColor = LinkCardDefaults.INK.copy(alpha = LinkCardDefaults.INK_MUTED),
                 )
-                amount?.let {
+                if (amount != null) {
                     AnimatedNumberText(
-                        value = it,
+                        value = amount,
                         style = CodeTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
                         color = LinkCardDefaults.INK,
                         constraintMode = ConstraintMode.AutoSize(
                             minimum = CodeTheme.typography.textMedium,
                         ),
+                    )
+                } else if (loading) {
+                    InkPlaceholder(
+                        width = LinkCardDefaults.AMOUNT_PLACEHOLDER_WIDTH,
+                        height = LinkCardDefaults.AMOUNT_PLACEHOLDER_HEIGHT,
                     )
                 }
             }
@@ -470,6 +557,40 @@ private fun StubLabel(text: String, onPaper: Boolean = true) {
 }
 
 /**
+ * Where the claim pill will be. Drawn at the pill's size rather than the label's, because the pill
+ * is what lands in almost every case and a placeholder that grows on arrival would be its own
+ * small movement inside a card whose whole point is that nothing moves.
+ */
+@Composable
+private fun StubPlaceholder() {
+    InkPlaceholder(
+        width = LinkCardDefaults.STUB_PLACEHOLDER_WIDTH,
+        height = LinkCardDefaults.STUB_PLACEHOLDER_HEIGHT,
+    )
+}
+
+/**
+ * A slot on the paper with nothing in it yet, pulsing.
+ *
+ * Ink rather than the white of `Modifier.shimmer`: the voucher is the one light surface in the
+ * transcript, and a white shimmer on near-white paper is invisible. The animation is shared with
+ * every other skeleton in the app — only what it is painted in differs.
+ */
+@Composable
+private fun InkPlaceholder(
+    width: Dp,
+    height: Dp,
+    shape: Shape = RoundedCornerShape(percent = 50),
+) {
+    val alpha = rememberShimmerAlpha()
+    Box(
+        modifier = Modifier
+            .size(width, height)
+            .background(LinkCardDefaults.INK.copy(alpha = alpha), shape),
+    )
+}
+
+/**
  * The claimable stub. A filled pill rather than a line of text, because this is the one state where
  * the card is an offer — tapping it opens the link, which is where the claim happens.
  */
@@ -520,6 +641,14 @@ private object LinkCardDefaults {
 
     /** Secondary ink: the token's name and a spent voucher's label. */
     const val INK_MUTED = 0.55f
+
+    /** The amount's slot while it is coming — roughly what "$15.00" occupies at `displaySmall`. */
+    val AMOUNT_PLACEHOLDER_WIDTH = 104.dp
+    val AMOUNT_PLACEHOLDER_HEIGHT = 28.dp
+
+    /** The claim pill's slot while it is coming. */
+    val STUB_PLACEHOLDER_WIDTH = 76.dp
+    val STUB_PLACEHOLDER_HEIGHT = 22.dp
 
     val NOTCH_RADIUS = 9.dp
     val DASH = 4.dp

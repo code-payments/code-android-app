@@ -31,6 +31,7 @@ import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.ui.detectUrls
@@ -459,14 +460,13 @@ internal class ChatViewModel @Inject constructor(
             ?.let { ChatParticipant.TipUser(userId, it) }
 
     /**
-     * Bumped when a link card's answer is known to have moved, so the transcript maps again.
+     * How a drawn card reaches the lookup. Provided to the transcript, read by `LinkCardView`.
      *
-     * The transform below only re-runs when one of the flows it combines emits, and none of them
-     * notices a claim: claiming a cash link refreshes the activity feed, not this chat's messages.
-     * Without this the reader taps a voucher, claims it, comes back to the transcript and finds a
-     * card that still says "Tap to claim".
+     * The resolver rather than the transcript is what a card asks, so the type narrows to the part
+     * of it `chat-ui` is allowed to see — the query and the signal that an answer moved, not the
+     * eviction that produces the signal, which stays this screen's to decide.
      */
-    private val cardRevision = MutableStateFlow(0)
+    val linkCardResolution: LinkCardResolution get() = linkCardResolver
 
     /**
      * Where a claim goes back to, for a voucher tapped in this transcript.
@@ -484,8 +484,7 @@ internal class ChatViewModel @Inject constructor(
             pendingMutations,
             messagePolicy,
             senderProfiles,
-            cardRevision,
-        ) { pagingData, mutations, policy, profiles, _ ->
+        ) { pagingData, mutations, policy, profiles ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.mapIndexed { index, content ->
@@ -508,12 +507,14 @@ internal class ChatViewModel @Inject constructor(
 
                     // Built from the same detection pass the bubble underlines with, so the
                     // link that becomes a card is always one the reader can see is a link.
-                    // Resolution is memoized per entropy: the first pass over a message pays the
-                    // query, every re-map after it is free, and a message whose query has not
-                    // returned renders unresolved and picks the amount up on the next pass.
+                    //
+                    // Classified only. The card comes out of here in its loading state and runs
+                    // its own lookup -- see `LinkCardResolution`. This pass used to await that,
+                    // which meant a chat painted nothing until every link in the first window had
+                    // been round-tripped, and that every link in every mapped message was queried
+                    // whether or not the reader ever scrolled to it.
                     val linkCard = enriched.linkableText()
                         ?.let { text -> linkCardClassifier.firstCard(detectUrls(text)) }
-                        ?.let { card -> linkCardResolver.resolve(card) }
 
                     // Noted while the voucher and the message it came on are in the same hand;
                     // see [ClaimReplyTargets]. Skipped for the reader's own messages, which is what
@@ -766,10 +767,10 @@ internal class ChatViewModel @Inject constructor(
      * come from.
      *
      * **This device.** The reader taps a voucher, the link goes back out through the URL handler,
-     * and the shell claims it over a bill drawn on top of this screen. The transcript is never
-     * told; it is still composed, still holding the answer it drew the voucher from, and the
-     * answer has just stopped being true. [CashLinkClaims] names the entropy, the resolver forgets
-     * it, and the re-map tears that one voucher in place. Every settled attempt, not only a
+     * and the shell claims it over a bill drawn on top of this screen. The card is never told; it
+     * is still composed, still showing the answer it was drawn from, and the answer has just
+     * stopped being true. [CashLinkClaims] names the entropy, the resolver forgets it and bumps its
+     * revision, and the card re-asks and tears in place. Every settled attempt, not only a
      * successful one, because "already claimed" and "expired" are the same news arriving as an
      * error.
      *
@@ -789,7 +790,6 @@ internal class ChatViewModel @Inject constructor(
         cashLinkClaims.settledClaims
             .onEach { claim ->
                 linkCardResolver.invalidateCash(claim.entropy)
-                cardRevision.update { it + 1 }
                 thankForClaim(claim)
             }
             .launchIn(viewModelScope)
@@ -813,14 +813,12 @@ internal class ChatViewModel @Inject constructor(
      * Re-asks about any voucher still drawn as claimable.
      *
      * Not a poll in the expensive sense: [LinkCardResolver.refreshClaimable] drops nothing unless
-     * the transcript is holding a card that says `Claimable`, and no drop means no re-map and so
-     * no query. A chat with no cash link in view — nearly all of them — costs a lock and a walk of
-     * an empty map per tick. A claimed or expired card is terminal and is never asked about again.
+     * an answer it is holding says `Claimable`, and no drop means no revision bump and so no
+     * query. A chat with no cash link in view — nearly all of them — costs a walk of an empty map
+     * per tick. A claimed or expired card is terminal and is never asked about again.
      */
     private suspend fun refreshLinkCards() {
-        if (linkCardResolver.refreshClaimable()) {
-            cardRevision.update { it + 1 }
-        }
+        linkCardResolver.refreshClaimable()
     }
 
     /**

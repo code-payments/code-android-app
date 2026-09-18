@@ -910,6 +910,27 @@ private fun previewCard(
     state = state,
 )
 
+/**
+ * What the card looks like while its lookup is out — and so what every cash link looks like for the
+ * moment after the transcript paints, since the transcript no longer waits for the answer.
+ *
+ * The default `LocalLinkCardResolution` hands a card back untouched, so a preview draws the state
+ * it names rather than resolving out from under itself.
+ */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_LinkCard_Loading() {
+    TextBubble(
+        text = PREVIEW_CASH_TEXT,
+        isFromSelf = false,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        linkCard = previewCard(state = LinkCard.Cash.State.Loading),
+    )
+}
+
+/** A lookup that failed: the loading card with the shimmer stopped, and nothing else moved. */
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable

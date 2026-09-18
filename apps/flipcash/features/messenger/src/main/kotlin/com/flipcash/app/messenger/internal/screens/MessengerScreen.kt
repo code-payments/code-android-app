@@ -190,6 +190,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 separatorConfig = state.separatorConfig,
                 otherReadPointer = otherReadPointer,
                 onAction = chatActionHandler,
+                linkCardResolution = viewModel.linkCardResolution,
                 canViewProfile = state.canViewProfile,
                 onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
             )
