@@ -38,6 +38,9 @@ internal class LinkCardClassifier @Inject constructor(
     /**
      * The first card-eligible link wins; at most one card per message.
      *
+     * The card comes out loading, never resolved: classifying is all that can be done from the
+     * message text, and the lookup that fills the rest in belongs to the card that draws it.
+     *
      * Takes the detected links rather than their URLs because the card carries the span it came
      * from: the bubble draws the card in place of that text, and only the detection pass knows
      * where it sat.
@@ -58,7 +61,7 @@ internal class LinkCardClassifier @Inject constructor(
                         start = link.start,
                         end = link.end,
                         entropy = it,
-                        state = LinkCard.Cash.State.Unresolved,
+                        state = LinkCard.Cash.State.Loading,
                     )
                 }
             is DeeplinkType.TokenInfo -> LinkCard.TokenInfo(
@@ -66,7 +69,7 @@ internal class LinkCardClassifier @Inject constructor(
                 start = link.start,
                 end = link.end,
                 mint = type.mint,
-                state = LinkCard.TokenInfo.State.Unresolved,
+                state = LinkCard.TokenInfo.State.Loading,
             )
             else -> null
         }

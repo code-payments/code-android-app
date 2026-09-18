@@ -84,9 +84,9 @@ class LinkCardClassifierTest {
                         val card = actual as? LinkCard.Cash
                         assertEquals(expectedCard.getString("url"), card?.url, "vector `$name`: $note")
                         assertEquals(
-                            LinkCard.Cash.State.Unresolved,
+                            LinkCard.Cash.State.Loading,
                             card?.state,
-                            "vector `$name` must start unresolved",
+                            "vector `$name` must start with its lookup still to do",
                         )
                     }
 
@@ -99,9 +99,9 @@ class LinkCardClassifierTest {
                             "vector `$name` must carry the mint from the path",
                         )
                         assertEquals(
-                            LinkCard.TokenInfo.State.Unresolved,
+                            LinkCard.TokenInfo.State.Loading,
                             card?.state,
-                            "vector `$name` must start unresolved",
+                            "vector `$name` must start with its lookup still to do",
                         )
                     }
 

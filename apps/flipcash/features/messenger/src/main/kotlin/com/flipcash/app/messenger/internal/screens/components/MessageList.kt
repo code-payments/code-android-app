@@ -41,7 +41,9 @@ import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.LocalChatActionHandler
+import com.flipcash.shared.chat.models.LocalLinkCardResolution
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberKeyboardController
@@ -64,6 +66,7 @@ internal fun MessageList(
     separatorConfig: SeparatorConfig,
     otherReadPointer: MessagePointer? = null,
     onAction: ChatActionHandler,
+    linkCardResolution: LinkCardResolution,
     canViewProfile: Boolean,
     onJumpConsumed: () -> Unit = {},
 ) {
@@ -74,7 +77,13 @@ internal fun MessageList(
     // row: a DM needs no avatar column, a group reserves one on every incoming row.
     val isGroup = state.chatType == ChatType.GROUP
 
-    CompositionLocalProvider(LocalChatActionHandler provides onAction) {
+    // Both provided here rather than passed down: a link card is drawn from several places inside
+    // the bubble, and threading either through every one of them would be a parameter on a lot of
+    // composables that have no other reason to know about links.
+    CompositionLocalProvider(
+        LocalChatActionHandler provides onAction,
+        LocalLinkCardResolution provides linkCardResolution,
+    ) {
         HandleMessageReads(listState, messages)
 
         // Haptic feedback when a new incoming message arrives
