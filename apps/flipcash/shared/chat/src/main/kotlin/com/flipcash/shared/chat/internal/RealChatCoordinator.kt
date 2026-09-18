@@ -4,6 +4,8 @@ package com.flipcash.shared.chat.internal
 
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
@@ -136,7 +138,11 @@ class RealChatCoordinator @Inject constructor(
     // region Lifecycle
 
     init {
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        // Posted, not called directly: addObserver is main-thread-only, and this singleton is built
+        // off the main thread so its construction stays off the startup path.
+        Handler(Looper.getMainLooper()).post {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        }
         wireDelegateRouting()
     }
 

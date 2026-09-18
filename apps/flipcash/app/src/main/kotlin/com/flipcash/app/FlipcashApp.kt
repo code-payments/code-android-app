@@ -19,23 +19,40 @@ import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.trace
 import dev.bmcreations.phantom.connect.PhantomSdk
+import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
 class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
+    /**
+     * Held lazily, and resolved off the main thread in [onCreate].
+     *
+     * AuthManager sits on top of eighteen controllers and coordinators, and resolving it builds that
+     * whole graph -- 130-180ms on the main thread, before the first frame, measured on an emulator.
+     * None of it has to happen here: [AuthManager.init] only launches a coroutine, so the login state
+     * resolves asynchronously either way.
+     */
     @Inject
-    lateinit var authManager: AuthManager
+    lateinit var authManager: Lazy<AuthManager>
+
+    /**
+     * Resolved for their side effects rather than used here, so they are resolved off the main thread
+     * alongside [authManager].
+     */
+    @Inject
+    lateinit var eventRepository: Lazy<EventRepository>
 
     @Inject
-    lateinit var eventRepository: EventRepository
+    lateinit var preferredCurrencyController: Lazy<PreferredCurrencyController>
 
     @Inject
-    lateinit var preferredCurrencyController: PreferredCurrencyController
-
-    @Inject
-    lateinit var workerFactory: HiltWorkerFactory
+    lateinit var workerFactory: Lazy<HiltWorkerFactory>
 
     @Inject
     lateinit var activityProvider: ActivityProvider
@@ -45,14 +62,20 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
+            .setWorkerFactory(workerFactory.get())
             .build()
 
+
+    private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
         PhantomSdk.init(this)
-        authManager.init()
+        startupScope.launch {
+            authManager.get().init()
+            eventRepository.get()
+            preferredCurrencyController.get()
+        }
 
         // Track the foreground Activity so the tip-code share preview can render offscreen.
         registerActivityLifecycleCallbacks(activityProvider)
