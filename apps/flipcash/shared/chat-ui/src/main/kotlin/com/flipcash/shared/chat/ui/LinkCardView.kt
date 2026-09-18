@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CornerSize
@@ -44,7 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.TokenCard
-import com.flipcash.app.core.ui.TokenIconWithName
+import com.flipcash.app.core.ui.TokenIcon
 import com.flipcash.app.core.ui.rememberShimmerAlpha
 import com.flipcash.app.core.ui.shimmer
 import com.flipcash.shared.chat.models.LinkCard
@@ -151,11 +153,11 @@ private fun CashLinkCard(
     // moves or resizes when the amount lands.
     val state = card.state as? LinkCard.Cash.State.Resolved
 
-    // Loading is that same voucher with the two slots the lookup fills standing in place and
-    // pulsing. It is not a third rendering: the ticket, its brand and its proportions are known
-    // without the network and are drawn the moment the message is, so what is left to say is which
-    // parts are still coming. A failure stops the pulse and the slots go quiet and empty, which is
-    // the unresolved card, which is the one a reader can still tap.
+    // Loading is that same voucher with the amount standing in place and pulsing. It is not a third
+    // rendering: the ticket, its brand, its proportions and the fact that it opens are all known
+    // without the network and are drawn the moment the message is, so the amount is the only thing
+    // left to say is still coming. A failure stops the pulse and the slot goes quiet and empty,
+    // which is the unresolved card, which is the one a reader can still tap.
     val loading = card.state is LinkCard.Cash.State.Loading
 
     CashVoucher(
@@ -175,7 +177,16 @@ private fun CashLinkCard(
         onClick = onClick,
     ) {
         if (state == null) {
-            if (loading) StubPlaceholder()
+            // The tap is live before the lookup is — the whole voucher is clickable in every state,
+            // and opening the link is where claiming happens — so the stub carries the claim
+            // straight away rather than holding an empty slot over a control that already works.
+            //
+            // Claimable is the assumption until the lookup says otherwise, which means a voucher
+            // that turns out to be spent shows the offer for as long as the lookup takes and then
+            // withdraws it. That is the trade: an offer that is occasionally retracted, against a
+            // claim that is always late. Claimed and Expired both land on a dimmed card with the
+            // label under the tear, so the withdrawal is at least unmistakable when it happens.
+            StubPill(stringResource(R.string.label_linkCard_claim))
             return@CashVoucher
         }
         when (state.claim) {
@@ -187,8 +198,41 @@ private fun CashLinkCard(
             // link -- the bubble sits on the sender's side -- so a card that read differently for
             // the issuer would be saying it twice, and saying it in the one place both people are
             // looking at the same object.
-            LinkCard.Cash.Claim.Claimable -> ClaimPill(stringResource(R.string.label_linkCard_claim))
+            LinkCard.Cash.Claim.Claimable -> StubPill(stringResource(R.string.label_linkCard_claim))
         }
+    }
+}
+
+/**
+ * The voucher's top line: the token's icon and name, or just the name until there is a token.
+ *
+ * Not [TokenIconWithName], because that draws [TokenIcon] unconditionally and [TokenIcon] falls
+ * back to a generic user avatar for a null image — so an unresolved voucher was showing a person's
+ * silhouette beside the word "Cash", which is both the wrong glyph for money and a claim that an
+ * icon arrived when none had. There is no honest icon for a token nobody has fetched, so nothing is
+ * drawn in its place.
+ *
+ * The row is held at the icon's height whether or not an icon is in it, so the name does not move
+ * when one lands.
+ */
+@Composable
+private fun TokenRow(tokenName: String, tokenImage: Any?) {
+    Row(
+        modifier = Modifier.height(LinkCardDefaults.TOKEN_ICON_SIZE),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+    ) {
+        if (tokenImage != null) {
+            TokenIcon(
+                image = tokenImage,
+                modifier = Modifier.size(LinkCardDefaults.TOKEN_ICON_SIZE),
+            )
+        }
+        Text(
+            text = tokenName,
+            style = CodeTheme.typography.textSmall,
+            color = LinkCardDefaults.INK.copy(alpha = LinkCardDefaults.INK_MUTED),
+        )
     }
 }
 
@@ -355,28 +399,34 @@ private fun CashVoucher(
                 ),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                TokenIconWithName(
-                    tokenName = tokenName,
-                    tokenImage = tokenImage,
-                    imageSize = 20.dp,
-                    spacing = CodeTheme.dimens.grid.x1,
-                    textStyle = CodeTheme.typography.textSmall,
-                    textColor = LinkCardDefaults.INK.copy(alpha = LinkCardDefaults.INK_MUTED),
-                )
-                if (amount != null) {
-                    AnimatedNumberText(
-                        value = amount,
-                        style = CodeTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                        color = LinkCardDefaults.INK,
-                        constraintMode = ConstraintMode.AutoSize(
-                            minimum = CodeTheme.typography.textMedium,
-                        ),
-                    )
-                } else if (loading) {
-                    InkPlaceholder(
-                        width = LinkCardDefaults.AMOUNT_PLACEHOLDER_WIDTH,
-                        height = LinkCardDefaults.AMOUNT_PLACEHOLDER_HEIGHT,
-                    )
+                TokenRow(tokenName = tokenName, tokenImage = tokenImage)
+                // One slot, one height, whichever of the three things is in it: the amount once
+                // it lands, a placeholder while the lookup is out, nothing at all if it failed.
+                // The height is held because the column centres what it holds -- without it the
+                // empty unresolved card centres the token name on its own and a failed lookup
+                // slides the name down the card, which is the one thing a failure must not do.
+                // A minimum rather than a fixed height, so a large system font scale grows the
+                // slot instead of clipping the amount.
+                Box(
+                    modifier = Modifier.heightIn(min = LinkCardDefaults.AMOUNT_SLOT_HEIGHT),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (amount != null) {
+                        AnimatedNumberText(
+                            value = amount,
+                            style = CodeTheme.typography.displaySmall
+                                .copy(fontWeight = FontWeight.Bold),
+                            color = LinkCardDefaults.INK,
+                            constraintMode = ConstraintMode.AutoSize(
+                                minimum = CodeTheme.typography.textMedium,
+                            ),
+                        )
+                    } else if (loading) {
+                        InkPlaceholder(
+                            width = LinkCardDefaults.AMOUNT_PLACEHOLDER_WIDTH,
+                            height = LinkCardDefaults.AMOUNT_PLACEHOLDER_HEIGHT,
+                        )
+                    }
                 }
             }
         }
@@ -557,19 +607,6 @@ private fun StubLabel(text: String, onPaper: Boolean = true) {
 }
 
 /**
- * Where the claim pill will be. Drawn at the pill's size rather than the label's, because the pill
- * is what lands in almost every case and a placeholder that grows on arrival would be its own
- * small movement inside a card whose whole point is that nothing moves.
- */
-@Composable
-private fun StubPlaceholder() {
-    InkPlaceholder(
-        width = LinkCardDefaults.STUB_PLACEHOLDER_WIDTH,
-        height = LinkCardDefaults.STUB_PLACEHOLDER_HEIGHT,
-    )
-}
-
-/**
  * A slot on the paper with nothing in it yet, pulsing.
  *
  * Ink rather than the white of `Modifier.shimmer`: the voucher is the one light surface in the
@@ -591,11 +628,13 @@ private fun InkPlaceholder(
 }
 
 /**
- * The claimable stub. A filled pill rather than a line of text, because this is the one state where
- * the card is an offer — tapping it opens the link, which is where the claim happens.
+ * The stub of a voucher that can still be acted on. A filled pill rather than a line of text,
+ * because these are the states where the card is an offer — tapping it opens the link, which is
+ * where the claim happens. [StubLabel] is the other half of the pair: flat ink for a voucher that
+ * is only reporting what became of it.
  */
 @Composable
-private fun ClaimPill(text: String) {
+private fun StubPill(text: String) {
     Text(
         modifier = Modifier
             .background(LinkCardDefaults.INK, RoundedCornerShape(percent = 50))
@@ -642,13 +681,19 @@ private object LinkCardDefaults {
     /** Secondary ink: the token's name and a spent voucher's label. */
     const val INK_MUTED = 0.55f
 
-    /** The amount's slot while it is coming — roughly what "$15.00" occupies at `displaySmall`. */
+    /** The token's icon on the voucher, and the height its row keeps when there is no icon. */
+    val TOKEN_ICON_SIZE = 20.dp
+
+    /**
+     * The amount's slot, held at the same height in every state so neither resolving nor failing
+     * moves the token name above it. `displaySmall`'s own line height, which is what the amount
+     * occupies once it arrives.
+     */
+    val AMOUNT_SLOT_HEIGHT = 36.dp
+
+    /** The placeholder inside that slot — roughly what "$15.00" occupies at `displaySmall`. */
     val AMOUNT_PLACEHOLDER_WIDTH = 104.dp
     val AMOUNT_PLACEHOLDER_HEIGHT = 28.dp
-
-    /** The claim pill's slot while it is coming. */
-    val STUB_PLACEHOLDER_WIDTH = 76.dp
-    val STUB_PLACEHOLDER_HEIGHT = 22.dp
 
     val NOTCH_RADIUS = 9.dp
     val DASH = 4.dp
