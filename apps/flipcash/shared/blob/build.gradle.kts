@@ -14,6 +14,7 @@ dependencies {
 
     implementation(project(":libs:coroutines"))
     implementation(project(":services:flipcash"))
+    implementation(project(":ui:resources"))
 
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)

@@ -4,11 +4,11 @@ import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.blob.BlobStorageCoordinator
+import com.flipcash.app.blob.ImageUploadPreparer
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.onResult
-import com.flipcash.services.models.blob.ImageConstraints
 import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.features.userprofile.R
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -42,8 +42,6 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.floor
-import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
@@ -53,6 +51,7 @@ class PhotoSelectionViewModel @Inject constructor(
     private val moderationController: ModerationController,
     private val profileController: ProfileController,
     private val blobStorage: BlobStorageCoordinator,
+    private val imagePreparer: ImageUploadPreparer,
     private val resources: ResourceHelper,
     val contentReader: ContentReader,
 ) : BaseViewModel<PhotoSelectionViewModel.State, PhotoSelectionViewModel.Event>(
@@ -153,39 +152,30 @@ class PhotoSelectionViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnImageSelected>()
             .mapNotNull { event ->
-                val sourceMime = contentReader.mimeType(event.image)
-                // The cache re-encodes to JPEG/PNG, so gate on the type we'd actually upload —
-                // not the source type, which may normalize into an accepted format (e.g. HEIC → PNG).
-                val uploadMime = uploadMimeFor(sourceMime)
-                val policy = stateFlow.value.uploadPolicy
-                val constraints = policy?.constraintsFor(uploadMime)
-                if (policy != null && constraints == null) {
-                    rejectImage(
-                        title = R.string.error_title_imageNotSupported,
-                        message = R.string.error_description_imageNotSupported,
-                    )
-                    return@mapNotNull null
-                }
-                // Re-encode within the policy's dimension + pixel caps, then keep shrinking the
-                // longest edge until the bytes fit maxSizeBytes — resize to fit, don't reject.
-                val maxBytes = constraints?.maxSizeBytes
-                val cached = cacheWithinPolicy(
+                // Re-encode within the policy's dimension + pixel caps and shrink to its byte
+                // ceiling. The wording of a refusal is this screen's; the loop is not.
+                when (val outcome = imagePreparer.prepare(
                     uri = event.image,
-                    sourceMime = sourceMime,
-                    image = constraints?.image,
-                    maxBytes = maxBytes,
-                ) ?: return@mapNotNull null
-                // Last resort: if even the smallest re-encode can't meet the byte ceiling, reject.
-                if (maxBytes != null && (contentReader.size(cached) ?: 0L) > maxBytes) {
-                    contentReader.removeFromCache(cached)
-                    rejectImage(
-                        title = R.string.error_title_imageTooLarge,
-                        message = R.string.error_description_imageTooLarge,
-                    )
-                    return@mapNotNull null
+                    policy = stateFlow.value.uploadPolicy,
+                    fileNamePrefix = "user_profile",
+                )) {
+                    is ImageUploadPreparer.Outcome.Prepared -> outcome.uri to outcome.mimeType
+                    ImageUploadPreparer.Outcome.Unsupported -> {
+                        rejectImage(
+                            title = R.string.error_title_imageNotSupported,
+                            message = R.string.error_description_imageNotSupported,
+                        )
+                        null
+                    }
+                    ImageUploadPreparer.Outcome.TooLarge -> {
+                        rejectImage(
+                            title = R.string.error_title_imageTooLarge,
+                            message = R.string.error_description_imageTooLarge,
+                        )
+                        null
+                    }
+                    ImageUploadPreparer.Outcome.Unreadable -> null
                 }
-                // The cache re-encodes (stripping EXIF); declare the type those bytes actually are.
-                cached to uploadMime
             }
             .flowOn(dispatchers.IO)
             .onEach { (cached, mime) -> dispatchEvent(Event.OnImageCached(cached, mime)) }
@@ -253,57 +243,6 @@ class PhotoSelectionViewModel @Inject constructor(
             title = resources.getString(title),
             message = resources.getString(message),
         )
-    }
-
-    /**
-     * Re-encodes [uri] into the cache honoring [image]'s dimension caps, then shrinks the
-     * longest-edge target until the output fits [maxBytes] — resizing to fit rather than rejecting.
-     * Returns null only if re-encoding fails outright; otherwise the smallest attempt (which the
-     * caller re-checks, since a byte ceiling smaller than [MIN_MAX_EDGE] can produce is pathological).
-     */
-    private fun cacheWithinPolicy(
-        uri: Uri,
-        sourceMime: String?,
-        image: ImageConstraints?,
-        maxBytes: Long?,
-    ): Uri? {
-        var edge = maxEdgeFor(image)
-        var last: Uri? = null
-        repeat(MAX_RESIZE_ATTEMPTS) {
-            // Drop the previous over-ceiling attempt before making a smaller one.
-            last?.let { contentReader.removeFromCache(it) }
-            val candidate = contentReader.copyToCache(
-                uri = uri,
-                fileName = "user_profile_${System.nanoTime()}",
-                maxSize = edge,
-                mimeType = sourceMime,
-            ) ?: return null
-            last = candidate
-            val size = contentReader.size(candidate) ?: 0L
-            if (maxBytes == null || size <= maxBytes) return candidate
-            // Encoded bytes track pixel area (edge²); scale the edge by √(ceiling/actual) with a
-            // safety margin to converge, floored at MIN_MAX_EDGE.
-            val next = floor(edge * sqrt(maxBytes.toDouble() / size) * RESIZE_SAFETY)
-                .toInt()
-                .coerceAtLeast(MIN_MAX_EDGE)
-            if (next >= edge) return candidate // already at the floor — hand back the best effort
-            edge = next
-        }
-        return last
-    }
-
-    /**
-     * The longest-edge cap that satisfies every dimension constraint in [image]: the smallest of
-     * maxWidth, maxHeight, and √maxPixels (bounding the longest edge by √maxPixels keeps total area
-     * ≤ maxPixels). Falls back to [DEFAULT_MAX_EDGE] when the policy names no image constraints.
-     */
-    private fun maxEdgeFor(image: ImageConstraints?): Int {
-        val caps = listOfNotNull(
-            image?.maxWidth,
-            image?.maxHeight,
-            image?.maxPixels?.let { floor(sqrt(it.toDouble())).toInt() },
-        ).filter { it > 0 }
-        return caps.minOrNull() ?: DEFAULT_MAX_EDGE
     }
 
     private fun handleUploadFailure(cause: Throwable) {
@@ -416,18 +355,6 @@ class PhotoSelectionViewModel @Inject constructor(
     }
 
     companion object {
-
-        // Longest-edge downscale target used when the upload policy specifies no dimension caps.
-        private const val DEFAULT_MAX_EDGE = 500
-
-        // Floor for the resize-to-fit loop — below this a profile image is no longer worth keeping.
-        private const val MIN_MAX_EDGE = 64
-
-        // How many times to shrink-and-retry before handing back the smallest attempt.
-        private const val MAX_RESIZE_ATTEMPTS = 5
-
-        // Under-shoot the estimated fitting edge so re-encode overhead doesn't push us back over.
-        private const val RESIZE_SAFETY = 0.9
 
         internal val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
