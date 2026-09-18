@@ -158,14 +158,14 @@ internal fun MessageRow(
         enabled = bubble != null &&
             !selecting &&
             MessageCapability.Reply in bubble.capabilities,
-        // The avatar column is the target for the person, not for the message: a drag that starts
-        // on someone's picture is reaching for them, and the picture is small enough that arming a
-        // reply from it would mostly catch fingers that missed the tap.
-        senderGutter = if (showsSenderGutter && bubble?.isFromSelf == false) {
-            CodeTheme.dimens.staticGrid.x6
-        } else {
-            0.dp
-        },
+        // A drag arms on the message, not beside it: on someone's avatar it is reaching for them,
+        // and on the empty side of an outgoing row it is reaching for nothing. The one row that
+        // leads with the bubble itself — an incoming message in a DM — keeps its leading edge live.
+        leadingGutter = replyGutterFor(
+            width = CodeTheme.dimens.staticGrid.x6,
+            isFromSelf = bubble?.isFromSelf == true,
+            showsSenderGutter = showsSenderGutter,
+        ),
         onReply = { bubble?.let { onAction(ChatAction.ReplyTo(it)) } },
     )
 

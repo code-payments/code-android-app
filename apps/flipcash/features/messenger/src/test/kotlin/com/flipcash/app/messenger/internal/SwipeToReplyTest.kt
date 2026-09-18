@@ -1,7 +1,9 @@
 package com.flipcash.app.messenger.internal
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.flipcash.app.messenger.internal.screens.components.SwipeToReplyState
+import com.flipcash.app.messenger.internal.screens.components.replyGutterFor
 import com.flipcash.app.messenger.internal.screens.components.resist
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -13,11 +15,15 @@ import kotlin.test.assertTrue
  *
  * Mirrors iOS's `ChatSwipeToReplyTests`. The two implementations share these numbers, so a change
  * here is a change to the gesture on both platforms.
+ *
+ * Also where the row arms from, which is a layout question rather than a shared one: the gesture
+ * starts on the bubble and nowhere else.
  */
 class SwipeToReplyTest {
 
     private val max = 64f
     private val trigger = 48f
+    private val gutter = 30.dp
     private val tolerance = 0.01f
 
     @Test
@@ -61,6 +67,28 @@ class SwipeToReplyTest {
         assertEquals(0.5f, stateAt(trigger / 2).progress(), tolerance)
         assertEquals(1f, stateAt(trigger).progress(), tolerance)
         assertEquals(1f, stateAt(max).progress(), tolerance)
+    }
+
+    @Test
+    fun `a DM's incoming row arms from its own leading edge`() {
+        assertEquals(
+            0.dp,
+            replyGutterFor(gutter, isFromSelf = false, showsSenderGutter = false),
+        )
+    }
+
+    @Test
+    fun `a group's incoming row does not arm from the avatar column`() {
+        assertEquals(
+            gutter,
+            replyGutterFor(gutter, isFromSelf = false, showsSenderGutter = true),
+        )
+    }
+
+    @Test
+    fun `an outgoing row does not arm from the empty side it is aligned away from`() {
+        assertEquals(gutter, replyGutterFor(gutter, isFromSelf = true, showsSenderGutter = false))
+        assertEquals(gutter, replyGutterFor(gutter, isFromSelf = true, showsSenderGutter = true))
     }
 
     private fun stateAt(offset: Float) = SwipeToReplyState(
