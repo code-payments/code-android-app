@@ -20,4 +20,6 @@ data class ChatMetadata(
     // Participation requirements for this chat. Only set for group chats; null means the chat
     // has no requirements.
     val rules: ChatRules? = null,
+    // Per-viewer chat state, absent when the chat holds nothing about the viewer.
+    val viewerState: ViewerState? = null,
 )

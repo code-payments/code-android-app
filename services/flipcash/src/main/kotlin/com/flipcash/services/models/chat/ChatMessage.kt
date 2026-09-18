@@ -15,4 +15,7 @@ data class ChatMessage(
     val isFromSelf: Boolean = false,
     val deliveryStatus: DeliveryStatus = DeliveryStatus.SENT,
     val pendingClientIdHex: String? = null,
+    // Set when this copy was redacted for the viewer: it exists, but its content is a
+    // placeholder. See messaging.v1.Message.redacted.
+    val redacted: Boolean = false,
 )

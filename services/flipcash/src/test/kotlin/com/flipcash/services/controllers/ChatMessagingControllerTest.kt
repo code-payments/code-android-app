@@ -11,6 +11,7 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatMessagingRepository
 import com.flipcash.services.repository.DeltaUpdate
 import com.flipcash.services.repository.ReactorsPage
@@ -505,22 +506,22 @@ private class FakeChatMessagingRepository : ChatMessagingRepository {
     var lastPointerType: PointerType? = null
     var lastTypingState: TypingState? = null
 
-    override suspend fun getMessage(owner: Ed25519.KeyPair, chatId: ChatId, messageId: Long): Result<ChatMessage> {
+    override suspend fun getMessage(owner: Ed25519.KeyPair, chatId: ChatId, messageId: Long, viewMode: ViewMode): Result<ChatMessage> {
         lastChatId = chatId; lastMessageId = messageId
         return getMessageResult
     }
 
-    override suspend fun getMessages(owner: Ed25519.KeyPair, chatId: ChatId, queryOptions: QueryOptions): Result<List<ChatMessage>> {
+    override suspend fun getMessages(owner: Ed25519.KeyPair, chatId: ChatId, queryOptions: QueryOptions, viewMode: ViewMode): Result<List<ChatMessage>> {
         lastChatId = chatId; lastQueryOptions = queryOptions
         return getMessagesResult
     }
 
-    override suspend fun getMessagesByIds(owner: Ed25519.KeyPair, chatId: ChatId, messageIds: List<Long>): Result<List<ChatMessage>> {
+    override suspend fun getMessagesByIds(owner: Ed25519.KeyPair, chatId: ChatId, messageIds: List<Long>, viewMode: ViewMode): Result<List<ChatMessage>> {
         lastChatId = chatId; lastMessageIds = messageIds
         return getMessagesByIdsResult
     }
 
-    override fun getDelta(owner: Ed25519.KeyPair, chatId: ChatId, afterSequence: Long): Flow<Result<DeltaUpdate>> {
+    override fun getDelta(owner: Ed25519.KeyPair, chatId: ChatId, afterSequence: Long, viewMode: ViewMode): Flow<Result<DeltaUpdate>> {
         lastChatId = chatId; lastAfterSequence = afterSequence
         return flowOf(Result.failure(RuntimeException("not configured")))
     }

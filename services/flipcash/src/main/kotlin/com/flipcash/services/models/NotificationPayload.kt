@@ -45,6 +45,10 @@ data class  PushChatMetadata(
     val sendingUserId: ID?,
     val chatType: ChatType,
     val message: ChatMessage? = null,
+    // Whether the recipient had this chat muted when the push was sent. The push is still
+    // delivered so the client can store the message, but a muted chat must not present a
+    // notification for it.
+    val muted: Boolean = false,
 )
 
 data class NotificationPayload(

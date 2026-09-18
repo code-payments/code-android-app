@@ -359,6 +359,13 @@ class EventStreamDelegate @Inject constructor(
                         metaUpdate.newLastActivity.toEpochMilliseconds(),
                     )
                 }
+                is MetadataUpdate.ViewerStateChanged -> {
+                    // The receiving user's own chat state (currently just mute) changed.
+                    // Persisting it needs a chat_metadata column/migration that belongs
+                    // with the muting feature's storage work, not this contract sync, so
+                    // the update is acknowledged here without a write. Wire this up to
+                    // metadataDataSource once that column exists.
+                }
             }
         }
 

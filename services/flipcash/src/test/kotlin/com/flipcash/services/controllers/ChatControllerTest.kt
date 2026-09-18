@@ -6,7 +6,10 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.StartChatParameters
+import com.flipcash.services.models.chat.ViewerState
+import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -327,11 +330,18 @@ private class FakeChatRepository : ChatRepository {
     var startChatResult: Result<ChatMetadata> = Result.failure(RuntimeException("not configured"))
     var joinChatResult: Result<ChatMetadata> = Result.failure(RuntimeException("not configured"))
     var leaveChatResult: Result<Unit> = Result.failure(RuntimeException("not configured"))
+    var muteChatResult: Result<ViewerState> = Result.failure(RuntimeException("not configured"))
+    var unmuteChatResult: Result<ViewerState> = Result.failure(RuntimeException("not configured"))
     var lastChatId: ChatId? = null
     var lastQueryOptions: QueryOptions? = null
     var lastChatType: ChatType? = null
+    var lastMuteState: MuteState? = null
 
-    override suspend fun getChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ChatMetadata> {
+    override suspend fun getChat(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        viewMode: ViewMode,
+    ): Result<ChatMetadata> {
         lastChatId = chatId
         return getChatResult
     }
@@ -370,6 +380,21 @@ private class FakeChatRepository : ChatRepository {
     override suspend fun leaveChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<Unit> {
         lastChatId = chatId
         return leaveChatResult
+    }
+
+    override suspend fun muteChat(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        mute: MuteState,
+    ): Result<ViewerState> {
+        lastChatId = chatId
+        lastMuteState = mute
+        return muteChatResult
+    }
+
+    override suspend fun unmuteChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ViewerState> {
+        lastChatId = chatId
+        return unmuteChatResult
     }
 }
 

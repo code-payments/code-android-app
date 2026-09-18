@@ -13,6 +13,7 @@ import com.flipcash.services.internal.network.extensions.asMessageId
 import com.flipcash.services.internal.network.extensions.asPointerType
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.asTypingState
+import com.flipcash.services.internal.network.extensions.asViewMode
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
@@ -21,6 +22,7 @@ import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -46,10 +48,12 @@ internal class ChatMessagingApi @Inject constructor(
         owner: KeyPair,
         chatId: ChatId,
         messageId: Long,
+        viewMode: ViewMode = ViewMode.FULL,
     ): RpcMessagingService.GetMessageResponse {
         val request = RpcMessagingService.GetMessageRequest.newBuilder()
             .setChatId(chatId.asChatId())
             .setMessageId(MessagingModel.MessageId.newBuilder().setValue(messageId))
+            .setViewMode(viewMode.asViewMode())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -64,10 +68,12 @@ internal class ChatMessagingApi @Inject constructor(
         owner: KeyPair,
         chatId: ChatId,
         queryOptions: QueryOptions,
+        viewMode: ViewMode = ViewMode.FULL,
     ): RpcMessagingService.GetMessagesResponse {
         val request = RpcMessagingService.GetMessagesRequest.newBuilder()
             .setChatId(chatId.asChatId())
             .setOptions(queryOptions.asQueryOptions())
+            .setViewMode(viewMode.asViewMode())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -82,6 +88,7 @@ internal class ChatMessagingApi @Inject constructor(
         owner: KeyPair,
         chatId: ChatId,
         messageIds: List<Long>,
+        viewMode: ViewMode = ViewMode.FULL,
     ): RpcMessagingService.GetMessagesResponse {
         val request = RpcMessagingService.GetMessagesRequest.newBuilder()
             .setChatId(chatId.asChatId())
@@ -89,6 +96,7 @@ internal class ChatMessagingApi @Inject constructor(
                 MessagingModel.MessageIdBatch.newBuilder()
                     .addAllMessageIds(messageIds.map { MessagingModel.MessageId.newBuilder().setValue(it).build() })
             )
+            .setViewMode(viewMode.asViewMode())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -162,10 +170,12 @@ internal class ChatMessagingApi @Inject constructor(
         owner: KeyPair,
         chatId: ChatId,
         afterSequence: Long,
+        viewMode: ViewMode = ViewMode.FULL,
     ): Flow<RpcMessagingService.GetDeltaResponse> {
         val request = RpcMessagingService.GetDeltaRequest.newBuilder()
             .setChatId(chatId.asChatId())
             .setAfterSequence(afterSequence)
+            .setViewMode(viewMode.asViewMode())
             .apply { setAuth(authenticate(owner)) }
             .build()
 

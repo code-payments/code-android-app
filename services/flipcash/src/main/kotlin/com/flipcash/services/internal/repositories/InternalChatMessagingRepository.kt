@@ -12,6 +12,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatMessagingRepository
 import com.flipcash.services.repository.DeltaUpdate
 import com.flipcash.services.repository.ReactorsPage
@@ -28,7 +29,8 @@ internal class InternalChatMessagingRepository(
         owner: KeyPair,
         chatId: ChatId,
         messageId: Long,
-    ): Result<ChatMessage> = service.getMessage(owner, chatId, messageId)
+        viewMode: ViewMode,
+    ): Result<ChatMessage> = service.getMessage(owner, chatId, messageId, viewMode)
         .onFailure { ErrorUtils.handleError(it) }
         .map { it.toChatMessage() }
 
@@ -36,7 +38,8 @@ internal class InternalChatMessagingRepository(
         owner: KeyPair,
         chatId: ChatId,
         queryOptions: QueryOptions,
-    ): Result<List<ChatMessage>> = service.getMessages(owner, chatId, queryOptions)
+        viewMode: ViewMode,
+    ): Result<List<ChatMessage>> = service.getMessages(owner, chatId, queryOptions, viewMode)
         .onFailure { ErrorUtils.handleError(it) }
         .map { messages -> messages.map { it.toChatMessage() } }
 
@@ -44,7 +47,8 @@ internal class InternalChatMessagingRepository(
         owner: KeyPair,
         chatId: ChatId,
         messageIds: List<Long>,
-    ): Result<List<ChatMessage>> = service.getMessagesByIds(owner, chatId, messageIds)
+        viewMode: ViewMode,
+    ): Result<List<ChatMessage>> = service.getMessagesByIds(owner, chatId, messageIds, viewMode)
         .onFailure { ErrorUtils.handleError(it) }
         .map { messages -> messages.map { it.toChatMessage() } }
 
@@ -52,7 +56,8 @@ internal class InternalChatMessagingRepository(
         owner: KeyPair,
         chatId: ChatId,
         afterSequence: Long,
-    ): Flow<Result<DeltaUpdate>> = service.getDelta(owner, chatId, afterSequence)
+        viewMode: ViewMode,
+    ): Flow<Result<DeltaUpdate>> = service.getDelta(owner, chatId, afterSequence, viewMode)
         .map { result ->
             result
                 .onFailure { ErrorUtils.handleError(it) }

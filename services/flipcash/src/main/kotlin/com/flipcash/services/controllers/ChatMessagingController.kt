@@ -10,6 +10,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatMessagingRepository
 import com.flipcash.services.repository.DeltaUpdate
 import com.flipcash.services.repository.ReactorsPage
@@ -26,24 +27,40 @@ class ChatMessagingController @Inject constructor(
     private fun requireOwner() = userManager.accountCluster?.authority?.keyPair
         ?: throw IllegalStateException("No account cluster in UserManager")
 
-    suspend fun getMessage(chatId: ChatId, messageId: Long): Result<ChatMessage> {
+    suspend fun getMessage(
+        chatId: ChatId,
+        messageId: Long,
+        viewMode: ViewMode = ViewMode.FULL,
+    ): Result<ChatMessage> {
         val owner = runCatching { requireOwner() }.getOrElse { return Result.failure(it) }
-        return repository.getMessage(owner, chatId, messageId)
+        return repository.getMessage(owner, chatId, messageId, viewMode)
     }
 
-    suspend fun getMessages(chatId: ChatId, queryOptions: QueryOptions = QueryOptions()): Result<List<ChatMessage>> {
+    suspend fun getMessages(
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+        viewMode: ViewMode = ViewMode.FULL,
+    ): Result<List<ChatMessage>> {
         val owner = runCatching { requireOwner() }.getOrElse { return Result.failure(it) }
-        return repository.getMessages(owner, chatId, queryOptions)
+        return repository.getMessages(owner, chatId, queryOptions, viewMode)
     }
 
-    suspend fun getMessagesByIds(chatId: ChatId, messageIds: List<Long>): Result<List<ChatMessage>> {
+    suspend fun getMessagesByIds(
+        chatId: ChatId,
+        messageIds: List<Long>,
+        viewMode: ViewMode = ViewMode.FULL,
+    ): Result<List<ChatMessage>> {
         val owner = runCatching { requireOwner() }.getOrElse { return Result.failure(it) }
-        return repository.getMessagesByIds(owner, chatId, messageIds)
+        return repository.getMessagesByIds(owner, chatId, messageIds, viewMode)
     }
 
-    fun getDelta(chatId: ChatId, afterSequence: Long): Flow<Result<DeltaUpdate>> {
+    fun getDelta(
+        chatId: ChatId,
+        afterSequence: Long,
+        viewMode: ViewMode = ViewMode.FULL,
+    ): Flow<Result<DeltaUpdate>> {
         val owner = requireOwner()
-        return repository.getDelta(owner, chatId, afterSequence)
+        return repository.getDelta(owner, chatId, afterSequence, viewMode)
     }
 
     suspend fun sendMessage(

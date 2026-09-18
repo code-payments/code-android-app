@@ -10,6 +10,7 @@ import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toMediaItem
 import com.flipcash.services.internal.network.extensions.toPointer
 import com.flipcash.services.internal.network.extensions.toRosterSummary
+import com.flipcash.services.internal.network.extensions.toViewerState
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
 import kotlin.time.Instant
@@ -42,6 +43,7 @@ class ChatMetadataMapper @Inject constructor(
             picture = if (from.hasPicture()) from.picture.toMediaItem() else null,
             rosterSummary = from.rosterSummary.toRosterSummary(),
             rules = if (from.hasRules()) from.rules.toChatRules() else null,
+            viewerState = if (from.hasViewerState()) from.viewerState.toViewerState() else null,
         )
     }
 }
