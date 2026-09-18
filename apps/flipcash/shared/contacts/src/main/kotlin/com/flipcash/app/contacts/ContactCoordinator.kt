@@ -13,6 +13,8 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.FlipcashAnalyticsService
@@ -151,7 +153,11 @@ class ContactCoordinator @Inject constructor(
     // region Lifecycle
 
     init {
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        // Posted, not called directly: addObserver is main-thread-only, and this singleton is built
+        // off the main thread so its construction stays off the startup path.
+        Handler(Looper.getMainLooper()).post {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        }
 
         // Hydrate linked-for-payment flag from DataStore
         contactPrefs.data

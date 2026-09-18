@@ -2,6 +2,8 @@ package com.getcode.opencode.internal.exchange
 
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.exchange.Exchange
@@ -40,7 +42,11 @@ internal class OpenCodeExchange @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        // Posted, not called directly: addObserver is main-thread-only, and this singleton is built
+        // off the main thread so its construction stays off the startup path.
+        Handler(Looper.getMainLooper()).post {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        }
         scope.launch {
             val currencyCode = locale.getDefaultCurrencyName()
             preferredCurrency = CurrencyCode.tryValueOf(currencyCode)
