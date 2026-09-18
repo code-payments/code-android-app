@@ -5,6 +5,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.chat.ViewerState
 
 /**
  * What the messenger screen is a conversation *with*.
@@ -74,6 +75,12 @@ sealed interface ChatSubject {
      * splitting them would let the screen blur a chat it had just joined for one frame. It is null
      * for a group hydrated by id, which cannot know it — see `ChatMembership.isMember`. What the
      * viewer may see treats null as a non-member; what the gate's button offers does not.
+     *
+     * [viewerState] is carried whole rather than reduced to a muted flag. A timed mute lapses with
+     * nothing sent to say so, so what is muted depends on when it is asked — `isMutedAt` is the
+     * only thing that should answer, and it needs the deadline this keeps. It is the one field
+     * here with a default, because absent is what a chat holding nothing about its viewer really
+     * says, and a caller that is not about the viewer has nothing truer to pass.
      */
     data class Group(
         val chatId: ChatId,
@@ -82,6 +89,7 @@ sealed interface ChatSubject {
         val memberCount: Long,
         val rules: ChatRules?,
         val isMember: Boolean?,
+        val viewerState: ViewerState? = null,
     ) : ChatSubject {
         override val title: String get() = groupTitle.orEmpty()
         override val subtitle: String? get() = null

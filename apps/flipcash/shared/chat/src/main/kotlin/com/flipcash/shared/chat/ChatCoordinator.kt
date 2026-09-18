@@ -14,6 +14,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.TypingState
@@ -274,6 +275,24 @@ interface MessagingOperations {
 
     /** Notifies the server of the user's typing state in [chatId]. */
     suspend fun notifyTyping(chatId: ChatId, typingState: TypingState): Result<Unit>
+
+    /**
+     * Mutes [chatId] for this viewer, [mute] saying until when or indefinitely, and stores the
+     * viewer state the server answers with.
+     *
+     * Not optimistic, unlike the leave: the stored state is versioned, and the version that decides
+     * whether a later stream update wins is the server's to mint. Writing a guess at it would
+     * either lose to the echo of this very call or shut a genuinely newer update out.
+     */
+    suspend fun mute(chatId: ChatId, mute: MuteState): Result<Unit>
+
+    /**
+     * Clears the mute on [chatId] for this viewer.
+     *
+     * Its own call rather than a zero-length [mute]: the contract has two mute shapes, a deadline
+     * and forever, and neither of them says "not muted".
+     */
+    suspend fun unmute(chatId: ChatId): Result<Unit>
 }
 
 /**
