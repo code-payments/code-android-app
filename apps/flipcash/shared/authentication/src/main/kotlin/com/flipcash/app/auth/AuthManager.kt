@@ -16,6 +16,7 @@ import com.flipcash.shared.profile.ProfileCoordinator
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.authentication.BuildConfig
@@ -245,14 +246,6 @@ class AuthManager @Inject constructor(
                         profileCoordinator.restore()
                         userFlags.restoreFlags()
 
-                        val flags = if (!isSoftLogin || networkObserver.isConnected) {
-                            retryable(maxRetries = 3) {
-                                accountController.getUserFlags().getOrNull()
-                            }
-                        } else {
-                            null
-                        }
-
                         val seenAccessKey = credentialManager.hasSeenAccessKey()
                         // Interactive logins (seed input, deep link, credential picker)
                         // always route through the onboarding permissions flow, which
@@ -262,37 +255,20 @@ class AuthManager @Inject constructor(
                         // Soft logins (app restart) can trust the persisted flag.
                         val completedOnboarding = if (!isSoftLogin) false
                             else credentialManager.hasCompletedOnboarding()
-                        // Display-name entry follows the access key, so it only gates the resume
-                        // point once the access key has been seen — before that, resume at the
-                        // access key regardless of whether a name is set.
-                        val displayNameMissing = userManager.profile?.displayName.isNullOrEmpty()
-                        if (flags != null) {
-                            userManager.set(flags)
-                            if (flags.isRegistered && seenAccessKey && completedOnboarding) {
-                                userManager.set(AuthState.Ready)
-                            } else {
-                                val resumePoint = when {
-                                    !seenAccessKey -> AuthState.ResumePoint.AccessKey
-                                    flags.requiresIapForRegistration -> AuthState.ResumePoint.AccessKeyThenPurchase
-                                    displayNameMissing -> AuthState.ResumePoint.DisplayName
-                                    else -> AuthState.ResumePoint.PostAccessKey
-                                }
-                                trace(tag = "Onboarding", message = "Resuming onboarding at $resumePoint", type = TraceType.Process)
-                                userManager.set(AuthState.Onboarding(resumePoint))
-                            }
+
+                        if (isSoftLogin) {
+                            resumeFromLocalState(seenAccessKey, completedOnboarding)
                         } else {
-                            taggedTrace("Failed to get user flags after retries", type = TraceType.Error)
-                            if (seenAccessKey && completedOnboarding) {
-                                userManager.set(authState = AuthState.Ready)
+                            val flags = fetchUserFlags()
+                            if (flags != null) {
+                                userManager.set(flags)
                             } else {
-                                val resumePoint = when {
-                                    !seenAccessKey -> AuthState.ResumePoint.AccessKey
-                                    displayNameMissing -> AuthState.ResumePoint.DisplayName
-                                    else -> AuthState.ResumePoint.PostAccessKey
-                                }
-                                trace(tag = "Onboarding", message = "Resuming onboarding at $resumePoint (flags unavailable)", type = TraceType.Process)
-                                userManager.set(authState = AuthState.Onboarding(resumePoint))
+                                taggedTrace("Failed to get user flags after retries", type = TraceType.Error)
                             }
+                            publishAuthState(
+                                state = resolveAuthState(flags, seenAccessKey, completedOnboarding),
+                                flagsAvailable = flags != null,
+                            )
                         }
 
                         if (networkObserver.isConnected) {
@@ -317,6 +293,90 @@ class AuthManager @Inject constructor(
      * to mark its own row and to refuse to remove the account underneath the user.
      */
     val currentEntropy: String? get() = userManager.entropy
+
+    /**
+     * Publishes where a soft login lands without waiting on the network, then refreshes the user
+     * flags behind it.
+     *
+     * Everything the decision needs is already local by the time this runs: [ProfileCoordinator]
+     * and [UserFlagsCoordinator] have replayed the last session's profile and flags, and the
+     * access-key and onboarding markers come from credential storage. Awaiting `getUserFlags()`
+     * here instead put a gRPC round trip — up to three attempts two seconds apart — between the
+     * splash screen and the tabs, which is the one thing relaunching an account that is already
+     * signed in must not do.
+     *
+     * The refresh can still move the state: if the server says the account never finished
+     * registering, the login lands back on onboarding, where awaiting the call would have put it.
+     * That correction is skipped when something else has moved the state on in the meantime, so it
+     * cannot pull the user out of a step they have since started.
+     */
+    private suspend fun resumeFromLocalState(seenAccessKey: Boolean, completedOnboarding: Boolean) {
+        val restoredFlags = userManager.userFlags
+        val resolved = resolveAuthState(restoredFlags, seenAccessKey, completedOnboarding)
+        publishAuthState(state = resolved, flagsAvailable = restoredFlags != null)
+
+        if (!networkObserver.isConnected) return
+
+        // Deliberately on the manager's own scope: login() joins its children before returning, so
+        // refreshing from the calling scope would reintroduce the wait this just removed.
+        this@AuthManager.launch {
+            val flags = fetchUserFlags()
+            if (flags == null) {
+                taggedTrace("Failed to get user flags after retries", type = TraceType.Error)
+                return@launch
+            }
+
+            userManager.set(flags)
+            val corrected = resolveAuthState(flags, seenAccessKey, completedOnboarding)
+            if (corrected != resolved && userManager.authState == resolved) {
+                taggedTrace("User flags moved auth state $resolved => $corrected")
+                publishAuthState(state = corrected, flagsAvailable = true)
+            }
+        }
+    }
+
+    private suspend fun fetchUserFlags(): UserFlags? =
+        retryable(maxRetries = 3) { accountController.getUserFlags().getOrNull() }
+
+    /**
+     * Resolves where a login lands from the local onboarding markers plus [flags], which may be the
+     * cached copy [UserFlagsCoordinator.restoreFlags] restored, the server's answer, or null when
+     * neither is available. Null reads as registered: [seenAccessKey] and [completedOnboarding] are
+     * the local record of having got that far, and distrusting them would strand a user without a
+     * usable connection on onboarding they have already finished.
+     */
+    private fun resolveAuthState(
+        flags: UserFlags?,
+        seenAccessKey: Boolean,
+        completedOnboarding: Boolean,
+    ): AuthState {
+        val registered = flags?.isRegistered ?: true
+        if (registered && seenAccessKey && completedOnboarding) return AuthState.Ready
+
+        // Display-name entry follows the access key, so it only gates the resume point once the
+        // access key has been seen — before that, resume at the access key regardless of whether a
+        // name is set.
+        val displayNameMissing = userManager.profile?.displayName.isNullOrEmpty()
+        val resumePoint = when {
+            !seenAccessKey -> AuthState.ResumePoint.AccessKey
+            flags?.requiresIapForRegistration == true -> AuthState.ResumePoint.AccessKeyThenPurchase
+            displayNameMissing -> AuthState.ResumePoint.DisplayName
+            else -> AuthState.ResumePoint.PostAccessKey
+        }
+        return AuthState.Onboarding(resumePoint)
+    }
+
+    private fun publishAuthState(state: AuthState, flagsAvailable: Boolean) {
+        if (state is AuthState.Onboarding) {
+            val qualifier = if (flagsAvailable) "" else " (flags unavailable)"
+            trace(
+                tag = "Onboarding",
+                message = "Resuming onboarding at ${state.resumePoint}$qualifier",
+                type = TraceType.Process,
+            )
+        }
+        userManager.set(state)
+    }
 
     suspend fun deleteAndLogout(): Result<Unit> {
         //todo: add account deletion
