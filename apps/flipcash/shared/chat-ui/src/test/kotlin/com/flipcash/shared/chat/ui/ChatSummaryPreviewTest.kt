@@ -11,6 +11,8 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.ChatSummary
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.toFiat
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.every
 import io.mockk.mockk
@@ -208,5 +210,20 @@ class ChatSummaryPreviewTest {
     @Test
     fun `a DM is not prefixed with the counterparty's name`() {
         assertEquals("gm", preview(listOf(MessageContent.Text("gm"))))
+    }
+
+    @Test
+    fun `group cash from someone the roster subset omits previews as the amount alone`() {
+        // "You received" would be a lie here: the cash went to the group, and the viewer may have
+        // got none of it. The reserve mint leaves the token name off, so this formats no string —
+        // which is why the mockk stub list stays empty.
+        val stranger: ID = listOf(7)
+        val cash = MessageContent.Cash(
+            intentId = listOf(3),
+            amount = 25.toFiat(),
+            mint = Mint.usdf,
+        )
+
+        assertEquals("$25.00", groupReference(listOf(cash), senderId = stranger).lastMessagePreview)
     }
 }
