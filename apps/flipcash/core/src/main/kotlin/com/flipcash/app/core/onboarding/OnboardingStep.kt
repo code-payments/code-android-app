@@ -22,6 +22,10 @@ sealed interface OnboardingStep : FlowStep, Parcelable {
 
     @Parcelize
     @Serializable
+    data object AccountSelection : OnboardingStep
+
+    @Parcelize
+    @Serializable
     data object AccessKey : OnboardingStep
 
     @Parcelize

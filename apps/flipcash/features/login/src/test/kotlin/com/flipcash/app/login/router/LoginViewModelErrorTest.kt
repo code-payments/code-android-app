@@ -3,6 +3,7 @@ package com.flipcash.app.login.router
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.services.controllers.AccountController
@@ -36,6 +37,7 @@ class LoginViewModelErrorTest {
     // Mockito for Result-returning methods (MockK double-boxes Result inline class)
     private val authManager: AuthManager = mock()
     private val accounts: AccountController = mock()
+    private val accountStore: AccountStore = mockk(relaxed = true)
 
     // MockK for everything else
     private val resources = FakeResourceHelper()
@@ -49,6 +51,8 @@ class LoginViewModelErrorTest {
         // android.util.Base64 is stubbed in unit tests; mock it so encodeBase64() doesn't NPE
         mockkStatic(android.util.Base64::class)
         every { android.util.Base64.encodeToString(any(), any()) } answers { java.util.Base64.getEncoder().encodeToString(firstArg()) }
+        // LoginViewModel.init checks the stored account list on construction.
+        whenever(authManager.accounts).thenReturn(accountStore)
     }
 
     @After

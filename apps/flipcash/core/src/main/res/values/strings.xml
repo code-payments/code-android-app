@@ -78,9 +78,6 @@
 
     <string name="subtitle_validAddress">Valid address</string>
 
-    <string name="error_title_selectCredential">Something went wrong</string>
-    <string name="error_description_selectCredential">Failed to restore selected account. Please try again</string>
-
     <string name="permissions_description_camera">Your camera is used to grab Digital Cash. Please allow access to the camera to proceed</string>
     <string name="permissions_title_push">Push Notifications Required</string>
     <string name="permissions_description_push">Push notifications are used to update you on tips and messages</string>
