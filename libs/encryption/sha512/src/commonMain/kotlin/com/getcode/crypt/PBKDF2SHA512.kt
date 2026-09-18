@@ -67,18 +67,20 @@ object PBKDF2SHA512 {
             i.toByte(),
         )
 
+        // One Hmac for the whole block. doFinal resets it to the keyed state it was constructed in,
+        // so each round reuses the key schedule instead of deriving it again.
+        val hmac = HmacSHA512(password)
+
         // U_1 = HMAC(Password, Salt || INT(i))
-        val hmac1 = HmacSHA512(password)
-        hmac1.update(salt)
-        hmac1.update(iBytes)
-        var u = hmac1.doFinal()
+        hmac.update(salt)
+        hmac.update(iBytes)
+        var u = hmac.doFinal()
         val xor = u.copyOf()
 
         // U_j = HMAC(Password, U_{j-1}), for j = 2..c
         for (j in 2..c) {
-            val hmacJ = HmacSHA512(password)
-            hmacJ.update(u)
-            u = hmacJ.doFinal()
+            hmac.update(u)
+            u = hmac.doFinal()
             for (k in xor.indices) xor[k] = (xor[k].toInt() xor u[k].toInt()).toByte()
         }
 
