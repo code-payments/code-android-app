@@ -45,10 +45,9 @@ class ShareGroupInviteTest {
             "Join Book Club on Flipcash and let's chat\n\nhttps://app.flipcash.com/chat/abc",
             sent.getStringExtra(Intent.EXTRA_TEXT)
         )
-        assertEquals(
-            "Join Book Club on Flipcash and let's chat",
-            sent.getStringExtra(Intent.EXTRA_TITLE)
-        )
+        // The headline names the group; repeating the sentence there would show it twice, once
+        // truncated. The subject is an email's, where the sentence is the message.
+        assertEquals("Book Club", sent.getStringExtra(Intent.EXTRA_TITLE))
         assertEquals(
             "Join Book Club on Flipcash and let's chat",
             sent.getStringExtra(Intent.EXTRA_SUBJECT)

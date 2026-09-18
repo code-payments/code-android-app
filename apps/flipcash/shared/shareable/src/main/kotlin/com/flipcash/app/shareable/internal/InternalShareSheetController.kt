@@ -303,9 +303,8 @@ internal class InternalShareSheetController(
         // link rather than an invitation with a hole in it. Blank counts as no name: an untitled
         // group reaches this as "" via ChatSubject.Group.title. Same wording as iOS'
         // GroupInviteShareItem, which trims and checks the same way.
-        val invitation = shareable.title
-            ?.takeIf { it.isNotBlank() }
-            ?.let { resources.getString(R.string.message_groupInvite, it.trim()) }
+        val name = shareable.title?.takeIf { it.isNotBlank() }?.trim()
+        val invitation = name?.let { resources.getString(R.string.message_groupInvite, it) }
 
         // The group's own picture as the Sharesheet's thumbnail, so the invite is recognisable
         // before it is sent. Best-effort: no picture, a slow fetch or an expired URL all share
@@ -316,10 +315,14 @@ internal class InternalShareSheetController(
 
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
-            invitation?.let {
-                putExtra(Intent.EXTRA_TITLE, it)
-                putExtra(Intent.EXTRA_SUBJECT, it)
-            }
+            // The headline above the Sharesheet's preview. The group's name, not the invitation:
+            // the sentence is already the first line of the body directly beneath it, and the
+            // headline is one truncated line, so putting it in both says the name twice and cuts
+            // it off once.
+            name?.let { putExtra(Intent.EXTRA_TITLE, it) }
+            // EXTRA_SUBJECT is an email's subject line rather than a preview headline, so the
+            // invitation belongs here — it reads as the message it is, with no body beside it.
+            invitation?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
             putExtra(
                 Intent.EXTRA_TEXT,
                 if (invitation != null) "$invitation\n\n${shareable.url}" else shareable.url

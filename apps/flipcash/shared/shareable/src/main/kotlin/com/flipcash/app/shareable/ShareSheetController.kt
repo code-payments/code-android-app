@@ -54,7 +54,8 @@ sealed interface Shareable {
      */
     data class GroupInvite(
         val url: String,
-        // The group's name, which the invitation sentence names. Null or blank shares the bare link.
+        // The group's name: the Sharesheet's headline, and what the invitation sentence names.
+        // Null or blank shares the bare link, with no headline.
         val title: String? = null,
         /**
          * The group's picture, as a download URL, for the Sharesheet's preview thumbnail. Null for
