@@ -9,6 +9,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -53,6 +54,8 @@ class MessageCapabilityTest {
         isFromSelf,
     )
 
+    // Resolved at the instant it was sent, so the default policy's fallback windows are both open
+    // and this stays a statement about content rather than about age.
     @Test
     fun `own text message is copyable, editable and deletable`() {
         assertEquals(
@@ -62,7 +65,7 @@ class MessageCapabilityTest {
                 MessageCapability.Edit,
                 MessageCapability.Delete,
             ),
-            resolveCapabilities(text()),
+            resolveCapabilities(text(), now = sentAt),
         )
     }
 
@@ -116,13 +119,13 @@ class MessageCapabilityTest {
                 MessageCapability.Edit,
                 MessageCapability.Delete,
             ),
-            resolveCapabilities(reply),
+            resolveCapabilities(reply, now = sentAt),
         )
     }
 
     @Test
     fun `an edit window drops Edit once it lapses and leaves Delete alone`() {
-        val policy = MessagePolicy(editWindow = 15.minutes)
+        val policy = MessagePolicy(editWindow = 15.minutes, deleteWindow = null)
 
         assertEquals(
             setOf(
@@ -142,7 +145,7 @@ class MessageCapabilityTest {
 
     @Test
     fun `a delete window drops Delete once it lapses and leaves Edit alone`() {
-        val policy = MessagePolicy(deleteWindow = 60.minutes)
+        val policy = MessagePolicy(editWindow = null, deleteWindow = 60.minutes)
 
         assertEquals(
             setOf(
@@ -177,6 +180,8 @@ class MessageCapabilityTest {
 
     @Test
     fun `an unset window leaves its capability open`() {
+        val unbounded = MessagePolicy(editWindow = null, deleteWindow = null)
+
         assertEquals(
             setOf(
                 MessageCapability.Copy,
@@ -184,8 +189,61 @@ class MessageCapabilityTest {
                 MessageCapability.Edit,
                 MessageCapability.Delete,
             ),
-            resolveCapabilities(text(), MessagePolicy.Default, now = sentAt + 365.days),
+            resolveCapabilities(text(), unbounded, now = sentAt + 365.days),
         )
+    }
+
+    @Test
+    fun `windows the server did not send fall back rather than staying open`() {
+        val policy = MessagePolicy.fromFlags(editWindow = null, deleteWindow = null)
+
+        assertEquals(MessagePolicy.FallbackEditWindow, policy.editWindow)
+        assertEquals(MessagePolicy.FallbackDeleteWindow, policy.deleteWindow)
+        assertEquals(policy, MessagePolicy.Default)
+
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete),
+            resolveCapabilities(text(), policy, now = sentAt + 30.minutes),
+        )
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply),
+            resolveCapabilities(text(), policy, now = sentAt + 365.days),
+        )
+    }
+
+    /**
+     * The fallback covers only what the server left unset, so a window it did send has to survive
+     * the substitution — including one longer than the fallback, which is where a `?:` on the wrong
+     * side of the expression would show up.
+     */
+    @Test
+    fun `windows the server did send are used as sent`() {
+        val policy = MessagePolicy.fromFlags(editWindow = 90.minutes, deleteWindow = null)
+
+        assertEquals(90.minutes, policy.editWindow)
+        assertEquals(MessagePolicy.FallbackDeleteWindow, policy.deleteWindow)
+
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Edit,
+                MessageCapability.Delete,
+            ),
+            resolveCapabilities(text(), policy, now = sentAt + 60.minutes),
+        )
+    }
+
+    /**
+     * Both numbers are maintained by hand against iOS `MessagePolicy.fallbackEditWindow` /
+     * `fallbackDeleteWindow`. Nothing checks the two repos against each other, so this pins the
+     * Android side: a change here fails until someone states the new value, which is the prompt to
+     * go and change iOS too.
+     */
+    @Test
+    fun `the fallback windows are the values iOS carries`() {
+        assertEquals(15.minutes, MessagePolicy.FallbackEditWindow)
+        assertEquals(48.hours, MessagePolicy.FallbackDeleteWindow)
     }
 
     /**

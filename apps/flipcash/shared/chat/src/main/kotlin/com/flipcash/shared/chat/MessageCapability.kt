@@ -4,6 +4,8 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -30,19 +32,59 @@ enum class MessageCapability {
  * Client-side limits on what may be done to a message.
  *
  * Both windows come from `UserFlags` (`message_edit_window`, `message_delete_window`), which sends
- * them with explicit presence: an unset field is no limit rather than a zero-length one. The
- * defaults are therefore both `null`, which leaves `CANNOT_EDIT` / `CANNOT_DELETE` as the
- * authority for a build that has not seen the flags yet.
+ * them with explicit presence: an unset field is distinguishable from a zero-length one. Where the
+ * server sends nothing, [fromFlags] substitutes [FallbackEditWindow] / [FallbackDeleteWindow]
+ * rather than leaving the action open forever, so a message old enough can lose Edit or Delete
+ * even where the server would have taken the request. That is the accepted cost: an affordance the
+ * server answers `CANNOT_EDIT` / `CANNOT_DELETE` is the worse failure.
+ *
+ * Neither window has a default here. Absence is a real input — it decides whether the fallback
+ * applies — so it is worth stating at the call site rather than inheriting.
  *
  * @param editWindow how long after sending a message stays editable, or `null` for no limit.
  * @param deleteWindow how long after sending a message stays deletable, or `null` for no limit.
  */
 data class MessagePolicy(
-    val editWindow: Duration? = null,
-    val deleteWindow: Duration? = null,
+    val editWindow: Duration?,
+    val deleteWindow: Duration?,
 ) {
     companion object {
-        val Default = MessagePolicy()
+        /**
+         * The window applied when the server sends no edit window.
+         *
+         * Maintained in parallel with iOS `MessagePolicy.fallbackEditWindow`
+         * (`FlipcashCore/Sources/FlipcashCore/Models/Conversation/MessagePolicy.swift`). The two
+         * must move together or the clients offer different rows for the same message; nothing
+         * enforces it, so changing one means changing the other in the same release.
+         *
+         * The value is a product choice, not a figure the contract supplies: `message_edit_window`
+         * documents what it means but never what an absent field implies. Replace it the moment the
+         * server does specify one.
+         */
+        val FallbackEditWindow = 15.minutes
+
+        /**
+         * The window applied when the server sends no delete window. Same parallel-maintenance duty
+         * and same provenance as [FallbackEditWindow]; iOS holds it as
+         * `MessagePolicy.fallbackDeleteWindow`.
+         */
+        val FallbackDeleteWindow = 48.hours
+
+        /**
+         * Builds the policy in force from the windows the server sent, substituting the fallbacks
+         * for anything it left unset.
+         *
+         * Both arguments are nullable because every upstream state collapses to the same one:
+         * flags not yet fetched, a fetch that failed, and flags whose window fields are unset all
+         * arrive as `null` and all get the fallback. There is no second path to keep in step.
+         */
+        fun fromFlags(editWindow: Duration?, deleteWindow: Duration?) = MessagePolicy(
+            editWindow = editWindow ?: FallbackEditWindow,
+            deleteWindow = deleteWindow ?: FallbackDeleteWindow,
+        )
+
+        /** The policy in force before any flags have been read: the fallback windows. */
+        val Default = fromFlags(editWindow = null, deleteWindow = null)
     }
 }
 
