@@ -36,9 +36,9 @@ import kotlin.math.roundToInt
  * it holds at the end of its own travel, because it marks where the gesture fires and there is
  * nothing further along to mark.
  *
- * [senderGutter] is the width of the avatar column at the row's leading edge, if the row reserves
- * one. A drag that starts inside it is inert — that column is the target for the person, not for
- * the message, and a row that opened there would promise a reply it is not going to send.
+ * [leadingGutter] is the strip at the row's leading edge that the bubble does not reach — see
+ * [replyGutterFor]. A drag that starts inside it is inert: a row that opened from a point that is
+ * not the message would promise a reply it is not going to send.
  *
  * The distances are iOS's, in absolute units rather than the fractions of screen width this was
  * ported with. They have to be: [SwipeToReplyState.progress] is the fraction of the trigger
@@ -49,7 +49,7 @@ import kotlin.math.roundToInt
 @Composable
 internal fun rememberSwipeToReply(
     enabled: Boolean,
-    senderGutter: Dp,
+    leadingGutter: Dp,
     onReply: () -> Unit,
 ): SwipeToReplyState {
     val density = LocalDensity.current
@@ -58,7 +58,7 @@ internal fun rememberSwipeToReply(
 
     val maxPx = with(density) { MAX_TRANSLATION.toPx() }
     val triggerPx = with(density) { TRIGGER_THRESHOLD.toPx() }
-    val gutterPx = with(density) { senderGutter.toPx() }
+    val gutterPx = with(density) { leadingGutter.toPx() }
 
     val reply by rememberUpdatedState(onReply)
 
@@ -129,6 +129,24 @@ internal fun rememberSwipeToReply(
 }
 
 /**
+ * The strip at a row's leading edge that a reply drag may not start in: everything ahead of the
+ * bubble, and nothing of the bubble itself.
+ *
+ * Only one kind of row has its bubble hard against the leading edge — an incoming message in a DM,
+ * which reserves no avatar column and is not pushed inward by one. Every other row leads with
+ * something that is not the message: the avatar column on an incoming row of a group, which is the
+ * target for the person rather than for what they said, and empty transcript on an outgoing row,
+ * where the bubble is aligned to the far side.
+ *
+ * [width] is that one avatar column's width, reused as the outgoing strip so both read the same. It
+ * cannot eat into an outgoing bubble: a bubble stops at 0.78 of the row, which leaves far more than
+ * this to its leading side at every width the app runs at. The one content that fills the row is a
+ * system notice, and those carry no capabilities at all, so no drag on one was ever going to reply.
+ */
+internal fun replyGutterFor(width: Dp, isFromSelf: Boolean, showsSenderGutter: Boolean): Dp =
+    if (!isFromSelf && !showsSenderGutter) 0.dp else width
+
+/**
  * What a row needs from the gesture: the modifier that carries it, and how far it has travelled, so
  * the row can draw the affordance the drag is uncovering.
  */
@@ -161,7 +179,7 @@ internal class SwipeToReplyState(
  * for no visible change.
  */
 private class DragLatch {
-    /** Whether this drag may reply at all — false for one that started in the sender gutter. */
+    /** Whether this drag may reply at all — false for one that started in the leading gutter. */
     var armed = false
 
     /** Whether the threshold haptic has fired. Latched for the rest of the drag, so a finger held
