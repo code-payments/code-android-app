@@ -12,5 +12,14 @@ import com.flipcash.services.models.chat.ChatMetadata
  */
 data class ChatMembership(
     val metadata: ChatMetadata,
-    val isMember: Boolean,
+    /**
+     * Whether the viewer is in this chat, or `null` when nothing local answers that yet.
+     *
+     * Only [MessagingOperations.hydrateChat] produces `null`: it fetches a chat the device holds no
+     * row for, and `GetChat` returns the chat without the caller's relationship to it, so an
+     * unsynced chat has no answer rather than a negative one. Callers deciding what the viewer may
+     * *do* may read it as "not a member". Callers deciding what the viewer may *see* must withhold,
+     * because an unknown rendered as a member shows the transcript the gate exists to withhold.
+     */
+    val isMember: Boolean?,
 )

@@ -6,11 +6,14 @@ import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,8 +22,7 @@ import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.assertNull
 import kotlin.time.Instant
 
 /**
@@ -77,12 +79,12 @@ class MessagingMetadataObservationTest {
             subject.observeMetadata(chatId).test {
                 val first = awaitItem()!!
                 assertEquals(2L, first.metadata.rosterSummary.memberCount)
-                assertFalse(first.isMember)
+                assertEquals(false, first.isMember)
 
                 rows.value = entity(memberCount = 3, isMember = true)
                 val second = awaitItem()!!
                 assertEquals(3L, second.metadata.rosterSummary.memberCount)
-                assertTrue(second.isMember)
+                assertEquals(true, second.isMember)
 
                 cancelAndIgnoreRemainingEvents()
             }
@@ -106,12 +108,73 @@ class MessagingMetadataObservationTest {
             }
         }
 
+    /**
+     * A chat the device has no row for is fetched, and carries no membership answer.
+     *
+     * This is the cold open: an invite link or a push tap into a group no sync has ever brought
+     * down. Without the fetch the screen has nothing to draw — the Room observation above is the
+     * only other source and it emits null — and `GetChat` cannot say whether the viewer is in the
+     * chat, so the result withholds rather than guesses. Nothing is written: the membership column
+     * would have to hold one guess or the other.
+     */
+    @Test
+    fun `hydrateChat fetches an unstored chat and reports membership as unknown`() =
+        runTest(dispatchers.dispatcher) {
+            val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true) {
+                coEvery { exists(chatId) } returns false
+            }
+            val chatController = mockk<ChatController>(relaxed = true) {
+                coEvery { getChat(chatId) } returns Result.success(metadata(memberCount = 4))
+            }
+
+            val subject = delegate(
+                metadataDataSource = metadataDataSource,
+                memberDataSource = mockk(relaxed = true),
+                messageDataSource = mockk(relaxed = true),
+                chatController = chatController,
+            )
+
+            val hydrated = subject.hydrateChat(chatId)
+
+            assertEquals(4L, hydrated?.metadata?.rosterSummary?.memberCount)
+            assertNull(hydrated?.isMember)
+            coVerify(exactly = 0) { metadataDataSource.upsert(any<ChatMetadata>()) }
+            coVerify(exactly = 0) { metadataDataSource.upsert(any<List<ChatMetadata>>()) }
+            coVerify(exactly = 0) {
+                metadataDataSource.setMembership(any<ChatId>(), any<Boolean>())
+            }
+        }
+
+    /**
+     * A stored chat is not refetched: `observeMetadata` is already answering for it, with the
+     * membership the row holds, and a second copy would only race it.
+     */
+    @Test
+    fun `hydrateChat leaves a stored chat to the observation`() =
+        runTest(dispatchers.dispatcher) {
+            val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true) {
+                coEvery { exists(chatId) } returns true
+            }
+            val chatController = mockk<ChatController>(relaxed = true)
+
+            val subject = delegate(
+                metadataDataSource = metadataDataSource,
+                memberDataSource = mockk(relaxed = true),
+                messageDataSource = mockk(relaxed = true),
+                chatController = chatController,
+            )
+
+            assertNull(subject.hydrateChat(chatId))
+            coVerify(exactly = 0) { chatController.getChat(any()) }
+        }
+
     private fun delegate(
         metadataDataSource: ChatMetadataDataSource,
         memberDataSource: ChatMemberDataSource,
         messageDataSource: ChatMessageDataSource,
+        chatController: ChatController = mockk(relaxed = true),
     ) = MessagingDelegate(
-        chatController = mockk(relaxed = true),
+        chatController = chatController,
         messagingController = mockk(relaxed = true),
         metadataDataSource = metadataDataSource,
         messageDataSource = messageDataSource,

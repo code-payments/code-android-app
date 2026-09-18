@@ -184,6 +184,21 @@ interface MessagingOperations {
     fun observeMetadata(chatId: ChatId): Flow<ChatMembership?>
 
     /**
+     * Fetches [chatId] from the server for a chat this device holds no row for, so a conversation
+     * reached by invite link or push tap can render before it has ever been synced.
+     *
+     * Returns `null` when the row is already stored — [observeMetadata] is answering in that case,
+     * and a second copy would only race it — and when the fetch fails.
+     *
+     * Deliberately not persisted. `GetChat` returns the chat, not the caller's relationship to it,
+     * and the row's membership column has to be written with something, so storing this would
+     * record a guess: `true` opens a group the viewer has not joined, `false` gates a member whose
+     * feed has not synced yet. The result carries membership as `null` instead, and the join path
+     * writes the row once the server has confirmed it.
+     */
+    suspend fun hydrateChat(chatId: ChatId): ChatMembership?
+
+    /**
      * Every profile this device holds, keyed by user-id hex.
      *
      * The group transcript indexes into this by a bubble's `senderId` to draw a name and avatar.

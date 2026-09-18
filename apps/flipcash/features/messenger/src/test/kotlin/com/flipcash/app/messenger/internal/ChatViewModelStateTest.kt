@@ -29,7 +29,7 @@ class ChatViewModelStateTest {
     private val groupChatId = ChatId(groupUuid.bytes)
     private val unmet = ChatRuleRequirement.MinimumBalance(Fiat(100.0), emptyList())
 
-    private fun group(isMember: Boolean) = ChatSubject.Group(
+    private fun group(isMember: Boolean?) = ChatSubject.Group(
         chatId = groupChatId,
         groupTitle = "Ballers",
         picture = null,
@@ -125,6 +125,35 @@ class ChatViewModelStateTest {
                 joinProgress = LoadingSuccessState(),
             ).isGatedPreview
         )
+    }
+
+    @Test
+    fun `a group whose membership is unknown stays withheld`() {
+        // A chat hydrated by id — an invite link or a push tap into a group the device has never
+        // synced — cannot know whether the viewer is in it, because GetChat does not say. Withheld
+        // is the safe half of that: a member whose feed has not landed yet reads the blur for a
+        // beat, where the other way round would hand a non-member the transcript outright.
+        assertTrue(
+            ChatViewModel.State(
+                subject = group(isMember = null),
+                groupAccess = null,
+            ).isGatedPreview
+        )
+        // Still withheld once the balance answers: what the button offers is decided by the access,
+        // not the blur.
+        assertTrue(
+            ChatViewModel.State(
+                subject = group(isMember = null),
+                groupAccess = GroupAccess.Eligible,
+            ).isGatedPreview
+        )
+    }
+
+    @Test
+    fun `an unknown membership has no invite to share`() {
+        // The link is an action, not a view: offering it would invite people into a group this
+        // device cannot yet say the viewer belongs to.
+        assertNull(ChatViewModel.State(subject = group(isMember = null)).groupInviteUrl)
     }
 
     @Test

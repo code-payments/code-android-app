@@ -71,7 +71,9 @@ sealed interface ChatSubject {
      * because a group has none.
      *
      * [isMember] rides along because the access gate reads it in the same breath as [rules], and
-     * splitting them would let the screen blur a chat it had just joined for one frame.
+     * splitting them would let the screen blur a chat it had just joined for one frame. It is null
+     * for a group hydrated by id, which cannot know it — see `ChatMembership.isMember`. What the
+     * viewer may see treats null as a non-member; what the gate's button offers does not.
      */
     data class Group(
         val chatId: ChatId,
@@ -79,7 +81,7 @@ sealed interface ChatSubject {
         val picture: MediaItem?,
         val memberCount: Long,
         val rules: ChatRules?,
-        val isMember: Boolean,
+        val isMember: Boolean?,
     ) : ChatSubject {
         override val title: String get() = groupTitle.orEmpty()
         override val subtitle: String? get() = null

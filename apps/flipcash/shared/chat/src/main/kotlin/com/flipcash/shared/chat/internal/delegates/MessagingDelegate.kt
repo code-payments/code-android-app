@@ -115,6 +115,15 @@ class MessagingDelegate @Inject constructor(
         notificationManager.cancel(chatId.hashCode())
     }
 
+    override suspend fun hydrateChat(chatId: ChatId): ChatMembership? {
+        if (metadataDataSource.exists(chatId)) return null
+        val metadata = chatController.getChat(chatId).getOrElse {
+            trace(tag = TAG, message = "Hydrate failed for $chatId", type = TraceType.Error)
+            return null
+        }
+        return ChatMembership(metadata = metadata, isMember = null)
+    }
+
     override fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>> {
         return messageDataSource.observeMessages(chatId)
     }

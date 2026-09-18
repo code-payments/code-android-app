@@ -306,7 +306,8 @@ internal class ChatViewModel @Inject constructor(
          * short.
          */
         val isGatedPreview: Boolean
-            get() = joinProgress.success || (subject as? ChatSubject.Group)?.isMember == false
+            get() = joinProgress.success ||
+                (subject is ChatSubject.Group && subject.isMember != true)
 
         /**
          * The link that invites someone into this group, or `null` when there is nobody to invite:
@@ -317,7 +318,7 @@ internal class ChatViewModel @Inject constructor(
          */
         val groupInviteUrl: String?
             get() = (subject as? ChatSubject.Group)
-                ?.takeIf { it.isMember }
+                ?.takeIf { it.isMember == true }
                 ?.let { Linkify.groupChatInvite(it.chatId) }
     }
 
@@ -926,6 +927,37 @@ internal class ChatViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Gets the chat on screen onto it: its own row if the device has one, otherwise the server's
+     * copy, and then the transcript if the viewer is entitled to it.
+     *
+     * A chat reached by invite link or push tap may never have been synced — the group feed, a join
+     * and the roster stream all only ever carry chats the viewer is already in — so without the
+     * hydration the screen has no title, no info card and no gate, and nothing that would later
+     * supply them. A chat the device already holds costs no round trip: [ChatCoordinator.hydrateChat]
+     * answers null for it and the Room observation stays the only source, so opening a synced chat
+     * behaves exactly as it did.
+     *
+     * The transcript is fetched only for a viewer the gate lets through. A withheld group is drawn
+     * as a placeholder rather than fetched, so asking for its messages would pull the very ones the
+     * blur is over — and an unknown membership is withheld here for the same reason it is on screen.
+     * A member whose feed has not synced yet is not stranded: the group feed sync sends its own load
+     * for a group whose cursor is still at zero.
+     */
+    private suspend fun openTranscript(chatId: ChatId) {
+        val hydrated = chatCoordinator.hydrateChat(chatId) ?: run {
+            chatCoordinator.loadMessages(chatId)
+            return
+        }
+
+        if (hydrated.metadata.type != ChatType.GROUP) {
+            chatCoordinator.loadMessages(chatId)
+            return
+        }
+
+        dispatchEvent(Event.OnGroupResolved(hydrated))
+    }
+
     private fun initChatHandlers() {
         // Ahead of the transcript, so the first mapping already has the real windows rather than
         // the fallbacks the default carries.
@@ -972,7 +1004,7 @@ internal class ChatViewModel @Inject constructor(
                 if (chatId != null) {
                     dispatchEvent(Event.ChatFound(chatId))
                     chatCoordinator.setActiveChatId(chatId)
-                    viewModelScope.launch { chatCoordinator.loadMessages(chatId) }
+                    viewModelScope.launch { openTranscript(chatId) }
                     chatCoordinator.dismissNotifications(chatId)
                 } else {
                     // No existing chat means no messages yet, so typing stays disabled. The
@@ -1101,7 +1133,7 @@ internal class ChatViewModel @Inject constructor(
                     flowOf(null)
                 } else {
                     tokenCoordinator.groupAccess(
-                        isMember = group.isMember,
+                        isMember = group.isMember == true,
                         rules = group.rules,
                         isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
                     )
