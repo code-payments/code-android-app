@@ -374,6 +374,26 @@ run {
         "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
         "org.jetbrains.kotlin:kotlin-metadata-jvm:$kotlinVersion",
     )
+    // Robolectric reaches into JDK internals that the module system closes off by
+    // default on Java 9+. From 4.17 it uses jdk.internal.access.SharedSecrets to set
+    // up FileDescriptor, which throws IllegalAccessException on our Java 21 toolchain
+    // unless that package is opened; the rest mirror Robolectric's own test config so
+    // shadows that reflect into java.nio, java.text and the AWT font stack keep working.
+    // This has to live here rather than in a convention plugin: :libs:encryption:utils
+    // runs Robolectric from androidHostTest and applies the AGP/KMP plugins directly,
+    // so no flipcash convention plugin sees it.
+    val robolectricJvmArgs = listOf(
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+        "--add-opens=java.base/java.io=ALL-UNNAMED",
+        "--add-opens=java.base/java.net=ALL-UNNAMED",
+        "--add-opens=java.base/java.nio=ALL-UNNAMED",
+        "--add-opens=java.base/java.security=ALL-UNNAMED",
+        "--add-opens=java.base/java.text=ALL-UNNAMED",
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+        "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+        "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED",
+    )
     gradle.lifecycle.beforeProject {
         if (path == ":") {
             extra["flipcash.koverModules"] = koverModulesForRoot
@@ -388,6 +408,9 @@ run {
         }
         tasks.matching { task -> task.name.contains("kapt") }.configureEach {
             enabled = false
+        }
+        tasks.withType(org.gradle.api.tasks.testing.Test::class.java).configureEach {
+            jvmArgs(robolectricJvmArgs)
         }
     }
 }
