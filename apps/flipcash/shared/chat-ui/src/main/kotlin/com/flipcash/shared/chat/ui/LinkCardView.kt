@@ -179,13 +179,13 @@ private fun TokenLinkCard(
 }
 
 /**
- * A tip card link is that tip card: the same near-black portrait, the person named under their
+ * A tip card link is that tip card: the same near-black fill, the same person named beside their
  * picture. Two things are missing from the figure and both are deliberate.
  *
  * The scannable code is not drawn. A code is what a camera is aimed at, and nobody points a camera
  * at the phone they are reading the message on; drawing one would spend the middle of the card on
- * the part of the figure a reader cannot use. The picture takes its place, which is the half that
- * says whose card this is.
+ * the part of the figure a reader cannot use. Nothing takes that middle here, which is why the
+ * picture is the largest thing on the card.
  *
  * And the type does not scale with the card, though the real one's does. That card is a fixed
  * geometry rendered for export, so its name holds a proportion; this one is read in a transcript at
