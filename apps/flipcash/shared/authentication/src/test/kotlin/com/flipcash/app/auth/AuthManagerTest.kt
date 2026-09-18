@@ -22,6 +22,7 @@ import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -31,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -78,6 +80,10 @@ class AuthManagerTest {
         Dispatchers.setMain(testDispatcher)
 
         every { userManager.state } returns userManagerState
+        // A fresh UserManager holds no flags until something sets them; a relaxed mock would hand
+        // back a stub whose every Boolean reads false, which is a different answer from "unknown".
+        // Tests that care about cached flags override this.
+        every { userManager.userFlags } returns null
         // Default to a profile that already has a display name so onboarding resume falls through
         // to the post-access-key path. Tests exercising the DisplayName step override this.
         every { userManager.profile } returns mockk<UserProfile>(relaxed = true) {
@@ -294,8 +300,92 @@ class AuthManagerTest {
         val result = authManager.login(entropyB64 = entropy, isSoftLogin = true)
 
         assertTrue(result.isSuccess)
-        verify { userManager.set(flags) }
         verify { userManager.set(authState = AuthState.Ready) }
+        // The retry sits in the refresh behind the resolved state now, so the login returns before
+        // it finishes and the backoff delay has to be run out explicitly.
+        advanceUntilIdle()
+        verify { userManager.set(flags) }
+    }
+
+    @Test
+    fun `soft login publishes its auth state before calling getUserFlags`() = runTest {
+        // The invariant this protects: relaunching an account that is already signed in reaches the
+        // tabs without a network round trip. restoreFlags() has replayed the previous session's
+        // flags by this point, so getUserFlags() is a refresh behind the resolved state, not a gate
+        // in front of it.
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        every { accountMetadata.id } returns listOf<Byte>(1, 2, 3)
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+        every { userManager.userFlags } returns UserFlags.Default.copy(isRegistered = true)
+
+        val result = authManager.login(entropyB64 = entropy, isSoftLogin = true)
+
+        assertTrue(result.isSuccess)
+        coVerifyOrder {
+            userManager.set(AuthState.Ready)
+            accountController.getUserFlags()
+        }
+    }
+
+    @Test
+    fun `soft login resumes onboarding from the cached flags`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        every { accountMetadata.id } returns listOf<Byte>(1, 2, 3)
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+        every { userManager.userFlags } returns
+            UserFlags.Default.copy(isRegistered = false, requiresIapForRegistration = true)
+
+        val result = authManager.login(entropyB64 = entropy, isSoftLogin = true)
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.AccessKeyThenPurchase)) }
+        verify(exactly = 0) { userManager.set(AuthState.Ready) }
+    }
+
+    @Test
+    fun `refreshed flags move a soft login back to onboarding`() = runTest {
+        // With no cached flags the local onboarding markers carry the decision, which can be
+        // optimistic. The refresh behind it lands on the same state awaiting the call would have.
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        every { accountMetadata.id } returns listOf<Byte>(1, 2, 3)
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+        every { userManager.userFlags } returns null
+        every { userManager.authState } returns AuthState.Ready
+        val flags = UserFlags.Default.copy(isRegistered = false)
+        coEvery { accountController.getUserFlags() } returns Result.success(flags)
+
+        val result = authManager.login(entropyB64 = entropy, isSoftLogin = true)
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(AuthState.Ready) }
+        verify { userManager.set(flags) }
+        verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.PostAccessKey)) }
+    }
+
+    @Test
+    fun `a soft login already moved on is not pulled back by the refresh`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        every { accountMetadata.id } returns listOf<Byte>(1, 2, 3)
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+        every { userManager.userFlags } returns null
+        // Something else -- an onboarding step finishing, a logout -- has moved the state on since
+        // the login published Ready, so the stale correction must not apply.
+        every { userManager.authState } returns AuthState.LoggedOut
+        coEvery { accountController.getUserFlags() } returns
+            Result.success(UserFlags.Default.copy(isRegistered = false))
+
+        val result = authManager.login(entropyB64 = entropy, isSoftLogin = true)
+
+        assertTrue(result.isSuccess)
+        verify(exactly = 0) { userManager.set(match<AuthState> { it is AuthState.Onboarding }) }
     }
 
     @Test
