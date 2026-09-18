@@ -18,6 +18,7 @@ import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.extensions.openAsSheet
+import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
@@ -233,7 +234,7 @@ private fun FlowGroupInviteSheet() {
 
     GroupInviteSheet(
         inviteUrl = state.groupInviteUrl,
-        groupTitle = state.subject?.title,
+        group = state.subject as? ChatSubject.Group,
         onCopy = { viewModel.dispatchEvent(ChatViewModel.Event.CopyInviteLink) },
         onDismiss = dismissSheet,
     )

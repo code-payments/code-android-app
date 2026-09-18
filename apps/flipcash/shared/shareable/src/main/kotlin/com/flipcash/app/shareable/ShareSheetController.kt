@@ -54,8 +54,16 @@ sealed interface Shareable {
      */
     data class GroupInvite(
         val url: String,
-        // The group's name, which the invitation sentence names. Null shares the bare link.
+        // The group's name, which the invitation sentence names. Null or blank shares the bare link.
         val title: String? = null,
+        /**
+         * The group's picture, as a download URL, for the Sharesheet's preview thumbnail. Null for
+         * a group with no picture, and best-effort even when set — see
+         * [com.flipcash.app.core.share.SharePreviewImage].
+         */
+        val imageUrl: String? = null,
+        /** The picture rendition's stable cache key, so the fetch hits what the screen downloaded. */
+        val imageCacheKey: String? = null,
     ) : Shareable {
         override val pendingData: ShareablePendingData? = null
     }

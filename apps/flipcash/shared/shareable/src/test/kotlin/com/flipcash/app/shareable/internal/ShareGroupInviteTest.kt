@@ -55,6 +55,21 @@ class ShareGroupInviteTest {
         )
     }
 
+    /**
+     * An untitled group reaches the controller as "" rather than null — `ChatSubject.Group.title`
+     * is `groupTitle.orEmpty()` — so blank has to fall back the same way null does, or the
+     * invitation goes out with a hole where the name should be.
+     */
+    @Test
+    fun `blank title shares the bare link`() = runTest {
+        val sent = present(
+            Shareable.GroupInvite(url = "https://app.flipcash.com/chat/abc", title = "   ")
+        )
+
+        assertEquals("https://app.flipcash.com/chat/abc", sent.getStringExtra(Intent.EXTRA_TEXT))
+        assertNull(sent.getStringExtra(Intent.EXTRA_TITLE))
+    }
+
     @Test
     fun `untitled group shares the bare link`() = runTest {
         val sent = present(
