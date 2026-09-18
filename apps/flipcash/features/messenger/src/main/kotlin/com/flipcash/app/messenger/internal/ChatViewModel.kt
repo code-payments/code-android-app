@@ -869,10 +869,10 @@ internal class ChatViewModel @Inject constructor(
 
     private fun initChatHandlers() {
         // Ahead of the transcript, so the first mapping already has the real windows rather than
-        // the defaults, which leave both edit and delete open.
+        // the fallbacks the default carries.
         userFlags.resolvedFlags
             .map {
-                MessagePolicy(
+                MessagePolicy.fromFlags(
                     editWindow = it.messageEditWindow.effectiveValue,
                     deleteWindow = it.messageDeleteWindow.effectiveValue,
                 )

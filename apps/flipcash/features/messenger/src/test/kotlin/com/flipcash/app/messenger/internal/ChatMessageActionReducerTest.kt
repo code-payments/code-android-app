@@ -27,6 +27,15 @@ class ChatMessageActionReducerTest {
 
     private val sentAt = Instant.fromEpochSeconds(1_000)
 
+    /**
+     * Both windows open. `MessagePolicy.Default` carries the fallback windows, and these bubbles
+     * are timestamped in 1970, so the default would strip Edit and Delete from every selection
+     * before the assertion could tell whether the reducer stored the right bubble. The window rules
+     * themselves are covered in `MessageCapabilityTest`; the two cases below that do exercise a
+     * window state it directly.
+     */
+    private val unbounded = MessagePolicy(editWindow = null, deleteWindow = null)
+
     private fun bubble(
         messageId: Long,
         text: String = "hello",
@@ -54,7 +63,7 @@ class ChatMessageActionReducerTest {
         val target = bubble(1)
 
         val state = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.ToggleMessageSelection(target),
         )
 
@@ -68,7 +77,7 @@ class ChatMessageActionReducerTest {
         // window that has since closed. Offering Edit anyway costs a round-trip the server answers
         // CANNOT_EDIT. sentAt is decades old, so any finite window here has closed.
         val state = reduce(
-            ChatViewModel.State(messagePolicy = MessagePolicy(editWindow = 5.minutes)),
+            ChatViewModel.State(messagePolicy = MessagePolicy(editWindow = 5.minutes, deleteWindow = null)),
             ChatViewModel.Event.ToggleMessageSelection(bubble(1)),
         )
 
@@ -82,7 +91,7 @@ class ChatMessageActionReducerTest {
     fun `selecting a bubble past its delete window drops Delete`() {
         // Separate from the case above so a window wired to the wrong capability cannot pass both.
         val state = reduce(
-            ChatViewModel.State(messagePolicy = MessagePolicy(deleteWindow = 5.minutes)),
+            ChatViewModel.State(messagePolicy = MessagePolicy(editWindow = null, deleteWindow = 5.minutes)),
             ChatViewModel.Event.ToggleMessageSelection(bubble(1)),
         )
 
@@ -96,7 +105,7 @@ class ChatMessageActionReducerTest {
     fun `long-pressing the selected bubble again clears the bar`() {
         val target = bubble(1)
         val selected = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.ToggleMessageSelection(target),
         )
 
@@ -111,7 +120,7 @@ class ChatMessageActionReducerTest {
         val first = bubble(1)
         val second = bubble(2, text = "goodbye")
         val selected = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.ToggleMessageSelection(first),
         )
 
@@ -123,7 +132,7 @@ class ChatMessageActionReducerTest {
     @Test
     fun `copying clears the bar`() {
         val selected = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.ToggleMessageSelection(bubble(1)),
         )
 
@@ -138,7 +147,7 @@ class ChatMessageActionReducerTest {
         // focus goes because the sheet is modal — a sharp bubble behind it reads as still live.
         val target = bubble(1)
         val selected = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.ToggleMessageSelection(target),
         )
 
@@ -153,7 +162,7 @@ class ChatMessageActionReducerTest {
         // Confirmed or cancelled, the sheet's close is ClearMessageSelection, which the handler
         // drives. Leaving confirmingDelete set would hold the whole transcript behind the backdrop.
         val confirming = reduce(
-            reduce(ChatViewModel.State(), ChatViewModel.Event.ToggleMessageSelection(bubble(1))),
+            reduce(ChatViewModel.State(messagePolicy = unbounded), ChatViewModel.Event.ToggleMessageSelection(bubble(1))),
             ChatViewModel.Event.DeleteMessage(1),
         )
 
@@ -167,7 +176,7 @@ class ChatMessageActionReducerTest {
     fun `starting an edit takes over the composer and stashes the draft`() {
         val target = bubble(1)
         val selected = reduce(
-            ChatViewModel.State(chatInputState = TextFieldState("half-written")),
+            ChatViewModel.State(messagePolicy = unbounded, chatInputState = TextFieldState("half-written")),
             ChatViewModel.Event.ToggleMessageSelection(target),
         )
 
@@ -186,7 +195,7 @@ class ChatMessageActionReducerTest {
     @Test
     fun `editing a second message keeps the original draft rather than the first edit's text`() {
         val first = reduce(
-            ChatViewModel.State(chatInputState = TextFieldState("half-written")),
+            ChatViewModel.State(messagePolicy = unbounded, chatInputState = TextFieldState("half-written")),
             ChatViewModel.Event.EditMessage(1, "hello"),
         )
         // The composer now holds the first message's body, which is not the user's draft.
@@ -204,7 +213,7 @@ class ChatMessageActionReducerTest {
     fun `ending an edit releases the composer`() {
         // Confirm, cancel and back all land here; restoring the stashed draft is the handler's job.
         val editing = reduce(
-            ChatViewModel.State(chatInputState = TextFieldState("half-written")),
+            ChatViewModel.State(messagePolicy = unbounded, chatInputState = TextFieldState("half-written")),
             ChatViewModel.Event.EditMessage(1, "hello"),
         )
 
@@ -216,7 +225,7 @@ class ChatMessageActionReducerTest {
     @Test
     fun `submitting and cancelling leave the edit in place for the handler to read`() {
         val editing = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.EditMessage(1, "hello"),
         )
 
@@ -236,7 +245,7 @@ class ChatMessageActionReducerTest {
     fun `replying opens the strip and clears the selection`() {
         val target = bubble(1)
         val selected = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.ToggleMessageSelection(target),
         )
 
@@ -254,7 +263,7 @@ class ChatMessageActionReducerTest {
     @Test
     fun `replying leaves the draft in the composer`() {
         val state = reduce(
-            ChatViewModel.State(chatInputState = TextFieldState("half-written")),
+            ChatViewModel.State(messagePolicy = unbounded, chatInputState = TextFieldState("half-written")),
             ChatViewModel.Event.ReplyToMessage(quote()),
         )
 
@@ -264,7 +273,7 @@ class ChatMessageActionReducerTest {
     @Test
     fun `starting an edit takes the reply strip down`() {
         val replying = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.ReplyToMessage(quote()),
         )
 
@@ -277,7 +286,7 @@ class ChatMessageActionReducerTest {
     @Test
     fun `replying takes an edit down`() {
         val editing = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.EditMessage(1, "hello"),
         )
 
@@ -290,7 +299,7 @@ class ChatMessageActionReducerTest {
     @Test
     fun `cancelling the reply keeps the draft`() {
         val replying = reduce(
-            ChatViewModel.State(chatInputState = TextFieldState("half-written")),
+            ChatViewModel.State(messagePolicy = unbounded, chatInputState = TextFieldState("half-written")),
             ChatViewModel.Event.ReplyToMessage(quote()),
         )
 
@@ -308,7 +317,7 @@ class ChatMessageActionReducerTest {
     @Test
     fun `sending leaves the reply in place for the handler to read`() {
         val replying = reduce(
-            ChatViewModel.State(),
+            ChatViewModel.State(messagePolicy = unbounded),
             ChatViewModel.Event.ReplyToMessage(quote()),
         )
 
@@ -323,14 +332,14 @@ class ChatMessageActionReducerTest {
      */
     @Test
     fun `a jump request alone sets no target`() {
-        val state = reduce(ChatViewModel.State(), ChatViewModel.Event.JumpToMessage(7))
+        val state = reduce(ChatViewModel.State(messagePolicy = unbounded), ChatViewModel.Event.JumpToMessage(7))
 
         assertNull(state.jumpTarget)
     }
 
     @Test
     fun `a resolved jump carries the target and its bound`() {
-        val state = reduce(ChatViewModel.State(), ChatViewModel.Event.JumpResolved(7, 240))
+        val state = reduce(ChatViewModel.State(messagePolicy = unbounded), ChatViewModel.Event.JumpResolved(7, 240))
 
         assertEquals(7L, state.jumpTarget)
         assertEquals(240, state.jumpBudget)
@@ -338,7 +347,7 @@ class ChatMessageActionReducerTest {
 
     @Test
     fun `consuming a jump clears both`() {
-        val jumping = reduce(ChatViewModel.State(), ChatViewModel.Event.JumpResolved(7, 240))
+        val jumping = reduce(ChatViewModel.State(messagePolicy = unbounded), ChatViewModel.Event.JumpResolved(7, 240))
 
         val state = reduce(jumping, ChatViewModel.Event.JumpConsumed)
 
