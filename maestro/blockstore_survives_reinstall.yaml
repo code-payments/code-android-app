@@ -1,0 +1,29 @@
+appId: com.flipcash.app.android
+name: "Account list — survives uninstall"
+tags:
+  - onboarding
+  - blockstore
+---
+# The point of Block Store, and the reason this is not Credential Manager: the list outlives the
+# app sandbox. Maestro has no uninstall command, so the run does it between the two flows:
+#   maestro test maestro/blockstore_account_list.yaml
+#   adb uninstall com.flipcash.app.android
+#   adb install apps/flipcash/app/build/outputs/apk/debug/app-debug.apk
+#   maestro test maestro/blockstore_survives_reinstall.yaml
+#
+# No `clearState` here — a fresh install has no state to clear, and clearing would hide a pass
+# that only came from leftover app data.
+- launchApp:
+    arguments:
+      isUiTest: true
+- extendedWaitUntil:
+    visible:
+      id: login_screen
+    timeout: 30000
+
+- tapOn: Log in
+- extendedWaitUntil:
+    visible:
+      id: account_selection_screen
+    timeout: 15000
+- assertVisible: "Created .*"

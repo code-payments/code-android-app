@@ -9,4 +9,7 @@
     <exclude
         domain="file"
         path="datastore/release-stage.preferences_pb" />
+    <exclude
+        domain="file"
+        path="datastore/credentials.preferences_pb" />
 </full-backup-content>

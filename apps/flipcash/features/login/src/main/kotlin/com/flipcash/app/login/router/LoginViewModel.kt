@@ -16,6 +16,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -45,6 +47,13 @@ class LoginViewModel @Inject constructor(
         val creatingAccount: LoadingSuccessState = LoadingSuccessState(),
         val logoTapCount: Int = 0,
         val betaOptionsVisible: Boolean = false,
+        val hasStoredAccounts: Boolean = false,
+        /**
+         * Whether the stored-account read has come back. [hasStoredAccounts] defaults to false, so
+         * routing on it before this is true would send someone who has accounts to the access key
+         * field. Callers must wait for it rather than treat the default as an answer.
+         */
+        val storedAccountsChecked: Boolean = false,
     )
 
     sealed interface Event {
@@ -59,9 +68,16 @@ class LoginViewModel @Inject constructor(
         data object OnAccountCreated : Event
         data object CreateAccountSettled : Event
         data object CreateFailed : Event
+        data class OnStoredAccountsChanged(val hasAccounts: Boolean) : Event
     }
 
     private val createInFlight = AtomicBoolean(false)
+
+    /**
+     * A second tap while a login is in flight starts a second one, and the two race
+     * `UserManager.establish`. Reset on every outcome so a failed attempt can be retried.
+     */
+    private val loginInFlight = AtomicBoolean(false)
 
     init {
         eventFlow
@@ -138,31 +154,41 @@ class LoginViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.FacilitateLogin>()
+            .filter { loginInFlight.compareAndSet(false, true) }
             .map { it.entropyB64 }
             .onEach { entropyB64 ->
-                authManager.login(
-                    entropyB64 = entropyB64,
-                    // treat deep links and account switches as if they came from the selection screen
-                    isFromSelection = true
-                ).onFailure {
-                    dispatchEvent(Event.LogInFailed)
-                    BottomBarManager.showError(
-                        title = resources.getString(R.string.error_title_loginFailed),
-                        message = it.localizedMessage ?: resources.getString(R.string.error_description_loginFailed),
-                    )
-                }.onSuccess {
-                    accounts.getUserFlags()
-                        .onSuccess {
-                            if (it.isRegistered || !it.requiresIapForRegistration) {
-                                dispatchEvent(Event.LoggedInSuccessfully)
-                            } else {
-                                dispatchEvent(Event.LoggedInRequiresPayment)
+                try {
+                    authManager.login(
+                        entropyB64 = entropyB64,
+                        // treat deep links and account switches as if they came from the selection screen
+                        isFromSelection = true
+                    ).onFailure {
+                        dispatchEvent(Event.LogInFailed)
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_loginFailed),
+                            message = it.localizedMessage ?: resources.getString(R.string.error_description_loginFailed),
+                        )
+                    }.onSuccess {
+                        accounts.getUserFlags()
+                            .onSuccess {
+                                if (it.isRegistered || !it.requiresIapForRegistration) {
+                                    dispatchEvent(Event.LoggedInSuccessfully)
+                                } else {
+                                    dispatchEvent(Event.LoggedInRequiresPayment)
+                                }
+                            }.onFailure {
+                                dispatchEvent(Event.LogInFailed)
                             }
-                        }.onFailure {
-                            dispatchEvent(Event.LogInFailed)
-                        }
+                    }
+                } finally {
+                    loginInFlight.set(false)
                 }
             }.launchIn(viewModelScope)
+
+        flow { emit(authManager.accounts.all().isNotEmpty()) }
+            .onEach { dispatchEvent(Event.OnStoredAccountsChanged(it)) }
+            .flowOn(dispatchers.IO)
+            .launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -206,6 +232,10 @@ class LoginViewModel @Inject constructor(
                             loading = false
                         )
                     )
+                }
+
+                is Event.OnStoredAccountsChanged -> { state ->
+                    state.copy(hasStoredAccounts = event.hasAccounts, storedAccountsChecked = true)
                 }
             }
         }

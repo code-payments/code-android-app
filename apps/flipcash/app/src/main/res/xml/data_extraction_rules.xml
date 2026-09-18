@@ -10,6 +10,9 @@
         <exclude
             domain="file"
             path="datastore/release-stage.preferences_pb" />
+        <exclude
+            domain="file"
+            path="datastore/credentials.preferences_pb" />
     </cloud-backup>
     <device-transfer>
         <exclude
@@ -21,5 +24,8 @@
         <exclude
             domain="file"
             path="datastore/release-stage.preferences_pb" />
+        <exclude
+            domain="file"
+            path="datastore/credentials.preferences_pb" />
     </device-transfer>
 </data-extraction-rules>

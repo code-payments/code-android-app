@@ -2,7 +2,6 @@ package com.flipcash.app.login.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
-import com.flipcash.app.auth.internal.credentials.SelectCredentialError
 import com.flipcash.app.userflags.ResolvedUserFlags
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.login.R
@@ -140,26 +139,6 @@ internal class SeedInputViewModel @Inject constructor(
             }
             else -> _navigationEvents.emit(NavigationEvent.LoggedIn)
         }
-    }
-
-    suspend fun restoreAccount(): Result<Unit> {
-        return authManager.selectAccount()
-            .onSuccess { mnemonic ->
-                performLogin(
-                    entropyB64 = mnemonic.getBase64EncodedEntropy(),
-                    isRestore = true,
-                )
-            }.onFailure { error ->
-             when (error) {
-                 is SelectCredentialError.UserCancelled -> { /* no op */ }
-                 else -> {
-                     BottomBarManager.showError(
-                         resources.getString(R.string.error_title_selectCredential),
-                         resources.getString(R.string.error_description_selectCredential)
-                     )
-                 }
-             }
-            }.map { Unit }
     }
 
     private fun setState(isLoading: Boolean, isSuccess: Boolean, isContinueEnabled: Boolean) {

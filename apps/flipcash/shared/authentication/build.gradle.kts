@@ -7,8 +7,8 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.auth)
+    implementation(libs.play.services.blockstore)
+    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.datastore)
 
     implementation(project(":apps:flipcash:shared:appsettings"))

@@ -2,6 +2,7 @@ package com.flipcash.app.auth
 
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.appsettings.AppSettingsCoordinator
+import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.contacts.ContactCoordinator
@@ -18,7 +19,6 @@ import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.authentication.BuildConfig
-import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceManager
 import com.getcode.utils.TraceType
@@ -41,6 +41,7 @@ import javax.inject.Singleton
 @Singleton
 class AuthManager @Inject constructor(
     private val credentialManager: PassphraseCredentialManager,
+    private val accountStore: AccountStore,
     private val userManager: UserManager,
     private val notificationManager: NotificationManagerCompat,
     private val accountController: AccountController,
@@ -309,9 +310,13 @@ class AuthManager @Inject constructor(
     }
 
 
-    suspend fun selectAccount(): Result<MnemonicPhrase> {
-        return credentialManager.selectCredential()
-    }
+    val accounts: AccountStore get() = accountStore
+
+    /**
+     * The entropy of the signed-in account, or null when nobody is. The selection screen needs it
+     * to mark its own row and to refuse to remove the account underneath the user.
+     */
+    val currentEntropy: String? get() = userManager.entropy
 
     suspend fun deleteAndLogout(): Result<Unit> {
         //todo: add account deletion

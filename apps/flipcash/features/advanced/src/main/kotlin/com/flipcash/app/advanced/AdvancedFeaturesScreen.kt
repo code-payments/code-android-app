@@ -67,13 +67,6 @@ fun AdvancedFeaturesScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OnSwitchAccountTo>()
-            .onEach { navigator.hide() }
-            .launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
             .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OnLoggedOutCompletely>()
             .onEach {
                 navigator.hide()

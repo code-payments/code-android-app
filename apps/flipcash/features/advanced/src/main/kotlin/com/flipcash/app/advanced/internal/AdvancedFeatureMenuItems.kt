@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.core.R
@@ -56,6 +55,20 @@ internal data object BetaFlags : FullMenuItem<AdvancedFeaturesScreenViewModel.Ev
         AdvancedFeaturesScreenViewModel.Event.OpenScreen(AppRoute.Menu.Lab())
 }
 
+/**
+ * Staff/beta only, as it was before the account list replaced Google's Password Manager behind it.
+ * The switcher is still a beta tool, so it keeps the beta badge [StaffMenuItem] carries and sits
+ * next to the other one rather than on the You tab.
+ */
+internal data object SwitchAccount : StaffMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_menu_switchaccounts)
+    override val name: String
+        @Composable get() = stringResource(R.string.title_switchAccounts)
+    override val action: AdvancedFeaturesScreenViewModel.Event =
+        AdvancedFeaturesScreenViewModel.Event.OpenScreen(AppRoute.Menu.AccountSelection)
+}
+
 internal data object LogOut : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
     override val icon: Painter
         @Composable get() = painterResource(R.drawable.ic_menu_logout)
@@ -72,19 +85,4 @@ internal data object DeleteAccount : FullMenuItem<AdvancedFeaturesScreenViewMode
         @Composable get() = stringResource(R.string.action_deleteAccount)
     override val action: AdvancedFeaturesScreenViewModel.Event =
         AdvancedFeaturesScreenViewModel.Event.OnDeleteAccountClicked
-}
-
-/**
- * Staff/beta only, and dead without Google's Password Manager behind it —
- * `PassphraseCredentialManager.selectCredential()` refuses outright when the flag is off. Sits here
- * rather than on the You tab: it's a beta tool, next to the other one.
- */
-internal data object SwitchAccount : StaffMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_switchaccounts)
-    override val name: String
-        @Composable get() = stringResource(R.string.title_switchAccounts)
-    override val action: AdvancedFeaturesScreenViewModel.Event =
-        AdvancedFeaturesScreenViewModel.Event.OnSwitchAccountsClicked
-    override val featureFlag: FeatureFlag<*> = FeatureFlag.CredentialManager
 }

@@ -21,8 +21,6 @@ dependencies {
     implementation(libs.firebase.messaging)
 
     implementation(libs.androidx.localbroadcastmanager)
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.auth)
     implementation(libs.androidx.datastore)
     implementation(libs.compose.material3)
 

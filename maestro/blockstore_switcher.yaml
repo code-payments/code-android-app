@@ -1,0 +1,30 @@
+appId: com.flipcash.app.android
+name: "Account list — in-app switcher"
+tags:
+  - account
+  - blockstore
+---
+- runFlow: subflows/login_with_deeplink.yaml
+# Switch Accounts is a StaffMenuItem, so it is hidden until the account is staff or the beta
+# override is on. The test account is neither, hence the unlock.
+- runFlow: subflows/unlock_beta_features.yaml
+- runFlow: subflows/navigate_to_advanced_features.yaml
+- scrollUntilVisible:
+    element: "Switch Accounts"
+    direction: DOWN
+- tapOn: "Switch Accounts"
+- extendedWaitUntil:
+    visible:
+      id: account_selection_screen
+    timeout: 15000
+- assertVisible: "Select an Account"
+- assertVisible: "Created .*"
+# From inside the app there is no onboarding flow to fall through to, so the footer is hidden —
+# which makes the back control the only way out.
+- assertNotVisible: "Enter a Different Access Key"
+- tapOn:
+    id: action_back
+- extendedWaitUntil:
+    visible:
+      id: advanced_features_screen
+    timeout: 10000

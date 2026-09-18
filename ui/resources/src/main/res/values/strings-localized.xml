@@ -24,6 +24,7 @@
   <string name="action_downloadNow">Download It Now</string>
   <string name="action_enableFaceID">Enable Face ID</string>
   <string name="action_enableTouchID">Enable Touch ID</string>
+  <string name="action_enterDifferentAccessKey">Enter a Different Access Key</string>
   <string name="action_exit">Exit</string>
   <string name="action_give">Give</string>
   <string name="action_giveKin">Give Kin</string>
@@ -50,6 +51,7 @@
   <string name="action_receive">Receive</string>
   <string name="action_recoverExistingAccount">Recover Existing Account</string>
   <string name="action_remind">Remind</string>
+  <string name="action_removeAccount">Remove Account</string>
   <string name="action_removePhoneNumber">Remove Phone Number</string>
   <string name="action_removeYourPhoneNumber">Remove Your Phone Number</string>
   <string name="action_requestTip">Request a Tip</string>
@@ -187,6 +189,7 @@
   <string name="prompt_description_logout">You can get back into this account using your Access Key</string>
   <string name="prompt_description_mute">You will not be notified of any new messages from %1$s. You can unmute at any time.</string>
   <string name="prompt_description_notCodeAccount">Only accounts created through Code are currently supported.</string>
+  <string name="prompt_description_removeAccount">Make sure you have a backup of your Access Key before removing this account.</string>
   <string name="prompt_description_unlinkPhoneNumber">Your friends will no longer be able to find you with this phone number.</string>
   <string name="prompt_description_unmute">You will be notified of all new messages from %1$s. You can mute at any time.</string>
   <string name="prompt_description_unsubscribe">You will not receive any messages from %1$s until you pay them again.</string>
@@ -199,6 +202,7 @@
   <string name="prompt_title_logout">Are you sure you want to log out?</string>
   <string name="prompt_title_mute">Mute %1$s?</string>
   <string name="prompt_title_notCodeAccount">Not a Code Account</string>
+  <string name="prompt_title_removeAccount">Remove Account?</string>
   <string name="prompt_title_unlinkPhoneNumber">Are you sure?</string>
   <string name="prompt_title_unmute">Unmute %1$s?</string>
   <string name="prompt_title_unsubscribe">Unsubscribe from %1$s?</string>
@@ -220,8 +224,12 @@
   <string name="subtitle_accessKeyFaceID">Verify your identity to view your Access Key.</string>
   <string name="subtitle_accessKeySnapshotDescription">Tap the Google Lens icon to open the QR code to log into Code. Alternatively you can log in manually by entering the 12 words in the Code Log In screen.</string>
   <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to all the funds you have in Code. Do not share this image with anyone else. Keep it secure and safe.</string>
+  <string name="subtitle_accountCreated">Created %1$s</string>
+  <string name="subtitle_accountNotFound">Not Found</string>
   <string name="subtitle_allowCameraAccess">Code enables you to receive Kin by pointing your camera at the digital bill on another user\'s phone</string>
   <string name="subtitle_allowCameraSettings">You need to turn on Camera in Settings to scan Codes</string>
+  <string name="subtitle_balanceUnavailable">Balance Unavailable</string>
+  <string name="subtitle_currentAccount">Current account</string>
   <string name="subtitle_authenticateToAccess">Authenticate to access Code.</string>
   <string name="subtitle_buyKin">Buy Kin</string>
   <string name="subtitle_buyKinComingSoon">Buy Kin (Coming Soon)</string>
@@ -267,6 +275,7 @@
   <string name="subtitle_noLinkedPhoneNumber">No Linked\nPhone Number</string>
   <string name="subtitle_noLinkedPhoneNumberDescription">You don\'t have a phone number linked to this Code account. Link one so that your friends can discover you.</string>
   <string name="subtitle_noNetworkConnection">No network connection</string>
+  <string name="subtitle_noStoredAccounts">No accounts saved on this device</string>
   <string name="subtitle_onCode">On Code</string>
   <string name="subtitle_openAndPointCamera">Open the Code app and point your camera to grab this cash</string>
   <string name="subtitle_organizingContacts">Organizing Your Contacts</string>

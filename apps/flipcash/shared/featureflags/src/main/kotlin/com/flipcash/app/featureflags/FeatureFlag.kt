@@ -34,16 +34,6 @@ sealed interface FeatureFlag<T: Any> {
     val isOptionFlag: Boolean get() = options.isNotEmpty()
 
     @FeatureFlagMarker
-    data object CredentialManager: FeatureFlag<Boolean> {
-        override val key: String = "credential_manager_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-        override val visible: Boolean = true
-        override val persistLogOut: Boolean = true
-        override val onboarding: Boolean = true
-    }
-
-    @FeatureFlagMarker
     data object VibrateOnScan: FeatureFlag<Boolean> {
         override val key: String = "scan_debug_enabled"
         override val default: Boolean = false
@@ -130,7 +120,6 @@ sealed interface FeatureFlag<T: Any> {
 
 val FeatureFlag<*>.title: String
     get() = when (this) {
-        is FeatureFlag.CredentialManager -> "Credential Manager"
         FeatureFlag.VibrateOnScan -> "Vibrate on Scan"
         FeatureFlag.TransactionDetails -> "Transaction Details"
         FeatureFlag.CoinbaseOnRampSandbox -> "Coinbase Onramp Sandbox"
@@ -143,7 +132,6 @@ val FeatureFlag<*>.title: String
 
 val FeatureFlag<*>.message: String
     get() = when (this) {
-        FeatureFlag.CredentialManager -> "When enabled, you will gain the ability to utilize Google's Password Manager for storing and recovering access keys for easier login experience"
         FeatureFlag.VibrateOnScan -> "When enabled, the device will vibrate once to indicate that the camera has registered the code on the bill"
         FeatureFlag.TransactionDetails -> "When enabled, you'll gain the ability to view details of each transaction from the balance screen"
         FeatureFlag.CoinbaseOnRampSandbox -> "When enabled, Coinbase onramp purchases will use the sandbox environment for testing"

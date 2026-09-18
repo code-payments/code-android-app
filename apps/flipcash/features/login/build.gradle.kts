@@ -24,4 +24,5 @@ dependencies {
     implementation(project(":libs:datetime"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
+    implementation(project(":services:opencode"))
 }

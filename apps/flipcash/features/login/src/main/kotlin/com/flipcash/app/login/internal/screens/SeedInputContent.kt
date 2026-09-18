@@ -13,13 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.SettingsBackupRestore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -41,8 +36,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.login.internal.SeedInputUiModel
 import com.flipcash.app.login.internal.SeedInputViewModel
 import com.flipcash.features.login.R
@@ -70,7 +63,6 @@ internal fun SeedInputContent(
         state = dataState,
         onTextChange = { viewModel.onTextChange(it) },
         onLogin = { viewModel.onSubmit() },
-        onRestore = { viewModel.restoreAccount() },
         onCantFind = onCantFind,
     )
 }
@@ -80,13 +72,10 @@ private fun SeedInputContent(
     state: SeedInputUiModel,
     onTextChange: (String) -> Unit,
     onLogin: () -> Unit,
-    onRestore: suspend () -> Unit,
     onCantFind: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
-    val featureFlags = LocalFeatureFlags.current
-    val restoreEnabled by featureFlags.observe(FeatureFlag.CredentialManager).collectAsStateWithLifecycle()
 
     val keyboardVisible by keyboardAsState()
     val ime = LocalSoftwareKeyboardController.current
@@ -97,42 +86,6 @@ private fun SeedInputContent(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars),
-        floatingActionButton = {
-            if (restoreEnabled) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4),
-                ) {
-                    Text(
-                        modifier = Modifier,
-                        text = stringResource(R.string.action_recoverExistingAccount),
-                        style = CodeTheme.typography.textMedium,
-                        color = CodeTheme.colors.textSecondary
-                    )
-
-                    FloatingActionButton(
-                        backgroundColor = CodeTheme.colors.brandMuted,
-                        contentColor = CodeTheme.colors.textMain,
-                        shape = CircleShape,
-                        onClick = {
-                            composeScope.launch {
-                                if (keyboardVisible) {
-                                    ime?.hide()
-                                    delay(500.scaled(animationScale))
-                                }
-                                onRestore()
-                            }
-                        }
-                    ) {
-                        Image(
-                            imageVector = Icons.Default.SettingsBackupRestore,
-                            contentDescription = null,
-                            colorFilter = ColorFilter.tint(CodeTheme.colors.textMain),
-                        )
-                    }
-                }
-            }
-        }
     ) { padding ->
         Column(
             modifier = Modifier
