@@ -187,11 +187,33 @@
             </intent-filter>
 
             <!--
-                 No `/chat/.*` App Link. AppRouter deliberately does not classify chat links
-                 (the direct-send entry point they opened was removed), so claiming the URL
-                 here would capture it from the browser and dead-end the user on the home
-                 screen. Restore this filter only alongside routing in AppRouter.
+                 Group chat invites: `app.flipcash.com/chat/{uuid}` (Linkify.groupChatInvite).
+                 Claimed here because AppRouter now classifies them — the two go together, and
+                 the path was left unclaimed while it did not.
+
+                 `.*` rather than the UUID shape: `pathPattern` has no charset form, and
+                 `pathAdvancedPattern` is ignored below API 31, so the shape check would not hold
+                 on every version anyway. AppRouter makes it instead. A `/chat/` link that is not
+                 an invite is therefore captured and does nothing — the same as any other path on
+                 an app-owned host that AppRouter has no route for (DeeplinkAction.None). Only the
+                 apex is handed back to a browser, because only its path space is shared with the
+                 website.
+
+                 No assetlinks change: App Links verification is per-host, and `app.flipcash.com`
+                 is already verified by the filters above. Adding a path to a verified host does
+                 not re-open verification.
             -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="app.flipcash.com"
+                    android:pathPattern="/chat/.*"
+                    android:scheme="https" />
+            </intent-filter>
 
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />

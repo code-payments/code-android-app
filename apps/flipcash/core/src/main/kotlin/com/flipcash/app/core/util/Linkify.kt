@@ -39,4 +39,24 @@ object Linkify {
     fun tokenInfo(token: Token): String = tokenInfo(token.address)
     fun tokenInfo(mint: Mint): String = "https://app.flipcash.com/token/${mint.base58()}"
     fun tipChatById(chatId: ChatId): String = "https://app.flipcash.com/tip/chat/${chatId.bytes.encodeBase64(urlSafe = true)}"
+
+    /**
+     * A group chat's invite link — `app.flipcash.com/chat/{uuid}`.
+     *
+     * The id is written as a dashed UUID rather than as the base64url [tipChatById] uses, because
+     * `common.v1.ChatId.value` is a 16-byte UUID for a group and that is its canonical text form.
+     * Nothing mints this link server-side: there is no invite RPC in flipcash2, so the link is the
+     * chat id and the client builds and parses both ends of it.
+     *
+     * Note the `app.` host, unlike [tipcard]'s bare one. The apex shares its path space with the
+     * website and can only be claimed by path *shape*, which a UUID would satisfy — an invite on
+     * the apex would be indistinguishable from a tip card addressed by account id. The `app.` host
+     * belongs to the app whole, so `/chat/` can be claimed there outright.
+     *
+     * Null for a chat that has no UUID form: a DM's id is a 32-byte hash, and no invite exists for
+     * one. Callers hold a group id by construction, so this is unreachable rather than a case to
+     * render.
+     */
+    fun groupChatInvite(chatId: ChatId): String? =
+        chatId.bytes.toList().uuid?.let { "https://app.flipcash.com/chat/$it" }
 }

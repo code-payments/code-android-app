@@ -32,15 +32,6 @@ import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.flow.filterIsInstance
 
 /**
- * Whether the group's profile offers a way out of the group.
- *
- * Off while the rest of group membership settles: a leave is not something to hand someone before
- * the join it undoes is finished. Everything behind it — the confirmation, the call, the close —
- * is in place, so this is the only line to change when it ships.
- */
-private const val SHOW_LEAVE_ACTION = false
-
-/**
  * The group's own profile, reached from the info card at the head of its transcript.
  *
  * Driven by the conversation's [ChatViewModel] rather than one of its own: everything on this
@@ -54,12 +45,15 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
 
-    // A group you have left has nothing left on this screen to act on, so it closes back to the
-    // transcript — which is now showing the gate in place of the composer.
+    // Leaving exits the whole chat flow rather than popping this screen, landing back on the chat
+    // list: a group you have left is not a conversation you are still in, and closing to the
+    // transcript would leave you reading it from behind the gate you just put yourself outside of.
+    // Same exit the profile's block action takes, for the same reason — FlowHost.onExit pops the
+    // Chat route.
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<ChatViewModel.Event.LeftChat>()
-            .collect { flowNavigator.back() }
+            .collect { flowNavigator.exitCanceled() }
     }
 
     CodeScaffold(
@@ -71,13 +65,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            // Leaving is the only thing on offer, and only to someone who is in the group — but
-            // it is held back for now, so this is the identity header on its own. The leave
-            // itself is wired end to end behind [SHOW_LEAVE_ACTION]; flipping it puts the row back.
-            items = if (SHOW_LEAVE_ACTION && group?.isMember == true) {
-                listOf<MenuItem<ChatViewModel.Event>>(LeaveChat)
-            } else {
-                emptyList()
+            // Both rows are for members only: a non-member has no link to hand out and nothing to
+            // leave. Membership comes from the roster rather than from the gate, so the leave goes
+            // away the moment the leave itself lands, not when the balance rule next re-decides.
+            items = buildList<MenuItem<GroupProfileAction>> {
+                if (state.groupInviteUrl != null) add(InviteToGroup)
+                if (group?.isMember == true) add(LeaveChat)
             },
             header = {
                 GroupProfileHeader(
@@ -87,7 +80,15 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         .padding(top = CodeTheme.dimens.grid.x7),
                 )
             },
-            onItemClick = { viewModel.dispatchEvent(it.action) },
+            onItemClick = { item ->
+                when (item.action) {
+                    // The same sheet the transcript's own invite CTA opens, pushed on this flow so
+                    // it sits over the profile the user asked from.
+                    GroupProfileAction.Invite -> flowNavigator.navigateTo(ChatStep.InviteToGroup)
+                    GroupProfileAction.Leave ->
+                        viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat)
+                }
+            },
         )
     }
 }

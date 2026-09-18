@@ -6,7 +6,9 @@ import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.RosterChange
+import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupOperations
 import com.flipcash.shared.chat.internal.RosterStateHolder
@@ -106,6 +108,27 @@ class GroupFeedDelegate @Inject constructor(
                 chat.latestEventSequence > cursor -> _events.send(Event.DeltaSyncNeeded(chat.chatId))
             }
         }
+    }
+
+    /**
+     * Creates the group [parameters] describe, caching it the same way [join] caches a chat the
+     * user just entered: the creator is a member of what they created, so the row belongs in the
+     * list on the response rather than after the next feed sync.
+     *
+     * No [Event.LoadMessages] — a chat that was created this instant has no transcript to fetch,
+     * and asking for one would be a round trip that can only come back empty. The membership flag
+     * is still written explicitly: `StartChat` returns the chat, not the caller's relationship to
+     * it, so nothing in [persist] would set it.
+     */
+    override suspend fun create(
+        parameters: StartChatParameters,
+        idempotencyKey: IdempotencyKey,
+    ): Result<ChatMetadata> {
+        return chatController.startChat(parameters, idempotencyKey)
+            .onSuccess { metadata ->
+                persist(listOf(metadata))
+                metadataDataSource.setMembership(metadata.chatId, isMember = true)
+            }
     }
 
     /**

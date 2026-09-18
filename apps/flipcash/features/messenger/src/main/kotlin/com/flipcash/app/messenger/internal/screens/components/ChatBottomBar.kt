@@ -44,8 +44,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
-import com.flipcash.app.messenger.internal.GroupAccess
+import com.flipcash.app.messenger.internal.balanceRequirement
+import com.flipcash.app.messenger.internal.requiresStaff
+import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.features.messenger.R
@@ -66,6 +69,7 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials
 internal fun UserControlBottomBar(
     state: ChatViewModel.State,
     hazeState: HazeState,
+    onAction: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
 ) {
     if (state.isAnonymous) {
@@ -74,11 +78,21 @@ internal fun UserControlBottomBar(
     }
 
     // The same shape as the block above it, and for the same reason: there is no composer to
-    // configure when the viewer cannot post. Membered is not a gate, so it falls through to the
-    // composer like any DM.
-    val access = state.groupAccess
-    if (access != null && access != GroupAccess.Membered) {
-        GroupGateBar(access = access, ticker = state.ruleTicker)
+    // configure when the viewer cannot post. The decision is `isGatedPreview`, the same flag the
+    // transcript's blur reads, so a composer can never appear over a blurred chat — including for
+    // the frames before the gate has decided anything, and for as long as the gate holds its join
+    // confirmation.
+    if (state.isGatedPreview) {
+        GroupGateBar(
+            access = state.groupAccess,
+            // The chat's own rule, read the same way the info card at the head of the transcript
+            // reads it, so the two lines about this group cannot state different requirements.
+            requirement = (state.subject as? ChatSubject.Group)?.rules.balanceRequirement(),
+            staffOnly = (state.subject as? ChatSubject.Group)?.rules.requiresStaff() == true,
+            currency = state.ruleCurrency,
+            onAction = onAction,
+            joinProgress = state.joinProgress,
+        )
         return
     }
 

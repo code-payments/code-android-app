@@ -19,6 +19,7 @@ import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
@@ -60,9 +61,9 @@ fun ChatFlowScreen(
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
         entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
-        // ChatStep.AmountEntry and ChatStep.InitPayment are Sheets, so the flow needs the sheet
-        // strategy to draw them as such;
-        // without it the step would fall through to SinglePane and cover the thread. Amount entry
+        // ChatStep.AmountEntry, ChatStep.InitPayment and ChatStep.InviteToGroup are Sheets, so the
+        // flow needs the sheet strategy to draw them as such; without it the step would fall
+        // through to SinglePane and cover the thread. Amount entry
         // returns its result inside the flow (resultBackNavigator), so the strategy's own
         // dismiss-delivers-Canceled path has nothing to address here — hence the null key. A
         // swipe-dismiss just leaves the pending callback unclaimed, which is what a cancel means.
@@ -86,6 +87,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.InitPayment> {
         FlowInitPaymentScreen()
+    }
+    annotatedEntry<ChatStep.InviteToGroup> {
+        FlowGroupInviteSheet()
     }
     annotatedEntry<ChatStep.Profile> { step ->
         FlowChatProfileScreen(step.contact)
@@ -210,6 +214,28 @@ private fun FlowInitPaymentScreen() {
         eventFlow = viewModel.eventFlow,
         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnInitPaymentConfirmed) },
         onSendComplete = { resultBack.returnValue(ChatSendResult) },
+    )
+}
+
+/**
+ * The invite sheet, on the conversation's own view model.
+ *
+ * Reached from the empty transcript and from the group's profile, and the same step either way —
+ * the link is the chat's, so there is nothing for a second entry point to hold differently.
+ */
+@Composable
+private fun FlowGroupInviteSheet() {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    // Same dismissal rule as the other sheets in this flow: exit through the sheet so it animates
+    // down rather than having its scene deleted mid-frame.
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+
+    GroupInviteSheet(
+        inviteUrl = state.groupInviteUrl,
+        groupTitle = state.subject?.title,
+        onCopy = { viewModel.dispatchEvent(ChatViewModel.Event.CopyInviteLink) },
+        onDismiss = dismissSheet,
     )
 }
 

@@ -1,0 +1,22 @@
+<!-- IconCamera1 — the empty avatar tile on the New Public Group form (node 10127:118273). Full
+     white; the tile tints it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+    <path
+        android:pathData="M8.33333 11.6669H10.716C11.8306 11.6669 12.8713 11.1099 13.4895 10.1825L14.8438 8.1512C15.462 7.22387 16.5028 6.66687 17.6173 6.66687H22.3827C23.4972 6.66687 24.538 7.22387 25.1562 8.1512L26.5105 10.1825C27.1287 11.1099 28.1695 11.6669 29.284 11.6669H31.6667C33.5077 11.6669 35 13.1593 35 15.0002V30.0002C35 31.8412 33.5077 33.3335 31.6667 33.3335H8.33333C6.49238 33.3335 5 31.8412 5 30.0002V15.0002C5 13.1593 6.49238 11.6669 8.33333 11.6669Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.33333"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M25 21.6669C25 24.4284 22.7615 26.6669 20 26.6669C17.2385 26.6669 15 24.4284 15 21.6669C15 18.9054 17.2385 16.6669 20 16.6669C22.7615 16.6669 25 18.9054 25 21.6669Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.33333"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="round" />
+</vector>

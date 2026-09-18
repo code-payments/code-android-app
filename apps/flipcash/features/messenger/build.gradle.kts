@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":apps:flipcash:shared:session"))
+    implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":libs:vibrator:bindings"))

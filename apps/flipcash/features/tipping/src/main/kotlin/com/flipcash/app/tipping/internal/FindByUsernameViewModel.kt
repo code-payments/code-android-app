@@ -37,11 +37,11 @@ internal const val MaxHandleLength = 15
  * Only a failed lookup is ours to apologise for.
  */
 @HiltViewModel
-internal class NewChatViewModel @Inject constructor(
+internal class FindByUsernameViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
-) : BaseViewModel<NewChatViewModel.State, NewChatViewModel.Event>(
+) : BaseViewModel<FindByUsernameViewModel.State, FindByUsernameViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
 ) {

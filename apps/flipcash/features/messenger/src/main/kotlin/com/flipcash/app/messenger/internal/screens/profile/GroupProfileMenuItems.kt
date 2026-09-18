@@ -5,24 +5,45 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.menu.FullMenuItem
-import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.features.messenger.R
 
 /**
- * The one thing a group's profile can act on.
+ * What the group's profile can act on.
  *
- * Its action is a [ChatViewModel.Event] rather than an event of the profile's own, because the
- * group is the conversation's — the leave has to clear the membership the transcript is reading,
- * and there is one view model holding it.
+ * Its own type rather than [com.flipcash.app.messenger.internal.ChatViewModel.Event], because the
+ * two rows do different kinds of thing: leaving is a request to the conversation's view model,
+ * inviting is a navigation. Naming both here lets one [com.flipcash.app.menu.MenuList] carry them
+ * and the screen decide which is which.
  */
-internal data object LeaveChat : FullMenuItem<ChatViewModel.Event>() {
+internal sealed interface GroupProfileAction {
+    data object Invite : GroupProfileAction
+    data object Leave : GroupProfileAction
+}
+
+/**
+ * The same invite the empty transcript offers, for a group that already has messages in it.
+ *
+ * Shown only while there is a link to hand out, which is the same condition as being a member.
+ */
+internal data object InviteToGroup : FullMenuItem<GroupProfileAction>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_at)
+
+    override val name: String
+        @Composable get() = stringResource(R.string.action_invitePeopleToJoin)
+
+    override val action: GroupProfileAction = GroupProfileAction.Invite
+}
+
+internal data object LeaveChat : FullMenuItem<GroupProfileAction>() {
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.AutoMirrored.Outlined.Logout)
 
     override val name: String
         @Composable get() = stringResource(R.string.title_leaveChat)
 
-    override val action: ChatViewModel.Event = ChatViewModel.Event.LeaveChat
+    override val action: GroupProfileAction = GroupProfileAction.Leave
 }

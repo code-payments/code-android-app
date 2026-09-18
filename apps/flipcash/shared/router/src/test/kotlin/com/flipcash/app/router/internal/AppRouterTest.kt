@@ -424,6 +424,76 @@ class AppRouterTest {
 
     // endregion
 
+    // region classify + dispatch — GroupChatInvite
+
+    private val groupUuid = UUID.fromString("0189d5f1-3c6a-7b4e-8f21-9c3d4e5f6a7b")
+    private val groupChatId = ChatId(groupUuid.bytes)
+
+    @Test
+    fun `an invite link round-trips from Linkify back to the chat id it was built from`() {
+        val link = Linkify.groupChatInvite(groupChatId)
+        assertEquals("https://app.flipcash.com/chat/$groupUuid", link)
+
+        val type = router.classify(DeepLink(link!!))
+        assertIs<DeeplinkType.GroupChatInvite>(type)
+        assertEquals(groupChatId, type.chatId)
+    }
+
+    @Test
+    fun `an invite link classifies regardless of the case the uuid was shared in`() {
+        val type = router.classify(
+            DeepLink("https://app.flipcash.com/chat/${groupUuid.toString().uppercase()}")
+        )
+        assertIs<DeeplinkType.GroupChatInvite>(type)
+        assertEquals(groupChatId, type.chatId)
+    }
+
+    @Test
+    fun `a chat path that is not a uuid is left unclassified rather than claimed`() {
+        // The manifest filter is `/chat/.*` — `pathPattern` cannot express the UUID shape — so
+        // the router is what keeps a non-invite `/chat/` link from being claimed and dropped.
+        assertNull(router.classify(DeepLink("https://app.flipcash.com/chat/not-a-uuid")))
+        assertNull(router.classify(DeepLink("https://app.flipcash.com/chat")))
+    }
+
+    @Test
+    fun `a tip chat link is not swallowed by the invite matcher`() {
+        // `/tip/chat/{base64}` and `/chat/{uuid}` both contain a `chat` segment; ordering and the
+        // segment index are what separate them.
+        val type = router.classify(DeepLink(Linkify.tipChatById(sampleChatId)))
+        assertIs<DeeplinkType.TipChat>(type)
+    }
+
+    @Test
+    fun `a DM has no invite link because its id is not a uuid`() {
+        assertNull(Linkify.groupChatInvite(sampleChatId))
+    }
+
+    @Test
+    fun `dispatch opens an invite on the chat screen under the tips sheet`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink(Linkify.groupChatInvite(groupChatId)!!))
+
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(2, action.routes.size)
+        assertIs<AppRoute.Sheets.Tips>(action.routes[0])
+        val chat = action.routes[1]
+        assertIs<AppRoute.Messaging.Chat>(chat)
+        val identifier = chat.identifier
+        assertIs<ChatIdentifier.ByChatId>(identifier)
+        assertEquals(groupChatId, identifier.chatId)
+    }
+
+    @Test
+    fun `dispatch sends an invite through onboarding when logged out`() {
+        loggedOut()
+        val action = router.dispatch(DeepLink(Linkify.groupChatInvite(groupChatId)!!))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(listOf(AppRoute.OnboardingFlow()), action.routes)
+    }
+
+    // endregion
+
     // region classify + dispatch — tip card links on the bare host
 
     @Test

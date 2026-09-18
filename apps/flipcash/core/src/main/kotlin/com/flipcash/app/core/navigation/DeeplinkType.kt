@@ -21,6 +21,17 @@ sealed interface DeeplinkType: Parcelable {
     @Serializable data class TipChat(val identifier: ChatIdentifier): DeeplinkType, Navigatable
 
     /**
+     * A group chat invite — `app.flipcash.com/chat/{uuid}`.
+     *
+     * Carries a [ChatId] rather than a [ChatIdentifier] because a group is only ever addressed by
+     * its own id: there is no counterparty to resolve it through, the way a DM has.
+     *
+     * The chat it opens may be one the viewer has not joined. That is the normal case for an
+     * invite, and the chat screen is already the gated preview for it — see `GroupAccess`.
+     */
+    @Serializable data class GroupChatInvite(val chatId: ChatId): DeeplinkType, Navigatable
+
+    /**
      * A tip card addressed by account id — `flipcash.com/{uuid}`, or the older
      * `app.flipcash.com/tip/{uuid}` that links already shared still carry.
      */

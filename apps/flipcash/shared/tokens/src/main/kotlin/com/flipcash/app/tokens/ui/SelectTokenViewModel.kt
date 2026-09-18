@@ -234,7 +234,8 @@ class SelectTokenViewModel @Inject constructor(
          * exact comparison had Dollars and Dad Cash trading places under the user while the deck was
          * on screen. Rounding first means cards showing the same figure hold a stable order.
          *
-         * iOS (Session.balances) still sorts on the exact value and has the same swap latent in it.
+         * iOS reaches the same answer the same way: `StoredBalance.walletOrder` compares
+         * `displayedUSDF` — `usdf.roundedToSmallestUnit()` — and breaks ties by name.
          */
         val BalanceOrder: Comparator<TokenWithLocalizedBalance> =
             compareByDescending<TokenWithLocalizedBalance> { it.balance.nativeAmount.toDouble() }

@@ -17,7 +17,6 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
-import com.flipcash.app.messenger.internal.GroupAccess
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
@@ -113,6 +112,13 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             ChatAction.JoinChat -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)
 
+            ChatAction.InviteToGroup -> {
+                // The sheet, not the share sheet: copying the link is the other way to hand it out,
+                // and going straight to the system share picker would bury it. The sheet reads the
+                // url off the same state the CTA that got here is gated on.
+                keyboard.hideIfVisible { navigator.push(ChatStep.InviteToGroup) }
+            }
+
             is ChatAction.ViewProfile -> {
                 // The triggers (top-bar tap, info-card chevron) are only clickable for subjects
                 // that have a profile (see State.canViewProfile), so no gating is needed here.
@@ -167,6 +173,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             UserControlBottomBar(
                 state = state,
                 hazeState = hazeState,
+                onAction = chatActionHandler,
                 dispatch = viewModel::dispatchEvent,
             )
         },
@@ -176,7 +183,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         // open. The title bar stays sharp — it is how a non-member knows what they are looking at.
         BlurredContent(
             modifier = Modifier.fillMaxSize(),
-            enabled = state.groupAccess != null && state.groupAccess != GroupAccess.Membered,
+            enabled = state.isGatedPreview,
         ) {
             MessageList(
                 modifier = Modifier

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.LazyListState
@@ -31,11 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.shared.chat.models.ChatAction
@@ -46,6 +49,7 @@ import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.LocalLinkCardResolution
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.delay
@@ -307,6 +311,40 @@ internal fun MessageList(
             // This prevents these items from being the only content before messages
             // load, which would cause the list to start at the wrong scroll position.
             if (messages.itemCount > 0 || refreshSettled) {
+                // Emitted before the info card, and so drawn below it: this list is reverseLayout,
+                // where the last item is the topmost one. Both of the items below belong under the
+                // card the way the designs show them, and neither can appear while there are
+                // messages — one stands in for a transcript, the other says there isn't one yet.
+                if (messages.itemCount == 0) {
+                    val inviteUrl = state.groupInviteUrl
+                    when {
+                        // Node 10127:117171. The blur over this list is what makes it a preview;
+                        // see GatedTranscriptPlaceholder for why it is drawn rather than fetched.
+                        state.isGatedPreview -> item(key = "gated-transcript-placeholder") {
+                            GatedTranscriptPlaceholder(modifier = Modifier.fillParentMaxWidth())
+                        }
+
+                        // Node 10127:118280 — the group the creator has just made. Inviting
+                        // someone is the only thing to do with an empty group, so it is offered
+                        // here rather than left to the profile screen.
+                        inviteUrl != null -> item(key = "group-invite-action") {
+                            Box(
+                                modifier = Modifier
+                                    .fillParentMaxWidth()
+                                    .padding(top = CodeTheme.dimens.grid.x4),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CodeButton(
+                                    text = stringResource(R.string.action_invitePeopleToJoin),
+                                    shape = CircleShape,
+                                    enabled = !selecting,
+                                    onClick = { onAction(ChatAction.InviteToGroup) },
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Trailing date separator for the oldest loaded message.
                 // This replaces the `after == null` boundary from insertSeparators
                 // which Paging 3 defers until endOfPaginationReached, causing a
@@ -348,7 +386,7 @@ internal fun MessageList(
                             } else {
                                 null
                             },
-                            ticker = state.ruleTicker,
+                            currencyName = state.ruleCurrency?.nameInRequirement,
                         )
                     }
                 }

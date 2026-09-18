@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.NewGroupStep
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
 import com.flipcash.app.core.onboarding.OnboardingStep
@@ -329,16 +330,34 @@ sealed interface AppRoute : NavKey, Parcelable {
         }
 
         /**
-         * Starting a chat by typing someone's `@handle` (node 9442:5825), reached from the "+" on
-         * the Chats list.
+         * Node 10127:117987 — the two ways to start a chat, reached from the "+" on the Chats list.
          *
          * A top-level route rather than a step of the tipping flow, even though the Chats list it
          * is reached from is one: the flow is a tab home, so a step pushed inside it keeps the tab
-         * bar. This covers it, the way [Chat] does.
+         * bar. This covers it, the way [Chat] does. [FindByUsername] and [NewGroup] are pushed on
+         * top of it for the same reason.
          */
         @Serializable
         @Parcelize
         data object NewChat : Messaging
+
+        /** Node 9442:5825 — starting a chat by typing someone's `@handle`. */
+        @Serializable
+        @Parcelize
+        data object FindByUsername : Messaging
+
+        /**
+         * Node 10153:22901 — creating a public group, from the empty form to its invite link.
+         *
+         * The three screens share one draft, so they are steps of a flow rather than routes; see
+         * [NewGroupStep].
+         */
+        @Serializable
+        @Parcelize
+        data object NewGroup : Messaging, FlowRoute {
+            override val initialStack: List<NavKey>
+                get() = listOf(NewGroupStep.Form)
+        }
     }
 
     @Serializable
