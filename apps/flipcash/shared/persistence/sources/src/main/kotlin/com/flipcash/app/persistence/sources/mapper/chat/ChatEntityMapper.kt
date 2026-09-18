@@ -67,7 +67,9 @@ class ChatEntityMapper @Inject constructor() {
      *
      * [isMember] is not on [ChatMetadata]: every payload that carries a group today is one
      * the caller is in, so it is a property of the write, not of the metadata. The feed and
-     * a join write `true`; a gated preview fetched by chat id writes `false`.
+     * a join write `true`, which is why that is the default. A chat fetched by id for a gated
+     * preview is not written at all — `GetChat` cannot say whether the viewer is in it, and the
+     * column would have to hold a guess either way.
      */
     fun toEntity(metadata: ChatMetadata, isMember: Boolean = true): ChatMetadataEntity {
         return ChatMetadataEntity(

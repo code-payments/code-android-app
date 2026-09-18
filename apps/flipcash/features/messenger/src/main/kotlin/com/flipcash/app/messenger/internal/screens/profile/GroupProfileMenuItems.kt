@@ -27,10 +27,15 @@ internal sealed interface GroupProfileAction {
  * The same invite the empty transcript offers, for a group that already has messages in it.
  *
  * Shown only while there is a link to hand out, which is the same condition as being a member.
+ *
+ * The people glyph, not the `@` one: `ic_at` belongs to the row *inside* the sheet this opens,
+ * where it stands for the username the link is sent to (node 10127:118328). On the row that opens
+ * the sheet it said the wrong thing — what the row does is add people to the group, which is what
+ * the New Chat group row uses the same icon for.
  */
 internal data object InviteToGroup : FullMenuItem<GroupProfileAction>() {
     override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_at)
+        @Composable get() = painterResource(R.drawable.ic_group_3)
 
     override val name: String
         @Composable get() = stringResource(R.string.action_invitePeopleToJoin)

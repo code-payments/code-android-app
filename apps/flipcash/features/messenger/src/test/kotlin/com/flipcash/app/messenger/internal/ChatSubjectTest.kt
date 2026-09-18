@@ -84,7 +84,7 @@ class ChatSubjectTest {
         )
 
         assertEquals("", subject.title)
-        assertFalse(subject.isMember)
+        assertEquals(false, subject.isMember)
     }
 
     /**
