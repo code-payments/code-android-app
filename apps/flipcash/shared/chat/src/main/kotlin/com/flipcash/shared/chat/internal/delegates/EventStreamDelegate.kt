@@ -360,11 +360,10 @@ class EventStreamDelegate @Inject constructor(
                     )
                 }
                 is MetadataUpdate.ViewerStateChanged -> {
-                    // The receiving user's own chat state (currently just mute) changed.
-                    // Persisting it needs a chat_metadata column/migration that belongs
-                    // with the muting feature's storage work, not this contract sync, so
-                    // the update is acknowledged here without a write. Wire this up to
-                    // metadataDataSource once that column exists.
+                    // Convergent, like the roster and reaction overlays below: applied by version
+                    // rather than in arrival order, because the stream does not order deliveries
+                    // and a mute and the unmute after it can land either way round.
+                    metadataDataSource.updateViewerState(chatId, metaUpdate.viewerState)
                 }
             }
         }
