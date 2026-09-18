@@ -2,10 +2,10 @@ package com.flipcash.app.messenger.internal.screens.profile
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.features.messenger.R
@@ -28,14 +28,14 @@ internal sealed interface GroupProfileAction {
  *
  * Shown only while there is a link to hand out, which is the same condition as being a member.
  *
- * The people glyph, not the `@` one: `ic_at` belongs to the row *inside* the sheet this opens,
- * where it stands for the username the link is sent to (node 10127:118328). On the row that opens
- * the sheet it said the wrong thing — what the row does is add people to the group, which is what
- * the New Chat group row uses the same icon for.
+ * A person-with-plus glyph, matching iOS' `person.badge.plus` on the same row. Not the `@` one:
+ * `ic_at` belongs to the row *inside* the sheet this opens, where it stands for the username the
+ * link is sent to (node 10127:118328). Not `ic_group_3` either, which names a group rather than the
+ * act of adding to one — that is the New Chat row's job.
  */
 internal data object InviteToGroup : FullMenuItem<GroupProfileAction>() {
     override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_group_3)
+        @Composable get() = rememberVectorPainter(Icons.Outlined.PersonAdd)
 
     override val name: String
         @Composable get() = stringResource(R.string.action_invitePeopleToJoin)

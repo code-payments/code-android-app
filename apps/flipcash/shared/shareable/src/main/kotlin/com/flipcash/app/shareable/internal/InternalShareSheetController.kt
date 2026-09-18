@@ -12,6 +12,7 @@ import android.os.Build
 import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.flipcash.app.core.money.formatted
+import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.core.util.MessagingPackages
 import com.flipcash.app.core.tipping.TipCardOwner
@@ -297,20 +298,50 @@ internal class InternalShareSheetController(
         context.startActivity(share)
     }
 
-    private fun shareGroupInvite(shareable: Shareable.GroupInvite) {
+    private suspend fun shareGroupInvite(shareable: Shareable.GroupInvite) {
+        // The invitation names the group, so with no name there is nothing to say — share the bare
+        // link rather than an invitation with a hole in it. Blank counts as no name: an untitled
+        // group reaches this as "" via ChatSubject.Group.title. Same wording as iOS'
+        // GroupInviteShareItem, which trims and checks the same way.
+        val name = shareable.title?.takeIf { it.isNotBlank() }?.trim()
+        val invitation = name?.let { resources.getString(R.string.message_groupInvite, it) }
+
+        // The group's own picture as the Sharesheet's thumbnail, so the invite is recognisable
+        // before it is sent. Best-effort: no picture, a slow fetch or an expired URL all share
+        // exactly what they shared before.
+        val preview = shareable.imageUrl?.let {
+            SharePreviewImage.cache(context, it, shareable.imageCacheKey)
+        }
+
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
-            // No heading when the group has no title yet — an empty one reads as a broken share.
-            shareable.title?.let {
-                putExtra(Intent.EXTRA_TITLE, it)
-                putExtra(Intent.EXTRA_SUBJECT, it)
-            }
-            putExtra(Intent.EXTRA_TEXT, shareable.url)
+            // The headline above the Sharesheet's preview. The group's name, not the invitation:
+            // the sentence is already the first line of the body directly beneath it, and the
+            // headline is one truncated line, so putting it in both says the name twice and cuts
+            // it off once.
+            name?.let { putExtra(Intent.EXTRA_TITLE, it) }
+            // EXTRA_SUBJECT is an email's subject line rather than a preview headline, so the
+            // invitation belongs here — it reads as the message it is, with no body beside it.
+            invitation?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+            putExtra(
+                Intent.EXTRA_TEXT,
+                if (invitation != null) "$invitation\n\n${shareable.url}" else shareable.url
+            )
             type = "text/plain"
+
+            if (preview != null) {
+                // The Sharesheet draws its thumbnail from ClipData, not from any extra — see
+                // shareTipCard. The payload stays the text; this is preview only.
+                clipData = ClipData.newUri(context.contentResolver, "Group picture", preview)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
         }
 
         val share = Intent.createChooser(intent, null).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            // addFlags, not `flags =` — assigning would wipe the read grant createChooser migrates
+            // onto the chooser intent, and the Sharesheet could not open the image. See shareTipCard.
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (preview != null) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
         context.startActivity(share)
