@@ -48,12 +48,28 @@ internal class ChatProfileViewModel @Inject constructor(
     data class State(
         val participant: ChatParticipant? = null,
         val joinDate: Instant? = null,
+        /** Whether to offer a conversation with this person — see [Event.OnParticipantSet]. */
+        val canOpenChat: Boolean = false,
         val menuItems: List<MenuItem<Event>> = ProfileMenuItems,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
     )
 
     sealed interface Event {
-        data class OnParticipantSet(val participant: ChatParticipant) : Event
+        /**
+         * The profile this screen is for.
+         *
+         * [fromConversation] is whether [participant] is the counterparty of the chat behind this
+         * screen. When they are, there is no conversation to offer — it is the transcript the
+         * reader backs out to. When they are not, as for a group member or a tip card link's owner,
+         * the reader may have no chat with them at all, and this is where it starts.
+         */
+        data class OnParticipantSet(
+            val participant: ChatParticipant,
+            val fromConversation: Boolean,
+        ) : Event
+
+        /** Open the conversation with this person. Answered by the flow, which owns the navigator. */
+        data object OpenChat : Event
         data class JoinDateLoaded(val joinDate: Instant?) : Event
         data object BlockUser : Event
         data class BlockConfirmed(val participant: ChatParticipant.TipUser) : Event
@@ -135,7 +151,16 @@ internal class ChatProfileViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnParticipantSet -> { state -> state.copy(participant = event.participant) }
+                is Event.OnParticipantSet -> { state ->
+                    state.copy(
+                        participant = event.participant,
+                        // A device contact carries no Flipcash identity, so there is no user id to
+                        // derive a chat from even when the profile is not this chat's own.
+                        canOpenChat = !event.fromConversation &&
+                            event.participant is ChatParticipant.TipUser,
+                    )
+                }
+                is Event.OpenChat -> { state -> state }
                 is Event.JoinDateLoaded -> { state -> state.copy(joinDate = event.joinDate) }
                 is Event.BlockProcessing -> { state ->
                     val current = state.processingState

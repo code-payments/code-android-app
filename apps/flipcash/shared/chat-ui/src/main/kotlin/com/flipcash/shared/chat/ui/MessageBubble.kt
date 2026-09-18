@@ -560,12 +560,12 @@ private fun BareLinkCard(
  * screen the reader asked for directly. There is no wallet card here for the detail to grow out of.
  * So it pushes, exactly as the cash bubble's own token tap does, and back returns to the message.
  *
- * A tip card link opens the tip DM with its owner, which is where the real card leads too: the card
- * is presented, and on dismissal `TipCardDecorator` pushes exactly that chat. From a transcript the
- * presentation is the part with nothing to add — it is a card animating in over a chat on its way
- * to another chat — so the tap goes straight to the conversation. That needs a user id, so only a
- * resolved card takes this route; an unresolved one still has only a URL and leaves through the URL
- * handler, where the router resolves the owner the long way and diverts a link to your own card.
+ * A tip card link opens its owner's profile — the page about the person, which is what a link to
+ * someone's card is asking about. The conversation is one button further on, from a profile that
+ * says who it would be with; going straight there instead would drop the reader into a DM with
+ * someone they have only seen a card for. That needs a user id, so only a resolved card takes this
+ * route; an unresolved one still has only a URL and leaves through the URL handler, where the
+ * router resolves the owner the long way and diverts a link to your own card.
  */
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
@@ -582,12 +582,12 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
             }
             is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
             is LinkCard.TipCard -> {
-                // The id is server-provided, so a profile assembled locally has no chat to open.
-                // `TipCardDecorator` guards the same null for the same reason.
+                // The id is server-provided, so a profile assembled locally names nobody the app
+                // can open. `TipCardDecorator` guards the same null for the same reason.
                 val profile = (card.state as? LinkCard.TipCard.State.Resolved)?.profile
                 when (val userId = profile?.userId) {
                     null -> uriHandler.openUri(card.url)
-                    else -> actionHandler(ChatAction.OpenTipChat(userId, profile))
+                    else -> actionHandler(ChatAction.ViewTipCardOwner(userId, profile))
                 }
             }
         }

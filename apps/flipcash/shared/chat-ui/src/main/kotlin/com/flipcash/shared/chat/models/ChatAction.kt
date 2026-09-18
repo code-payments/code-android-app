@@ -60,15 +60,14 @@ sealed interface ChatAction {
     data class CashLinkOpened(val entropy: String) : ChatAction
 
     /**
-     * The reader tapped a tip card link, asking for the tip DM with its owner.
+     * The reader tapped a tip card link, asking for its owner's profile.
      *
-     * Carries what the card already resolved rather than the URL. [userId] is what the canonical
-     * TIP_DM id is derived from, so the conversation opens whether or not it exists yet, and
-     * [profile] is what draws its header on the first frame — a chat with no messages has no
-     * members fetch to wait on. It is the same pair the real tip card hands the navigator when it
-     * is dismissed (`TipCardDecorator`), which is what makes the link and the card the same door.
+     * Carries what the card already resolved rather than the URL, which is what lets the profile
+     * draw its header on the first frame instead of waiting on a fetch. The pair is the same one
+     * [ViewMemberProfile] is answered with — a tip card's owner is reached from a link rather than
+     * from a bubble's gutter, so it arrives carrying the profile instead of an id to look up.
      */
-    data class OpenTipChat(val userId: ID, val profile: UserProfile) : ChatAction
+    data class ViewTipCardOwner(val userId: ID, val profile: UserProfile) : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit

@@ -871,6 +871,7 @@
     <string name="action_sendCash">Send Cash</string>
     <string name="action_sendCashViaSymbol">Send %1$s</string>
     <string name="action_sendMessage">Send Message</string>
+    <string name="action_viewProfile">View Profile</string>
 
     <!-- Chat composer -->
     <string name="hint_chatMessage">Message</string>

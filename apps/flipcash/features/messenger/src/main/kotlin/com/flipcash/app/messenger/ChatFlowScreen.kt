@@ -88,7 +88,7 @@ private fun chatEntryProvider(
         FlowInitPaymentScreen()
     }
     annotatedEntry<ChatStep.Profile> { step ->
-        FlowChatProfileScreen(step.contact)
+        FlowChatProfileScreen(step.contact, step.fromConversation)
     }
     annotatedEntry<ChatStep.GroupProfile> {
         FlowGroupProfileScreen()
@@ -214,15 +214,37 @@ private fun FlowInitPaymentScreen() {
 }
 
 @Composable
-private fun FlowChatProfileScreen(participant: ChatParticipant) {
+private fun FlowChatProfileScreen(participant: ChatParticipant, fromConversation: Boolean) {
     val viewModel = flowSharedViewModel<ChatProfileViewModel>()
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val navigator = LocalCodeNavigator.current
 
-    LaunchedEffect(viewModel, participant) {
-        viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant))
+    LaunchedEffect(viewModel, participant, fromConversation) {
+        viewModel.dispatchEvent(
+            ChatProfileViewModel.Event.OnParticipantSet(participant, fromConversation)
+        )
     }
 
     ChatProfileScreen(viewModel)
+
+    // A whole chat, so it leaves this flow rather than pushing a step inside it: the dispatcher
+    // bubbles a full AppRoute up to the app nav host, which opens the conversation in its own flow.
+    // `ChatIdentifier.ByUser` derives the canonical TIP_DM id from the user id, so it opens whether
+    // or not the chat exists yet, and carries the profile that draws its header on the first frame.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatProfileViewModel.Event.OpenChat>()
+            .onEach {
+                val target = viewModel.stateFlow.value.participant
+                if (target is ChatParticipant.TipUser) {
+                    navigator.navigate(
+                        AppRoute.Messaging.Chat(
+                            ChatIdentifier.ByUser(target.userId, target.profile)
+                        )
+                    )
+                }
+            }.launchIn(this)
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow

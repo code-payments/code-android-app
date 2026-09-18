@@ -332,14 +332,6 @@ internal class ChatViewModel @Inject constructor(
         data object PresentDepositOptions : Event
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
 
-        /**
-         * A tip card link in the transcript was tapped; open the tip DM with its owner.
-         *
-         * Its own event rather than an [OpenScreen] raised at the tap, because which screen it is
-         * depends on who the owner turns out to be, and only this side knows the account id to
-         * compare them against.
-         */
-        data class OpenTipChat(val userId: ID, val profile: UserProfile) : Event
         data object OnConfirmRequested : Event
 
         /** Confirm the DM-opening fee. The amount comes from the fee, not from the keypad. */
@@ -466,6 +458,14 @@ internal class ChatViewModel @Inject constructor(
     fun memberParticipant(userId: ID): ChatParticipant.TipUser? =
         senderProfiles.value?.get(userId.hexEncodedString())
             ?.let { ChatParticipant.TipUser(userId, it) }
+
+    /**
+     * Whether [userId] is the reader, for the surfaces that have to divert when it is.
+     *
+     * Read rather than dispatched because the caller is deciding where a tap goes and has to decide
+     * it now; the account id is already resolved, so there is nothing to wait for.
+     */
+    fun isSelf(userId: ID): Boolean = userId == userManager.accountId
 
     /**
      * Bumped when a link card's answer is known to have moved, so the transcript maps again.
@@ -1449,23 +1449,6 @@ internal class ChatViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        // Where a tip card link goes, mirroring `AppRouter.tipCard`: a link to your own card leads
-        // nowhere payable, so it lands on the surface that owns your card rather than deriving a
-        // TIP_DM with yourself. Everyone else's opens the conversation.
-        eventFlow
-            .filterIsInstance<Event.OpenTipChat>()
-            .onEach { (userId, profile) ->
-                if (userId == userManager.accountId) {
-                    dispatchEvent(Event.OpenScreen(AppRoute.Sheets.Menu, asSheet = true))
-                } else {
-                    dispatchEvent(
-                        Event.OpenScreen(
-                            AppRoute.Messaging.Chat(ChatIdentifier.ByUser(userId, profile))
-                        )
-                    )
-                }
-            }.launchIn(viewModelScope)
-
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .onEach {
@@ -1807,7 +1790,6 @@ internal class ChatViewModel @Inject constructor(
                 Event.NavigateToInitPayment -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
-                is Event.OpenTipChat -> { state -> state }
                 is Event.OnConfirmRequested -> { state -> state }
                 is Event.OnInitPaymentConfirmed -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }

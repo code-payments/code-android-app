@@ -28,6 +28,8 @@ import com.flipcash.features.messenger.R
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.DateUtils
@@ -51,13 +53,36 @@ internal fun ChatProfileScreen(viewModel: ChatProfileViewModel) {
                 .padding(innerPadding),
             items = state.menuItems,
             header = {
-                ProfileHeader(
-                    participant = state.participant,
-                    joinDate = state.joinDate,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = CodeTheme.dimens.grid.x7),
-                )
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    ProfileHeader(
+                        participant = state.participant,
+                        joinDate = state.joinDate,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    // Only for someone this chat is not already with. From the DM header the
+                    // conversation is the transcript one back press away, and a button to it would
+                    // push a second copy of the chat the reader is standing in.
+                    if (state.canOpenChat) {
+                        CodeButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = CodeTheme.dimens.inset,
+                                    vertical = CodeTheme.dimens.grid.x4,
+                                ),
+                            text = stringResource(R.string.action_sendMessage),
+                            buttonState = ButtonState.Filled10,
+                            onClick = {
+                                viewModel.dispatchEvent(ChatProfileViewModel.Event.OpenChat)
+                            },
+                        )
+                    }
+                }
             },
             onItemClick = { viewModel.dispatchEvent(it.action) },
             endSlot = { item ->

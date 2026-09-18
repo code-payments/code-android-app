@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -52,6 +53,7 @@ import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White10
 import com.getcode.ui.components.text.AnimatedNumberText
 import com.getcode.ui.utils.ConstraintMode
 
@@ -193,7 +195,13 @@ private fun TokenLinkCard(
  * And it is not portrait. `TipCard` is 269 x 333, which at a bubble's width stands half again as
  * tall as the cash and token cards beside it -- one link in a transcript taking the height of two.
  * The proportion belongs to a card held up to a camera; in a transcript what a card is is the frame
- * the other two already set, so this one takes that frame and lays the same three things out in it.
+ * the other two already set, so this one takes that frame: the picture and the name side by side in
+ * it, with the button that says where the card goes on the line below.
+ *
+ * The button does what a tap anywhere on the card does. It is there to say so -- the other two
+ * cards carry their own signal that they open something (the voucher's "Tap to claim", the token
+ * bill's own face), and without it this one is a picture and a name, which is what a card that
+ * opens nothing would also look like.
  */
 @Composable
 private fun TipLinkCard(
@@ -226,49 +234,80 @@ private fun TipLinkCard(
             .clickable(onClick = onClick)
             .padding(CodeTheme.dimens.inset),
         verticalArrangement = Arrangement.spacedBy(
-            CodeTheme.dimens.grid.x1,
+            CodeTheme.dimens.grid.x2,
             Alignment.CenterVertically,
         ),
-        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ContactAvatar(
-            image = profile?.profilePicture,
-            // Empty rather than a stand-in label: the avatar initials whatever it is given, and
-            // initialling "Tip Card" would put someone's monogram on a card belonging to nobody.
-            displayName = person.orEmpty(),
-            // The id the link carried beats the profile's own, which is null until a by-handle
-            // lookup fills it in -- and it is what authorizes re-minting an expired picture URL.
-            access = BlobAccessContext.profile(
-                profile?.userId ?: (card.owner as? TipCardOwner.ById)?.userId,
-            ),
-            modifier = Modifier
-                .size(height * LinkCardDefaults.TIP_CARD_AVATAR)
-                .clip(CircleShape),
-        )
-
-        Text(
-            text = person ?: stringResource(R.string.label_linkCard_tipCard),
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        // Under the name, as the real card draws it, and only when it is not already the name: an
-        // account with no display name is named by its handle, which would print twice.
-        profile?.handle?.takeIf { it != person }?.let {
-            Text(
-                text = it,
-                style = CodeTheme.typography.caption,
-                color = CodeTheme.colors.textMain.copy(
-                    alpha = LinkCardDefaults.TIP_CARD_HANDLE_ALPHA,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ContactAvatar(
+                image = profile?.profilePicture,
+                // Empty rather than a stand-in label: the avatar initials whatever it is given, and
+                // initialling "Tip Card" would put someone's monogram on a card belonging to nobody.
+                displayName = person.orEmpty(),
+                // The id the link carried beats the profile's own, which is null until a by-handle
+                // lookup fills it in -- and it is what authorizes re-minting an expired picture URL.
+                access = BlobAccessContext.profile(
+                    profile?.userId ?: (card.owner as? TipCardOwner.ById)?.userId,
                 ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .size(height * LinkCardDefaults.TIP_CARD_AVATAR)
+                    .clip(CircleShape),
             )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = person ?: stringResource(R.string.label_linkCard_tipCard),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textMain,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                // Under the name, as the real card draws it, and only when it is not already the
+                // name: an account with no display name is named by its handle, which would
+                // otherwise print twice.
+                profile?.handle?.takeIf { it != person }?.let {
+                    Text(
+                        text = it,
+                        style = CodeTheme.typography.caption,
+                        color = CodeTheme.colors.textMain.copy(
+                            alpha = LinkCardDefaults.TIP_CARD_HANDLE_ALPHA,
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
+
+        TipCardAction(stringResource(R.string.action_viewProfile))
     }
+}
+
+/**
+ * The tip card's button.
+ *
+ * Not clickable itself: the whole card is one target, and a button inside it that did its own
+ * navigating would make the card two targets that go to the same place, with a dead margin around
+ * the one that looks pressable. It draws the destination and lets the card take the tap.
+ */
+@Composable
+private fun TipCardAction(text: String) {
+    Text(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(White10, CodeTheme.shapes.small)
+            .padding(vertical = CodeTheme.dimens.grid.x2),
+        text = text,
+        style = CodeTheme.typography.textSmall,
+        color = CodeTheme.colors.textMain,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+    )
 }
 
 /**
@@ -639,13 +678,13 @@ private object LinkCardDefaults {
 
     /**
      * The picture, as a fraction of the card's height -- the binding dimension once the tip card
-     * shares [CARD_ASPECT] with the other two.
+     * shares [CARD_ASPECT] with the other two, and the one the button has to leave room under.
      *
      * Not the real card's 0.09 of its width, which is a thumbnail beside the name on a card whose
      * middle is taken by the scannable code (node 9277:121417). Nothing takes the middle here, so
-     * the picture does; at that fraction it would be a bullet point on an empty card.
+     * the picture is the largest thing on it.
      */
-    const val TIP_CARD_AVATAR = 0.42f
+    const val TIP_CARD_AVATAR = 0.32f
 
     /** What separates the handle from the name above it, as on the real card. */
     const val TIP_CARD_HANDLE_ALPHA = 0.5f

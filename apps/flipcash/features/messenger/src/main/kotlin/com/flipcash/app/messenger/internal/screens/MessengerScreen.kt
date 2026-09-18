@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -107,13 +108,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.CashLinkOpened(action.entropy))
             }
 
-            is ChatAction.OpenTipChat -> {
-                keyboard.hideIfVisible {
-                    viewModel.dispatchEvent(
-                        ChatViewModel.Event.OpenTipChat(action.userId, action.profile)
-                    )
-                }
-            }
 
             is ChatAction.JumpToMessage -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
@@ -129,7 +123,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 keyboard.hideIfVisible {
                     when (state.subject) {
                         is ChatSubject.Group -> navigator.push(ChatStep.GroupProfile)
-                        else -> state.participant?.let { navigator.push(ChatStep.Profile(it)) }
+                        else -> state.participant?.let {
+                            navigator.push(ChatStep.Profile(it, fromConversation = true))
+                        }
                     }
                 }
             }
@@ -138,7 +134,29 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 // Resolved in the view model: the profile that drew the picture in the gutter is
                 // the one to open, and the transcript already holds it.
                 viewModel.memberParticipant(action.userId)?.let {
-                    keyboard.hideIfVisible { navigator.push(ChatStep.Profile(it)) }
+                    keyboard.hideIfVisible {
+                        navigator.push(ChatStep.Profile(it, fromConversation = false))
+                    }
+                }
+            }
+
+            is ChatAction.ViewTipCardOwner -> {
+                keyboard.hideIfVisible {
+                    // Mirrors `AppRouter.tipCard`: a link to your own card has no counterparty to
+                    // show a profile for, so it lands on the surface that owns your card. The
+                    // comparison is the view model's -- the account id is on that side.
+                    if (viewModel.isSelf(action.userId)) {
+                        viewModel.dispatchEvent(
+                            ChatViewModel.Event.OpenScreen(AppRoute.Sheets.Menu, asSheet = true)
+                        )
+                    } else {
+                        navigator.push(
+                            ChatStep.Profile(
+                                ChatParticipant.TipUser(action.userId, action.profile),
+                                fromConversation = false,
+                            )
+                        )
+                    }
                 }
             }
         }

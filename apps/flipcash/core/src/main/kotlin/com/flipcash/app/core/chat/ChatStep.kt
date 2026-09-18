@@ -42,9 +42,20 @@ sealed interface ChatStep : FlowStep, Parcelable {
     data object InitPayment :
         ChatStep, NavigationRetVal<ChatSendResult>, Sheet, WrapContentSheet
 
+    /**
+     * Someone's profile.
+     *
+     * [fromConversation] is whether [contact] is the counterparty of the chat this was opened from.
+     * It decides whether the screen offers to open a conversation with them: true for the DM header,
+     * where that conversation is the transcript sitting directly behind this screen, and false for a
+     * group member or a tip card link's owner, who may have no chat with the reader at all.
+     */
     @Parcelize
     @Serializable
-    data class Profile(val contact: ChatParticipant): ChatStep
+    data class Profile(
+        val contact: ChatParticipant,
+        val fromConversation: Boolean,
+    ) : ChatStep
 
     /**
      * The group's own profile — the counterpart of [Profile] for a chat that has no counterparty.
