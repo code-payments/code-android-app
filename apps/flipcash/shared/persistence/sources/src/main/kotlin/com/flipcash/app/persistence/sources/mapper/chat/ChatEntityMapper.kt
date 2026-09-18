@@ -389,7 +389,7 @@ private fun ReactionSummary.toSerialized(): ReactionSummarySerialized = Reaction
 private fun EmojiReaction.toSerialized(): EmojiReactionSerialized = EmojiReactionSerialized(
     emoji = emoji.value,
     count = count,
-    reactedBySelf = reactedBySelf,
+    selfReactor = selfReactor?.toSerialized(),
     sampleReactors = sampleReactors.map { it.toSerialized() },
     sequence = sequence,
 )
@@ -397,6 +397,7 @@ private fun EmojiReaction.toSerialized(): EmojiReactionSerialized = EmojiReactio
 private fun Reactor.toSerialized(): ReactorSerialized = ReactorSerialized(
     userIdHex = userId.hexEncodedString(),
     reactedAtEpochSeconds = reactedAt.epochSeconds,
+    version = version,
 )
 
 private fun ReactionSummarySerialized.toDomain(): ReactionSummary = ReactionSummary(
@@ -407,7 +408,7 @@ private fun ReactionSummarySerialized.toDomain(): ReactionSummary = ReactionSumm
 private fun EmojiReactionSerialized.toDomain(): EmojiReaction = EmojiReaction(
     emoji = Emoji(emoji),
     count = count,
-    reactedBySelf = reactedBySelf,
+    selfReactor = selfReactor?.toDomain(),
     sampleReactors = sampleReactors.map { it.toDomain() },
     sequence = sequence,
 )
@@ -415,6 +416,7 @@ private fun EmojiReactionSerialized.toDomain(): EmojiReaction = EmojiReaction(
 private fun ReactorSerialized.toDomain(): Reactor = Reactor(
     userId = userIdHex.hexToIdExt(),
     reactedAt = Instant.fromEpochSeconds(reactedAtEpochSeconds),
+    version = version,
 )
 
 // endregion

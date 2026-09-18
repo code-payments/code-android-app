@@ -260,7 +260,7 @@ internal fun MessagingModel.EmojiReaction.toEmojiReaction(): EmojiReaction {
     return EmojiReaction(
         emoji = Emoji(emoji.value),
         count = count,
-        reactedBySelf = reactedBySelf,
+        selfReactor = if (hasSelfReactor()) selfReactor.toReactor() else null,
         sampleReactors = sampleReactorsList.map { it.toReactor() },
         sequence = version,
     )
@@ -270,6 +270,7 @@ internal fun MessagingModel.Reactor.toReactor(): Reactor {
     return Reactor(
         userId = userId.toId(),
         reactedAt = Instant.fromEpochSeconds(reactedTs.seconds, reactedTs.nanos),
+        version = version,
     )
 }
 

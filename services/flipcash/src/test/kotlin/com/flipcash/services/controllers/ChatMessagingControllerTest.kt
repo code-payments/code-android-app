@@ -58,7 +58,7 @@ class ChatMessagingControllerTest {
     private fun stubReaction(emoji: Emoji, count: Long = 1) = EmojiReaction(
         emoji = emoji,
         count = count,
-        reactedBySelf = false,
+        selfReactor = null,
         sampleReactors = emptyList(),
         sequence = 1,
     )

@@ -257,7 +257,7 @@ data class ReactionSummarySerialized(
 data class EmojiReactionSerialized(
     val emoji: String,
     val count: Long,
-    val reactedBySelf: Boolean,
+    val selfReactor: ReactorSerialized? = null,
     val sampleReactors: List<ReactorSerialized>,
     val sequence: Long,
 )
@@ -266,6 +266,7 @@ data class EmojiReactionSerialized(
 data class ReactorSerialized(
     val userIdHex: String,
     val reactedAtEpochSeconds: Long,
+    val version: Long = 0,
 )
 
 /**

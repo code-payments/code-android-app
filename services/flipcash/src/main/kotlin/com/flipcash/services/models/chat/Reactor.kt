@@ -6,4 +6,5 @@ import kotlin.time.Instant
 data class Reactor(
     val userId: ID,
     val reactedAt: Instant,
+    val version: Long = 0,
 )

@@ -16,6 +16,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ReactionUpdate
+import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.models.chat.TypingNotification
 import com.flipcash.services.models.chat.TypingState
@@ -448,23 +449,40 @@ class EventStreamDelegate @Inject constructor(
         val existing = overlays[update.messageId]
         val existingReactions = existing?.reactions?.toMutableList() ?: mutableListOf()
 
+        // The server does not report a "self" flag on the update itself, so the client
+        // maintains EmojiReaction.selfReactor by comparing the update's actor to the
+        // signed-in user: an ADDED update from self sets it, a REMOVED update from self
+        // clears it, and an update from anyone else leaves the existing self state alone.
+        val isSelfActor = update.actor == userManager.accountId
+
         val idx = existingReactions.indexOfFirst { it.emoji == update.emoji }
         if (idx >= 0) {
             val current = existingReactions[idx]
             if (update.sequence <= current.sequence) return
+            val selfReactor = when {
+                isSelfActor && update.action == ReactionUpdate.Action.ADDED ->
+                    Reactor(userId = update.actor, reactedAt = update.reactedAt, version = current.selfReactor?.version ?: 0)
+                isSelfActor && update.action == ReactionUpdate.Action.REMOVED -> null
+                else -> current.selfReactor
+            }
             existingReactions[idx] = EmojiReaction(
                 emoji = update.emoji,
                 count = update.count,
-                reactedBySelf = current.reactedBySelf,
+                selfReactor = selfReactor,
                 sampleReactors = current.sampleReactors,
                 sequence = update.sequence,
             )
         } else {
+            val selfReactor = if (isSelfActor && update.action == ReactionUpdate.Action.ADDED) {
+                Reactor(userId = update.actor, reactedAt = update.reactedAt)
+            } else {
+                null
+            }
             existingReactions.add(
                 EmojiReaction(
                     emoji = update.emoji,
                     count = update.count,
-                    reactedBySelf = false,
+                    selfReactor = selfReactor,
                     sampleReactors = emptyList(),
                     sequence = update.sequence,
                 )
