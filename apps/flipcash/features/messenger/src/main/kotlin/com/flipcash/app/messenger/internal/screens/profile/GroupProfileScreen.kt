@@ -84,7 +84,15 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     viewerState = state.viewerState,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = CodeTheme.dimens.grid.x7),
+                        // The gap under the header is the header's own, because MenuList puts
+                        // nothing between its header slot and the first row. 40dp matches what
+                        // iOS spends here (its 16pt stack spacing plus the row block's 24pt top
+                        // inset); without it the mute chip sits against the first row and the
+                        // screen reads as one block rather than a title above a list.
+                        .padding(
+                            top = CodeTheme.dimens.grid.x7,
+                            bottom = CodeTheme.dimens.grid.x8,
+                        ),
                 )
             },
             onItemClick = { item ->
