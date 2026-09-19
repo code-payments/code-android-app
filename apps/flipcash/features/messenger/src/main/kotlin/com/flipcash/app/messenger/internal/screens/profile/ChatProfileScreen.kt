@@ -72,11 +72,13 @@ internal fun ChatProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
+            // Mute first, block last: the one that is reversible and routine sits above the one
+            // that ends the conversation, the same order the group's profile puts leaving in.
             items = buildList<MenuItem<ChatProfileAction>> {
-                add(BlockUser)
                 if (chatState.chatType == ChatType.TIP_DM) {
                     add(MuteDm)
                 }
+                add(BlockUser)
             },
             header = {
                 ProfileHeader(
