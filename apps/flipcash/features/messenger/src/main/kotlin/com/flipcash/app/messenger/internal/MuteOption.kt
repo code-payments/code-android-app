@@ -2,15 +2,13 @@ package com.flipcash.app.messenger.internal
 
 import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.ViewerState
-import com.flipcash.services.models.chat.isMutedAt
+import com.flipcash.shared.chat.ui.rememberIsMuted
 import com.getcode.util.formatLocalized
-import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -45,26 +43,6 @@ internal enum class MuteOption(
      */
     fun toMuteState(now: Instant = Clock.System.now()): MuteState =
         duration?.let { MuteState.Until(now + it) } ?: MuteState.Forever
-}
-
-/**
- * Whether [viewerState] is muted right now, re-answered the moment a timed mute lapses.
- *
- * A composable rather than a plain read because the lapse has no event behind it. Nothing arrives
- * from the server when a deadline passes, and nothing writes the row, so a screen that read the
- * state once would keep offering Unmute on a chat that is already audible. This waits out the
- * remaining time and then answers false.
- */
-@Composable
-internal fun rememberIsMuted(viewerState: ViewerState?): Boolean {
-    val mute = viewerState?.mute
-    return produceState(initialValue = viewerState.isMutedAt(), mute) {
-        value = viewerState.isMutedAt()
-        val until = (mute as? MuteState.Until)?.until ?: return@produceState
-        val remaining = until - Clock.System.now()
-        if (remaining.isPositive()) delay(remaining)
-        value = false
-    }.value
 }
 
 /**
