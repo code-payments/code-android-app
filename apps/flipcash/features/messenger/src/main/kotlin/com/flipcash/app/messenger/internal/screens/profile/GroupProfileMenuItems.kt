@@ -2,8 +2,6 @@ package com.flipcash.app.messenger.internal.screens.profile
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
@@ -57,30 +55,6 @@ internal data object LeaveChat : FullMenuItem<GroupProfileAction>() {
     override val action: GroupProfileAction = GroupProfileAction.Leave
 }
 
-/**
- * Opens the duration picker. Muting takes a shape — a deadline or forever — so this row cannot act
- * on its own the way [UnmuteChat] does; there is nothing for it to ask for yet.
- */
-internal data object MuteChat : FullMenuItem<GroupProfileAction>() {
-    override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.NotificationsOff)
-
-    override val name: String
-        @Composable get() = stringResource(R.string.title_muteChat)
-
-    override val action: GroupProfileAction = GroupProfileAction.Mute
-}
-
-/**
- * Shown in [MuteChat]'s place while the chat is muted *now*. A timed mute puts this row back to
- * Mute on its own when its deadline passes — see `rememberIsMuted`, which is what the screen asks.
- */
-internal data object UnmuteChat : FullMenuItem<GroupProfileAction>() {
-    override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.Notifications)
-
-    override val name: String
-        @Composable get() = stringResource(R.string.title_unmuteChat)
-
-    override val action: GroupProfileAction = GroupProfileAction.Unmute
-}
+/** The group's mute rows. Shared definitions; see [MuteChatItem]. */
+internal val MuteChat = MuteChatItem<GroupProfileAction>(GroupProfileAction.Mute)
+internal val UnmuteChat = UnmuteChatItem<GroupProfileAction>(GroupProfileAction.Unmute)
