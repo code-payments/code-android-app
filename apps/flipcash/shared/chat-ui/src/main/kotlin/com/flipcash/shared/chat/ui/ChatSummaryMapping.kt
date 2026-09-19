@@ -13,7 +13,8 @@ import com.getcode.util.resources.ResourceHelper
 /**
  * Maps a [ChatSummary] to the presentation [ConversationReference] shared by every
  * conversation-style list (send contacts, tip DMs, …): counterparty identity, a
- * formatted last-message preview, the last-activity timestamp, and unread count.
+ * formatted last-message preview, the last-activity timestamp, unread count, and the viewer's
+ * own state on the chat.
  *
  * The counterparty ([ConversationReference.displayName]/[ConversationReference.image])
  * is taken from the chat member that isn't [selfId] — used directly by rows with no
@@ -43,6 +44,7 @@ fun ChatSummary.toConversationReference(
         lastMessagePreview = formatPreview(selfId, tokensByMint, resources),
         lastActivity = metadata.lastActivity,
         unreadCount = unreadCount,
+        viewerState = metadata.viewerState,
     )
 }
 

@@ -50,6 +50,7 @@ import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.ui.MutedIndicator
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
@@ -167,14 +168,29 @@ private fun ConversationTitleBar(
                 )
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        // Name-or-handle for a DM, the group's title for a group. A DM bar stays
-                        // one line (node 9443:9094): the handle is the only identity a name-less
-                        // tip counterparty has, so it is the title there rather than a second row.
-                        text = state.subject?.title.orEmpty(),
-                        style = CodeTheme.typography.textMedium,
-                        color = CodeTheme.colors.textMain,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                    ) {
+                        Text(
+                            // Name-or-handle for a DM, the group's title for a group. A DM bar
+                            // stays one line (node 9443:9094): the handle is the only identity a
+                            // name-less tip counterparty has, so it is the title there rather than
+                            // a second row.
+                            //
+                            // Gives up width to the indicator rather than taking the whole line,
+                            // so a long name loses its tail instead of pushing the bell off the bar.
+                            modifier = Modifier.weight(1f, fill = false),
+                            text = state.subject?.title.orEmpty(),
+                            style = CodeTheme.typography.textMedium,
+                            color = CodeTheme.colors.textMain,
+                        )
+
+                        // Beside the name, not at the bar's edge: what is muted is this chat, and
+                        // the name is what says which chat. An audible one emits nothing, so the
+                        // spacing above is not spent either.
+                        MutedIndicator(viewerState = state.viewerState)
+                    }
                     // A group always shows its size, whether or not the viewer is in it — the
                     // count is what a join changes, and node 10125:19153 -> 10125:19201 is the
                     // same bar at two values of it. A DM has nothing to count.
