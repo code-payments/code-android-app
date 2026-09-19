@@ -915,7 +915,7 @@
     <string name="title_muteChat">Mute Notifications</string>
     <!-- Load-bearing rather than decorative: a muted chat still delivers the push, still stores the
          message and still counts it unread. Only the notification is held back. -->
-    <string name="subtitle_muteChat">You\'ll still receive messages and see unread counts. Only notifications are silenced.</string>
+    <string name="subtitle_muteChat">You\'ll still receive messages and see unread counts. Only notifications are silenced</string>
     <string name="action_muteFor_oneHour">1 Hour</string>
     <string name="action_muteFor_eightHours">8 Hours</string>
     <string name="action_muteFor_oneWeek">1 Week</string>
