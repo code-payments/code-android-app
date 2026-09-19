@@ -21,11 +21,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.MenuList
+import com.flipcash.app.messenger.internal.ChatMuteStatusChip
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
-import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
@@ -45,11 +46,6 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
-
-    // Asked per composition rather than stored: a timed mute lapses with nothing sent to say so,
-    // and this row is where the user would otherwise be looking at a stale Unmute. Non-null is what
-    // says the chat is muted right now; what it says is the deadline.
-    val mutedLabel = rememberMutedLabel(state.viewerState)
 
     // Leaving exits the whole chat flow rather than popping this screen, landing back on the chat
     // list: a group you have left is not a conversation you are still in, and closing to the
@@ -78,13 +74,14 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             items = buildList<MenuItem<GroupProfileAction>> {
                 if (state.groupInviteUrl != null) add(InviteToGroup)
                 if (group?.isMember == true) {
-                    add(if (mutedLabel != null) UnmuteChat else MuteChat)
+                    add(MuteChat)
                     add(LeaveChat)
                 }
             },
             header = {
                 GroupProfileHeader(
                     group = group,
+                    viewerState = state.viewerState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = CodeTheme.dimens.grid.x7),
@@ -95,24 +92,11 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     // The same sheet the transcript's own invite CTA opens, pushed on this flow so
                     // it sits over the profile the user asked from.
                     GroupProfileAction.Invite -> flowNavigator.navigateTo(ChatStep.InviteToGroup)
-                    // Muting needs a shape picked before anything can be asked for; unmuting is
-                    // the whole request, so it goes straight to the view model.
+                    // Both muting and unmuting go through the picker, which is why this row
+                    // navigates either way rather than acting on one of them here.
                     GroupProfileAction.Mute -> flowNavigator.navigateTo(ChatStep.MuteChat)
-                    GroupProfileAction.Unmute ->
-                        viewModel.dispatchEvent(ChatViewModel.Event.UnmuteChat)
                     GroupProfileAction.Leave ->
                         viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat)
-                }
-            },
-            // Only the muted row has anything trailing to say. Stating the deadline is what keeps a
-            // timed mute distinguishable from a permanent one — without it both rows read "Unmute".
-            endSlot = { item ->
-                if (item.action is GroupProfileAction.Unmute && mutedLabel != null) {
-                    Text(
-                        text = mutedLabel,
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                    )
                 }
             },
         )
@@ -124,6 +108,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 internal fun GroupProfileHeader(
     group: ChatSubject.Group?,
     modifier: Modifier = Modifier,
+    viewerState: ViewerState? = null,
 ) {
     Column(
         modifier = modifier,
@@ -157,5 +142,11 @@ internal fun GroupProfileHeader(
                 color = CodeTheme.colors.textSecondary,
             )
         }
+        // Last, because it is the only line here that is the viewer's setting rather than a fact
+        // about the group, and the only one that can stop being true while the screen is open.
+        ChatMuteStatusChip(
+            viewerState = viewerState,
+            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+        )
     }
 }

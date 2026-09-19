@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +37,25 @@ fun ChoiceRow(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    ChoiceRow(
+        label = label,
+        icon = painterResource(icon),
+        modifier = modifier,
+        onClick = onClick,
+    )
+}
+
+/**
+ * The same row for a caller whose glyph is not a drawable — a Material vector, say, which has no
+ * resource id to pass.
+ */
+@Composable
+fun ChoiceRow(
+    label: String,
+    icon: Painter,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -48,7 +68,7 @@ fun ChoiceRow(
     ) {
         Icon(
             modifier = Modifier.size(IconSize),
-            painter = painterResource(icon),
+            painter = icon,
             contentDescription = null,
             tint = CodeTheme.colors.textMain,
         )

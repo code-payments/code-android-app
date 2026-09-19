@@ -28,6 +28,7 @@ import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
+import com.flipcash.shared.chat.ui.rememberIsMuted
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowHost
@@ -248,16 +249,25 @@ private fun FlowGroupInviteSheet() {
 @Composable
 private fun FlowMuteChatSheet() {
     val viewModel = flowSharedViewModel<ChatViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     // Same dismissal rule as the other sheets in this flow: exit through the sheet so it animates
     // down rather than having its scene deleted mid-frame.
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
 
     MuteChatSheet(
+        // Asked per composition rather than passed in as a boolean the caller computed: a timed
+        // mute lapses with nothing sent to say so, and the sheet's unmute row is what would
+        // otherwise be left standing over a chat that is already audible again.
+        isMuted = rememberIsMuted(state.viewerState),
         // Dismissed on the tap rather than on the result: the request is fire-and-forget from here,
         // and a failure is reported by the view model's own error bar, which draws over whatever is
         // on screen by then.
         onMute = {
             viewModel.dispatchEvent(ChatViewModel.Event.MuteChat(it))
+            dismissSheet()
+        },
+        onUnmute = {
+            viewModel.dispatchEvent(ChatViewModel.Event.UnmuteChat)
             dismissSheet()
         },
         onDismiss = dismissSheet,

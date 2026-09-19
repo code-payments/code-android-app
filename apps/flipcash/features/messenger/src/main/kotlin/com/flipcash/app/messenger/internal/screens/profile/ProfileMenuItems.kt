@@ -21,7 +21,6 @@ import com.flipcash.features.messenger.R
 internal sealed interface ChatProfileAction {
     data object Block : ChatProfileAction
     data object Mute : ChatProfileAction
-    data object Unmute : ChatProfileAction
 }
 
 internal data object BlockUser : FullMenuItem<ChatProfileAction>() {
@@ -34,6 +33,5 @@ internal data object BlockUser : FullMenuItem<ChatProfileAction>() {
     override val action: ChatProfileAction = ChatProfileAction.Block
 }
 
-/** The DM's mute rows. Shared definitions; see [MuteChatItem]. */
+/** The DM's mute row. Shared definition; see [MuteChatItem]. */
 internal val MuteDm = MuteChatItem<ChatProfileAction>(ChatProfileAction.Mute)
-internal val UnmuteDm = UnmuteChatItem<ChatProfileAction>(ChatProfileAction.Unmute)

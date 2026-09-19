@@ -907,13 +907,12 @@
     <string name="error_description_failedToLeave">We were unable to leave the chat. Please try again</string>
 
     <!-- Muting a chat. The contract has two mute shapes, a deadline and forever, so the sheet
-         offers durations plus an indefinite option and nothing else; unmuting is its own request,
-         which is why it is a row of its own rather than a fifth duration. Wording and the duration
-         set match iOS, which took them from WhatsApp\'s sheet plus Telegram\'s one-hour option.
-         The options name the state they produce ("1 Week") rather than the act ("Mute for 1 week")
-         so the same words can be reused in the muted row\'s readout. -->
+         offers durations plus an indefinite option; unmuting is its own request, which is why
+         "Never" is a row of its own rather than a fifth duration. Wording and the duration set
+         match iOS, which took them from WhatsApp\'s sheet plus Telegram\'s one-hour option. The
+         options name the state they produce ("1 Week") rather than the act ("Mute for 1 week"),
+         which is also what lets "Never" sit among them. -->
     <string name="title_muteChat">Mute Notifications</string>
-    <string name="title_unmuteChat">Unmute Notifications</string>
     <!-- Load-bearing rather than decorative: a muted chat still delivers the push, still stores the
          message and still counts it unread. Only the notification is held back. -->
     <string name="subtitle_muteChat">You\'ll still receive messages and see unread counts. Only notifications are silenced.</string>
@@ -921,8 +920,11 @@
     <string name="action_muteFor_eightHours">8 Hours</string>
     <string name="action_muteFor_oneWeek">1 Week</string>
     <string name="action_muteFor_forever">Always</string>
-    <!-- The muted row\'s readout. %1$s is the deadline: a time today, a weekday and time this week,
-         a date and time beyond that. Without it a timed mute reads the same as a permanent one. -->
+    <!-- The unmute, offered only while there is a mute to clear. -->
+    <string name="action_muteFor_never">Never</string>
+    <!-- The mute status chip under a chat profile\'s title. %1$s is the deadline: a time today, a
+         weekday and time this week, a date and time beyond that. Without it a timed mute reads the
+         same as a permanent one. -->
     <string name="label_mutedUntil">Muted until %1$s</string>
     <string name="label_muted">Muted</string>
     <string name="error_title_failedToMute">Something Went Wrong</string>

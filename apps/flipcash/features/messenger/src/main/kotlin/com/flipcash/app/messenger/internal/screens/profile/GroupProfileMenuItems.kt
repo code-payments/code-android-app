@@ -14,14 +14,13 @@ import com.flipcash.features.messenger.R
  * What the group's profile can act on.
  *
  * Its own type rather than [com.flipcash.app.messenger.internal.ChatViewModel.Event], because the
- * rows do different kinds of thing: leaving and unmuting are requests to the conversation's view
- * model, inviting and muting are navigations. Naming them here lets one
+ * rows do different kinds of thing: leaving is a request to the conversation's view model, inviting
+ * and muting are navigations. Naming them here lets one
  * [com.flipcash.app.menu.MenuList] carry them and the screen decide which is which.
  */
 internal sealed interface GroupProfileAction {
     data object Invite : GroupProfileAction
     data object Mute : GroupProfileAction
-    data object Unmute : GroupProfileAction
     data object Leave : GroupProfileAction
 }
 
@@ -55,6 +54,5 @@ internal data object LeaveChat : FullMenuItem<GroupProfileAction>() {
     override val action: GroupProfileAction = GroupProfileAction.Leave
 }
 
-/** The group's mute rows. Shared definitions; see [MuteChatItem]. */
+/** The group's mute row. Shared definition; see [MuteChatItem]. */
 internal val MuteChat = MuteChatItem<GroupProfileAction>(GroupProfileAction.Mute)
-internal val UnmuteChat = UnmuteChatItem<GroupProfileAction>(GroupProfileAction.Unmute)

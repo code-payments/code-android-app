@@ -23,12 +23,13 @@ import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.MenuList
+import com.flipcash.app.messenger.internal.ChatMuteStatusChip
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.asSubject
-import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
@@ -62,10 +63,6 @@ internal fun ChatProfileScreen(
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
 
-    // Asked per composition rather than stored: a timed mute lapses with nothing sent to say so,
-    // and this row is where the user would otherwise be looking at a stale Unmute.
-    val mutedLabel = rememberMutedLabel(chatState.viewerState)
-
     CodeScaffold(
         topBar = {
             AppBarWithTitle(onBackIconClicked = { flowNavigator.back() })
@@ -78,13 +75,14 @@ internal fun ChatProfileScreen(
             items = buildList<MenuItem<ChatProfileAction>> {
                 add(BlockUser)
                 if (chatState.chatType == ChatType.TIP_DM) {
-                    add(if (mutedLabel != null) UnmuteDm else MuteDm)
+                    add(MuteDm)
                 }
             },
             header = {
                 ProfileHeader(
                     participant = state.participant,
                     joinDate = state.joinDate,
+                    viewerState = chatState.viewerState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = CodeTheme.dimens.grid.x7),
@@ -94,11 +92,9 @@ internal fun ChatProfileScreen(
                 when (item.action) {
                     ChatProfileAction.Block ->
                         viewModel.dispatchEvent(ChatProfileViewModel.Event.BlockUser)
-                    // Muting needs a shape picked before anything can be asked for; unmuting is
-                    // the whole request, so it goes straight to the conversation's view model.
+                    // Both muting and unmuting go through the picker, which is why this row
+                    // navigates either way rather than acting on one of them here.
                     ChatProfileAction.Mute -> flowNavigator.navigateTo(ChatStep.MuteChat)
-                    ChatProfileAction.Unmute ->
-                        chatViewModel.dispatchEvent(ChatViewModel.Event.UnmuteChat)
                 }
             },
             endSlot = { item ->
@@ -109,14 +105,6 @@ internal fun ChatProfileScreen(
                         strokeWidth = CodeTheme.dimens.thickBorder,
                         color = CodeTheme.colors.textSecondary,
                         modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
-                    )
-                } else if (item.action == ChatProfileAction.Unmute && mutedLabel != null) {
-                    // Stating the deadline is what keeps a timed mute distinguishable from a
-                    // permanent one — without it both rows read "Unmute".
-                    Text(
-                        text = mutedLabel,
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
                     )
                 } else {
                     Icon(
@@ -136,6 +124,7 @@ internal fun ProfileHeader(
     participant: ChatParticipant?,
     joinDate: Instant?,
     modifier: Modifier = Modifier,
+    viewerState: ViewerState? = null,
 ) {
     Column(
         modifier = modifier,
@@ -179,5 +168,11 @@ internal fun ProfileHeader(
                 color = CodeTheme.colors.textSecondary,
             )
         }
+        // Last, because it is the only line here that is the viewer's setting rather than a fact
+        // about the person, and the only one that can stop being true while the screen is open.
+        ChatMuteStatusChip(
+            viewerState = viewerState,
+            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+        )
     }
 }
