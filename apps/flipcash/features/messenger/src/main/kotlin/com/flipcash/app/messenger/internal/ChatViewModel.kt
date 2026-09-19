@@ -61,6 +61,7 @@ import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.isDmAddressable
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
@@ -168,6 +169,16 @@ internal class ChatViewModel @Inject constructor(
         val separatorConfig: SeparatorConfig = SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
         val subject: ChatSubject? = null,
+        /**
+         * What this chat holds about the viewer, or null while nothing is known.
+         *
+         * On the chat rather than on the [ChatSubject] because it is not about who the
+         * conversation is with: a DM is muted exactly the way a group is, and both profiles offer
+         * the row. Carried whole rather than reduced to a muted flag — a timed mute lapses with
+         * nothing sent to say so, so what is muted depends on when it is asked, and `isMutedAt`
+         * needs the deadline this keeps.
+         */
+        val viewerState: ViewerState? = null,
         // The kind of DM this conversation is, resolved from the fast local contact lookup ahead of
         // the participant's server profile (which resolves over the network for tip DMs). Starts
         // UNKNOWN and settles to CONTACT_DM / TIP_DM as soon as the chat opens; the send button and
@@ -374,6 +385,9 @@ internal class ChatViewModel @Inject constructor(
 
         /** The leave went through, so whatever is showing the group's profile should close. */
         data object LeftChat : Event
+
+        /** This chat's viewer state moved, from the stream or from the viewer's own request. */
+        data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
 
         /**
          * A shape picked from the mute sheet. Carries the whole [MuteState] rather than a duration
@@ -1109,6 +1123,18 @@ internal class ChatViewModel @Inject constructor(
             .filter { it.metadata.type == ChatType.GROUP }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnGroupResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // The same metadata, minus the type filter: every chat has viewer state and every chat can
+        // be muted, so this one is not the group chrome's business. Observed rather than read with
+        // the chat because a mute made on another device arrives on the stream, and because leaving
+        // clears it server-side.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeMetadata(it) }
+            .map { it?.metadata?.viewerState }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnViewerStateResolved(it)) }
             .launchIn(viewModelScope)
 
         // The cache starts empty and fills in, so this is observed rather than read once — a
@@ -1933,7 +1959,6 @@ internal class ChatViewModel @Inject constructor(
                             memberCount = metadata.rosterSummary.memberCount,
                             rules = metadata.rules,
                             isMember = event.membership.isMember,
-                            viewerState = metadata.viewerState,
                         ),
                         chatType = ChatType.GROUP,
                         resolveState = ResolveState.Resolved,
@@ -1952,6 +1977,9 @@ internal class ChatViewModel @Inject constructor(
                             event.success,
                         )
                     )
+                }
+                is Event.OnViewerStateResolved -> { state ->
+                    state.copy(viewerState = event.viewerState)
                 }
                 Event.CopyInviteLink,
                 Event.LeaveChat,

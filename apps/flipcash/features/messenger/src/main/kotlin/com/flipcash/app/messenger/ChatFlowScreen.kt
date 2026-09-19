@@ -273,7 +273,7 @@ private fun FlowChatProfileScreen(participant: ChatParticipant) {
         viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant))
     }
 
-    ChatProfileScreen(viewModel)
+    ChatProfileScreen(viewModel, flowSharedViewModel<ChatViewModel>())
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow

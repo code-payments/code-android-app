@@ -49,7 +49,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     // Asked per composition rather than stored: a timed mute lapses with nothing sent to say so,
     // and this row is where the user would otherwise be looking at a stale Unmute. Non-null is what
     // says the chat is muted right now; what it says is the deadline.
-    val mutedLabel = rememberMutedLabel(group?.viewerState)
+    val mutedLabel = rememberMutedLabel(state.viewerState)
 
     // Leaving exits the whole chat flow rather than popping this screen, landing back on the chat
     // list: a group you have left is not a conversation you are still in, and closing to the
