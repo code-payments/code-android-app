@@ -2,7 +2,7 @@ package com.flipcash.shared.chat.ui
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
@@ -26,7 +26,9 @@ import kotlin.time.Clock
  *
  * Sized and tinted to sit with the caption text it stands beside — the row's preview, the title
  * bar's name — rather than to be noticed on its own. It states a setting, it does not ask for
- * anything.
+ * anything. Filled rather than outlined, matching iOS' `bell.slash.fill`. The mute row and the
+ * profile chip stay outlined, as iOS' do — those sit at body size beside a label that already
+ * names the setting, where this one has to carry it alone at caption size.
  */
 @Composable
 fun MutedIndicator(
@@ -39,7 +41,7 @@ fun MutedIndicator(
         // bar name. A Material glyph fills its box where the SF Symbol iOS draws carries its own
         // padding, so matching iOS by the box size alone lands a visibly heavier bell.
         modifier = modifier.size(CodeTheme.dimens.staticGrid.x3),
-        imageVector = Icons.Outlined.NotificationsOff,
+        imageVector = Icons.Filled.NotificationsOff,
         // Reaches a screen reader through the merged label of whatever container holds it —
         // Compose concatenates a child's description into its parent's rather than dropping it,
         // so the row reads its name, its timestamp and then this.
