@@ -24,7 +24,7 @@ import kotlin.time.Clock
  * already wrong by the time the deadline passes; [rememberIsMuted] waits the deadline out and stops
  * drawing on its own. Emits nothing at all when the chat is audible, so a row pays no layout for it.
  *
- * Sized and tinted to sit with the caption text it stands beside — the row's timestamp, the title
+ * Sized and tinted to sit with the caption text it stands beside — the row's preview, the title
  * bar's name — rather than to be noticed on its own. It states a setting, it does not ask for
  * anything.
  */
@@ -35,7 +35,10 @@ fun MutedIndicator(
 ) {
     if (!rememberIsMuted(viewerState)) return
     Icon(
-        modifier = modifier.size(CodeTheme.dimens.staticGrid.x4),
+        // Caption scale, a touch under the 14sp subtitle it trails and well under the 16sp title
+        // bar name. A Material glyph fills its box where the SF Symbol iOS draws carries its own
+        // padding, so matching iOS by the box size alone lands a visibly heavier bell.
+        modifier = modifier.size(CodeTheme.dimens.staticGrid.x3),
         imageVector = Icons.Outlined.NotificationsOff,
         // Reaches a screen reader through the merged label of whatever container holds it —
         // Compose concatenates a child's description into its parent's rather than dropping it,
