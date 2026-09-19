@@ -5,7 +5,6 @@ import com.flipcash.app.blocklist.BlocklistCoordinator
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ProfileController
@@ -27,10 +26,6 @@ import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
-private val ProfileMenuItems = buildList {
-    add(BlockUser)
-}
-
 @HiltViewModel
 internal class ChatProfileViewModel @Inject constructor(
     private val contactCoordinator: ContactCoordinator,
@@ -48,7 +43,6 @@ internal class ChatProfileViewModel @Inject constructor(
     data class State(
         val participant: ChatParticipant? = null,
         val joinDate: Instant? = null,
-        val menuItems: List<MenuItem<Event>> = ProfileMenuItems,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
     )
 

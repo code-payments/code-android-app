@@ -21,10 +21,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.MenuList
+import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.asSubject
+import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.ChatType
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
@@ -35,10 +39,32 @@ import com.getcode.view.LoadingSuccessState
 import kotlin.time.Instant
 
 
+/**
+ * A DM counterparty's profile.
+ *
+ * Two view models rather than one, because the screen says two kinds of thing about two different
+ * subjects. [viewModel] holds the person — their profile, their join date, whether they are
+ * blocked — and is the screen's own. [chatViewModel] is the conversation's, shared with the
+ * transcript, and it is what muting goes through: a mute is held by the chat, not by the person,
+ * and the same mute is reachable from a group's profile where there is no person at all.
+ *
+ * The mute row is shown for a tip DM only. This route is also how a group member's profile opens,
+ * and there the chat behind it is the group — a mute row on a member's profile would silence the
+ * whole group from a screen that names one person. Contact DMs never reach this screen
+ * ([com.flipcash.app.messenger.internal.ChatSubject.Contact] answers `canViewProfile` false).
+ */
 @Composable
-internal fun ChatProfileScreen(viewModel: ChatProfileViewModel) {
+internal fun ChatProfileScreen(
+    viewModel: ChatProfileViewModel,
+    chatViewModel: ChatViewModel,
+) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
+
+    // Asked per composition rather than stored: a timed mute lapses with nothing sent to say so,
+    // and this row is where the user would otherwise be looking at a stale Unmute.
+    val mutedLabel = rememberMutedLabel(chatState.viewerState)
 
     CodeScaffold(
         topBar = {
@@ -49,7 +75,12 @@ internal fun ChatProfileScreen(viewModel: ChatProfileViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            items = state.menuItems,
+            items = buildList<MenuItem<ChatProfileAction>> {
+                add(BlockUser)
+                if (chatState.chatType == ChatType.TIP_DM) {
+                    add(if (mutedLabel != null) UnmuteDm else MuteDm)
+                }
+            },
             header = {
                 ProfileHeader(
                     participant = state.participant,
@@ -59,15 +90,33 @@ internal fun ChatProfileScreen(viewModel: ChatProfileViewModel) {
                         .padding(top = CodeTheme.dimens.grid.x7),
                 )
             },
-            onItemClick = { viewModel.dispatchEvent(it.action) },
+            onItemClick = { item ->
+                when (item.action) {
+                    ChatProfileAction.Block ->
+                        viewModel.dispatchEvent(ChatProfileViewModel.Event.BlockUser)
+                    // Muting needs a shape picked before anything can be asked for; unmuting is
+                    // the whole request, so it goes straight to the conversation's view model.
+                    ChatProfileAction.Mute -> flowNavigator.navigateTo(ChatStep.MuteChat)
+                    ChatProfileAction.Unmute ->
+                        chatViewModel.dispatchEvent(ChatViewModel.Event.UnmuteChat)
+                }
+            },
             endSlot = { item ->
-                val loading = item.action == ChatProfileViewModel.Event.BlockUser &&
+                val loading = item.action == ChatProfileAction.Block &&
                     state.processingState.state == LoadingSuccessState.State.Loading
                 if (loading) {
                     CodeCircularProgressIndicator(
                         strokeWidth = CodeTheme.dimens.thickBorder,
                         color = CodeTheme.colors.textSecondary,
                         modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+                    )
+                } else if (item.action == ChatProfileAction.Unmute && mutedLabel != null) {
+                    // Stating the deadline is what keeps a timed mute distinguishable from a
+                    // permanent one — without it both rows read "Unmute".
+                    Text(
+                        text = mutedLabel,
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
                     )
                 } else {
                     Icon(

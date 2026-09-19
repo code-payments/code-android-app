@@ -22,6 +22,7 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
+import com.flipcash.app.messenger.internal.screens.MuteChatSheet
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
@@ -62,7 +63,8 @@ fun ChatFlowScreen(
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
         entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
-        // ChatStep.AmountEntry, ChatStep.InitPayment and ChatStep.InviteToGroup are Sheets, so the
+        // ChatStep.AmountEntry, ChatStep.InitPayment, ChatStep.InviteToGroup and ChatStep.MuteChat
+        // are Sheets, so the
         // flow needs the sheet strategy to draw them as such; without it the step would fall
         // through to SinglePane and cover the thread. Amount entry
         // returns its result inside the flow (resultBackNavigator), so the strategy's own
@@ -91,6 +93,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.InviteToGroup> {
         FlowGroupInviteSheet()
+    }
+    annotatedEntry<ChatStep.MuteChat> {
+        FlowMuteChatSheet()
     }
     annotatedEntry<ChatStep.Profile> { step ->
         FlowChatProfileScreen(step.contact)
@@ -241,6 +246,25 @@ private fun FlowGroupInviteSheet() {
 }
 
 @Composable
+private fun FlowMuteChatSheet() {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    // Same dismissal rule as the other sheets in this flow: exit through the sheet so it animates
+    // down rather than having its scene deleted mid-frame.
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+
+    MuteChatSheet(
+        // Dismissed on the tap rather than on the result: the request is fire-and-forget from here,
+        // and a failure is reported by the view model's own error bar, which draws over whatever is
+        // on screen by then.
+        onMute = {
+            viewModel.dispatchEvent(ChatViewModel.Event.MuteChat(it))
+            dismissSheet()
+        },
+        onDismiss = dismissSheet,
+    )
+}
+
+@Composable
 private fun FlowChatProfileScreen(participant: ChatParticipant) {
     val viewModel = flowSharedViewModel<ChatProfileViewModel>()
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
@@ -249,7 +273,7 @@ private fun FlowChatProfileScreen(participant: ChatParticipant) {
         viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant))
     }
 
-    ChatProfileScreen(viewModel)
+    ChatProfileScreen(viewModel, flowSharedViewModel<ChatViewModel>())
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
