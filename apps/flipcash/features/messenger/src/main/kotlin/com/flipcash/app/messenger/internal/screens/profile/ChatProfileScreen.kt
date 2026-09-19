@@ -147,7 +147,9 @@ internal fun ProfileHeader(
                 .clip(CircleShape),
         )
         Text(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+            // Wider than the 5dp that binds the identity lines below it, so the name reads as the
+            // start of that block rather than as another line of the picture.
+            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
             text = participant?.name.orEmpty(),
             style = CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textMain,
