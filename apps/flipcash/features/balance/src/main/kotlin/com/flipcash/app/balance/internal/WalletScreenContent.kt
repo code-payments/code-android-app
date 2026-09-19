@@ -1,5 +1,6 @@
 package com.flipcash.app.balance.internal
 
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -80,6 +81,11 @@ internal fun WalletScreenContent(
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (WalletViewModel.Event) -> Unit,
 ) {
+    // Time-to-full-display for a logged-in launch. This tab is where the app lands, and the gate
+    // below means "landed" is not the same frame as "composed" -- registering a reporter here holds
+    // the activity's report open until the content below the gate has actually been drawn.
+    ReportDrawnWhen { !tokenState.isAwaitingTokens && !balanceState.isAwaitingActivity }
+
     // One loading state for the whole tab. The balance, the card deck, and the activity preview
     // arrive from three independent sources; letting each stage itself meant the tab assembled in
     // pieces -- a spinner inside the header while the body below it had already decided, from a
