@@ -1,21 +1,52 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
+    kotlin("multiplatform")
+    id("com.android.kotlin.multiplatform.library")
+    alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.kotlin.serialization)
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.encryption.keys"
-}
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.encryption.keys"
+        compileSdk {
+            version = release(libs.versions.android.compileSdk.get().toInt()) {
+                minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
+            }
+        }
+        minSdk = 29
+        withHostTest {}
+    }
 
-dependencies {
-    implementation(project(":libs:encryption:base58"))
-    implementation(project(":libs:encryption:sha256"))
-    implementation(project(":libs:encryption:utils"))
+    iosArm64()
+    iosSimulatorArm64()
+    iosX64()
+    macosArm64()
+    macosX64()
 
-    implementation(libs.protobuf.kotlin.lite)
-    implementation(libs.grpc.okhttp)
-    implementation(libs.grpc.kotlin)
-    implementation(libs.bundles.kotlinx.serialization)
-
-    testImplementation(kotlin("test"))
-    testImplementation(libs.robolectric)
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(project(":libs:encryption:base58"))
+                implementation(project(":libs:encryption:sha256"))
+                implementation(project(":libs:encryption:utils"))
+                implementation(libs.bundles.kotlinx.serialization)
+            }
+        }
+        androidMain {
+            dependencies {
+                implementation(libs.protobuf.kotlin.lite)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
+        getByName("androidHostTest") {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.robolectric)
+            }
+        }
+    }
 }

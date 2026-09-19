@@ -1,7 +1,7 @@
 package com.getcode.opencode.model.core
 
-import com.getcode.opencode.internal.solana.utils.DataSlice.byteToUnsignedInt
-import com.getcode.opencode.internal.solana.utils.DataSlice.suffix
+import com.getcode.utils.DataSlice.byteToUnsignedInt
+import com.getcode.utils.DataSlice.suffix
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.utils.byteArrayToLong

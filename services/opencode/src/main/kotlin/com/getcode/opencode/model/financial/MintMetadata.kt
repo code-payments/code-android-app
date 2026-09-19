@@ -9,9 +9,12 @@ import com.getcode.opencode.internal.solana.vmAuthority
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.MintParceler
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.PublicKeyParceler
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.TypeParceler
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.DecimalFormat
@@ -156,6 +159,7 @@ fun MintMetadata.Companion.fromLaunch(
  * @property billCustomizations Optional visual customizations for the bill for this token when give/grabbed
  */
 @Parcelize
+@TypeParceler<Mint, MintParceler>()
 data class MintMetadata(
     val address: Mint,
     val decimals: Int,
@@ -214,6 +218,7 @@ fun Token.formattedQuantity(quarks: Long): String {
  * to 21 days
  */
 @Parcelize
+@TypeParceler<PublicKey, PublicKeyParceler>()
 data class VmMetadata(
     val vm: PublicKey,
     val authority: PublicKey,
@@ -236,6 +241,7 @@ data class VmMetadata(
  * @property sellFeeBps Precent fee for sells in basis points, currently hardcoded to 1%
  */
 @Parcelize
+@TypeParceler<PublicKey, PublicKeyParceler>()
 data class LaunchpadMetadata(
     val currencyConfig: PublicKey,
     val liquidityPool: PublicKey,

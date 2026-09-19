@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.solana.programs
 
-import com.getcode.opencode.internal.solana.utils.DataSlice.toLong
+import com.getcode.utils.DataSlice.toLong
 import com.getcode.solana.keys.PublicKey
 import com.getcode.vendor.Base58
 
