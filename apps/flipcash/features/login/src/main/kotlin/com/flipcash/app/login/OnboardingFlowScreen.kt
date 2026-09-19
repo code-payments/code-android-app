@@ -35,6 +35,8 @@ import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.core.onboarding.OnboardingResult
 import com.flipcash.app.core.onboarding.OnboardingStep
 import com.flipcash.app.login.internal.LoginAccessKeyViewModel
+import com.flipcash.app.login.internal.accounts.AccountSelectionContent
+import com.flipcash.app.login.internal.accounts.AccountSelectionViewModel
 import com.flipcash.app.login.internal.screens.PhotoAccessKeyScreen
 import com.flipcash.app.login.internal.screens.AccessKeyScreen
 import com.flipcash.app.login.internal.screens.LoginRouterScreenContent
@@ -61,6 +63,7 @@ import com.getcode.navigation.core.NavOptions
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.FlowNavigator
+import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.results.NavResultStateRegistry
@@ -86,10 +89,13 @@ import kotlin.time.Duration.Companion.milliseconds
  *    Start → AccessKey ──┬────────────→ Name² → Contacts¹ → Notifications → Home³
  *                         └→ Purchase ─┘
  *
- * 2. Seed restore (ResumePoint.Login → LoggedIn via SeedInput)
+ * 2. Seed restore (ResumePoint.Login → LoggedIn via SeedInput or AccountSelection)
  *
- *    Start → SeedInput ──┬────────────→ Name² → Contacts¹ → Notifications → Home³
- *                         └→ Purchase ─┘
+ *    Start ─┬─ AccountSelection ─┬──┬────────────→ Name² → Contacts¹ → Notifications → Home³
+ *           │   (stored accounts)│  └→ Purchase ─┘
+ *           └─ SeedInput ────────┘
+ *    Either entry reaches Purchase when the restored account still owes one.
+ *    AccountSelection also falls through to SeedInput via "Enter a Different Access Key".
  *
  * 3. App resume (ResumePoint.PostAccessKey)
  *
@@ -293,6 +299,9 @@ private fun onboardingEntryProvider(
     annotatedEntry<OnboardingStep.SeedInput> {
         SeedInputStepContent()
     }
+    annotatedEntry<OnboardingStep.AccountSelection>(testTag = "account_selection_screen") {
+        AccountSelectionStepContent()
+    }
     annotatedEntry<OnboardingStep.AccessKey> {
         AccessKeyStepContent()
     }
@@ -315,30 +324,17 @@ private fun onboardingEntryProvider(
 
 // -- Step composables --
 
+/**
+ * What happens once a login succeeds, wired identically wherever one can be started. Both the
+ * landing step (a deeplink seed) and the account list (a row tap) dispatch `LogIn` on the same
+ * flow-scoped [LoginViewModel], so both need the same two outcomes: straight out of onboarding, or
+ * into the purchase leg when the account has not paid for registration yet.
+ */
 @Composable
-private fun LoginStepContent(seed: String?) {
-    val vm = hiltViewModel<LoginViewModel>()
-    val state by vm.stateFlow.collectAsStateWithLifecycle()
-    val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
-    val navigator = LocalCodeNavigator.current
-    var visible by remember { mutableStateOf(false) }
-    val activity = LocalActivity.current
-
-    LaunchedEffect(Unit) {
-        activity?.reportFullyDrawn()
-        visible = true
-    }
-
-    LaunchedEffect(vm) {
-        vm.eventFlow
-            .filterIsInstance<LoginViewModel.Event.CreateAccountSettled>()
-            .onEach {
-                trace(tag = "Onboarding", message = "Account created — navigating to access key", type = TraceType.Process)
-                flowNavigator.navigateTo(OnboardingStep.AccessKey)
-            }
-            .launchIn(this)
-    }
-
+private fun LoginOutcomeHandler(
+    vm: LoginViewModel,
+    flowNavigator: FlowNavigator<OnboardingStep, OnboardingResult>,
+) {
     LaunchedEffect(vm) {
         vm.eventFlow
             .filterIsInstance<LoginViewModel.Event.LoggedInSuccessfully>()
@@ -362,6 +358,53 @@ private fun LoginStepContent(seed: String?) {
             }
             .launchIn(this)
     }
+}
+
+@Composable
+private fun LoginStepContent(seed: String?) {
+    // Shared with AccountSelectionStepContent: both steps start a login on it, and a second
+    // instance would repeat the stored-account read and split the login state between them.
+    val vm = flowSharedViewModel<LoginViewModel>()
+    val state by vm.stateFlow.collectAsStateWithLifecycle()
+    val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
+    val navigator = LocalCodeNavigator.current
+    var visible by remember { mutableStateOf(false) }
+    var loginRequested by remember { mutableStateOf(false) }
+    val activity = LocalActivity.current
+
+    LaunchedEffect(Unit) {
+        activity?.reportFullyDrawn()
+        visible = true
+    }
+
+    // The stored-account read is asynchronous, so a tap on a cold start can arrive before it
+    // lands. Hold the tap and route once the answer is in, rather than routing on the `false`
+    // default and sending someone who does have accounts to the access key field.
+    LaunchedEffect(loginRequested, state.storedAccountsChecked) {
+        if (!loginRequested || !state.storedAccountsChecked) return@LaunchedEffect
+        loginRequested = false
+        // Mirrors iOS's OnboardingViewModel.loginAction: the list when we have one, the access
+        // key field when we do not.
+        flowNavigator.navigateTo(
+            if (state.hasStoredAccounts) {
+                OnboardingStep.AccountSelection
+            } else {
+                OnboardingStep.SeedInput
+            }
+        )
+    }
+
+    LaunchedEffect(vm) {
+        vm.eventFlow
+            .filterIsInstance<LoginViewModel.Event.CreateAccountSettled>()
+            .onEach {
+                trace(tag = "Onboarding", message = "Account created — navigating to access key", type = TraceType.Process)
+                flowNavigator.navigateTo(OnboardingStep.AccessKey)
+            }
+            .launchIn(this)
+    }
+
+    LoginOutcomeHandler(vm, flowNavigator)
 
     LaunchedEffect(seed) {
         if (seed != null) {
@@ -374,10 +417,16 @@ private fun LoginStepContent(seed: String?) {
         enter = fadeIn(tween(150)),
     ) {
         LoginRouterScreenContent(
-            isLoggingIn = state.loggingIn,
+            // A held tap shows the button's spinner, so waiting on the read reads as the app
+            // working rather than as a dead button.
+            isLoggingIn = if (loginRequested) {
+                state.loggingIn.copy(loading = true)
+            } else {
+                state.loggingIn
+            },
             isCreatingAccount = state.creatingAccount,
             createAccount = { vm.dispatchEvent(LoginViewModel.Event.CreateAccount) },
-            login = { flowNavigator.navigateTo(OnboardingStep.SeedInput) },
+            login = { loginRequested = true },
             isLabsOpen = state.betaOptionsVisible,
             onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
             openBetaFlags = { navigator.openAsSheet(AppRoute.Menu.Lab(onboarding = true)) },
@@ -416,6 +465,42 @@ private fun SeedInputStepContent() {
                     flowNavigator.replaceStack(listOf(OnboardingStep.Start()))
             }
         }
+    }
+}
+
+@Composable
+private fun AccountSelectionStepContent() {
+    val viewModel: AccountSelectionViewModel = hiltViewModel()
+    val loginViewModel = flowSharedViewModel<LoginViewModel>()
+    val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+    LoginOutcomeHandler(loginViewModel, flowNavigator)
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // The back control is what keeps this step from being a dead end, as SeedInput's sibling
+        // bar shows.
+        AppBarWithTitle(
+            modifier = Modifier.fillMaxWidth(),
+            title = stringResource(R.string.title_selectAccount),
+            titleAlignment = Alignment.CenterHorizontally,
+            onBackIconClicked = { flowNavigator.back() },
+        )
+        AccountSelectionContent(
+            state = state,
+            // The store holds base64 entropy, and LogIn defaults to fromDeeplink = false, which
+            // is the base64 path. Do not pass fromDeeplink = true -- that branch base58-decodes.
+            onSelect = { entropy ->
+                loginViewModel.dispatchEvent(LoginViewModel.Event.LogIn(entropy))
+            },
+            onRemove = { entropy ->
+                viewModel.dispatchEvent(AccountSelectionViewModel.Event.OnRemoveRequested(entropy))
+            },
+            onEnterAccessKey = { flowNavigator.navigateTo(OnboardingStep.SeedInput) },
+        )
     }
 }
 

@@ -310,6 +310,8 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data object DeviceLogs : Menu
         @Serializable
+        data object AccountSelection : Menu
+        @Serializable
         data object UserProfile : Menu
         @Serializable
         data class Lab(val onboarding: Boolean = false) : Menu

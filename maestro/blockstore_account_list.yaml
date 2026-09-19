@@ -1,0 +1,38 @@
+appId: com.flipcash.app.android
+name: "Account list — recorded on login"
+tags:
+  - onboarding
+  - blockstore
+---
+# `clearState` is `pm clear`, and Play services drops the Block Store entry with it ("Removed
+# Blockstore data for <pkg> upon clearing data"), so this run genuinely starts with an empty list.
+# Surviving an uninstall is the separate claim, and blockstore_survives_reinstall.yaml makes it.
+- runFlow:
+    file: helpers/launch_app.yaml
+    env:
+      clearAppState: "true"
+
+# Logging in is what records the account; logging out is what leaves the list as the only way back.
+- runFlow: subflows/login.yaml
+- runFlow: subflows/logout.yaml
+
+# Log In routes to the list when there is one, instead of straight to the access key field.
+- tapOn: Log in
+- extendedWaitUntil:
+    visible:
+      id: account_selection_screen
+    timeout: 15000
+- assertVisible: "Select an Account"
+# The row itself. The display name comes from the seed, which the flow does not know, so the
+# creation subtitle is what identifies a row generically.
+- assertVisible: "Created .*"
+# Onboarding keeps the footer: there is a flow to fall through to.
+- assertVisible: "Enter a Different Access Key"
+
+# The back control is not decoration — without it this step is a dead end.
+- tapOn:
+    id: action_back
+- extendedWaitUntil:
+    visible:
+      id: login_screen
+    timeout: 10000

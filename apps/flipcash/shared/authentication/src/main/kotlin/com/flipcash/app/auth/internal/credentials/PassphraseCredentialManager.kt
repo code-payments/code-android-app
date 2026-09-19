@@ -1,12 +1,6 @@
 package com.flipcash.app.auth.internal.credentials
 
 import android.content.Context
-import androidx.credentials.CreatePasswordRequest
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.GetPasswordOption
-import androidx.credentials.PasswordCredential
-import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -14,14 +8,12 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.auth.internal.accounts.AccountStore
+import com.flipcash.app.auth.internal.accounts.AccountStoreMigration
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
-import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.base58
 import com.getcode.utils.encodeBase64
@@ -35,7 +27,6 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withContext
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,8 +35,7 @@ class PassphraseCredentialManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val accountController: AccountController,
     private val userManager: UserManager,
-    private val mnemonicManager: MnemonicManager,
-    private val featureFlags: FeatureFlagController,
+    private val accountStore: AccountStore,
     private val dispatchers: DispatcherProvider,
 ) {
     companion object {
@@ -60,10 +50,6 @@ class PassphraseCredentialManager @Inject constructor(
         private fun completedOnboardingKey(accountId: String) =
             booleanPreferencesKey("${accountId}_completedOnboarding")
     }
-
-    private val credentialManager = CredentialManager.create(context)
-
-    private val credentialLookupCache = mutableMapOf<String, PasswordCredential>()
 
     private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatchers.IO)
 
@@ -162,8 +148,7 @@ class PassphraseCredentialManager @Inject constructor(
 
         val accountId = Base58.decode(tempUserId).toList()
 
-        // Store credential
-        storeCredential(entropy, accountId)
+        accountStore.upsert(entropy)
 
         // Store metadata
         val metadata = AccountMetadata.createFromId(accountId, entropy, isUnregistered = true)
@@ -199,6 +184,12 @@ class PassphraseCredentialManager @Inject constructor(
     }
 
     suspend fun lookup(): LookupResult {
+        AccountStoreMigration.run(accountStore) {
+            val selected = storage.data.map { it[selectedAccountIdKey] }.firstOrNull()
+                ?: return@run emptyList()
+            listOfNotNull(storage.data.map { it[entropyKey(selected)] }.firstOrNull())
+        }
+
         val selectedAccountId =
             storage.data.map { it[selectedAccountIdKey] }.firstOrNull()
 
@@ -231,6 +222,14 @@ class PassphraseCredentialManager @Inject constructor(
         return LookupResult.NoAccountFound
     }
 
+    /**
+     * [fromSelection] gates the local-userId fast path only: a login started from the account list
+     * is already known to the backend under this entropy, so the cached id is not re-checked.
+     *
+     * It does not gate the account-list write. Every successful login records the account, whatever
+     * started it. Gating that on [fromSelection] meant a deeplink login — which passes it to skip
+     * the fast path — never appeared in the list, so switching accounts after one showed nothing.
+     */
     suspend fun login(
         entropy: String,
         fromSelection: Boolean = false,
@@ -240,35 +239,17 @@ class PassphraseCredentialManager @Inject constructor(
 
         val selectedMetadata = getSelectedMetadata()
         if (selectedMetadata != null && selectedMetadata.entropy == entropy) {
+            accountStore.upsert(entropy)
             storeMetadata(selectedMetadata, isSelected = true)
             userManager.set(selectedMetadata.id)
             return Result.success(selectedMetadata)
         }
 
         if (!fromSelection) {
-            // Check existing credential
-            val userId = getUserId(entropy)
-            val existingCredential =
-                credentialLookupCache[entropy] ?: getCredentialByEntropy(entropy, userId)
-
-            if (existingCredential != null) {
-                val metadata = getMetadata(userId.orEmpty())?.copy(isUnregistered = false)
-                    ?: AccountMetadata(
-                        userId.orEmpty(),
-                        entropy,
-                        isUnregistered = false
-                    )
-
-                storeMetadata(metadata, isSelected = true)
-
-                credentialLookupCache.clear()
-
-                return Result.success(metadata)
-            }
-
             // Check fallback userId
+            val userId = getUserId(entropy)
             if (userId != null) {
-                storeCredential(entropy, Base58.decode(userId).toList())
+                accountStore.upsert(entropy)
                 storage.edit { it.remove(userIdKey(entropy)) }
 
                 val metadata = AccountMetadata(userId, entropy, isUnregistered = false)
@@ -289,9 +270,7 @@ class PassphraseCredentialManager @Inject constructor(
         val userIdBytes = backendResult.getOrNull()!!
         val userIdStr = userIdBytes.base58
 
-        if (!fromSelection) {
-            storeCredential(entropy, userIdBytes)
-        }
+        accountStore.upsert(entropy)
 
         val metadata = AccountMetadata(userIdStr, entropy, isUnregistered = false)
         storeMetadata(metadata, isSelected = true)
@@ -307,28 +286,6 @@ class PassphraseCredentialManager @Inject constructor(
         }
 
         return Result.success(Unit)
-    }
-
-    suspend fun selectCredential(): Result<MnemonicPhrase> {
-        return try {
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(GetPasswordOption())
-                .build()
-
-            val result = credentialManager.getCredential(context, request)
-            val credential = result.credential as PasswordCredential
-            val words = credential.password
-                .replace(Regex("(\\s)+"), " ")
-                .lowercase(Locale.getDefault()).split(" ")
-            val mnemonic = MnemonicPhrase.newInstance(words)!!
-            credentialLookupCache[mnemonic.wordString] = credential
-            Result.success(mnemonic)
-        } catch (e: Exception) {
-            when (e) {
-                is GetCredentialCancellationException -> Result.failure(SelectCredentialError.UserCancelled())
-                else -> Result.failure(e)
-            }
-        }
     }
 
     private suspend fun storeMetadata(metadata: AccountMetadata, isSelected: Boolean) {
@@ -348,12 +305,6 @@ class PassphraseCredentialManager @Inject constructor(
         val entropy = preferences[entropyKey(accountId)] ?: return null
         val isUnregistered = preferences[isUnregisteredKey(accountId)] ?: false
         return AccountMetadata(accountId, entropy, isUnregistered)
-    }
-
-    private suspend fun storeUserId(entropy: String, userId: String) {
-        storage.edit { preferences ->
-            preferences[userIdKey(entropy)] = userId
-        }
     }
 
     private suspend fun getUserId(entropy: String): String? {
@@ -381,101 +332,4 @@ class PassphraseCredentialManager @Inject constructor(
         userManager.set(userId)
         userManager.set(state)
     }
-
-    // Retrieve credential by entropy using GetPasswordOption
-    private suspend fun getCredentialByEntropy(
-        entropy: String,
-        expectedUserId: String? = null
-    ): PasswordCredential? {
-        if (!featureFlags.get(FeatureFlag.CredentialManager)) return null
-
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(
-                GetPasswordOption(
-                    allowedUserIds = setOf(mnemonicManager.fromEntropyBase64(entropy).toCredentialId()),
-                    isAutoSelectAllowed = true
-                )
-            )
-            .build()
-
-        return try {
-            val result = credentialManager.getCredential(context, request)
-            val phrase = mnemonicManager.fromEntropyBase64(entropy).wordString
-            val credential = result.credential
-            if (credential is PasswordCredential && credential.id == expectedUserId && (credential.password == phrase)) {
-                credential
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            null
-        }
-
-    }
-
-    private suspend fun storeCredential(
-        entropy: String,
-        userId: ID,
-        overwrite: Boolean = false,
-    ): Result<Unit> {
-        if (!featureFlags.get(FeatureFlag.CredentialManager)) return Result.failure(Throwable("Credential manager is force disabled"))
-
-        val id = userId.base58
-        val phrase = mnemonicManager.fromEntropyBase64(entropy)
-        val credentialId = phrase.toCredentialId()
-
-        if (!overwrite) {
-            // Check for existing credential
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(
-                    GetPasswordOption(
-                        allowedUserIds = setOf(credentialId),
-                        isAutoSelectAllowed = true
-                    )
-                )
-                .build()
-
-            try {
-                val result = credentialManager.getCredential(context, request)
-                val credential = result.credential
-                if (credential is PasswordCredential && credential.id == credentialId && credential.password == phrase.wordString) {
-                    // Credential exists and is valid; no need to recreate
-                    return Result.success(Unit)
-                }
-            } catch (e: Exception) {
-                // Credential not found or user canceled; proceed to create
-            }
-        }
-
-
-        // Credential doesn't exist; create it
-        val createRequest = CreatePasswordRequest(
-            id = credentialId,
-            password = phrase.wordString,
-            isAutoSelectAllowed = true
-        )
-        return try {
-            credentialManager.createCredential(context, createRequest)
-            Result.success(Unit)
-        } catch (e: Exception) {
-            storeUserId(entropy, id)
-            Result.success(Unit)
-        }
-    }
-
-    private fun MnemonicPhrase.toCredentialId(): String {
-        val sortedWords = words.sorted()
-        val selectedWords = listOf(
-            sortedWords[0],
-            sortedWords[5],
-            sortedWords[11]
-        )
-        return selectedWords.joinToString(" ") { word ->
-            word.lowercase().replaceFirstChar { it.titlecase() }
-        }
-    }
-}
-
-sealed class SelectCredentialError : Exception() {
-    class UserCancelled : SelectCredentialError()
 }

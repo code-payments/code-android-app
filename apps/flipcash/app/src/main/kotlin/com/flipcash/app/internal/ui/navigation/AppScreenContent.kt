@@ -39,6 +39,7 @@ import com.flipcash.app.messenger.ChatFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
+import com.flipcash.app.login.AccountSelectionScreen
 import com.flipcash.app.login.OnboardingFlowScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.BlocklistScreen
@@ -154,6 +155,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.AdvancedFeatures> { AdvancedFeaturesScreen() }
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }
+    annotatedEntry<AppRoute.Menu.AccountSelection> { AccountSelectionScreen() }
 
     annotatedEntry<AppRoute.UserFlags> { UserFlagsScreen() }
 

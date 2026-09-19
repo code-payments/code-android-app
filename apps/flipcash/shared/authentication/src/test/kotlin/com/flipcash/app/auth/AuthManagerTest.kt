@@ -2,6 +2,7 @@ package com.flipcash.app.auth
 
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.appsettings.AppSettingsCoordinator
+import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.auth.internal.credentials.AccountMetadata
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
@@ -52,6 +53,7 @@ class AuthManagerTest {
     private val testDispatcher get() = dispatchers.testDispatcher
 
     private val credentialManager: PassphraseCredentialManager = mockk(relaxed = true)
+    private val accountStore: AccountStore = mockk(relaxed = true)
     private val userManager: UserManager = mockk(relaxed = true)
     private val notificationManager: NotificationManagerCompat = mockk(relaxed = true)
     private val accountController: AccountController = mockk(relaxed = true)
@@ -96,6 +98,7 @@ class AuthManagerTest {
 
         authManager = AuthManager(
             credentialManager = credentialManager,
+            accountStore = accountStore,
             userManager = userManager,
             notificationManager = notificationManager,
             accountController = accountController,
