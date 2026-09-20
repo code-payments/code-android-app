@@ -28,6 +28,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.FakeResourceHelper
+import com.getcode.view.SuccessHoldDuration
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -36,6 +37,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -308,4 +310,43 @@ class CreateGroupViewModelErrorTest {
         assertEquals(2, keys.size)
         assertTrue(!keys[0].bytes.contentEquals(keys[1].bytes))
     }
+
+    /**
+     * The checkmark is held for half a second before the flow leaves for the chat, and the form is
+     * on screen for all of it. The create's own cache cleanup used to run at the top of that hold,
+     * which crossfaded the picture back to the empty camera tile a beat before the screen went
+     * away — the pick reading as dropped at the moment it was accepted.
+     *
+     * So the local copy outlives the screen that shows it, exactly as the photo-selection step
+     * leaves its own pick to `onCleared`: the flow entry pops, the shared view model clears, and
+     * the file goes with it.
+     */
+    @Test
+    fun `a created group keeps its picture until the form is gone`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = createViewModel()
+            vm.completeDraft()
+
+            val uri = mockk<Uri>(relaxed = true)
+            every { contentReader.readBytes(uri) } returns ByteArray(8)
+            coEvery { blobStorage.upload(any(), any()) } returns
+                Result.success(BlobId(ByteArray(32) { 5 }))
+            vm.dispatchEvent(CreateGroupViewModel.Event.OnImageCached(uri, "image/jpeg"))
+            coEvery { chatCoordinator.create(any(), any()) } returns Result.success(created())
+
+            vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+            advanceTimeBy(SuccessHoldDuration / 2)
+
+            // Mid-hold: the button is showing success and the picture is still under it.
+            assertTrue(vm.stateFlow.value.processingState.success)
+            assertEquals(uri, vm.stateFlow.value.image.dataOrNull)
+            // And the file it points at is still there — it is what the tile is drawing from.
+            coVerify(exactly = 0) { contentReader.removeFromCache(uri) }
+
+            advanceUntilIdle()
+
+            assertEquals(created(), vm.stateFlow.value.created)
+            assertEquals(uri, vm.stateFlow.value.image.dataOrNull)
+        }
 }
