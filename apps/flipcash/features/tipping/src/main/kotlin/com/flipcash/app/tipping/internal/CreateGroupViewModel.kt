@@ -375,8 +375,11 @@ internal class CreateGroupViewModel @Inject constructor(
         ).onSuccess { chat ->
             // The chat exists, so the key has done its job — a later Create is a second group.
             attempt.clear()
-            // The cached local copy is redundant now that the blob is the chat's picture.
-            discardPendingImage()
+            // The cached local copy is redundant now that the blob is the chat's picture, but the
+            // form is still on screen for the length of the hold below and its tile is still
+            // drawing from that file. Discarding it here crossfaded the picture back to the empty
+            // camera tile a beat before the flow left for the chat, so the pick read as dropped at
+            // the moment it was accepted. `onCleared` deletes it once the flow entry has popped.
             dispatchSuccessThen(Event.UpdateProcessingState(success = true)) {
                 dispatchEvent(Event.ChatCreated(chat))
                 dispatchEvent(Event.UpdateProcessingState())
