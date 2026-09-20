@@ -13,6 +13,7 @@ import com.hoc081098.channeleventbus.ValidationBeforeClosing
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -29,18 +30,16 @@ internal class InternalEventRepository @Inject constructor(
     init {
         eventBus.handle(Events.FetchBalance) {
             scope.launch {
-                sessionListeners.onEach { listener ->
-                    listener.onBalanceUpdateRequested()
-                }
+                notifyListeners { it.onBalanceUpdateRequested() }
             }
         }
 
         eventBus.handle(Events.OnLoggedIn) {
             scope.launch {
+                // Before the fan-out, and not part of it: the listeners' own work reads the
+                // account list this seeds.
                 accountController.onUserLoggedIn(it.owner)
-                sessionListeners.onEach { listener ->
-                    listener.onUserLoggedIn(it.owner)
-                }
+                notifyListeners { listener -> listener.onUserLoggedIn(it.owner) }
             }
         }
 
@@ -51,6 +50,21 @@ internal class InternalEventRepository @Inject constructor(
                     force = it.force
                 )
             }
+        }
+    }
+
+    /**
+     * Delivers a session event to every listener at once.
+     *
+     * The listeners are an unordered multibinding of independent subsystems — tokens, chat,
+     * contacts — so there is no order to preserve, and each one's first act on login is to talk to
+     * Room or the network. Delivering them from a plain loop ran them strictly in sequence, which
+     * on the login path made the last listener wait out the other two before it could even start.
+     * The [coroutineScope] keeps the old completion semantics: this returns when they all have.
+     */
+    private suspend fun notifyListeners(block: suspend (SessionListener) -> Unit) = coroutineScope {
+        sessionListeners.forEach { listener ->
+            launch { block(listener) }
         }
     }
 
