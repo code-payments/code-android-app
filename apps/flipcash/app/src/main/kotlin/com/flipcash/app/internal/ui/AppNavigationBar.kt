@@ -22,6 +22,7 @@ import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
 import dev.chrisbanes.haze.HazeState
+import com.flipcash.app.core.navigation.LocalTabBarAction
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.destinationRoute
@@ -133,6 +134,10 @@ internal fun AppNavigationBar(
                     },
                     hazeState = hazeState,
                     avatar = avatar,
+                    // Whatever the open tab home published, composed here rather than in the
+                    // screen: that is what puts it in the bar's row and lets it share the bar's
+                    // haze source instead of standing up a second one.
+                    trailing = LocalTabBarAction.current.actionFor(state.selectedTab),
                 )
             }
         }

@@ -3,22 +3,18 @@ package com.flipcash.app.scanner.internal.bills
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.android.extensions.launchAppSettings
-import com.flipcash.app.core.navigation.LocalTabBarPadding
+import com.flipcash.app.core.navigation.NavBarButton
+import com.flipcash.app.core.navigation.TabBarAction
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.scanner.internal.GalleryScanButton
@@ -28,7 +24,6 @@ import com.flipcash.features.scanner.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.ui.biometrics.LocalBiometricsState
-import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.views.CameraDisabledView
 import com.getcode.ui.scanner.views.CameraPermissionsMissingView
 import com.getcode.util.permissions.PermissionResult
@@ -73,7 +68,6 @@ internal fun ScannableContainer(
     }
 
     val state by session.state.collectAsStateWithLifecycle()
-    val billState by session.billState.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -124,23 +118,17 @@ internal fun ScannableContainer(
         }
         val galleryEnabled by galleryFlag.collectAsStateWithLifecycle()
 
-        // Outside the permission `when` on purpose: a picked photo needs no camera, and someone
-        // who declined the camera is exactly who this is for. Hidden only while a bill is up,
-        // because a bill is drawn at the app root over this container and the glyph would sit on
-        // top of it.
-        if (galleryEnabled && billState.bill == null) {
-            GalleryScanButton(
-                onImagePicked = onImagePicked,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    // `LocalTabBarPadding` is the space the hoisted tab bar occupies, provided per
-                    // nav entry by `NavTabBarInsetEntryDecorator`. Reading it rather than hard-coding
-                    // a height is what keeps the glyph clear of the pill when the bar resizes.
-                    .padding(
-                        start = 20.dp,
-                        bottom = LocalTabBarPadding.current.calculateBottomPadding() + 16.dp,
-                    )
-            )
+        // Published to the tab bar rather than drawn here, so it sits on the bar's row beside the
+        // pill and takes width from it instead of floating over the preview. Nothing needs to be
+        // said about a presented bill: the bar hides itself whole while one is up, and this goes
+        // with it.
+        //
+        // Outside the permission `when` on purpose: a picked photo needs no camera, and someone who
+        // declined the camera is exactly who this is for.
+        if (galleryEnabled) {
+            TabBarAction(NavBarButton.Scanner) { modifier ->
+                GalleryScanButton(onImagePicked = onImagePicked, modifier = modifier)
+            }
         }
     }
 }

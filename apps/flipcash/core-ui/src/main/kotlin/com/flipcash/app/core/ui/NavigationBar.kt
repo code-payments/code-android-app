@@ -1,9 +1,16 @@
 package com.flipcash.app.core.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,8 +31,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,12 +105,21 @@ fun NavigationBar(
     // avatar and passes null when there is no photo. The modifier handed back already sizes, clips
     // and fades the slot; the avatar only has to fill it.
     avatar: (@Composable (Modifier) -> Unit)? = null,
+    // A tab home can hang one control off the end of the row (see `TabBarAction`). The pill yields
+    // the width rather than the control floating over the content, so nothing is ever covered. Like
+    // `avatar`, the modifier handed back is already sized and already carries the pill's own frosted
+    // fill -- the same chain, so the two surfaces cannot drift apart.
+    trailing: (@Composable (Modifier) -> Unit)? = null,
 ) {
     val order = NavBarButton.tabs
     if (order.isEmpty()) return
 
     val iconSize = CodeTheme.dimens.staticGrid.x6
     val itemHeight = iconSize + CodeTheme.dimens.staticGrid.x2 * 2
+    // The trailing control is the pill's full height made round, so the two read as one row of glass
+    // rather than a button parked next to a bar. Derived from the pill's own geometry -- item box
+    // plus the pill's inner padding -- so it tracks any change to either.
+    val actionSize = itemHeight + CodeTheme.dimens.grid.x1 * 2
     val selectedIndex = order.indexOf(state.selectedTab)
         .takeIf { it >= 0 && it <= order.lastIndex }
         ?: order.indexOf(NavBarButton.Wallet)
@@ -137,109 +155,145 @@ fun NavigationBar(
         .then(pillFill)
         .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), CircleShape)
 
-    BoxWithConstraints(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(modifier)
-            .then(pillBackground)
-            .padding(CodeTheme.dimens.grid.x1),
+            .then(modifier),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        val itemWidth = maxWidth / order.size
-
-        // Selected-state pill that slides to the active tab, drawn behind the icons.
-        val indicatorOffset by animateDpAsState(
-            targetValue = itemWidth * selectedIndex,
-            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-            label = "navBarIndicatorOffset",
-        )
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
-                .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
-                .width(itemWidth)
-                .height(itemHeight)
-                .background(Color.White.copy(alpha = 0.2f), CircleShape),
-        )
+                .weight(1f)
+                .then(pillBackground)
+                .padding(CodeTheme.dimens.grid.x1),
+        ) {
+            val itemWidth = maxWidth / order.size
 
-        Row(modifier = Modifier.fillMaxWidth()) {
-            order.fastForEach { button ->
-                val selected = button == state.selectedTab
-                val iconAlpha by animateFloatAsState(
-                    targetValue = if (selected) 1f else 0.5f,
-                    label = "navBarIconAlpha",
-                )
-                val badgeCount = state.badgeCount(button)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(itemHeight)
-                        .testTag(button.testTag)
-                        // Deliberately unclipped: the unread badge overhangs the icon's top-right
-                        // corner and a clip would shave it. Safe because the click indication is
-                        // null, so there is no ripple that needs bounding.
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) { onButtonClick(button) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box {
-                        if (button == NavBarButton.TipCard && avatar != null) {
-                            // The photo slot has its own unselected state (node 9713:664): the ring
-                            // thins from 2dp to 1dp and drops to white at 50%, which the slot's
-                            // 0.5 alpha then halves again. The photo itself keeps its size — the
-                            // ring is inset, and the padding around it does not change.
-                            val ringWidth by animateDpAsState(
-                                targetValue = if (selected) {
-                                    CodeTheme.dimens.thickBorder
-                                } else {
-                                    CodeTheme.dimens.border
-                                },
-                                label = "navBarAvatarRingWidth",
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(iconSize)
-                                    .graphicsLayer { alpha = iconAlpha }
-                                    .padding(CodeTheme.dimens.thickBorder),
-                            ) {
-                                avatar(Modifier.fillMaxSize().clip(CircleShape))
-                                // Drawn over the photo rather than behind it, so the ring survives
-                                // whatever background the avatar paints for itself. iconAlpha is
-                                // the ring's own fade, on top of the slot's — the two compose to
-                                // the 25% the unselected ring reads at.
+            // Selected-state pill that slides to the active tab, drawn behind the icons.
+            val indicatorOffset by animateDpAsState(
+                targetValue = itemWidth * selectedIndex,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "navBarIndicatorOffset",
+            )
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
+                    .width(itemWidth)
+                    .height(itemHeight)
+                    .background(Color.White.copy(alpha = 0.2f), CircleShape),
+            )
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                order.fastForEach { button ->
+                    val selected = button == state.selectedTab
+                    val iconAlpha by animateFloatAsState(
+                        targetValue = if (selected) 1f else 0.5f,
+                        label = "navBarIconAlpha",
+                    )
+                    val badgeCount = state.badgeCount(button)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(itemHeight)
+                            .testTag(button.testTag)
+                            // Deliberately unclipped: the unread badge overhangs the icon's top-right
+                            // corner and a clip would shave it. Safe because the click indication is
+                            // null, so there is no ripple that needs bounding.
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) { onButtonClick(button) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box {
+                            if (button == NavBarButton.TipCard && avatar != null) {
+                                // The photo slot has its own unselected state (node 9713:664): the ring
+                                // thins from 2dp to 1dp and drops to white at 50%, which the slot's
+                                // 0.5 alpha then halves again. The photo itself keeps its size — the
+                                // ring is inset, and the padding around it does not change.
+                                val ringWidth by animateDpAsState(
+                                    targetValue = if (selected) {
+                                        CodeTheme.dimens.thickBorder
+                                    } else {
+                                        CodeTheme.dimens.border
+                                    },
+                                    label = "navBarAvatarRingWidth",
+                                )
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .border(
-                                            ringWidth,
-                                            Color.White.copy(alpha = iconAlpha),
-                                            CircleShape,
-                                        ),
+                                        .size(iconSize)
+                                        .graphicsLayer { alpha = iconAlpha }
+                                        .padding(CodeTheme.dimens.thickBorder),
+                                ) {
+                                    avatar(Modifier.fillMaxSize().clip(CircleShape))
+                                    // Drawn over the photo rather than behind it, so the ring survives
+                                    // whatever background the avatar paints for itself. iconAlpha is
+                                    // the ring's own fade, on top of the slot's — the two compose to
+                                    // the 25% the unselected ring reads at.
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .border(
+                                                ringWidth,
+                                                Color.White.copy(alpha = iconAlpha),
+                                                CircleShape,
+                                            ),
+                                    )
+                                }
+                            } else {
+                                Image(
+                                    modifier = Modifier
+                                        .size(iconSize)
+                                        .graphicsLayer { alpha = iconAlpha },
+                                    painter = button.icon(selected),
+                                    colorFilter = ColorFilter.tint(Color.White),
+                                    contentDescription = null,
                                 )
                             }
-                        } else {
-                            Image(
+                            // Overlaps the glyph's top-right corner (matching the iOS bar) rather than
+                            // floating detached above it. Full opacity regardless of tab selection —
+                            // the count must stay readable on an unselected tab.
+                            Badge(
                                 modifier = Modifier
-                                    .size(iconSize)
-                                    .graphicsLayer { alpha = iconAlpha },
-                                painter = button.icon(selected),
-                                colorFilter = ColorFilter.tint(Color.White),
-                                contentDescription = null,
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = CodeTheme.dimens.staticGrid.x1, y = -CodeTheme.dimens.staticGrid.x1),
+                                count = badgeCount,
+                                color = CodeTheme.colors.indicator,
                             )
                         }
-                        // Overlaps the glyph's top-right corner (matching the iOS bar) rather than
-                        // floating detached above it. Full opacity regardless of tab selection —
-                        // the count must stay readable on an unselected tab.
-                        Badge(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = CodeTheme.dimens.staticGrid.x1, y = -CodeTheme.dimens.staticGrid.x1),
-                            count = badgeCount,
-                            color = CodeTheme.colors.indicator,
-                        )
                     }
                 }
             }
+        }
+
+        // Kept so the outgoing control still has something to draw while it shrinks away; by the
+        // time `trailing` goes null the publisher has already left the tree.
+        var retained by remember { mutableStateOf<(@Composable (Modifier) -> Unit)?>(trailing) }
+        if (trailing != null) retained = trailing
+
+        AnimatedVisibility(
+            visible = trailing != null,
+            // The width change is the whole point: the pill has `weight(1f)`, so whatever this
+            // animation gives up or takes, the pill absorbs, and the tabs (and the indicator that
+            // tracks them) resize with it. Both run on the same spring as the indicator itself so
+            // they settle together instead of the indicator chasing a target that is still moving.
+            enter = expandHorizontally(
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                expandFrom = Alignment.End,
+            ) + fadeIn() + scaleIn(initialScale = 0.6f),
+            exit = shrinkHorizontally(
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                shrinkTowards = Alignment.End,
+            ) + fadeOut() + scaleOut(targetScale = 0.6f),
+        ) {
+            // The gap is inside the animated element so it collapses with it; as a padding on the
+            // pill it would leave a permanent notch on tabs that publish nothing.
+            retained?.invoke(
+                Modifier
+                    .padding(start = CodeTheme.dimens.grid.x2)
+                    .size(actionSize)
+                    .then(pillBackground)
+            )
         }
     }
 }
@@ -333,5 +387,30 @@ private fun NavigationBarNoAvatarSelectedPreview() {
     NavigationBar(
         state = rememberNavigationBarState(selectedTab = NavBarButton.TipCard),
         onButtonClick = { },
+    )
+}
+
+/**
+ * The bar with a tab home's trailing control published (node 10000:111297 has no such state — this
+ * is the Scan tab's gallery entry point). The pill is narrower here than in every preview above,
+ * which is the point: the control takes the width rather than floating over the screen.
+ */
+@Preview(name = "Trailing action")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun NavigationBarTrailingPreview() {
+    NavigationBar(
+        state = rememberNavigationBarState(selectedTab = NavBarButton.Scanner),
+        onButtonClick = { },
+        trailing = { modifier ->
+            Box(modifier, contentAlignment = Alignment.Center) {
+                Image(
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                    painter = painterResource(R.drawable.ic_nav_tipcard),
+                    colorFilter = ColorFilter.tint(Color.White),
+                    contentDescription = null,
+                )
+            }
+        },
     )
 }
