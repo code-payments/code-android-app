@@ -17,10 +17,8 @@ data class KikCodeResult(val kikCode: ScannableKikCode) : CodeScanResult
 
 class KikCodeAnalyzer @Inject constructor(
     private val scanner: KikCodeScanner,
+    private val staticImageAnalyzer: StaticImageAnalyzer,
 ) : CodeDetector<ScannableKikCode> {
-
-    @Inject
-    lateinit var staticImageAnalyzer: StaticImageAnalyzer
 
     override suspend fun detect(
         image: ImageProxy,

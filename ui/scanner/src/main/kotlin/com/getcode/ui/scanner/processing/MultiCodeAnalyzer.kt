@@ -7,9 +7,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.platform.LocalContext
 import com.getcode.libs.code.detection.CodeDetector
 import com.getcode.libs.code.detection.CodeScanResult
 import com.getcode.libs.qr.QrCodeAnalyzer
+import com.getcode.media.StaticImageAnalyzerImpl
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -29,9 +31,20 @@ fun rememberMultiCodeAnalyzer(
     val currentOnCodeScanned by rememberUpdatedState(onCodeScanned)
     val currentOnError by rememberUpdatedState(onError)
 
+    val context = LocalContext.current
+
     val qrCodeAnalyzer = remember { QrCodeAnalyzer() }
     val kikCodeScanner = remember { KikCodeScannerImpl() }
-    val kikCodeAnalyzer = remember(kikCodeScanner) { KikCodeAnalyzer(kikCodeScanner) }
+    // `staticImageAnalyzer` used to be an `@Inject lateinit var` on `KikCodeAnalyzer`, which field
+    // injection never filled in because this composable builds the analyzer itself -- the first
+    // `detect(uri)` would have thrown. It is a constructor argument now, built the same way as
+    // everything else here.
+    val staticImageAnalyzer = remember(kikCodeScanner) {
+        StaticImageAnalyzerImpl(context.applicationContext, kikCodeScanner)
+    }
+    val kikCodeAnalyzer = remember(kikCodeScanner, staticImageAnalyzer) {
+        KikCodeAnalyzer(kikCodeScanner, staticImageAnalyzer)
+    }
 
     val detectors = remember(qrCodeAnalyzer, kikCodeAnalyzer) {
         listOf(kikCodeAnalyzer, qrCodeAnalyzer)
