@@ -39,6 +39,15 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable? = null)
     fun messageSentInChat(type: ChatType, error: Throwable? = null)
     fun tipCardScanned()
+
+    /** An image was picked from the gallery and the still-image search started. */
+    fun galleryImagePicked()
+
+    /** @param tier which rung of the crop ladder decoded, 1 to 3. */
+    fun galleryScanSucceeded(tier: Int, zoom: Float, timeMillis: Long)
+
+    /** @param exhausted true when the budget ran out rather than the ladder ending. */
+    fun galleryScanFailed(timeMillis: Long, exhausted: Boolean)
     fun tipCardPresented()
     fun deeplinkOpened(url: String)
     fun deeplinkParsed(type: DeeplinkType?, url: String)
@@ -139,6 +148,9 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
 
     override fun messageSentInChat(type: ChatType, error: Throwable?) = Unit
     override fun tipCardScanned() = Unit
+    override fun galleryImagePicked() = Unit
+    override fun galleryScanSucceeded(tier: Int, zoom: Float, timeMillis: Long) = Unit
+    override fun galleryScanFailed(timeMillis: Long, exhausted: Boolean) = Unit
     override fun tipCardPresented() = Unit
 
     override fun deeplinkOpened(url: String) = Unit

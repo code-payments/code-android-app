@@ -25,6 +25,15 @@ object StillImageCodeSearch {
         val width: Int,
         val height: Int,
         val zoom: Float,
+        /**
+         * Which tier enumerated this crop: 1 whole image, 2 quadrant, 3 sliding window.
+         *
+         * Carried so a caller can report how deep a successful search had to go. It is
+         * deliberately outside the dedup key below -- a window that lands exactly on a quadrant
+         * is still the same crop, and enumerating it twice under two tier numbers would change
+         * the search itself to measure it.
+         */
+        val tier: Int,
     )
 
     /**
@@ -57,8 +66,8 @@ object StillImageCodeSearch {
      * screen across a room.
      */
     fun candidates(imageWidth: Int, imageHeight: Int): List<Candidate> {
-        val candidates = mutableListOf(Candidate(0, 0, imageWidth, imageHeight, 1f))
-        val seen = mutableSetOf(candidates.first())
+        val candidates = mutableListOf(Candidate(0, 0, imageWidth, imageHeight, 1f, tier = 1))
+        val seen = mutableSetOf(candidates.first().key)
 
         subdivide(0, 0, imageWidth, imageHeight, candidates, seen)
         window(imageWidth, imageHeight, candidates, seen)
@@ -72,7 +81,7 @@ object StillImageCodeSearch {
         width: Int,
         height: Int,
         candidates: MutableList<Candidate>,
-        seen: MutableSet<Candidate>,
+        seen: MutableSet<Key>,
     ) {
         val halfWidth = width / 2
         val halfHeight = height / 2
@@ -84,7 +93,7 @@ object StillImageCodeSearch {
                 val quadrantLeft = left + column * halfWidth
                 val quadrantTop = top + row * halfHeight
 
-                add(quadrantLeft, quadrantTop, halfWidth, halfHeight, candidates, seen)
+                add(quadrantLeft, quadrantTop, halfWidth, halfHeight, 2, candidates, seen)
                 subdivide(quadrantLeft, quadrantTop, halfWidth, halfHeight, candidates, seen)
             }
         }
@@ -94,7 +103,7 @@ object StillImageCodeSearch {
         imageWidth: Int,
         imageHeight: Int,
         candidates: MutableList<Candidate>,
-        seen: MutableSet<Candidate>,
+        seen: MutableSet<Key>,
     ) {
         if (imageWidth < WINDOW_SIZE || imageHeight < WINDOW_SIZE) return
 
@@ -102,7 +111,7 @@ object StillImageCodeSearch {
         while (top + WINDOW_SIZE <= imageHeight) {
             var left = 0
             while (left + WINDOW_SIZE <= imageWidth) {
-                add(left, top, WINDOW_SIZE, WINDOW_SIZE, candidates, seen)
+                add(left, top, WINDOW_SIZE, WINDOW_SIZE, 3, candidates, seen)
                 left += WINDOW_STEP
             }
             top += WINDOW_STEP
@@ -118,16 +127,29 @@ object StillImageCodeSearch {
         top: Int,
         width: Int,
         height: Int,
+        tier: Int,
         candidates: MutableList<Candidate>,
-        seen: MutableSet<Candidate>,
+        seen: MutableSet<Key>,
     ) {
         val longestSide = maxOf(width, height)
 
         ZOOM_LEVELS
             .filter { longestSide * it <= MAX_RENDERED_SIDE }
             .forEach { zoom ->
-                val candidate = Candidate(left, top, width, height, zoom)
-                if (seen.add(candidate)) candidates += candidate
+                val candidate = Candidate(left, top, width, height, zoom, tier)
+                if (seen.add(candidate.key)) candidates += candidate
             }
     }
+
+    /** A candidate's identity for dedup: the crop and its zoom, without the tier that found it. */
+    private data class Key(
+        val left: Int,
+        val top: Int,
+        val width: Int,
+        val height: Int,
+        val zoom: Float,
+    )
+
+    private val Candidate.key: Key
+        get() = Key(left, top, width, height, zoom)
 }

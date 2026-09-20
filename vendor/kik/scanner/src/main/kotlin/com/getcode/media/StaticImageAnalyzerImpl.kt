@@ -42,7 +42,9 @@ class StaticImageAnalyzerImpl @Inject constructor(
             if (started.elapsedNow() > budget) return StaticImageResult.Exhausted
 
             val scanned = scan(bitmap, candidate)
-            if (scanned != null) return StaticImageResult.Found(scanned)
+            if (scanned != null) {
+                return StaticImageResult.Found(scanned, candidate.tier, candidate.zoom)
+            }
         }
 
         return StaticImageResult.NotFound

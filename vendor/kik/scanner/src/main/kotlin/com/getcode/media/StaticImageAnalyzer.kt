@@ -5,7 +5,16 @@ import com.kik.kikx.models.ScannableKikCode
 
 /** What a still-image search ended up finding. */
 sealed interface StaticImageResult {
-    data class Found(val code: ScannableKikCode) : StaticImageResult
+    /**
+     * [tier] and [zoom] are the crop that decoded, reported so the caller can say how deep the
+     * ladder had to go. The ladder's constants are inherited and unmeasured, and this is the
+     * only place the depth a real image needed is visible.
+     */
+    data class Found(
+        val code: ScannableKikCode,
+        val tier: Int,
+        val zoom: Float,
+    ) : StaticImageResult
 
     /** The ladder was walked to the end and nothing decoded. */
     data object NotFound : StaticImageResult

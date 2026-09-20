@@ -61,7 +61,29 @@ class StillImageCodeSearchTest {
     fun `the same crop is never enumerated twice at the same zoom`() {
         val candidates = StillImageCodeSearch.candidates(1920, 1080)
 
-        assertEquals(candidates.size, candidates.toSet().size, "duplicate candidates")
+        // Compared on the crop and its zoom rather than on the whole candidate: `tier` is part of
+        // the data class, so `toSet()` alone would let a window that repeats a quadrant through.
+        val crops = candidates.map { listOf(it.left, it.top, it.width, it.height, it.zoom) }
+
+        assertEquals(crops.size, crops.toSet().size, "duplicate candidates")
+    }
+
+    @Test
+    fun `each candidate carries the tier that enumerated it`() {
+        val candidates = StillImageCodeSearch.candidates(1920, 1080)
+
+        assertEquals(1, candidates.first().tier, "the whole image is tier 1")
+        assertEquals(1, candidates.count { it.tier == 1 }, "only the whole image is tier 1")
+
+        // Tiers are enumerated in order, so a candidate never follows one from a later tier.
+        val tiers = candidates.map { it.tier }
+        assertEquals(tiers.sorted(), tiers, "tiers are out of order")
+
+        assertTrue(candidates.any { it.tier == 2 }, "no quadrant was enumerated")
+        candidates.filter { it.tier == 3 }.forEach {
+            assertEquals(StillImageCodeSearch.WINDOW_SIZE, it.width, "$it is not a window")
+            assertEquals(StillImageCodeSearch.WINDOW_SIZE, it.height, "$it is not a window")
+        }
     }
 
     @Test

@@ -58,6 +58,7 @@ import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlin.time.TimeSource
 
 @Composable
 internal fun Scanner() {
@@ -155,11 +156,18 @@ internal fun Scanner() {
 
     val onImagePicked = { uri: Uri ->
         scanJob?.cancel()
+        analytics.galleryImagePicked()
         scanJob = scope.launch {
             isScanningStillImage = true
+            val started = TimeSource.Monotonic.markNow()
             try {
                 when (val result = kikCodeAnalyzer.detect(uri)) {
                     is StaticImageResult.Found -> {
+                        analytics.galleryScanSucceeded(
+                            tier = result.tier,
+                            zoom = result.zoom,
+                            timeMillis = started.elapsedNow().inWholeMilliseconds,
+                        )
                         // No dedup to get past: `CodeScanDelegate` suppresses a rendezvous only
                         // once a grab has succeeded, and clears it again on failure, so picking
                         // the same photo twice is refused for the same reason pointing the camera
@@ -173,7 +181,17 @@ internal fun Scanner() {
                     StaticImageResult.Exhausted,
                     -> {
                         val deeplink = firstScannableDeeplink(staticQrAnalyzer.detect(uri))
-                        if (deeplink != null) onDeeplinkScanned(deeplink) else showNoCodeFound()
+                        if (deeplink != null) {
+                            onDeeplinkScanned(deeplink)
+                        } else {
+                            // Reported after the QR fallback, so the event counts searches that
+                            // found nothing at all rather than searches the ladder missed.
+                            analytics.galleryScanFailed(
+                                timeMillis = started.elapsedNow().inWholeMilliseconds,
+                                exhausted = result is StaticImageResult.Exhausted,
+                            )
+                            showNoCodeFound()
+                        }
                     }
                 }
             } finally {
