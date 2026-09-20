@@ -284,9 +284,6 @@ class RealChatCoordinator @Inject constructor(
         networkObserverJob?.cancel()
         stateHolder.reset()
         eventStreamDelegate.clearAll()
-        // Before the scope dies: a draft is the one thing here that was never on the server, so
-        // logout is the only chance to drop it.
-        draftStore.clearAll()
         cluster.value = null
         supervisorJob.cancel()
         trace(tag = TAG, message = "teardown complete", type = TraceType.Process)
@@ -294,6 +291,10 @@ class RealChatCoordinator @Inject constructor(
 
     override suspend fun clearCache() {
         messagingDelegate.clear()
+        // Drafts go with the cache rather than with the session. They outlive a logout for the
+        // same reason the transcript does — the database is per-account, so the next login reopens
+        // the same file — and account deletion is the one path that is meant to erase them.
+        draftStore.clearAll()
         trace(tag = TAG, message = "cache cleared", type = TraceType.Process)
     }
 
