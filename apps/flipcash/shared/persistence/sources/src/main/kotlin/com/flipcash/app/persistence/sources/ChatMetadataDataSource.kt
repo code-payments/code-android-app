@@ -9,6 +9,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ViewerState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
@@ -63,6 +64,29 @@ class ChatMetadataDataSource @Inject constructor(
             memberCount = memberCount,
             rosterVersion = rosterVersion,
         )
+    }
+
+    /** The viewer-state version already applied to [chatId]; 0 when the chat is not stored yet. */
+    suspend fun getViewerStateVersion(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getViewerStateVersion(mapper.chatIdHex(chatId)) ?: 0L
+
+    /**
+     * Stores [viewerState] if its version beats the stored one, and drops it otherwise. Stream
+     * delivery is unordered, so the newest state is the one with the highest version, not the one
+     * that arrived last.
+     */
+    suspend fun updateViewerState(chatId: ChatId, viewerState: ViewerState) {
+        db?.chatMetadataDao()?.updateViewerStateIfNewer(
+            chatIdHex = mapper.chatIdHex(chatId),
+            muteUntilEpochMs = mapper.muteUntilEpochMs(viewerState.mute),
+            muteForever = mapper.isMuteForever(viewerState.mute),
+            version = viewerState.version,
+        )
+    }
+
+    /** Forgets the viewer state for [chatId], version included. Leaving a chat clears its mute. */
+    suspend fun clearViewerState(chatId: ChatId) {
+        db?.chatMetadataDao()?.clearViewerState(mapper.chatIdHex(chatId))
     }
 
     /** The hex a [chatId] is keyed by. Callers comparing against [getChatIdsOfType] need it. */

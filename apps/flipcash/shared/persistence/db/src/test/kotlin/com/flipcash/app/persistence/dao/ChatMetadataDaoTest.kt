@@ -58,6 +58,9 @@ class ChatMetadataDaoTest {
         rosterVersion: Long = 0,
         rulesJson: ChatRulesSerialized? = null,
         isMember: Boolean = true,
+        muteUntilEpochMs: Long? = null,
+        muteForever: Boolean = false,
+        viewerStateVersion: Long = 0,
     ) = ChatMetadataEntity(
         chatIdHex = chatIdHex,
         chatType = chatType,
@@ -72,6 +75,9 @@ class ChatMetadataDaoTest {
         rosterVersion = rosterVersion,
         rulesJson = rulesJson,
         isMember = isMember,
+        muteUntilEpochMs = muteUntilEpochMs,
+        muteForever = muteForever,
+        viewerStateVersion = viewerStateVersion,
     )
 
     @Test
@@ -184,6 +190,95 @@ class ChatMetadataDaoTest {
         val stored = dao.getById(CHAT_HEX)
         assertEquals(12L, stored?.memberCount)
         assertEquals(4L, stored?.rosterVersion)
+    }
+
+    @Test
+    fun `a newer viewer state version replaces the mute columns`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", muteUntilEpochMs = 5_000, viewerStateVersion = 4))
+
+        dao.updateViewerStateIfNewer(
+            chatIdHex = CHAT_HEX,
+            muteUntilEpochMs = null,
+            muteForever = false,
+            version = 5,
+        )
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertNull(stored.muteUntilEpochMs)
+        assertEquals(false, stored.muteForever)
+        assertEquals(5L, stored.viewerStateVersion)
+    }
+
+    /**
+     * The stream does not order deliveries, so a mute and the unmute that followed it can arrive
+     * either way round. Applying whichever landed last would leave the wrong answer stored, which
+     * is why the version and not the arrival decides.
+     */
+    @Test
+    fun `an older viewer state version leaves the mute alone`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 0))
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, version = 5)
+
+        // The mute this supersedes, arriving late.
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 5_000, muteForever = false, version = 4)
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(true, stored.muteForever)
+        assertNull(stored.muteUntilEpochMs)
+        assertEquals(5L, stored.viewerStateVersion)
+    }
+
+    /**
+     * The same gate an upsert goes through. A `ChatMetadata` rebuilt from this row reports the
+     * version it was read at, so pushing it back must be a no-op rather than a re-application.
+     */
+    @Test
+    fun `an upsert at the stored version does not rewrite the mute`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", muteForever = true, viewerStateVersion = 7))
+
+        dao.upsert(entity(chatType = "GROUP", muteUntilEpochMs = null, muteForever = false, viewerStateVersion = 7))
+
+        assertEquals(true, dao.getById(CHAT_HEX)?.muteForever)
+    }
+
+    @Test
+    fun `switching to an indefinite mute clears the deadline`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", muteUntilEpochMs = 5_000, viewerStateVersion = 1))
+
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, version = 2)
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertNull(stored.muteUntilEpochMs)
+        assertEquals(true, stored.muteForever)
+    }
+
+    /**
+     * Leaving clears the mute server-side and says nothing about it, and a rejoin starts the
+     * server's versioning over — so a version left behind would make the gate reject the new
+     * state and the old mute would survive the chat it belonged to.
+     */
+    @Test
+    fun `clearing the viewer state drops the mute and its version`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", muteForever = true, viewerStateVersion = 7))
+
+        dao.clearViewerState(CHAT_HEX)
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(false, stored.muteForever)
+        assertNull(stored.muteUntilEpochMs)
+        assertEquals(0L, stored.viewerStateVersion)
+
+        // A rejoin's first state numbers from the bottom again, and must still apply.
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 9_000, muteForever = false, version = 1)
+        assertEquals(9_000L, dao.getById(CHAT_HEX)?.muteUntilEpochMs)
+    }
+
+    @Test
+    fun `the viewer state version reads back, and is null for a chat that is not there`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", muteForever = true, viewerStateVersion = 7))
+
+        assertEquals(7L, dao.getViewerStateVersion(CHAT_HEX))
+        assertEquals(null, dao.getViewerStateVersion(OTHER_HEX))
     }
 
     /**

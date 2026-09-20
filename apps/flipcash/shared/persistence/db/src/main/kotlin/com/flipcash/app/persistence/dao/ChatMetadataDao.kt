@@ -74,8 +74,9 @@ interface ChatMetadataDao {
     /**
      * Overwrites only the columns the server owns. `latest_event_sequence` and
      * `analytics_counted_through` are client-owned watermarks that no server payload
-     * carries, so they are deliberately absent here. The roster columns are absent too —
-     * they are versioned, and go through [updateRosterIfNewer].
+     * carries, so they are deliberately absent here. The roster and viewer-state columns
+     * are absent too — they are versioned, and go through [updateRosterIfNewer] and
+     * [updateViewerStateIfNewer].
      */
     @Query(
         "UPDATE chat_metadata SET chat_type = :chatType, " +
@@ -114,6 +115,47 @@ interface ChatMetadataDao {
     )
     suspend fun updateRosterIfNewer(chatIdHex: String, memberCount: Long, rosterVersion: Long)
 
+    /** The viewer-state version already applied to [chatIdHex], or null when the chat is not stored. */
+    @Query("SELECT viewer_state_version FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getViewerStateVersion(chatIdHex: String): Long?
+
+    /**
+     * Applies a viewer state only when it is strictly newer than the stored one.
+     *
+     * `ViewerState.version` is what makes the state converge: stream delivery is not ordered, so
+     * a mute and the unmute that followed it can arrive either way round, and applying the last
+     * one to land would leave the wrong answer stored. Guarding on the version is also what stops
+     * a [ChatMetadataEntity] rebuilt from this row — which reports the version it was read at —
+     * from re-applying itself on the way back through an upsert.
+     *
+     * Both mute columns are written together so a switch between the two shapes clears the other.
+     */
+    @Query(
+        "UPDATE chat_metadata SET mute_until_epoch_ms = :muteUntilEpochMs, " +
+            "mute_forever = :muteForever, viewer_state_version = :version " +
+            "WHERE chat_id_hex = :chatIdHex AND :version > viewer_state_version"
+    )
+    suspend fun updateViewerStateIfNewer(
+        chatIdHex: String,
+        muteUntilEpochMs: Long?,
+        muteForever: Boolean,
+        version: Long,
+    )
+
+    /**
+     * Drops the viewer state, version and all.
+     *
+     * Leaving a chat clears the mute server-side, and the server sends nothing to say so. The
+     * version goes back to zero with it: a rejoin starts the server's numbering over, so a
+     * retained version would make the gate reject the new state and the old mute would survive a
+     * chat the user has left and re-entered.
+     */
+    @Query(
+        "UPDATE chat_metadata SET mute_until_epoch_ms = NULL, mute_forever = 0, " +
+            "viewer_state_version = 0 WHERE chat_id_hex = :chatIdHex"
+    )
+    suspend fun clearViewerState(chatIdHex: String)
+
     /**
      * Inserts a new chat, or refreshes an existing one's server-owned columns in place.
      *
@@ -142,6 +184,12 @@ interface ChatMetadataDao {
             chatIdHex = entity.chatIdHex,
             memberCount = entity.memberCount,
             rosterVersion = entity.rosterVersion,
+        )
+        updateViewerStateIfNewer(
+            chatIdHex = entity.chatIdHex,
+            muteUntilEpochMs = entity.muteUntilEpochMs,
+            muteForever = entity.muteForever,
+            version = entity.viewerStateVersion,
         )
     }
 
