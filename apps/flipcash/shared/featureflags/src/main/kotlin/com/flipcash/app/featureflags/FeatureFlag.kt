@@ -107,6 +107,17 @@ sealed interface FeatureFlag<T: Any> {
         override val persistLogOut: Boolean = false
     }
 
+    @FeatureFlagMarker
+    data object ScanFromGallery: FeatureFlag<Boolean> {
+        override val key: String = "scan_from_gallery"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        // Matches ContactPickerMode: the setting is about how you reach the camera, not about
+        // the account you reached it with.
+        override val persistLogOut: Boolean = true
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -128,6 +139,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.ContactPickerMode -> "Contact Picker Mode"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
         FeatureFlag.FrostedTipCard -> "Frosted Tip Card"
+        FeatureFlag.ScanFromGallery -> "Scan from Gallery"
     }
 
 val FeatureFlag<*>.message: String
@@ -140,6 +152,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.ContactPickerMode -> "When enabled, contacts will be accessed via the system contact picker instead of requesting full READ_CONTACTS permission"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
         FeatureFlag.FrostedTipCard -> "When enabled, the tip card in the scanner renders as frosted glass over a blurred snapshot of the camera instead of a solid card"
+        FeatureFlag.ScanFromGallery -> "When enabled, the scanner gains a gallery button for searching a photo you already have for a code, for when someone sends you a screenshot instead of showing you their screen"
     }
 
 
