@@ -47,10 +47,10 @@ sealed interface CodeScanEvent {
      * A decoded cash code had no give request behind it — whoever showed it is no longer showing
      * it.
      *
-     * The camera path ignores this, and should: a stale frame is one of sixty a second, and the
-     * next one may be live, so a banner there would fire on a code the user is still pointing at.
-     * A picked photo is read once and cannot be re-read, so the gallery path is the only caller
-     * that has to say why nothing happened.
+     * Raised only for a scan that passed `fromStillImage = true`. The camera must never raise it:
+     * a stale frame is one of sixty a second, and the next one may be live, so a banner there
+     * would fire on a code the user is still pointing at. A picked photo is read once and cannot
+     * be re-read, so it is the only path that has to say why nothing happened.
      */
     data object CashCodeNotLive : CodeScanEvent
 }
@@ -63,7 +63,15 @@ interface CodeScanOperations {
     val codeScanEvents: Flow<CodeScanEvent>
 
     fun onCameraScanning(scanning: Boolean)
-    fun onCodeScan(code: ScannableKikCode)
+
+    /**
+     * @param fromStillImage true when [code] came from a picked photo rather than the camera.
+     * Only these scans raise [CodeScanEvent]s. Keeping the distinction here rather than in the
+     * scanner means the camera cannot be told about a grab it did not start: a photo that resolves
+     * to something other than a grab — a tip card, say — would otherwise leave the UI waiting, and
+     * the next stale frame the camera sees would explain itself with someone else's error.
+     */
+    fun onCodeScan(code: ScannableKikCode, fromStillImage: Boolean = false)
 }
 
 interface CashLinkOperations {

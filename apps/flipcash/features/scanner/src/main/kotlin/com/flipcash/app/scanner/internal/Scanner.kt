@@ -58,6 +58,7 @@ import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.TimeSource
 
 @Composable
@@ -94,11 +95,10 @@ internal fun Scanner() {
     val staticQrAnalyzer = remember(context) { StaticQrAnalyzer(context.applicationContext) }
 
     var isScanningStillImage by remember { mutableStateOf(false) }
-    var scanJob by remember { mutableStateOf<Job?>(null) }
 
-    // A grab started from a picked photo, still waiting on the server. The camera raises
-    // `CashCodeNotLive` too and is meant to ignore it, so the flag is what separates the two.
-    var awaitingStillImageGrab by remember { mutableStateOf(false) }
+    // Not snapshot state: nothing drawn reads it, and making it state would recompose the whole
+    // scanner on every write for a value only the cancel lambda looks at.
+    val scanJob = remember { AtomicReference<Job?>(null) }
 
     val onDeeplinkScanned = { deeplink: DeeplinkType ->
         vibrator.vibrate(duration = 50)
@@ -149,15 +149,15 @@ internal fun Scanner() {
 
     val showNoCodeFound = {
         TopBarManager.showMessage(
-            title = resources.getString(R.string.error_title_noCodeInPhoto),
-            message = resources.getString(R.string.error_description_noCodeInPhoto),
+            title = resources.getString(R.string.error_title_noCodeFound),
+            message = resources.getString(R.string.error_description_noCodeFound),
         )
     }
 
     val onImagePicked = { uri: Uri ->
-        scanJob?.cancel()
+        scanJob.getAndSet(null)?.cancel()
         analytics.galleryImagePicked()
-        scanJob = scope.launch {
+        scanJob.set(scope.launch {
             isScanningStillImage = true
             val started = TimeSource.Monotonic.markNow()
             try {
@@ -172,8 +172,7 @@ internal fun Scanner() {
                         // once a grab has succeeded, and clears it again on failure, so picking
                         // the same photo twice is refused for the same reason pointing the camera
                         // at a spent code is.
-                        awaitingStillImageGrab = true
-                        session.onCodeScan(result.code)
+                        session.onCodeScan(result.code, fromStillImage = true)
                     }
                     // A QR route that fails `isScannable` reads as "no code": someone sent a login
                     // link learns nothing from being told why it was refused.
@@ -197,7 +196,7 @@ internal fun Scanner() {
             } finally {
                 isScanningStillImage = false
             }
-        }
+        })
         Unit
     }
 
@@ -217,15 +216,12 @@ internal fun Scanner() {
     LaunchedEffect(session) {
         session.codeScanEvents.collect { event ->
             when (event) {
-                CodeScanEvent.CashCodeNotLive -> {
-                    if (awaitingStillImageGrab) {
-                        awaitingStillImageGrab = false
-                        TopBarManager.showMessage(
-                            title = resources.getString(R.string.error_title_cashCodeNotLive),
-                            message = resources.getString(R.string.error_description_cashCodeNotLive),
-                        )
-                    }
-                }
+                // Only a still-image scan raises this; the session gates it on the origin of
+                // the scan rather than the scanner holding a flag of its own.
+                CodeScanEvent.CashCodeNotLive -> TopBarManager.showMessage(
+                    title = resources.getString(R.string.error_title_cashExpired),
+                    message = resources.getString(R.string.error_description_cashExpired),
+                )
             }
         }
     }
@@ -276,7 +272,7 @@ internal fun Scanner() {
         )
 
         if (isScanningStillImage) {
-            StillImageScanOverlay(onCancel = { scanJob?.cancel() })
+            StillImageScanOverlay(onCancel = { scanJob.getAndSet(null)?.cancel() })
         }
     }
 
@@ -292,8 +288,6 @@ internal fun Scanner() {
 
     LaunchedEffect(billState.bill) {
         if (billState.bill != null) {
-            // The grab landed, so there is nothing left to explain.
-            awaitingStillImageGrab = false
             navigator.hide()
         }
     }

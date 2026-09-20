@@ -87,7 +87,7 @@ class CodeScanDelegate @Inject constructor(
         stateHolder.update { it.copy(isCameraUp = scanning) }
     }
 
-    override fun onCodeScan(code: ScannableKikCode) {
+    override fun onCodeScan(code: ScannableKikCode, fromStillImage: Boolean) {
         if (billController.state.value.bill != null) {
             return
         }
@@ -122,14 +122,14 @@ class CodeScanDelegate @Inject constructor(
         )
 
         when (codePayload.kind) {
-            PayloadKind.Cash -> onCashScanned(codePayload)
-            PayloadKind.MultiMintCash -> onCashScanned(codePayload)
+            PayloadKind.Cash -> onCashScanned(codePayload, fromStillImage)
+            PayloadKind.MultiMintCash -> onCashScanned(codePayload, fromStillImage)
             PayloadKind.Tip -> onTipCardScanned(codePayload)
             PayloadKind.Unknown -> Unit
         }
     }
 
-    private fun onCashScanned(payload: OpenCodePayload) {
+    private fun onCashScanned(payload: OpenCodePayload, fromStillImage: Boolean) {
         scannedRendezvous[payload.rendezvous.publicKey] = Clock.System.now().toEpochMilliseconds()
 
         trace(
@@ -177,8 +177,9 @@ class CodeScanDelegate @Inject constructor(
 
                 // Named rather than folded into the general failure: this is the one grab error
                 // that is about the code itself rather than about the network or the account, so
-                // it is the one a caller can explain. Only the still-image path listens.
-                if (it is GrabTransactorError.GiveRequestNotFound) {
+                // it is the one a caller can explain. Gated on the origin of this scan, not on a
+                // flag the scanner holds, so a camera frame can never surface a photo's error.
+                if (fromStillImage && it is GrabTransactorError.GiveRequestNotFound) {
                     _codeScanEvents.tryEmit(CodeScanEvent.CashCodeNotLive)
                 }
             }
