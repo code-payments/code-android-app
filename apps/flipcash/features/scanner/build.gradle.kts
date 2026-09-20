@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":libs:datetime"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
+    implementation(project(":libs:quickresponse"))
     implementation(project(":libs:vibrator:bindings"))
     implementation(project(":ui:biometrics"))
     implementation(project(":ui:scanner"))
