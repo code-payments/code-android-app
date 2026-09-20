@@ -115,9 +115,14 @@ internal fun ScannableContainer(
             }
         }
 
-        val galleryEnabled by LocalFeatureFlags.current
-            .observe(FeatureFlag.ScanFromGallery)
-            .collectAsStateWithLifecycle()
+        // Remembered because `observe` builds a fresh `stateIn(dataScope, Eagerly, ..)` on every
+        // call and `dataScope` outlives the screen: calling it straight from a composable body
+        // starts a DataStore collection per recomposition that nothing ever cancels.
+        val featureFlags = LocalFeatureFlags.current
+        val galleryFlag = remember(featureFlags) {
+            featureFlags.observe(FeatureFlag.ScanFromGallery)
+        }
+        val galleryEnabled by galleryFlag.collectAsStateWithLifecycle()
 
         // Outside the permission `when` on purpose: a picked photo needs no camera, and someone
         // who declined the camera is exactly who this is for. Hidden only while a bill is up,
