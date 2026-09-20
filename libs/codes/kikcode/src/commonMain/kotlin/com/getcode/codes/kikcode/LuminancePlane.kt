@@ -71,4 +71,37 @@ object LuminancePlane {
         }
         return cleanData
     }
+
+    /**
+     * Converts packed ARGB pixels to the tightly packed 8-bit luminance buffer the scanner
+     * reads.
+     *
+     * A camera frame arrives as a Y plane and needs only [unpad]. A still image is colour, so the
+     * conversion has to happen somewhere — and it has to happen the same way on both platforms, or
+     * one fixture screenshot decodes on one and not the other. This is the integer BT.601 form
+     * `KikCodeScanTest.renderFrame` already uses, mirrored in Swift by
+     * `CodeExtractor.luminanceSample`.
+     *
+     * The weights sum to 256, so the shift produces 0 for black and 255 for white with no clamping
+     * needed.
+     */
+    fun fromArgb(pixels: IntArray, width: Int, height: Int): ByteArray {
+        require(pixels.size >= width * height) {
+            "pixel buffer holds ${pixels.size}, need ${width * height}"
+        }
+
+        val luminance = ByteArray(width * height)
+
+        for (index in 0 until width * height) {
+            val pixel = pixels[index]
+            val luma = (
+                77 * ((pixel shr 16) and 0xFF) +
+                    150 * ((pixel shr 8) and 0xFF) +
+                    29 * (pixel and 0xFF)
+                ) shr 8
+            luminance[index] = luma.toByte()
+        }
+
+        return luminance
+    }
 }
