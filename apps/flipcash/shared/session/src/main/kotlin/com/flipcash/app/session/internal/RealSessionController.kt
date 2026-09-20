@@ -45,6 +45,7 @@ import com.getcode.ui.core.RestrictionType
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.trace
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -122,6 +123,13 @@ class RealSessionController @Inject constructor(
     DepositOperations by depositDelegate,
     TipCardOperations by tippingDelegate {
 
+    /**
+     * Whether the authenticated refresh in [onAppInForeground] has already run for this stay in the
+     * foreground. Atomic because its two callers are on different threads. Cleared by
+     * [onAppInBackground] and by logout.
+     */
+    private val foregroundRefreshed = AtomicBoolean(false)
+
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
 
     /** In-flight feed catch-up, so a repeated foreground edge joins it instead of duplicating it. */
@@ -189,6 +197,8 @@ class RealSessionController @Inject constructor(
             .onEach { authState ->
                 when {
                     authState is AuthState.LoggedOut -> {
+                        // The next session's first foreground pass has to run, whatever this one did.
+                        foregroundRefreshed.set(false)
                         stopPolling()
                         depositDelegate.cancelSweep()
                         scope.launch { contactCoordinator.reset() }
@@ -292,6 +302,17 @@ class RealSessionController @Inject constructor(
             message = "onAppInForeground",
             type = TraceType.Process,
         )
+
+        // Two callers: ON_RESUME from the composition, and the transition into AuthState.Ready. At
+        // process start they race. Whichever arrives before auth resolves finds every call below
+        // guarded by `canAccessAuthenticatedApis` and does nothing, so returning here changes
+        // nothing except that it no longer counts as the pass -- but when auth resolves from cache
+        // first, both arrive authenticated and everything below runs twice. Only two of the calls
+        // below survive that on their own -- `poll()` is idempotent (see NetworkUpdater) and the
+        // feed catch-up joins an in-flight one; the other seven just fetch again.
+        if (!userManager.authState.canAccessAuthenticatedApis) return
+        if (!foregroundRefreshed.compareAndSet(false, true)) return
+
         startPolling()
         depositDelegate.sweepIfNeeded()
         updateUserFlags()
@@ -307,6 +328,8 @@ class RealSessionController @Inject constructor(
     }
 
     override fun onAppInBackground() {
+        // Reopens the pass for the next return to the foreground, which is what it is for.
+        foregroundRefreshed.set(false)
         stopPolling()
         depositDelegate.cancelSweep()
         billingClient.disconnect()
@@ -413,9 +436,9 @@ class RealSessionController @Inject constructor(
      * covers the history screen's first page (it pages at 20) and leaves the rest to that screen's
      * own paging, rather than making every login pay for a hundred rows up front.
      *
-     * Guarded against overlap because the foreground edge can arrive twice at login — from the
-     * transition into [AuthState.Ready] and from `ON_RESUME` — and the second one would otherwise
-     * duplicate the fetch rather than wait for it.
+     * Guarded against overlap because the four event-driven callers can fire while a catch-up is
+     * still in flight — a scan and a cash-link redemption in the same second, say — and the second
+     * one would otherwise duplicate the fetch rather than wait for it.
      */
     private fun bringActivityFeedCurrent(count: Int = FEED_CATCH_UP_PAGE) {
         if (!userManager.authState.canAccessAuthenticatedApis) return
