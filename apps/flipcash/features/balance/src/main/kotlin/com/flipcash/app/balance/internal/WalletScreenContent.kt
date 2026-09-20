@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -159,7 +160,11 @@ internal fun WalletScreenContent(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        // Only ever in the tree past the loading gate above, so it is the anchor for "the wallet
+        // drew its content" -- what the startup benchmark waits on before it stops the trace.
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("wallet_content"),
         contentPadding = PaddingValues(
             top = CodeTheme.dimens.inset,
             start = CodeTheme.dimens.inset,
