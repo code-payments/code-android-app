@@ -97,15 +97,18 @@ internal class WalletViewModel @Inject constructor(
             get() = !isTipMilestoneResolved || onboardingItems?.all { it.isCompleted } != false
 
         /**
-         * Whether the activity half of the tab is still settling.
+         * Whether the onboarding milestones are still settling.
          *
-         * Both the milestones and the recent-activity preview are reads of a *local cache* that
-         * starts empty on a fresh login, so neither can be trusted until the feed has been
-         * reconciled with the server at least once. Without this an established account signing in
-         * was shown the new-user tutorial for as long as its history took to arrive. Local rows
-         * short-circuit the wait: if there is already activity to draw, there is nothing to
-         * mistake for a new account — and neither is a held balance, which is a live read of the
-         * account rather than of the cache.
+         * The milestones are a read of a *local cache* that starts empty on a fresh login, so they
+         * cannot be trusted until the feed has been reconciled with the server at least once.
+         * Without this an established account signing in was shown the new-user tutorial for as
+         * long as its history took to arrive. Local rows short-circuit the wait: if there is
+         * already activity to draw, there is nothing to mistake for a new account — and neither is
+         * a held balance, which is a live read of the account rather than of the cache.
+         *
+         * Read by the tutorial and nothing else. The recent-activity preview needs no such wait —
+         * it draws when there are rows to draw — and the tab as a whole waits only on the token
+         * set, which is what the balance and the card deck are made of.
          *
          * Scoped to the activity feed on purpose. The *chat* cache backing the tip milestone
          * settles separately and far later — its hydration waits on a per-conversation backfill —
