@@ -2,6 +2,7 @@ package com.flipcash.app.persistence.sources
 
 import androidx.paging.PagingSource
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.dao.ChatMessageDao
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
 import com.flipcash.services.models.chat.ChatId
@@ -214,6 +215,13 @@ class ChatMessageDataSource @Inject constructor(
             mapper.clientMessageIdHex(clientMessageId),
             MessageStatus.FAILED,
         )
+    }
+
+    /**
+     * Fails the sends a previous process left in flight. See [ChatMessageDao.failInterruptedSends].
+     */
+    suspend fun failInterruptedSends() {
+        db?.chatMessageDao()?.failInterruptedSends()
     }
 
     suspend fun retryPending(chatId: ChatId, pendingClientIdHex: String): ClientMessageId {

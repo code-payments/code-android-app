@@ -183,6 +183,47 @@ class ChatMessageDaoTest {
         assertEquals(2, dao.countNewerThan(CHAT_HEX, 3 * 1_000))
     }
 
+    /**
+     * Killing the app mid-send leaves the row `SENDING` with nothing alive to move it: failure is
+     * only ever written from the `onFailure` of the coroutine that issued the send. The sweep is
+     * what a fresh process has instead of that coroutine.
+     */
+    @Test
+    fun `the sweep fails a send a dead process left in flight`() = runTest {
+        dao.upsert(pending("half-sent"))
+
+        dao.failInterruptedSends()
+
+        val stored = dao.getByClientId(CHAT_HEX, CLIENT_HEX)!!
+        assertEquals(MessageStatus.FAILED, stored.status)
+        // The retry re-sends under this id, so losing it would lose the affordance with it.
+        assertEquals(CLIENT_HEX, stored.pendingClientIdHex)
+    }
+
+    /**
+     * The point of failing the row rather than leaving it pending. `deleteAllPending` — which every
+     * refresh carrying a self-authored message runs — is scoped to `SENDING`, so a swept row is
+     * durable where a pending one is deleted along with the text the user typed.
+     */
+    @Test
+    fun `a swept row survives the refresh that would have deleted it`() = runTest {
+        dao.upsert(pending("half-sent"))
+        dao.failInterruptedSends()
+
+        dao.upsertAndClearPending(CHAT_HEX, listOf(text(1, "from the server")))
+
+        assertEquals(MessageStatus.FAILED, dao.getByClientId(CHAT_HEX, CLIENT_HEX)?.status)
+    }
+
+    @Test
+    fun `the sweep leaves a sent message alone`() = runTest {
+        dao.upsert(text(1, "already sent"))
+
+        dao.failInterruptedSends()
+
+        assertEquals(MessageStatus.SENT, dao.getMessage(CHAT_HEX, 1)?.status)
+    }
+
     private companion object {
         const val CHAT_HEX = "aabb"
         const val OTHER_HEX = "ccdd"

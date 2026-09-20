@@ -500,6 +500,27 @@ class MessagingDelegate @Inject constructor(
         }
     }
 
+    /**
+     * Fails the sends a previous process left in flight, so the transcript offers to retry them
+     * instead of spinning on a send that nothing is still attempting.
+     *
+     * A send is marked failed from the `onFailure` of the coroutine that issued it ([sendMessage],
+     * [retryMessage]). Kill the app mid-send and that coroutine dies with the process, leaving a
+     * `SENDING` row on disk that nothing will ever move — until the first refresh deletes it and the
+     * user's text with it.
+     *
+     * Must complete before the first refresh of this session. The refresh path
+     * ([com.flipcash.app.persistence.sources.ChatMessageDataSource.upsert] on a self-authored
+     * message) deletes `SENDING` rows and spares `FAILED` ones, so sweeping first makes them
+     * durable and sweeping second does nothing at all. That is why this is `suspend` and awaited by
+     * [com.flipcash.shared.chat.internal.RealChatCoordinator.onUserLoggedIn] rather than launched
+     * from an `initialize(scope)` hook like the other delegates' — the refresh is itself a `launch`,
+     * and two coroutines would leave the order to chance.
+     */
+    internal suspend fun recoverInterruptedSends() {
+        messageDataSource.failInterruptedSends()
+    }
+
     internal suspend fun clear() {
         pendingMutations.value = emptyMap()
         metadataDataSource.clear()
