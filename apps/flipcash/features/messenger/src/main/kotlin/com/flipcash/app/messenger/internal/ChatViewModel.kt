@@ -4,7 +4,9 @@ import android.content.ClipboardManager
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
+import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
@@ -67,6 +69,9 @@ import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatDraftSnapshot
+import com.flipcash.shared.chat.ChatDraftStore
+import com.flipcash.shared.chat.chatDraftOf
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
@@ -91,12 +96,14 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
@@ -114,6 +121,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.min
 import kotlin.time.Duration
@@ -149,6 +157,7 @@ internal class ChatViewModel @Inject constructor(
     private val linkCardClassifier: LinkCardClassifier,
     private val linkCardResolver: LinkCardResolver,
     private val cashLinkClaims: CashLinkClaims,
+    private val chatDraftStore: ChatDraftStore,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -702,6 +711,7 @@ internal class ChatViewModel @Inject constructor(
             },
             accent = palette?.first,
             nameAccent = palette?.second,
+            senderIdHex = senderId?.hexEncodedString(),
         )
     }
 
@@ -809,11 +819,20 @@ internal class ChatViewModel @Inject constructor(
         )
     }
 
+    /**
+     * The last chance to write a draft. A backgrounded app can be killed without another callback
+     * reaching this ViewModel, so STOPPED — not teardown — is what makes process death survivable.
+     */
+    private val draftFlushObserver = object : DefaultLifecycleObserver {
+        override fun onStop(owner: LifecycleOwner) = flushDraft()
+    }
+
     init {
         // Essential — needed immediately for chat display
         initChatHandlers()
         initLinkCardFreshness()
         initClaimReplies()
+        initDraftHandlers()
 
         viewModelScope.launch {
             // Yield to let the first frame render before setting up remaining collectors
@@ -1003,6 +1022,7 @@ internal class ChatViewModel @Inject constructor(
 
                 if (chatId != null) {
                     dispatchEvent(Event.ChatFound(chatId))
+                    restoreDraft(chatId)
                     chatCoordinator.setActiveChatId(chatId)
                     viewModelScope.launch { openTranscript(chatId) }
                     chatCoordinator.dismissNotifications(chatId)
@@ -1517,6 +1537,10 @@ internal class ChatViewModel @Inject constructor(
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
                 if (replyToMessageId != null) dispatchEvent(Event.CancelReply)
+                // Now, not on delivery: the text is in the pending message from here on, and a
+                // send that fails leaves a "Not sent" bubble with a retry, which is the
+                // transcript's own record of it. Restoring a draft as well would duplicate it.
+                chatDraftStore.saveInBackground(chatId, ChatDraftSnapshot.Empty)
 
                 viewModelScope.launch {
                     chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
@@ -1732,7 +1756,66 @@ internal class ChatViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
+    /**
+     * What the composer would leave behind if this screen went away right now.
+     *
+     * An in-progress edit contributes the new-message draft it displaced rather than the edit
+     * body, so a chat left mid-edit reopens in new-message mode with the user's own words — the
+     * same place cancelling the edit would have put them.
+     */
+    private fun draftSnapshot(): ChatDraftSnapshot {
+        val state = stateFlow.value
+        return chatDraftOf(
+            composerText = state.chatInputState.text.toString(),
+            replyTarget = state.replyingTo?.toDraftReply(),
+            editStash = state.editing?.stashedDraft,
+        )
+    }
+
+    /** Writes off [viewModelScope], which is already cancelled by the time [onCleared] runs. */
+    private fun flushDraft() {
+        val chatId = stateFlow.value.chatId ?: return
+        chatDraftStore.saveInBackground(chatId, draftSnapshot())
+    }
+
+    @OptIn(FlowPreview::class)
+    private fun initDraftHandlers() {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(draftFlushObserver)
+
+        // The composer text lives in a TextFieldState, so it never re-emits through stateFlow and
+        // needs its own snapshot subscription; the reply strip and the edit stash do come from
+        // state. Debounced to keep a database write off the keystroke path — the flushes are what
+        // cover the cases a debounce would lose.
+        combine(
+            snapshotFlow { stateFlow.value.chatInputState.text.toString() },
+            stateFlow.map { it.replyingTo }.distinctUntilChanged(),
+            stateFlow.map { it.editing }.distinctUntilChanged(),
+        ) { _, _, _ -> }
+            .drop(1) // the empty composer the screen opens with, before a restore can have run
+            .debounce(DRAFT_WRITE_DEBOUNCE)
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                chatDraftStore.save(chatId, draftSnapshot())
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Puts back what was left in this chat. Silent by design: the text and the reply strip return,
+     * focus and the keyboard do not.
+     */
+    private suspend fun restoreDraft(chatId: ChatId) {
+        val draft = chatDraftStore.load(chatId) ?: return
+        // Pre-filling the composer writes to the live TextFieldState, so it runs on the main thread.
+        withContext(Dispatchers.Main.immediate) {
+            stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd(draft.text)
+        }
+        draft.replyTarget?.let { dispatchEvent(Event.ReplyToMessage(it.toChatQuote())) }
+    }
+
     override fun onCleared() {
+        ProcessLifecycleOwner.get().lifecycle.removeObserver(draftFlushObserver)
+        flushDraft()
         chatCoordinator.setActiveChatId(null)
         linkCardResolver.dispose()
     }
@@ -1845,6 +1928,9 @@ internal class ChatViewModel @Inject constructor(
          * queries at all — see [refreshLinkCards].
          */
         private val CLAIM_REFRESH_INTERVAL = 15.seconds
+
+        /** Long enough to coalesce a burst of typing, short enough to survive a fast exit. */
+        private val DRAFT_WRITE_DEBOUNCE = 300.milliseconds
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {

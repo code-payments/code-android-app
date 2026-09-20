@@ -9,6 +9,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatState
 import com.flipcash.shared.chat.DmChatResolver
 import com.flipcash.shared.chat.EventStreamOperations
@@ -80,6 +81,7 @@ class RealChatCoordinator @Inject constructor(
     private val messagingDelegate: MessagingDelegate,
     private val groupFeedDelegate: GroupFeedDelegate,
     private val stateHolder: ChatStateHolder,
+    private val draftStore: ChatDraftStore,
     private val userManager: UserManager,
     private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
@@ -237,6 +239,27 @@ class RealChatCoordinator @Inject constructor(
     }
 
     /**
+     * Overrides the [FeedOperations] delegation to drop the chat's draft when it is being hidden.
+     *
+     * Blocking someone is the caller here, and it removes the composer along with the reason to
+     * keep what was half-typed into it. Unhiding does not put a draft back — there is nothing to
+     * put back — so only the hiding direction clears.
+     */
+    override suspend fun setChatHidden(chatId: ChatId, hidden: Boolean) {
+        feedDelegate.setChatHidden(chatId, hidden)
+        if (hidden) draftStore.clear(chatId)
+    }
+
+    /**
+     * Overrides the [GroupOperations] delegation to drop the group's draft once leaving succeeds.
+     *
+     * Only on success: a failed leave leaves you in the group with the composer still there, and
+     * the draft is what it was.
+     */
+    override suspend fun leave(chatId: ChatId): Result<Unit> =
+        groupFeedDelegate.leave(chatId).onSuccess { draftStore.clear(chatId) }
+
+    /**
      * Fetches both halves of the conversation list.
      *
      * The list is two feeds behind one surface: [FeedSyncDelegate] fetches `CONTACT_DM` and
@@ -261,6 +284,9 @@ class RealChatCoordinator @Inject constructor(
         networkObserverJob?.cancel()
         stateHolder.reset()
         eventStreamDelegate.clearAll()
+        // Before the scope dies: a draft is the one thing here that was never on the server, so
+        // logout is the only chance to drop it.
+        draftStore.clearAll()
         cluster.value = null
         supervisorJob.cancel()
         trace(tag = TAG, message = "teardown complete", type = TraceType.Process)

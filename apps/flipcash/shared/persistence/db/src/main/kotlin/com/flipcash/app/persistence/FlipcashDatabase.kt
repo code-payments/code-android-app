@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import com.flipcash.app.persistence.converters.ChatTypeConverters
 import com.flipcash.app.persistence.converters.TokenTypeConverters
 import com.flipcash.app.persistence.dao.BlockedUserDao
+import com.flipcash.app.persistence.dao.ChatDraftDao
 import com.flipcash.app.persistence.dao.ChatMemberDao
 import com.flipcash.app.persistence.dao.ChatMessageDao
 import com.flipcash.app.persistence.dao.ChatMetadataDao
@@ -28,6 +29,7 @@ import com.flipcash.app.persistence.dao.MessageDao
 import com.flipcash.app.persistence.dao.TokenDao
 import com.flipcash.app.persistence.dao.UserProfileDao
 import com.flipcash.app.persistence.entities.BlockedUserEntity
+import com.flipcash.app.persistence.entities.ChatDraftEntity
 import com.flipcash.app.persistence.entities.ChatMemberEntity
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
@@ -56,6 +58,7 @@ import com.getcode.utils.subByteArray
         ChatMetadataEntity::class,
         ChatMessageEntity::class,
         ChatMemberEntity::class,
+        ChatDraftEntity::class,
         BlockedUserEntity::class,
         UserProfileEntity::class,
     ],
@@ -95,8 +98,13 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 31, to = 32, spec = FlipcashDatabase.Migration31To32::class),
         AutoMigration(from = 32, to = 33), // chat_messages index on (chat_id_hex, timestamp_epoch_ms)
         AutoMigration(from = 33, to = 34), // chat_metadata group columns: title, picture, roster, rules, membership
+        // The chat_draft table. It has to arrive as an AutoMigration rather than on the
+        // fallbackToDestructiveMigration() below: a draft is the one row in this database that
+        // cannot be re-fetched, so a version bump that dropped the file would delete the
+        // half-written messages this table exists to keep.
+        AutoMigration(from = 34, to = 35), // chat_draft table
     ],
-    version = 34,
+    version = 35,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -108,6 +116,7 @@ abstract class FlipcashDatabase : RoomDatabase() {
     abstract fun chatMetadataDao(): ChatMetadataDao
     abstract fun chatMessageDao(): ChatMessageDao
     abstract fun chatMemberDao(): ChatMemberDao
+    abstract fun chatDraftDao(): ChatDraftDao
     abstract fun blockedUserDao(): BlockedUserDao
     abstract fun userProfileDao(): UserProfileDao
 

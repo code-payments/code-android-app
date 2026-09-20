@@ -125,6 +125,7 @@ class GroupChatRoutingTest {
             ),
             groupFeedDelegate = groupFeedDelegate,
             stateHolder = stateHolder,
+            draftStore = mockk<ChatDraftStore>(relaxed = true),
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,

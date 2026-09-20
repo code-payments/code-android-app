@@ -1,10 +1,17 @@
 package com.flipcash.app.messenger.internal
 
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.shared.chat.ChatDraftReply
+import com.flipcash.shared.chat.ChatDraftSnapshot
+import com.flipcash.shared.chat.ChatDraftSnippet
 import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.models.ChatQuoteSnippet
+import com.flipcash.shared.chat.chatDraftOf
 import com.getcode.opencode.model.core.bytes
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.view.LoadingSuccessState
@@ -12,6 +19,7 @@ import org.junit.Test
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -205,4 +213,127 @@ class ChatViewModelStateTest {
         // Without the name, "$100" would not say which holding clears the bar.
         assertEquals("Jeffy", jeffy.nameInRequirement)
     }
+
+    /**
+     * The other half of the strip's independence from the transcript: a citation that was stored
+     * and read back has to render the same as the one the transcript mapped. Both accents are
+     * derived rather than stored, so what has to survive the row is the sender id they come from.
+     */
+    @Test
+    fun `a stored reply strip comes back rendering the same`() {
+        val quote = ChatQuote(
+            messageId = 42L,
+            authorName = "Ana",
+            snippet = ChatQuoteSnippet.Text("are we still on for 5?"),
+            accent = null,
+            nameAccent = null,
+            senderIdHex = "0f1e2d3c4b5a6978",
+        )
+
+        val restored = quote.toDraftReply().toChatQuote()
+
+        assertEquals(quote.messageId, restored.messageId)
+        assertEquals(quote.authorName, restored.authorName)
+        assertEquals(quote.snippet, restored.snippet)
+        assertEquals(quote.senderIdHex, restored.senderIdHex)
+        // Derived, so they arrive non-null on the way back even though the fixture above left them
+        // unset — which is the point: the colours are a function of the id, not of the transcript.
+        assertNotNull(restored.accent)
+        assertNotNull(restored.nameAccent)
+    }
+
+    /**
+     * Rule 5 against the real reducer rather than a model of it. `Event.EditMessage` is what moves
+     * the user's words into the stash, and everything downstream reads them from there — so an
+     * edit left mid-flight persists the draft it displaced and never the message being edited.
+     */
+    @Test
+    fun `an edit persists the draft it displaced`() {
+        val typed = ChatViewModel.State()
+        typed.chatInputState.setTextAndPlaceCursorAtEnd("half a thought")
+
+        val editing = ChatViewModel.updateStateForEvent(
+            ChatViewModel.Event.EditMessage(messageId = 7L, text = "an older message")
+        )(typed)
+        // Entering an edit puts the message body in the field; the reducer stashes what was there.
+        editing.chatInputState.setTextAndPlaceCursorAtEnd("an older message")
+
+        assertEquals(
+            ChatDraftSnapshot(text = "half a thought", replyTarget = null),
+            editing.draftSnapshot(),
+        )
+    }
+
+    /**
+     * An edit takes the composer, reply strip included — so a reply aimed and then left for an edit
+     * is not part of what the edit stashed. Pinned because it is the one place the persisted draft
+     * is narrower than what was on screen a moment earlier, and it follows from a reducer rule
+     * written for a different reason.
+     */
+    @Test
+    fun `a reply aimed before an edit is not stashed with it`() {
+        val aimed = ChatViewModel.updateStateForEvent(
+            ChatViewModel.Event.ReplyToMessage(
+                ChatQuote(
+                    messageId = 42L,
+                    authorName = "Ana",
+                    snippet = ChatQuoteSnippet.Text("are we still on for 5?"),
+                    accent = null,
+                    nameAccent = null,
+                )
+            )
+        )(ChatViewModel.State())
+        aimed.chatInputState.setTextAndPlaceCursorAtEnd("half a thought")
+
+        val editing = ChatViewModel.updateStateForEvent(
+            ChatViewModel.Event.EditMessage(messageId = 7L, text = "an older message")
+        )(aimed)
+
+        assertNull(editing.replyingTo)
+        assertEquals(
+            ChatDraftSnapshot(text = "half a thought", replyTarget = null),
+            editing.draftSnapshot(),
+        )
+    }
+
+    /**
+     * Cancelling an edit is the same answer by the path the app already had: the stash goes back in
+     * the field, and from then on it is an ordinary draft.
+     */
+    @Test
+    fun `cancelling an edit leaves an ordinary draft`() {
+        val editing = ChatViewModel.updateStateForEvent(
+            ChatViewModel.Event.EditMessage(messageId = 7L, text = "an older message")
+        )(ChatViewModel.State().also { it.chatInputState.setTextAndPlaceCursorAtEnd("half a thought") })
+
+        val ended = ChatViewModel.updateStateForEvent(ChatViewModel.Event.EditingEnded)(editing)
+        ended.chatInputState.setTextAndPlaceCursorAtEnd("half a thought")
+
+        assertNull(ended.editing)
+        assertEquals(
+            ChatDraftSnapshot(text = "half a thought", replyTarget = null),
+            ended.draftSnapshot(),
+        )
+    }
+
+    /**
+     * The composer once a send has emptied it. The store deletes on this rather than storing it,
+     * which is what keeps a chat typed in once and sent from restoring an empty draft for ever.
+     */
+    @Test
+    fun `an emptied composer is no draft at all`() {
+        val sent = ChatViewModel.updateStateForEvent(
+            ChatViewModel.Event.CancelReply
+        )(ChatViewModel.State())
+        sent.chatInputState.setTextAndPlaceCursorAtEnd("")
+
+        assertTrue(sent.draftSnapshot().isEmpty)
+    }
+
+    /** What the ViewModel's own `draftSnapshot` composes, over a state the reducer produced. */
+    private fun ChatViewModel.State.draftSnapshot(): ChatDraftSnapshot = chatDraftOf(
+        composerText = chatInputState.text.toString(),
+        replyTarget = replyingTo?.toDraftReply(),
+        editStash = editing?.stashedDraft,
+    )
 }
