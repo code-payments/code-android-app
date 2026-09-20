@@ -4,6 +4,7 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
+import com.flipcash.app.session.CodeScanEvent
 import com.flipcash.app.session.CodeScanOperations
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.TokenCoordinator
@@ -11,6 +12,7 @@ import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.internal.transactors.GrabTransactorError
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
@@ -19,8 +21,11 @@ import com.getcode.utils.base58
 import com.getcode.utils.hexEncodedString
 import com.getcode.utils.trace
 import com.kik.kikx.models.ScannableKikCode
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.consumeAsFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -66,6 +71,14 @@ class CodeScanDelegate @Inject constructor(
 
     private val _events = Channel<Event>(Channel.UNLIMITED)
     val events: Flow<Event> = _events.consumeAsFlow()
+
+    // Separate from [events], which is the shell's single-consumer channel. This one is the
+    // scanner UI's, and is replay-less: an event raised with no scanner on screen is dropped.
+    private val _codeScanEvents = MutableSharedFlow<CodeScanEvent>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    override val codeScanEvents: Flow<CodeScanEvent> = _codeScanEvents.asSharedFlow()
 
     private val scannedRendezvous = mutableMapOf<String, Long>()
     private val scannedTipCards = mutableMapOf<ID, Long>()
@@ -161,6 +174,13 @@ class CodeScanDelegate @Inject constructor(
                     error = it
                 )
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
+
+                // Named rather than folded into the general failure: this is the one grab error
+                // that is about the code itself rather than about the network or the account, so
+                // it is the one a caller can explain. Only the still-image path listens.
+                if (it is GrabTransactorError.GiveRequestNotFound) {
+                    _codeScanEvents.tryEmit(CodeScanEvent.CashCodeNotLive)
+                }
             }
         )
     }

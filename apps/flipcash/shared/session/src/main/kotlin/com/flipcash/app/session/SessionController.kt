@@ -41,7 +41,27 @@ interface BillOperations {
     fun claimReceivedFunds(): Boolean
 }
 
+/** One-shot signals from a scanned code that only the UI can act on. */
+sealed interface CodeScanEvent {
+    /**
+     * A decoded cash code had no give request behind it — whoever showed it is no longer showing
+     * it.
+     *
+     * The camera path ignores this, and should: a stale frame is one of sixty a second, and the
+     * next one may be live, so a banner there would fire on a code the user is still pointing at.
+     * A picked photo is read once and cannot be re-read, so the gallery path is the only caller
+     * that has to say why nothing happened.
+     */
+    data object CashCodeNotLive : CodeScanEvent
+}
+
 interface CodeScanOperations {
+    /**
+     * Hot and replay-less, like [TipCardOperations.tipCardEvents]: an event with no scanner on
+     * screen is dropped.
+     */
+    val codeScanEvents: Flow<CodeScanEvent>
+
     fun onCameraScanning(scanning: Boolean)
     fun onCodeScan(code: ScannableKikCode)
 }
