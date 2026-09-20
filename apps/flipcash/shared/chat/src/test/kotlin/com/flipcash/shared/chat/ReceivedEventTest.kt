@@ -153,6 +153,7 @@ class ReceivedEventTest {
             dmChatResolverDelegate = dmChatResolverDelegate,
             messagingDelegate = messagingDelegate,
             stateHolder = stateHolder,
+            draftStore = mockk<ChatDraftStore>(relaxed = true),
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,

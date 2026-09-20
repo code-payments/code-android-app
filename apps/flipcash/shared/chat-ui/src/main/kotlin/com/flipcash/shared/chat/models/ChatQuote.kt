@@ -34,6 +34,12 @@ data class ChatQuote(
      * from the one derivation, so they cannot disagree about whose colour this is.
      */
     val nameAccent: Color?,
+    /**
+     * The cited sender's id, hex-encoded, kept so the two accents above can be derived again from
+     * a citation that was stored and read back rather than mapped from the transcript. Null for a
+     * message with no sender id, which is the same case the palette is null for.
+     */
+    val senderIdHex: String? = null,
 )
 
 /** What a quote shows of the message it cites. */

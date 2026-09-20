@@ -49,6 +49,7 @@ class ChatCoordinatorTeardownTest {
     private lateinit var metadataDataSource: ChatMetadataDataSource
     private lateinit var messageDataSource: ChatMessageDataSource
     private lateinit var memberDataSource: ChatMemberDataSource
+    private lateinit var draftStore: ChatDraftStore
     private lateinit var coordinator: RealChatCoordinator
 
     @Before
@@ -67,6 +68,7 @@ class ChatCoordinatorTeardownTest {
         metadataDataSource = mockk(relaxed = true)
         messageDataSource = mockk(relaxed = true)
         memberDataSource = mockk(relaxed = true)
+        draftStore = mockk(relaxed = true)
         val messagingController = mockk<ChatMessagingController>(relaxed = true)
         val stateHolder = ChatStateHolder()
 
@@ -110,6 +112,7 @@ class ChatCoordinatorTeardownTest {
                 senderResolver = mockk(relaxed = true),
             ),
             stateHolder = stateHolder,
+            draftStore = draftStore,
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = TestDispatchers(TestCoroutineScheduler()),
@@ -126,6 +129,18 @@ class ChatCoordinatorTeardownTest {
         coVerify(exactly = 0) { memberDataSource.clear() }
     }
 
+    /**
+     * A draft belongs to the cache, not to the session. It survives a logout for the same reason
+     * the transcript does, and the half-written message is the part the user would most notice
+     * losing to a sign-out they expected to be reversible.
+     */
+    @Test
+    fun `teardown leaves drafts alone`() = runTest {
+        coordinator.teardown()
+
+        coVerify(exactly = 0) { draftStore.clearAll() }
+    }
+
     @Test
     fun `clearCache erases metadata, messages, and members`() = runTest {
         coordinator.clearCache()
@@ -133,5 +148,13 @@ class ChatCoordinatorTeardownTest {
         coVerify(exactly = 1) { metadataDataSource.clear() }
         coVerify(exactly = 1) { messageDataSource.clear() }
         coVerify(exactly = 1) { memberDataSource.clear() }
+    }
+
+    /** Account deletion is the one path that erases a draft, because nothing else erases anything. */
+    @Test
+    fun `clearCache erases drafts`() = runTest {
+        coordinator.clearCache()
+
+        coVerify(exactly = 1) { draftStore.clearAll() }
     }
 }

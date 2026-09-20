@@ -1,7 +1,9 @@
 package com.flipcash.shared.chat.inject
 
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.internal.RealChatCoordinator
+import com.flipcash.shared.chat.internal.RealChatDraftStore
 import com.getcode.opencode.providers.SessionListener
 import dagger.Binds
 import dagger.Module
@@ -19,6 +21,12 @@ abstract class ChatModule {
     abstract fun bindChatCoordinator(
         impl: RealChatCoordinator
     ): ChatCoordinator
+
+    @Binds
+    @Singleton
+    abstract fun bindChatDraftStore(
+        impl: RealChatDraftStore
+    ): ChatDraftStore
 
     @Binds
     @IntoSet
