@@ -36,13 +36,19 @@ class StillImageScanTest {
         val result = search(bitmap)
 
         assertTrue("expected a code, got $result", result is StaticImageResult.Found)
+        assertEquals(1, (result as StaticImageResult.Found).tier)
     }
 
     @Test
     fun smallOffCentreCodeDecodesFromALaterTier() = runBlocking {
+        // Sized so the first tier genuinely cannot do it. Tier 1 renders the whole frame clamped
+        // to MAX_RENDERED_SIDE, so 3200 wide is halved and the code arrives at 130px; the top-left
+        // quadrant is 1600 wide, renders 1:1, and hands the scanner the same 260px the
+        // frame-filling case proves is readable. Until this scene was widened the test decoded on
+        // tier 1 and its name was aspirational -- nothing exercised the quadrants end to end.
         val bitmap = renderScene(
-            width = 1600,
-            height = 1200,
+            width = 3200,
+            height = 2400,
             codeSide = 260,
             left = 120,
             top = 700,
@@ -51,6 +57,12 @@ class StillImageScanTest {
         val result = search(bitmap)
 
         assertTrue("expected a code, got $result", result is StaticImageResult.Found)
+        // The whole 1600x1200 frame is one 260px code on black, which the first tier cannot
+        // resolve -- this is the case the ladder exists for, so name the tier it took.
+        assertTrue(
+            "expected a later tier, got $result",
+            (result as StaticImageResult.Found).tier > 1,
+        )
     }
 
     @Test
@@ -124,7 +136,9 @@ class StillImageScanTest {
             val luminance = LuminancePlane.fromArgb(pixels, width, height)
             val scanned = scanner.scanKikCode(luminance, width, height).getOrNull()
 
-            if (scanned != null) return StaticImageResult.Found(scanned)
+            if (scanned != null) {
+                return StaticImageResult.Found(scanned, candidate.tier, candidate.zoom)
+            }
         }
 
         return StaticImageResult.NotFound
