@@ -99,7 +99,10 @@ internal fun Scanner() {
                                 analytics.deeplinkParsed(type, url)
                                 type
                             }
-                            if (deeplink != null) {
+                            // Stated once and by name. The branches below still refuse
+                            // credential routes on their own, but that refusal used to be an
+                            // emergent property of two `when`s in different places.
+                            if (deeplink != null && deeplink.isScannable) {
                                 vibrator.vibrate(duration = 50)
                                 when (deeplink) {
                                     is DeeplinkType.CashLink -> {
