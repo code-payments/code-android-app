@@ -150,10 +150,16 @@ class GroupFeedDelegate @Inject constructor(
      * The row is cleared first so the chat drops out of the list on the tap rather than a round
      * trip later, and put back if the call fails — the same optimistic shape as
      * [FeedSyncDelegate.setChatHidden], with the restore that a remote call needs.
+     *
+     * The viewer state goes on success, not optimistically: leaving clears the mute server-side
+     * and the server sends nothing to say so, so a retained mute would outlive the chat it
+     * belonged to and be waiting on the other side of a rejoin. A failed leave leaves it alone,
+     * which is what the restore above wants — the user is still in the chat, still muted.
      */
     override suspend fun leave(chatId: ChatId): Result<Unit> {
         metadataDataSource.setMembership(chatId, isMember = false)
         return chatController.leaveChat(chatId)
+            .onSuccess { metadataDataSource.clearViewerState(chatId) }
             .onFailure {
                 trace(tag = TAG, message = "Leave failed for $chatId", type = TraceType.Error)
                 metadataDataSource.setMembership(chatId, isMember = true)
@@ -188,6 +194,9 @@ class GroupFeedDelegate @Inject constructor(
                 is RosterChange.MemberLeft -> {
                     if (change.userId != selfId) continue
                     metadataDataSource.setMembership(chatId, isMember = false)
+                    // Same reason as [leave]: the mute is gone server-side the moment you are out
+                    // of the chat, whether you left from this device or another one.
+                    metadataDataSource.clearViewerState(chatId)
                 }
             }
         }

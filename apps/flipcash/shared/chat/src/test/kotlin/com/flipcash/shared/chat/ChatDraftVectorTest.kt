@@ -19,6 +19,7 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * `test-vectors/chat_draft.json`. The canonical copy lives in the orchestrator repo; this one is
@@ -40,7 +41,11 @@ class ChatDraftVectorTest {
 
     @Test
     fun `drafts match the cross-platform vectors`() = runTest {
-        for (vector in vectors()) {
+        val vectors = vectors()
+        // A fixture that failed to load reads as an empty list, and a loop over one passes.
+        assertTrue(vectors.isNotEmpty(), "chat_draft.json loaded no vectors")
+
+        for (vector in vectors) {
             val name = vector.getString("name")
             val note = vector.getString("note")
             val store = storeOverOneRow()

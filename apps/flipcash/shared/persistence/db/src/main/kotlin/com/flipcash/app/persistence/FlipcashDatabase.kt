@@ -98,13 +98,14 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 31, to = 32, spec = FlipcashDatabase.Migration31To32::class),
         AutoMigration(from = 32, to = 33), // chat_messages index on (chat_id_hex, timestamp_epoch_ms)
         AutoMigration(from = 33, to = 34), // chat_metadata group columns: title, picture, roster, rules, membership
+        AutoMigration(from = 34, to = 35), // chat_metadata viewer state: mute deadline, forever flag, version
         // The chat_draft table. It has to arrive as an AutoMigration rather than on the
         // fallbackToDestructiveMigration() below: a draft is the one row in this database that
         // cannot be re-fetched, so a version bump that dropped the file would delete the
         // half-written messages this table exists to keep.
-        AutoMigration(from = 34, to = 35), // chat_draft table
+        AutoMigration(from = 35, to = 36), // chat_draft table
     ],
-    version = 35,
+    version = 36,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {

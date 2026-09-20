@@ -61,7 +61,9 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.isDmAddressable
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
@@ -176,6 +178,16 @@ internal class ChatViewModel @Inject constructor(
         val separatorConfig: SeparatorConfig = SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
         val subject: ChatSubject? = null,
+        /**
+         * What this chat holds about the viewer, or null while nothing is known.
+         *
+         * On the chat rather than on the [ChatSubject] because it is not about who the
+         * conversation is with: a DM is muted exactly the way a group is, and both profiles offer
+         * the row. Carried whole rather than reduced to a muted flag — a timed mute lapses with
+         * nothing sent to say so, so what is muted depends on when it is asked, and `isMutedAt`
+         * needs the deadline this keeps.
+         */
+        val viewerState: ViewerState? = null,
         // The kind of DM this conversation is, resolved from the fast local contact lookup ahead of
         // the participant's server profile (which resolves over the network for tip DMs). Starts
         // UNKNOWN and settles to CONTACT_DM / TIP_DM as soon as the chat opens; the send button and
@@ -382,6 +394,21 @@ internal class ChatViewModel @Inject constructor(
 
         /** The leave went through, so whatever is showing the group's profile should close. */
         data object LeftChat : Event
+
+        /** This chat's viewer state moved, from the stream or from the viewer's own request. */
+        data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
+
+        /**
+         * A shape picked from the mute sheet. Carries the whole [MuteState] rather than a duration
+         * because a deadline and forever are not the same kind of thing, and the sheet is the last
+         * place that can tell them apart.
+         *
+         * No confirmation, unlike the leave: muting is undone by the row that replaces it.
+         */
+        data class MuteChat(val mute: MuteState) : Event
+
+        /** The group profile's "Unmute Chat" row. Its own request, not a mute of zero length. */
+        data object UnmuteChat : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data class OnChatInitFeeUpdated(val formatted: String?) : Event
         data object RefreshContact : Event
@@ -1118,6 +1145,18 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnGroupResolved(it)) }
             .launchIn(viewModelScope)
 
+        // The same metadata, minus the type filter: every chat has viewer state and every chat can
+        // be muted, so this one is not the group chrome's business. Observed rather than read with
+        // the chat because a mute made on another device arrives on the stream, and because leaving
+        // clears it server-side.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeMetadata(it) }
+            .map { it?.metadata?.viewerState }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnViewerStateResolved(it)) }
+            .launchIn(viewModelScope)
+
         // The cache starts empty and fills in, so this is observed rather than read once — a
         // requirement resolved against an empty cache would render its amount with no token beside
         // it and never correct itself.
@@ -1487,6 +1526,39 @@ internal class ChatViewModel @Inject constructor(
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_failedToLeave),
                             message = resources.getString(R.string.error_description_failedToLeave),
+                        )
+                    }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.MuteChat>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                // Nothing to dispatch on success: the stored viewer state is what the row reads,
+                // and `mute` writes it before returning, so the profile flips on the same flow the
+                // stream would have moved it on.
+                chatCoordinator.mute(chatId, event.mute)
+                    .onFailure {
+                        trace("failed to mute chat - ${it.localizedMessage}")
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToMute),
+                            message = resources.getString(R.string.error_description_failedToMute),
+                        )
+                    }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.UnmuteChat>()
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                chatCoordinator.unmute(chatId)
+                    .onFailure {
+                        trace("failed to unmute chat - ${it.localizedMessage}")
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToUnmute),
+                            message = resources.getString(
+                                R.string.error_description_failedToUnmute,
+                            ),
                         )
                     }
             }
@@ -1992,10 +2064,15 @@ internal class ChatViewModel @Inject constructor(
                         )
                     )
                 }
+                is Event.OnViewerStateResolved -> { state ->
+                    state.copy(viewerState = event.viewerState)
+                }
                 Event.CopyInviteLink,
                 Event.LeaveChat,
                 Event.LeaveConfirmed,
-                Event.LeftChat -> { state -> state }
+                Event.LeftChat,
+                is Event.MuteChat,
+                Event.UnmuteChat -> { state -> state }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the

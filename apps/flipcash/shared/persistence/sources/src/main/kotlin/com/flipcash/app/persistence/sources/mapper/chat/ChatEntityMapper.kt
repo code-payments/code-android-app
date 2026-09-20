@@ -31,10 +31,12 @@ import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.EmojiReaction
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.RosterSummary
+import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ClientMessageId
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -84,6 +86,9 @@ class ChatEntityMapper @Inject constructor() {
             rosterVersion = metadata.rosterSummary.version,
             rulesJson = metadata.rules?.toSerialized(),
             isMember = isMember,
+            muteUntilEpochMs = muteUntilEpochMs(metadata.viewerState?.mute),
+            muteForever = isMuteForever(metadata.viewerState?.mute),
+            viewerStateVersion = metadata.viewerState?.version ?: 0,
         )
     }
 
@@ -109,7 +114,38 @@ class ChatEntityMapper @Inject constructor() {
                 version = entity.rosterVersion,
             ),
             rules = entity.rulesJson?.toDomain(),
+            // Carried at its real version, unlike `latestEventSequence` above: the version is the
+            // thing the write gate compares, so a metadata rebuilt from this row and pushed back
+            // through an upsert is a no-op rather than a re-application of what is already there.
+            viewerState = entity.toViewerState(),
         )
+    }
+
+    /** The `mute_until_epoch_ms` column a [mute] writes; null for forever and for no mute. */
+    fun muteUntilEpochMs(mute: MuteState?): Long? =
+        (mute as? MuteState.Until)?.until?.toEpochMilliseconds()
+
+    /** The `mute_forever` column a [mute] writes. */
+    fun isMuteForever(mute: MuteState?): Boolean = mute is MuteState.Forever
+
+    /**
+     * The row's viewer state, or null when it holds nothing about the viewer.
+     *
+     * A lapsed deadline still reads back as a [MuteState.Until]; whether it is still in force is
+     * `isActiveAt(now)`'s answer, asked at render time. Dropping it here would make the row and
+     * the domain model disagree about what is stored, and a later write gate compare against a
+     * version whose state had been silently rewritten.
+     */
+    private fun ChatMetadataEntity.toViewerState(): ViewerState? {
+        // Read into a local first: a smart cast will not hold across a module boundary.
+        val until = muteUntilEpochMs
+        val mute = when {
+            muteForever -> MuteState.Forever
+            until != null -> MuteState.Until(Instant.fromEpochMilliseconds(until))
+            else -> null
+        }
+        if (mute == null && viewerStateVersion == 0L) return null
+        return ViewerState(mute = mute, version = viewerStateVersion)
     }
 
     // endregion

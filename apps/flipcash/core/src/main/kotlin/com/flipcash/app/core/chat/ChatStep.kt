@@ -54,6 +54,19 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Serializable
     data object InviteToGroup : ChatStep, Sheet, WrapContentSheet
 
+    /**
+     * How long to mute the conversation for.
+     *
+     * A [WrapContentSheet] for the same reason [InviteToGroup] is one: four rows, chosen from the
+     * group's profile, and the profile is where you end up again once one is picked. Carries
+     * nothing — the chat is the one the flow is already open on, and the shape the user picks
+     * travels back as an event rather than as a nav result, because muting is a request the view
+     * model makes rather than an answer the sheet returns.
+     */
+    @Parcelize
+    @Serializable
+    data object MuteChat : ChatStep, Sheet, WrapContentSheet
+
     @Parcelize
     @Serializable
     data class Profile(val contact: ChatParticipant): ChatStep

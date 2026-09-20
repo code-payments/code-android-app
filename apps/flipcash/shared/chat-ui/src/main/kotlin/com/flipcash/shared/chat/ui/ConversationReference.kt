@@ -4,6 +4,7 @@ import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.nameOrHandle
 import kotlin.time.Instant
 
@@ -34,6 +35,14 @@ data class ConversationReference(
     val lastActivity: Instant? = null,
     val unreadCount: Int = 0,
     val isTyping: Boolean = false,
+    /**
+     * The viewer's own state on this chat, which is where the row's mute comes from.
+     *
+     * The state itself rather than a muted flag: a timed mute lapses with nothing sent to say so,
+     * so a boolean resolved when the row was built would go stale in place. [MutedIndicator] holds
+     * the deadline and stops drawing at it.
+     */
+    val viewerState: ViewerState? = null,
 ) {
     /**
      * What to call this row: the chat's [title] for a group, otherwise the counterparty's

@@ -21,8 +21,10 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.DeleteMessageError
 import com.flipcash.services.models.EditMessageError
 import com.flipcash.services.models.UserProfile
@@ -394,6 +396,20 @@ class MessagingDelegate @Inject constructor(
     override suspend fun notifyTyping(chatId: ChatId, typingState: TypingState): Result<Unit> {
         return messagingController.notifyIsTyping(chatId, typingState)
     }
+
+    override suspend fun mute(chatId: ChatId, mute: MuteState): Result<Unit> =
+        chatController.muteChat(chatId, mute).storeViewerState(chatId)
+
+    override suspend fun unmute(chatId: ChatId): Result<Unit> =
+        chatController.unmuteChat(chatId).storeViewerState(chatId)
+
+    /**
+     * Stores the viewer state a mute call answered with, through the same version gate the stream
+     * writes go through: the call's own echo can arrive on the stream first, and either order has
+     * to land on the same row.
+     */
+    private suspend fun Result<ViewerState>.storeViewerState(chatId: ChatId): Result<Unit> =
+        onSuccess { metadataDataSource.updateViewerState(chatId, it) }.map { }
 
     // endregion
 

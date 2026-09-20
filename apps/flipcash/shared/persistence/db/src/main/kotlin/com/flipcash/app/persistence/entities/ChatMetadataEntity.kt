@@ -44,4 +44,15 @@ data class ChatMetadataEntity(
     // should be readable in the table rather than implied by whether a row exists.
     @ColumnInfo(name = "is_member", defaultValue = "1")
     val isMember: Boolean = true,
+    // The viewer's own mute, and the version that decides whether a viewer-state write applies.
+    // A timed mute is stored as its deadline rather than as a muted flag: it lapses with no
+    // server signal, so only the deadline compared against the clock on read stays correct.
+    // Exactly two mute shapes exist — until a deadline, or forever — so the two columns are
+    // never both set.
+    @ColumnInfo(name = "mute_until_epoch_ms")
+    val muteUntilEpochMs: Long? = null,
+    @ColumnInfo(name = "mute_forever", defaultValue = "0")
+    val muteForever: Boolean = false,
+    @ColumnInfo(name = "viewer_state_version", defaultValue = "0")
+    val viewerStateVersion: Long = 0,
 )

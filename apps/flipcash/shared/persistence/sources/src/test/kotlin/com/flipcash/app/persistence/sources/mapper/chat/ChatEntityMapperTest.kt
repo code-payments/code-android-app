@@ -13,7 +13,9 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.RosterSummary
+import com.flipcash.services.models.chat.ViewerState
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import org.junit.Assert.assertEquals
@@ -192,6 +194,76 @@ class ChatEntityMapperTest {
         assertEquals(0L, entity.memberCount)
         assertEquals(0L, entity.rosterVersion)
         assertEquals(null, entity.rulesJson)
+    }
+
+    @Test
+    fun `a timed mute is written as its deadline`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(
+                    mute = MuteState.Until(Instant.fromEpochSeconds(2_000)),
+                    version = 3,
+                )
+            )
+        )
+
+        assertEquals(2_000_000L, entity.muteUntilEpochMs)
+        assertEquals(false, entity.muteForever)
+        assertEquals(3L, entity.viewerStateVersion)
+    }
+
+    @Test
+    fun `an indefinite mute is written as the flag and no deadline`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(viewerState = ViewerState(mute = MuteState.Forever, version = 3))
+        )
+
+        assertEquals(null, entity.muteUntilEpochMs)
+        assertEquals(true, entity.muteForever)
+    }
+
+    /**
+     * The deadline survives even once it is in the past. Whether the mute is still in force is
+     * `isActiveAt(now)`'s answer at render time, not something the mapper resolves on the way
+     * out — resolving it here would make the row and the model disagree about what is stored.
+     */
+    @Test
+    fun `a lapsed mute still round-trips as its deadline`() {
+        val lapsed = Instant.fromEpochSeconds(1_500)
+        val entity = mapper.toEntity(
+            groupMetadata().copy(viewerState = ViewerState(mute = MuteState.Until(lapsed), version = 3))
+        )
+
+        val restored = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
+
+        assertEquals(MuteState.Until(lapsed), restored.viewerState?.mute)
+        assertEquals(3L, restored.viewerState?.version)
+    }
+
+    /**
+     * Unlike `latestEventSequence` above, the version is carried back out: it is what the write
+     * gate compares, so a metadata rebuilt from a row and pushed back through an upsert has to
+     * fail the gate rather than re-apply itself over something newer.
+     */
+    @Test
+    fun `the viewer state version survives the round trip`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(viewerState = ViewerState(mute = MuteState.Forever, version = 9))
+        )
+
+        val restored = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
+
+        assertEquals(9L, restored.viewerState?.version)
+        assertEquals(MuteState.Forever, restored.viewerState?.mute)
+    }
+
+    @Test
+    fun `a chat holding nothing about the viewer has no viewer state`() {
+        val entity = mapper.toEntity(metadata(latestEventSequence = 0))
+
+        val restored = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
+
+        assertEquals(null, restored.viewerState)
     }
 
     private companion object {

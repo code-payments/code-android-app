@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 35,
-    "identityHash": "996b76c50f037d1cd142131808e343d5",
+    "version": 36,
+    "identityHash": "a5886f48befafacf1e080929eab9ee78",
     "entities": [
       {
         "tableName": "messages",
@@ -746,6 +746,41 @@
         }
       },
       {
+        "tableName": "chat_draft",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_id_hex` TEXT NOT NULL, `text` TEXT NOT NULL, `reply_target_json` TEXT, `saved_at` INTEGER NOT NULL, PRIMARY KEY(`chat_id_hex`))",
+        "fields": [
+          {
+            "fieldPath": "chatIdHex",
+            "columnName": "chat_id_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "replyTargetJson",
+            "columnName": "reply_target_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "savedAt",
+            "columnName": "saved_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "chat_id_hex"
+          ]
+        }
+      },
+      {
         "tableName": "blocked_users",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id_hex` TEXT NOT NULL, `blocked_at_epoch_ms` INTEGER NOT NULL, PRIMARY KEY(`user_id_hex`))",
         "fields": [
@@ -836,7 +871,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '996b76c50f037d1cd142131808e343d5')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a5886f48befafacf1e080929eab9ee78')"
     ]
   }
 }
