@@ -24,6 +24,9 @@ dependencies {
     implementation(project(":libs:vibrator:bindings"))
     implementation(project(":ui:biometrics"))
     implementation(project(":ui:scanner"))
+    // Declared rather than inherited through `:ui:scanner`'s `api`: this module names
+    // `KikCodeScannerImpl`, `StaticImageAnalyzerImpl` and `KikCodeAnalyzer` directly.
+    implementation(project(":vendor:kik:scanner"))
     implementation(libs.androidx.camerax.view)
     implementation(libs.androidx.foundation.layout)
 }
