@@ -1,5 +1,6 @@
 package com.flipcash.app.balance.internal
 
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -80,19 +82,26 @@ internal fun WalletScreenContent(
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (WalletViewModel.Event) -> Unit,
 ) {
-    // One loading state for the whole tab. The balance, the card deck, and the activity preview
-    // arrive from three independent sources; letting each stage itself meant the tab assembled in
-    // pieces -- a spinner inside the header while the body below it had already decided, from a
-    // still-empty cache, that this was a brand-new account and drawn the tutorial. Nothing renders
-    // until all three can be drawn together, and BalanceHeader's own spinner is consequently dead
-    // code -- the header is only ever drawn once the balance has resolved.
+    // Time-to-full-display for a logged-in launch. This tab is where the app lands, and the gate
+    // below means "landed" is not the same frame as "composed" -- registering a reporter here holds
+    // the activity's report open until the content below the gate has actually been drawn. Keyed to
+    // the same condition as that gate: what the launch is finished for is the balance and the deck.
+    ReportDrawnWhen { !tokenState.isAwaitingTokens }
+
+    // The tab waits on the token set and nothing else. Tokens are what the balance and the card deck
+    // are made of, so there is no drawing the tab without them; the activity preview and the tutorial
+    // are separate reads that arrive later and fill in underneath.
     //
-    // The two waits are independent races, and the activity preview *reads* the token cache: a
-    // convert row titles itself "USDF -> Dad Cash" from both mints' metadata and falls back to the
-    // server's bare "Converted" until they resolve. Post-login the feed regularly won that race, so
-    // the tab drew converts as "Converted" and then re-titled them once tokens landed. Waiting on
-    // both (see State.isAwaitingTokens / isAwaitingActivity) means the section is drawn once, resolved.
-    if (tokenState.isAwaitingTokens || balanceState.isAwaitingActivity) {
+    // Waiting on the activity feed here as well (the earlier gate was `isAwaitingTokens ||
+    // isAwaitingActivity`) held a resolved balance behind an unresolved history. The two things that
+    // gate bought are both kept below without the wait: the activity section draws only once there
+    // are rows to draw, and by then tokens have resolved, so a convert row titles itself
+    // "USDF -> Dad Cash" from both mints rather than falling back to the server's bare "Converted";
+    // and the tutorial, the one thing that would be *wrong* rather than late if drawn from a
+    // still-empty cache -- telling an established account it is new -- keeps the activity wait
+    // explicitly. BalanceHeader's own spinner stays dead code: the header is only ever drawn once
+    // the balance has resolved.
+    if (tokenState.isAwaitingTokens) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -153,7 +162,12 @@ internal fun WalletScreenContent(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        // Only ever in the tree past the loading gate above, so it is the anchor for "the wallet
+        // drew its content" -- what the startup benchmark waits on before it stops the trace. Same
+        // condition as ReportDrawnWhen above, so the trace stays open exactly as long as the report.
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("wallet_content"),
         contentPadding = PaddingValues(
             top = CodeTheme.dimens.inset,
             start = CodeTheme.dimens.inset,
@@ -188,25 +202,31 @@ internal fun WalletScreenContent(
             Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
         }
 
-        balanceState.onboardingItems?.takeIf { !balanceState.isNewUserTutorialComplete }?.let { items ->
-            item {
-                NewUserTutorial(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(bottom = CodeTheme.dimens.grid.x5),
-                    title = stringResource(R.string.title_tipOnboarding),
-                    items = items,
-                ) { item ->
-                    when (item) {
-                        is TutorialItem.AddMoney -> {
-                            dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
-                        }
-                        is TutorialItem.ScanTipCard -> {
-                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Main.Scanner))
+        // The milestones are a read of a local cache that starts empty on a fresh login, so an
+        // established account would be shown the new-user tutorial until its history arrived. This
+        // is the one section that has to wait the feed out (see State.isAwaitingActivity) -- drawing
+        // it early is wrong, not merely early.
+        balanceState.onboardingItems
+            ?.takeIf { !balanceState.isAwaitingActivity && !balanceState.isNewUserTutorialComplete }
+            ?.let { items ->
+                item {
+                    NewUserTutorial(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(bottom = CodeTheme.dimens.grid.x5),
+                        title = stringResource(R.string.title_tipOnboarding),
+                        items = items,
+                    ) { item ->
+                        when (item) {
+                            is TutorialItem.AddMoney -> {
+                                dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
+                            }
+                            is TutorialItem.ScanTipCard -> {
+                                dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Main.Scanner))
+                            }
                         }
                     }
                 }
             }
-        }
 
         tokenState.tokens
             ?.let { tokens ->

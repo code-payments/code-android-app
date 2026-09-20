@@ -42,12 +42,14 @@ class BaselineProfileGenerator {
             startActivityAndWait()
             device.waitForIdle()
 
-            // After login, app data persists across iterations so subsequent
-            // iterations launch directly into the scanner (already authenticated).
-            val onScanner = device.hasObject(By.res("scanner_view"))
+            // App data persists across iterations, so after the first login every later
+            // iteration starts authenticated. Probe the tab bar, not a specific tab: a launch
+            // restores whichever tab was last used, and the default landing tab is the wallet,
+            // so keying off scanner_view here reported "logged out" on a logged-in device and
+            // sent every iteration down the login branch.
+            val loggedIn = device.hasObject(By.res("nav_wallet"))
 
-            if (onScanner) {
-                // Already logged in from a prior iteration
+            if (loggedIn) {
                 authenticatedJourneys()
             } else {
                 val seed = seedPhrase
@@ -88,8 +90,8 @@ class BaselineProfileGenerator {
         device.wait(Until.hasObject(By.res("login_confirm_button").enabled(true)), TIMEOUT)
         device.findObject(By.res("login_confirm_button"))?.click()
 
-        // Wait for scanner screen
-        device.wait(Until.findObject(By.res("scanner_view")), LOGIN_TIMEOUT)
+        // Wait for the authenticated shell — the tab bar, whichever tab it lands on.
+        device.wait(Until.findObject(By.res("nav_wallet")), LOGIN_TIMEOUT)
         device.waitForIdle()
     }
 
@@ -104,9 +106,8 @@ class BaselineProfileGenerator {
     }
 
     private fun MacrobenchmarkScope.scannerJourney() {
-        // Scanner is the home screen — let it fully render
-        device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
-        device.waitForIdle()
+        // Switch to the scanner rather than assuming the launch landed there, then let it render.
+        returnToScanner()
     }
 
     private fun MacrobenchmarkScope.chatJourney() {

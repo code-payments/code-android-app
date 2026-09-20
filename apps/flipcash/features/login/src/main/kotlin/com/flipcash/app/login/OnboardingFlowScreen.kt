@@ -1,7 +1,7 @@
 package com.flipcash.app.login
 
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.ReportDrawn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -370,10 +370,11 @@ private fun LoginStepContent(seed: String?) {
     val navigator = LocalCodeNavigator.current
     var visible by remember { mutableStateOf(false) }
     var loginRequested by remember { mutableStateOf(false) }
-    val activity = LocalActivity.current
+
+    // The landing destination for a launch that is not logged in.
+    ReportDrawn()
 
     LaunchedEffect(Unit) {
-        activity?.reportFullyDrawn()
         visible = true
     }
 

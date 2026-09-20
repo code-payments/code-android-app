@@ -5,10 +5,13 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.persistence.sources.TokenDataSource
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -46,6 +49,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,6 +59,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -77,10 +83,15 @@ import javax.inject.Singleton
  * server-text fallback ("Converted") against a not-yet-populated cache.
  */
 enum class TokenSyncState {
-    /** No token fetch has completed yet this session — whatever is cached is cache-only. */
+    /** No token fetch has ever completed for this account — whatever is cached is cache-only. */
     Unknown,
 
-    /** A fetch succeeded: the in-memory token map reflects the server. */
+    /**
+     * A fetch has succeeded: the cached token map reflects what the server last said. Persisted, so
+     * it survives a relaunch. An account that genuinely holds nothing would otherwise be
+     * indistinguishable from an un-fetched one at every cold start, and the wallet tab would hold
+     * its spinner on a network round trip on every single launch.
+     */
     Synced,
 
     /** A fetch completed without success. Callers should stop waiting; the next trigger retries. */
@@ -117,6 +128,16 @@ class TokenCoordinator @Inject constructor(
     companion object {
         private const val TAG = "TokenCoordinator"
         private val mintPreferenceKey = stringPreferencesKey("tokenMint")
+
+        /**
+         * Whether a token fetch has ever succeeded for the account that is signed in. Lives beside
+         * the selected mint because it has the same lifetime: [reset] clears this store on logout,
+         * so the next account starts without an answer of its own.
+         */
+        private val syncedPreferenceKey = booleanPreferencesKey("hasSyncedTokens")
+
+        /** How long a refresh waits for a login that is still landing. See [awaitCluster]. */
+        private val CLUSTER_WAIT = 5.seconds
     }
 
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
@@ -143,8 +164,9 @@ class TokenCoordinator @Inject constructor(
     private val _syncState = MutableStateFlow(TokenSyncState.Unknown)
 
     /**
-     * Whether the token set has been reconciled with the server this session. See [TokenSyncState].
-     * Maintained by [updateTokens], which every full refresh funnels through.
+     * Whether the token set has ever been reconciled with the server for this account. See
+     * [TokenSyncState]. Maintained by [updateTokens], which every full refresh funnels through, and
+     * seeded on login from the persisted answer of the last session.
      */
     val syncState: StateFlow<TokenSyncState> = _syncState.asStateFlow()
 
@@ -178,8 +200,12 @@ class TokenCoordinator @Inject constructor(
     override suspend fun onUserLoggedIn(cluster: AccountCluster) {
         trace(tag = TAG, message = "User logged in, hydrating from persistence", type = TraceType.User)
         this.cluster.value = cluster
-        // A new session hasn't looked at the server yet, whatever the previous one concluded.
-        _syncState.value = TokenSyncState.Unknown
+        // A new session hasn't looked at the server yet, but a previous one may have, and an empty
+        // token map is only ambiguous until the first fetch succeeds. Resetting to Unknown here made
+        // every launch of a zero-balance account wait out a network round trip before the wallet tab
+        // could draw -- the fetch still runs, it just no longer gates the tab.
+        _syncState.value =
+            if (hasEverSynced()) TokenSyncState.Synced else TokenSyncState.Unknown
         hydrateFromPersistence()
     }
 
@@ -193,7 +219,11 @@ class TokenCoordinator @Inject constructor(
     // region Lifecycle
 
     init {
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        // Posted, not called directly: addObserver is main-thread-only, and this singleton is built
+        // off the main thread so its construction stays off the startup path.
+        Handler(Looper.getMainLooper()).post {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        }
 
         cluster.filterNotNull()
             .flatMapLatest { networkObserver.state.map { it.connected } }
@@ -385,6 +415,30 @@ class TokenCoordinator @Inject constructor(
         selectedToken.edit { it[mintPreferenceKey] = mint.base58() }
     }
 
+    /**
+     * Waits out a login that is still landing, up to [CLUSTER_WAIT].
+     *
+     * [UserManager.set] publishes `AuthState.Ready` to its collectors *before* the cluster reaches
+     * this coordinator: the cluster travels by event bus, on another dispatcher, via
+     * [onUserLoggedIn]. The balance poller starts on the `Ready` edge with no initial delay, so its
+     * first tick can arrive here before the cluster does and drop the first fetch of the session --
+     * which is the one the wallet tab is waiting for. A null cluster on that edge means "not yet",
+     * not "nobody is signed in", so wait for it rather than returning.
+     *
+     * Bounded, so a caller that really is logged out costs one timeout instead of hanging, and
+     * still reaches the trace below. Returns null only in that case.
+     */
+    private suspend fun awaitCluster(): AccountCluster? =
+        withTimeoutOrNull(CLUSTER_WAIT) { cluster.filterNotNull().first() }
+
+    private suspend fun hasEverSynced(): Boolean =
+        selectedToken.data.firstOrNull()?.get(syncedPreferenceKey) == true
+
+    private suspend fun markSynced() {
+        if (hasEverSynced()) return
+        selectedToken.edit { it[syncedPreferenceKey] = true }
+    }
+
     fun observeSelectedTokenMint(): Flow<Mint> = selectedToken.data.mapNotNull { prefs ->
         prefs[mintPreferenceKey]?.let { Mint(it) }
     }
@@ -446,7 +500,7 @@ class TokenCoordinator @Inject constructor(
     // region Internal — Network updates
 
     private suspend fun updateTokens() {
-        val owner = cluster.value ?: run {
+        val owner = cluster.value ?: awaitCluster() ?: run {
             trace(tag = TAG, message = "Cannot update tokens: no authenticated user", type = TraceType.Error)
             return
         }
@@ -466,6 +520,7 @@ class TokenCoordinator @Inject constructor(
                 persistTokenState(updates)
                 ensureValidTokenSelection()
                 _syncState.value = TokenSyncState.Synced
+                markSynced()
             }
             .onFailure { error ->
                 trace(tag = TAG, message = "Failed to update tokens: ${error.message}", type = TraceType.Error)

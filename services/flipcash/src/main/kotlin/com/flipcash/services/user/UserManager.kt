@@ -129,7 +129,23 @@ class UserManager @Inject constructor(
 
     }
 
+    /**
+     * Derives the account's keys from [entropy] and installs them as the current session.
+     *
+     * Idempotent for the entropy already established, because deriving is the single most
+     * expensive thing a login does: `DerivedKey.derive` runs BIP39's PBKDF2, which is deliberately
+     * slow. A login already establishes twice — `PassphraseCredentialManager.login` derives to
+     * authenticate, then `AuthManager.login` derives the same entropy again on its way through —
+     * and the second derivation can only produce the keys the first one already installed.
+     * [clear] nulls both fields, so signing out still forces a fresh derivation.
+     */
     fun establish(entropy: String) {
+        val current = _state.value
+        if (current.entropy == entropy && current.cluster != null) {
+            associate()
+            return
+        }
+
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
         val authority = DerivedKey.derive(DerivePath.primary, mnemonic)
         val cluster = AccountCluster.newInstance(authority = authority, token = Token.usdf)
