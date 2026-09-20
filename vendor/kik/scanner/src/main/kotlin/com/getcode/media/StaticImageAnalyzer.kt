@@ -19,7 +19,7 @@ sealed interface StaticImageResult {
     /** The ladder was walked to the end and nothing decoded. */
     data object NotFound : StaticImageResult
 
-    /** The budget expired or the caller cancelled. Not the same as [NotFound]. */
+    /** The budget expired before the ladder ended. Not the same as [NotFound]. */
     data object Exhausted : StaticImageResult
 }
 

@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.getcode.codes.kikcode.LuminancePlane
 import com.getcode.codes.kikcode.StillImageCodeSearch
+import com.getcode.media.StaticImageAnalyzerImpl
 import com.getcode.media.StaticImageResult
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.kincodes.KikCodeContentRendererImpl
@@ -186,4 +187,32 @@ class StillImageScanTest {
         /** A remote code payload is 20 bytes, the same shape `KikCodeScanTest` encodes. */
         val PAYLOAD = ByteArray(20) { ((it * 7 + 11) % 251).toByte() }
     }
+
+    @Test
+    fun sourceDownsamplingBringsEveryPhotoUnderTheCap() {
+        val cap = StaticImageAnalyzerImpl.MAX_SOURCE_SIDE
+
+        // The case that regressed: `longestSide / cap` truncates to 1 for anything under twice the
+        // cap, so a 4000px photo -- a perfectly ordinary one -- was decoded at full size and the
+        // ladder then paid a quadratic cost for it.
+        assertEquals(2, StaticImageAnalyzerImpl.sampleSizeFor(4000))
+
+        listOf(2401, 3000, 4000, 4800, 7200, 12000).forEach { side ->
+            val sample = StaticImageAnalyzerImpl.sampleSizeFor(side)
+            assertTrue("$side / $sample is still over $cap", side / sample <= cap)
+            assertTrue("$sample is not a power of two", sample and (sample - 1) == 0)
+            assertTrue(
+                "$side was sampled harder than it needed",
+                sample == 1 || side / (sample / 2) > cap,
+            )
+        }
+    }
+
+    @Test
+    fun anImageUnderTheCapIsNotDownsampled() {
+        listOf(1, 300, 1600, 2400).forEach { side ->
+            assertEquals(1, StaticImageAnalyzerImpl.sampleSizeFor(side))
+        }
+    }
+
 }

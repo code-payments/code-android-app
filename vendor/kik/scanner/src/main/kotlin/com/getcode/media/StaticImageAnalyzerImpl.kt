@@ -96,14 +96,24 @@ class StaticImageAnalyzerImpl @Inject constructor(
             // Downsampling first costs nothing the scanner can see -- a code too small to survive
             // this is already too small for the deepest zoom to recover.
             val longestSide = maxOf(info.size.width, info.size.height)
-            if (longestSide > MAX_SOURCE_SIDE) {
-                val sample = longestSide / MAX_SOURCE_SIDE
-                decoder.setTargetSampleSize(Integer.highestOneBit(sample))
-            }
+            decoder.setTargetSampleSize(sampleSizeFor(longestSide))
         }
     }.getOrNull()
 
-    private companion object {
+    internal companion object {
+        /**
+         * The smallest power of two that brings [longestSide] under [MAX_SOURCE_SIDE].
+         *
+         * Rounding up rather than down is the whole point: `longestSide / MAX_SOURCE_SIDE`
+         * truncates, so a 4000px photo -- the case the caller's comment names -- divides to 1 and
+         * is left at full size. Every image between the cap and twice the cap was untouched.
+         */
+        internal fun sampleSizeFor(longestSide: Int): Int {
+            var sample = 1
+            while (longestSide / sample > MAX_SOURCE_SIDE) sample *= 2
+            return sample
+        }
+
         /**
          * How long the whole search may take. Long enough that no successful search has ever hit
          * it, short enough that a photo of a wall gives up. A guess, not a measurement -- see the
@@ -111,6 +121,6 @@ class StaticImageAnalyzerImpl @Inject constructor(
          */
         val BUDGET: Duration = 8.seconds
 
-        const val MAX_SOURCE_SIDE = 2400
+        internal const val MAX_SOURCE_SIDE = 2400
     }
 }
