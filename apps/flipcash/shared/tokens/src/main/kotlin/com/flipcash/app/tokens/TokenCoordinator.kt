@@ -5,6 +5,7 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -79,10 +80,15 @@ import javax.inject.Singleton
  * server-text fallback ("Converted") against a not-yet-populated cache.
  */
 enum class TokenSyncState {
-    /** No token fetch has completed yet this session — whatever is cached is cache-only. */
+    /** No token fetch has ever completed for this account — whatever is cached is cache-only. */
     Unknown,
 
-    /** A fetch succeeded: the in-memory token map reflects the server. */
+    /**
+     * A fetch has succeeded: the cached token map reflects what the server last said. Persisted, so
+     * it survives a relaunch. An account that genuinely holds nothing would otherwise be
+     * indistinguishable from an un-fetched one at every cold start, and the wallet tab would hold
+     * its spinner on a network round trip on every single launch.
+     */
     Synced,
 
     /** A fetch completed without success. Callers should stop waiting; the next trigger retries. */
@@ -119,6 +125,13 @@ class TokenCoordinator @Inject constructor(
     companion object {
         private const val TAG = "TokenCoordinator"
         private val mintPreferenceKey = stringPreferencesKey("tokenMint")
+
+        /**
+         * Whether a token fetch has ever succeeded for the account that is signed in. Lives beside
+         * the selected mint because it has the same lifetime: [reset] clears this store on logout,
+         * so the next account starts without an answer of its own.
+         */
+        private val syncedPreferenceKey = booleanPreferencesKey("hasSyncedTokens")
     }
 
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
@@ -145,8 +158,9 @@ class TokenCoordinator @Inject constructor(
     private val _syncState = MutableStateFlow(TokenSyncState.Unknown)
 
     /**
-     * Whether the token set has been reconciled with the server this session. See [TokenSyncState].
-     * Maintained by [updateTokens], which every full refresh funnels through.
+     * Whether the token set has ever been reconciled with the server for this account. See
+     * [TokenSyncState]. Maintained by [updateTokens], which every full refresh funnels through, and
+     * seeded on login from the persisted answer of the last session.
      */
     val syncState: StateFlow<TokenSyncState> = _syncState.asStateFlow()
 
@@ -180,8 +194,12 @@ class TokenCoordinator @Inject constructor(
     override suspend fun onUserLoggedIn(cluster: AccountCluster) {
         trace(tag = TAG, message = "User logged in, hydrating from persistence", type = TraceType.User)
         this.cluster.value = cluster
-        // A new session hasn't looked at the server yet, whatever the previous one concluded.
-        _syncState.value = TokenSyncState.Unknown
+        // A new session hasn't looked at the server yet, but a previous one may have, and an empty
+        // token map is only ambiguous until the first fetch succeeds. Resetting to Unknown here made
+        // every launch of a zero-balance account wait out a network round trip before the wallet tab
+        // could draw -- the fetch still runs, it just no longer gates the tab.
+        _syncState.value =
+            if (hasEverSynced()) TokenSyncState.Synced else TokenSyncState.Unknown
         hydrateFromPersistence()
     }
 
@@ -391,6 +409,14 @@ class TokenCoordinator @Inject constructor(
         selectedToken.edit { it[mintPreferenceKey] = mint.base58() }
     }
 
+    private suspend fun hasEverSynced(): Boolean =
+        selectedToken.data.firstOrNull()?.get(syncedPreferenceKey) == true
+
+    private suspend fun markSynced() {
+        if (hasEverSynced()) return
+        selectedToken.edit { it[syncedPreferenceKey] = true }
+    }
+
     fun observeSelectedTokenMint(): Flow<Mint> = selectedToken.data.mapNotNull { prefs ->
         prefs[mintPreferenceKey]?.let { Mint(it) }
     }
@@ -472,6 +498,7 @@ class TokenCoordinator @Inject constructor(
                 persistTokenState(updates)
                 ensureValidTokenSelection()
                 _syncState.value = TokenSyncState.Synced
+                markSynced()
             }
             .onFailure { error ->
                 trace(tag = TAG, message = "Failed to update tokens: ${error.message}", type = TraceType.Error)

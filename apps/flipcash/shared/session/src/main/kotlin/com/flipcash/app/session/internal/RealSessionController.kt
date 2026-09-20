@@ -326,8 +326,9 @@ class RealSessionController @Inject constructor(
         if (userManager.authState.canAccessAuthenticatedApis) {
             // No `startIn` on the balances: this is the only thing that fetches them after login
             // (TokenCoordinator.onUserLoggedIn just hydrates Room, which is empty on a fresh
-            // account), and the wallet tab holds its spinner until the fetch lands. A head start
-            // here was a second of the login spinner spent deliberately idle.
+            // account). Only the *first* fetch for an account gates the wallet tab now -- the sync
+            // state is persisted, so a later launch draws from the cache while this refreshes --
+            // but that first one is still the login spinner, so it keeps its head start.
             tokenUpdater.poll(scope = scope, frequency = 20.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
             profileUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
