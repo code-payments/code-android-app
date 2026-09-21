@@ -53,7 +53,9 @@ fun KeepScreenOn(
     var originalBrightness by remember { mutableFloatStateOf(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE) }
     var brightnessAdjusted by remember { mutableStateOf(false) }
 
-    DisposableEffect(isEnabled, lifecycleOwner) {
+    // `useBrightness` is a key because the effect reads it when it applies the overrides. Without
+    // it, a caller that flips brightness on while `isEnabled` stays true keeps the old behaviour.
+    DisposableEffect(isEnabled, useBrightness, lifecycleOwner) {
         if (!isEnabled) return@DisposableEffect onDispose { }
 
         val window = (context as Activity).window

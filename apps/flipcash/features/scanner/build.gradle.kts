@@ -20,9 +20,16 @@ dependencies {
     implementation(project(":libs:datetime"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
+    implementation(project(":libs:quickresponse"))
     implementation(project(":libs:vibrator:bindings"))
     implementation(project(":ui:biometrics"))
     implementation(project(":ui:scanner"))
+    // Declared rather than inherited through `:ui:scanner`'s `api`: this module names
+    // `KikCodeScannerImpl`, `StaticImageAnalyzerImpl` and `KikCodeAnalyzer` directly.
+    implementation(project(":vendor:kik:scanner"))
     implementation(libs.androidx.camerax.view)
     implementation(libs.androidx.foundation.layout)
+    // `ui:components` keeps haze to itself, but `CircularIconButton` takes a `HazeState`, so a
+    // caller wanting the frosted fill has to be able to name the type.
+    implementation(libs.bundles.haze)
 }

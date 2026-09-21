@@ -251,6 +251,18 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.TipCardEvent.Scanned)
     }
 
+    override fun galleryImagePicked() {
+        track(AnalyticsEvent.GalleryScanEvent.ImagePicked)
+    }
+
+    override fun galleryScanSucceeded(tier: Int, zoom: Float, timeMillis: Long) {
+        track(AnalyticsEvent.GalleryScanEvent.Succeeded(tier, zoom, timeMillis))
+    }
+
+    override fun galleryScanFailed(timeMillis: Long, exhausted: Boolean) {
+        track(AnalyticsEvent.GalleryScanEvent.Failed(timeMillis, exhausted))
+    }
+
     override fun tipCardPresented() {
         track(AnalyticsEvent.TipCardEvent.Presented)
     }

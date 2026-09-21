@@ -132,4 +132,32 @@ class LuminancePlaneTest {
             )
         }
     }
+
+    @Test
+    fun `fromArgb uses the integer BT601 form`() {
+        // Pure blue: (77*0 + 150*0 + 29*255) shr 8 == 28.
+        val pixels = IntArray(4) { 0xFF0000FF.toInt() }
+
+        val luminance = LuminancePlane.fromArgb(pixels, width = 2, height = 2)
+
+        assertTrue(luminance.all { it.toInt() and 0xFF == 28 }, "expected 28, got ${luminance.toList()}")
+    }
+
+    @Test
+    fun `fromArgb maps black and white to the ends of the range`() {
+        val pixels = intArrayOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt())
+
+        val luminance = LuminancePlane.fromArgb(pixels, width = 2, height = 1)
+
+        assertEquals(0, luminance[0].toInt() and 0xFF)
+        // 77 + 150 + 29 == 256, so white lands on 255 after the shift, not 256.
+        assertEquals(255, luminance[1].toInt() and 0xFF)
+    }
+
+    @Test
+    fun `fromArgb output is tightly packed`() {
+        val luminance = LuminancePlane.fromArgb(IntArray(12), width = 4, height = 3)
+
+        assertEquals(12, luminance.size)
+    }
 }

@@ -50,6 +50,35 @@ sealed interface DeeplinkType: Parcelable {
         val code: String,
         val origin: String? = null
     ): DeeplinkType, Navigatable
+
+    /**
+     * Whether this route may be produced by scanning rather than by tapping a link.
+     *
+     * An allowlist, stated positively and exhaustively, because the cost of a mistake is
+     * one-sided: [Login] carries the account seed and [EmailVerification] carries a verification
+     * secret, and a scanned image is something somebody else can put in front of the camera or
+     * send as a photo. A new route type is refused until someone adds it here, which is the
+     * property an `else -> false` would not have.
+     *
+     * [GroupChatInvite] is false because no scan path opens one -- `Scanner`'s `Navigatable`
+     * branch has no case for it. It is a gap named rather than a risk.
+     *
+     * iOS's equivalent is `ScanViewModel.canScanQR`.
+     */
+    val isScannable: Boolean
+        get() = when (this) {
+            is CashLink,
+            is TokenInfo,
+            is TipChat,
+            is Tipcard,
+            is TipcardByUsername,
+            -> true
+
+            is Login,
+            is EmailVerification,
+            is GroupChatInvite,
+            -> false
+        }
 }
 
 val Uri.fragments: Map<Key, String>
