@@ -213,75 +213,99 @@ class ReceivedCounterTest {
 
     @Test
     fun `inbound tip increments tips and messages`() = runTest(testDispatchers.dispatcher) {
-        coordinator.onUserLoggedIn(mockk(relaxed = true))
-        deliver(tipMessage(messageId = 1L, senderId = otherId))
+        tornDown {
+            coordinator.onUserLoggedIn(mockk(relaxed = true))
+            deliver(tipMessage(messageId = 1L, senderId = otherId))
 
-        coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
-        coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages, 1.0) }
-        coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, 5.0) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
+            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages, 1.0) }
+            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, 5.0) }
+        }
     }
 
     @Test
     fun `inbound text increments messages only`() = runTest(testDispatchers.dispatcher) {
-        coordinator.onUserLoggedIn(mockk(relaxed = true))
-        deliver(textMessage(messageId = 1L, senderId = otherId))
+        tornDown {
+            coordinator.onUserLoggedIn(mockk(relaxed = true))
+            deliver(textMessage(messageId = 1L, senderId = otherId))
 
-        coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages, 1.0) }
-        coVerify(exactly = 0) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, any()) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages, 1.0) }
+            coVerify(exactly = 0) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, any()) }
+        }
     }
 
     @Test
     fun `self-sent messages are not counted`() = runTest(testDispatchers.dispatcher) {
-        coordinator.onUserLoggedIn(mockk(relaxed = true))
-        deliver(tipMessage(messageId = 1L, senderId = selfId))
+        tornDown {
+            coordinator.onUserLoggedIn(mockk(relaxed = true))
+            deliver(tipMessage(messageId = 1L, senderId = selfId))
 
-        coVerify(exactly = 0) { analytics.incrementReceivedCounter(any(), any()) }
-        coordinator.teardown()
+            coVerify(exactly = 0) { analytics.incrementReceivedCounter(any(), any()) }
+        }
     }
 
     @Test
     fun `redelivered messages are counted exactly once`() = runTest(testDispatchers.dispatcher) {
-        coordinator.onUserLoggedIn(mockk(relaxed = true))
-        val msg = tipMessage(messageId = 7L, senderId = otherId)
+        tornDown {
+            coordinator.onUserLoggedIn(mockk(relaxed = true))
+            val msg = tipMessage(messageId = 7L, senderId = otherId)
 
-        deliver(msg)
-        deliver(msg) // gap fill / reconnect replays the same message
+            deliver(msg)
+            deliver(msg) // gap fill / reconnect replays the same message
 
-        coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
+        }
     }
 
     @Test
     fun `messages at or below the watermark are skipped`() = runTest(testDispatchers.dispatcher) {
-        countedThrough = 10L
-        coordinator.onUserLoggedIn(mockk(relaxed = true))
-        deliver(textMessage(messageId = 10L, senderId = otherId))
+        tornDown {
+            countedThrough = 10L
+            coordinator.onUserLoggedIn(mockk(relaxed = true))
+            deliver(textMessage(messageId = 10L, senderId = otherId))
 
-        coVerify(exactly = 0) { analytics.incrementReceivedCounter(any(), any()) }
-        coordinator.teardown()
+            coVerify(exactly = 0) { analytics.incrementReceivedCounter(any(), any()) }
+        }
     }
 
     @Test
     fun `tip value is normalised to USD`() = runTest(testDispatchers.dispatcher) {
-        coordinator.onUserLoggedIn(mockk(relaxed = true))
-        val cad = Fiat(fiat = 10.0, currencyCode = CurrencyCode.CAD)
-        deliver(tipMessage(messageId = 1L, senderId = otherId, amount = cad))
+        tornDown {
+            coordinator.onUserLoggedIn(mockk(relaxed = true))
+            val cad = Fiat(fiat = 10.0, currencyCode = CurrencyCode.CAD)
+            deliver(tipMessage(messageId = 1L, senderId = otherId, amount = cad))
 
-        coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, 5.0) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, 5.0) }
+        }
     }
 
     @Test
     fun `missing rate still counts the tip but not its value`() = runTest(testDispatchers.dispatcher) {
-        every { exchange.rateToUsd(CurrencyCode.EUR) } returns null
-        coordinator.onUserLoggedIn(mockk(relaxed = true))
-        val eur = Fiat(fiat = 10.0, currencyCode = CurrencyCode.EUR)
-        deliver(tipMessage(messageId = 1L, senderId = otherId, amount = eur))
+        tornDown {
+            every { exchange.rateToUsd(CurrencyCode.EUR) } returns null
+            coordinator.onUserLoggedIn(mockk(relaxed = true))
+            val eur = Fiat(fiat = 10.0, currencyCode = CurrencyCode.EUR)
+            deliver(tipMessage(messageId = 1L, senderId = otherId, amount = eur))
 
-        coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
-        coVerify(exactly = 0) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, any()) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
+            coVerify(exactly = 0) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, any()) }
+        }
+    }
+
+    /**
+     * Runs [block], then tears the coordinator down however it ends.
+     *
+     * The `finally` is the point. Logging in starts a heartbeat that is a `while (true)` of delays
+     * on the coordinator's own scope rather than the test's `backgroundScope`, and `runTest` drains
+     * the scheduler once the body returns. A failing assertion that skipped the teardown would
+     * leave that loop advancing virtual time with nothing to stop it, hanging the run instead of
+     * reporting the failure.
+     */
+    private suspend fun tornDown(block: suspend () -> Unit) {
+        try {
+            block()
+        } finally {
+            coordinator.teardown()
+        }
     }
 }

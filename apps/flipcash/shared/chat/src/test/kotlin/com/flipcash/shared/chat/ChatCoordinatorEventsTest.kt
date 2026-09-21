@@ -168,31 +168,32 @@ class ChatCoordinatorEventsTest {
 
     @Test
     fun `multiple events are flattened and deduped by messageId`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
+        tornDown {
+            triggerCollection()
 
-        val msg1 = textMessage(id = 1, eventSequence = 1)
-        val msg1Edited = textMessage(id = 1, eventSequence = 2) // same messageId, higher sequence
-        val msg2 = textMessage(id = 2, eventSequence = 3)
+            val msg1 = textMessage(id = 1, eventSequence = 1)
+            val msg1Edited = textMessage(id = 1, eventSequence = 2) // same messageId, higher sequence
+            val msg2 = textMessage(id = 2, eventSequence = 3)
 
-        val update = ChatUpdate(
-            chatId = chatId,
-            events = listOf(
-                chatEvent(1, msg1),
-                chatEvent(2, msg1Edited),
-                chatEvent(3, msg2),
-            ),
-        )
-        chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+            val update = ChatUpdate(
+                chatId = chatId,
+                events = listOf(
+                    chatEvent(1, msg1),
+                    chatEvent(2, msg1Edited),
+                    chatEvent(3, msg2),
+                ),
+            )
+            chatUpdatesChannel.send(update)
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        // Should have 2 unique messages (deduped by messageId, taking first by sorted eventSequence)
-        coVerify {
-            messageDataSource.upsert(chatId, match { messages ->
-                messages.size == 2
-            })
+            // Should have 2 unique messages (deduped by messageId, taking first by sorted eventSequence)
+            coVerify {
+                messageDataSource.upsert(chatId, match { messages ->
+                    messages.size == 2
+                })
+            }
         }
-        coordinator.teardown()
     }
 
     // endregion
@@ -201,82 +202,85 @@ class ChatCoordinatorEventsTest {
 
     @Test
     fun `contiguous events advance sequence cursor`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 0L
+        tornDown {
+            triggerCollection()
+            coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 0L
 
-        val update = ChatUpdate(
-            chatId = chatId,
-            events = listOf(
-                chatEvent(1, textMessage(id = 1, eventSequence = 1)),
-                chatEvent(2, textMessage(id = 2, eventSequence = 2)),
-            ),
-        )
-        chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+            val update = ChatUpdate(
+                chatId = chatId,
+                events = listOf(
+                    chatEvent(1, textMessage(id = 1, eventSequence = 1)),
+                    chatEvent(2, textMessage(id = 2, eventSequence = 2)),
+                ),
+            )
+            chatUpdatesChannel.send(update)
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        coVerify { metadataDataSource.updateLatestEventSequence(chatId, 2L) }
-        coordinator.teardown()
+            coVerify { metadataDataSource.updateLatestEventSequence(chatId, 2L) }
+        }
     }
 
     @Test
     fun `gap in events does not advance cursor past gap`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 0L
+        tornDown {
+            triggerCollection()
+            coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 0L
 
-        // Send seq 1, then seq 3 (gap at 2)
-        val update1 = ChatUpdate(
-            chatId = chatId,
-            events = listOf(chatEvent(1, textMessage(id = 1, eventSequence = 1))),
-        )
-        chatUpdatesChannel.send(update1)
-        advanceTimeBy(500.milliseconds)
-        runCurrent()
+            // Send seq 1, then seq 3 (gap at 2)
+            val update1 = ChatUpdate(
+                chatId = chatId,
+                events = listOf(chatEvent(1, textMessage(id = 1, eventSequence = 1))),
+            )
+            chatUpdatesChannel.send(update1)
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
 
-        val update2 = ChatUpdate(
-            chatId = chatId,
-            events = listOf(chatEvent(3, textMessage(id = 3, eventSequence = 3))),
-        )
-        chatUpdatesChannel.send(update2)
-        advanceTimeBy(500.milliseconds)
-        runCurrent()
+            val update2 = ChatUpdate(
+                chatId = chatId,
+                events = listOf(chatEvent(3, textMessage(id = 3, eventSequence = 3))),
+            )
+            chatUpdatesChannel.send(update2)
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
 
-        // Cursor should advance to 1 (contiguous), not 3
-        coVerify { metadataDataSource.updateLatestEventSequence(chatId, 1L) }
-        coVerify(exactly = 0) { metadataDataSource.updateLatestEventSequence(chatId, 3L) }
-        coordinator.teardown()
+            // Cursor should advance to 1 (contiguous), not 3
+            coVerify { metadataDataSource.updateLatestEventSequence(chatId, 1L) }
+            coVerify(exactly = 0) { metadataDataSource.updateLatestEventSequence(chatId, 3L) }
+        }
     }
 
     @Test
     fun `late event fills gap and advances cursor`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 0L
+        tornDown {
+            triggerCollection()
+            coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 0L
 
-        // Send 1, then 3 (gap), then 2 (fills gap)
-        chatUpdatesChannel.send(ChatUpdate(
-            chatId = chatId,
-            events = listOf(chatEvent(1, textMessage(id = 1, eventSequence = 1))),
-        ))
-        advanceTimeBy(100.milliseconds)
-        runCurrent()
+            // Send 1, then 3 (gap), then 2 (fills gap)
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                events = listOf(chatEvent(1, textMessage(id = 1, eventSequence = 1))),
+            ))
+            advanceTimeBy(100.milliseconds)
+            runCurrent()
 
-        chatUpdatesChannel.send(ChatUpdate(
-            chatId = chatId,
-            events = listOf(chatEvent(3, textMessage(id = 3, eventSequence = 3))),
-        ))
-        advanceTimeBy(100.milliseconds)
-        runCurrent()
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                events = listOf(chatEvent(3, textMessage(id = 3, eventSequence = 3))),
+            ))
+            advanceTimeBy(100.milliseconds)
+            runCurrent()
 
-        chatUpdatesChannel.send(ChatUpdate(
-            chatId = chatId,
-            events = listOf(chatEvent(2, textMessage(id = 2, eventSequence = 2))),
-        ))
-        advanceTimeBy(100.milliseconds)
-        runCurrent()
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                events = listOf(chatEvent(2, textMessage(id = 2, eventSequence = 2))),
+            ))
+            advanceTimeBy(100.milliseconds)
+            runCurrent()
 
-        // After filling the gap, cursor should advance to 3
-        coVerify { metadataDataSource.updateLatestEventSequence(chatId, 3L) }
-        coordinator.teardown()
+            // After filling the gap, cursor should advance to 3
+            coVerify { metadataDataSource.updateLatestEventSequence(chatId, 3L) }
+        }
     }
 
     // endregion
@@ -285,165 +289,169 @@ class ChatCoordinatorEventsTest {
 
     @Test
     fun `reaction update is applied to in-memory overlay`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
+        tornDown {
+            triggerCollection()
 
-        val update = ChatUpdate(
-            chatId = chatId,
-            reactionUpdates = listOf(
-                ReactionUpdate(
-                    messageId = 1L,
-                    emoji = Emoji("\uD83D\uDE00"),
-                    actor = otherId,
-                    action = ReactionUpdate.Action.ADDED,
-                    count = 1,
-                    sequence = 1,
-                    reactedAt = Instant.fromEpochSeconds(1000),
+            val update = ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("\uD83D\uDE00"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.ADDED,
+                        count = 1,
+                        sequence = 1,
+                        reactedAt = Instant.fromEpochSeconds(1000),
+                    ),
                 ),
-            ),
-        )
-        chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+            )
+            chatUpdatesChannel.send(update)
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        val state = coordinator.state.value
-        val overlay = state.reactionOverlays[chatId]
-        assertNotNull(overlay)
-        val summary = overlay[1L]
-        assertNotNull(summary)
-        assertEquals(1, summary.reactions.size)
-        assertEquals("\uD83D\uDE00", summary.reactions[0].emoji.value)
-        assertEquals(1L, summary.reactions[0].count)
-        coordinator.teardown()
+            val state = coordinator.state.value
+            val overlay = state.reactionOverlays[chatId]
+            assertNotNull(overlay)
+            val summary = overlay[1L]
+            assertNotNull(summary)
+            assertEquals(1, summary.reactions.size)
+            assertEquals("\uD83D\uDE00", summary.reactions[0].emoji.value)
+            assertEquals(1L, summary.reactions[0].count)
+        }
     }
 
     @Test
     fun `reaction LWW guard rejects stale updates`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
+        tornDown {
+            triggerCollection()
 
-        // First update: count=3, sequence=5
-        chatUpdatesChannel.send(ChatUpdate(
-            chatId = chatId,
-            reactionUpdates = listOf(
-                ReactionUpdate(
-                    messageId = 1L,
-                    emoji = Emoji("\uD83D\uDC4D"),
-                    actor = otherId,
-                    action = ReactionUpdate.Action.ADDED,
-                    count = 3,
-                    sequence = 5,
-                    reactedAt = Instant.fromEpochSeconds(1000),
+            // First update: count=3, sequence=5
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("\uD83D\uDC4D"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.ADDED,
+                        count = 3,
+                        sequence = 5,
+                        reactedAt = Instant.fromEpochSeconds(1000),
+                    ),
                 ),
-            ),
-        ))
-        advanceTimeBy(500.milliseconds)
-        runCurrent()
+            ))
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
 
-        // Stale update: count=1, sequence=2 (older)
-        chatUpdatesChannel.send(ChatUpdate(
-            chatId = chatId,
-            reactionUpdates = listOf(
-                ReactionUpdate(
-                    messageId = 1L,
-                    emoji = Emoji("\uD83D\uDC4D"),
-                    actor = otherId,
-                    action = ReactionUpdate.Action.REMOVED,
-                    count = 1,
-                    sequence = 2, // older than 5
-                    reactedAt = Instant.fromEpochSeconds(500),
+            // Stale update: count=1, sequence=2 (older)
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("\uD83D\uDC4D"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.REMOVED,
+                        count = 1,
+                        sequence = 2, // older than 5
+                        reactedAt = Instant.fromEpochSeconds(500),
+                    ),
                 ),
-            ),
-        ))
-        advanceTimeBy(500.milliseconds)
-        runCurrent()
+            ))
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
 
-        val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
-        assertNotNull(reactions)
-        assertEquals(1, reactions.size)
-        assertEquals(3L, reactions[0].count) // stayed at 3, stale update rejected
-        assertEquals(5L, reactions[0].sequence)
-        coordinator.teardown()
+            val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
+            assertNotNull(reactions)
+            assertEquals(1, reactions.size)
+            assertEquals(3L, reactions[0].count) // stayed at 3, stale update rejected
+            assertEquals(5L, reactions[0].sequence)
+        }
     }
 
     @Test
     fun `reaction with count zero is pruned`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
+        tornDown {
+            triggerCollection()
 
-        // Add reaction
-        chatUpdatesChannel.send(ChatUpdate(
-            chatId = chatId,
-            reactionUpdates = listOf(
-                ReactionUpdate(
-                    messageId = 1L,
-                    emoji = Emoji("\uD83D\uDE00"),
-                    actor = otherId,
-                    action = ReactionUpdate.Action.ADDED,
-                    count = 1,
-                    sequence = 1,
-                    reactedAt = Instant.fromEpochSeconds(1000),
+            // Add reaction
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("\uD83D\uDE00"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.ADDED,
+                        count = 1,
+                        sequence = 1,
+                        reactedAt = Instant.fromEpochSeconds(1000),
+                    ),
                 ),
-            ),
-        ))
-        advanceTimeBy(500.milliseconds)
-        runCurrent()
+            ))
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
 
-        // Remove reaction (count=0)
-        chatUpdatesChannel.send(ChatUpdate(
-            chatId = chatId,
-            reactionUpdates = listOf(
-                ReactionUpdate(
-                    messageId = 1L,
-                    emoji = Emoji("\uD83D\uDE00"),
-                    actor = otherId,
-                    action = ReactionUpdate.Action.REMOVED,
-                    count = 0,
-                    sequence = 2,
-                    reactedAt = Instant.fromEpochSeconds(2000),
+            // Remove reaction (count=0)
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("\uD83D\uDE00"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.REMOVED,
+                        count = 0,
+                        sequence = 2,
+                        reactedAt = Instant.fromEpochSeconds(2000),
+                    ),
                 ),
-            ),
-        ))
-        advanceTimeBy(500.milliseconds)
-        runCurrent()
+            ))
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
 
-        val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
-        assertNotNull(reactions)
-        assertTrue(reactions.isEmpty())
-        coordinator.teardown()
+            val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
+            assertNotNull(reactions)
+            assertTrue(reactions.isEmpty())
+        }
     }
 
     @Test
     fun `multiple emoji reactions on same message`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
+        tornDown {
+            triggerCollection()
 
-        chatUpdatesChannel.send(ChatUpdate(
-            chatId = chatId,
-            reactionUpdates = listOf(
-                ReactionUpdate(
-                    messageId = 1L,
-                    emoji = Emoji("\uD83D\uDE00"),
-                    actor = otherId,
-                    action = ReactionUpdate.Action.ADDED,
-                    count = 2,
-                    sequence = 1,
-                    reactedAt = Instant.fromEpochSeconds(1000),
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("\uD83D\uDE00"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.ADDED,
+                        count = 2,
+                        sequence = 1,
+                        reactedAt = Instant.fromEpochSeconds(1000),
+                    ),
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("\uD83D\uDC4D"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.ADDED,
+                        count = 5,
+                        sequence = 2,
+                        reactedAt = Instant.fromEpochSeconds(1000),
+                    ),
                 ),
-                ReactionUpdate(
-                    messageId = 1L,
-                    emoji = Emoji("\uD83D\uDC4D"),
-                    actor = otherId,
-                    action = ReactionUpdate.Action.ADDED,
-                    count = 5,
-                    sequence = 2,
-                    reactedAt = Instant.fromEpochSeconds(1000),
-                ),
-            ),
-        ))
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+            ))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
-        assertNotNull(reactions)
-        assertEquals(2, reactions.size)
-        coordinator.teardown()
+            val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
+            assertNotNull(reactions)
+            assertEquals(2, reactions.size)
+        }
     }
 
     // endregion
@@ -452,32 +460,50 @@ class ChatCoordinatorEventsTest {
 
     @Test
     fun `re-login after reset resumes chat sync on a fresh scope`() = runTest(testDispatchers.dispatcher) {
-        // First session wires the delegate collectors onto the coordinator scope.
-        coordinator.onUserLoggedIn(mockk(relaxed = true))
-        runCurrent()
+        tornDown {
+            // First session wires the delegate collectors onto the coordinator scope.
+            coordinator.onUserLoggedIn(mockk(relaxed = true))
+            runCurrent()
 
-        // Logout cancels the coordinator's supervisor job (and thus its scope).
-        coordinator.teardown()
-        runCurrent()
+            // Logout cancels the coordinator's supervisor job (and thus its scope).
+            coordinator.teardown()
+            runCurrent()
 
-        // Re-login in the same process. Before the fix, the scope stayed cancelled,
-        // so every launch in onUserLoggedIn was a silent no-op and incoming chat
-        // updates were dropped until a process restart rebuilt the singleton.
-        coordinator.onUserLoggedIn(mockk(relaxed = true))
-        runCurrent()
+            // Re-login in the same process. Before the fix, the scope stayed cancelled,
+            // so every launch in onUserLoggedIn was a silent no-op and incoming chat
+            // updates were dropped until a process restart rebuilt the singleton.
+            coordinator.onUserLoggedIn(mockk(relaxed = true))
+            runCurrent()
 
-        val msg = textMessage(id = 7, eventSequence = 1)
-        chatUpdatesChannel.send(ChatUpdate(chatId = chatId, events = listOf(chatEvent(1, msg))))
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+            val msg = textMessage(id = 7, eventSequence = 1)
+            chatUpdatesChannel.send(ChatUpdate(chatId = chatId, events = listOf(chatEvent(1, msg))))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        coVerify {
-            messageDataSource.upsert(chatId, match { messages ->
-                messages.size == 1 && messages[0].messageId == 7L
-            })
+            coVerify {
+                messageDataSource.upsert(chatId, match { messages ->
+                    messages.size == 1 && messages[0].messageId == 7L
+                })
+            }
         }
-        coordinator.teardown()
     }
 
     // endregion
+
+    /**
+     * Runs [block], then tears the coordinator down however it ends.
+     *
+     * The `finally` is the point. Logging in starts a heartbeat that is a `while (true)` of delays
+     * on the coordinator's own scope rather than the test's `backgroundScope`, and `runTest` drains
+     * the scheduler once the body returns. A failing assertion that skipped the teardown would
+     * leave that loop advancing virtual time with nothing to stop it, hanging the run instead of
+     * reporting the failure.
+     */
+    private suspend fun tornDown(block: suspend () -> Unit) {
+        try {
+            block()
+        } finally {
+            coordinator.teardown()
+        }
+    }
 }
