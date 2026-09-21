@@ -241,6 +241,19 @@ interface ChatMetadataDao {
     @Query("UPDATE chat_metadata SET is_hidden = :hidden WHERE chat_id_hex = :chatIdHex")
     suspend fun updateHidden(chatIdHex: String, hidden: Boolean)
 
+    /**
+     * Applied unconditionally, unlike [updateRosterIfNewer] and [updateViewerStateIfNewer]:
+     * `MetadataUpdate.TitleChanged` carries no version, so there is nothing to gate on. Delivery
+     * is best-effort; a client that suspects a miss refetches via `GetChat` rather than relying
+     * on this to converge on its own.
+     */
+    @Query("UPDATE chat_metadata SET title = :title WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateTitle(chatIdHex: String, title: String)
+
+    /** Unconditional, for the same reason as [updateTitle]: `MetadataUpdate.PictureChanged` carries no version. */
+    @Query("UPDATE chat_metadata SET picture_json = :pictureJson WHERE chat_id_hex = :chatIdHex")
+    suspend fun updatePicture(chatIdHex: String, pictureJson: MediaItem)
+
     @Query("DELETE FROM chat_metadata")
     suspend fun deleteAll()
 }

@@ -365,6 +365,16 @@ class EventStreamDelegate @Inject constructor(
                     // and a mute and the unmute after it can land either way round.
                     metadataDataSource.updateViewerState(chatId, metaUpdate.viewerState)
                 }
+                is MetadataUpdate.TitleChanged -> {
+                    // Best-effort, applied as received (unversioned, unlike the roster and
+                    // viewer-state overlays above): a client that suspects a miss refetches via
+                    // GetChat rather than waiting on a later update to correct it.
+                    metadataDataSource.updateTitle(chatId, metaUpdate.newTitle)
+                }
+                is MetadataUpdate.PictureChanged -> {
+                    // Same best-effort contract as TitleChanged above.
+                    metadataDataSource.updatePicture(chatId, metaUpdate.newPicture)
+                }
             }
         }
 

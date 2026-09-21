@@ -364,6 +364,10 @@ internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
             )
         ChatModel.MetadataUpdate.KindCase.VIEWER_STATE_CHANGED ->
             MetadataUpdate.ViewerStateChanged(viewerStateChanged.viewerState.toViewerState())
+        ChatModel.MetadataUpdate.KindCase.TITLE_CHANGED ->
+            MetadataUpdate.TitleChanged(titleChanged.newTitle)
+        ChatModel.MetadataUpdate.KindCase.PICTURE_CHANGED ->
+            MetadataUpdate.PictureChanged(pictureChanged.newPicture.toMediaItem())
         else -> MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(0))
     }
 }
@@ -404,6 +408,11 @@ internal fun ChatModel.ViewerState.toViewerState(): ViewerState {
     return ViewerState(
         mute = if (hasSettings() && settings.hasMute()) settings.mute.toMuteState() else null,
         version = version,
+        permissions = if (hasPermissions()) {
+            ViewerState.Permissions(canEdit = permissions.canEdit)
+        } else {
+            ViewerState.Permissions()
+        },
     )
 }
 
@@ -438,6 +447,8 @@ internal fun ChatModel.Member.toChatMember(): ChatMember {
             )
         },
         pointers = pointersList.map { it.toPointer() },
+        joinedAt = if (hasJoinedAt()) Instant.fromEpochSeconds(joinedAt.seconds, joinedAt.nanos) else null,
+        version = version,
     )
 }
 

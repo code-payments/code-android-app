@@ -112,6 +112,24 @@ class ChatMetadataMapperTest {
     }
 
     @Test
+    fun `maps member joinedAt and version when present`() {
+        val withJoin = ChatModel.Member.newBuilder(member())
+            .setJoinedAt(Timestamp.newBuilder().setSeconds(3000))
+            .setVersion(7)
+            .build()
+        val result = mapper.map(metadata { addMembers(withJoin) })
+        assertEquals(3000L, result.members[0].joinedAt?.epochSeconds)
+        assertEquals(7L, result.members[0].version)
+    }
+
+    @Test
+    fun `member joinedAt is null and version is zero when absent`() {
+        val result = mapper.map(metadata { addMembers(member()) })
+        assertNull(result.members[0].joinedAt)
+        assertEquals(0L, result.members[0].version)
+    }
+
+    @Test
     fun `member profile takes the member's user id when the nested profile omits it`() {
         val result = mapper.map(metadata { addMembers(member(userIdByte = 9)) })
         assertEquals(

@@ -33,6 +33,12 @@ class ChatMetadataMapper @Inject constructor(
                     userProfile = userProfileMapper.map(member.userProfile)
                         .let { if (it.userId == null) it.copy(userId = member.userId.toId()) else it },
                     pointers = member.pointersList.map { it.toPointer() },
+                    joinedAt = if (member.hasJoinedAt()) {
+                        Instant.fromEpochSeconds(member.joinedAt.seconds, member.joinedAt.nanos)
+                    } else {
+                        null
+                    },
+                    version = member.version,
                 )
             },
             lastMessage = if (from.hasLastMessage()) from.lastMessage.toChatMessage() else null,

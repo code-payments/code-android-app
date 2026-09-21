@@ -1,7 +1,9 @@
 package com.flipcash.services.internal.repositories
 
 import com.flipcash.services.internal.domain.ChatMetadataMapper
+import com.flipcash.services.internal.network.extensions.toChatMember
 import com.flipcash.services.internal.network.extensions.toPagingToken
+import com.flipcash.services.internal.network.extensions.toRosterSummary
 import com.flipcash.services.internal.network.extensions.toViewerState
 import com.flipcash.services.internal.network.services.ChatService
 import com.flipcash.services.models.LeaveChatError
@@ -10,8 +12,10 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ViewMode
@@ -63,6 +67,29 @@ internal class InternalChatRepository(
         parameters: StartChatParameters,
         idempotencyKey: IdempotencyKey,
     ): Result<ChatMetadata> = service.startChat(owner, parameters, idempotencyKey)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { mapper.map(it) }
+
+    override suspend fun getRoster(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+    ): Result<RosterPage> = service.getRoster(owner, chatId, queryOptions)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { response ->
+            RosterPage(
+                members = response.membersList.map { it.toChatMember() },
+                rosterSummary = response.rosterSummary.toRosterSummary(),
+                pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
+                hasMore = response.hasMore,
+            )
+        }
+
+    override suspend fun editChat(
+        owner: KeyPair,
+        chatId: ChatId,
+        parameters: EditChatParameters,
+    ): Result<ChatMetadata> = service.editChat(owner, chatId, parameters)
         .onFailure { ErrorUtils.handleError(it) }
         .map { mapper.map(it) }
 

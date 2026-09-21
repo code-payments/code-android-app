@@ -4,9 +4,11 @@ import com.codeinc.flipcash.gen.chat.v1.ChatService as RpcChatService
 import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.flipcash.services.internal.network.api.ChatApi
 import com.flipcash.services.internal.network.extensions.toFlaggedCategory
+import com.flipcash.services.models.EditChatError
 import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.GetDmChatFeedError
 import com.flipcash.services.models.GetGroupChatFeedError
+import com.flipcash.services.models.GetRosterError
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.LeaveChatError
 import com.flipcash.services.models.MuteChatError
@@ -14,6 +16,7 @@ import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.StartChatError
 import com.flipcash.services.models.UnmuteChatError
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.StartChatParameters
@@ -95,6 +98,29 @@ internal class ChatService @Inject constructor(
         )
     }
 
+    suspend fun getRoster(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+    ): Result<RpcChatService.GetRosterResponse> {
+        return runCatching {
+            api.getRoster(owner, chatId, queryOptions)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.GetRosterResponse.Result.OK -> Result.success(response)
+                    RpcChatService.GetRosterResponse.Result.DENIED -> Result.failure(GetRosterError.Denied())
+                    RpcChatService.GetRosterResponse.Result.NOT_FOUND -> Result.failure(GetRosterError.NotFound())
+                    RpcChatService.GetRosterResponse.Result.UNRECOGNIZED -> Result.failure(GetRosterError.Unrecognized())
+                    else -> Result.failure(GetRosterError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetRosterError.Other(cause = it) })
+            }
+        )
+    }
+
     suspend fun joinChat(
         owner: KeyPair,
         chatId: ChatId,
@@ -141,6 +167,32 @@ internal class ChatService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { StartChatError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun editChat(
+        owner: KeyPair,
+        chatId: ChatId,
+        parameters: EditChatParameters,
+    ): Result<ChatModel.Metadata> {
+        return runCatching {
+            api.editChat(owner, chatId, parameters)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.EditChatResponse.Result.OK -> Result.success(response.chat)
+                    RpcChatService.EditChatResponse.Result.DENIED -> Result.failure(EditChatError.Denied())
+                    RpcChatService.EditChatResponse.Result.NOT_FOUND -> Result.failure(EditChatError.NotFound())
+                    RpcChatService.EditChatResponse.Result.TITLE_MODERATED ->
+                        Result.failure(EditChatError.TitleModerated(response.flaggedCategory.toFlaggedCategory()))
+                    RpcChatService.EditChatResponse.Result.PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(EditChatError.PictureBlobNotAccepted())
+                    RpcChatService.EditChatResponse.Result.UNRECOGNIZED -> Result.failure(EditChatError.Unrecognized())
+                    else -> Result.failure(EditChatError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { EditChatError.Other(cause = it) })
             }
         )
     }

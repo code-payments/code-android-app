@@ -170,6 +170,30 @@ class ChatMetadataDaoTest {
         assertEquals(false, stored?.isMember)
     }
 
+    /**
+     * `MetadataUpdate.TitleChanged` carries no version, unlike the roster and viewer-state
+     * overlays above, so there is nothing to gate the write on.
+     */
+    @Test
+    fun `updateTitle overwrites the title unconditionally`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", title = "Old title"))
+
+        dao.updateTitle(CHAT_HEX, "New title")
+
+        assertEquals("New title", dao.getById(CHAT_HEX)?.title)
+    }
+
+    /** Same unconditional contract as `updateTitle`, for `MetadataUpdate.PictureChanged`. */
+    @Test
+    fun `updatePicture overwrites the picture unconditionally`() = runTest {
+        dao.upsert(entity(chatType = "GROUP"))
+        val picture = MediaItem(renditions = emptyList())
+
+        dao.updatePicture(CHAT_HEX, picture)
+
+        assertEquals(picture, dao.getById(CHAT_HEX)?.pictureJson)
+    }
+
     @Test
     fun `a newer roster version replaces the roster columns`() = runTest {
         dao.upsert(entity(chatType = "GROUP", memberCount = 12, rosterVersion = 4))
