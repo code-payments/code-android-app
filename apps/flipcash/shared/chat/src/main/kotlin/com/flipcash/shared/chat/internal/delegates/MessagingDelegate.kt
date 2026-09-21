@@ -109,6 +109,11 @@ class MessagingDelegate @Inject constructor(
         stateHolder.update { it.copy(activeChat = chatId) }
     }
 
+    override fun clearActiveChat(chatId: ChatId?) {
+        if (chatId == null) return
+        stateHolder.update { if (it.activeChat == chatId) it.copy(activeChat = null) else it }
+    }
+
     override fun isActiveChat(chatId: ChatId): Boolean {
         return stateHolder.current.activeChat == chatId
     }

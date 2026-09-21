@@ -227,6 +227,17 @@ class RealChatCoordinator @Inject constructor(
             .launchIn(scope)
     }
 
+    /**
+     * Also drops the backgrounded stash, which [onStop] fills and [onStart] restores from. A chat
+     * screen destroyed while the app is away is gone by the time the app returns; without this it
+     * would be restored as the active chat with nothing on screen, silencing its notifications.
+     */
+    override fun clearActiveChat(chatId: ChatId?) {
+        if (chatId == null) return
+        if (backgroundedActiveChat == chatId) backgroundedActiveChat = null
+        messagingDelegate.clearActiveChat(chatId)
+    }
+
     override fun onStart(owner: LifecycleOwner) {
         foregrounded.value = true
         backgroundedActiveChat?.let {
