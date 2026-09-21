@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
@@ -59,29 +60,43 @@ fun RowScope.ChatRowTrailing(
 }
 
 /**
- * Subtitle line of a chat row: the typing indicator, else the message [preview], else the
- * caller's [fallback] (e.g. a phone number or a "joined" line for a contact).
+ * Subtitle line of a chat row: the typing indicator, else the message [preview], else a placeholder
+ * when the chat has no messages at all ([hasMessages]), else the caller's [fallback] (e.g. a phone
+ * number or a "joined" line for a contact).
+ *
+ * The placeholder is keyed on [hasMessages] rather than on the absent [preview] because the two are
+ * not the same thing: a chat whose newest message is media or a system event previews as nothing
+ * but is not empty, and telling the viewer it is would be a lie. Rows that cannot tell the
+ * difference leave [hasMessages] alone and keep their own fallback.
  */
 @Composable
 fun ChatRowSubtitle(
     isTyping: Boolean,
     preview: String?,
+    hasMessages: Boolean = true,
     fallback: @Composable () -> Unit = {},
 ) {
     when {
         isTyping -> SubtitleText(stringResource(R.string.label_isTyping))
         !preview.isNullOrEmpty() -> SubtitleText(preview)
+        !hasMessages -> SubtitleText(
+            text = stringResource(R.string.label_chat_preview_noMessages),
+            // Italic marks it as the row talking about itself rather than quoting a message —
+            // the same distinction the tombstone bubble draws.
+            fontStyle = FontStyle.Italic,
+        )
         else -> fallback()
     }
 }
 
 /** Standard single-line secondary text used for chat/contact row subtitles. */
 @Composable
-fun SubtitleText(text: String) {
+fun SubtitleText(text: String, fontStyle: FontStyle = FontStyle.Normal) {
     Text(
         text = text,
         style = CodeTheme.typography.textSmall,
         color = CodeTheme.colors.textSecondary,
+        fontStyle = fontStyle,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )

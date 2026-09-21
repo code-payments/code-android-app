@@ -79,6 +79,41 @@ class TipChatRowScreenshotTest {
         capture("tip_chat_row_identity.png")
     }
 
+    @Test
+    fun rendersEmptyChatPlaceholder() {
+        val at = Instant.fromEpochMilliseconds(1_700_000_000_000)
+        val rows = listOf(
+            // A group created but never spoken in: italic placeholder where the preview goes.
+            ConversationReference(
+                chatId = ChatId(byteArrayOf(4)),
+                title = "Bad Boys",
+                isGroup = true,
+                hasMessages = false,
+                lastActivity = at,
+            ),
+            // Its neighbour, for the weight the placeholder is read against.
+            ConversationReference(
+                chatId = ChatId(byteArrayOf(5)),
+                title = "Dinner Club",
+                isGroup = true,
+                lastMessagePreview = "Grace: on my way",
+                lastActivity = at,
+            ),
+        )
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            FlipcashPreview(showBackground = true) {
+                Column(modifier = Modifier.width(360.dp).padding(vertical = 8.dp)) {
+                    rows.forEach { TipChatRow(chat = it, onClick = {}) }
+                }
+            }
+        }
+        repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
+
+        capture("tip_chat_row_empty.png")
+    }
+
     private fun capture(name: String) {
         val root: View = composeRule.activity.findViewById(android.R.id.content)
         val width = root.width.takeIf { it > 0 } ?: 1080

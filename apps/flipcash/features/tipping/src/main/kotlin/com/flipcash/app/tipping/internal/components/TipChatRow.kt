@@ -69,7 +69,11 @@ internal fun TipChatRow(
                     ChatRowSubtitle(
                         isTyping = chat.isTyping,
                         preview = chat.lastMessagePreview,
+                        hasMessages = chat.hasMessages,
                         fallback = {
+                            // Blank rather than absent: a chat with a message the row cannot
+                            // preview still occupies both lines, so it doesn't jump in height
+                            // against its neighbours.
                             SubtitleText("")
                         }
                     )

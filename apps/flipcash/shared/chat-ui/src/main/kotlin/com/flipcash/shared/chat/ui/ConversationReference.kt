@@ -31,6 +31,14 @@ data class ConversationReference(
     /** Whether this row is a group. Decides where the name and the avatar's authority come from. */
     val isGroup: Boolean = false,
     val lastMessagePreview: String? = null,
+    /**
+     * Whether the chat has any message at all.
+     *
+     * Separate from [lastMessagePreview] being null, which a chat with messages can also be — media
+     * and system events have no preview line yet. Only this says the chat was created and never
+     * spoken in, which is the one case a row can call empty.
+     */
+    val hasMessages: Boolean = true,
     /** The chat's last-activity timestamp; drives recency sorting and the row's trailing timestamp. */
     val lastActivity: Instant? = null,
     val unreadCount: Int = 0,
