@@ -649,8 +649,22 @@ class SwapViewModel @Inject constructor(
     }
 
     val checkFundingAmount: suspend () -> Boolean = {
+        // transactionLimit() is USD-denominated, because token balances are. The typed amount has
+        // to be converted out of the entry currency before the two can be compared: the
+        // [enteredAmount] getter stamps the raw number with the token balance's currency without
+        // converting it, so 500 naira reads as $500 and blocks any currency trading well below
+        // 1:1. Everything downstream builds the amount against the rate's currency instead.
+        val entryCurrency = amountDelegate.state.value.currency.code ?: CurrencyCode.USD
+        val conversionRate = exchange.rateToUsd(entryCurrency) ?: Rate.ignore
+        val enteredInUsd = Fiat(
+            fiat = amountDelegate.state.value.enteredAmount,
+            currencyCode = entryCurrency,
+        ).convertingTo(conversionRate)
+
         val limit = transactionLimit()
-        val isOverLimit = enteredAmount.valueGreaterThan(limit)
+        // Rate.ignore carries Double.MIN_VALUE, so an unusable rate collapses the conversion to
+        // ~0 and would clear every ceiling. Fail closed, the way checkBalanceLimit does.
+        val isOverLimit = !conversionRate.isUsable() || enteredInUsd.valueGreaterThan(limit)
         val isAddingMoney = stateFlow.value.isAddingMoney
 
         if (isOverLimit) {
