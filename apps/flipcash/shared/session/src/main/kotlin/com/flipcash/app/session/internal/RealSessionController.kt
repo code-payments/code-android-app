@@ -311,6 +311,15 @@ class RealSessionController @Inject constructor(
         // below survive that on their own -- `poll()` is idempotent (see NetworkUpdater) and the
         // feed catch-up joins an in-flight one; the other seven just fetch again.
         if (!userManager.authState.canAccessAuthenticatedApis) return
+
+        // Ahead of the pass, because this one has to run on every resume rather than once per stay
+        // in the foreground. A cash link's Sharesheet is translucent: it pauses the activity
+        // beneath it without ever stopping it, so `onAppInBackground` does not run and the pass is
+        // still spent when the Sharesheet dismisses. Behind it, the resume that carries the user's
+        // answer is exactly the one that gets skipped, and an unnoticed share leaves the gift card
+        // unfunded. Checking costs nothing when no share is pending.
+        shareSheetController.checkForShare()
+
         if (!foregroundRefreshed.compareAndSet(false, true)) return
 
         startPolling()
@@ -321,7 +330,6 @@ class RealSessionController @Inject constructor(
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         refreshBlocklist()
-        shareSheetController.checkForShare()
         if (userManager.authState.isAtLeastRegistered && userManager.state.value.flags?.requiresIapForRegistration == true) {
             billingClient.connect()
         }

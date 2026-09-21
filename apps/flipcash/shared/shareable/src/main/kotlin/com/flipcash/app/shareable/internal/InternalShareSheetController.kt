@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.flipcash.app.core.money.formatted
@@ -20,6 +22,7 @@ import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_CASH_LINK_SHARED
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_SHARE_CASH_LINK
+import com.flipcash.app.shareable.ShareSheetController.Companion.EXTRA_COPIED_TO_CLIPBOARD
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareablePendingData.CashLink
 import com.flipcash.shared.shareable.R
@@ -35,6 +38,7 @@ import java.security.SecureRandom
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.schedule
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -72,7 +76,14 @@ internal class InternalShareSheetController(
 
     private var sharedWithApp: String? = null
 
+    /** Set when the Sharesheet itself reports a copy -- see [ShareBroadcastReceiver]. */
+    private var copiedToClipboard = false
+
     private var pendingShareable: Shareable? = null
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    private var clipboardPoll: Runnable? = null
 
     override var onShared: ((ShareResult) -> Unit)? = null
 
@@ -85,20 +96,20 @@ internal class InternalShareSheetController(
                 is Shareable.CashLink -> {
                     // if it was shared with an app, return successfully
                     if (sharedWithApp != null) {
-                        onShared?.invoke(ShareResult.SharedToApp(sharedWithApp!!))
+                        report(ShareResult.SharedToApp(sharedWithApp!!))
                         return
                     }
 
-                    if (clipboardManager.hasPrimaryClip()) {
-                        val clippedText = clipboardManager.primaryClip?.getItemAt(0)?.text
-                        val pendingEntropy = shareable.pendingData?.entropy.orEmpty()
-                        if (clippedText?.contains(pendingEntropy) == true) {
-                            onShared?.invoke(ShareResult.CopiedToClipboard)
-                            return
-                        }
+                    // The Sharesheet's own Copy button, on the versions that report it at all.
+                    if (copiedToClipboard) {
+                        report(ShareResult.CopiedToClipboard)
+                        return
                     }
 
-                    onShared?.invoke(ShareResult.NotShared)
+                    // One wait at a time: this now runs on every resume, and a second chain of
+                    // retries would outlive the `report` that cancels the first and answer twice.
+                    cancelClipboardPoll()
+                    awaitClipboard(shareable.pendingData?.entropy.orEmpty(), waited = Duration.ZERO)
                 }
 
                 Shareable.DownloadLink -> Unit
@@ -111,12 +122,62 @@ internal class InternalShareSheetController(
         }
     }
 
+    /**
+     * Decides a cash link's fate from the clipboard, once the clipboard can actually be read.
+     *
+     * This runs from ON_RESUME, and the window does not hold focus yet at that point. Android denies
+     * clipboard reads to an app that is not focused and reports no clip at all, which is
+     * indistinguishable from a genuinely empty one -- so reading once and concluding "not shared"
+     * loses every copy the Sharesheet did not report, and an unfunded link is one the recipient
+     * cannot collect. Wait for a readable clipboard instead: a readable one decides immediately,
+     * and only a clipboard that stays empty for the whole grace period is taken at its word.
+     */
+    private fun awaitClipboard(entropy: String, waited: Duration) {
+        if (clipboardManager.hasPrimaryClip()) {
+            val clippedText = clipboardManager.primaryClip?.getItemAt(0)?.text
+            // A blank entropy is contained in every string, and funding a link the user never
+            // shared is worse than missing one.
+            val copied = entropy.isNotBlank() && clippedText?.contains(entropy) == true
+            report(if (copied) ShareResult.CopiedToClipboard else ShareResult.NotShared)
+            return
+        }
+
+        if (waited >= CLIPBOARD_GRACE_PERIOD) {
+            report(ShareResult.NotShared)
+            return
+        }
+
+        val retry = Runnable { awaitClipboard(entropy, waited + CLIPBOARD_POLL_INTERVAL) }
+        clipboardPoll = retry
+        mainHandler.postDelayed(retry, CLIPBOARD_POLL_INTERVAL.inWholeMilliseconds)
+    }
+
+    /**
+     * Reports [result] and drops any clipboard poll still in flight, so a share the Sharesheet
+     * reports while we are waiting on the clipboard is not then reported a second time.
+     */
+    private fun report(result: ShareResult) {
+        cancelClipboardPoll()
+        onShared?.invoke(result)
+    }
+
+    private fun cancelClipboardPoll() {
+        clipboardPoll?.let { mainHandler.removeCallbacks(it) }
+        clipboardPoll = null
+    }
+
     private val shareResultReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val packageName = intent.getStringExtra(Intent.EXTRA_CHOSEN_COMPONENT)
             if (packageName != null) {
                 sharedWithApp = packageName
-                onShared?.invoke(ShareResult.SharedToApp(packageName))
+                report(ShareResult.SharedToApp(packageName))
+                return
+            }
+
+            if (intent.getBooleanExtra(EXTRA_COPIED_TO_CLIPBOARD, false)) {
+                copiedToClipboard = true
+                report(ShareResult.CopiedToClipboard)
             }
         }
     }
@@ -415,12 +476,21 @@ internal class InternalShareSheetController(
     }
 
     override fun reset(setChecked: Boolean) {
+        cancelClipboardPoll()
         pendingShareable = null
         sharedWithApp = null
+        copiedToClipboard = false
         if (isChecking != setChecked) {
             isChecking = setChecked
         }
         onShared = null
         LocalBroadcastManager.getInstance(context).unregisterReceiver(shareResultReceiver)
+    }
+
+    private companion object {
+        val CLIPBOARD_POLL_INTERVAL = 50.milliseconds
+
+        /** How long an unreadable clipboard is given to become readable before we believe it. */
+        val CLIPBOARD_GRACE_PERIOD = 1.seconds
     }
 }
