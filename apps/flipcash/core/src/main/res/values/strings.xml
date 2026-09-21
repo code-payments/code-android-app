@@ -1165,6 +1165,21 @@
     <string name="error_title_failedToUnblock">Something Went Wrong</string>
     <string name="error_description_failedToUnblock">We were unable to unblock the user. Please try again</string>
 
+    <string name="title_report">Report</string>
+    <string name="subtitle_report">Tell us what’s wrong. Your report is private — we won’t tell them who reported</string>
+    <string name="action_reportReason_spam">Spam</string>
+    <string name="action_reportReason_scamOrFraud">Scam or Fraud</string>
+    <string name="action_reportReason_harassment">Harassment or Bullying</string>
+    <string name="action_reportReason_sexualContent">Sexual Content</string>
+    <string name="action_reportReason_violence">Violence or Threats</string>
+    <string name="action_reportReason_other">Something Else</string>
+    <string name="hint_reportDetails">Tell us more</string>
+    <string name="action_submitReport">Submit Report</string>
+    <string name="prompt_title_reportSubmitted">Report Sent</string>
+    <string name="prompt_description_reportSubmitted">Thanks. We’ll take a look</string>
+    <string name="error_title_failedToReport">Something Went Wrong</string>
+    <string name="error_description_failedToReport">We were unable to send your report. Please try again</string>
+
     <string name="title_tipOnboarding">Send Your First Tip</string>
 
     <!-- You tab (tip card) -->

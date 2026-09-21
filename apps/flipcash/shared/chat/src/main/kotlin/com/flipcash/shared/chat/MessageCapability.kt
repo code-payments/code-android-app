@@ -26,6 +26,7 @@ enum class MessageCapability {
     Reply,
     Edit,
     Delete,
+    Report,
 }
 
 /**
@@ -97,9 +98,15 @@ data class MessagePolicy(
  * | Own text, confirmed, past the edit window | Copy, Reply, Delete |
  * | Own text, confirmed, past both windows | Copy, Reply |
  * | Own text, unconfirmed (`eventSequence == 0`) | none |
- * | Another participant's text | Copy, Reply |
- * | Any cash or tip message | Reply |
+ * | Another participant's text | Copy, Reply, Report |
+ * | Own cash or tip message | Reply |
+ * | Another participant's cash or tip message | Reply, Report |
  * | A tombstone | none |
+ * | A system notice | none |
+ *
+ * Report follows one rule: anything a participant sent can be reported, and anything the server
+ * wrote, or that no longer exists, cannot. Your own messages are left out because reporting one is
+ * not a thing anyone does, and a row that is always present is a row people stop reading.
  */
 fun resolveCapabilities(
     message: ChatMessage,
@@ -120,7 +127,12 @@ fun resolveCapabilities(
     // Cash is never editable: `EditMessageRequest.content` accepts Text, Reply, and Media, never
     // Cash. It is deliberately not deletable either, so a payment cannot be hidden from the
     // transcript that records it.
-    if (contents.any { it is MessageContent.Cash }) return setOf(MessageCapability.Reply)
+    if (contents.any { it is MessageContent.Cash }) {
+        return buildSet {
+            add(MessageCapability.Reply)
+            if (!message.isFromSelf) add(MessageCapability.Report)
+        }
+    }
 
     // Server-authored notices, not a participant's message.
     if (contents.all { it is MessageContent.System }) return emptySet()
@@ -135,6 +147,8 @@ fun resolveCapabilities(
         if (message.isFromSelf) {
             if (hasText) add(MessageCapability.Edit)
             add(MessageCapability.Delete)
+        } else {
+            add(MessageCapability.Report)
         }
     }.withinWindows(message.timestamp, policy, now)
 }
@@ -156,7 +170,10 @@ fun Set<MessageCapability>.withinWindows(
     when (capability) {
         MessageCapability.Edit -> policy.editWindow.stillOpen(sentAt, now)
         MessageCapability.Delete -> policy.deleteWindow.stillOpen(sentAt, now)
-        MessageCapability.Copy, MessageCapability.Reply -> true
+        // Reporting has no window on purpose: the edit and delete windows exist because the
+        // server enforces them, and nothing in the contract limits how old a reportable message
+        // may be.
+        MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report -> true
     }
 }
 

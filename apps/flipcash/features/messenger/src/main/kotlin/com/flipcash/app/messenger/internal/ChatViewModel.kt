@@ -20,42 +20,30 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.tokens.brandedName
 import com.flipcash.app.core.tokens.isReserve
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
-import com.flipcash.shared.chat.MessageCapability
-import com.flipcash.shared.chat.MessagePolicy
-import com.flipcash.shared.chat.withinWindows
-import com.flipcash.shared.chat.applying
-import com.flipcash.shared.chat.resolveCapabilities
-import com.flipcash.shared.chat.models.ChatListItem
-import com.flipcash.shared.chat.models.SenderIdentity
-import com.flipcash.shared.chat.models.ChatQuote
-import com.flipcash.shared.chat.models.ChatQuoteSnippet
-import com.flipcash.shared.chat.models.LinkCard
-import com.flipcash.shared.chat.models.LinkCardResolution
-import com.flipcash.shared.chat.models.ReceiptStatus
-import com.flipcash.shared.chat.models.SeparatorConfig
-import com.flipcash.shared.chat.ui.detectUrls
-import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.app.funding.PurchaseMethodController
-import com.flipcash.app.session.CashLinkClaims
-import com.flipcash.app.session.SettledClaim
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
+import com.flipcash.app.session.CashLinkClaims
+import com.flipcash.app.session.SettledClaim
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
+import com.flipcash.reporting.ReportDescription
+import com.flipcash.reporting.ReportReason
+import com.flipcash.services.controllers.ReportingController
 import com.flipcash.services.models.JoinChatError
+import com.flipcash.services.models.ReportTarget
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
-import com.flipcash.shared.chat.GroupAccess
-import com.flipcash.shared.chat.groupAccess
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
@@ -73,36 +61,58 @@ import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftStore
-import com.flipcash.shared.chat.chatDraftOf
 import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.MessageCapability
+import com.flipcash.shared.chat.MessagePolicy
+import com.flipcash.shared.chat.applying
+import com.flipcash.shared.chat.chatDraftOf
+import com.flipcash.shared.chat.groupAccess
+import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.models.ChatQuoteSnippet
+import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.chat.models.LinkCardResolution
+import com.flipcash.shared.chat.models.ReceiptStatus
+import com.flipcash.shared.chat.models.SenderIdentity
+import com.flipcash.shared.chat.models.SeparatorConfig
+import com.flipcash.shared.chat.resolveCapabilities
+import com.flipcash.shared.chat.ui.detectUrls
+import com.flipcash.shared.chat.ui.linkableText
+import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
-import com.getcode.solana.keys.Mint
-import com.getcode.utils.hexEncodedString
-import com.getcode.opencode.model.core.ID
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.hexEncodedString
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlin.math.min
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -113,6 +123,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -120,15 +131,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
-import kotlin.math.min
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 
 data class TypingConstraints(
     val enabled: Boolean = false,
@@ -160,6 +165,7 @@ internal class ChatViewModel @Inject constructor(
     private val linkCardResolver: LinkCardResolver,
     private val cashLinkClaims: CashLinkClaims,
     private val chatDraftStore: ChatDraftStore,
+    private val reporting: ReportingController,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -394,6 +400,26 @@ internal class ChatViewModel @Inject constructor(
 
         /** The leave went through, so whatever is showing the group's profile should close. */
         data object LeftChat : Event
+
+        /**
+         * A surface asked for the report sheet. Raised by the selection bar, which dispatches
+         * events and holds no navigator; the conversation screen collects it and navigates, the
+         * same way it handles [OpenScreen].
+         */
+        data class OpenReportSheet(val subject: ReportSubject) : Event
+
+        /**
+         * A report the user has finished composing in [ChatStep.Report].
+         *
+         * Carries the subject back rather than reading it off state, because the sheet may outlive
+         * the selection that opened it: a message report taken from the selection bar is still
+         * about that message after the bar has cleared.
+         */
+        data class ReportSubmitted(
+            val subject: ReportSubject,
+            val reason: ReportReason,
+            val details: String?,
+        ) : Event
 
         /** This chat's viewer state moved, from the stream or from the viewer's own request. */
         data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
@@ -1495,6 +1521,49 @@ internal class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        eventFlow.filterIsInstance<Event.ReportSubmitted>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId
+                val target = when (val subject = event.subject) {
+                    // The user, not the DM. A tip DM's id is derived on the client, so naming the
+                    // chat here would name something the server has never been told about; and a
+                    // report made from a group member's profile is about the person either way.
+                    is ReportSubject.User -> (subject.participant as? ChatParticipant.TipUser)
+                        ?.let { ReportTarget.User(it.userId) }
+                    ReportSubject.Chat -> chatId?.let { ReportTarget.Chat(it) }
+                    is ReportSubject.Message -> chatId?.let {
+                        ReportTarget.Message(chatId = it, messageId = subject.messageId)
+                    }
+                } ?: return@onEach BottomBarManager.showError(
+                    title = resources.getString(R.string.error_title_failedToReport),
+                    message = resources.getString(R.string.error_description_failedToReport),
+                )
+
+                reporting.report(target, ReportDescription.build(event.reason, event.details))
+                    .onSuccess {
+                        // The contract makes a duplicate report a no-op that answers OK, so this
+                        // says the same thing whether or not the report was the first one. That is
+                        // the intended reading: telling someone they had already reported this
+                        // would be answering a question they did not ask.
+                        BottomBarManager.showMessage(
+                            title = resources.getString(R.string.prompt_title_reportSubmitted),
+                            message = resources.getString(
+                                R.string.prompt_description_reportSubmitted
+                            ),
+                        )
+                    }
+                    .onFailure {
+                        trace("failed to report - ${it.localizedMessage}")
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToReport),
+                            message = resources.getString(
+                                R.string.error_description_failedToReport
+                            ),
+                        )
+                    }
+            }
+            .launchIn(viewModelScope)
+
         eventFlow.filterIsInstance<Event.LeaveChat>()
             .mapNotNull { stateFlow.value.subject as? ChatSubject.Group }
             .onEach { group ->
@@ -2075,6 +2144,8 @@ internal class ChatViewModel @Inject constructor(
                 Event.LeaveConfirmed,
                 Event.LeftChat,
                 is Event.MuteChat,
+                is Event.OpenReportSheet,
+                is Event.ReportSubmitted,
                 Event.UnmuteChat -> { state -> state }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the

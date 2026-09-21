@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.messenger.internal.ChatMuteStatusChip
@@ -72,12 +73,14 @@ internal fun ChatProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            // Mute first, block last: the one that is reversible and routine sits above the one
-            // that ends the conversation, the same order the group's profile puts leaving in.
+            // Mute first, then report, block last: the reversible and routine sits above the one
+            // that asks someone else to look, which sits above the one that ends the conversation.
+            // Same shape as the group's profile, where leaving holds the last place.
             items = buildList<MenuItem<ChatProfileAction>> {
                 if (chatState.chatType == ChatType.TIP_DM) {
                     add(MuteDm)
                 }
+                add(ReportUser)
                 add(BlockUser)
             },
             header = {
@@ -105,6 +108,11 @@ internal fun ChatProfileScreen(
                     // Both muting and unmuting go through the picker, which is why this row
                     // navigates either way rather than acting on one of them here.
                     ChatProfileAction.Mute -> flowNavigator.navigateTo(ChatStep.MuteChat)
+                    ChatProfileAction.Report -> state.participant?.let { participant ->
+                        flowNavigator.navigateTo(
+                            ChatStep.Report(ReportSubject.User(participant))
+                        )
+                    }
                 }
             },
             endSlot = { item ->

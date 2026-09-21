@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -43,8 +44,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.topFade
 import com.flipcash.features.messenger.R
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
@@ -57,7 +60,6 @@ import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
-import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.topFade
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.KeyboardController
@@ -232,7 +234,9 @@ private fun MessageSelectionBar(
     // Order is priority: the first actions keep their icons when the bar runs out of room. Reply
     // leads because it is the most common action and the only one a cash bubble offers — burying it
     // is the one choice that would leave that bubble's bar empty. Delete follows: putting the one
-    // action with a confirmation behind a menu makes it a three-tap job.
+    // action with a confirmation behind a menu makes it a three-tap job. Report goes last: it is
+    // the rarest of the five and the only one that is never about your own message, so it is the
+    // right one to collapse into the overflow on a narrow screen.
     val actions = buildList {
         if (MessageCapability.Reply in capabilities) {
             add(
@@ -277,6 +281,22 @@ private fun MessageSelectionBar(
                     testTag = "action_edit_message",
                     onClick = {
                         dispatch(ChatViewModel.Event.EditMessage(selection.messageId, body))
+                    },
+                )
+            )
+        }
+        if (MessageCapability.Report in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.title_report),
+                    icon = Icons.Outlined.Flag,
+                    testTag = "action_report_message",
+                    onClick = {
+                        dispatch(
+                            ChatViewModel.Event.OpenReportSheet(
+                                ReportSubject.Message(selection.messageId)
+                            )
+                        )
                     },
                 )
             )
