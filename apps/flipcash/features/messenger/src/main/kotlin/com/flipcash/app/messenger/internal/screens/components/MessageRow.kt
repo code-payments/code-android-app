@@ -233,112 +233,115 @@ internal fun MessageRow(
                     // message has no item above it — a one-message transcript crashed here.
                     older = if (index + 1 < messages.itemCount) messages.peek(index + 1) else null,
                 )
-                val runEnd = endsSenderRun(
-                    current = item,
-                    // index - 1 is the row drawn below — the newer message, under `reverseLayout`.
-                    newer = if (index > 0) messages.peek(index - 1) else null,
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-                ) {
-                    // The gutter is reserved on every incoming row of a group, not only the
-                    // labelled ones, so bubbles line up on the same left edge instead of stepping
-                    // in and out as runs start. Keyed off the transcript rather than off this row's
-                    // `sender`, which is also null while a member's profile is still resolving — a
-                    // row that reserved no gutter would sit out at the inset and then jump inward
-                    // when the name arrived.
-                    if (showsSenderGutter && !item.isFromSelf) {
-                        Box(modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x6)) {
-                            if (sender != null && runEnd) {
-                                ContactAvatar(
-                                    image = sender.picture,
-                                    displayName = sender.displayName,
-                                    access = BlobAccessContext.profile(sender.userId),
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(CircleShape)
-                                        // The picture is the only handle the transcript gives on
-                                        // the person behind a bubble. Inert while the backdrop is
-                                        // up, like every other target on the row.
-                                        .addIf(!selecting) {
-                                            Modifier.clickable {
-                                                onAction(ChatAction.ViewMemberProfile(sender.userId))
-                                            }
-                                        },
-                                )
-                            }
-                        }
+                // The name is hoisted out of the bubble column so the gutter beside it can
+                // align to the top of the run's first bubble rather than to the top of the
+                // name line. It carries the gutter's width as a leading inset to stay on the
+                // edge it sat on when the column held it.
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (sender != null && runStart) {
+                        Text(
+                            modifier = Modifier.padding(
+                                start = senderNameInset(showsSenderGutter && !item.isFromSelf),
+                                bottom = CodeTheme.dimens.grid.x1,
+                            ),
+                            text = sender.displayName,
+                            style = CodeTheme.typography.textSmall,
+                            color = CodeTheme.colors.textSecondary,
+                        )
                     }
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        // Both children start at the row's top, so the face lands level with the
+                        // first bubble's top edge however tall the bubble turns out to be.
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                     ) {
-                        if (sender != null && runStart) {
-                            Text(
-                                modifier = Modifier.padding(
-                                    start = CodeTheme.dimens.grid.x1,
-                                    bottom = CodeTheme.dimens.grid.x1,
-                                ),
-                                text = sender.displayName,
-                                style = CodeTheme.typography.textSmall,
-                                color = CodeTheme.colors.textSecondary,
-                            )
+                        // The gutter is reserved on every incoming row of a group, not only the
+                        // labelled ones, so bubbles line up on the same left edge instead of stepping
+                        // in and out as runs start. Keyed off the transcript rather than off this row's
+                        // `sender`, which is also null while a member's profile is still resolving — a
+                        // row that reserved no gutter would sit out at the inset and then jump inward
+                        // when the name arrived.
+                        if (showsSenderGutter && !item.isFromSelf) {
+                            Box(modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x6)) {
+                                if (sender != null && runStart) {
+                                    ContactAvatar(
+                                        image = sender.picture,
+                                        displayName = sender.displayName,
+                                        access = BlobAccessContext.profile(sender.userId),
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                            // The picture is the only handle the transcript gives on
+                                            // the person behind a bubble. Inert while the backdrop is
+                                            // up, like every other target on the row.
+                                            .addIf(!selecting) {
+                                                Modifier.clickable {
+                                                    onAction(ChatAction.ViewMemberProfile(sender.userId))
+                                                }
+                                            },
+                                    )
+                                }
+                            }
                         }
-                        Box(insertionModifier) {
-                            ContentBubble(
-                                item = item,
-                                // The bubble's own targets go with the row's: a cash
-                                // bubble behind the backdrop would otherwise open token
-                                // info from under the bar.
-                                interactive = !selecting,
-                                // A bubble with a tap target of its own consumes the press,
-                                // so the row's long-press never reaches it. Handing it the
-                                // same gesture is what makes a cash bubble selectable.
-                                onLongClick = select,
-                                position = bubblePositionOf(
-                                    index,
-                                    item,
-                                    messages,
-                                    separatorConfig
-                                ),
-                                attention = attention,
-                            )
-                        }
-                        val showReceipt =
-                            shouldShowReceiptLabel(index, item, messages, otherReadPointer)
-                        // An emoji-only message has no bubble, so its "Edited" marker has nowhere
-                        // to sit inside the message and comes out here instead — on the same line
-                        // as the receipt, and ahead of it, so the two read as one trailing note.
-                        // It stands alone on rows that carry no receipt, which is every incoming
-                        // one.
-                        Row(verticalAlignment = Alignment.Top) {
-                            if (item.isEdited && item.rendersBareEmoji()) {
-                                Text(
-                                    modifier = Modifier.padding(
-                                        top = CodeTheme.dimens.grid.x1,
-                                        end = CodeTheme.dimens.grid.x2,
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
+                        ) {
+                            Box(insertionModifier) {
+                                ContentBubble(
+                                    item = item,
+                                    // The bubble's own targets go with the row's: a cash
+                                    // bubble behind the backdrop would otherwise open token
+                                    // info from under the bar.
+                                    interactive = !selecting,
+                                    // A bubble with a tap target of its own consumes the press,
+                                    // so the row's long-press never reaches it. Handing it the
+                                    // same gesture is what makes a cash bubble selectable.
+                                    onLongClick = select,
+                                    position = bubblePositionOf(
+                                        index,
+                                        item,
+                                        messages,
+                                        separatorConfig
                                     ),
-                                    text = stringResource(R.string.label_edited),
-                                    style = CodeTheme.typography.caption,
-                                    color = CodeTheme.colors.textSecondary,
+                                    attention = attention,
                                 )
                             }
-                            AnimatedVisibility(
-                                visible = showReceipt && effectiveStatus != null,
-                                enter = EnterTransition.None,
-                                exit = ChatAnimations.receiptExit,
-                            ) {
-                                if (effectiveStatus != null) {
-                                    ReceiptLabel(
-                                        status = effectiveStatus,
-                                        readPointer = otherReadPointer,
-                                        animateEntrance = wasSending,
-                                        onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
-                                            { onAction(ChatAction.RetryMessage(item)) }
-                                        } else null,
+                            val showReceipt =
+                                shouldShowReceiptLabel(index, item, messages, otherReadPointer)
+                            // An emoji-only message has no bubble, so its "Edited" marker has nowhere
+                            // to sit inside the message and comes out here instead — on the same line
+                            // as the receipt, and ahead of it, so the two read as one trailing note.
+                            // It stands alone on rows that carry no receipt, which is every incoming
+                            // one.
+                            Row(verticalAlignment = Alignment.Top) {
+                                if (item.isEdited && item.rendersBareEmoji()) {
+                                    Text(
+                                        modifier = Modifier.padding(
+                                            top = CodeTheme.dimens.grid.x1,
+                                            end = CodeTheme.dimens.grid.x2,
+                                        ),
+                                        text = stringResource(R.string.label_edited),
+                                        style = CodeTheme.typography.caption,
+                                        color = CodeTheme.colors.textSecondary,
                                     )
+                                }
+                                AnimatedVisibility(
+                                    visible = showReceipt && effectiveStatus != null,
+                                    enter = EnterTransition.None,
+                                    exit = ChatAnimations.receiptExit,
+                                ) {
+                                    if (effectiveStatus != null) {
+                                        ReceiptLabel(
+                                            status = effectiveStatus,
+                                            readPointer = otherReadPointer,
+                                            animateEntrance = wasSending,
+                                            onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
+                                                { onAction(ChatAction.RetryMessage(item)) }
+                                            } else null,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -403,6 +406,22 @@ private fun SwipeToReplyAffordance(
     }
 }
 
+/**
+ * Where the sender's name starts, measured from the row's leading edge.
+ *
+ * The name used to sit in the bubble column and inherit its indent; hoisting it above the row to
+ * free the avatar's alignment means restating that indent here. On a row that reserves the gutter
+ * it is the gutter, the row's own spacing, and the `grid.x1` the name always carried; on one that
+ * does not, just the `grid.x1`.
+ */
+@Composable
+private fun senderNameInset(showsGutter: Boolean): Dp =
+    if (showsGutter) {
+        CodeTheme.dimens.staticGrid.x6 + CodeTheme.dimens.grid.x1 + CodeTheme.dimens.grid.x1
+    } else {
+        CodeTheme.dimens.grid.x1
+    }
+
 private val AFFORDANCE_SIZE = 32.dp
 private val AFFORDANCE_INSET = 20.dp
 private val AFFORDANCE_ICON_INSET = 8.dp
@@ -460,11 +479,11 @@ internal fun rowGapBelow(item: ChatListItem, below: ChatListItem?, config: Separ
 }
 
 /**
- * Whether [current] is the bubble that wears its sender's name — the top of a run.
+ * Whether [current] is the bubble that wears its sender's name and picture — the top of a run.
  *
  * `older` is the item drawn *above* [current] — under `reverseLayout` that is `peek(index + 1)`,
- * the mirror of [bottomSpacingFor]'s `index - 1`. A run is named at its top, so the bubble that
- * starts one is the one whose upper neighbour came from someone else.
+ * the mirror of [bottomSpacingFor]'s `index - 1`. A run is attributed at its top, so the bubble
+ * that starts one is the one whose upper neighbour came from someone else.
  *
  * Keyed off `authorId` rather than off the resolved `sender`, so the runs hold their shape from the
  * first frame: a group's profile map arrives after the first page, and until it does every member's
@@ -477,19 +496,4 @@ internal fun startsSenderRun(current: ChatListItem.ContentBubble, older: ChatLis
     val author = current.authorId ?: return false
     val olderBubble = older as? ChatListItem.ContentBubble ?: return true
     return olderBubble.authorId != author
-}
-
-/**
- * Whether [current] is the bubble that wears its sender's picture — the bottom of a run.
- *
- * The picture sits on the run's last message, next to the newest thing that person said, while the
- * name stays on its first: the two mark the run's ends rather than stacking on one bubble.
- *
- * `newer` is the item drawn *below* [current] — `peek(index - 1)` under `reverseLayout`, the mirror
- * of [startsSenderRun]'s `older`.
- */
-internal fun endsSenderRun(current: ChatListItem.ContentBubble, newer: ChatListItem?): Boolean {
-    val author = current.authorId ?: return false
-    val newerBubble = newer as? ChatListItem.ContentBubble ?: return true
-    return newerBubble.authorId != author
 }
