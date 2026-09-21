@@ -7,7 +7,7 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asFiatPaymentAmount
 import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.asUsername
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.internal.network.extensions.linkingToken
 import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.models.SocialAccountLinkRequest
@@ -48,8 +48,7 @@ internal class ProfileApi @Inject constructor(
                     is ProfileIdentifier.Username -> setUsername(identifier.username.asUsername())
                 }
             }
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -67,8 +66,7 @@ internal class ProfileApi @Inject constructor(
     ): ProfileService.SetDisplayNameResponse {
         val request = ProfileService.SetDisplayNameRequest.newBuilder()
             .setDisplayName(displayName)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -86,8 +84,7 @@ internal class ProfileApi @Inject constructor(
     ): ProfileService.SetUsernameResponse {
         val request = ProfileService.SetUsernameRequest.newBuilder()
             .setUsername(username.asUsername())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -110,8 +107,7 @@ internal class ProfileApi @Inject constructor(
                 com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
                     .setValue(blobId.bytes.toByteString())
             )
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -129,8 +125,7 @@ internal class ProfileApi @Inject constructor(
     ): ProfileService.LinkSocialAccountResponse {
         val apiRequest = ProfileService.LinkSocialAccountRequest.newBuilder()
             .setLinkingToken(request.linkingToken())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         return withContext(Dispatchers.IO) {
             api.linkSocialAccount(apiRequest)
@@ -150,8 +145,7 @@ internal class ProfileApi @Inject constructor(
                     .setHex(hexColor)
                     .build()
             )
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -170,8 +164,7 @@ internal class ProfileApi @Inject constructor(
     ): ProfileService.SetMinDmChatInitFeeResponse {
         val request = ProfileService.SetMinDmChatInitFeeRequest.newBuilder()
             .setMinDmChatInitFee(fee.asFiatPaymentAmount())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -193,7 +186,7 @@ internal class ProfileApi @Inject constructor(
             is SocialAccountUnlinkRequest.X -> builder.setXUserId(request.userId)
         }
 
-        val apiRequest = builder.apply { setAuth(authenticate(owner)) }.build()
+        val apiRequest = builder.buildAuthenticated(owner) { setAuth(it) }
 
         return withContext(Dispatchers.IO) {
             api.unlinkSocialAccount(apiRequest)

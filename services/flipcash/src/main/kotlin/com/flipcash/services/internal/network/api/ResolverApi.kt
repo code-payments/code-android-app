@@ -6,7 +6,7 @@ import com.codeinc.flipcash.gen.resolver.v1.validate
 import com.flipcash.services.models.ResolveIdentifier
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asUserId
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.internal.network.extensions.asUsername
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -34,8 +34,7 @@ internal class ResolverApi @Inject constructor(
     ): RpcResolverService.ResolveResponse {
         val request = RpcResolverService.ResolveRequest.newBuilder()
             .setIdentifier(identifier.asProtoIdentifier())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

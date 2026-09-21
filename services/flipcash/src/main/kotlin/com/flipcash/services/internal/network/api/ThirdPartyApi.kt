@@ -5,7 +5,7 @@ import com.codeinc.flipcash.gen.thirdparty.v1.ThirdPartyService
 import com.codeinc.flipcash.gen.thirdparty.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asApiKey
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.jwt.JwtSecuredEndpoint
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -36,8 +36,7 @@ internal class ThirdPartyApi @Inject constructor(
             .setHost(endpoint.host)
             .setPath(endpoint.path)
             .setMethod(endpoint.method)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

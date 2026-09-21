@@ -6,7 +6,7 @@ import com.codeinc.flipcash.gen.activity.v1.Model
 import com.codeinc.flipcash.gen.activity.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asQueryOptions
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.internal.network.extensions.toNotificationIds
 import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.QueryOptions
@@ -44,8 +44,7 @@ internal class ActivityFeedApi @Inject constructor(
         val request = ActivityFeedService.GetLatestNotificationsRequest.newBuilder()
             .setType(Model.ActivityFeedType.forNumber(type.ordinal))
             .setMaxItems(maxItems)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -69,8 +68,7 @@ internal class ActivityFeedApi @Inject constructor(
         val request = ActivityFeedService.GetPagedNotificationsRequest.newBuilder()
             .setType(Model.ActivityFeedType.forNumber(type.ordinal))
             .setQueryOptions(queryOptions.asQueryOptions())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -92,9 +90,7 @@ internal class ActivityFeedApi @Inject constructor(
         val request = ActivityFeedService.GetBatchNotificationsRequest.newBuilder()
             .apply {
                 addAllIds(ids.toNotificationIds())
-            }.apply {
-                setAuth(authenticate(owner))
-            }.build()
+            }.buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

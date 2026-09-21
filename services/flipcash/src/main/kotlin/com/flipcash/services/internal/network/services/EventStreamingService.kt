@@ -3,7 +3,7 @@ package com.flipcash.services.internal.network.services
 import com.codeinc.flipcash.gen.events.v1.EventStreamingService as RpcEventStreamingService
 import com.codeinc.flipcash.gen.events.v1.Model as EventModel
 import com.flipcash.services.internal.network.api.EventStreamingApi
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.internal.network.extensions.toBlobUpdate
 import com.flipcash.services.internal.network.extensions.toChatUpdate
 import com.flipcash.services.models.StreamEventsError
@@ -66,8 +66,7 @@ internal class EventStreamingService @Inject constructor(
             initialRequest = {
                 val params = RpcEventStreamingService.StreamEventsRequest.Params.newBuilder()
                     .setTs(currentTimestamp())
-                    .apply { setAuth(authenticate(owner)) }
-                    .build()
+                    .buildAuthenticated(owner) { setAuth(it) }
 
                 RpcEventStreamingService.StreamEventsRequest.newBuilder()
                     .setParams(params)

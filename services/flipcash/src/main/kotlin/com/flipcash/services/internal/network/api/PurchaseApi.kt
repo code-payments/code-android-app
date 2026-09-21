@@ -7,7 +7,7 @@ import com.codeinc.flipcash.gen.iap.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import dev.bmcreations.protovalidate.orThrow
@@ -39,8 +39,7 @@ internal class PurchaseApi @Inject constructor(
                     .setCurrency(metadata.currency.name.lowercase())
                     .setAmount(metadata.amount)
             )
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

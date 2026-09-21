@@ -11,7 +11,7 @@ import com.flipcash.services.internal.network.extensions.asProtoMuteState
 import com.flipcash.services.internal.network.extensions.asProtoRules
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.asViewMode
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
@@ -46,8 +46,7 @@ internal class ChatApi @Inject constructor(
         val request = RpcChatService.GetChatRequest.newBuilder()
             .setChatId(chatId.asChatId())
             .setViewMode(viewMode.asViewMode())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -64,8 +63,7 @@ internal class ChatApi @Inject constructor(
         val request = RpcChatService.GetDmChatFeedRequest.newBuilder()
             .setQueryOptions(queryOptions.asQueryOptions())
             .setDmChatType(chatType.asProtoChatType())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -80,8 +78,7 @@ internal class ChatApi @Inject constructor(
     ): RpcChatService.GetGroupChatFeedResponse {
         val request = RpcChatService.GetGroupChatFeedRequest.newBuilder()
             .setQueryOptions(queryOptions.asQueryOptions())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -119,8 +116,7 @@ internal class ChatApi @Inject constructor(
 
         val request = requestBuilder
             .setIdempotencyKey(idempotencyKey.asProtoIdempotencyKey())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -135,8 +131,7 @@ internal class ChatApi @Inject constructor(
     ): RpcChatService.JoinChatResponse {
         val request = RpcChatService.JoinChatRequest.newBuilder()
             .setChatId(chatId.asChatId())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -151,8 +146,7 @@ internal class ChatApi @Inject constructor(
     ): RpcChatService.LeaveChatResponse {
         val request = RpcChatService.LeaveChatRequest.newBuilder()
             .setChatId(chatId.asChatId())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -169,8 +163,7 @@ internal class ChatApi @Inject constructor(
         val request = RpcChatService.MuteChatRequest.newBuilder()
             .setChatId(chatId.asChatId())
             .setMute(mute.asProtoMuteState())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -185,8 +178,7 @@ internal class ChatApi @Inject constructor(
     ): RpcChatService.UnmuteChatResponse {
         val request = RpcChatService.UnmuteChatRequest.newBuilder()
             .setChatId(chatId.asChatId())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

@@ -9,6 +9,7 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asChatId
 import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
 import com.getcode.ed25519.Ed25519
@@ -38,8 +39,7 @@ internal class BlobStorageApi @Inject constructor(
 
     suspend fun getUploadPolicy(owner: Ed25519.KeyPair): RpcBlobStorageService.GetUploadPolicyResponse {
         val request = RpcBlobStorageService.GetUploadPolicyRequest.newBuilder()
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -56,8 +56,7 @@ internal class BlobStorageApi @Inject constructor(
         val request = RpcBlobStorageService.InitiateExternalUploadRequest.newBuilder()
             .setMimeType(mimeType)
             .setSizeBytes(sizeBytes)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -72,8 +71,7 @@ internal class BlobStorageApi @Inject constructor(
     ): RpcBlobStorageService.CompleteExternalUploadResponse {
         val request = RpcBlobStorageService.CompleteExternalUploadRequest.newBuilder()
             .setBlobId(blobId.toProto())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

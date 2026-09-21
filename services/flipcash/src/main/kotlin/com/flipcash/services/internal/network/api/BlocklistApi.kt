@@ -6,7 +6,7 @@ import com.codeinc.flipcash.gen.blocklist.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.asUserId
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.models.QueryOptions
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -34,8 +34,7 @@ internal class BlocklistApi @Inject constructor(
     suspend fun blockUser(userId: ID, owner: KeyPair): BlocklistService.BlockUserResponse {
         val request = BlocklistService.BlockUserRequest.newBuilder()
             .setUserId(userId.asUserId())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -51,8 +50,7 @@ internal class BlocklistApi @Inject constructor(
     suspend fun unblockUser(userId: ID, owner: KeyPair): BlocklistService.UnblockUserResponse {
         val request = BlocklistService.UnblockUserRequest.newBuilder()
             .setUserId(userId.asUserId())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -67,8 +65,7 @@ internal class BlocklistApi @Inject constructor(
     suspend fun isBlocked(userId: ID, owner: KeyPair): BlocklistService.IsBlockedResponse {
         val request = BlocklistService.IsBlockedRequest.newBuilder()
             .setUserId(userId.asUserId())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -87,8 +84,7 @@ internal class BlocklistApi @Inject constructor(
     ): BlocklistService.GetBlocklistResponse {
         val request = BlocklistService.GetBlocklistRequest.newBuilder()
             .setQueryOptions(queryOptions.asQueryOptions())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

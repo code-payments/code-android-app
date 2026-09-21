@@ -4,7 +4,7 @@ import com.codeinc.flipcash.gen.moderation.v1.ModerationGrpcKt
 import com.codeinc.flipcash.gen.moderation.v1.ModerationService
 import com.codeinc.flipcash.gen.moderation.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.utils.toByteString
@@ -26,8 +26,7 @@ internal class ModerationApi @Inject constructor(
     suspend fun moderateText(text: String, owner: Ed25519.KeyPair): ModerationService.ModerateTextResponse {
         val request = ModerationService.ModerateTextRequest.newBuilder()
             .setText(text)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -39,8 +38,7 @@ internal class ModerationApi @Inject constructor(
     suspend fun moderateImage(imageBytes: ByteArray, owner: Ed25519.KeyPair): ModerationService.ModerateImageResponse {
         val request = ModerationService.ModerateImageRequest.newBuilder()
             .setImageData(imageBytes.toByteString())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

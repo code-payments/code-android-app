@@ -6,7 +6,7 @@ import com.codeinc.flipcash.gen.contact.v1.validate
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asHash
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.solana.keys.Checksum
@@ -34,8 +34,7 @@ internal class ContactListApi @Inject constructor(
     ): RpcContactListService.CheckSyncResponse {
         val request = RpcContactListService.CheckSyncRequest.newBuilder()
             .setClientChecksum(clientChecksum.asHash())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -56,8 +55,7 @@ internal class ContactListApi @Inject constructor(
             .addAllRemoves(removes.map { Common.PhoneNumber.newBuilder().setValue(it.phoneNumber).build() })
             .setOldChecksum(oldChecksum.asHash())
             .setNewChecksum(newChecksum.asHash())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -76,8 +74,7 @@ internal class ContactListApi @Inject constructor(
                 val request = RpcContactListService.FullUploadRequest.newBuilder()
                     .addAllPhones(batch.map { Common.PhoneNumber.newBuilder().setValue(it.phoneNumber).build() })
                     .setExpectedChecksum(expectedChecksum.asHash())
-                    .apply { setAuth(authenticate(owner)) }
-                    .build()
+                    .buildAuthenticated(owner) { setAuth(it) }
 
                 request.validate().orThrow()
                 emit(request)
@@ -95,8 +92,7 @@ internal class ContactListApi @Inject constructor(
     ): Flow<RpcContactListService.GetFlipcashContactsResponse> {
         val request = RpcContactListService.GetFlipcashContactsRequest.newBuilder()
             .setChecksum(checksum.asHash())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         return api.getFlipcashContacts(request)
     }

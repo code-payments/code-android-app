@@ -5,7 +5,7 @@ import com.codeinc.flipcash.gen.phone.v1.Model
 import com.codeinc.flipcash.gen.phone.v1.PhoneVerificationGrpcKt
 import com.codeinc.flipcash.gen.phone.v1.PhoneVerificationService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.models.ContactMethod
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -38,8 +38,7 @@ internal class PhoneVerificationApi @Inject constructor(
         val request = PhoneVerificationService.SendVerificationCodeRequest.newBuilder()
             .setPhoneNumber(Common.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
             .setPlatform(Common.Platform.GOOGLE)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -59,8 +58,7 @@ internal class PhoneVerificationApi @Inject constructor(
         val request = PhoneVerificationService.CheckVerificationCodeRequest.newBuilder()
             .setPhoneNumber(Common.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
             .setCode(Model.VerificationCode.newBuilder().setValue(code).build())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -78,8 +76,7 @@ internal class PhoneVerificationApi @Inject constructor(
     ): PhoneVerificationService.UnlinkResponse {
         val request = PhoneVerificationService.UnlinkRequest.newBuilder()
             .setPhoneNumber(Common.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -94,8 +91,7 @@ internal class PhoneVerificationApi @Inject constructor(
     ): PhoneVerificationService.LinkForPaymentResponse {
         val request = PhoneVerificationService.LinkForPaymentRequest.newBuilder()
             .setPhoneNumber(Common.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

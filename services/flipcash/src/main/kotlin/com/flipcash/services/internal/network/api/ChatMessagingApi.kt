@@ -14,7 +14,7 @@ import com.flipcash.services.internal.network.extensions.asPointerType
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.asTypingState
 import com.flipcash.services.internal.network.extensions.asViewMode
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ClientMessageId
@@ -54,8 +54,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setChatId(chatId.asChatId())
             .setMessageId(MessagingModel.MessageId.newBuilder().setValue(messageId))
             .setViewMode(viewMode.asViewMode())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -74,8 +73,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setChatId(chatId.asChatId())
             .setOptions(queryOptions.asQueryOptions())
             .setViewMode(viewMode.asViewMode())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -97,8 +95,7 @@ internal class ChatMessagingApi @Inject constructor(
                     .addAllMessageIds(messageIds.map { MessagingModel.MessageId.newBuilder().setValue(it).build() })
             )
             .setViewMode(viewMode.asViewMode())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -117,8 +114,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setChatId(chatId.asChatId())
             .addAllContent(content.map { it.asContent() })
             .setClientMessageId(clientMessageId.asClientMessageId())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -138,8 +134,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setChatId(chatId.asChatId())
             .setPointerType(pointerType.asPointerType())
             .setNewValue(MessagingModel.MessageId.newBuilder().setValue(messageId))
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -156,8 +151,7 @@ internal class ChatMessagingApi @Inject constructor(
         val request = RpcMessagingService.NotifyIsTypingRequest.newBuilder()
             .setChatId(chatId.asChatId())
             .setState(state.asTypingState())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -176,8 +170,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setChatId(chatId.asChatId())
             .setAfterSequence(afterSequence)
             .setViewMode(viewMode.asViewMode())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -196,8 +189,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setMessageId(messageId.asMessageId())
             .addAllContent(content.map { it.asContent() })
             .setExpectedEventSequence(expectedEventSequence)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -216,8 +208,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setChatId(chatId.asChatId())
             .setMessageId(messageId.asMessageId())
             .setExpectedEventSequence(expectedEventSequence)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -236,8 +227,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setChatId(chatId.asChatId())
             .setMessageId(messageId.asMessageId())
             .setEmoji(emoji.asEmoji())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -256,8 +246,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setChatId(chatId.asChatId())
             .setMessageId(messageId.asMessageId())
             .setEmoji(emoji.asEmoji())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -278,8 +267,7 @@ internal class ChatMessagingApi @Inject constructor(
             .setMessageId(messageId.asMessageId())
             .setEmoji(emoji.asEmoji())
             .setOptions(queryOptions.asQueryOptions())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -296,8 +284,7 @@ internal class ChatMessagingApi @Inject constructor(
         val request = RpcMessagingService.GetReactionSummaryRequest.newBuilder()
             .setChatId(chatId.asChatId())
             .setMessageId(messageId.asMessageId())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -314,8 +301,7 @@ internal class ChatMessagingApi @Inject constructor(
         val request = RpcMessagingService.GetReactionSummariesRequest.newBuilder()
             .setChatId(chatId.asChatId())
             .setOptions(queryOptions.asQueryOptions())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

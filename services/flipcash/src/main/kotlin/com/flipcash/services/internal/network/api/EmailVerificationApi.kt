@@ -5,7 +5,7 @@ import com.codeinc.flipcash.gen.email.v1.EmailVerificationService
 import com.codeinc.flipcash.gen.email.v1.Model
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.models.ContactMethod
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -38,8 +38,7 @@ internal class EmailVerificationApi @Inject constructor(
         val request = EmailVerificationService.SendVerificationCodeRequest.newBuilder()
             .setEmailAddress(Common.EmailAddress.newBuilder().setValue(request.emailAddress).build())
             .setClientData(request.clientData)
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -59,8 +58,7 @@ internal class EmailVerificationApi @Inject constructor(
         val request = EmailVerificationService.CheckVerificationCodeRequest.newBuilder()
             .setEmailAddress(Common.EmailAddress.newBuilder().setValue(request.emailAddress).build())
             .setCode(Model.VerificationCode.newBuilder().setValue(code).build())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -75,8 +73,7 @@ internal class EmailVerificationApi @Inject constructor(
     ): EmailVerificationService.UnlinkResponse {
         val request = EmailVerificationService.UnlinkRequest.newBuilder()
             .setEmailAddress(Common.EmailAddress.newBuilder().setValue(request.emailAddress).build())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

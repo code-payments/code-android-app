@@ -7,7 +7,7 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asCountryCode
 import com.flipcash.services.internal.network.extensions.asPublicKey
 import com.flipcash.services.internal.network.extensions.asUserId
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.internal.network.extensions.sign
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -53,8 +53,7 @@ internal class AccountApi @Inject constructor(
     suspend fun login(owner: KeyPair): RpcAccountService.LoginResponse {
         val request = RpcAccountService.LoginRequest.newBuilder()
             .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000))
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
@@ -75,8 +74,7 @@ internal class AccountApi @Inject constructor(
             .setUserId(userId.asUserId())
             .setPlatform(Common.Platform.GOOGLE)
             .setCountryCode(countryCode.asCountryCode())
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 

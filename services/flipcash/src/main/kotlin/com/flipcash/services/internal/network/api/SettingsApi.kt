@@ -5,7 +5,7 @@ import com.codeinc.flipcash.gen.settings.v1.SettingsGrpcKt
 import com.codeinc.flipcash.gen.settings.v1.SettingsService
 import com.codeinc.flipcash.gen.settings.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import dev.bmcreations.protovalidate.orThrow
@@ -38,8 +38,7 @@ internal class SettingsApi @Inject constructor(
                     setRegion(Common.Region.newBuilder().setValue(region.lowercase()))
                 }
             }
-            .apply { setAuth(authenticate(owner)) }
-            .build()
+            .buildAuthenticated(owner) { setAuth(it) }
 
         request.validate().orThrow()
 
