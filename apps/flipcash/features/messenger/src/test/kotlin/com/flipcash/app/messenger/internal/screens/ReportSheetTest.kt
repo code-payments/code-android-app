@@ -3,13 +3,18 @@ package com.flipcash.app.messenger.internal.screens
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.flipcash.app.theme.FlipcashPreview
+import com.flipcash.features.messenger.R
 import com.flipcash.reporting.ReportReason
 import org.junit.Rule
 import org.junit.Test
@@ -21,8 +26,9 @@ import kotlin.test.assertNull
 
 /**
  * Every row but one is the whole interaction: the tap is the answer. [ReportReason.Other] is the
- * exception, and the three cases below are what that exception costs — it reveals instead of
- * submitting, it carries what was typed, and it will not submit nothing.
+ * exception, and the cases below are what that exception costs — it reveals instead of
+ * submitting, it carries what was typed, it will not submit nothing, and, because it is the only
+ * row that goes somewhere, it is the only one that has to offer a way back.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w400dp-h800dp-xhdpi")
@@ -40,6 +46,14 @@ class ReportSheetTest {
      * The sheet has one field, so the action identifies it.
      */
     private fun AndroidComposeTestRule<*, *>.detailsField() = onNode(hasSetTextAction())
+
+    /**
+     * The back arrow, of which the semantics tree holds two: [TopAppBarBase] subcomposes its
+     * leading slot a second time as a `leftIcon_probe`, purely to measure whether a real control
+     * is there, and that copy is never placed. The placed one is subcomposed first.
+     */
+    private fun AndroidComposeTestRule<*, *>.backArrow() =
+        onAllNodesWithTag("action_report_back").onFirst()
 
     private fun showSheet() {
         composeTestRule.setContent {
@@ -93,5 +107,86 @@ class ReportSheetTest {
         composeTestRule.onNodeWithTag("action_submit_report").performClick()
 
         assertNull(submitted)
+    }
+
+    @Test
+    fun `the reason list has nothing to go back to`() {
+        showSheet()
+
+        composeTestRule.onAllNodesWithTag("action_report_back").assertCountEquals(0)
+    }
+
+    @Test
+    fun `the details step goes back to the reasons`() {
+        showSheet()
+
+        composeTestRule.onNodeWithTag("action_report_reason_Other").performClick()
+        composeTestRule.backArrow().performClick()
+
+        composeTestRule.onNodeWithTag("action_report_reason_Spam").assertIsDisplayed()
+        assertNull(submitted)
+    }
+
+    @Test
+    fun `going back keeps what was typed`() {
+        showSheet()
+
+        composeTestRule.onNodeWithTag("action_report_reason_Other").performClick()
+        composeTestRule.detailsField().performTextInput("half a thought")
+        composeTestRule.backArrow().performClick()
+        composeTestRule.onNodeWithTag("action_report_reason_Other").performClick()
+
+        composeTestRule.onNodeWithTag("action_submit_report").performClick()
+        assertEquals("half a thought", submitted?.second)
+    }
+
+    private val expandLabel: String
+        get() = composeTestRule.activity.getString(R.string.action_expandReportDetails)
+
+    private val collapseLabel: String
+        get() = composeTestRule.activity.getString(R.string.action_collapseReportDetails)
+
+    private fun pressBack() = composeTestRule.runOnUiThread {
+        composeTestRule.activity.onBackPressedDispatcher.onBackPressed()
+    }
+
+    @Test
+    fun `the field offers a way to go full screen`() {
+        showSheet()
+
+        composeTestRule.onNodeWithTag("action_report_reason_Other").performClick()
+
+        composeTestRule.onNodeWithContentDescription(expandLabel).assertIsDisplayed()
+    }
+
+    @Test
+    fun `one control both expands and collapses`() {
+        showSheet()
+
+        composeTestRule.onNodeWithTag("action_report_reason_Other").performClick()
+        composeTestRule.onNodeWithTag("action_report_expand").performClick()
+        composeTestRule.onNodeWithContentDescription(collapseLabel).assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag("action_report_expand").performClick()
+        composeTestRule.onNodeWithContentDescription(expandLabel).assertIsDisplayed()
+    }
+
+    /**
+     * Expanding is a step of its own, so back unwinds it before the step that contains it. A back
+     * that jumped straight to the reasons would throw away a draft the user was mid-sentence in.
+     */
+    @Test
+    fun `back leaves full screen before it leaves the details step`() {
+        showSheet()
+
+        composeTestRule.onNodeWithTag("action_report_reason_Other").performClick()
+        composeTestRule.detailsField().performTextInput("still typing")
+        composeTestRule.onNodeWithTag("action_report_expand").performClick()
+
+        pressBack()
+        composeTestRule.onNodeWithContentDescription(expandLabel).assertIsDisplayed()
+
+        pressBack()
+        composeTestRule.onNodeWithTag("action_report_reason_Spam").assertIsDisplayed()
     }
 }

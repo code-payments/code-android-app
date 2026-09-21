@@ -1175,6 +1175,8 @@
     <string name="action_reportReason_other">Something Else</string>
     <string name="hint_reportDetails">Tell us more</string>
     <string name="action_submitReport">Submit Report</string>
+    <string name="action_expandReportDetails">Expand</string>
+    <string name="action_collapseReportDetails">Collapse</string>
     <string name="prompt_title_reportSubmitted">Report Sent</string>
     <string name="prompt_description_reportSubmitted">Thanks. We’ll take a look</string>
     <string name="error_title_failedToReport">Something Went Wrong</string>
