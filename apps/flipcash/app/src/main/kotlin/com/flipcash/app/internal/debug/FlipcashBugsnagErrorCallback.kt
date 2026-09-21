@@ -19,6 +19,12 @@ internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
         return@onError false
     }
 
+    // Runtimes that misreport their API level throw NoSuchMethodError out of correctly gated
+    // library code. Tag rather than discard, so triage can filter these while we keep a count.
+    if (!RuntimeIntegrity.reportsApiLevelHonestly) {
+        event.addMetadata("device", "apiLevelHonest", false)
+    }
+
     // Attach recent logs
     val logFile = TraceManager.getLogFile(includeHeader = false)
     if (logFile != null && logFile.exists()) {
