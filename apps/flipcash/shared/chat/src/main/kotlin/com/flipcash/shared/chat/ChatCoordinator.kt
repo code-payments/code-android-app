@@ -131,6 +131,18 @@ interface MessagingOperations {
     /** Marks [chatId] as the currently-viewed chat (used to suppress notifications). */
     fun setActiveChatId(chatId: ChatId?)
 
+    /**
+     * Releases [chatId] as the currently-viewed chat, if it still is. A null [chatId] releases
+     * nothing.
+     *
+     * The conditional is the point. A chat screen claims the active chat on open and releases it
+     * on teardown, but the two do not interleave in that order when one chat is opened directly
+     * from another: both entries are alive at once and the outgoing one is disposed after the
+     * incoming one has already claimed the chat. Clearing unconditionally there would clear the
+     * chat the user is looking at, and every push for it would notify.
+     */
+    fun clearActiveChat(chatId: ChatId?)
+
     /** Returns `true` if [chatId] is the currently-viewed chat. */
     fun isActiveChat(chatId: ChatId): Boolean
 

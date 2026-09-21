@@ -1888,7 +1888,10 @@ internal class ChatViewModel @Inject constructor(
     override fun onCleared() {
         ProcessLifecycleOwner.get().lifecycle.removeObserver(draftFlushObserver)
         flushDraft()
-        chatCoordinator.setActiveChatId(null)
+        // This chat's claim only, not whatever is active now: opening a chat directly from
+        // another one disposes this entry after the incoming one has claimed the chat, so an
+        // unconditional clear would silence the chat the user just opened.
+        chatCoordinator.clearActiveChat(stateFlow.value.chatId)
         linkCardResolver.dispose()
     }
 
