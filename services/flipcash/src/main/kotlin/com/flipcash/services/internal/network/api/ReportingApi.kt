@@ -35,7 +35,6 @@ internal class ReportingApi @Inject constructor(
     ): RpcReportingService.ReportResponse {
         val builder = RpcReportingService.ReportRequest.newBuilder()
             .setDescription(description)
-            .apply { setAuth(authenticate(owner)) }
 
         when (target) {
             is ReportTarget.User -> builder.setUserId(target.userId.asUserId())
@@ -50,6 +49,11 @@ internal class ReportingApi @Inject constructor(
                     .setValue(target.blobId.bytes.toByteString())
             )
         }
+
+        // Auth last, always: `authenticate()` signs `buildPartial()`, so anything set after this
+        // line is outside the signature. The target used to be set below it, which meant every
+        // report was signed over its description alone.
+        builder.apply { setAuth(authenticate(owner)) }
 
         val request = builder.build()
         request.validate().orThrow()

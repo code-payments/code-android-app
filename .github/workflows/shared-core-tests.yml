@@ -11,6 +11,7 @@ on:
       - 'libs/codes/kikcode/**'
       - 'libs/currency-math/**'
       - 'libs/encryption/**'
+      - 'libs/reporting/**'
       - 'gradle/libs.versions.toml'
       - '.github/workflows/shared-core-tests.yml'
 
@@ -71,7 +72,8 @@ jobs:
             :libs:encryption:hmac:iosSimulatorArm64Test \
             :libs:encryption:mnemonic:iosSimulatorArm64Test \
             :libs:encryption:sha256:iosSimulatorArm64Test \
-            :libs:encryption:sha512:iosSimulatorArm64Test
+            :libs:encryption:sha512:iosSimulatorArm64Test \
+            :libs:reporting:iosSimulatorArm64Test
 
       # The facade suite has to run against the Kotlin in this checkout, not against the last
       # published release, or a facade written for an unreleased Kotlin change is untested until

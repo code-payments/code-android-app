@@ -239,6 +239,7 @@ include(
     ":libs:permissions:public",
 
     ":libs:quickresponse",
+    ":libs:reporting",
     ":libs:search",
 
     ":libs:vibrator:bindings",
@@ -326,6 +327,7 @@ val kmpUnitTestModules = setOf(
     // (macOS .dylib / Linux .so); it can't load on the Linux CI runner. Its ed25519.json
     // parity is gated via the iOS cinterop path (macOS) instead — so it's excluded here.
     ":libs:encryption:utils",
+    ":libs:reporting",
 )
 // ed25519 and mnemonic excluded: both pull in the JNI-backed Ed25519Kmp Android actual for their
 // host vector tests, which can't load on the Linux CI runner (see kmpUnitTestModules).
