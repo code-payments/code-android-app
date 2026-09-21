@@ -18,6 +18,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -225,5 +226,35 @@ class ChatSummaryPreviewTest {
         )
 
         assertEquals("$25.00", groupReference(listOf(cash), senderId = stranger).lastMessagePreview)
+    }
+
+    @Test
+    fun `a group nobody has spoken in yet reports no messages`() {
+        val reference = ChatSummary(
+            metadata = ChatMetadata(
+                chatId = ChatId(byteArrayOf(9)),
+                type = ChatType.GROUP,
+                members = listOf(
+                    ChatMember(userId = self, userProfile = profile("Me"), pointers = emptyList()),
+                ),
+                lastMessage = null,
+                lastActivity = sentAt,
+                title = "Bad Boys",
+            ),
+            unreadCount = 0,
+        ).toConversationReference(selfId = self, tokensByMint = emptyMap(), resources = resources)
+
+        assertFalse(reference.hasMessages)
+        assertNull(reference.lastMessagePreview)
+    }
+
+    @Test
+    fun `a chat whose newest message has no preview still counts as having messages`() {
+        // Media previews as nothing today, which is not the same as an empty chat — the row must
+        // not label it "Nothing yet".
+        val reference = groupReference(listOf(MessageContent.Media(items = emptyList(), caption = null)))
+
+        assertTrue(reference.hasMessages)
+        assertNull(reference.lastMessagePreview)
     }
 }

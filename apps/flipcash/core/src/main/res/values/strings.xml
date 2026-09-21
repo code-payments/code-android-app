@@ -953,6 +953,7 @@
     <string name="label_chat_preview_senderMessage">%1$s: %2$s</string>
     <string name="label_chat_preview_sentCash_bySender">%1$s sent %2$s</string>
     <string name="label_chat_preview_tippedCash_bySender">%1$s tipped %2$s</string>
+    <string name="label_chat_preview_noMessages">Nothing yet</string>
     <string name="label_isTyping">Is Typing…</string>
 
     <string name="label_edited">Edited</string>

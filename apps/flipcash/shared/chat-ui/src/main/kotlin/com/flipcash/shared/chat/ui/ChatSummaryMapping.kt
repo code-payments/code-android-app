@@ -42,6 +42,7 @@ fun ChatSummary.toConversationReference(
         title = metadata.title,
         isGroup = isGroup,
         lastMessagePreview = formatPreview(selfId, tokensByMint, resources),
+        hasMessages = metadata.lastMessage != null,
         lastActivity = metadata.lastActivity,
         unreadCount = unreadCount,
         viewerState = metadata.viewerState,
