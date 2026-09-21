@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,8 +17,6 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.android.extensions.launchAppSettings
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.scanner.internal.GalleryScanButton
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.updates.LocalAppUpdater
@@ -124,15 +121,6 @@ internal fun ScannableContainer(
             }
         }
 
-        // Remembered because `observe` builds a fresh `stateIn(dataScope, Eagerly, ..)` on every
-        // call and `dataScope` outlives the screen: calling it straight from a composable body
-        // starts a DataStore collection per recomposition that nothing ever cancels.
-        val featureFlags = LocalFeatureFlags.current
-        val galleryFlag = remember(featureFlags) {
-            featureFlags.observe(FeatureFlag.ScanFromGallery)
-        }
-        val galleryEnabled by galleryFlag.collectAsStateWithLifecycle()
-
         // Outside the permission `when` on purpose: a picked photo needs no camera, and someone
         // who declined the camera is exactly who this is for.
         //
@@ -140,7 +128,7 @@ internal fun ScannableContainer(
         // entry's content, so the bill already covers the button -- but leaving it composed under
         // the scrim means a live control is sitting behind something modal, which is worth not
         // having rather than relying on the overlay to swallow every touch.
-        if (galleryEnabled && billState.bill == null) {
+        if (billState.bill == null) {
             GalleryScanButton(
                 onImagePicked = onImagePicked,
                 hazeState = hazeState,
