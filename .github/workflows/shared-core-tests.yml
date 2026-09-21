@@ -9,6 +9,7 @@ on:
     paths:
       - 'kmp/shared-core/**'
       - 'libs/codes/kikcode/**'
+      - 'libs/currency-math/**'
       - 'libs/encryption/**'
       - 'gradle/libs.versions.toml'
       - '.github/workflows/shared-core-tests.yml'
