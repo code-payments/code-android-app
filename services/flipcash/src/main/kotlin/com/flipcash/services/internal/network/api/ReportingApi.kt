@@ -6,7 +6,7 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asChatId
 import com.flipcash.services.internal.network.extensions.asMessageId
 import com.flipcash.services.internal.network.extensions.asUserId
-import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.buildAuthenticated
 import com.flipcash.services.models.ReportTarget
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -35,7 +35,6 @@ internal class ReportingApi @Inject constructor(
     ): RpcReportingService.ReportResponse {
         val builder = RpcReportingService.ReportRequest.newBuilder()
             .setDescription(description)
-            .apply { setAuth(authenticate(owner)) }
 
         when (target) {
             is ReportTarget.User -> builder.setUserId(target.userId.asUserId())
@@ -51,7 +50,7 @@ internal class ReportingApi @Inject constructor(
             )
         }
 
-        val request = builder.build()
+        val request = builder.buildAuthenticated(owner) { setAuth(it) }
         request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {

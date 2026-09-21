@@ -16,11 +16,10 @@ import java.io.File
 class AuthenticateCallSiteTest {
 
     /**
-     * `ReportingApi` sets its `target` oneof after signing and is being fixed alongside a wider
-     * reporting change. `BlobStorageApi` hands `authenticate` to `getBlobsRequest`, which assigns
-     * it last under the cover of `GetBlobsRequestSigningTest`.
+     * `BlobStorageApi` hands `authenticate` to `getBlobsRequest`, which assigns it last under the
+     * cover of `GetBlobsRequestSigningTest`.
      */
-    private val allowed = setOf("ReportingApi.kt", "BlobStorageApi.kt")
+    private val allowed = setOf("BlobStorageApi.kt")
 
     @Test
     fun `authenticate is only called where the ordering is already accounted for`() {
