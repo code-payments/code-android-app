@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -70,7 +71,8 @@ import kotlin.time.Duration.Companion.seconds
  *   rather than either delegate directly. See [refreshFeed].
  * - **Lifecycle methods** — [onStart]/[onStop] are inherently cross-cutting
  *   (stream connect/disconnect, heartbeat start/stop, active-chat save/restore).
- * - **Flow observers** — network reconnect re-syncing the chat feed.
+ * - **Flow observers** — network reconnect re-syncing the chat feed, gated on the
+ *   foreground so a reconnect cannot reopen the stream behind [onStop].
  *
  * Delegates require [initialize] with a shared [CoroutineScope] before use;
  * this happens in [onUserLoggedIn].
@@ -109,6 +111,10 @@ class RealChatCoordinator @Inject constructor(
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private var networkObserverJob: Job? = null
     private var backgroundedActiveChat: ChatId? = null
+
+    // Maintained by [onStart]/[onStop]. The network-reconnect collector below lives on [scope],
+    // which spans the whole session rather than the foreground, so it needs to ask.
+    private val foregrounded = MutableStateFlow(false)
 
     override val state: StateFlow<ChatState>
         get() = stateHolder.state
@@ -195,11 +201,19 @@ class RealChatCoordinator @Inject constructor(
                 }
             }.launchIn(scope)
 
+        // `map { it.connected }` before `distinctUntilChanged`: [NetworkState] also carries signal
+        // strength and connection type, which a cellular radio reports every few seconds, so
+        // de-duplicating the whole state let every signal wobble through as a fresh "reconnect"
+        // and re-synced the feed on a connection that never dropped.
         networkObserverJob = cluster.filterNotNull()
-            .flatMapLatest { networkObserver.state }
+            .flatMapLatest { networkObserver.state.map { state -> state.connected } }
             .distinctUntilChanged()
-            .filter { it.connected }
+            .filter { it }
             .debounce(1.seconds)
+            // Read after the debounce, so the answer is the lifecycle state this reconnect would
+            // actually act in. A reconnect that lands while backgrounded is dropped rather than
+            // deferred: [onStart] already syncs and reopens, so nothing is lost by ignoring it.
+            .filter { foregrounded.value }
             .onEach {
                 trace(tag = TAG, message = "Network connected, re-syncing chat feed", type = TraceType.Process)
                 syncFeeds()
@@ -209,6 +223,7 @@ class RealChatCoordinator @Inject constructor(
     }
 
     override fun onStart(owner: LifecycleOwner) {
+        foregrounded.value = true
         backgroundedActiveChat?.let {
             messagingDelegate.setActiveChatId(it)
             backgroundedActiveChat = null
@@ -224,6 +239,7 @@ class RealChatCoordinator @Inject constructor(
     }
 
     override fun onStop(owner: LifecycleOwner) {
+        foregrounded.value = false
         backgroundedActiveChat = stateHolder.current.activeChat
         messagingDelegate.setActiveChatId(null)
         eventStreamDelegate.stopHeartbeat()
