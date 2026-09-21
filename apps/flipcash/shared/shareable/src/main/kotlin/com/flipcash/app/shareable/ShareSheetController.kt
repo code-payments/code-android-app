@@ -116,6 +116,13 @@ interface ShareSheetController {
     companion object {
         const val ACTION_SHARE_CASH_LINK = "com.flipcash.app.ACTION_SHARE_CASH_LINK"
         const val ACTION_CASH_LINK_SHARED = "com.flipcash.app.ACTION_CASH_LINK_SHARED"
+
+        /**
+         * Marks an [ACTION_CASH_LINK_SHARED] broadcast as the Sharesheet's own Copy button rather
+         * than an app selection. Those two arrive by different routes and only one of them carries
+         * a component, so the relay has to say which happened.
+         */
+        const val EXTRA_COPIED_TO_CLIPBOARD = "com.flipcash.app.EXTRA_COPIED_TO_CLIPBOARD"
     }
 }
 
