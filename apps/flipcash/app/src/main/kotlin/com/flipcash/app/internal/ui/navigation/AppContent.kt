@@ -29,10 +29,8 @@ import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.cardexpand.LocalCardExpansion
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
-import com.flipcash.app.core.navigation.LocalTabBarAction
 import com.flipcash.app.core.navigation.LocalTabBarVisibility
 import com.flipcash.app.core.navigation.NavBarButton
-import com.flipcash.app.core.navigation.TabBarActionController
 import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.destinationRoute
@@ -93,11 +91,6 @@ internal fun AppContent(
     // full screen in place, so there's no route change for the visibility rule below to notice.
     val tabBarVisibility = remember { TabBarVisibilityController() }
 
-    // And lets one hang a control off the end of the bar's row. Held here, beside the bar, because
-    // the control is composed by the bar: a screen-owned one would float over the content instead
-    // of taking width from the pill, and would need a haze source of its own.
-    val tabBarAction = remember { TabBarActionController() }
-
     // A tab press replaces the whole back stack (tab-bar semantics — see AppNavigationBar), so every
     // tab home was destroyed and rebuilt on each switch: the wallet re-fetched its balances and the
     // chat list scrolled back to the top. Hold each tab home's ViewModels and scroll state outside the
@@ -124,7 +117,6 @@ internal fun AppContent(
     CompositionLocalProvider(
         LocalCardExpansion provides cardExpansion,
         LocalTabBarVisibility provides tabBarVisibility,
-        LocalTabBarAction provides tabBarAction,
     ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Mark the nav content as the haze source so the frosted bar blurs whatever scrolls beneath it.

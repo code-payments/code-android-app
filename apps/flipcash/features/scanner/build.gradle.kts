@@ -29,4 +29,7 @@ dependencies {
     implementation(project(":vendor:kik:scanner"))
     implementation(libs.androidx.camerax.view)
     implementation(libs.androidx.foundation.layout)
+    // `ui:components` keeps haze to itself, but `CircularIconButton` takes a `HazeState`, so a
+    // caller wanting the frosted fill has to be able to name the type.
+    implementation(libs.bundles.haze)
 }
