@@ -187,67 +187,89 @@ class ChatCoordinatorEagerBalanceTest {
 
     @Test
     fun `incoming cash message triggers tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        val amount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.CAD)
-        chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = otherId, amount = amount)))
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+        tornDown {
+            triggerCollection()
+            val amount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.CAD)
+            chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = otherId, amount = amount)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        coVerify(exactly = 1) { tokenCoordinator.add(mint, amount) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { tokenCoordinator.add(mint, amount) }
+        }
     }
 
     @Test
     fun `self-sent cash message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = selfId)))
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+        tornDown {
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = selfId)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
-        coordinator.teardown()
+            coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
+        }
     }
 
     @Test
     fun `text message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        chatUpdatesChannel.send(chatUpdate(textMessage(senderId = otherId)))
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+        tornDown {
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(textMessage(senderId = otherId)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
-        coordinator.teardown()
+            coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
+        }
     }
 
     @Test
     fun `multiple cash messages in one update each trigger add`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        val mintB = Mint("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBbbbbbbbbbbb")
-        val amount1 = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD)
-        val amount2 = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)
-        val msg1 = cashMessage(senderId = otherId, amount = amount1, mint = mint)
-        val msg2 = cashMessage(senderId = otherId, amount = amount2, mint = mintB).copy(messageId = 3L)
+        tornDown {
+            triggerCollection()
+            val mintB = Mint("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBbbbbbbbbbbb")
+            val amount1 = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD)
+            val amount2 = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)
+            val msg1 = cashMessage(senderId = otherId, amount = amount1, mint = mint)
+            val msg2 = cashMessage(senderId = otherId, amount = amount2, mint = mintB).copy(messageId = 3L)
 
-        chatUpdatesChannel.send(chatUpdate(msg1, msg2))
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+            chatUpdatesChannel.send(chatUpdate(msg1, msg2))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        coVerify(exactly = 1) { tokenCoordinator.add(mint, amount1) }
-        coVerify(exactly = 1) { tokenCoordinator.add(mintB, amount2) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { tokenCoordinator.add(mint, amount1) }
+            coVerify(exactly = 1) { tokenCoordinator.add(mintB, amount2) }
+        }
     }
 
     @Test
     fun `mixed self and incoming messages only triggers add for incoming`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        val incoming = cashMessage(senderId = otherId)
-        val outgoing = cashMessage(senderId = selfId).copy(messageId = 3L)
+        tornDown {
+            triggerCollection()
+            val incoming = cashMessage(senderId = otherId)
+            val outgoing = cashMessage(senderId = selfId).copy(messageId = 3L)
 
-        chatUpdatesChannel.send(chatUpdate(incoming, outgoing))
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+            chatUpdatesChannel.send(chatUpdate(incoming, outgoing))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        coVerify(exactly = 1) { tokenCoordinator.add(any<Mint>(), any()) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { tokenCoordinator.add(any<Mint>(), any()) }
+        }
+    }
+
+    /**
+     * Runs [block], then tears the coordinator down however it ends.
+     *
+     * The `finally` is the point. Logging in starts a heartbeat that is a `while (true)` of delays
+     * on the coordinator's own scope rather than the test's `backgroundScope`, and `runTest` drains
+     * the scheduler once the body returns. A failing assertion that skipped the teardown would
+     * leave that loop advancing virtual time with nothing to stop it, hanging the run instead of
+     * reporting the failure.
+     */
+    private suspend fun tornDown(block: suspend () -> Unit) {
+        try {
+            block()
+        } finally {
+            coordinator.teardown()
+        }
     }
 }

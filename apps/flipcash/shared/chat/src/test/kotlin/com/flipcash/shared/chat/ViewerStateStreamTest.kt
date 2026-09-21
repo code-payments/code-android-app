@@ -149,31 +149,33 @@ class ViewerStateStreamTest {
 
     @Test
     fun `a timed mute from the stream is stored`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        val viewerState = ViewerState(
-            mute = MuteState.Until(Instant.fromEpochSeconds(2_000)),
-            version = 4,
-        )
+        tornDown {
+            triggerCollection()
+            val viewerState = ViewerState(
+                mute = MuteState.Until(Instant.fromEpochSeconds(2_000)),
+                version = 4,
+            )
 
-        chatUpdatesChannel.send(viewerStateUpdate(viewerState))
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+            chatUpdatesChannel.send(viewerStateUpdate(viewerState))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        coVerify(exactly = 1) { metadataDataSource.updateViewerState(chatId, viewerState) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { metadataDataSource.updateViewerState(chatId, viewerState) }
+        }
     }
 
     @Test
     fun `an indefinite mute from the stream is stored`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-        val viewerState = ViewerState(mute = MuteState.Forever, version = 7)
+        tornDown {
+            triggerCollection()
+            val viewerState = ViewerState(mute = MuteState.Forever, version = 7)
 
-        chatUpdatesChannel.send(viewerStateUpdate(viewerState))
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
+            chatUpdatesChannel.send(viewerStateUpdate(viewerState))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
 
-        coVerify(exactly = 1) { metadataDataSource.updateViewerState(chatId, viewerState) }
-        coordinator.teardown()
+            coVerify(exactly = 1) { metadataDataSource.updateViewerState(chatId, viewerState) }
+        }
     }
 
     /**
@@ -183,34 +185,53 @@ class ViewerStateStreamTest {
     @Test
     fun `an unmute from the stream is stored at its own version`() =
         runTest(testDispatchers.dispatcher) {
-            triggerCollection()
-            val viewerState = ViewerState(mute = null, version = 8)
+            tornDown {
+                triggerCollection()
+                val viewerState = ViewerState(mute = null, version = 8)
 
-            chatUpdatesChannel.send(viewerStateUpdate(viewerState))
-            advanceTimeBy(1_000.milliseconds)
-            runCurrent()
+                chatUpdatesChannel.send(viewerStateUpdate(viewerState))
+                advanceTimeBy(1_000.milliseconds)
+                runCurrent()
 
-            coVerify(exactly = 1) { metadataDataSource.updateViewerState(chatId, viewerState) }
-            coordinator.teardown()
+                coVerify(exactly = 1) { metadataDataSource.updateViewerState(chatId, viewerState) }
+            }
         }
 
     @Test
     fun `an update carrying no viewer state leaves the stored one alone`() =
         runTest(testDispatchers.dispatcher) {
-            triggerCollection()
+            tornDown {
+                triggerCollection()
 
-            chatUpdatesChannel.send(
-                ChatUpdate(
-                    chatId = chatId,
-                    metadataUpdates = listOf(
-                        MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(2_000)),
+                chatUpdatesChannel.send(
+                    ChatUpdate(
+                        chatId = chatId,
+                        metadataUpdates = listOf(
+                            MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(2_000)),
+                        ),
                     ),
-                ),
-            )
-            advanceTimeBy(1_000.milliseconds)
-            runCurrent()
+                )
+                advanceTimeBy(1_000.milliseconds)
+                runCurrent()
 
-            coVerify(exactly = 0) { metadataDataSource.updateViewerState(any(), any()) }
+                coVerify(exactly = 0) { metadataDataSource.updateViewerState(any(), any()) }
+            }
+        }
+
+    /**
+     * Runs [block], then tears the coordinator down however it ends.
+     *
+     * The `finally` is the point. Logging in starts a heartbeat that is a `while (true)` of delays
+     * on the coordinator's own scope rather than the test's `backgroundScope`, and `runTest` drains
+     * the scheduler once the body returns. A failing assertion that skipped the teardown would
+     * leave that loop advancing virtual time with nothing to stop it, hanging the run instead of
+     * reporting the failure.
+     */
+    private suspend fun tornDown(block: suspend () -> Unit) {
+        try {
+            block()
+        } finally {
             coordinator.teardown()
         }
+    }
 }
