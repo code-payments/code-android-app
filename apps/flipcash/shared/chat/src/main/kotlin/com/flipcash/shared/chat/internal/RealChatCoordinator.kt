@@ -135,6 +135,11 @@ class RealChatCoordinator @Inject constructor(
         feedDelegate.initialize(scope)
         eventStreamDelegate.initialize(scope)
         groupFeedDelegate.initialize(scope)
+        // Before the first refresh, and awaited rather than launched: a refresh that carries a
+        // self-authored message deletes this chat's `SENDING` rows, so a send a previous process
+        // was killed mid-flight has to be marked failed first or it is destroyed instead of
+        // becoming retryable. See [MessagingDelegate.recoverInterruptedSends].
+        messagingDelegate.recoverInterruptedSends()
         feedDelegate.observeFeedFromDb()
         syncFeeds()
         eventStreamDelegate.open()

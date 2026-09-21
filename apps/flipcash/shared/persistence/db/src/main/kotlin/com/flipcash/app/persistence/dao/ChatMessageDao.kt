@@ -124,6 +124,26 @@ interface ChatMessageDao {
     suspend fun deleteAllPending(chatIdHex: String)
 
     /**
+     * Fails every row still marked `SENDING`, in every chat.
+     *
+     * A send is only ever marked failed from the `onFailure` of the coroutine that issued it, so a
+     * process killed mid-send leaves its row `SENDING` on disk with nothing left alive to move it.
+     * The transcript shows that row spinning — retry is offered for `FAILED`, not `SENDING` — until
+     * the next refresh reaches [upsertAndClearPending] and deletes it, taking the user's text with
+     * it and offering no way to get it back.
+     *
+     * Run once per process before the first refresh. [deleteAllPending] is scoped to `SENDING` and
+     * spares `FAILED`, so a row swept here survives every later refresh and picks up the retry
+     * affordance that already exists. `pending_client_id_hex` is untouched, and it is what the retry
+     * re-sends under — the same `client_message_id` the server dedupes on, so the re-send replaces
+     * the original rather than duplicating it.
+     *
+     * Deliberately not scoped to a chat: the caller runs at login, before it knows which chats exist.
+     */
+    @Query("UPDATE chat_messages SET status = 'FAILED' WHERE status = 'SENDING'")
+    suspend fun failInterruptedSends()
+
+    /**
      * The optimistic row is written before the server has stamped the message, so every
      * server-assigned field is written here — `event_sequence` included. Leaving it at the pending
      * row's 0 would keep a sent message looking unacknowledged until some later fetch of the chat
