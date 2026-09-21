@@ -3,6 +3,7 @@ package com.flipcash.app.tokens.ui
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
@@ -16,6 +17,11 @@ import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Currency
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Limits
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 import com.getcode.opencode.model.financial.Token
@@ -50,6 +56,7 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.stub
 import org.mockito.kotlin.whenever
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -208,4 +215,108 @@ class SwapViewModelErrorTest {
 
         verify(exactly = 0) { usdcDepositSweep.execute(any()) }
     }
+
+    // --- Entry-currency conversion on the buy gate ---------------------------------------------
+    //
+    // transactionLimit() is USD-denominated. A user entering in a currency that trades well below
+    // 1:1 was blocked on any amount, because the gate read the typed number as dollars: 500 naira
+    // was compared against the ~$0.87 held rather than the $0.33 it is worth.
+
+    /** ~1,530 NGN to the dollar, the rate at the time this was reported. */
+    private val ngnPerUsd = 1530.0
+
+    private fun nairaBuyHolding(usd: Double): SwapViewModel {
+        every { exchange.rateToUsd(CurrencyCode.NGN) } returns
+            Rate(fx = 1 / ngnPerUsd, currency = CurrencyCode.USD)
+
+        // A daily limit high enough to never be the binding constraint; the balance is what this
+        // exercises. Left as `null`, sendLimitFor() answers SendLimit.Zero and every entry is over.
+        whenever(transactionController.limits).thenReturn(
+            MutableStateFlow(
+                Limits(
+                    sinceDate = 0L,
+                    fetchDate = System.currentTimeMillis(),
+                    sendLimits = mapOf(
+                        CurrencyCode.USD to SendLimit(
+                            nextTransaction = 10_000.0,
+                            maxPerTransaction = 10_000.0,
+                            maxPerDay = 10_000.0,
+                        )
+                    ),
+                    amountUsdTransactedSinceConsumption = Fiat(0.0),
+                )
+            )
+        )
+
+        val fundingToken = mockk<Token>(relaxed = true) {
+            every { address } returns Mint.usdf
+        }
+        val held = mockk<TokenWithBalance>(relaxed = true) {
+            every { this@mockk.token } returns fundingToken
+            every { this@mockk.balance } returns Fiat(usd)
+        }
+        every { tokenCoordinator.tokenBalances } returns MutableStateFlow(listOf(held))
+
+        val vm = createViewModel()
+        // Flexible funding is the Get path, the one that caps on the held balance.
+        vm.dispatchEvent(
+            SwapViewModel.Event.OnPurposeChanged(
+                SwapPurpose.Buy(
+                    mint = Mint(ByteArray(32) { 1 }.toList()),
+                    fundingSource = FundingSource.Flexible,
+                )
+            )
+        )
+        vm.amountDelegate.onCurrencyChanged(Currency(code = "NGN", name = "Nigerian Naira"))
+        return vm
+    }
+
+    @Test
+    fun `buy gate converts the entered amount out of the entry currency`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = nairaBuyHolding(usd = 0.87)
+            advanceUntilIdle()
+
+            vm.amountDelegate.setAmount(500.0)
+            advanceUntilIdle()
+
+            // 500 NGN is ~$0.33 — inside the $0.87 held, so the buy proceeds.
+            assertFalse(vm.checkFundingAmount())
+            assertTrue(BottomBarManager.messages.value.isEmpty())
+        }
+
+    @Test
+    fun `buy gate blocks an entry above the converted balance`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = nairaBuyHolding(usd = 0.87)
+            advanceUntilIdle()
+
+            vm.amountDelegate.setAmount(5_000.0)
+            advanceUntilIdle()
+
+            // 5,000 NGN is ~$3.27 — over the $0.87 held.
+            assertTrue(vm.checkFundingAmount())
+            assertTrue(
+                BottomBarManager.messages.value.any { it.title == "title_insufficientBalance" }
+            )
+        }
+
+    @Test
+    fun `buy gate blocks when no rate is available to convert with`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = nairaBuyHolding(usd = 0.87)
+            every { exchange.rateToUsd(CurrencyCode.NGN) } returns null
+            advanceUntilIdle()
+
+            // Deliberately under the $0.87 ceiling read as a raw number, so the only thing that
+            // can block this is the missing-rate guard itself.
+            vm.amountDelegate.setAmount(0.5)
+            advanceUntilIdle()
+
+            // Rate.ignore would convert this to ~0 and clear every ceiling. Fail closed instead.
+            assertTrue(vm.checkFundingAmount())
+        }
 }
