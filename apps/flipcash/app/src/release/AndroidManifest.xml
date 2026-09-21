@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <!--
+          WorkManager's diagnostics receiver answers only
+          `adb shell am broadcast -a androidx.work.diagnostics.REQUEST_DIAGNOSTICS`, which the
+          library gates behind android.permission.DUMP — in practice, the shell uid. It is a debug
+          affordance with no role in a shipped build.
+
+          Handling that broadcast constructs WorkManager eagerly, and on a runtime that misreports
+          its API level `SystemJobScheduler` throws NoSuchMethodError from
+          `JobScheduler.forNamespace` and takes the process with it (Bugsnag
+          6aac426c58142669ea748612). Dropping the receiver from release removes that entry point
+          and the exported surface with it; debug builds keep the dump.
+        -->
+        <receiver
+            android:name="androidx.work.impl.diagnostics.DiagnosticsReceiver"
+            tools:node="remove" />
+
+    </application>
+
+</manifest>
