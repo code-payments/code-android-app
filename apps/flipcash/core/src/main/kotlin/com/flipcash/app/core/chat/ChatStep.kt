@@ -82,4 +82,31 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object GroupProfile : ChatStep
+
+    /**
+     * Node 10187:110373 — what about the group can be changed, as a list of the things that can.
+     *
+     * A pushed screen rather than a sheet, unlike [InviteToGroup] and [MuteChat]: those end on the
+     * choice they present, while this one is a way through to another screen and has to be
+     * somewhere back can return to. Carries nothing for the same reason [GroupProfile] does not —
+     * the flow is already open on the group, and every step here reads it off the conversation's
+     * view model.
+     *
+     * The design node lists four rows; only [EditGroupPicture] and [EditGroupName] are built.
+     * Membership card, description and social links have no field on `EditChatRequest` in
+     * flipcash2 0.11.0, so there is nothing for them to write.
+     */
+    @Parcelize
+    @Serializable
+    data object EditGroup : ChatStep
+
+    /** The group's title, on the same entry screen shape the profile name uses. */
+    @Parcelize
+    @Serializable
+    data object EditGroupName : ChatStep
+
+    /** The group's picture — pick, upload, then `EditChat` with the READY blob. */
+    @Parcelize
+    @Serializable
+    data object EditGroupPicture : ChatStep
 }

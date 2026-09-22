@@ -28,6 +28,9 @@ import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
+import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupNameScreen
+import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupPictureScreen
+import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupScreen
 import com.flipcash.shared.chat.ui.rememberIsMuted
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -104,6 +107,15 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.GroupProfile> {
         FlowGroupProfileScreen()
+    }
+    annotatedEntry<ChatStep.EditGroup> {
+        EditGroupScreen()
+    }
+    annotatedEntry<ChatStep.EditGroupName> {
+        FlowEditGroupNameScreen()
+    }
+    annotatedEntry<ChatStep.EditGroupPicture> {
+        FlowEditGroupPictureScreen()
     }
 }
 
@@ -307,4 +319,17 @@ private fun FlowChatProfileScreen(participant: ChatParticipant) {
 @Composable
 private fun FlowGroupProfileScreen() {
     GroupProfileScreen(flowSharedViewModel<ChatViewModel>())
+}
+
+// Both edit steps read the chat they are editing off the flow's shared ChatViewModel, the same way
+// the profile above them does, and keep the edit itself in their own nav-entry-scoped view model.
+// EditGroupScreen needs neither and is registered directly.
+@Composable
+private fun FlowEditGroupNameScreen() {
+    EditGroupNameScreen(flowSharedViewModel<ChatViewModel>())
+}
+
+@Composable
+private fun FlowEditGroupPictureScreen() {
+    EditGroupPictureScreen(flowSharedViewModel<ChatViewModel>())
 }

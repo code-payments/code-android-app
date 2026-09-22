@@ -7,15 +7,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatStep
@@ -32,6 +41,8 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraLarge
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.flow.filterIsInstance
@@ -64,7 +75,26 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
     CodeScaffold(
         topBar = {
-            AppBarWithTitle(onBackIconClicked = { flowNavigator.back() })
+            AppBarWithTitle(
+                onBackIconClicked = { flowNavigator.back() },
+                endContent = {
+                    GroupProfileOverflow(
+                        // Server-computed, and absent entirely for a non-member, so an
+                        // unresolved viewer state reads as "may not edit" rather than as a
+                        // permission to be re-derived here.
+                        canEdit = state.viewerState?.permissions?.canEdit == true,
+                        onAction = { action ->
+                            when (action) {
+                                GroupProfileAction.Edit ->
+                                    flowNavigator.navigateTo(ChatStep.EditGroup)
+                                // The overflow carries the edit row alone; the rest of
+                                // [GroupProfileAction] is the list's.
+                                else -> Unit
+                            }
+                        },
+                    )
+                },
+            )
         },
     ) { innerPadding ->
         MenuList(
@@ -118,9 +148,65 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                             AppRoute.Messaging.Report(ReportSubject.Chat(chatId))
                         )
                     }
+                    // Edit is an overflow row, not a body row, so this arm is unreachable today.
+                    // It routes to the same step the overflow does so that "what Edit means" has
+                    // one definition, rather than going stale if the row ever moves into the body.
+                    GroupProfileAction.Edit -> flowNavigator.navigateTo(ChatStep.EditGroup)
                 }
             },
         )
+    }
+}
+
+/**
+ * The profile's top-right overflow — one row, Edit, and only for a viewer who may use it.
+ *
+ * Draws nothing at all when the list is empty rather than a disabled button: an overflow that
+ * opens on nothing is worse than no overflow, and `canEdit` is stable for the life of the screen
+ * in every case but a permission being revoked under it.
+ *
+ * Shape is the message long-press menu's, from `ChatTopBar.MessageOverflow` — same surface colour,
+ * same corner, same drop clear of the button — so the two menus in this feature read as one
+ * control rather than two.
+ */
+@Composable
+private fun GroupProfileOverflow(
+    canEdit: Boolean,
+    onAction: (GroupProfileAction) -> Unit,
+) {
+    val items = groupProfileOverflowItems(canEdit)
+    if (items.isEmpty()) return
+
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        AppBarDefaults.Overflow(
+            modifier = Modifier.testTag("action_group_profile_overflow"),
+            onClick = { expanded = true },
+        )
+        DropdownMenu(
+            expanded = expanded,
+            containerColor = CodeTheme.colors.brandLight,
+            shape = CodeTheme.shapes.extraLarge,
+            offset = DpOffset(x = 0.dp, y = CodeTheme.dimens.grid.x2),
+            onDismissRequest = { expanded = false },
+        ) {
+            items.forEach { item ->
+                DropdownMenuItem(
+                    modifier = Modifier.testTag("action_edit_group"),
+                    text = {
+                        Text(
+                            text = item.name,
+                            style = CodeTheme.typography.textSmall,
+                            color = CodeTheme.colors.textMain,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onAction(item.action)
+                    },
+                )
+            }
+        }
     }
 }
 

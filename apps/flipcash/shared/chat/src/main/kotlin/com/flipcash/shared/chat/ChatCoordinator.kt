@@ -11,6 +11,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
@@ -336,6 +337,24 @@ interface GroupOperations {
     suspend fun create(
         parameters: StartChatParameters,
         idempotencyKey: IdempotencyKey,
+    ): Result<ChatMetadata>
+
+    /**
+     * Applies [parameters] to [chatId] and stores the chat the server answers with.
+     *
+     * A partial update: [EditChatParameters] leaves every unset field alone, so editing the title
+     * cannot clear the picture. Requires `ViewerState.Permissions.canEdit`, which is the server's
+     * to compute — a caller without it gets `DENIED` rather than a local refusal.
+     *
+     * The post-edit metadata is persisted from the response rather than refetched, and the
+     * `titleChanged` / `pictureChanged` echo that follows carries the same absolute values and is
+     * applied unconditionally, so the two converge instead of compounding. Suppressing the echo
+     * would be the wrong fix: it cannot be told apart from a *different* editor's change arriving
+     * in the same window, which is a change this device does need.
+     */
+    suspend fun editChat(
+        chatId: ChatId,
+        parameters: EditChatParameters,
     ): Result<ChatMetadata>
 
     /** Joins [chatId], caching the chat so it is in the list before the next sync. */

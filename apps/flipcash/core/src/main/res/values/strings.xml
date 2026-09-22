@@ -1039,6 +1039,25 @@
     <string name="error_title_groupCreateFailed">Something Went Wrong</string>
     <string name="error_description_groupCreateFailed">We couldn\'t create this group. Please try again.</string>
 
+    <!-- Editing a group (node 10187:110373). The design titles this "Edit Community"; the app
+         calls the same thing a Group everywhere else (see title_newPublicGroup, hint_groupName),
+         so it is a Group here too rather than introducing a second word for one concept.
+
+         The node lists four rows — Icon, Membership Card, Description, Social Links. Only Icon and
+         Name are here: the other three have no field on EditChatRequest in flipcash2 0.11.0. Name
+         is not in the node at all and takes the Icon row's styling. -->
+    <string name="title_editGroup">Edit Group</string>
+    <string name="title_editGroupIcon">Icon</string>
+    <string name="title_editGroupName">Name</string>
+    <!-- EditChat bounds the title at 1-64 characters, enforced before the call. -->
+    <string name="subtitle_groupNameLength">Up to 64 characters</string>
+    <!-- EditChat answered DENIED: canEdit was false, or stopped being true since the menu was drawn. -->
+    <string name="error_title_groupEditDenied">Can\'t Edit This Group</string>
+    <string name="error_description_groupEditDenied">You don\'t have permission to edit this group</string>
+    <!-- Anything EditChat can fail on that the screen cannot explain, including the transport. -->
+    <string name="error_title_groupEditFailed">Something Went Wrong</string>
+    <string name="error_description_groupEditFailed">We couldn\'t save your changes. Please try again.</string>
+
     <!-- Handing out the group's invite link, straight after it is created (node 10127:118315). -->
     <string name="title_inviteToJoinGroup">Invite to Join Group</string>
     <string name="action_sendInviteLink">Send Invite Link</string>
