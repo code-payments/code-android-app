@@ -98,94 +98,98 @@ internal fun EditGroupPictureScreen(chatViewModel: ChatViewModel) {
         }
     }
 
-    CodeScaffold(
-        modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-        topBar = {
-            AppBarWithTitle(
-                title = stringResource(R.string.title_setGroupPicture),
-                titleAlignment = Alignment.CenterHorizontally,
-                // The pick is dropped by leaving: the view model is scoped to this nav entry, so
-                // popping it takes the draft with it and the stored picture stands.
-                onBackIconClicked = { flowNavigator.back() },
-            )
-        },
-        bottomBar = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
-            ) {
-                CodeButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(bottom = CodeTheme.dimens.grid.x3),
-                    text = stringResource(R.string.action_save),
-                    enabled = state.canSubmit,
-                    isLoading = state.processingState.loading,
-                    isSuccess = state.processingState.success,
-                    onClick = {
-                        viewModel.dispatchEvent(EditGroupPictureViewModel.Event.SaveClicked)
-                    },
-                )
-            }
-        },
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center,
-        ) {
+    Column {
+        AppBarWithTitle(
+            title = stringResource(R.string.title_setGroupPicture),
+            titleAlignment = Alignment.CenterHorizontally,
+            // The pick is dropped by leaving: the view model is scoped to this nav entry, so
+            // popping it takes the draft with it and the stored picture stands.
+            onBackIconClicked = { flowNavigator.back() },
+        )
+        CodeScaffold(
+            modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+            // The bar sits outside the scaffold's horizontal inset, as PhotoSelectionScreen and
+            // EditGroupNameScreen place theirs. Nesting it inside indents the back control by
+            // [inset], putting it out of line with the back control on every other screen.
+            topBar = {},
+            bottomBar = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
+                ) {
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(bottom = CodeTheme.dimens.grid.x3),
+                        text = stringResource(R.string.action_save),
+                        enabled = state.canSubmit,
+                        isLoading = state.processingState.loading,
+                        isSuccess = state.processingState.success,
+                        onClick = {
+                            viewModel.dispatchEvent(EditGroupPictureViewModel.Event.SaveClicked)
+                        },
+                    )
+                }
+            },
+        ) { padding ->
             Box(
                 modifier = Modifier
-                    .size(150.dp)
-                    .background(color = CodeTheme.colors.divider, shape = CircleShape)
-                    .clip(CircleShape)
-                    .clickable {
-                        pickMedia.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
-                    },
+                    .fillMaxSize()
+                    .padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                Crossfade(targetState = state.image) { pending ->
-                    when {
-                        pending.isLoaded() -> {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalPlatformContext.current)
-                                    .data(pending.data)
-                                    .build(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-
-                        pending.isLoading() && pending.dataOrNull != null -> {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CodeCircularProgressIndicator()
-                            }
-                        }
-
-                        // No pick pending: the group's stored picture, so the screen opens on the
-                        // current icon rather than an empty well. Save stays disabled until a pick
-                        // is made, so this cannot be mistaken for one.
-                        state.savedPicture != null -> {
-                            ContactAvatar(
-                                image = state.savedPicture,
-                                displayName = state.groupTitle,
-                                access = BlobAccessContext.Owned,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-
-                        else -> {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
+                Box(
+                    modifier = Modifier
+                        .size(150.dp)
+                        .background(color = CodeTheme.colors.divider, shape = CircleShape)
+                        .clip(CircleShape)
+                        .clickable {
+                            pickMedia.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Crossfade(targetState = state.image) { pending ->
+                        when {
+                            pending.isLoaded() -> {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                                        .data(pending.data)
+                                        .build(),
                                     contentDescription = null,
-                                    tint = White50,
-                                    modifier = Modifier.size(48.dp),
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
                                 )
+                            }
+
+                            pending.isLoading() && pending.dataOrNull != null -> {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CodeCircularProgressIndicator()
+                                }
+                            }
+
+                            // No pick pending: the group's stored picture, so the screen opens on the
+                            // current icon rather than an empty well. Save stays disabled until a pick
+                            // is made, so this cannot be mistaken for one.
+                            state.savedPicture != null -> {
+                                ContactAvatar(
+                                    image = state.savedPicture,
+                                    displayName = state.groupTitle,
+                                    access = BlobAccessContext.Owned,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+
+                            else -> {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        tint = White50,
+                                        modifier = Modifier.size(48.dp),
+                                    )
+                                }
                             }
                         }
                     }
