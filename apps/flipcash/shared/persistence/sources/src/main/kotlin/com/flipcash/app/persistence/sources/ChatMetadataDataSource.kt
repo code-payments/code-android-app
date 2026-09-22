@@ -81,6 +81,7 @@ class ChatMetadataDataSource @Inject constructor(
             chatIdHex = mapper.chatIdHex(chatId),
             muteUntilEpochMs = mapper.muteUntilEpochMs(viewerState.mute),
             muteForever = mapper.isMuteForever(viewerState.mute),
+            canEdit = viewerState.permissions.canEdit,
             version = viewerState.version,
         )
     }

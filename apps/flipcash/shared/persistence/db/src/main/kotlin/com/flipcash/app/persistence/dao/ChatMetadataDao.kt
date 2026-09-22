@@ -129,16 +129,22 @@ interface ChatMetadataDao {
      * from re-applying itself on the way back through an upsert.
      *
      * Both mute columns are written together so a switch between the two shapes clears the other.
+     *
+     * The viewer's grants ride the same gate. They are part of the same server-owned state and
+     * carry no version of their own, so splitting them out would let a stale payload reinstate a
+     * grant the newest one had withdrawn.
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = :muteUntilEpochMs, " +
-            "mute_forever = :muteForever, viewer_state_version = :version " +
+            "mute_forever = :muteForever, viewer_state_version = :version, " +
+            "can_edit = :canEdit " +
             "WHERE chat_id_hex = :chatIdHex AND :version > viewer_state_version"
     )
     suspend fun updateViewerStateIfNewer(
         chatIdHex: String,
         muteUntilEpochMs: Long?,
         muteForever: Boolean,
+        canEdit: Boolean,
         version: Long,
     )
 
@@ -149,10 +155,13 @@ interface ChatMetadataDao {
      * version goes back to zero with it: a rejoin starts the server's numbering over, so a
      * retained version would make the gate reject the new state and the old mute would survive a
      * chat the user has left and re-entered.
+     *
+     * The grants go with it. A chat the user is no longer in grants nothing, and leaving one
+     * while holding an edit right would otherwise keep the affordance on screen.
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = NULL, mute_forever = 0, " +
-            "viewer_state_version = 0 WHERE chat_id_hex = :chatIdHex"
+            "viewer_state_version = 0, can_edit = 0 WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun clearViewerState(chatIdHex: String)
 
@@ -189,6 +198,7 @@ interface ChatMetadataDao {
             chatIdHex = entity.chatIdHex,
             muteUntilEpochMs = entity.muteUntilEpochMs,
             muteForever = entity.muteForever,
+            canEdit = entity.canEdit,
             version = entity.viewerStateVersion,
         )
     }

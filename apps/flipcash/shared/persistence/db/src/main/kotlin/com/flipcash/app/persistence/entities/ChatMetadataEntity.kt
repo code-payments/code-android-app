@@ -55,4 +55,10 @@ data class ChatMetadataEntity(
     val muteForever: Boolean = false,
     @ColumnInfo(name = "viewer_state_version", defaultValue = "0")
     val viewerStateVersion: Long = 0,
+    // The viewer's server-computed grants. Stored rather than left to the fetch that carried it
+    // because every screen reads the viewer state back out of this row: a grant that lives only
+    // in the response is already gone by the time anything draws. Defaults false, matching
+    // ViewerState.Permissions — a column no write has reached yet denies rather than grants.
+    @ColumnInfo(name = "can_edit", defaultValue = "0")
+    val canEdit: Boolean = false,
 )

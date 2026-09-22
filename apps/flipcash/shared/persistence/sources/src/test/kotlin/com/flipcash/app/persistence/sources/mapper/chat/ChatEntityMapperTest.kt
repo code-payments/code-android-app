@@ -266,6 +266,41 @@ class ChatEntityMapperTest {
         assertEquals(null, restored.viewerState)
     }
 
+    @Test
+    fun `an edit grant survives the round trip`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(
+                    version = 3,
+                    permissions = ViewerState.Permissions(canEdit = true),
+                )
+            )
+        )
+        assertEquals(true, entity.canEdit)
+
+        val restored = mapper.toMetadata(entity, emptyList(), null)
+
+        assertEquals(true, restored.viewerState?.permissions?.canEdit)
+    }
+
+    /**
+     * A grant is state held about the viewer even when nothing else is: an unmuted chat at
+     * version 0 that the server says is editable. Folding that row into a null viewer state
+     * would deny an edit the server allows, so the emptiness test has to count the grant.
+     */
+    @Test
+    fun `a chat holding only an edit grant still has viewer state`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(permissions = ViewerState.Permissions(canEdit = true))
+            )
+        )
+
+        val restored = mapper.toMetadata(entity, emptyList(), null)
+
+        assertEquals(true, restored.viewerState?.permissions?.canEdit)
+    }
+
     private companion object {
         const val CHAT_HEX = "aabbccdd"
     }
