@@ -1,14 +1,12 @@
 package com.flipcash.app.messenger.internal.screens.profile.edit
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.app.menu.MenuItem
+import com.flipcash.core.R as CoreR
 import com.flipcash.features.messenger.R
 
 /** What the edit list can open. One entry per editable field on `EditChatRequest`. */
@@ -22,10 +20,13 @@ internal sealed interface EditGroupAction {
  *
  * Labelled Picture rather than the design's "Icon": it writes `EditChatRequest.picture`, and
  * picture is the word the rest of the app already uses for it.
+ *
+ * Wears the currency creator's icon glyph. That flow edits the same two fields on a token that this
+ * one edits on a group, so the pair reads as one idea rather than two.
  */
 internal data object EditGroupPicture : FullMenuItem<EditGroupAction>() {
     override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.Image)
+        @Composable get() = painterResource(CoreR.drawable.ic_currencycreator_icon)
 
     override val name: String
         @Composable get() = stringResource(R.string.title_editGroupPicture)
@@ -39,10 +40,12 @@ internal data object EditGroupPicture : FullMenuItem<EditGroupAction>() {
  * Not in node 10187:110373 — the design's four rows are Icon, Membership Card, Description and
  * Social Links — but `EditChatRequest.title` is one of exactly two fields the contract offers, so
  * the row exists and takes the picture row's styling rather than inventing its own.
+ *
+ * Wears the currency creator's name glyph, for the same reason the picture row wears its icon one.
  */
 internal data object EditGroupName : FullMenuItem<EditGroupAction>() {
     override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.TextFields)
+        @Composable get() = painterResource(CoreR.drawable.ic_currencycreator_name)
 
     override val name: String
         @Composable get() = stringResource(R.string.title_editGroupName)
