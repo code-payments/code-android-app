@@ -14,7 +14,9 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.flipcash.features.messenger.R
@@ -70,10 +72,10 @@ class ReportFlowTest {
     // tag alone says nothing about what is on screen. Only the real control is ever placed.
     private val placed = SemanticsMatcher("is placed") { it.layoutInfo.isPlaced }
 
-    private fun leadingControl(tag: String) =
+    private fun navControl(tag: String) =
         composeTestRule.onAllNodesWithTag(tag).filterToOne(placed)
 
-    private fun assertNoLeadingControl(tag: String) =
+    private fun assertNoNavControl(tag: String) =
         composeTestRule.onAllNodesWithTag(tag).filter(placed).assertCountEquals(0)
 
     @Test
@@ -217,15 +219,30 @@ class ReportFlowTest {
     fun `leaves the first step by closing, not by going back`() {
         showReasons()
 
-        leadingControl("action_close").assertExists()
-        assertNoLeadingControl("action_back")
+        navControl("action_close").assertExists()
+        assertNoNavControl("action_back")
+    }
+
+    @Test
+    fun `the close sits on the trailing edge`() {
+        showReasons()
+        val bar = composeTestRule.onRoot().getUnclippedBoundsInRoot()
+        val close = navControl("action_close").getUnclippedBoundsInRoot()
+        // Trailing, not leading: the close dismisses a layer, and this app puts that control at
+        // the far edge (see the sheet-root close in AppBarWithTitle) rather than where a back
+        // arrow would sit.
+        val midpoint = (bar.left + bar.right) / 2
+        assertTrue(
+            "close starts at ${close.left}, expected past the midpoint $midpoint",
+            close.left > midpoint,
+        )
     }
 
     @Test
     fun `closing the first step asks to leave the flow`() {
         showReasons()
 
-        leadingControl("action_close").performClick()
+        navControl("action_close").performClick()
 
         assertTrue(dismissed)
     }
@@ -234,7 +251,7 @@ class ReportFlowTest {
     fun `leaves the details step by going back, not by closing`() {
         showDetails()
 
-        leadingControl("action_back").assertExists()
-        assertNoLeadingControl("action_close")
+        navControl("action_back").assertExists()
+        assertNoNavControl("action_close")
     }
 }

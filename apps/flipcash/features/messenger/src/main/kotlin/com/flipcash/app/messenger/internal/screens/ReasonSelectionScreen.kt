@@ -13,6 +13,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,6 +28,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.flipcash.features.messenger.R
 import com.flipcash.reporting.ReportReason
+import com.getcode.navigation.flow.FlowDismissStyle
+import com.getcode.navigation.flow.LocalFlowDismissStyle
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.extraSmall
@@ -65,70 +68,76 @@ internal fun ReasonSelectionContent(
     // got you there.
     var selected by rememberSaveable { mutableStateOf<ReportReason?>(null) }
 
-    CodeScaffold(
-        topBar = {
-            AppBarWithTitle(
-                title = stringResource(R.string.title_report),
-                titleAlignment = Alignment.CenterHorizontally,
-                onBackIconClicked = onNavigateUp,
-                leadingDismiss = true,
-            )
-        },
-        bottomBar = {
-            CodeButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("action_report_reason_continue")
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .navigationBarsPadding()
-                    .padding(bottom = CodeTheme.dimens.grid.x3),
-                text = if (selected == ReportReason.Other) {
-                    stringResource(com.flipcash.core.R.string.action_next)
-                } else {
-                    stringResource(R.string.action_submitReport)
-                },
-                enabled = selected != null,
-                onClick = { selected?.let(onChoose) },
-            )
-        },
-    ) { padding ->
-        val scrollState = rememberScrollState()
-
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .verticalScroll(scrollState)
-                .verticalScrollStateGradient(
-                    scrollState = scrollState,
-                    color = CodeTheme.colors.background,
-                    isLongGradient = true,
+    // This screen is always the first step of the report flow, so its nav control leaves the flow
+    // rather than stepping back within it. AppBarWithTitle cannot infer that: it decides from the
+    // outer stack depth, and report is pushed over the chat rather than opened as the sheet's
+    // first entry. Declaring it here puts the close on the trailing edge, where the app's other
+    // dismiss controls sit.
+    CompositionLocalProvider(LocalFlowDismissStyle provides FlowDismissStyle.Close) {
+        CodeScaffold(
+            topBar = {
+                AppBarWithTitle(
+                    title = stringResource(R.string.title_report),
+                    titleAlignment = Alignment.CenterHorizontally,
+                    onBackIconClicked = onNavigateUp,
                 )
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(top = CodeTheme.dimens.grid.x4),
-        ) {
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.subtitle_report),
-                style = CodeTheme.typography.textSmall,
-                color = CodeTheme.colors.textSecondary,
-                textAlign = TextAlign.Center,
-            )
+            },
+            bottomBar = {
+                CodeButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("action_report_reason_continue")
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .navigationBarsPadding()
+                        .padding(bottom = CodeTheme.dimens.grid.x3),
+                    text = if (selected == ReportReason.Other) {
+                        stringResource(com.flipcash.core.R.string.action_next)
+                    } else {
+                        stringResource(R.string.action_submitReport)
+                    },
+                    enabled = selected != null,
+                    onClick = { selected?.let(onChoose) },
+                )
+            },
+        ) { padding ->
+            val scrollState = rememberScrollState()
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = CodeTheme.dimens.grid.x4)
-                    .selectableGroup(),
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-            ) {
-                for (reason in ReportReason.entries) {
-                    ReportReasonRow(
-                        modifier = Modifier.testTag("action_report_reason_${reason.name}"),
-                        label = stringResource(reason.labelRes),
-                        description = stringResource(reason.descriptionRes),
-                        selected = selected == reason,
-                        onSelect = { selected = reason },
+                    .padding(padding)
+                    .verticalScroll(scrollState)
+                    .verticalScrollStateGradient(
+                        scrollState = scrollState,
+                        color = CodeTheme.colors.background,
+                        isLongGradient = true,
                     )
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(top = CodeTheme.dimens.grid.x4),
+            ) {
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.subtitle_report),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = CodeTheme.dimens.grid.x4)
+                        .selectableGroup(),
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                ) {
+                    for (reason in ReportReason.entries) {
+                        ReportReasonRow(
+                            modifier = Modifier.testTag("action_report_reason_${reason.name}"),
+                            label = stringResource(reason.labelRes),
+                            description = stringResource(reason.descriptionRes),
+                            selected = selected == reason,
+                            onSelect = { selected = reason },
+                        )
+                    }
                 }
             }
         }
