@@ -1060,10 +1060,10 @@
     <!-- Both edits are confirmed before the call: a rename or a new picture is visible to the whole
          group, so Save opens the prompt and the prompt's action is what sends it. -->
     <string name="prompt_title_changeGroupName">Change Group Name?</string>
-    <string name="prompt_description_changeGroupName">Everyone in this group will see it as \"%1$s\"</string>
+    <string name="prompt_description_changeGroupName">This will change the group name for everyone in it</string>
     <string name="action_changeGroupName">Change Name</string>
     <string name="prompt_title_changeGroupPicture">Change Group Picture?</string>
-    <string name="prompt_description_changeGroupPicture">Everyone in this group will see the new picture</string>
+    <string name="prompt_description_changeGroupPicture">This will change the group picture for everyone in it</string>
     <string name="action_changeGroupPicture">Change Picture</string>
     <!-- EditChat bounds the title at 1-64 characters, enforced before the call. -->
     <string name="subtitle_groupNameLength">Up to 64 characters</string>

@@ -107,10 +107,7 @@ class EditGroupNameViewModel @Inject constructor(
 
                 BottomBarManager.showAlert(
                     title = resources.getString(R.string.prompt_title_changeGroupName),
-                    message = resources.getString(
-                        R.string.prompt_description_changeGroupName,
-                        ChatTitle.normalize(state.titleFieldState.text),
-                    ),
+                    message = resources.getString(R.string.prompt_description_changeGroupName),
                     actions = listOf(
                         BottomBarAction(resources.getString(R.string.action_changeGroupName)) {
                             viewModelScope.launch {
