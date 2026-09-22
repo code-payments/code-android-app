@@ -38,6 +38,7 @@ import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeRadioButton
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.view.LoadingSuccessState
 
 /**
  * Why this is being reported: one row per [ReportReason], picked before it is sent.
@@ -63,9 +64,9 @@ import com.getcode.ui.theme.CodeScaffold
 internal fun ReasonSelectionContent(
     onChoose: (ReportReason) -> Unit,
     onNavigateUp: () -> Unit,
-    // The flow stays up until the report is acknowledged, so the button has to show the wait it
-    // used to hide by closing.
-    submitting: Boolean = false,
+    // The flow stays up until the report is acknowledged, so the button carries the send itself:
+    // the wait, then the checkmark that closing used to swallow.
+    progress: LoadingSuccessState = LoadingSuccessState(),
 ) {
     // Saved, so stepping forward to the details screen and back again doesn't lose the pick that
     // got you there.
@@ -99,7 +100,8 @@ internal fun ReasonSelectionContent(
                         stringResource(R.string.action_submitReport)
                     },
                     enabled = selected != null,
-                    isLoading = submitting,
+                    isLoading = progress.loading,
+                    isSuccess = progress.success,
                     onClick = { selected?.let(onChoose) },
                 )
             },

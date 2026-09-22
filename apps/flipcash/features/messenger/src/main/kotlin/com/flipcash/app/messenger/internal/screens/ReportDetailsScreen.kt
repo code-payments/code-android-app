@@ -42,6 +42,7 @@ import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.rememberKeyboardController
+import com.getcode.view.LoadingSuccessState
 
 /**
  * The free-text step, reached only by picking [ReportReason.Other].
@@ -67,8 +68,8 @@ import com.getcode.ui.utils.rememberKeyboardController
 internal fun ReportDetailsContent(
     state: TextFieldState,
     onSubmit: (String) -> Unit,
-    // See [ReasonSelectionContent]: the send is waited on here rather than behind a closed flow.
-    submitting: Boolean = false,
+    // See [ReasonSelectionContent]: the send is shown here rather than behind a closed flow.
+    progress: LoadingSuccessState = LoadingSuccessState(),
     onNavigateUp: () -> Unit,
 ) {
     val keyboard = rememberKeyboardController()
@@ -139,7 +140,8 @@ internal fun ReportDetailsContent(
                         .imePadding(),
                     text = stringResource(R.string.action_submitReport),
                     enabled = typed.isNotBlank() && !isOverLimit,
-                    isLoading = submitting,
+                    isLoading = progress.loading,
+                    isSuccess = progress.success,
                     onClick = { keyboard.hideIfVisible { onSubmit(typed.trim()) } },
                 )
             }

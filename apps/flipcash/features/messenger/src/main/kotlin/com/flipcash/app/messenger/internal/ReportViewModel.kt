@@ -11,8 +11,11 @@ import com.flipcash.services.models.ReportTarget
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
+import com.getcode.view.LoadingSuccessState
+import com.getcode.view.SuccessHoldDuration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,10 +43,16 @@ internal class ReportViewModel @Inject constructor(
     private val resources: ResourceHelper,
 ) : ViewModel() {
 
-    private val _submitting = MutableStateFlow(false)
+    private val _state = MutableStateFlow(LoadingSuccessState())
 
-    /** True while the report is in flight, so the button can say so rather than look ignored. */
-    val submitting: StateFlow<Boolean> = _submitting.asStateFlow()
+    /**
+     * What the submit button is showing: the send in flight, then that it landed.
+     *
+     * It stays on [LoadingSuccessState.success] rather than returning to idle, because the flow is
+     * still on screen behind the confirmation and a button back to "Submit Report" would be
+     * offering to file the same report again.
+     */
+    val state: StateFlow<LoadingSuccessState> = _state.asStateFlow()
 
     // Buffered rather than a shared flow: this fires once, from a bottom bar callback that can
     // outlive the composition collecting it, and losing it would strand the flow open.
@@ -59,9 +68,9 @@ internal class ReportViewModel @Inject constructor(
 
     /** [details] is the reporter's own words, and only [ReportReason.Other] collects them. */
     fun submit(subject: ReportSubject, reason: ReportReason, details: String?) {
-        // A second press while the first is in flight would file the same report twice and answer
-        // with two confirmations stacked on each other.
-        if (_submitting.value) return
+        // Covers a second press both while the first is in flight and after it has succeeded —
+        // either would file the same report twice and answer with two confirmations.
+        if (!_state.value.isIdle) return
 
         val target = when (subject) {
             is ReportSubject.User -> ReportTarget.User(subject.userId)
@@ -73,9 +82,15 @@ internal class ReportViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _submitting.value = true
+            _state.value = LoadingSuccessState(loading = true)
             reporting.report(target, ReportDescription.build(reason, details))
                 .onSuccess {
+                    _state.value = LoadingSuccessState(success = true)
+                    // The checkmark is drawn on the frame after this is set, so the confirmation
+                    // waits out the same hold every other confirm button in the app does. Raising
+                    // it immediately would put a scrim over a checkmark nobody had seen yet.
+                    delay(SuccessHoldDuration)
+
                     // The contract makes a duplicate report a no-op that answers OK, so this says
                     // the same thing whether or not the report was the first one. That is the
                     // intended reading: telling someone they had already reported this would be
@@ -88,14 +103,15 @@ internal class ReportViewModel @Inject constructor(
                 }
                 .onFailure {
                     trace("failed to report - ${it.localizedMessage}")
-                    // No confirmation, so the flow stays where it is and the reason is still
-                    // picked — the retry is one press, not the whole flow again.
+                    // Back to idle, not to an error state: the flow stays where it is with the
+                    // reason still picked, so the retry is one press on a button that has to be
+                    // pressable to take it.
+                    _state.value = LoadingSuccessState()
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_failedToReport),
                         message = resources.getString(R.string.error_description_failedToReport),
                     )
                 }
-            _submitting.value = false
         }
     }
 }

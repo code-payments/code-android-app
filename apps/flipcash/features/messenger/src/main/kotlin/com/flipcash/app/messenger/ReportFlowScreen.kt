@@ -75,12 +75,12 @@ private fun reportEntryProvider(
 private fun FlowReasonSelection(subject: ReportSubject) {
     val viewModel = flowSharedViewModel<ReportViewModel>()
     val flowNavigator = rememberFlowNavigator<ReportStep, Parcelable>()
-    val submitting by viewModel.submitting.collectAsStateWithLifecycle()
+    val progress by viewModel.state.collectAsStateWithLifecycle()
 
     ExitOnceConfirmed(viewModel, flowNavigator)
 
     ReasonSelectionContent(
-        submitting = submitting,
+        progress = progress,
         onChoose = { reason ->
             if (reason == ReportReason.Other) {
                 flowNavigator.navigateTo(ReportStep.Details(reason))
@@ -104,13 +104,13 @@ private fun FlowReportDetails(subject: ReportSubject, reason: ReportReason) {
     // typed — leaving by the back arrow is usually a second thought about the reason, not about
     // the words.
     val details = rememberTextFieldState()
-    val submitting by viewModel.submitting.collectAsStateWithLifecycle()
+    val progress by viewModel.state.collectAsStateWithLifecycle()
 
     ExitOnceConfirmed(viewModel, flowNavigator)
 
     ReportDetailsContent(
         state = details,
-        submitting = submitting,
+        progress = progress,
         onSubmit = { typed -> viewModel.submit(subject, reason, typed) },
         // Not the flow's root, so this steps back to the reasons rather than leaving.
         onNavigateUp = { flowNavigator.back() },
