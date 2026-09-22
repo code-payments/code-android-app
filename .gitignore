@@ -25,6 +25,7 @@ fastlane/report.xml
 
 .claude/worktrees/
 .claude/plans/
+.claude/state/
 .claude/settings.local.json
 
 # Bundler (Ruby gems installed during CI)
