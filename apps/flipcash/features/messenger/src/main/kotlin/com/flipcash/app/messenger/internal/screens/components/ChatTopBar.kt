@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -62,7 +63,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.core.measured
-import com.getcode.ui.core.unboundedClickable
+import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.utils.KeyboardController
 import com.getcode.ui.utils.rememberKeyboardController
 
@@ -169,7 +170,10 @@ private fun ConversationTitleBar(
                     .fillMaxWidth()
                     .then(
                         if (state.canViewProfile) {
-                            Modifier.unboundedClickable {
+                            // No indication: the target is the whole title row, so an unbounded
+                            // ripple centred on it washed across the bar on every tap. The role
+                            // is kept so the row still reads as a button.
+                            Modifier.noRippleClickable(role = Role.Button) {
                                 chatActionHandler(ChatAction.ViewProfile)
                             }
                         } else {
