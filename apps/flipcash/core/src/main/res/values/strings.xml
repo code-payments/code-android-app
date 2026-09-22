@@ -1053,9 +1053,10 @@
     <!-- Each edit screen's own title. The row above says what it changes; this says what to do.
          They are placed differently because the account flow places them differently for the same
          two edits: PhotoSelectionScreen titles its app bar, NameEntryScreen leaves the bar bare and
-         heads the field itself. -->
+         heads the field itself. The name screen also borrows that screen's phrasing — it heads a
+         focused field, so it asks for the value the way title_profileNameSelection does. -->
     <string name="title_setGroupPicture">Set Picture</string>
-    <string name="title_setGroupName">Set Name</string>
+    <string name="title_setGroupName">What\'s the group name?</string>
 
     <!-- Both edits are confirmed before the call: a rename or a new picture is visible to the whole
          group, so Save opens the prompt and the prompt's action is what sends it. -->
@@ -1065,8 +1066,6 @@
     <string name="prompt_title_changeGroupPicture">Change Group Picture?</string>
     <string name="prompt_description_changeGroupPicture">This will change the group picture for everyone in it</string>
     <string name="action_changeGroupPicture">Change Picture</string>
-    <!-- EditChat bounds the title at 1-64 characters, enforced before the call. -->
-    <string name="subtitle_groupNameLength">Up to 64 characters</string>
     <!-- EditChat answered DENIED: canEdit was false, or stopped being true since the menu was drawn. -->
     <string name="error_title_groupEditDenied">Can\'t Edit This Group</string>
     <string name="error_description_groupEditDenied">You don\'t have permission to edit this group</string>
