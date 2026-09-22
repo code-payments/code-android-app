@@ -104,8 +104,9 @@ import com.getcode.utils.subByteArray
         // cannot be re-fetched, so a version bump that dropped the file would delete the
         // half-written messages this table exists to keep.
         AutoMigration(from = 35, to = 36), // chat_draft table
+        AutoMigration(from = 36, to = 37, spec = FlipcashDatabase.Migration36To37::class),
     ],
-    version = 36,
+    version = 37,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -244,6 +245,30 @@ abstract class FlipcashDatabase : RoomDatabase() {
         companion object {
             const val BACKFILL_TOMBSTONES =
                 "UPDATE chat_messages SET is_deleted = 1 WHERE content_json LIKE '%\"type\":\"deleted\"%'"
+        }
+    }
+
+    /**
+     * Re-arms the viewer-state gate so the new `can_edit` column can actually be filled.
+     *
+     * The column arrives as 0 on every existing row, and [ChatMetadataDao.updateViewerStateIfNewer]
+     * writes only when the incoming version beats the stored one. A chat whose viewer state has
+     * not otherwise changed reports the version it already reported, so the first fetch after this
+     * migration would be dropped and the grant would stay 0 until something unrelated moved the
+     * version — the Edit affordance missing on every chat that existed before the upgrade.
+     *
+     * Zeroing the stored version lets that next fetch win. Nothing is lost: every column the gate
+     * guards is server-owned and re-sent by the same fetch. The mute columns are deliberately left
+     * alone, so a muted chat reads as muted until that fetch confirms it rather than flickering
+     * unmuted in between.
+     */
+    class Migration36To37 : AutoMigrationSpec {
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL(REARM_VIEWER_STATE)
+        }
+
+        companion object {
+            const val REARM_VIEWER_STATE = "UPDATE chat_metadata SET viewer_state_version = 0"
         }
     }
 

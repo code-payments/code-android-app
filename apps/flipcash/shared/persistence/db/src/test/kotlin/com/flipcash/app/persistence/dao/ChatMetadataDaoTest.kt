@@ -61,6 +61,7 @@ class ChatMetadataDaoTest {
         muteUntilEpochMs: Long? = null,
         muteForever: Boolean = false,
         viewerStateVersion: Long = 0,
+        canEdit: Boolean = false,
     ) = ChatMetadataEntity(
         chatIdHex = chatIdHex,
         chatType = chatType,
@@ -78,6 +79,7 @@ class ChatMetadataDaoTest {
         muteUntilEpochMs = muteUntilEpochMs,
         muteForever = muteForever,
         viewerStateVersion = viewerStateVersion,
+        canEdit = canEdit,
     )
 
     @Test
@@ -224,6 +226,7 @@ class ChatMetadataDaoTest {
             chatIdHex = CHAT_HEX,
             muteUntilEpochMs = null,
             muteForever = false,
+            canEdit = false,
             version = 5,
         )
 
@@ -241,15 +244,52 @@ class ChatMetadataDaoTest {
     @Test
     fun `an older viewer state version leaves the mute alone`() = runTest {
         dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 0))
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, version = 5)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, canEdit = false, version = 5)
 
         // The mute this supersedes, arriving late.
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 5_000, muteForever = false, version = 4)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 5_000, muteForever = false, canEdit = false, version = 4)
 
         val stored = requireNotNull(dao.getById(CHAT_HEX))
         assertEquals(true, stored.muteForever)
         assertNull(stored.muteUntilEpochMs)
         assertEquals(5L, stored.viewerStateVersion)
+    }
+
+    /**
+     * The server bumps `ViewerState.version` only when the viewer's state changes, so a chat the
+     * viewer has never muted sits at version zero indefinitely — and its grants ride in on those
+     * same zero-versioned payloads. A strict `>` rejected every one of them, which is how a group
+     * its owner could edit ended up with the edit affordance permanently hidden.
+     */
+    @Test
+    fun `a viewer state at version zero lands on a row that has never had one`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 0))
+
+        dao.updateViewerStateIfNewer(
+            chatIdHex = CHAT_HEX,
+            muteUntilEpochMs = null,
+            muteForever = false,
+            canEdit = true,
+            version = 0,
+        )
+
+        assertEquals(true, dao.getById(CHAT_HEX)?.canEdit)
+    }
+
+    /**
+     * The exception is scoped to the stored zero. Once a real version has landed, a zero-versioned
+     * payload is a stale one and must not be able to withdraw the grant it carries.
+     */
+    @Test
+    fun `a viewer state at version zero cannot overwrite a real one`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 0))
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, version = 3)
+
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, version = 0)
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(true, stored.canEdit)
+        assertEquals(3L, stored.viewerStateVersion)
     }
 
     /**
@@ -269,7 +309,7 @@ class ChatMetadataDaoTest {
     fun `switching to an indefinite mute clears the deadline`() = runTest {
         dao.upsert(entity(chatType = "GROUP", muteUntilEpochMs = 5_000, viewerStateVersion = 1))
 
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, version = 2)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, canEdit = false, version = 2)
 
         val stored = requireNotNull(dao.getById(CHAT_HEX))
         assertNull(stored.muteUntilEpochMs)
@@ -293,8 +333,63 @@ class ChatMetadataDaoTest {
         assertEquals(0L, stored.viewerStateVersion)
 
         // A rejoin's first state numbers from the bottom again, and must still apply.
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 9_000, muteForever = false, version = 1)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 9_000, muteForever = false, canEdit = false, version = 1)
         assertEquals(9_000L, dao.getById(CHAT_HEX)?.muteUntilEpochMs)
+    }
+
+    /**
+     * The grant carries no version of its own, so it is only ever as current as the viewer state
+     * that delivered it. A payload that loses the version race must not repaint it.
+     */
+    @Test
+    fun `an older viewer state leaves the edit grant alone`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 4))
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, version = 5)
+
+        // The withdrawal this supersedes, arriving late.
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, version = 3)
+
+        assertEquals(true, dao.getById(CHAT_HEX)?.canEdit)
+    }
+
+    /**
+     * A withdrawn grant has to reach the row. Ownership moves, and an Edit affordance left on
+     * screen offers an action the server answers with DENIED.
+     */
+    @Test
+    fun `a newer viewer state withdraws the edit grant`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", canEdit = true, viewerStateVersion = 4))
+
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, version = 5)
+
+        assertEquals(false, dao.getById(CHAT_HEX)?.canEdit)
+    }
+
+    /** A chat the user has left grants nothing. */
+    @Test
+    fun `clearing the viewer state drops the edit grant`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", canEdit = true, viewerStateVersion = 7))
+
+        dao.clearViewerState(CHAT_HEX)
+
+        assertEquals(false, dao.getById(CHAT_HEX)?.canEdit)
+    }
+
+    /**
+     * Rows migrated from v36 hold the new column at 0 and the version the server last sent. The
+     * next fetch reports that same version, so without the re-arm it loses the gate and the grant
+     * stays 0 — the Edit affordance missing on every chat that predates the upgrade.
+     */
+    @Test
+    fun `the v37 re-arm lets the next fetch fill the edit grant`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 7))
+
+        db.openHelper.writableDatabase.execSQL(FlipcashDatabase.Migration36To37.REARM_VIEWER_STATE)
+
+        // The version the row already held, which the gate would otherwise drop.
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, version = 7)
+
+        assertEquals(true, dao.getById(CHAT_HEX)?.canEdit)
     }
 
     @Test

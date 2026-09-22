@@ -89,6 +89,7 @@ class ChatEntityMapper @Inject constructor() {
             muteUntilEpochMs = muteUntilEpochMs(metadata.viewerState?.mute),
             muteForever = isMuteForever(metadata.viewerState?.mute),
             viewerStateVersion = metadata.viewerState?.version ?: 0,
+            canEdit = metadata.viewerState?.permissions?.canEdit ?: false,
         )
     }
 
@@ -135,6 +136,10 @@ class ChatEntityMapper @Inject constructor() {
      * `isActiveAt(now)`'s answer, asked at render time. Dropping it here would make the row and
      * the domain model disagree about what is stored, and a later write gate compare against a
      * version whose state had been silently rewritten.
+     *
+     * A granted `can_edit` counts as state held about the viewer, so it keeps the row out of the
+     * null case on its own: a chat nobody has muted still has to report that the viewer may edit
+     * it, and returning null there would deny an edit the server allows.
      */
     private fun ChatMetadataEntity.toViewerState(): ViewerState? {
         // Read into a local first: a smart cast will not hold across a module boundary.
@@ -144,8 +149,12 @@ class ChatEntityMapper @Inject constructor() {
             until != null -> MuteState.Until(Instant.fromEpochMilliseconds(until))
             else -> null
         }
-        if (mute == null && viewerStateVersion == 0L) return null
-        return ViewerState(mute = mute, version = viewerStateVersion)
+        if (mute == null && viewerStateVersion == 0L && !canEdit) return null
+        return ViewerState(
+            mute = mute,
+            version = viewerStateVersion,
+            permissions = ViewerState.Permissions(canEdit = canEdit),
+        )
     }
 
     // endregion

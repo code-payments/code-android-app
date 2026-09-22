@@ -129,16 +129,32 @@ interface ChatMetadataDao {
      * from re-applying itself on the way back through an upsert.
      *
      * Both mute columns are written together so a switch between the two shapes clears the other.
+     *
+     * The viewer's grants ride the same gate. They are part of the same server-owned state and
+     * carry no version of their own, so splitting them out would let a stale payload reinstate a
+     * grant the newest one had withdrawn.
+     *
+     * A stored version of zero is the exception, and it has to be: the server only bumps the
+     * version when the viewer's state changes, so a chat the viewer has never muted stays at
+     * zero forever and a strict `>` would reject its every payload — including the grants riding
+     * along with them. That is not hypothetical. `EditChat` is granted on chats at version zero,
+     * and gating them out left the edit affordance permanently hidden on a group its owner could
+     * in fact edit. Zero means nothing has ever been applied here, so anything the server sends
+     * beats it. Ordering is lost for that first write, but two payloads at version zero describe
+     * the same unchanged state, and the alternative is storing none of them. The strict gate
+     * resumes as soon as a non-zero version lands.
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = :muteUntilEpochMs, " +
-            "mute_forever = :muteForever, viewer_state_version = :version " +
-            "WHERE chat_id_hex = :chatIdHex AND :version > viewer_state_version"
+            "mute_forever = :muteForever, viewer_state_version = :version, " +
+            "can_edit = :canEdit " +
+            "WHERE chat_id_hex = :chatIdHex AND (:version > viewer_state_version OR viewer_state_version = 0)"
     )
     suspend fun updateViewerStateIfNewer(
         chatIdHex: String,
         muteUntilEpochMs: Long?,
         muteForever: Boolean,
+        canEdit: Boolean,
         version: Long,
     )
 
@@ -149,10 +165,13 @@ interface ChatMetadataDao {
      * version goes back to zero with it: a rejoin starts the server's numbering over, so a
      * retained version would make the gate reject the new state and the old mute would survive a
      * chat the user has left and re-entered.
+     *
+     * The grants go with it. A chat the user is no longer in grants nothing, and leaving one
+     * while holding an edit right would otherwise keep the affordance on screen.
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = NULL, mute_forever = 0, " +
-            "viewer_state_version = 0 WHERE chat_id_hex = :chatIdHex"
+            "viewer_state_version = 0, can_edit = 0 WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun clearViewerState(chatIdHex: String)
 
@@ -189,6 +208,7 @@ interface ChatMetadataDao {
             chatIdHex = entity.chatIdHex,
             muteUntilEpochMs = entity.muteUntilEpochMs,
             muteForever = entity.muteForever,
+            canEdit = entity.canEdit,
             version = entity.viewerStateVersion,
         )
     }
