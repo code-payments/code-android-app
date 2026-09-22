@@ -20,16 +20,15 @@ internal sealed interface EditGroupAction {
 /**
  * The group's picture — node 10187:110373's first row, where the design calls it "Icon".
  *
- * "Icon" is the row's own label in the design and is kept, even though the field it writes is
- * `EditChatRequest.Picture` and the rest of the app calls it a picture: the label names what the
- * user sees at the head of the group, not the wire field behind it.
+ * Labelled Picture rather than the design's "Icon": it writes `EditChatRequest.picture`, and
+ * picture is the word the rest of the app already uses for it.
  */
-internal data object EditGroupIcon : FullMenuItem<EditGroupAction>() {
+internal data object EditGroupPicture : FullMenuItem<EditGroupAction>() {
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Outlined.Image)
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_editGroupPhoto)
+        @Composable get() = stringResource(R.string.title_editGroupPicture)
 
     override val action: EditGroupAction = EditGroupAction.Picture
 }
@@ -39,7 +38,7 @@ internal data object EditGroupIcon : FullMenuItem<EditGroupAction>() {
  *
  * Not in node 10187:110373 — the design's four rows are Icon, Membership Card, Description and
  * Social Links — but `EditChatRequest.title` is one of exactly two fields the contract offers, so
- * the row exists and takes the Icon row's styling rather than inventing its own.
+ * the row exists and takes the picture row's styling rather than inventing its own.
  */
 internal data object EditGroupName : FullMenuItem<EditGroupAction>() {
     override val icon: Painter
@@ -60,4 +59,4 @@ internal data object EditGroupName : FullMenuItem<EditGroupAction>() {
  * would be a control with nothing to write.
  */
 internal fun editGroupItems(): List<MenuItem<EditGroupAction>> =
-    listOf(EditGroupIcon, EditGroupName)
+    listOf(EditGroupPicture, EditGroupName)

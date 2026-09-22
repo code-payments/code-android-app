@@ -154,10 +154,10 @@ class EditGroupPictureViewModel @Inject constructor(
                 if (!stateFlow.value.canSubmit) return@onEach
 
                 BottomBarManager.showAlert(
-                    title = resources.getString(R.string.prompt_title_changeGroupPhoto),
-                    message = resources.getString(R.string.prompt_description_changeGroupPhoto),
+                    title = resources.getString(R.string.prompt_title_changeGroupPicture),
+                    message = resources.getString(R.string.prompt_description_changeGroupPicture),
                     actions = listOf(
-                        BottomBarAction(resources.getString(R.string.action_changeGroupPhoto)) {
+                        BottomBarAction(resources.getString(R.string.action_changeGroupPicture)) {
                             viewModelScope.launch {
                                 // The bar dismisses on an animation, and the upload's spinner
                                 // belongs to the screen behind it — it would start underneath.
