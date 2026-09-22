@@ -309,7 +309,13 @@ private fun MessageSelectionBar(
                     label = stringResource(R.string.title_report),
                     icon = Icons.Outlined.Flag,
                     testTag = "action_report_message",
-                    onClick = onReport,
+                    // Unlike the others this one leaves the chat, so nothing on the way back
+                    // dismisses the bar. Clearing it here means the transcript is at rest behind
+                    // the report flow, and still at rest when it closes.
+                    onClick = {
+                        dispatch(ChatViewModel.Event.ReportRequested)
+                        onReport()
+                    },
                 )
             )
         }

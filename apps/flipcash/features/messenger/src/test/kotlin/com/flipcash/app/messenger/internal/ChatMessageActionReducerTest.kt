@@ -142,6 +142,21 @@ class ChatMessageActionReducerTest {
     }
 
     @Test
+    fun `reporting clears the bar`() {
+        // Report leaves the chat for a flow of its own, so nothing here dismisses the bar on the
+        // way back. Without this the transcript is still holding the reported message highlighted
+        // when the flow closes over it.
+        val selected = reduce(
+            ChatViewModel.State(messagePolicy = unbounded),
+            ChatViewModel.Event.ToggleMessageSelection(bubble(1)),
+        )
+
+        val state = reduce(selected, ChatViewModel.Event.ReportRequested)
+
+        assertNull(state.selection)
+    }
+
+    @Test
     fun `the delete confirmation holds the selection but drops the focus`() {
         // The bar still has its message, so the sheet's Cancel has something to return to. The
         // focus goes because the sheet is modal — a sharp bubble behind it reads as still live.

@@ -466,6 +466,10 @@ internal class ChatViewModel @Inject constructor(
         data class EditMessage(val messageId: Long, val text: String) : Event
         data class DeleteMessage(val messageId: Long) : Event
 
+        // Carries nothing because it does nothing but dismiss the bar: report is its own top-level
+        // flow, and the bar's caller has already captured the message to push the route with.
+        data object ReportRequested : Event
+
         data object SubmitEdit : Event
         data object CancelEdit : Event
         data object EditingEnded : Event
@@ -2160,6 +2164,9 @@ internal class ChatViewModel @Inject constructor(
                     state.copy(selection = null, confirmingDelete = false)
                 }
                 is Event.CopyMessage -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
+                Event.ReportRequested -> { state ->
                     state.copy(selection = null, confirmingDelete = false)
                 }
                 is Event.EditMessage -> { state ->
