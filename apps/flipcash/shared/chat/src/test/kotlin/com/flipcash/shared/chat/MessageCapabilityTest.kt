@@ -70,9 +70,9 @@ class MessageCapabilityTest {
     }
 
     @Test
-    fun `someone else's text message is copyable but not editable or deletable`() {
+    fun `someone else's text message is copyable and reportable, not editable or deletable`() {
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
             resolveCapabilities(text(isFromSelf = false)),
         )
     }
@@ -80,7 +80,56 @@ class MessageCapabilityTest {
     @Test
     fun `cash is never editable or deletable, by either party`() {
         assertEquals(setOf(MessageCapability.Reply), resolveCapabilities(cash()))
-        assertEquals(setOf(MessageCapability.Reply), resolveCapabilities(cash(isFromSelf = false)))
+        // Reportable though: a payment is something a participant sent, and it is one of the
+        // things most worth reporting.
+        assertEquals(
+            setOf(MessageCapability.Reply, MessageCapability.Report),
+            resolveCapabilities(cash(isFromSelf = false)),
+        )
+    }
+
+    /**
+     * Reporting your own message is left out because it is not a thing anyone does, and a row that
+     * is always present is a row people stop reading. This is the first capability whose answer
+     * turns on `isFromSelf` for a reason that is not about authorship privileges, so it is worth
+     * pinning at both ends.
+     */
+    @Test
+    fun `your own messages are never reportable`() {
+        assertEquals(
+            emptySet(),
+            resolveCapabilities(text(), now = sentAt).filterTo(mutableSetOf()) {
+                it == MessageCapability.Report
+            },
+        )
+        assertEquals(emptySet(), resolveCapabilities(cash()) - MessageCapability.Reply)
+    }
+
+    @Test
+    fun `nothing the server wrote, or that is already gone, can be reported`() {
+        val theirTombstone = message(
+            listOf(MessageContent.Deleted(sentAt, otherId)),
+            isFromSelf = false,
+        )
+        assertEquals(emptySet(), resolveCapabilities(theirTombstone))
+
+        val theirSystemNotice = message(
+            listOf(MessageContent.System("Anna joined")),
+            isFromSelf = false,
+        )
+        assertEquals(emptySet(), resolveCapabilities(theirSystemNotice))
+    }
+
+    @Test
+    fun `reporting has no window, so an old message stays reportable`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
+            resolveCapabilities(
+                text(isFromSelf = false),
+                policy = MessagePolicy.Default,
+                now = sentAt + 365.days,
+            ),
+        )
     }
 
     @Test

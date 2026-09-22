@@ -36,6 +36,7 @@ import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
+import com.flipcash.app.messenger.ReportFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
@@ -118,6 +119,9 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.FindByUsername> { FindByUsernameScreen() }
     annotatedEntry<AppRoute.Messaging.NewGroup> { key ->
         NewGroupFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+    }
+    annotatedEntry<AppRoute.Messaging.Report> { key ->
+        ReportFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
 
     // Tokens

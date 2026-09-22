@@ -21,6 +21,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.ReportSubject
+import com.flipcash.app.core.AppRoute
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.messenger.internal.ChatMuteStatusChip
@@ -60,6 +63,7 @@ internal fun ChatProfileScreen(
     chatViewModel: ChatViewModel,
 ) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
 
@@ -72,12 +76,14 @@ internal fun ChatProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            // Mute first, block last: the one that is reversible and routine sits above the one
-            // that ends the conversation, the same order the group's profile puts leaving in.
+            // Mute first, then report, block last: the reversible and routine sits above the one
+            // that asks someone else to look, which sits above the one that ends the conversation.
+            // Same shape as the group's profile, where leaving holds the last place.
             items = buildList<MenuItem<ChatProfileAction>> {
                 if (chatState.chatType == ChatType.TIP_DM) {
                     add(MuteDm)
                 }
+                add(ReportUser)
                 add(BlockUser)
             },
             header = {
@@ -105,6 +111,17 @@ internal fun ChatProfileScreen(
                     // Both muting and unmuting go through the picker, which is why this row
                     // navigates either way rather than acting on one of them here.
                     ChatProfileAction.Mute -> flowNavigator.navigateTo(ChatStep.MuteChat)
+                    // Not flowNavigator: Report is a top-level route rather than a step of
+                    // this flow, and LocalCodeNavigator hands a non-FlowStep route up to its
+                    // parent. So it opens over the chat rather than inside it.
+                    ChatProfileAction.Report ->
+                        (state.participant as? ChatParticipant.TipUser)?.let { participant ->
+                            navigator.push(
+                                AppRoute.Messaging.Report(
+                                    ReportSubject.User(participant.userId)
+                                )
+                            )
+                        }
                 }
             },
             endSlot = { item ->

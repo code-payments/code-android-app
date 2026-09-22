@@ -24,6 +24,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":libs:vibrator:bindings"))
     implementation(project(":libs:messaging"))
+    implementation(project(":libs:reporting"))
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
     implementation(project(":libs:datetime"))

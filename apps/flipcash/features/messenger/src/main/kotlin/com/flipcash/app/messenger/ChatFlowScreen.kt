@@ -64,8 +64,8 @@ fun ChatFlowScreen(
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
         entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
-        // ChatStep.AmountEntry, ChatStep.InitPayment, ChatStep.InviteToGroup and ChatStep.MuteChat
-        // are Sheets, so the
+        // ChatStep.AmountEntry, ChatStep.InitPayment, ChatStep.InviteToGroup and
+        // ChatStep.MuteChat are Sheets, so the
         // flow needs the sheet strategy to draw them as such; without it the step would fall
         // through to SinglePane and cover the thread. Amount entry
         // returns its result inside the flow (resultBackNavigator), so the strategy's own
@@ -98,6 +98,7 @@ private fun chatEntryProvider(
     annotatedEntry<ChatStep.MuteChat> {
         FlowMuteChatSheet()
     }
+
     annotatedEntry<ChatStep.Profile> { step ->
         FlowChatProfileScreen(step.contact)
     }
@@ -273,6 +274,7 @@ private fun FlowMuteChatSheet() {
         onDismiss = dismissSheet,
     )
 }
+
 
 @Composable
 private fun FlowChatProfileScreen(participant: ChatParticipant) {

@@ -4,6 +4,8 @@ import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.ReportSubject
+import com.flipcash.app.core.reporting.ReportStep
 import com.flipcash.app.core.chat.NewGroupStep
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
@@ -359,6 +361,33 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object NewGroup : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
                 get() = listOf(NewGroupStep.Form)
+        }
+
+        /**
+         * Reporting a person, a group, or a single message.
+         *
+         * A top-level route rather than a step of [Chat], although every way in is a chat surface.
+         * Reporting a person is about the person, not the conversation it was opened from, and the
+         * flow outlives the surface: it is reachable from a profile, a group profile, and the
+         * selection bar, and sharing one route means those three cannot drift apart. It also keeps
+         * a half-written report out of the chat's view model.
+         *
+         * A [com.getcode.navigation.FullscreenSheet] without `WrapContentSheet`: it rests at a
+         * fixed height and stays there while the steps change. The wrap-content version of this
+         * deadlocked — such a sheet derives its drag anchors from the height its content reports
+         * and reads them again while placing that content, so content that resizes itself never
+         * settles. Fullscreen rather than the usual expanded detent because both steps are worked
+         * through rather than glanced at, and the second is a text field with the keyboard up.
+         */
+        @Serializable
+        @Parcelize
+        data class Report(val subject: ReportSubject) :
+            Messaging,
+            FlowRoute,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.FullscreenSheet {
+            override val initialStack: List<NavKey>
+                get() = listOf(ReportStep.ReasonSelection)
         }
     }
 

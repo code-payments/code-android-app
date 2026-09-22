@@ -69,13 +69,24 @@ inline fun Modifier.addIf(
     }
 }
 
-fun Modifier.noRippleClickable(enabled: Boolean = true, onClick: () -> Unit) =
-    this.clickable(
-        enabled = enabled,
-        indication = null,
-        interactionSource = null,
-        onClick = onClick
-    )
+/**
+ * A click with no indication at all.
+ *
+ * [role] defaults to null to leave every existing caller's semantics as they were; pass
+ * [Role.Button] when the target is one, so dropping the ripple does not also drop what a screen
+ * reader announces.
+ */
+fun Modifier.noRippleClickable(
+    enabled: Boolean = true,
+    role: Role? = null,
+    onClick: () -> Unit,
+) = this.clickable(
+    enabled = enabled,
+    role = role,
+    indication = null,
+    interactionSource = null,
+    onClick = onClick
+)
 
 fun Modifier.unboundedClickable(
     enabled: Boolean = true,

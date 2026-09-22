@@ -30,8 +30,12 @@ interface FlowNavigator<S : FlowStep, R : Parcelable> {
     fun replaceStack(steps: List<S>)
 
     /**
-     * Pop the current step. Returns true if a step was popped, or false if this was the root of
-     * the flow (in which case the flow itself should be exited by the host).
+     * Pop the current step, or exit the flow if this was its root.
+     *
+     * The return value reports which of those happened — true if a step was popped, false if the
+     * flow was exited. It is not a request for the caller to exit: the host has already been told.
+     * Following a false return with [exitCanceled] exits a second time, which costs a host that
+     * pops on exit one entry more than it opened.
      */
     fun back(): Boolean
 

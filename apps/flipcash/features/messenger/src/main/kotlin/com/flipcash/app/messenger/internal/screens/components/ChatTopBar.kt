@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -40,11 +41,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.topFade
 import com.flipcash.features.messenger.R
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
@@ -57,9 +62,8 @@ import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
-import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.topFade
 import com.getcode.ui.core.measured
-import com.getcode.ui.core.unboundedClickable
+import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.utils.KeyboardController
 import com.getcode.ui.utils.rememberKeyboardController
 
@@ -99,7 +103,23 @@ internal fun ChatTopBar(
             when (target) {
                 TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler)
                 TopBarMode.Editing -> EditingBar(dispatch)
-                is TopBarMode.Selecting -> MessageSelectionBar(target.selection, keyboard, dispatch)
+                is TopBarMode.Selecting -> MessageSelectionBar(
+                    selection = target.selection,
+                    keyboard = keyboard,
+                    dispatch = dispatch,
+                    // Resolved here rather than in the bar: reporting is its own top-level
+                    // flow now, so it needs the chat's id, and this is the nearest scope holding
+                    // both that and the navigator.
+                    onReport = {
+                        state.chatId?.let { chatId ->
+                            navigator.push(
+                                AppRoute.Messaging.Report(
+                                    ReportSubject.Message(chatId, target.selection.messageId)
+                                )
+                            )
+                        }
+                    },
+                )
             }
         }
     }
@@ -150,7 +170,10 @@ private fun ConversationTitleBar(
                     .fillMaxWidth()
                     .then(
                         if (state.canViewProfile) {
-                            Modifier.unboundedClickable {
+                            // No indication: the target is the whole title row, so an unbounded
+                            // ripple centred on it washed across the bar on every tap. The role
+                            // is kept so the row still reads as a button.
+                            Modifier.noRippleClickable(role = Role.Button) {
                                 chatActionHandler(ChatAction.ViewProfile)
                             }
                         } else {
@@ -225,6 +248,7 @@ private fun MessageSelectionBar(
     selection: ChatListItem.ContentBubble,
     keyboard: KeyboardController,
     dispatch: (ChatViewModel.Event) -> Unit,
+    onReport: () -> Unit,
 ) {
     val capabilities = selection.capabilities
     val body = selection.plainText
@@ -232,7 +256,9 @@ private fun MessageSelectionBar(
     // Order is priority: the first actions keep their icons when the bar runs out of room. Reply
     // leads because it is the most common action and the only one a cash bubble offers — burying it
     // is the one choice that would leave that bubble's bar empty. Delete follows: putting the one
-    // action with a confirmation behind a menu makes it a three-tap job.
+    // action with a confirmation behind a menu makes it a three-tap job. Report goes last: it is
+    // the rarest of the five and the only one that is never about your own message, so it is the
+    // right one to collapse into the overflow on a narrow screen.
     val actions = buildList {
         if (MessageCapability.Reply in capabilities) {
             add(
@@ -281,6 +307,22 @@ private fun MessageSelectionBar(
                 )
             )
         }
+        if (MessageCapability.Report in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.title_report),
+                    icon = Icons.Outlined.Flag,
+                    testTag = "action_report_message",
+                    // Unlike the others this one leaves the chat, so nothing on the way back
+                    // dismisses the bar. Clearing it here means the transcript is at rest behind
+                    // the report flow, and still at rest when it closes.
+                    onClick = {
+                        dispatch(ChatViewModel.Event.ReportRequested)
+                        onReport()
+                    },
+                )
+            )
+        }
     }
 
     AppBarWithTitle(
@@ -313,14 +355,30 @@ private data class MessageAction(
 )
 
 /**
- * The share of the bar the actions may occupy before they start collapsing into the overflow.
+ * The share of the actions' slot they may occupy before the rest collapse into the overflow.
  *
  * A share rather than a slot count, so the answer tracks the screen: at 40dp a button and 10dp
- * between them, a normal phone fits all three actions and a compact one keeps the first inline
- * with the rest a tap away. It stays a minority of the bar so the cluster still reads as trailing
- * and leaves room for a title, should the selection bar ever grow one.
+ * between them, every phone width fits the three actions another participant's message offers, and
+ * the two extra on your own collapse into the menu.
+ *
+ * It is a ceiling, not a width — the row is laid out to its contents, so a bar leaving the budget
+ * unspent is no wider for it. The figure only has to clear three buttons and their two gaps, 140dp,
+ * on the narrowest phone worth supporting. 0.35 did not, and the miss was small enough to look like
+ * it should have worked: the slot is the bar less the app bar's 5dp either side, so a 400dp device
+ * budgets against 390dp and lands on 136.5dp — three and a half short of three buttons, with most
+ * of the bar standing empty and copy and report in a menu.
  */
-private const val ActionBudgetFraction = 0.35f
+private const val ActionBudgetFraction = 0.5f
+
+/**
+ * How many actions stay as icons in a [barWidth] slot. Extracted so the widths that decide it can
+ * be tested without laying a bar out; see `MessageActionCapacityTest`.
+ */
+internal fun inlineActionCapacity(barWidth: Dp, buttonSize: Dp, spacing: Dp): Int =
+    // n buttons cost n widths and n-1 gaps, so adding one gap to both sides makes it a division.
+    ((barWidth * ActionBudgetFraction + spacing) / (buttonSize + spacing))
+        .toInt()
+        .coerceAtLeast(1)
 
 @Composable
 private fun MessageActions(actions: List<MessageAction>) {
@@ -332,10 +390,7 @@ private fun MessageActions(actions: List<MessageAction>) {
     val spacing = CodeTheme.dimens.grid.x2
 
     BoxWithConstraints {
-        // n buttons cost n widths and n-1 gaps, so adding one gap to both sides makes it a division.
-        val capacity = ((maxWidth * ActionBudgetFraction + spacing) / (buttonSize + spacing))
-            .toInt()
-            .coerceAtLeast(1)
+        val capacity = inlineActionCapacity(maxWidth, buttonSize, spacing)
         // The overflow needs a slot of its own, so it only pays for itself when it is holding
         // something — the last action is not displaced by a menu that would contain only it.
         val inline = if (actions.size <= capacity) actions else actions.take(capacity - 1)

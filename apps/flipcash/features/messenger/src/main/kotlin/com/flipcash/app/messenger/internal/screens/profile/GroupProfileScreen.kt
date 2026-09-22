@@ -19,6 +19,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.ReportSubject
+import com.flipcash.app.core.AppRoute
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.messenger.internal.ChatMuteStatusChip
@@ -44,6 +47,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 @Composable
 internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
 
@@ -67,16 +71,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            // Every row is for members only: a non-member has no link to hand out, nothing to
-            // leave, and no viewer state on a chat they are not in. Membership comes from the
+            // Every other row is for members only: a non-member has no link to hand out, nothing
+            // to leave, and no viewer state on a chat they are not in. Membership comes from the
             // roster rather than from the gate, so the rows go away the moment the leave itself
             // lands, not when the balance rule next re-decides.
+            //
+            // Reporting is the exception, and deliberately so: a group you have already left is
+            // the one you are most likely to report.
             items = buildList<MenuItem<GroupProfileAction>> {
                 if (state.groupInviteUrl != null) add(InviteToGroup)
-                if (group?.isMember == true) {
-                    add(MuteChat)
-                    add(LeaveChat)
-                }
+                if (group?.isMember == true) add(MuteChat)
+                add(ReportGroup)
+                if (group?.isMember == true) add(LeaveChat)
             },
             header = {
                 GroupProfileHeader(
@@ -105,6 +111,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     GroupProfileAction.Mute -> flowNavigator.navigateTo(ChatStep.MuteChat)
                     GroupProfileAction.Leave ->
                         viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat)
+                    // The outer navigator, not this flow's: reporting is its own top-level
+                    // route, so it opens over the chat rather than inside it.
+                    GroupProfileAction.Report -> state.chatId?.let { chatId ->
+                        navigator.push(
+                            AppRoute.Messaging.Report(ReportSubject.Chat(chatId))
+                        )
+                    }
                 }
             },
         )

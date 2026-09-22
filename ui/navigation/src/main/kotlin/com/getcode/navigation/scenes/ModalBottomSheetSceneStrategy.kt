@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -90,6 +91,17 @@ private val Half = SheetDetent("half") { containerHeight, _ ->
     containerHeight * 0.5f
 }
 
+/**
+ * Resting detent for a [com.getcode.navigation.FullscreenSheet]: the whole container, status bar
+ * included.
+ *
+ * [Expanded]'s 7.5% gap is what tells you a sheet is a layer over something. A route that is a
+ * screen in its own right does not need telling, so it takes the height back.
+ */
+private val Fullscreen = SheetDetent("fullscreen") { containerHeight, _ ->
+    containerHeight
+}
+
 /** An [OverlayScene] that renders an [entry] within an [UnstyledBottomSheet]. */
 internal class ModalBottomSheetScene<T : Any> constructor(
     override val key: T,
@@ -147,13 +159,17 @@ internal class ModalBottomSheetScene<T : Any> constructor(
             val isWrapContent =
                 metadata[NavMetadataKeys.IsWrapContentSheet.key] as? Boolean ?: false
 
-            // A half sheet gains an extra resting detent and opens there; a wrap-content sheet rests
-            // at its own content height; every other sheet keeps the two-detent (hidden/expanded)
-            // behaviour. Half wins the overlap: those sheets are sized by the fraction, and
-            // wrap-content only strips their `fillMaxHeight()` further down.
+            // A half sheet gains an extra resting detent and opens there; a fullscreen sheet takes
+            // the whole container; a wrap-content sheet rests at its own content height; every other
+            // sheet keeps the two-detent (hidden/expanded) behaviour. Half wins the overlap: those
+            // sheets are sized by the fraction, and wrap-content only strips their `fillMaxHeight()`
+            // further down.
             val isHalfSheet = metadata[NavMetadataKeys.IsHalfSheet.key] as? Boolean ?: false
+            val isFullscreen =
+                metadata[NavMetadataKeys.IsFullscreenSheet.key] as? Boolean ?: false
             val restingDetent = when {
                 isHalfSheet -> Half
+                isFullscreen -> Fullscreen
                 isWrapContent -> WrapContent
                 else -> Expanded
             }
@@ -317,7 +333,19 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                         Sheet(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                                // Rounded corners read as a card lifted over the screen behind it.
+                                // A fullscreen sheet has no screen behind it to be lifted over, and
+                                // the curves would only carve two notches out of the display's own
+                                // square corners.
+                                .then(
+                                    if (isFullscreen) {
+                                        Modifier
+                                    } else {
+                                        Modifier.clip(
+                                            RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                                        )
+                                    }
+                                )
                                 .background(CodeTheme.colors.surface),
                         ) {
                             Box(
@@ -326,6 +354,16 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                                     .then(
                                         if (!isWrapContent) {
                                             Modifier.fillMaxHeight()
+                                        } else Modifier
+                                    )
+                                    // Every other sheet rests below the status bar and so never had
+                                    // to think about it. This one reaches it: the surface is drawn
+                                    // behind the bar (no scrim sliver at the top) and the content is
+                                    // inset past it, the way a full-screen route's own app bar
+                                    // insets itself.
+                                    .then(
+                                        if (isFullscreen) {
+                                            Modifier.statusBarsPadding()
                                         } else Modifier
                                     ),
                             ) {
