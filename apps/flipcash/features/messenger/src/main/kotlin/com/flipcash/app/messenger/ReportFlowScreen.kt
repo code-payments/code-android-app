@@ -19,6 +19,7 @@ import com.flipcash.app.messenger.internal.screens.ReportDetailsContent
 import com.flipcash.reporting.ReportReason
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.FlowNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -47,6 +48,9 @@ fun ReportFlowScreen(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val navigator = LocalCodeNavigator.current
+    // Read before FlowHost overrides the locals below: non-null only because a sheet scene is what
+    // provides it, which makes its presence the answer to "is this flow being shown in a sheet".
+    val sheetNavigator = LocalSheetNavigator.current
     val keyboard = rememberKeyboardController()
 
     FlowHost<ReportStep, Parcelable>(
@@ -54,7 +58,26 @@ fun ReportFlowScreen(
         resultStateRegistry = resultStateRegistry,
         // The details step owns the keyboard, so put it away before the chat behind this is
         // uncovered — the same rule the chat and new-group flows follow.
-        onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
+        //
+        // Popping outright would take the sheet off in one frame. Handing the sheet navigator a
+        // dismiss instead lets the scene animate it down and pop the entry itself once that
+        // finishes, so this must not also pop — that pair of pops is what used to land us back on
+        // the chat list.
+        //
+        // FlowHost has an animated exit of its own but will not use it here: it gates on
+        // `isSheetRoot`, which is `backStack.size <= 1`, and report opens over a chat. A sheet is
+        // no less a sheet for having something underneath it, so that gate is wrong for every
+        // flow opened this way — fixing it there is a wider change than this one.
+        onExit = { _, _ ->
+            keyboard.hideIfVisible {
+                if (sheetNavigator != null) {
+                    // Empty lambda: animate out, nothing to do afterwards.
+                    sheetNavigator.pendingSheetDismiss = {}
+                } else {
+                    navigator.pop()
+                }
+            }
+        },
         entryProvider = reportEntryProvider(route.subject),
         sceneStrategies = listOf(
             ModalBottomSheetSceneStrategy(navigator.resultStore) { null },
