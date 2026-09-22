@@ -153,7 +153,7 @@ class EditGroupPictureViewModel @Inject constructor(
             .onEach {
                 if (!stateFlow.value.canSubmit) return@onEach
 
-                BottomBarManager.showMessage(
+                BottomBarManager.showAlert(
                     title = resources.getString(R.string.prompt_title_changeGroupPicture),
                     message = resources.getString(R.string.prompt_description_changeGroupPicture),
                     actions = listOf(

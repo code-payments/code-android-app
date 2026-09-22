@@ -105,7 +105,7 @@ class EditGroupNameViewModel @Inject constructor(
                 // reaches here without consulting it.
                 if (!state.canSubmit) return@onEach
 
-                BottomBarManager.showMessage(
+                BottomBarManager.showAlert(
                     title = resources.getString(R.string.prompt_title_changeGroupName),
                     message = resources.getString(
                         R.string.prompt_description_changeGroupName,
