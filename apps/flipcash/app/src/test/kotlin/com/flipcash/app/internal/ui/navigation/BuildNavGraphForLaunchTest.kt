@@ -51,11 +51,11 @@ class BuildNavGraphForLaunchTest {
     // -- Ready --
 
     @Test
-    fun `logged in without deeplink opens on the Wallet tab`() {
+    fun `logged in without deeplink opens on the Chats tab`() {
         val result = build(AuthState.Ready)!!
-        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertEquals(listOf(AppRoute.Sheets.Tips()), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
-        assertEquals(listOf(AppRoute.Sheets.Wallet), result.resolvedBackStack())
+        assertEquals(listOf(AppRoute.Sheets.Tips()), result.resolvedBackStack())
     }
 
     @Test
@@ -99,9 +99,9 @@ class BuildNavGraphForLaunchTest {
     }
 
     @Test
-    fun `logged in with None action opens the Wallet tab without deeplink routes`() {
+    fun `logged in with None action opens the Chats tab without deeplink routes`() {
         val result = buildReady(DeeplinkAction.None)
-        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertEquals(listOf(AppRoute.Sheets.Tips()), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
     }
 

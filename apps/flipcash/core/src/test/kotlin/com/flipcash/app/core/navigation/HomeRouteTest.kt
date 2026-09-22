@@ -21,4 +21,9 @@ class HomeRouteTest {
         // hoisted nav bar would render with no selection.
         assertEquals(NavBarButton.Wallet, homeRoute.asNavBarTab())
     }
+
+    @Test
+    fun `cold launch opens on the chats tab`() {
+        assertEquals(NavBarButton.Chats, launchRoute.asNavBarTab())
+    }
 }

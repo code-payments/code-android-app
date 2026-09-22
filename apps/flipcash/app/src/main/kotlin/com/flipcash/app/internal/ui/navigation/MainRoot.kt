@@ -28,6 +28,7 @@ import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.homeRoute
+import com.flipcash.app.core.navigation.launchRoute
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.resolveBackStack
 import com.flipcash.app.router.LocalRouter
@@ -234,10 +235,11 @@ internal fun buildNavGraphForLaunch(
                         pendingAction = action,
                     )
 
-                    else -> LaunchNavGraph(listOf(home))
+                    // A link that resolves to nothing is a plain launch.
+                    else -> LaunchNavGraph(listOf(launchRoute))
                 }
             } else {
-                LaunchNavGraph(listOf(home))
+                LaunchNavGraph(listOf(launchRoute))
             }
         }
 
