@@ -3,6 +3,9 @@ package com.flipcash.app.messenger
 import android.os.Parcelable
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -17,6 +20,7 @@ import com.flipcash.reporting.ReportReason
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowHost
+import com.getcode.navigation.flow.FlowNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
@@ -71,8 +75,12 @@ private fun reportEntryProvider(
 private fun FlowReasonSelection(subject: ReportSubject) {
     val viewModel = flowSharedViewModel<ReportViewModel>()
     val flowNavigator = rememberFlowNavigator<ReportStep, Parcelable>()
+    val submitting by viewModel.submitting.collectAsStateWithLifecycle()
+
+    ExitOnceConfirmed(viewModel, flowNavigator)
 
     ReasonSelectionContent(
+        submitting = submitting,
         onChoose = { reason ->
             if (reason == ReportReason.Other) {
                 flowNavigator.navigateTo(ReportStep.Details(reason))
@@ -80,7 +88,6 @@ private fun FlowReasonSelection(subject: ReportSubject) {
                 // Every other reason is the whole report, so the pick is the submit. Asking for
                 // more after someone has already said what is wrong would be asking twice.
                 viewModel.submit(subject, reason, details = null)
-                flowNavigator.exitCanceled()
             }
         },
         // `back` on its own: at the flow's root it exits the flow itself, so pairing it with an
@@ -97,14 +104,36 @@ private fun FlowReportDetails(subject: ReportSubject, reason: ReportReason) {
     // typed — leaving by the back arrow is usually a second thought about the reason, not about
     // the words.
     val details = rememberTextFieldState()
+    val submitting by viewModel.submitting.collectAsStateWithLifecycle()
+
+    ExitOnceConfirmed(viewModel, flowNavigator)
 
     ReportDetailsContent(
         state = details,
-        onSubmit = { typed ->
-            viewModel.submit(subject, reason, typed)
-            flowNavigator.exitCanceled()
-        },
+        submitting = submitting,
+        onSubmit = { typed -> viewModel.submit(subject, reason, typed) },
         // Not the flow's root, so this steps back to the reasons rather than leaving.
         onNavigateUp = { flowNavigator.back() },
     )
+}
+
+/**
+ * Closes the flow once the report has been acknowledged.
+ *
+ * What closes the flow is the confirmation being dismissed, not the submit being called. Reporting
+ * someone is not a throwaway action, and the flow used to vanish the instant the button was
+ * pressed, which left the confirmation to land on whatever happened to be behind it and said
+ * nothing at all when the send had failed.
+ *
+ * Collected per step rather than once around the host, because [FlowNavigator] is only in scope
+ * inside one — and the step that submitted is the one still composed while its confirmation is up.
+ */
+@Composable
+private fun ExitOnceConfirmed(
+    viewModel: ReportViewModel,
+    flowNavigator: FlowNavigator<ReportStep, Parcelable>,
+) {
+    LaunchedEffect(viewModel) {
+        viewModel.confirmed.collect { flowNavigator.exitCanceled() }
+    }
 }

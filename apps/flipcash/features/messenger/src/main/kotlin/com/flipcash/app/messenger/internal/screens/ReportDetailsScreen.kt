@@ -67,6 +67,8 @@ import com.getcode.ui.utils.rememberKeyboardController
 internal fun ReportDetailsContent(
     state: TextFieldState,
     onSubmit: (String) -> Unit,
+    // See [ReasonSelectionContent]: the send is waited on here rather than behind a closed flow.
+    submitting: Boolean = false,
     onNavigateUp: () -> Unit,
 ) {
     val keyboard = rememberKeyboardController()
@@ -137,6 +139,7 @@ internal fun ReportDetailsContent(
                         .imePadding(),
                     text = stringResource(R.string.action_submitReport),
                     enabled = typed.isNotBlank() && !isOverLimit,
+                    isLoading = submitting,
                     onClick = { keyboard.hideIfVisible { onSubmit(typed.trim()) } },
                 )
             }

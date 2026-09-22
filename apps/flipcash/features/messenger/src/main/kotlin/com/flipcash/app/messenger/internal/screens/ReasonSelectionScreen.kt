@@ -63,6 +63,9 @@ import com.getcode.ui.theme.CodeScaffold
 internal fun ReasonSelectionContent(
     onChoose: (ReportReason) -> Unit,
     onNavigateUp: () -> Unit,
+    // The flow stays up until the report is acknowledged, so the button has to show the wait it
+    // used to hide by closing.
+    submitting: Boolean = false,
 ) {
     // Saved, so stepping forward to the details screen and back again doesn't lose the pick that
     // got you there.
@@ -96,6 +99,7 @@ internal fun ReasonSelectionContent(
                         stringResource(R.string.action_submitReport)
                     },
                     enabled = selected != null,
+                    isLoading = submitting,
                     onClick = { selected?.let(onChoose) },
                 )
             },
