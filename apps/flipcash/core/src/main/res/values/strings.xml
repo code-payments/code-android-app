@@ -1050,8 +1050,12 @@
     <string name="title_editGroup">Edit Group</string>
     <string name="title_editGroupPicture">Picture</string>
     <string name="title_editGroupName">Name</string>
-    <!-- The picture screen's own title. The row above says what it changes; this says what to do. -->
+    <!-- Each edit screen's own title. The row above says what it changes; this says what to do.
+         They are placed differently because the account flow places them differently for the same
+         two edits: PhotoSelectionScreen titles its app bar, NameEntryScreen leaves the bar bare and
+         heads the field itself. -->
     <string name="title_setGroupPicture">Set Picture</string>
+    <string name="title_setGroupName">Set Name</string>
 
     <!-- Both edits are confirmed before the call: a rename or a new picture is visible to the whole
          group, so Save opens the prompt and the prompt's action is what sends it. -->

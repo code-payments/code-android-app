@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,62 +74,72 @@ internal fun EditGroupNameScreen(chatViewModel: ChatViewModel) {
             .launchIn(this)
     }
 
-    CodeScaffold(
-        topBar = {
-            // No title. The field is the screen, and the row that opened it already said Name;
-            // the bar is here for the back control.
-            AppBarWithTitle(
-                onBackIconClicked = { keyboard.hideIfVisible { flowNavigator.back() } },
-            )
-        },
-        bottomBar = {
-            CodeButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .navigationBarsPadding()
-                    .padding(
-                        top = CodeTheme.dimens.grid.x6,
-                        bottom = CodeTheme.dimens.grid.x3,
-                    ).imePadding(),
-                text = stringResource(R.string.action_save),
-                enabled = state.canSubmit,
-                isLoading = state.processingState.loading,
-                isSuccess = state.processingState.success,
-                onClick = {
-                    keyboard.hideIfVisible {
-                        viewModel.dispatchEvent(EditGroupNameViewModel.Event.SaveClicked)
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        val focusRequester = remember { FocusRequester() }
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(horizontal = CodeTheme.dimens.inset)
-        ) {
-            DisplayTextInput(
-                state = state.titleFieldState,
-                placeholder = stringResource(R.string.hint_groupName),
-                sublabel = stringResource(R.string.subtitle_groupNameLength),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words,
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Done,
-                ),
-                onKeyboardAction = {
-                    keyboard.hideIfVisible {
-                        viewModel.dispatchEvent(EditGroupNameViewModel.Event.SaveClicked)
-                    }
-                },
-            )
-        }
+    // Laid out as NameEntryScreen lays out the same edit: the bar carries the back control and no
+    // title, and the heading sits inside the scaffold above the field, so it scrolls and insets
+    // with the content rather than floating in a bar over it.
+    Column {
+        AppBarWithTitle(
+            onBackIconClicked = { keyboard.hideIfVisible { flowNavigator.back() } },
+        )
+        CodeScaffold(
+            modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+            topBar = {
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .padding(
+                            top = CodeTheme.dimens.grid.x2,
+                            bottom = CodeTheme.dimens.inset,
+                        ),
+                    text = stringResource(R.string.title_setGroupName),
+                    style = CodeTheme.typography.textLarge,
+                    color = CodeTheme.colors.textMain,
+                )
+            },
+            bottomBar = {
+                CodeButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(
+                            top = CodeTheme.dimens.grid.x6,
+                            bottom = CodeTheme.dimens.grid.x3,
+                        ).imePadding(),
+                    text = stringResource(R.string.action_save),
+                    enabled = state.canSubmit,
+                    isLoading = state.processingState.loading,
+                    isSuccess = state.processingState.success,
+                    onClick = {
+                        keyboard.hideIfVisible {
+                            viewModel.dispatchEvent(EditGroupNameViewModel.Event.SaveClicked)
+                        }
+                    },
+                )
+            },
+        ) { padding ->
+            val focusRequester = remember { FocusRequester() }
+            Column(modifier = Modifier.padding(padding)) {
+                DisplayTextInput(
+                    state = state.titleFieldState,
+                    placeholder = stringResource(R.string.hint_groupName),
+                    sublabel = stringResource(R.string.subtitle_groupNameLength),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done,
+                    ),
+                    onKeyboardAction = {
+                        keyboard.hideIfVisible {
+                            viewModel.dispatchEvent(EditGroupNameViewModel.Event.SaveClicked)
+                        }
+                    },
+                )
+            }
 
-        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
+        }
     }
 }
