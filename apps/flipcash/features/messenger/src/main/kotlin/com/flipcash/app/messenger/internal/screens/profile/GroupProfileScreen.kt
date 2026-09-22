@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
 import androidx.annotation.VisibleForTesting
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.DpOffset
@@ -159,15 +163,29 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 }
 
 /**
+ * The overflow row's leading glyph, matching `ListItem`'s, so the one row inside the menu and the
+ * rows on the screen behind it line their icons up at the same size.
+ */
+private val OverflowIconSize = 24.dp
+
+/**
  * The profile's top-right overflow — one row, Edit, and only for a viewer who may use it.
  *
  * Draws nothing at all when the list is empty rather than a disabled button: an overflow that
  * opens on nothing is worse than no overflow, and `canEdit` is stable for the life of the screen
  * in every case but a permission being revoked under it.
  *
- * Shape is the message long-press menu's, from `ChatTopBar.MessageOverflow` — same surface colour,
- * same corner, same drop clear of the button — so the two menus in this feature read as one
- * control rather than two.
+ * Surface colour and corner are the message long-press menu's, from `ChatTopBar.MessageOverflow`,
+ * so the two menus in this feature read as one control. The vertical placement is not: this one
+ * opens *over* its button the way Chrome's toolbar overflow does, rather than below it. A menu
+ * dropped clear of a top-right button pushes its first row toward the middle of the screen and
+ * leaves the button stranded above it; covering the button puts the row where the thumb already
+ * is. `ChatTopBar`'s menu still drops below, which is the remaining inconsistency.
+ *
+ * The row is icon-led for the same reason the rows below it are. `DropdownMenu` is laid out to a
+ * 112dp minimum width, which a label as short as "Edit" leaves more than half empty; the glyph
+ * fills the leading space the trailing space is measured against, so the menu reads as a row
+ * rather than as a blank rounded rectangle with a word in the corner.
  */
 @Composable
 private fun GroupProfileOverflow(
@@ -178,7 +196,11 @@ private fun GroupProfileOverflow(
     if (items.isEmpty()) return
 
     var expanded by remember { mutableStateOf(false) }
-    Box {
+    // Measured rather than assumed: `AppBarDefaults.Overflow` sizes its own circle, so the pull-up
+    // that lands the menu's top edge on the button's top has to come from the anchor itself.
+    var anchorHeight by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+    Box(modifier = Modifier.onSizeChanged { anchorHeight = with(density) { it.height.toDp() } }) {
         AppBarDefaults.Overflow(
             modifier = Modifier.testTag("action_group_profile_overflow"),
             onClick = { expanded = true },
@@ -187,12 +209,20 @@ private fun GroupProfileOverflow(
             expanded = expanded,
             containerColor = CodeTheme.colors.brandLight,
             shape = CodeTheme.shapes.extraLarge,
-            offset = DpOffset(x = 0.dp, y = CodeTheme.dimens.grid.x2),
+            offset = DpOffset(x = 0.dp, y = -anchorHeight),
             onDismissRequest = { expanded = false },
         ) {
             items.forEach { item ->
                 DropdownMenuItem(
                     modifier = Modifier.testTag("action_edit_group"),
+                    leadingIcon = {
+                        Image(
+                            modifier = Modifier.size(OverflowIconSize),
+                            painter = item.icon,
+                            colorFilter = ColorFilter.tint(CodeTheme.colors.textMain),
+                            contentDescription = null,
+                        )
+                    },
                     text = {
                         Text(
                             text = item.name,
