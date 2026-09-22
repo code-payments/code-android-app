@@ -122,7 +122,6 @@ internal fun EditGroupNameScreen(chatViewModel: ChatViewModel) {
                 DisplayTextInput(
                     state = state.titleFieldState,
                     placeholder = stringResource(R.string.hint_groupName),
-                    sublabel = stringResource(R.string.subtitle_groupNameLength),
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester),
