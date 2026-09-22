@@ -117,6 +117,26 @@ class ChatSelectionBarTest {
         composeTestRule.onAllNodesWithTag("action_report_message").assertCountEquals(0)
     }
 
+    // At the class's own 400dp — a real device width, and the one the budget used to tie on.
+    @Test
+    fun `another participant's message shows all three actions as icons`() {
+        select(
+            text(
+                isFromSelf = false,
+                capabilities = setOf(
+                    MessageCapability.Copy,
+                    MessageCapability.Reply,
+                    MessageCapability.Report,
+                ),
+            )
+        )
+
+        listOf("action_reply_message", "action_copy_message", "action_report_message")
+            .forEach { composeTestRule.onNodeWithTag(it).assertIsDisplayed() }
+        // Three fit, so there is nothing left for a menu to hold.
+        composeTestRule.onAllNodesWithTag("action_message_overflow").assertCountEquals(0)
+    }
+
     private fun text(isFromSelf: Boolean, capabilities: Set<MessageCapability>) =
         ChatListItem.ContentBubble(
             messageId = 2,
