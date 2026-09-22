@@ -23,6 +23,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.reporting.ReportDescription
 import com.flipcash.reporting.ReportReason
 import com.flipcash.app.theme.FlipcashPreview
+import com.getcode.view.LoadingSuccessState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
@@ -43,10 +44,11 @@ class ReportFlowTest {
     private var submitted: String? = null
     private var dismissed = false
 
-    private fun showReasons() {
+    private fun showReasons(progress: LoadingSuccessState = LoadingSuccessState()) {
         composeTestRule.setContent {
             FlipcashPreview {
                 ReasonSelectionContent(
+                    progress = progress,
                     onChoose = { chosen = it },
                     onNavigateUp = { dismissed = true },
                 )
@@ -54,11 +56,15 @@ class ReportFlowTest {
         }
     }
 
-    private fun showDetails(state: TextFieldState = TextFieldState()) {
+    private fun showDetails(
+        state: TextFieldState = TextFieldState(),
+        progress: LoadingSuccessState = LoadingSuccessState(),
+    ) {
         composeTestRule.setContent {
             FlipcashPreview {
                 ReportDetailsContent(
                     state = state,
+                    progress = progress,
                     onSubmit = { submitted = it },
                     onNavigateUp = { dismissed = true },
                 )
@@ -253,5 +259,40 @@ class ReportFlowTest {
 
         navControl("action_back").assertExists()
         assertNoNavControl("action_close")
+    }
+
+    // `CodeButton` draws its spinner in the content colour and its checkmark in a hardcoded white,
+    // and picks the content colour from `enabled` rather than from `isLoading`/`isSuccess`. Left
+    // enabled, a Filled button keeps its white background and the checkmark is white on white.
+    // Every other confirm button in the app pairs the two — `enabled = <can submit> &&
+    // progress.isIdle` — and that pairing is what these hold in place. `CodeButton` also wires
+    // `clickable` to the raw `enabled`, so without it the button keeps taking presses as well.
+    @Test
+    fun `the reason button stops taking presses while the report is sending`() {
+        showReasons(LoadingSuccessState(loading = true))
+
+        composeTestRule.onNodeWithTag("action_report_reason_${ReportReason.Spam.name}")
+            .performClick()
+
+        composeTestRule.onNodeWithTag("action_report_reason_continue").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `the reason button stops taking presses once the report has landed`() {
+        showReasons(LoadingSuccessState(success = true))
+
+        composeTestRule.onNodeWithTag("action_report_reason_${ReportReason.Spam.name}")
+            .performClick()
+
+        composeTestRule.onNodeWithTag("action_report_reason_continue").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `the details button stops taking presses while the report is sending`() {
+        showDetails(progress = LoadingSuccessState(loading = true))
+
+        composeTestRule.onNode(hasSetTextAction()).performTextInput("something happened")
+
+        composeTestRule.onNodeWithTag("action_report_submit").assertIsNotEnabled()
     }
 }

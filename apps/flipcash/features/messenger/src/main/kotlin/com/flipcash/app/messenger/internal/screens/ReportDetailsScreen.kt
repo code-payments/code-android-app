@@ -139,7 +139,8 @@ internal fun ReportDetailsContent(
                         .padding(bottom = CodeTheme.dimens.grid.x3)
                         .imePadding(),
                     text = stringResource(R.string.action_submitReport),
-                    enabled = typed.isNotBlank() && !isOverLimit,
+                    // See [ReasonSelectionContent] on why `progress.isIdle` belongs here.
+                    enabled = typed.isNotBlank() && !isOverLimit && progress.isIdle,
                     isLoading = progress.loading,
                     isSuccess = progress.success,
                     onClick = { keyboard.hideIfVisible { onSubmit(typed.trim()) } },

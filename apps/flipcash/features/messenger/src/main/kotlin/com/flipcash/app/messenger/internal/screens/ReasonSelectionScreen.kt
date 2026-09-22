@@ -99,7 +99,11 @@ internal fun ReasonSelectionContent(
                     } else {
                         stringResource(R.string.action_submitReport)
                     },
-                    enabled = selected != null,
+                    // `progress.isIdle` as well as the pick: `CodeButton` reads its content
+                    // colour and its clickability from `enabled`, not from `isLoading`/
+                    // `isSuccess`. Left enabled, the Filled button stays white, which hides a
+                    // checkmark drawn in white and keeps taking presses through the send.
+                    enabled = selected != null && progress.isIdle,
                     isLoading = progress.loading,
                     isSuccess = progress.success,
                     onClick = { selected?.let(onChoose) },
