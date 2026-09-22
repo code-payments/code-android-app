@@ -17,14 +17,12 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
-import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.flipcash.app.messenger.internal.screens.MuteChatSheet
-import com.flipcash.app.messenger.internal.screens.ReportSheet
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
@@ -66,8 +64,8 @@ fun ChatFlowScreen(
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
         entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
-        // ChatStep.AmountEntry, ChatStep.InitPayment, ChatStep.InviteToGroup, ChatStep.MuteChat
-        // and ChatStep.Report are Sheets, so the
+        // ChatStep.AmountEntry, ChatStep.InitPayment, ChatStep.InviteToGroup and
+        // ChatStep.MuteChat are Sheets, so the
         // flow needs the sheet strategy to draw them as such; without it the step would fall
         // through to SinglePane and cover the thread. Amount entry
         // returns its result inside the flow (resultBackNavigator), so the strategy's own
@@ -101,9 +99,6 @@ private fun chatEntryProvider(
         FlowMuteChatSheet()
     }
 
-    annotatedEntry<ChatStep.Report> { step ->
-        FlowReportSheet(step.subject)
-    }
     annotatedEntry<ChatStep.Profile> { step ->
         FlowChatProfileScreen(step.contact)
     }
@@ -179,21 +174,6 @@ private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boo
                         // outerNavigator.navigate(route).
                         navigator.navigate(route)
                     }
-                }
-            }
-    }
-
-    // The selection bar reaches the report sheet from here rather than navigating itself: the bar
-    // is rebuilt from the selection and the sheet has to outlive clearing it. The two profile rows
-    // call `navigateTo` directly because they are already inside the flow and have nothing to
-    // outlive.
-    val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<ChatViewModel.Event.OpenReportSheet>()
-            .collect { (subject) ->
-                keyboard.hideIfVisible {
-                    flowNavigator.navigateTo(ChatStep.Report(subject))
                 }
             }
     }
@@ -295,27 +275,6 @@ private fun FlowMuteChatSheet() {
     )
 }
 
-@Composable
-private fun FlowReportSheet(subject: ReportSubject) {
-    val viewModel = flowSharedViewModel<ChatViewModel>()
-    // Same dismissal rule as the other sheets in this flow: exit through the sheet so it animates
-    // down rather than having its scene deleted mid-frame.
-    val dismissSheet = LocalBottomSheetDismissDispatcher.current
-
-    ReportSheet(
-        // Dismissed on submit rather than on the result: the request is fire-and-forget from the
-        // sheet's point of view, and the outcome arrives as a bottom bar over whatever is
-        // underneath. Holding the sheet open for a round trip would make a two-tap action feel
-        // like a form.
-        onSubmit = { reason, details ->
-            viewModel.dispatchEvent(
-                ChatViewModel.Event.ReportSubmitted(subject, reason, details)
-            )
-            dismissSheet()
-        },
-        onDismiss = dismissSheet,
-    )
-}
 
 @Composable
 private fun FlowChatProfileScreen(participant: ChatParticipant) {

@@ -20,7 +20,6 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
-import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.tokens.brandedName
@@ -36,11 +35,7 @@ import com.flipcash.app.session.SettledClaim
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
-import com.flipcash.reporting.ReportDescription
-import com.flipcash.reporting.ReportReason
-import com.flipcash.services.controllers.ReportingController
 import com.flipcash.services.models.JoinChatError
-import com.flipcash.services.models.ReportTarget
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
@@ -165,7 +160,6 @@ internal class ChatViewModel @Inject constructor(
     private val linkCardResolver: LinkCardResolver,
     private val cashLinkClaims: CashLinkClaims,
     private val chatDraftStore: ChatDraftStore,
-    private val reporting: ReportingController,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -400,26 +394,6 @@ internal class ChatViewModel @Inject constructor(
 
         /** The leave went through, so whatever is showing the group's profile should close. */
         data object LeftChat : Event
-
-        /**
-         * A surface asked for the report sheet. Raised by the selection bar, which dispatches
-         * events and holds no navigator; the conversation screen collects it and navigates, the
-         * same way it handles [OpenScreen].
-         */
-        data class OpenReportSheet(val subject: ReportSubject) : Event
-
-        /**
-         * A report the user has finished composing in [ChatStep.Report].
-         *
-         * Carries the subject back rather than reading it off state, because the sheet may outlive
-         * the selection that opened it: a message report taken from the selection bar is still
-         * about that message after the bar has cleared.
-         */
-        data class ReportSubmitted(
-            val subject: ReportSubject,
-            val reason: ReportReason,
-            val details: String?,
-        ) : Event
 
         /** This chat's viewer state moved, from the stream or from the viewer's own request. */
         data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
@@ -1521,48 +1495,6 @@ internal class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        eventFlow.filterIsInstance<Event.ReportSubmitted>()
-            .onEach { event ->
-                val chatId = stateFlow.value.chatId
-                val target = when (val subject = event.subject) {
-                    // The user, not the DM. A tip DM's id is derived on the client, so naming the
-                    // chat here would name something the server has never been told about; and a
-                    // report made from a group member's profile is about the person either way.
-                    is ReportSubject.User -> (subject.participant as? ChatParticipant.TipUser)
-                        ?.let { ReportTarget.User(it.userId) }
-                    ReportSubject.Chat -> chatId?.let { ReportTarget.Chat(it) }
-                    is ReportSubject.Message -> chatId?.let {
-                        ReportTarget.Message(chatId = it, messageId = subject.messageId)
-                    }
-                } ?: return@onEach BottomBarManager.showError(
-                    title = resources.getString(R.string.error_title_failedToReport),
-                    message = resources.getString(R.string.error_description_failedToReport),
-                )
-
-                reporting.report(target, ReportDescription.build(event.reason, event.details))
-                    .onSuccess {
-                        // The contract makes a duplicate report a no-op that answers OK, so this
-                        // says the same thing whether or not the report was the first one. That is
-                        // the intended reading: telling someone they had already reported this
-                        // would be answering a question they did not ask.
-                        BottomBarManager.showMessage(
-                            title = resources.getString(R.string.prompt_title_reportSubmitted),
-                            message = resources.getString(
-                                R.string.prompt_description_reportSubmitted
-                            ),
-                        )
-                    }
-                    .onFailure {
-                        trace("failed to report - ${it.localizedMessage}")
-                        BottomBarManager.showError(
-                            title = resources.getString(R.string.error_title_failedToReport),
-                            message = resources.getString(
-                                R.string.error_description_failedToReport
-                            ),
-                        )
-                    }
-            }
-            .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.LeaveChat>()
             .mapNotNull { stateFlow.value.subject as? ChatSubject.Group }
@@ -2144,8 +2076,6 @@ internal class ChatViewModel @Inject constructor(
                 Event.LeaveConfirmed,
                 Event.LeftChat,
                 is Event.MuteChat,
-                is Event.OpenReportSheet,
-                is Event.ReportSubmitted,
                 Event.UnmuteChat -> { state -> state }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the

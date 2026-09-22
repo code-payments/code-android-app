@@ -20,6 +20,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ReportSubject
+import com.flipcash.app.core.AppRoute
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.messenger.internal.ChatMuteStatusChip
@@ -45,6 +47,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 @Composable
 internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
 
@@ -108,8 +111,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     GroupProfileAction.Mute -> flowNavigator.navigateTo(ChatStep.MuteChat)
                     GroupProfileAction.Leave ->
                         viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat)
-                    GroupProfileAction.Report ->
-                        flowNavigator.navigateTo(ChatStep.Report(ReportSubject.Chat))
+                    // The outer navigator, not this flow's: reporting is its own top-level
+                    // route, so it opens over the chat rather than inside it.
+                    GroupProfileAction.Report -> state.chatId?.let { chatId ->
+                        navigator.push(
+                            AppRoute.Messaging.Report(ReportSubject.Chat(chatId))
+                        )
+                    }
                 }
             },
         )

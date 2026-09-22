@@ -29,6 +29,7 @@ dependencies {
 
     api(project(":services:flipcash-compose"))
 
+    api(project(":libs:reporting"))
     implementation(project(":libs:messaging"))
     api(project(":libs:permissions:public"))
     implementation(project(":libs:vibrator:public"))

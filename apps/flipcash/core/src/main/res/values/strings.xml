@@ -1173,6 +1173,14 @@
     <string name="action_reportReason_sexualContent">Sexual Content</string>
     <string name="action_reportReason_violence">Violence or Threats</string>
     <string name="action_reportReason_other">Something Else</string>
+    <string name="description_reportReason_spam">Repeated unwanted messages, promotions, or links</string>
+    <string name="description_reportReason_scamOrFraud">Attempts to take money or account details by deception</string>
+    <string name="description_reportReason_harassment">Abuse, insults, or repeated unwanted contact</string>
+    <string name="description_reportReason_sexualContent">Explicit content, or unwanted sexual messages</string>
+    <string name="description_reportReason_violence">Threats of harm, or content showing violence</string>
+    <string name="description_reportReason_other">None of these fit — tell us in your own words</string>
+    <string name="title_reportDetails">Tell us what’s wrong</string>
+    <string name="subtitle_reportDetails">Your report is private — we won’t tell them who reported</string>
     <string name="hint_reportDetails">Tell us more</string>
     <string name="action_submitReport">Submit Report</string>
     <string name="action_expandReportDetails">Expand</string>

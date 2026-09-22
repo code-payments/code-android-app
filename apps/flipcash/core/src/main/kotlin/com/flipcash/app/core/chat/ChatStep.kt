@@ -67,20 +67,6 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Serializable
     data object MuteChat : ChatStep, Sheet, WrapContentSheet
 
-    /**
-     * Why this is being reported.
-     *
-     * A [WrapContentSheet] for the same reasons [MuteChat] is: a short list of choices, opened from
-     * somewhere you stay. Unlike [MuteChat] it carries its [subject], because the same sheet is
-     * reached from a person's profile, a group's profile and a message in the transcript, and only
-     * the caller knows which. The chosen reason travels back as a `ChatViewModel` event rather than
-     * a nav result, matching muting: filing a report is a request the view model makes, not an
-     * answer the sheet returns.
-     */
-    @Parcelize
-    @Serializable
-    data class Report(val subject: ReportSubject) : ChatStep, Sheet, WrapContentSheet
-
     @Parcelize
     @Serializable
     data class Profile(val contact: ChatParticipant): ChatStep

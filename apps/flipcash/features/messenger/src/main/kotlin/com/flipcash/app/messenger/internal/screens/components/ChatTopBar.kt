@@ -44,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -101,7 +102,23 @@ internal fun ChatTopBar(
             when (target) {
                 TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler)
                 TopBarMode.Editing -> EditingBar(dispatch)
-                is TopBarMode.Selecting -> MessageSelectionBar(target.selection, keyboard, dispatch)
+                is TopBarMode.Selecting -> MessageSelectionBar(
+                    selection = target.selection,
+                    keyboard = keyboard,
+                    dispatch = dispatch,
+                    // Resolved here rather than in the bar: reporting is its own top-level
+                    // flow now, so it needs the chat's id, and this is the nearest scope holding
+                    // both that and the navigator.
+                    onReport = {
+                        state.chatId?.let { chatId ->
+                            navigator.push(
+                                AppRoute.Messaging.Report(
+                                    ReportSubject.Message(chatId, target.selection.messageId)
+                                )
+                            )
+                        }
+                    },
+                )
             }
         }
     }
@@ -227,6 +244,7 @@ private fun MessageSelectionBar(
     selection: ChatListItem.ContentBubble,
     keyboard: KeyboardController,
     dispatch: (ChatViewModel.Event) -> Unit,
+    onReport: () -> Unit,
 ) {
     val capabilities = selection.capabilities
     val body = selection.plainText
@@ -291,13 +309,7 @@ private fun MessageSelectionBar(
                     label = stringResource(R.string.title_report),
                     icon = Icons.Outlined.Flag,
                     testTag = "action_report_message",
-                    onClick = {
-                        dispatch(
-                            ChatViewModel.Event.OpenReportSheet(
-                                ReportSubject.Message(selection.messageId)
-                            )
-                        )
-                    },
+                    onClick = onReport,
                 )
             )
         }
