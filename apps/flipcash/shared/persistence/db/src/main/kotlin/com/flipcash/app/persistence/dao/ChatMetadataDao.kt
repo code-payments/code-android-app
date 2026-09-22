@@ -133,12 +133,22 @@ interface ChatMetadataDao {
      * The viewer's grants ride the same gate. They are part of the same server-owned state and
      * carry no version of their own, so splitting them out would let a stale payload reinstate a
      * grant the newest one had withdrawn.
+     *
+     * A stored version of zero is the exception, and it has to be: the server only bumps the
+     * version when the viewer's state changes, so a chat the viewer has never muted stays at
+     * zero forever and a strict `>` would reject its every payload — including the grants riding
+     * along with them. That is not hypothetical. `EditChat` is granted on chats at version zero,
+     * and gating them out left the edit affordance permanently hidden on a group its owner could
+     * in fact edit. Zero means nothing has ever been applied here, so anything the server sends
+     * beats it. Ordering is lost for that first write, but two payloads at version zero describe
+     * the same unchanged state, and the alternative is storing none of them. The strict gate
+     * resumes as soon as a non-zero version lands.
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = :muteUntilEpochMs, " +
             "mute_forever = :muteForever, viewer_state_version = :version, " +
             "can_edit = :canEdit " +
-            "WHERE chat_id_hex = :chatIdHex AND :version > viewer_state_version"
+            "WHERE chat_id_hex = :chatIdHex AND (:version > viewer_state_version OR viewer_state_version = 0)"
     )
     suspend fun updateViewerStateIfNewer(
         chatIdHex: String,

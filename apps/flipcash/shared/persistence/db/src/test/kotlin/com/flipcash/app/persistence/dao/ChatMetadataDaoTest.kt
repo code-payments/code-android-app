@@ -256,6 +256,43 @@ class ChatMetadataDaoTest {
     }
 
     /**
+     * The server bumps `ViewerState.version` only when the viewer's state changes, so a chat the
+     * viewer has never muted sits at version zero indefinitely — and its grants ride in on those
+     * same zero-versioned payloads. A strict `>` rejected every one of them, which is how a group
+     * its owner could edit ended up with the edit affordance permanently hidden.
+     */
+    @Test
+    fun `a viewer state at version zero lands on a row that has never had one`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 0))
+
+        dao.updateViewerStateIfNewer(
+            chatIdHex = CHAT_HEX,
+            muteUntilEpochMs = null,
+            muteForever = false,
+            canEdit = true,
+            version = 0,
+        )
+
+        assertEquals(true, dao.getById(CHAT_HEX)?.canEdit)
+    }
+
+    /**
+     * The exception is scoped to the stored zero. Once a real version has landed, a zero-versioned
+     * payload is a stale one and must not be able to withdraw the grant it carries.
+     */
+    @Test
+    fun `a viewer state at version zero cannot overwrite a real one`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 0))
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, version = 3)
+
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, version = 0)
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(true, stored.canEdit)
+        assertEquals(3L, stored.viewerStateVersion)
+    }
+
+    /**
      * The same gate an upsert goes through. A `ChatMetadata` rebuilt from this row reports the
      * version it was read at, so pushing it back must be a no-op rather than a re-application.
      */
