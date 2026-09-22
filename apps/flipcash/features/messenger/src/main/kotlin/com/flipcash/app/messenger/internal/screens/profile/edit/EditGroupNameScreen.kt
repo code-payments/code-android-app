@@ -75,8 +75,9 @@ internal fun EditGroupNameScreen(chatViewModel: ChatViewModel) {
 
     CodeScaffold(
         topBar = {
+            // No title. The field is the screen, and the row that opened it already said Name;
+            // the bar is here for the back control.
             AppBarWithTitle(
-                title = stringResource(R.string.title_editGroupName),
                 onBackIconClicked = { keyboard.hideIfVisible { flowNavigator.back() } },
             )
         },
@@ -96,7 +97,7 @@ internal fun EditGroupNameScreen(chatViewModel: ChatViewModel) {
                 isSuccess = state.processingState.success,
                 onClick = {
                     keyboard.hideIfVisible {
-                        viewModel.dispatchEvent(EditGroupNameViewModel.Event.SubmitTitle)
+                        viewModel.dispatchEvent(EditGroupNameViewModel.Event.SaveClicked)
                     }
                 },
             )
@@ -122,7 +123,7 @@ internal fun EditGroupNameScreen(chatViewModel: ChatViewModel) {
                 ),
                 onKeyboardAction = {
                     keyboard.hideIfVisible {
-                        viewModel.dispatchEvent(EditGroupNameViewModel.Event.SubmitTitle)
+                        viewModel.dispatchEvent(EditGroupNameViewModel.Event.SaveClicked)
                     }
                 },
             )

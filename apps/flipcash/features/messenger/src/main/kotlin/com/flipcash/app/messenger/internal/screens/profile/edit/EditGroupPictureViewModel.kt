@@ -16,6 +16,7 @@ import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.shared.chat.ChatCoordinator
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -54,7 +56,10 @@ class EditGroupPictureViewModel @Inject constructor(
     private val resources: ResourceHelper,
 ) : BaseViewModel<EditGroupPictureViewModel.State, EditGroupPictureViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    // The base hops to Dispatchers.Default to publish events. Taking it from the injected
+    // provider instead keeps every dispatcher this class touches on one seam.
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val chatId: ChatId? = null,
@@ -86,6 +91,13 @@ class EditGroupPictureViewModel @Inject constructor(
         data class OnImageCached(val image: Uri, val mimeType: String) : Event
         data object DiscardPendingImage : Event
         data class UploadPolicyLoaded(val policy: UploadPolicy) : Event
+        /**
+         * Save, pressed. The new picture is only proposed here: what uploads and sends it is
+         * [SubmitPicture], dispatched by the confirmation's own action.
+         */
+        data object SaveClicked : Event
+
+        /** The confirmed change. Reachable only through the prompt [SaveClicked] raises. */
         data object SubmitPicture : Event
         data class UpdateProcessingState(
             val loading: Boolean = false,
@@ -135,6 +147,28 @@ class EditGroupPictureViewModel @Inject constructor(
             .flowOn(dispatchers.IO)
             .onEach { (cached, mime) -> dispatchEvent(Event.OnImageCached(cached, mime)) }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SaveClicked>()
+            .onEach {
+                if (!stateFlow.value.canSubmit) return@onEach
+
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_changeGroupPhoto),
+                    message = resources.getString(R.string.prompt_description_changeGroupPhoto),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_changeGroupPhoto)) {
+                            viewModelScope.launch {
+                                // The bar dismisses on an animation, and the upload's spinner
+                                // belongs to the screen behind it — it would start underneath.
+                                delay(150.milliseconds)
+                                dispatchEvent(Event.SubmitPicture)
+                            }
+                        }
+                    ),
+                    showCancel = true,
+                )
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.SubmitPicture>()
@@ -265,6 +299,7 @@ class EditGroupPictureViewModel @Inject constructor(
                 }
 
                 is Event.UploadPolicyLoaded -> { state -> state.copy(uploadPolicy = event.policy) }
+                Event.SaveClicked -> { state -> state }
                 Event.SubmitPicture -> { state -> state }
                 Event.OnPictureAccepted -> { state -> state }
                 is Event.UpdateProcessingState -> { state ->

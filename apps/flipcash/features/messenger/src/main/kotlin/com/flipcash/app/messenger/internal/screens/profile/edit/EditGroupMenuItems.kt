@@ -29,7 +29,7 @@ internal data object EditGroupIcon : FullMenuItem<EditGroupAction>() {
         @Composable get() = rememberVectorPainter(Icons.Outlined.Image)
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_editGroupIcon)
+        @Composable get() = stringResource(R.string.title_editGroupPhoto)
 
     override val action: EditGroupAction = EditGroupAction.Picture
 }

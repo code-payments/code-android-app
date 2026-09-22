@@ -102,7 +102,7 @@ internal fun EditGroupPictureScreen(chatViewModel: ChatViewModel) {
         modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
         topBar = {
             AppBarWithTitle(
-                title = stringResource(R.string.title_editGroupIcon),
+                title = stringResource(R.string.title_setGroupPhoto),
                 titleAlignment = Alignment.CenterHorizontally,
                 // The pick is dropped by leaving: the view model is scoped to this nav entry, so
                 // popping it takes the draft with it and the stored picture stands.
@@ -125,7 +125,7 @@ internal fun EditGroupPictureScreen(chatViewModel: ChatViewModel) {
                     isLoading = state.processingState.loading,
                     isSuccess = state.processingState.success,
                     onClick = {
-                        viewModel.dispatchEvent(EditGroupPictureViewModel.Event.SubmitPicture)
+                        viewModel.dispatchEvent(EditGroupPictureViewModel.Event.SaveClicked)
                     },
                 )
             }

@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.chat.ChatStep
@@ -38,6 +39,7 @@ internal fun EditGroupScreen() {
         topBar = {
             AppBarWithTitle(
                 title = stringResource(R.string.title_editGroup),
+                titleAlignment = Alignment.CenterHorizontally,
                 onBackIconClicked = { flowNavigator.back() },
             )
         },

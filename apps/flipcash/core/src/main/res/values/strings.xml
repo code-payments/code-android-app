@@ -1045,10 +1045,22 @@
 
          The node lists four rows — Icon, Membership Card, Description, Social Links. Only Icon and
          Name are here: the other three have no field on EditChatRequest in flipcash2 0.11.0. Name
-         is not in the node at all and takes the Icon row's styling. -->
+         is not in the node at all and takes the Icon row's styling. The node's Icon row ships as
+         Photo, which is what the row actually changes and what the rest of the app calls it. -->
     <string name="title_editGroup">Edit Group</string>
-    <string name="title_editGroupIcon">Icon</string>
+    <string name="title_editGroupPhoto">Photo</string>
     <string name="title_editGroupName">Name</string>
+    <!-- The picture screen's own title. The row above says what it changes; this says what to do. -->
+    <string name="title_setGroupPhoto">Set Photo</string>
+
+    <!-- Both edits are confirmed before the call: a rename or a new photo is visible to the whole
+         group, so Save opens the prompt and the prompt's action is what sends it. -->
+    <string name="prompt_title_changeGroupName">Change Group Name?</string>
+    <string name="prompt_description_changeGroupName">Everyone in this group will see it as \"%1$s\".</string>
+    <string name="action_changeGroupName">Change Name</string>
+    <string name="prompt_title_changeGroupPhoto">Change Group Photo?</string>
+    <string name="prompt_description_changeGroupPhoto">Everyone in this group will see the new photo.</string>
+    <string name="action_changeGroupPhoto">Change Photo</string>
     <!-- EditChat bounds the title at 1-64 characters, enforced before the call. -->
     <string name="subtitle_groupNameLength">Up to 64 characters</string>
     <!-- EditChat answered DENIED: canEdit was false, or stopped being true since the menu was drawn. -->

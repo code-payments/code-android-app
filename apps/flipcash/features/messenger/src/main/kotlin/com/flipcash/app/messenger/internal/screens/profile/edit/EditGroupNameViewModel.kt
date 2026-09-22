@@ -5,9 +5,11 @@ import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.moderation.moderationDescription
 import com.flipcash.features.messenger.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.EditChatError
 import com.flipcash.shared.chat.ChatCoordinator
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -34,11 +36,15 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 @HiltViewModel
 class EditGroupNameViewModel @Inject constructor(
+    dispatchers: DispatcherProvider,
     private val chatCoordinator: ChatCoordinator,
     private val resources: ResourceHelper,
 ) : BaseViewModel<EditGroupNameViewModel.State, EditGroupNameViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    // The base hops to Dispatchers.Default to publish events. Taking it from the injected
+    // provider instead keeps every dispatcher this class touches on one seam.
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val titleFieldState: TextFieldState = TextFieldState(),
@@ -63,6 +69,13 @@ class EditGroupNameViewModel @Inject constructor(
         /** The screen handing over the chat this is editing, and the title it currently has. */
         data class Initialize(val chatId: ChatId, val title: String) : Event
 
+        /**
+         * Save, pressed — or the keyboard's Done. The rename is only proposed here: what sends it
+         * is [SubmitTitle], dispatched by the confirmation's own action.
+         */
+        data object SaveClicked : Event
+
+        /** The confirmed rename. Reachable only through the prompt [SaveClicked] raises. */
         data object SubmitTitle : Event
 
         data class UpdateProcessingState(
@@ -82,6 +95,34 @@ class EditGroupNameViewModel @Inject constructor(
             // as one edit — there is nothing to reconcile with.
             .onEach { event ->
                 stateFlow.value.titleFieldState.setTextAndPlaceCursorAtEnd(event.title)
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SaveClicked>()
+            .onEach {
+                val state = stateFlow.value
+                // The same gate the button draws itself from, re-read because the keyboard's Done
+                // reaches here without consulting it.
+                if (!state.canSubmit) return@onEach
+
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_changeGroupName),
+                    message = resources.getString(
+                        R.string.prompt_description_changeGroupName,
+                        ChatTitle.normalize(state.titleFieldState.text),
+                    ),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_changeGroupName)) {
+                            viewModelScope.launch {
+                                // The bar dismisses on an animation, and the submit's spinner
+                                // belongs to the screen behind it — it would start underneath.
+                                delay(150.milliseconds)
+                                dispatchEvent(Event.SubmitTitle)
+                            }
+                        }
+                    ),
+                    showCancel = true,
+                )
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -149,6 +190,7 @@ class EditGroupNameViewModel @Inject constructor(
                     state.copy(chatId = event.chatId, savedTitle = event.title)
                 }
 
+                Event.SaveClicked -> { state -> state }
                 Event.SubmitTitle -> { state -> state }
                 Event.OnTitleAccepted -> { state -> state }
                 is Event.UpdateProcessingState -> { state ->
