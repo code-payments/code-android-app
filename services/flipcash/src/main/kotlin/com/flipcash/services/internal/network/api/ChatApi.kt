@@ -15,6 +15,7 @@ import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.StartChatParameters
@@ -126,6 +127,58 @@ internal class ChatApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.startChat(request)
+        }
+    }
+
+    suspend fun getRoster(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): RpcChatService.GetRosterResponse {
+        val request = RpcChatService.GetRosterRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setQueryOptions(queryOptions.asQueryOptions())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getRoster(request)
+        }
+    }
+
+    suspend fun editChat(
+        owner: KeyPair,
+        chatId: ChatId,
+        parameters: EditChatParameters,
+    ): RpcChatService.EditChatResponse {
+        val request = RpcChatService.EditChatRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply {
+                parameters.title?.let {
+                    setTitle(
+                        RpcChatService.EditChatRequest.Title.newBuilder()
+                            .setValue(it)
+                    )
+                }
+                parameters.picture?.let {
+                    setPicture(
+                        RpcChatService.EditChatRequest.Picture.newBuilder()
+                            .setBlobId(
+                                com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
+                                    .setValue(it.bytes.toByteString())
+                            )
+                    )
+                }
+            }
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.editChat(request)
         }
     }
 

@@ -9,6 +9,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.ViewerState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -129,6 +130,16 @@ class ChatMetadataDataSource @Inject constructor(
     /** [chatId]'s group name, or null when the chat is a DM or is not stored on this device. */
     suspend fun getTitle(chatId: ChatId): String? =
         db?.chatMetadataDao()?.getTitle(mapper.chatIdHex(chatId))
+
+    /** Applies a `MetadataUpdate.TitleChanged` for [chatId]. See ChatMetadataDao.updateTitle. */
+    suspend fun updateTitle(chatId: ChatId, title: String) {
+        db?.chatMetadataDao()?.updateTitle(mapper.chatIdHex(chatId), title)
+    }
+
+    /** Applies a `MetadataUpdate.PictureChanged` for [chatId]. See ChatMetadataDao.updatePicture. */
+    suspend fun updatePicture(chatId: ChatId, picture: MediaItem) {
+        db?.chatMetadataDao()?.updatePicture(mapper.chatIdHex(chatId), picture)
+    }
 
     suspend fun getAnalyticsCountedThrough(chatId: ChatId): Long =
         db?.chatMetadataDao()?.getAnalyticsCountedThrough(mapper.chatIdHex(chatId)) ?: 0L

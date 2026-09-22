@@ -107,4 +107,80 @@ class DomainModelsTest {
         assertEquals("Test", member.userProfile.displayName)
         assertEquals(1, member.pointers.size)
     }
+
+    @Test
+    fun `ChatMember joinedAt and version default to null and zero`() {
+        val member = ChatMember(
+            userId = listOf(1.toByte()),
+            userProfile = UserProfile("Test", emptyList(), null, null),
+            pointers = emptyList(),
+        )
+        assertNull(member.joinedAt)
+        assertEquals(0L, member.version)
+    }
+
+    @Test
+    fun `ChatMember joinedAt and version round-trip`() {
+        val joinedAt = Instant.fromEpochSeconds(500)
+        val member = ChatMember(
+            userId = listOf(1.toByte()),
+            userProfile = UserProfile("Test", emptyList(), null, null),
+            pointers = emptyList(),
+            joinedAt = joinedAt,
+            version = 3,
+        )
+        assertEquals(joinedAt, member.joinedAt)
+        assertEquals(3L, member.version)
+    }
+
+    @Test
+    fun `ViewerState permissions default to canEdit false`() {
+        val state = ViewerState()
+        assertEquals(false, state.permissions.canEdit)
+    }
+
+    @Test
+    fun `ViewerState permissions round-trip`() {
+        val state = ViewerState(permissions = ViewerState.Permissions(canEdit = true))
+        assertEquals(true, state.permissions.canEdit)
+    }
+
+    @Test
+    fun `MetadataUpdate TitleChanged holds the new title`() {
+        val update = MetadataUpdate.TitleChanged("New title")
+        assertEquals("New title", update.newTitle)
+    }
+
+    @Test
+    fun `MetadataUpdate PictureChanged holds the new picture`() {
+        val picture = MediaItem(renditions = emptyList())
+        val update = MetadataUpdate.PictureChanged(picture)
+        assertEquals(picture, update.newPicture)
+    }
+
+    @Test
+    fun `RosterPage holds members, summary and paging state`() {
+        val page = RosterPage(
+            members = listOf(
+                ChatMember(
+                    userId = listOf(1.toByte()),
+                    userProfile = UserProfile("Test", emptyList(), null, null),
+                    pointers = emptyList(),
+                )
+            ),
+            rosterSummary = RosterSummary(memberCount = 1, version = 1),
+            pagingToken = listOf(0xAB.toByte()),
+            hasMore = true,
+        )
+        assertEquals(1, page.members.size)
+        assertEquals(1L, page.rosterSummary.version)
+        assertEquals(true, page.hasMore)
+    }
+
+    @Test
+    fun `EditChatParameters is a no-op when every field is unset`() {
+        val parameters = EditChatParameters()
+        assertNull(parameters.title)
+        assertNull(parameters.picture)
+    }
 }

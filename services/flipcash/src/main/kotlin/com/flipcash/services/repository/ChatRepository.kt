@@ -5,8 +5,10 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ViewMode
@@ -43,6 +45,30 @@ interface ChatRepository {
         owner: KeyPair,
         parameters: StartChatParameters,
         idempotencyKey: IdempotencyKey,
+    ): Result<ChatMetadata>
+
+    /**
+     * One page of [chatId]'s roster, most recently joined first. Pass the previous page's
+     * [RosterPage.pagingToken] in [queryOptions] to continue; omit it for the first page.
+     *
+     * See [RosterPage] for how to merge a page into a locally held roster — a page can lag
+     * the roster's true state for a large group, unlike the exact list [getChat] returns.
+     */
+    suspend fun getRoster(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): Result<RosterPage>
+
+    /**
+     * Edits [chatId], a group chat, applying only the fields set in [parameters]. Unset fields
+     * are left unchanged; an all-null [parameters] is a valid no-op. Requires
+     * `ViewerState.Permissions.canEdit` on the caller.
+     */
+    suspend fun editChat(
+        owner: KeyPair,
+        chatId: ChatId,
+        parameters: EditChatParameters,
     ): Result<ChatMetadata>
 
     /** Adds the caller to [chatId]'s roster, returning the chat as the caller now sees it. */

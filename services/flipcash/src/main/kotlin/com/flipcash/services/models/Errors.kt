@@ -370,6 +370,16 @@ sealed class GetGroupChatFeedError(
     data class Other(override val cause: Throwable? = null) : GetGroupChatFeedError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class GetRosterError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetRosterError("Denied")
+    class NotFound : GetRosterError("Not found")
+    class Unrecognized : GetRosterError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetRosterError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class JoinChatError(
     override val message: String? = null,
     override val cause: Throwable? = null
@@ -410,6 +420,18 @@ sealed class StartChatError(
     class RulesNotSatisfied : StartChatError("Rules not satisfied")
     class Unrecognized : StartChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : StartChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class EditChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : EditChatError("Denied")
+    class NotFound : EditChatError("Not found")
+    class TitleModerated(val category: ModerationResult.FlaggedCategory) : EditChatError("Title flagged: $category")
+    class PictureBlobNotAccepted : EditChatError("Picture blob not accepted")
+    class Unrecognized : EditChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : EditChatError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class GetMessageError(

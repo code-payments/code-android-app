@@ -5,8 +5,10 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ViewMode
@@ -66,6 +68,31 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.startChat(owner, parameters, idempotencyKey)
+    }
+
+    /**
+     * One page of [chatId]'s roster. See [ChatRepository.getRoster] for paging and merge
+     * semantics.
+     */
+    suspend fun getRoster(
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): Result<RosterPage> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getRoster(owner, chatId, queryOptions)
+    }
+
+    /** Edits [chatId] per [parameters]. See [ChatRepository.editChat] for no-op semantics. */
+    suspend fun editChat(
+        chatId: ChatId,
+        parameters: EditChatParameters,
+    ): Result<ChatMetadata> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.editChat(owner, chatId, parameters)
     }
 
     suspend fun joinChat(chatId: ChatId): Result<ChatMetadata> {
