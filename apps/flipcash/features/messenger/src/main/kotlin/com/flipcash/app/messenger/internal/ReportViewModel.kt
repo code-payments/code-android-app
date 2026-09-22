@@ -12,8 +12,10 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
 import com.getcode.view.LoadingSuccessState
+import com.getcode.view.MinimumLoadingDuration
 import com.getcode.view.SuccessHoldDuration
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -83,8 +85,19 @@ internal class ReportViewModel @Inject constructor(
 
         viewModelScope.launch {
             _state.value = LoadingSuccessState(loading = true)
-            reporting.report(target, ReportDescription.build(reason, details))
+
+            // A report is a single unary call and usually answers inside a frame, so the button
+            // crossfaded from its label straight to a checkmark and the send read as never having
+            // happened. The floor starts with the spinner and runs alongside the send, so joining
+            // it waits only for whatever is left — a send that already outlasted it is not held
+            // back. Racing two `delay`s rather than reading a clock keeps this on whatever time
+            // source the caller's scheduler is using, virtual or real.
+            val floor = launch { delay(MinimumLoadingDuration) }
+            val sent = async { reporting.report(target, ReportDescription.build(reason, details)) }
+
+            sent.await()
                 .onSuccess {
+                    floor.join()
                     _state.value = LoadingSuccessState(success = true)
                     // The checkmark is drawn on the frame after this is set, so the confirmation
                     // waits out the same hold every other confirm button in the app does. Raising
@@ -102,6 +115,9 @@ internal class ReportViewModel @Inject constructor(
                     )
                 }
                 .onFailure {
+                    // Nothing is waiting on the floor down here: an error has its own bar to put
+                    // up, and holding a spinner first would only delay it.
+                    floor.cancel()
                     trace("failed to report - ${it.localizedMessage}")
                     // Back to idle, not to an error state: the flow stays where it is with the
                     // reason still picked, so the retry is one press on a button that has to be

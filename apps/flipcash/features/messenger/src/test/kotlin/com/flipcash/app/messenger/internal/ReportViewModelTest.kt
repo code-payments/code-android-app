@@ -6,6 +6,7 @@ import com.flipcash.services.controllers.ReportingController
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SelectedBottomBarAction
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.view.MinimumLoadingDuration
 import com.getcode.view.SuccessHoldDuration
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -72,11 +73,48 @@ class ReportViewModelTest {
     }
 
     @Test
+    fun `an instant send still shows its spinner`() = runTest(scheduler) {
+        // The report call answers inside a frame, so without a floor the button crossfaded from
+        // its label straight to the checkmark and the send read as having never happened.
+        coEvery { reporting.report(any(), any()) } returns Result.success(Unit)
+        val model = viewModel()
+
+        model.submit(subject, ReportReason.Spam, details = null)
+
+        assertTrue(model.state.value.loading)
+        advanceTimeBy(MinimumLoadingDuration.inWholeMilliseconds - 1)
+        assertTrue(model.state.value.loading)
+        advanceTimeBy(2)
+        assertTrue(model.state.value.success)
+    }
+
+    @Test
+    fun `a slow send is not held back any further`() = runTest(scheduler) {
+        // The floor is a minimum, not an addition: a send that already outlasted it goes straight
+        // to the checkmark rather than sitting on a spinner for another half second.
+        val answer = CompletableDeferred<Result<Unit>>()
+        coEvery { reporting.report(any(), any()) } coAnswers { answer.await() }
+        val model = viewModel()
+
+        model.submit(subject, ReportReason.Spam, details = null)
+        advanceTimeBy(MinimumLoadingDuration.inWholeMilliseconds * 2)
+        assertTrue(model.state.value.loading)
+
+        answer.complete(Result.success(Unit))
+        advanceTimeBy(1)
+
+        assertTrue(model.state.value.success)
+    }
+
+    @Test
     fun `the checkmark is held long enough to be read before the confirmation`() = runTest(scheduler) {
         coEvery { reporting.report(any(), any()) } returns Result.success(Unit)
         val viewModel = viewModel()
 
         viewModel.submit(subject, ReportReason.Spam, details = null)
+        // Past the spinner's floor, which is where the checkmark's own hold starts.
+        // `advanceTimeBy` stops short of the endpoint, so the floor's own instant needs the +1.
+        advanceTimeBy(MinimumLoadingDuration.inWholeMilliseconds + 1)
 
         assertTrue("the button never showed the send succeeded", viewModel.state.value.success)
         assertTrue(

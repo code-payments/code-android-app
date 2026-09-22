@@ -83,6 +83,20 @@ abstract class BaseViewModel<ViewState : Any, Event : Any>(
  */
 val SuccessHoldDuration = 500.milliseconds
 
+/**
+ * The least time a confirm button's spinner stays up once it has gone up.
+ *
+ * A floor, not a hold: work that already ran longer moves on as soon as it is done, and only work
+ * that answers faster than this is waited out. Pairs with [SuccessHoldDuration] at the other end —
+ * between them a fast call still reads as start, work, done, rather than crossfading from a label
+ * to a checkmark with nothing in between.
+ *
+ * Measure it from the frame the spinner was asked for. Measuring from the call's return, as
+ * `Result.onSuccessWithDelay` does, always waits the full duration, because by then the work is
+ * over — which adds latency to a slow call rather than putting a floor under a fast one.
+ */
+val MinimumLoadingDuration = 500.milliseconds
+
 data class LoadingSuccessState(
     val loading: Boolean = false,
     val success: Boolean = false,
