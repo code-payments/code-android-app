@@ -6,6 +6,7 @@ import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.models.chat.StartChatParameters
@@ -128,6 +129,24 @@ class GroupFeedDelegate @Inject constructor(
             .onSuccess { metadata ->
                 persist(listOf(metadata))
                 metadataDataSource.setMembership(metadata.chatId, isMember = true)
+            }
+    }
+
+    /**
+     * Edits [chatId] and stores the post-edit metadata the server returns.
+     *
+     * [persist] rather than a refetch: `EditChat` answers `OK` with the chat as it now stands, so
+     * a second round trip could only return the same thing later. No membership write — unlike
+     * [create] and [join], an edit does not change who the caller is to the chat.
+     */
+    override suspend fun editChat(
+        chatId: ChatId,
+        parameters: EditChatParameters,
+    ): Result<ChatMetadata> {
+        return chatController.editChat(chatId, parameters)
+            .onSuccess { metadata -> persist(listOf(metadata)) }
+            .onFailure {
+                trace(tag = TAG, message = "Edit failed for $chatId", type = TraceType.Error)
             }
     }
 

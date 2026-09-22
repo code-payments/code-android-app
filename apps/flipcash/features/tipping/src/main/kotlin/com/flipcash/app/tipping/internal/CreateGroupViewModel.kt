@@ -8,12 +8,12 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.blob.ImageUploadPreparer
 import com.flipcash.app.core.data.Loadable
+import com.flipcash.app.core.moderation.moderationDescription
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.tipping.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.BlobRejectedException
-import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.StartChatError
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -495,29 +495,6 @@ internal class CreateGroupViewModel @Inject constructor(
             )
         }
     }
-
-    /** The app's existing moderation-category wording, as the username and photo screens map it. */
-    @StringRes
-    private fun moderationDescription(category: ModerationResult.FlaggedCategory): Int =
-        when (category) {
-            ModerationResult.FlaggedCategory.NONE ->
-                R.string.error_description_imageNotAllowed
-
-            ModerationResult.FlaggedCategory.OTHER ->
-                R.string.error_description_profileNameNotAllowedFlaggedOther
-
-            ModerationResult.FlaggedCategory.NSFW ->
-                R.string.error_description_profileNameNotAllowedFlaggedNsfw
-
-            ModerationResult.FlaggedCategory.IMPERSONATION ->
-                R.string.error_description_profileNameNotAllowedFlaggedImpersonation
-
-            ModerationResult.FlaggedCategory.MISLEADING ->
-                R.string.error_description_profileNameNotAllowedFlaggedMisleading
-
-            ModerationResult.FlaggedCategory.SPAM ->
-                R.string.error_description_profileNameNotAllowedFlaggedSpam
-        }
 
     companion object {
         @VisibleForTesting
