@@ -333,3 +333,37 @@ event = "Tip Card Scanned"
 [[domains.ScanEvents.events]]
 builder = "tipCardPresented"
 event = "Tip Card Presented"
+
+# Deeplink
+
+[domains.DeeplinkEvents]
+doc = "[url] arrives with its query and fragment already stripped. `type` is a string because the two apps' deeplink vocabularies differ."
+
+[[domains.DeeplinkEvents.events]]
+builder = "open"
+event = "Deeplink: Open"
+params = ["url: String"]
+properties = [{ key = "URL", value = "url" }]
+
+[[domains.DeeplinkEvents.events]]
+builder = "parsed"
+event = "Deeplink: Parse"
+params = ["type: String"]
+properties = [{ key = "Type", value = "type" }]
+drift = "iOS's Type vocabulary is {Login, CashLink, EmailVerification, TokenInfo, Chat, ChatSendCash, Tip, Username, Wallet, DiscoverCurrencies, \"Sheet:<x>\"}, and iOS sends this for every link where Android sends it only on the gallery QR path."
+
+[[domains.DeeplinkEvents.events]]
+builder = "parseFailed"
+event = "Deeplink: Parse"
+params = ["url: String"]
+properties = [{ key = "Error", format = "Failed to parse deeplink => {url}" }]
+
+[[domains.DeeplinkEvents.events]]
+builder = "routed"
+event = "Deeplink: Routed"
+params = ["type: String", "error: String?"]
+properties = [
+  { key = "Type", value = "type" },
+  { key = "Error", value = "error" },
+]
+drift = "iOS never passes Error, and sends this for every kind where Android sends it only for a cash link."
