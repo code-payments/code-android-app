@@ -270,7 +270,9 @@ class NotificationService : FirebaseMessagingService(),
             )
         }
 
+        val isChat = chatId != null && styling != null
         val groupKey = payload?.groupKey?.takeIf { it.isNotEmpty() }
+        val group = planNotificationGroup(payloadGroupKey = groupKey, isChat = isChat)
 
         val builder = NotificationCompat.Builder(this, channel.id)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -280,7 +282,7 @@ class NotificationService : FirebaseMessagingService(),
             .setAutoCancel(true)
             .setContentIntent(buildContentIntent(styling?.chatType, payload?.navigation))
             .apply {
-                if (groupKey != null) setGroup(groupKey)
+                if (group != null) setGroup(group)
             }
 
         val notificationId = if (chatId != null && styling != null) {
@@ -292,16 +294,16 @@ class NotificationService : FirebaseMessagingService(),
 
         notificationManager.notify(notificationId, builder.build())
 
-        if (groupKey != null) {
+        if (group != null) {
             val summary = NotificationCompat.Builder(this, channel.id)
                 .setSmallIcon(R.drawable.flipcash_logo)
                 .setColor(getColor(R.color.notification_color))
-                .setGroup(groupKey)
+                .setGroup(group)
                 .setGroupSummary(true)
                 .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
                 .setAutoCancel(true)
                 .build()
-            notificationManager.notify(groupKey.hashCode(), summary)
+            notificationManager.notify(group.hashCode(), summary)
         }
     }
 
@@ -413,8 +415,8 @@ class NotificationService : FirebaseMessagingService(),
 
         setStyle(style)
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
-            .addAction(buildReplyAction(chatId, notificationId, groupKey))
-            .addAction(buildMarkAsReadAction(chatId, groupKey))
+            .addAction(buildReplyAction(chatId, notificationId))
+            .addAction(buildMarkAsReadAction(chatId))
 
         return notificationId
     }
@@ -529,7 +531,7 @@ class NotificationService : FirebaseMessagingService(),
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    private fun buildReplyAction(chatId: ChatId, notificationId: Int, groupKey: String?): NotificationCompat.Action {
+    private fun buildReplyAction(chatId: ChatId, notificationId: Int): NotificationCompat.Action {
         val remoteInput = RemoteInput.Builder(NotificationActionReceiver.KEY_TEXT_REPLY)
             .setLabel(getString(R.string.notification_action_reply))
             .build()
@@ -538,7 +540,6 @@ class NotificationService : FirebaseMessagingService(),
             action = NotificationActionReceiver.ACTION_REPLY
             putExtra(NotificationActionReceiver.KEY_CHAT_ID_HEX, chatId.bytes.toHexString())
             putExtra(NotificationActionReceiver.KEY_NOTIFICATION_ID, notificationId)
-            if (groupKey != null) putExtra(NotificationActionReceiver.KEY_GROUP_KEY, groupKey)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -556,11 +557,10 @@ class NotificationService : FirebaseMessagingService(),
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    private fun buildMarkAsReadAction(chatId: ChatId, groupKey: String?): NotificationCompat.Action {
+    private fun buildMarkAsReadAction(chatId: ChatId): NotificationCompat.Action {
         val intent = Intent(this, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_MARK_READ
             putExtra(NotificationActionReceiver.KEY_CHAT_ID_HEX, chatId.bytes.toHexString())
-            if (groupKey != null) putExtra(NotificationActionReceiver.KEY_GROUP_KEY, groupKey)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
