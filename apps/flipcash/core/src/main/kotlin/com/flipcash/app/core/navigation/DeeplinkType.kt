@@ -60,9 +60,6 @@ sealed interface DeeplinkType: Parcelable {
      * send as a photo. A new route type is refused until someone adds it here, which is the
      * property an `else -> false` would not have.
      *
-     * [GroupChatInvite] is false because no scan path opens one -- `Scanner`'s `Navigatable`
-     * branch has no case for it. It is a gap named rather than a risk.
-     *
      * iOS's equivalent is `ScanViewModel.canScanQR`.
      */
     val isScannable: Boolean
@@ -72,11 +69,11 @@ sealed interface DeeplinkType: Parcelable {
             is TipChat,
             is Tipcard,
             is TipcardByUsername,
+            is GroupChatInvite,
             -> true
 
             is Login,
             is EmailVerification,
-            is GroupChatInvite,
             -> false
         }
 }
