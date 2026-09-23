@@ -91,7 +91,7 @@ class FeedGroupProjectionTest {
         members: Map<String, List<ChatMember>>,
     ) {
         private val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true).also {
-            coEvery { it.getLatestVisible(any()) } returns message(2)
+            coEvery { it.getLatestVisibleByChat() } returns entities.associate { e -> e.chatIdHex to message(2) }
         }
 
         private val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true).also { source ->
@@ -114,12 +114,18 @@ class FeedGroupProjectionTest {
             every { source.observeAll() } returns flowOf(members)
         }
 
+        // Marked synced so an empty projection still emits: these tests are about what the feed
+        // holds, not about when it is first known.
+        private val stateHolder = ChatStateHolder().apply {
+            update { it.copy(feedSyncState = FeedSyncState.Synced) }
+        }
+
         val delegate = FeedSyncDelegate(
             chatController = mockk<ChatController>(relaxed = true),
             metadataDataSource = metadataDataSource,
             messageDataSource = messageDataSource,
             memberDataSource = memberDataSource,
-            stateHolder = ChatStateHolder(),
+            stateHolder = stateHolder,
             userManager = mockk<UserManager>(relaxed = true).also {
                 every { it.accountId } returns selfId
                 every { it.profile } returns null

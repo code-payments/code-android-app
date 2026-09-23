@@ -43,8 +43,24 @@ interface ChatMessageDao {
      * the newest id including tombstones, or a delete would regress the read pointer and leave the
      * chat unread forever.
      */
-    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 ORDER BY timestamp_epoch_ms DESC LIMIT 1")
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
     suspend fun getLatestVisible(chatIdHex: String): ChatMessageEntity?
+
+    /**
+     * [getLatestVisible] for every chat at once: one row per chat that has a message with content.
+     *
+     * The conversation list needs this for every chat it builds, and one query per chat costs a
+     * round trip each. A correlated subquery rather than a window function, which needs SQLite 3.25
+     * (API 30) and minSdk ships 3.22.
+     */
+    @Query(
+        "SELECT * FROM chat_messages WHERE rowid IN (" +
+            "SELECT (SELECT m.rowid FROM chat_messages m " +
+            "WHERE m.chat_id_hex = c.chat_id_hex AND m.is_deleted = 0 " +
+            "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
+            "FROM (SELECT DISTINCT chat_id_hex FROM chat_messages) c)"
+    )
+    suspend fun getLatestVisibleForAllChats(): List<ChatMessageEntity>
 
     @Query(
         "SELECT * FROM chat_messages " +

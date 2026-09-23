@@ -80,6 +80,9 @@ sealed interface AppRoute : NavKey, Parcelable {
         val fromDeeplink: Boolean = false,
         val resumeAt: ResumePoint = ResumePoint.Login,
         val skipContacts: Boolean = true,
+        // Set when onboarding is creating the account rather than signing in to one; decides
+        // where the permissions phase releases to.
+        val newAccount: Boolean = false,
     ) : AppRoute, FlowRoute {
         enum class Phase { Account, Permissions }
         enum class ResumePoint { Login, AccessKey, AccessKeyThenPurchase, PostAccessKey }

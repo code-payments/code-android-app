@@ -23,6 +23,7 @@ import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.FeedOperations
 import com.flipcash.shared.chat.FeedSyncState
+import com.flipcash.shared.chat.ChatState
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.isRenderable
 import com.flipcash.shared.chat.internal.unreadCount
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -117,16 +119,30 @@ class FeedSyncDelegate @Inject constructor(
 
     override fun feed(vararg chatTypes: ChatType): Flow<List<ChatSummary>> {
         val requested = chatTypes.toSet()
-        return stateHolder.state.map { state ->
-            val selfId = userManager.accountId
-            val selfPhone = userManager.profile?.verifiedPhoneNumber
-            state.feed
-                .filter { it.type in requested }
-                .filter { isRenderable(it, selfId, selfPhone) }
-                .map { metadata ->
-                    ChatSummary(metadata = metadata, unreadCount = unreadCount(metadata, selfId))
-                }
-        }
+        return stateHolder.state.mapNotNull { state -> summaries(state, requested) }
+    }
+
+    override fun currentFeed(vararg chatTypes: ChatType): List<ChatSummary>? =
+        summaries(stateHolder.state.value, chatTypes.toSet())
+
+    private fun summaries(state: ChatState, requested: Set<ChatType>): List<ChatSummary>? {
+        // Nothing until the list is known: the chat list shows its empty state for an emitted empty
+        // list, so it must not see one that only means "not read yet". Chats on disk are known as
+        // soon as they are read. An empty database is not, because on a fresh sign-in it is empty
+        // only until the first sync writes the account's chats, so it waits for that sync to answer.
+        val feed = state.feed?.takeIf { feed ->
+            feed.isNotEmpty() ||
+                state.feedSyncState == FeedSyncState.Synced ||
+                state.feedSyncState == FeedSyncState.Error
+        } ?: return null
+        val selfId = userManager.accountId
+        val selfPhone = userManager.profile?.verifiedPhoneNumber
+        return feed
+            .filter { it.type in requested }
+            .filter { isRenderable(it, selfId, selfPhone) }
+            .map { metadata ->
+                ChatSummary(metadata = metadata, unreadCount = unreadCount(metadata, selfId))
+            }
     }
 
     override fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int> {
@@ -255,15 +271,14 @@ class FeedSyncDelegate @Inject constructor(
         // `is_member` is a column rather than a field on ChatMetadata: a chat you have left is
         // still a chat you can be shown (Plan C's gate reads the same row), so the flag is dropped
         // here, at the edge of the list, rather than carried through the domain model.
+        val latestVisible = messageDataSource.getLatestVisibleByChat()
         return metadataEntities.filter { it.isMember }.map { entity ->
             val members = membersByChat[entity.chatIdHex] ?: emptyList()
             // Deliberately the newest *visible* message, not the newest row: deleting the newest
             // message drops the feed back to the one before it, so the preview reads that message
             // instead of "Message deleted" and its unread splat clears with it (the fallback sits
             // at or below the read pointer whenever the deleted message was the only unread one).
-            val lastMessage = entity.lastMessageId?.let {
-                messageDataSource.getLatestVisible(entity.chatIdHex)
-            }
+            val lastMessage = entity.lastMessageId?.let { latestVisible[entity.chatIdHex] }
             metadataDataSource.toMetadata(entity, members, lastMessage)
         }
     }

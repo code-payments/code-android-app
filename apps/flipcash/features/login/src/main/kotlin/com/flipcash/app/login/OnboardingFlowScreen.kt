@@ -30,6 +30,7 @@ import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.navigation.homeRoute
+import com.flipcash.app.core.navigation.launchRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.core.onboarding.OnboardingResult
@@ -113,7 +114,9 @@ import kotlin.time.Duration.Companion.milliseconds
  *   [PermissionsPhaseFlowHost].
  * ² Display-name entry is shown only when no display name is set. It reuses the
  *   UpdateUserProfile subflow, whose `target` replaces the stack with the permissions phase.
- * ³ Home is the same route the app launches on — the Wallet tab. See [homeRoute].
+ * ³ A new account (1, and 4 when it resumes account creation) lands on the Wallet tab, so a new
+ *   user sees their balance. A restore (2) or an app resume (3) lands on Chats, where a cold launch
+ *   opens. See [onboardingLandingRoute].
  */
 @Composable
 fun OnboardingFlowScreen(
@@ -159,8 +162,7 @@ private fun PermissionsPhaseFlowHost(
     val userManager = LocalUserManager.current
     val contactPickerMode by featureFlags.observe(FeatureFlag.ContactPickerMode).collectAsStateWithLifecycle()
 
-    // Onboarding releases to the same home the app launches on: the Wallet tab.
-    val home = homeRoute
+    val home = onboardingLandingRoute(route)
 
     val permissionsSteps = buildList {
         if (!route.skipContacts && !contactPickerMode) add(OnboardingStep.ContactPermission)
@@ -244,6 +246,14 @@ private fun AccountPhaseFlowHost(
     )
 }
 
+/**
+ * Where the permissions phase releases to: the Wallet tab for an account onboarding just created,
+ * so a new user sees their balance, and the Chats tab a cold launch opens on for an account being
+ * signed in to.
+ */
+internal fun onboardingLandingRoute(route: AppRoute.OnboardingFlow): AppRoute =
+    if (route.newAccount) homeRoute else launchRoute
+
 internal fun resolvePostAccountRoute(
     result: OnboardingResult,
     skipContacts: Boolean = true,
@@ -253,7 +263,7 @@ internal fun resolvePostAccountRoute(
         skipContacts = skipContacts,
     )
     return when (result) {
-        is OnboardingResult.ProceedToVerification -> permissionsRoute
+        is OnboardingResult.ProceedToVerification -> permissionsRoute.copy(newAccount = true)
         OnboardingResult.LoggedIn -> permissionsRoute
         OnboardingResult.Completed -> null
     }
@@ -278,6 +288,7 @@ private fun FlowNavigator<OnboardingStep, OnboardingResult>.proceedToNameOrPermi
                 target = AppRoute.OnboardingFlow(
                     phase = AppRoute.OnboardingFlow.Phase.Permissions,
                     skipContacts = true,
+                    newAccount = true,
                 ),
                 allowBack = false,
             )

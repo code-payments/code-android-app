@@ -39,11 +39,13 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds
@@ -100,6 +102,7 @@ class RealChatCoordinator @Inject constructor(
 
     companion object {
         private const val TAG = "ChatCoordinator"
+        private val FEED_READ_WAIT = 3.seconds
     }
 
     // Recreated on re-login: [reset] cancels [supervisorJob] on logout, which would
@@ -141,6 +144,11 @@ class RealChatCoordinator @Inject constructor(
         // becoming retryable. See [MessagingDelegate.recoverInterruptedSends].
         messagingDelegate.recoverInterruptedSends()
         feedDelegate.observeFeedFromDb()
+        // The list the Chats tab opens on comes from this read, so let it finish before the sync
+        // below starts competing with it for CPU (a cold-launch trace had the sync's gRPC work
+        // on every core while the Room reads waited to run). Bounded, so a read that never
+        // answers delays the sync rather than cancelling it.
+        withTimeoutOrNull(FEED_READ_WAIT) { stateHolder.state.first { it.feed != null } }
         syncFeeds()
         eventStreamDelegate.open()
         eventStreamDelegate.startHeartbeat { syncFeeds() }

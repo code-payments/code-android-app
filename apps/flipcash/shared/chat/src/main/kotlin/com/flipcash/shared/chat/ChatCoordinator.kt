@@ -37,6 +37,12 @@ interface FeedOperations {
      */
     fun feed(vararg chatTypes: ChatType): Flow<List<ChatSummary>>
 
+    /**
+     * What [feed] would emit right now, or null while it would emit nothing yet. Lets a screen
+     * built after the feed is ready draw it on its first frame instead of waiting for a collector.
+     */
+    fun currentFeed(vararg chatTypes: ChatType): List<ChatSummary>?
+
     /** Emits the number of conversations of any of [chatTypes] that have unread messages. */
     fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int>
 

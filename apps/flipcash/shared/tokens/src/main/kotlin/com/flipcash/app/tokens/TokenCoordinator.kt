@@ -183,6 +183,9 @@ class TokenCoordinator @Inject constructor(
      */
     fun cachedToken(mint: Mint): Token? = _state.value.tokens[mint]
 
+    /** Synchronous read of every cached token: the current value of [tokens]. */
+    fun cachedTokens(): List<Token> = _state.value.tokens.values.toList()
+
     val tokenBalances: Flow<List<TokenWithBalance>> = _hydrated
         .filter { it }
         .flatMapLatest {
