@@ -11,6 +11,7 @@ import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
@@ -36,7 +37,7 @@ internal class ChatProfileViewModel @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val resources: ResourceHelper,
 ) : BaseViewModel<ChatProfileViewModel.State, ChatProfileViewModel.Event>(
-    initialState = State(),
+    initialState = State(selfId = userManager.accountId),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
@@ -44,6 +45,8 @@ internal class ChatProfileViewModel @Inject constructor(
         val participant: ChatParticipant? = null,
         val joinDate: Instant? = null,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
+        /** The viewer's own user id, so the screen can tell their own profile from someone else's. */
+        val selfId: ID? = null,
     )
 
     sealed interface Event {

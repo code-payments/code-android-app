@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
 import androidx.annotation.VisibleForTesting
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ReportSubject
@@ -56,6 +58,10 @@ import kotlin.time.Instant
  * and there the chat behind it is the group — a mute row on a member's profile would silence the
  * whole group from a screen that names one person. Contact DMs never reach this screen
  * ([com.flipcash.app.messenger.internal.ChatSubject.Contact] answers `canViewProfile` false).
+ *
+ * The Message and Send Cash shortcuts follow the same split, the other way round: they show on a
+ * group member's profile and not on a tip DM's, where they would only reopen the chat behind it.
+ * [profileShortcutRecipient] has the whole rule.
  */
 @Composable
 internal fun ChatProfileScreen(
@@ -87,10 +93,26 @@ internal fun ChatProfileScreen(
                 add(BlockUser)
             },
             header = {
+                val recipient = profileShortcutRecipient(
+                    participant = state.participant,
+                    chatType = chatState.chatType,
+                    selfId = state.selfId,
+                )
                 ProfileHeader(
                     participant = state.participant,
                     joinDate = state.joinDate,
                     viewerState = chatState.viewerState,
+                    // Not flowNavigator, for the reason Report isn't: the DM is a top-level route,
+                    // so LocalCodeNavigator hands it up and it opens over this chat.
+                    shortcuts = recipient?.let { user ->
+                        {
+                            ProfileShortcuts(
+                                cashSymbol = chatState.cashSymbol,
+                                onMessage = { navigator.push(user.dmRoute()) },
+                                onSendCash = { navigator.push(user.dmRoute(openSendCash = true)) },
+                            )
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         // The gap under the header is the header's own, because MenuList puts
@@ -152,6 +174,7 @@ internal fun ProfileHeader(
     joinDate: Instant?,
     modifier: Modifier = Modifier,
     viewerState: ViewerState? = null,
+    shortcuts: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = modifier,
@@ -203,5 +226,19 @@ internal fun ProfileHeader(
             viewerState = viewerState,
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
         )
+        // Below everything that describes the person: these act on them, like the rows under the
+        // header, but they're the routine ones, so they sit closest to the name. The mute line
+        // above holds its height even when empty, so it already supplies most of the gap.
+        shortcuts?.let { content ->
+            Box(modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2)) {
+                content()
+            }
+        }
     }
 }
+
+private fun ChatParticipant.TipUser.dmRoute(openSendCash: Boolean = false) =
+    AppRoute.Messaging.Chat(
+        identifier = ChatIdentifier.ByUser(userId, profile),
+        openSendCash = openSendCash,
+    )

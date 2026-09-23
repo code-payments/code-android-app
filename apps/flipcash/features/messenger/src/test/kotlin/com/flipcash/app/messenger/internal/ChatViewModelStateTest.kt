@@ -362,6 +362,49 @@ class ChatViewModelStateTest {
         assertTrue(sent.draftSnapshot().isEmpty)
     }
 
+    private val tipUser = ChatParticipant.TipUser(
+        userId = listOf(9.toByte()),
+        profile = UserProfile.Empty.copy(username = "grace_hopper"),
+    )
+
+    /**
+     * Send cash opened from a profile fires on the first answer that won't change, so none of
+     * these may say ready: without a participant the handler drops the event, and without the
+     * chat's existence or its fee it can pick the keypad for a payment that owes the fee.
+     */
+    @Test
+    fun `send cash is not ready while the fee state is unknown`() {
+        assertFalse(isSendCashReady(participant = null, chatExists = false, openingFee = Fiat(1.0)))
+        assertFalse(isSendCashReady(tipUser, chatExists = null, openingFee = null))
+        assertFalse(isSendCashReady(tipUser, chatExists = null, openingFee = Fiat(1.0)))
+        // Doesn't exist yet, and the fee to open it hasn't resolved.
+        assertFalse(isSendCashReady(tipUser, chatExists = false, openingFee = null))
+        // Exists, but the fee computed before the member store answered is still standing.
+        assertFalse(isSendCashReady(tipUser, chatExists = true, openingFee = Fiat(1.0)))
+    }
+
+    @Test
+    fun `send cash is ready once the fee and the chat agree`() {
+        // A new DM: the fee sheet.
+        assertTrue(isSendCashReady(tipUser, chatExists = false, openingFee = Fiat(1.0)))
+        // An existing DM: the keypad, with no fee.
+        assertTrue(isSendCashReady(tipUser, chatExists = true, openingFee = null))
+    }
+
+    @Test
+    fun `a contact DM is ready to send cash as soon as it has a participant`() {
+        assertTrue(isSendCashReady(dm.participant, chatExists = null, openingFee = null))
+    }
+
+    @Test
+    fun `the reducer holds send cash readiness`() {
+        val ready = ChatViewModel.updateStateForEvent(
+            ChatViewModel.Event.OnSendCashReadinessChanged(true)
+        )(ChatViewModel.State())
+        assertTrue(ready.sendCashReady)
+        assertFalse(ChatViewModel.State().sendCashReady)
+    }
+
     /** What the ViewModel's own `draftSnapshot` composes, over a state the reducer produced. */
     private fun ChatViewModel.State.draftSnapshot(): ChatDraftSnapshot = chatDraftOf(
         composerText = chatInputState.text.toString(),

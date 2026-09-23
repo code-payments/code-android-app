@@ -1,0 +1,11 @@
+<!-- Material Symbols Outlined "chat_bubble", filled, 24dp/wght 400. The -960 viewBox Google
+     ships is translated into a 0..960 one, matching ic_profile_picture. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+  <path
+      android:pathData="M80,880 v-720 q0,-33 23.5,-56.5 T160,80 h640 q33,0 56.5,23.5 T880,160 v480 q0,33 -23.5,56.5 T800,720 H240 L80,880 Z"
+      android:fillColor="#FFFFFFFF"/>
+</vector>

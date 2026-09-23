@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -20,6 +21,7 @@ import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.StartSendCashOnceReady
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.flipcash.app.messenger.internal.screens.MuteChatSheet
@@ -46,8 +48,10 @@ import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.utils.rememberKeyboardController
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
@@ -66,7 +70,7 @@ fun ChatFlowScreen(
         // onRootReached, and so does system back — so this is the one place that has to do it.
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
-        entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
+        entryProvider = chatEntryProvider(route.identifier, route.openKeyboard, route.openSendCash),
         // ChatStep.AmountEntry, ChatStep.InitPayment, ChatStep.InviteToGroup and
         // ChatStep.MuteChat are Sheets, so the
         // flow needs the sheet strategy to draw them as such; without it the step would fall
@@ -85,9 +89,10 @@ fun ChatFlowScreen(
 private fun chatEntryProvider(
     identifier: ChatIdentifier,
     openKeyboard: Boolean,
+    openSendCash: Boolean,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<ChatStep.Conversation> {
-        FlowConversationScreen(identifier, openKeyboard)
+        FlowConversationScreen(identifier, openKeyboard, openSendCash)
     }
     annotatedEntry<ChatStep.AmountEntry> {
         FlowAmountEntryScreen()
@@ -120,7 +125,11 @@ private fun chatEntryProvider(
 }
 
 @Composable
-private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boolean) {
+private fun FlowConversationScreen(
+    identifier: ChatIdentifier,
+    openKeyboard: Boolean,
+    openSendCash: Boolean,
+) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val navigator = LocalCodeNavigator.current
     // The sheet-owning (root) navigator — the one whose back stack holds this chat's Main.Sheet and
@@ -188,6 +197,16 @@ private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boo
                     }
                 }
             }
+    }
+
+    // After the collectors above, so the step OnSendCash navigates to has someone listening.
+    // Not keyed on first composition the way openKeyboard is: the handler drops the event until
+    // the participant is set, and picks the wrong step until the fee is known.
+    val sendCashReady by remember(viewModel) {
+        viewModel.stateFlow.map { it.sendCashReady }.distinctUntilChanged()
+    }.collectAsStateWithLifecycle(initialValue = false)
+    StartSendCashOnceReady(requested = openSendCash, ready = sendCashReady) {
+        viewModel.dispatchEvent(ChatViewModel.Event.OnSendCash)
     }
 
     MessengerScreen(viewModel)

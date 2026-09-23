@@ -214,6 +214,14 @@ internal class ChatViewModel @Inject constructor(
          * value: both mean the pill falls back to its unpriced label.
          */
         val chatInitFee: String? = null,
+        /**
+         * Whether [Event.OnSendCash] would now take the path it will keep: the fee sheet for the
+         * payment that opens a tip DM, the keypad for any other. See [isSendCashReady].
+         *
+         * Only a chat opened with send cash already started reads it. [chatInitFee] can't answer
+         * this, because it is null both before the fee resolves and when there is no fee at all.
+         */
+        val sendCashReady: Boolean = false,
         // Transient "focus the message input" request. Set by OnStartMessageInput (dispatched when
         // returning from amount entry after a send, and on a post-tip chat open) and cleared by
         // OnMessageInputConsumed once the bottom bar has focused the field and shown the keyboard.
@@ -413,6 +421,7 @@ internal class ChatViewModel @Inject constructor(
         data object UnmuteChat : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data class OnChatInitFeeUpdated(val formatted: String?) : Event
+        data class OnSendCashReadinessChanged(val ready: Boolean) : Event
         data object RefreshContact : Event
         data class ChatFound(val chatId: ChatId) : Event
         data object OnSendCash: Event
@@ -802,14 +811,22 @@ internal class ChatViewModel @Inject constructor(
     /**
      * Whether this conversation already exists. Members are the same signal
      * [com.flipcash.shared.chat.DmChatResolver.getChatId] calls initialized: a chat the server has
-     * created has a member row, one derived from a user id alone does not.
+     * created has a member row, one derived from a user id alone does not. Null until the member
+     * store has answered; [isChatInitialized] reads that as false.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val isChatInitialized by lazy {
+    private val chatExistence by lazy {
         stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
             .flatMapLatest { chatCoordinator.observeMembers(it) }
             .map { it.isNotEmpty() }
+            .distinctUntilChanged()
+            // Null until the member store has answered, which is not the same as "doesn't exist".
+            .stateIn<Boolean?>(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    }
+
+    private val isChatInitialized by lazy {
+        chatExistence.map { it == true }
             .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     }
@@ -1281,6 +1298,15 @@ internal class ChatViewModel @Inject constructor(
         // it. Formatted here rather than in the composable so the button has no currency logic.
         minAmountFlow
             .onEach { dispatchEvent(Event.OnChatInitFeeUpdated(it?.formatted())) }
+            .launchIn(viewModelScope)
+
+        combine(
+            stateFlow.map { it.participant }.distinctUntilChanged(),
+            chatExistence,
+            minAmountFlow,
+        ) { participant, exists, fee -> isSendCashReady(participant, exists, fee) }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnSendCashReadinessChanged(it)) }
             .launchIn(viewModelScope)
 
         transactionController.limits
@@ -2121,6 +2147,7 @@ internal class ChatViewModel @Inject constructor(
                 }
                 is Event.OnCurrencySymbolUpdated -> { state -> state.copy(cashSymbol = event.symbol) }
                 is Event.OnChatInitFeeUpdated -> { state -> state.copy(chatInitFee = event.formatted) }
+                is Event.OnSendCashReadinessChanged -> { state -> state.copy(sendCashReady = event.ready) }
                 is Event.RefreshContact -> { state -> state }
                 is Event.ChatFound -> { state -> state.copy(chatId = event.chatId) }
                 Event.OnSendCash -> { state -> state }
