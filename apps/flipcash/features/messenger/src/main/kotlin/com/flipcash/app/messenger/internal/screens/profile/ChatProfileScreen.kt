@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
@@ -122,7 +123,14 @@ internal fun ChatProfileScreen(
                         // screen reads as one block rather than a title above a list.
                         .padding(
                             top = CodeTheme.dimens.grid.x7,
-                            bottom = CodeTheme.dimens.grid.x8,
+                            // None under the shortcuts: the first row's own 25dp inset is the
+                            // gap, and ProfileHeader matches it above them so they sit centered
+                            // between the join date and the list.
+                            bottom = if (recipient != null) {
+                                0.dp
+                            } else {
+                                CodeTheme.dimens.grid.x8
+                            },
                         ),
                 )
             },
@@ -225,12 +233,15 @@ internal fun ProfileHeader(
         ChatMuteStatusChip(
             viewerState = viewerState,
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+            // With the shortcuts below, an empty held line would double the gap above them. This
+            // screen only shows them for a group member, where there's no mute row to change it.
+            reserveSpace = shortcuts == null,
         )
         // Below everything that describes the person: these act on them, like the rows under the
-        // header, but they're the routine ones, so they sit closest to the name. The mute line
-        // above holds its height even when empty, so it already supplies most of the gap.
+        // header, but they're the routine ones, so they sit closest to the name. 15dp here plus
+        // the mute line's 10dp is 25dp, the same as the first row's inset below them.
         shortcuts?.let { content ->
-            Box(modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2)) {
+            Box(modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3)) {
                 content()
             }
         }

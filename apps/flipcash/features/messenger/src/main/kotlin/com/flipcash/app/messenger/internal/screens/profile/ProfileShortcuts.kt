@@ -26,7 +26,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.app.core.chat.ChatParticipant
-import com.flipcash.app.messenger.internal.screens.components.CondensedSymbolFontSize
+// Used by the held-back Send Cash shortcut below.
+// import com.flipcash.app.messenger.internal.screens.components.CondensedSymbolFontSize
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.opencode.model.core.ID
@@ -85,18 +86,20 @@ internal fun ProfileShortcuts(
                 modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
             )
         }
-        ProfileShortcut(
-            label = stringResource(R.string.action_sendCash),
-            onClick = onSendCash,
-        ) {
-            Text(
-                text = cashSymbol,
-                color = CodeTheme.colors.textMain,
-                style = CodeTheme.typography.textMedium.copy(fontSize = CondensedSymbolFontSize),
-                maxLines = 1,
-                softWrap = false,
-            )
-        }
+        // Send Cash is held back for now. The route flag and the chat's once-ready dispatch behind
+        // it stay wired, so bringing it back is uncommenting this.
+        // ProfileShortcut(
+        //     label = stringResource(R.string.action_sendCash),
+        //     onClick = onSendCash,
+        // ) {
+        //     Text(
+        //         text = cashSymbol,
+        //         color = CodeTheme.colors.textMain,
+        //         style = CodeTheme.typography.textMedium.copy(fontSize = CondensedSymbolFontSize),
+        //         maxLines = 1,
+        //         softWrap = false,
+        //     )
+        // }
     }
 }
 

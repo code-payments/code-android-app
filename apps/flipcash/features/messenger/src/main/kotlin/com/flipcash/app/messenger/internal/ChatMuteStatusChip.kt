@@ -51,11 +51,15 @@ import com.getcode.theme.CodeTheme
  * Takes the [ViewerState] rather than a label so the countdown behind it is this composable's —
  * see [rememberMutedLabel], which drops the text the moment a timed mute lapses with nothing sent
  * from the server to say so.
+ *
+ * [reserveSpace] false drops the held line, for a header where something else ends the block and
+ * an empty line would only read as a gap.
  */
 @Composable
 internal fun ChatMuteStatusChip(
     viewerState: ViewerState?,
     modifier: Modifier = Modifier,
+    reserveSpace: Boolean = true,
 ) {
     val label = rememberMutedLabel(viewerState)
 
@@ -63,12 +67,14 @@ internal fun ChatMuteStatusChip(
         // Holds the line's height whether or not there is a mute, so the rows below don't move the
         // moment one lapses or is cleared — that reads as the screen re-laying itself out rather
         // than one fact going away. Never drawn, never read aloud.
-        Chip(
-            label = stringResource(R.string.label_muted),
-            modifier = Modifier
-                .alpha(0f)
-                .clearAndSetSemantics { },
-        )
+        if (reserveSpace) {
+            Chip(
+                label = stringResource(R.string.label_muted),
+                modifier = Modifier
+                    .alpha(0f)
+                    .clearAndSetSemantics { },
+            )
+        }
 
         // Springs in and fades out. Arriving is the event worth seeing — the user just chose it —
         // so it gets the overshoot; going away is either their unmute or a deadline passing, and
