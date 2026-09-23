@@ -35,9 +35,11 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.TokenInfoEntry
+import com.flipcash.app.core.tokens.TokenInfoPresentation
+import com.flipcash.app.core.tokens.TokenInfoSwapOutcome
+import com.flipcash.app.core.tokens.afterSwap
 import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.flipcash.app.tokens.internal.components.info.CurrencyInfoTitlePill
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
@@ -106,7 +108,7 @@ fun TokenInfoScreen(
             // Currency-info is a modal dismiss, not a true back nav — lead with a close (✕). But when
             // it was PUSHED onto the stack (e.g. drilled into from token discovery) it IS a back nav, so
             // lead with a back arrow instead.
-            leadingDismiss = !entry.asPush,
+            leadingDismiss = entry.presentation == TokenInfoPresentation.CardExpand,
             hazeState = haze,
             endContent = {
                 state.token.dataOrNull?.let {
@@ -200,17 +202,11 @@ fun TokenInfoScreen(
                     is AppRoute.Token.Swap -> {
                         navigator.navigateForResult<SwapResult>(screen) { result ->
                             if (result !is NavResultOrCanceled.ReturnValue) return@navigateForResult
-                            when (result.value) {
-                                is SwapResult.OpenDeposit ->
+                            when (entry.afterSwap(mint, screen.purpose, result.value)) {
+                                TokenInfoSwapOutcome.OpenDeposit ->
                                     navigator.push(AppRoute.Transfers.Deposit(showOtherOptions = false))
-                                // Only a buy of this currency. Add Money from here also ends in a
-                                // successful Buy, but of USDF to fund this one, and the reader
-                                // still has this purchase to make.
-                                is SwapResult.Success -> {
-                                    val bought = (screen.purpose as? SwapPurpose.Buy)?.mint
-                                    if (entry.returnAfterBuy && bought == mint) navigator.pop()
-                                }
-                                else -> Unit
+                                TokenInfoSwapOutcome.Pop -> navigator.pop()
+                                TokenInfoSwapOutcome.Stay -> Unit
                             }
                         }
                     }
