@@ -293,3 +293,43 @@ properties = [
   { key = "Error", value = "error" },
 ]
 drift = "iOS also sends State, and sends only Fiat and Currency of the amount, with no USDC, Quarks or Fee."
+
+# Scan
+
+[domains.ScanEvents]
+doc = "The gallery scan path, and the tip card."
+
+[[domains.ScanEvents.events]]
+builder = "galleryImagePicked"
+event = "Gallery Scan: Image Picked"
+
+[[domains.ScanEvents.events]]
+builder = "gallerySucceeded"
+event = "Gallery Scan: Succeeded"
+params = ["tier: Int", "zoom: Double", "timeMillis: Long"]
+properties = [
+  { key = "Tier", value = "tier" },
+  { key = "Zoom", value = "zoom" },
+  { key = "Time", value = "timeMillis" },
+]
+doc = "@param tier which rung of the crop ladder decoded, 1 to 3."
+drift = "iOS sends this as Gallery Scan: Code Found, with Type {Kik, QR}, Tier as {wholeImage, quadrant, window}, Zoom, and Elapsed in seconds instead of Time in ms."
+
+[[domains.ScanEvents.events]]
+builder = "galleryFailed"
+event = "Gallery Scan: Failed"
+params = ["timeMillis: Long", "exhausted: Boolean"]
+properties = [
+  { key = "Time", value = "timeMillis" },
+  { key = "Exhausted", value = "exhausted" },
+]
+doc = "@param exhausted true when the budget ran out rather than the ladder ending."
+drift = "iOS sends this as Gallery Scan: Nothing Found, with State {Exhausted, Cancelled, Route Refused} and Elapsed in seconds instead of Time in ms and Exhausted."
+
+[[domains.ScanEvents.events]]
+builder = "tipCardScanned"
+event = "Tip Card Scanned"
+
+[[domains.ScanEvents.events]]
+builder = "tipCardPresented"
+event = "Tip Card Presented"
