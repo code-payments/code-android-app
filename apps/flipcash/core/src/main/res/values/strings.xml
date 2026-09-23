@@ -889,6 +889,10 @@
     <string name="title_messageNotSent">Message Not Sent</string>
     <string name="description_messageNotSent">Your message could not be delivered. Would you like to try again?</string>
     <string name="label_chatSeparator_today">Today</string>
+    <plurals name="title_chatUnreadDivider">
+        <item quantity="one">%1$s Unread Message</item>
+        <item quantity="other">%1$s Unread Messages</item>
+    </plurals>
 
     <string name="title_sendFeatureIntro">Send Money To Your Friends</string>
     <string name="subtitle_sendFeatureIntro">Send money to friends as easily as a text. Connect your phone number to get started</string>

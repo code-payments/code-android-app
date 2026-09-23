@@ -355,6 +355,7 @@ internal fun MessageList(
                     val oldestTimestamp = when (oldest) {
                         is ChatListItem.ContentBubble -> oldest.timestamp
                         is ChatListItem.DateSeparator -> null // already a separator
+                        is ChatListItem.UnreadDivider -> null // carries the oldest message's date
                         null -> null
                     }
                     if (oldestTimestamp != null) {

@@ -213,6 +213,10 @@ internal fun MessageRow(
                 DateSeparatorRow(item.timestamp)
             }
 
+            is ChatListItem.UnreadDivider -> Box(insertionModifier) {
+                UnreadDividerRow(count = item.count, date = item.date)
+            }
+
             is ChatListItem.ContentBubble -> {
                 val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
                 // Track whether this item was ever seen as SENDING so we
@@ -456,24 +460,21 @@ internal enum class RowGap { Tight, Normal, Wide }
  * group: two members' messages are both incoming, so a whole conversation between them ran at the
  * tight same-sender gap.
  *
- * Pure so it can be tested without a `PagingData`, like [startsSenderRun]: the messenger module has
- * no `paging-testing` dependency, and the peek belongs to the caller.
+ * Pure so it can be tested without a `PagingData`, like [startsSenderRun]: the peek belongs to the
+ * caller.
  */
 internal fun rowGapBelow(item: ChatListItem, below: ChatListItem?, config: SeparatorConfig): RowGap {
     below ?: return RowGap.Tight
 
-    // Separator adjacent → normal gap
-    if (item is ChatListItem.DateSeparator || below is ChatListItem.DateSeparator) {
+    // Separator or unread divider adjacent → normal gap
+    if (item !is ChatListItem.ContentBubble || below !is ChatListItem.ContentBubble) {
         return RowGap.Normal
     }
 
-    val current = item as? ChatListItem.ContentBubble ?: return RowGap.Tight
-    val newer = below as? ChatListItem.ContentBubble ?: return RowGap.Tight
-
     return when {
-        !current.isSameAuthorAs(newer) -> RowGap.Wide
+        !item.isSameAuthorAs(below) -> RowGap.Wide
         // Same sender, outside grouping window → normal
-        !config.isGrouped(current.timestamp, newer.timestamp) -> RowGap.Normal
+        !config.isGrouped(item.timestamp, below.timestamp) -> RowGap.Normal
         // Same sender, close together → tight
         else -> RowGap.Tight
     }
@@ -490,8 +491,7 @@ internal fun rowGapBelow(item: ChatListItem, below: ChatListItem?, config: Separ
  * first frame: a group's profile map arrives after the first page, and until it does every member's
  * bubble has a null `sender`.
  *
- * Pure so it can be tested without a `PagingData`: the messenger module has no `paging-testing`
- * dependency, and the peek belongs to the caller anyway.
+ * Pure so it can be tested without a `PagingData`: the peek belongs to the caller.
  */
 internal fun startsSenderRun(current: ChatListItem.ContentBubble, older: ChatListItem?): Boolean {
     val author = current.authorId ?: return false

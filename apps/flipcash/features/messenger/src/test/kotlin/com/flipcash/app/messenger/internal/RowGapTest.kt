@@ -41,6 +41,13 @@ class RowGapTest {
     )
 
     @Test
+    fun `the unread divider sits a normal gap from either neighbour`() {
+        val divider = ChatListItem.UnreadDivider(count = 3)
+        assertEquals(RowGap.Normal, rowGapBelow(bubble(alice), divider, config))
+        assertEquals(RowGap.Normal, rowGapBelow(divider, bubble(alice), config))
+    }
+
+    @Test
     fun `two members of a group are a run apart`() {
         assertEquals(RowGap.Wide, rowGapBelow(bubble(alice), bubble(bob), config))
     }
