@@ -26,11 +26,12 @@ import com.getcode.ui.components.chat.MessageNodeDefaults
 /**
  * What sits behind the blur of a group the viewer has not joined — node 10127:117171.
  *
- * Shapes, not messages. No RPC serves a transcript to a non-member: `GetChat` gives a group's
- * title, picture, roster summary and rules, and nothing else, so there is no conversation to fetch
- * and blur. What the design shows through the blur is therefore drawn rather than loaded — bars in
- * the proportions of an incoming run, so the gate reads as a conversation withheld rather than as a
- * screen that failed to load.
+ * Shapes, not messages. A withheld transcript is never fetched: a viewer short of the group's rules
+ * could be served it redacted at best, and one whose standing is not known yet may not be owed it at
+ * all, so there is no conversation to blur. (An eligible non-member is the exception, and reads the
+ * real transcript sharp — see `ChatViewModel.State.readsFromOutside`.) What the design shows through
+ * the blur is therefore drawn rather than loaded — bars in the proportions of an incoming run, so the
+ * gate reads as a conversation withheld rather than as a screen that failed to load.
  *
  * Deliberately unlocalised and free of any text: the closer this got to real message content, the
  * more a screenshot with the blur stripped would look like one. Every value here is fixed, so it

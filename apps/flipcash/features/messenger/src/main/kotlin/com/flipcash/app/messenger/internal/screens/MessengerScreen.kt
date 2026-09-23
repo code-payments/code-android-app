@@ -203,7 +203,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         // open. The title bar stays sharp — it is how a non-member knows what they are looking at.
         BlurredContent(
             modifier = Modifier.fillMaxSize(),
-            enabled = state.isGatedPreview,
+            enabled = state.obscuresTranscript,
         ) {
             MessageList(
                 modifier = Modifier

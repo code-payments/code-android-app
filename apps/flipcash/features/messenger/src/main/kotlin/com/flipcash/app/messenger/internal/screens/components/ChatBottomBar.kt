@@ -78,11 +78,10 @@ internal fun UserControlBottomBar(
     }
 
     // The same shape as the block above it, and for the same reason: there is no composer to
-    // configure when the viewer cannot post. The decision is `isGatedPreview`, the same flag the
-    // transcript's blur reads, so a composer can never appear over a blurred chat — including for
-    // the frames before the gate has decided anything, and for as long as the gate holds its join
-    // confirmation.
-    if (state.isGatedPreview) {
+    // configure when the viewer cannot post. `replacesComposer` holds for every viewer outside the
+    // group — including an eligible one reading the transcript sharp, and the frames before the gate
+    // has decided anything — and for as long as the gate holds its join confirmation.
+    if (state.replacesComposer) {
         GroupGateBar(
             access = state.groupAccess,
             // The chat's own rule, read the same way the info card at the head of the transcript
