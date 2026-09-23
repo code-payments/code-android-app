@@ -118,6 +118,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -793,11 +794,17 @@ internal class ChatViewModel @Inject constructor(
      * The transcript as the list draws it: [mappedMessages] with date separators and the unread
      * divider. The boundary and config are inputs rather than reads of the current state, so a
      * page never takes its separators from one config and its neighbour's from another.
+     *
+     * Nothing is emitted while the boundary is still resolving. The list decides where to open from
+     * the first page it lays out, and a page drawn before the boundary landed has no divider to
+     * open at. Both wait on the same chat id, and the resolution is two local queries.
      */
     val messages: Flow<PagingData<ChatListItem>> =
         combine(
             mappedMessages,
-            stateFlow.map { it.unreadBoundary }.distinctUntilChanged(),
+            stateFlow.map { it.unreadBoundary }
+                .filterNot { it is UnreadBoundary.Resolving }
+                .distinctUntilChanged(),
             stateFlow.map { it.separatorConfig }.distinctUntilChanged(),
         ) { paging, boundary, config -> paging.withSeparators(boundary, config) }
 

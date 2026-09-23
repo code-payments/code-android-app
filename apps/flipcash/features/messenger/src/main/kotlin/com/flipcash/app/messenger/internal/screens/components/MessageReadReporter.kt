@@ -19,16 +19,21 @@ import kotlinx.coroutines.flow.filterNotNull
 /**
  * Reports the newest incoming message the viewer has actually had on screen, so the read pointer
  * follows the scroll rather than the arrival.
+ *
+ * Nothing is reported until [enabled]: a chat opening at its unread divider lays out at the bottom
+ * first, and reporting that frame would mark read everything the divider is there to point at.
  */
 @Composable
 internal fun HandleMessageReads(
     listState: LazyListState,
     messages: LazyPagingItems<ChatListItem>,
+    enabled: Boolean,
 ) {
     val actionHandler = LocalChatActionHandler.current
     var lastAdvanced by remember { mutableLongStateOf(0L) }
 
-    LaunchedEffect(listState, messages) {
+    LaunchedEffect(listState, messages, enabled) {
+        if (!enabled) return@LaunchedEffect
         snapshotFlow {
             val layout = listState.layoutInfo
             val count = messages.itemCount
