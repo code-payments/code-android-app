@@ -132,6 +132,7 @@ internal fun UserControlBottomBar(
                 TypingIndicator(
                     modifier = Modifier
                         .hazeBlur(HazeInput.Sources(hazeState), material),
+                    userImages = state.typingAvatars,
                 )
             }
         }
