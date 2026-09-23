@@ -29,5 +29,5 @@ appId: com.flipcash.app.android
     text: "Allow"
     optional: true
 
-# Onboarding releases to the Wallet tab, not the camera (homeRoute = AppRoute.Sheets.Wallet).
+# Onboarding releases to the Wallet tab, not the camera (homeRoute = AppRoute.Tabs.Wallet).
 - extendedWaitUntil: { visible: { id: wallet_screen }, timeout: 20000 }

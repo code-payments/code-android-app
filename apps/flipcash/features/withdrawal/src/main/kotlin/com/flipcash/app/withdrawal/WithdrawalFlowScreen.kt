@@ -71,7 +71,7 @@ fun WithdrawalFlowScreen(
             )
             when (result) {
                 WithdrawalResult.Success -> {
-                    outerNavigator.popUntil { it == AppRoute.Sheets.Menu }
+                    outerNavigator.popUntil { it == AppRoute.Tabs.Menu }
                 }
                 WithdrawalResult.Canceled -> {
                     outerNavigator.pop()

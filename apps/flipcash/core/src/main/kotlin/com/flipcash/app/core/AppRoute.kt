@@ -110,8 +110,6 @@ sealed interface AppRoute : NavKey, Parcelable {
 
         @Serializable
         data class AppRestricted(val restrictionType: RestrictionType) : Main
-        @Serializable
-        data object Scanner : Main
 
         // TODO: is there a better place for this to live?
         @Serializable
@@ -168,6 +166,29 @@ sealed interface AppRoute : NavKey, Parcelable {
             get() = steps
     }
 
+    /**
+     * The homes of the hoisted nav bar's tabs. They sit flat on the root backstack, so the bar stays
+     * visible over them, and a route list leading with one is applied as a tab switch (see
+     * `navigateAll`). `NavBarRoutes.kt` maps each to its `NavBarButton`.
+     */
+    @Serializable
+    @Parcelize
+    sealed interface Tabs : AppRoute {
+        @Serializable
+        data object Scanner : Tabs
+
+        @Serializable
+        data object Wallet : Tabs
+
+        /** Tip DMs and groups. */
+        @Serializable
+        data object Chats : Tabs
+
+        /** Settings, plus the user's tip card. The nav bar labels it "You". */
+        @Serializable
+        data object Menu : Tabs
+    }
+
     @Serializable
     @Parcelize
     sealed interface Sheets : AppRoute {
@@ -175,13 +196,6 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class TokenSelection(val purpose: TokenPurpose) : Sheets
         @Serializable
         data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Sheets
-
-        @Serializable
-        data class Tips(val resumed: Boolean = false): Sheets {
-        }
-
-        @Serializable
-        data object Wallet : Sheets
 
         /** Full unified paged activity history — the "dive in" from the wallet's recent-activity preview. */
         @Serializable
@@ -196,9 +210,6 @@ sealed interface AppRoute : NavKey, Parcelable {
          */
         @Serializable
         data class TransactionDetails(val id: ID) : Sheets
-
-        @Serializable
-        data object Menu : Sheets
 
         @Serializable
         data object ShareApp : Sheets
@@ -335,9 +346,8 @@ sealed interface AppRoute : NavKey, Parcelable {
         /**
          * Node 10127:117987 — the two ways to start a chat, reached from the "+" on the Chats list.
          *
-         * A top-level route rather than a step of the tipping flow, even though the Chats list it
-         * is reached from is one: the flow is a tab home, so a step pushed inside it keeps the tab
-         * bar. This covers it, the way [Chat] does. [FindByUsername] and [NewGroup] are pushed on
+         * A top-level route rather than something drawn inside [Tabs.Chats]: that is a tab home, so
+         * anything inside it keeps the tab bar. This covers it, the way [Chat] does. [FindByUsername] and [NewGroup] are pushed on
          * top of it for the same reason.
          */
         @Serializable

@@ -3,7 +3,6 @@ package com.flipcash.app.core.extensions
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.navigation.asNavBarTab
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.NavOptions
 
@@ -35,12 +34,12 @@ fun CodeNavigator.openAsSheet(route: AppRoute, innerRoutes: List<AppRoute> = emp
 }
 
 /**
- * True when [routes] leads with a route that is a tab home.
+ * True when [routes] leads with an [AppRoute.Tabs] home.
  * Such a list is applied as a *tab switch* (the leading route replaces the stack) rather than
  * stacked on top of whatever tab the user was on.
  */
 private fun leadsWithTab(routes: List<NavKey>): Boolean =
-    (routes.firstOrNull() as? AppRoute)?.asNavBarTab() != null
+    routes.firstOrNull() is AppRoute.Tabs
 
 /**
  * Navigate to multiple routes, wrapping [AppRoute.Sheets] in [AppRoute.Main.Sheet].
@@ -50,9 +49,8 @@ private fun leadsWithTab(routes: List<NavKey>): Boolean =
  * If a sheet is already open and the new routes include a sheet, the current sheet
  * is animated closed before the new one opens.
  *
- * The tab homes — `Sheets.Wallet`, `Sheets.Tips`, `Sheets.Menu` — are *not* sheets, so a route
- * list leading with one switches to that tab (replacing the stack) and pushes the rest on top
- * of it. See [resolveRoutes].
+ * A route list leading with an [AppRoute.Tabs] home switches to that tab (replacing the stack)
+ * and pushes the rest on top of it. See [resolveRoutes].
  */
 fun CodeNavigator.navigateAll(
     routes: List<NavKey>,
@@ -100,10 +98,9 @@ fun CodeNavigator.navigateAll(
  * [AppRoute.Main.Sheet] with inner routes, mirroring what [navigateAll] pushes
  * onto the backstack. Useful for predicting the resulting stack without navigating.
  *
- * The tab homes — `Sheets.Wallet`, `Sheets.Tips`, `Sheets.Menu` — are top-level tab destinations
- * rather than modals, so they stay flat on the root backstack (which keeps the hoisted nav bar
- * visible and lets back/pop behave like a tab stack). Anything after the tab route is resolved
- * independently, so a genuine sheet later in the list still wraps.
+ * [AppRoute.Tabs] homes are not sheets, so they stay flat on the root backstack (which keeps the
+ * hoisted nav bar visible and lets back/pop behave like a tab stack). A sheet later in the list
+ * still wraps, along with everything after it.
  */
 fun resolveRoutes(routes: List<NavKey>): List<NavKey> {
     if (routes.isEmpty()) return emptyList()
@@ -112,11 +109,6 @@ fun resolveRoutes(routes: List<NavKey>): List<NavKey> {
     if (sheetIndex < 0) return routes
 
     val sheetRoute = routes[sheetIndex] as AppRoute.Sheets
-
-    if (sheetRoute.asNavBarTab() != null) {
-        return routes.take(sheetIndex + 1) + resolveRoutes(routes.drop(sheetIndex + 1))
-    }
-
     val before = routes.take(sheetIndex)
     val innerRoutes = routes.drop(sheetIndex + 1).filterIsInstance<AppRoute>()
     return before + AppRoute.Main.Sheet(sheetRoute, innerRoutes)

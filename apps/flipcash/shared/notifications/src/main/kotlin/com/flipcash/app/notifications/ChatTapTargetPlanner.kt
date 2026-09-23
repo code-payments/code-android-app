@@ -26,7 +26,7 @@ sealed interface ChatTapTarget {
 /**
  * Whether a chat push can open its conversation, and by which link.
  *
- * The Chats tab lists tip DMs and groups (`TipFlowViewModel`: `feed(TIP_DM, GROUP)`), and both open
+ * The Chats tab lists tip DMs and groups (`ChatsViewModel`: `feed(TIP_DM, GROUP)`), and both open
  * by chat id from there. A `CONTACT_DM` is not: the Send tab and direct-send flow that used to open
  * one were removed, and `AppRouter` deliberately routes nothing for them.
  *

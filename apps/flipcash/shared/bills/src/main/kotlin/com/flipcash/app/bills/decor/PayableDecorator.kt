@@ -100,7 +100,7 @@ internal data class PayableDecorator(private val bill: Scannable.Payable) : Scan
                     onClaim = {
                         if (session == null) context.onDismiss(PutInWallet)
                         else if (session.claimReceivedFunds()) {
-                            navigator.navigateAll(listOf(AppRoute.Sheets.Wallet))
+                            navigator.navigateAll(listOf(AppRoute.Tabs.Wallet))
                         }
                     }
                 )

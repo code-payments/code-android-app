@@ -110,13 +110,13 @@ internal fun Scanner() {
             is DeeplinkType.Navigatable -> {
                 val routes: List<AppRoute> = when (deeplink) {
                     is DeeplinkType.TokenInfo -> listOf(
-                        AppRoute.Sheets.Wallet,
+                        AppRoute.Tabs.Wallet,
                         Info(deeplink.mint, TokenInfoEntry.Deeplink)
                     )
                     // Scanned tip-DM code — same destination as the
                     // /tip/chat/{id} deeplink.
                     is DeeplinkType.TipChat -> listOf(
-                        AppRoute.Sheets.Tips(),
+                        AppRoute.Tabs.Chats,
                         AppRoute.Messaging.Chat(deeplink.identifier),
                     )
                     else -> emptyList()
@@ -209,7 +209,7 @@ internal fun Scanner() {
         session.tipCardEvents.collect { event ->
             when (event) {
                 TipCardEvent.OwnCardScanned ->
-                    navigator.navigateAll(listOf(AppRoute.Sheets.Menu))
+                    navigator.navigateAll(listOf(AppRoute.Tabs.Menu))
             }
         }
     }

@@ -221,7 +221,7 @@ internal fun WalletScreenContent(
                                 dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
                             }
                             is TutorialItem.ScanTipCard -> {
-                                dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Main.Scanner))
+                                dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Tabs.Scanner))
                             }
                         }
                     }

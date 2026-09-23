@@ -32,7 +32,7 @@ class ResolveRoutesTest {
 
     @Test
     fun `non-sheet routes pass through unchanged`() {
-        val routes = listOf(AppRoute.Main.Scanner, AppRoute.Menu.MyAccount)
+        val routes = listOf(AppRoute.Tabs.Scanner, AppRoute.Menu.MyAccount)
         assertEquals(routes, resolveRoutes(routes))
     }
 
@@ -92,14 +92,14 @@ class ResolveRoutesTest {
     @Test
     fun `routes before sheet stay on root backstack`() {
         val routes = listOf(
-            AppRoute.Main.Scanner,
+            AppRoute.Tabs.Scanner,
             AppRoute.Sheets.ActivityHistory,
             AppRoute.Token.Info(mint),
         )
 
         val resolved = resolveRoutes(routes)
         assertEquals(2, resolved.size)
-        assertIs<AppRoute.Main.Scanner>(resolved[0])
+        assertIs<AppRoute.Tabs.Scanner>(resolved[0])
         val sheet = resolved[1]
         assertIs<AppRoute.Main.Sheet>(sheet)
         assertEquals(AppRoute.Sheets.ActivityHistory, sheet.initialRoute)
@@ -141,7 +141,7 @@ class ResolveRoutesTest {
     @Test
     fun `wallet tab stays flat and token info pushes on top`() {
         val routes = listOf(
-            AppRoute.Sheets.Wallet,
+            AppRoute.Tabs.Wallet,
             AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink),
         )
 
@@ -153,7 +153,7 @@ class ResolveRoutesTest {
     @Test
     fun `chats tab stays flat and the chat pushes on top`() {
         val routes = listOf(
-            AppRoute.Sheets.Tips(),
+            AppRoute.Tabs.Chats,
             AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(ChatId(listOf(1, 2, 3, 4)))),
         )
 
@@ -165,7 +165,7 @@ class ResolveRoutesTest {
     @Test
     fun `menu tab stays flat with my account and verification pushed on top`() {
         val routes = listOf(
-            AppRoute.Sheets.Menu,
+            AppRoute.Tabs.Menu,
             AppRoute.Menu.MyAccount,
             AppRoute.Verification(
                 origin = AppRoute.Menu.MyAccount,
@@ -181,14 +181,14 @@ class ResolveRoutesTest {
     @Test
     fun `a genuine sheet that follows a tab home still wraps`() {
         val routes = listOf(
-            AppRoute.Sheets.Wallet,
+            AppRoute.Tabs.Wallet,
             AppRoute.Token.Info(mint),
             AppRoute.Sheets.ActivityHistory,
         )
 
         val resolved = resolveRoutes(routes)
         assertEquals(3, resolved.size)
-        assertEquals(AppRoute.Sheets.Wallet, resolved[0])
+        assertEquals(AppRoute.Tabs.Wallet, resolved[0])
         assertIs<AppRoute.Token.Info>(resolved[1])
         val sheet = resolved[2]
         assertIs<AppRoute.Main.Sheet>(sheet)
@@ -201,32 +201,32 @@ class ResolveRoutesTest {
 
     @Test
     fun `a deeplink to a tab replaces the launch home rather than stacking on it`() {
-        val base = listOf<NavKey>(AppRoute.Sheets.Wallet)
+        val base = listOf<NavKey>(AppRoute.Tabs.Wallet)
         val deeplink = listOf(
-            AppRoute.Sheets.Tips(),
+            AppRoute.Tabs.Chats,
             AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(ChatId(listOf(9)))),
         )
 
         val stack = resolveBackStack(base, deeplink)
         assertEquals(deeplink, stack)
         // The Wallet home the app launched on must not linger beneath the Chats tab.
-        assertTrue(stack.none { it == AppRoute.Sheets.Wallet })
+        assertTrue(stack.none { it == AppRoute.Tabs.Wallet })
     }
 
     @Test
     fun `a token deeplink lands on the wallet tab exactly once`() {
-        val base = listOf<NavKey>(AppRoute.Sheets.Wallet)
-        val deeplink = listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink))
+        val base = listOf<NavKey>(AppRoute.Tabs.Wallet)
+        val deeplink = listOf(AppRoute.Tabs.Wallet, AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink))
 
         val stack = resolveBackStack(base, deeplink)
         assertEquals(2, stack.size)
-        assertEquals(1, stack.count { it == AppRoute.Sheets.Wallet })
+        assertEquals(1, stack.count { it == AppRoute.Tabs.Wallet })
         assertIs<AppRoute.Token.Info>(stack[1])
     }
 
     @Test
     fun `a deeplink without a tab home stacks on the launch home`() {
-        val base = listOf<NavKey>(AppRoute.Sheets.Wallet)
+        val base = listOf<NavKey>(AppRoute.Tabs.Wallet)
         val deeplink = listOf(AppRoute.Token.Info(mint), AppRoute.Token.Swap(SwapPurpose.Buy(mint)))
 
         assertEquals(base + deeplink, resolveBackStack(base, deeplink))

@@ -29,18 +29,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.app.tipping.internal.TipFlowViewModel
+import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.app.tipping.internal.components.TipChatRow
 import com.flipcash.features.tipping.R
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
@@ -49,18 +49,16 @@ import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
 
 /**
- * The tip DM conversation list — always a step in the tipping [TippingFlowScreen] flow, so it shares
- * the flow's [TipFlowViewModel]. It is the "Chats" root tab: the standard centred screen title over
- * the list, no dismiss affordance (the root nav bar is the chrome); the tip card lives on its own
- * tab.
+ * The "Chats" root tab: tip DMs and groups under the standard centred screen title, with no dismiss
+ * affordance (the root nav bar is the chrome). The tip card lives on the "You" tab.
  */
 @Composable
-fun TipsScreen() {
-    val viewModel = flowSharedViewModel<TipFlowViewModel>()
+fun ChatsScreen() {
+    val viewModel = hiltViewModel<ChatsViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
 
-    val chats = state.tipChats
+    val chats = state.chats
     val listState = rememberLazyListState()
 
     CodeScaffold(
@@ -90,8 +88,8 @@ fun TipsScreen() {
                 // Start title sits at the inset and reads as off-centre against the Add button.
                 titleAlignment = Alignment.CenterHorizontally,
                 // Node 9442:5779 — the only way to start a chat with someone who has never paid
-                // you. A pushed route, not a step of this flow: this list is a tab home, and a step
-                // pushed inside it would leave the tab bar over the entry screen.
+                // you. A pushed route rather than an in-place screen: this list is a tab home, and
+                // anything drawn inside it would leave the tab bar over the entry screen.
                 endContent = {
                     AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
                 },
