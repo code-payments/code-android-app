@@ -3,8 +3,10 @@ package com.flipcash.app.messenger.internal
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatDraftReply
 import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftSnippet
@@ -240,6 +242,36 @@ class ChatViewModelStateTest {
         // unset — which is the point: the colours are a function of the id, not of the transcript.
         assertNotNull(restored.accent)
         assertNotNull(restored.nameAccent)
+    }
+
+    /**
+     * A roster change re-emits the members and the group's metadata together, and the tip
+     * counterparty resolver reads the first member that isn't the viewer. In a group that member is
+     * just someone in the room, so letting it through re-titles the group as a DM with them — header,
+     * avatars and composer — until the metadata lands again.
+     */
+    @Test
+    fun `a member resolving as a tip counterparty does not turn a group into a DM`() {
+        val grouped = ChatViewModel.State(subject = group(isMember = true), chatType = ChatType.GROUP)
+
+        val after = ChatViewModel.updateStateForEvent(
+            ChatViewModel.Event.OnTipUserResolved(
+                userId = List(16) { 1 },
+                profile = UserProfile.Empty.copy(displayName = "Tanner"),
+            )
+        )(grouped)
+
+        assertEquals(grouped.subject, after.subject)
+        assertEquals(ChatType.GROUP, after.chatType)
+    }
+
+    @Test
+    fun `a group with no device contact is not marked a tip DM`() {
+        val grouped = ChatViewModel.State(subject = group(isMember = true), chatType = ChatType.GROUP)
+
+        val after = ChatViewModel.updateStateForEvent(ChatViewModel.Event.OnTipDmDetected)(grouped)
+
+        assertEquals(ChatType.GROUP, after.chatType)
     }
 
     /**

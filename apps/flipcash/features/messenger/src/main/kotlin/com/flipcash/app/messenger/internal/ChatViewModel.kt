@@ -117,6 +117,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -1083,9 +1084,11 @@ internal class ChatViewModel @Inject constructor(
                         val contact = contactCoordinator.lookupContactByDmChatId(
                             identifier.chatId.toString()
                         )
+                        val isGroup = chatCoordinator.observeMetadata(identifier.chatId).first()
+                            ?.metadata?.type == ChatType.GROUP
                         if (contact != null) {
                             dispatchEvent(Event.OnContactFound(contact))
-                        } else {
+                        } else if (!isGroup) {
                             // No device contact backs this chat — it's a tip DM. Mark it immediately
                             // (this lookup is local) so the send button renders condensed without
                             // waiting on the profile below, then warm the member store (fetch +
@@ -1135,10 +1138,19 @@ internal class ChatViewModel @Inject constructor(
         // profile — the same source the tips list uses. Reactive so it settles as soon as the
         // members are available and can't be missed by the send gate. Never clobbers a device
         // contact: the OnTipUserResolved reducer keeps an existing Contact participant.
+        //
+        // Skipped for a group, whose "other member" is only the first row of the roster. A roster
+        // change re-emits the members and the group's metadata together, so resolving one here would
+        // re-title the group as a DM with that member until OnGroupResolved lands again.
         stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
-            .flatMapLatest { chatCoordinator.observeMembers(it) }
-            .mapNotNull { members -> members.firstOrNull { it.userId != userManager.accountId } }
+            .flatMapLatest { chatId ->
+                combine(
+                    chatCoordinator.observeMembers(chatId),
+                    chatCoordinator.observeMetadata(chatId).map { it?.metadata?.type },
+                ) { members, type -> members.takeUnless { type == ChatType.GROUP } }
+            }
+            .mapNotNull { members -> members?.firstOrNull { it.userId != userManager.accountId } }
             .distinctUntilChanged()
             .onEach { member -> dispatchEvent(Event.OnTipUserResolved(member.userId, member.userProfile)) }
             .launchIn(viewModelScope)
@@ -2048,7 +2060,12 @@ internal class ChatViewModel @Inject constructor(
                         chatType = ChatType.CONTACT_DM,
                     )
                 }
-                Event.OnTipDmDetected -> { state -> state.copy(chatType = ChatType.TIP_DM) }
+                // "No device contact" is also true of every group, so a group that has already
+                // resolved keeps its type.
+                Event.OnTipDmDetected -> { state ->
+                    if (state.subject is ChatSubject.Group) state
+                    else state.copy(chatType = ChatType.TIP_DM)
+                }
                 is Event.OnGroupResolved -> { state ->
                     val metadata = event.membership.metadata
                     state.copy(
@@ -2092,7 +2109,8 @@ internal class ChatViewModel @Inject constructor(
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the
                     // profile identity and mark the recipient resolved so the send can proceed (the
                     // tip user is known to exist; the tip send resolves their address at send time).
-                    if (state.subject is ChatSubject.Contact) state
+                    // A group has no counterparty: the member this names is just someone in the room.
+                    if (state.subject is ChatSubject.Contact || state.subject is ChatSubject.Group) state
                     else state.copy(
                         subject = ChatSubject.TipUser(
                             ChatParticipant.TipUser(event.userId, event.profile)
