@@ -9,7 +9,7 @@ appId: com.flipcash.app.android
       clearAppState: "true"
       deeplink: ${USDF_ONLY_DEEPLINK}
 
-# Launch lands on the Wallet tab, not the camera (homeRoute = AppRoute.Sheets.Wallet).
+# Launch lands on the Wallet tab, not the camera (homeRoute = AppRoute.Tabs.Wallet).
 - extendedWaitUntil:
       visible:
           id: "wallet_screen"

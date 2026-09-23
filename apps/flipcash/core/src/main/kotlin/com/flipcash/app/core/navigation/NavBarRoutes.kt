@@ -9,20 +9,18 @@ import com.flipcash.app.core.AppRoute
 
 /** The top-level route a tab switches to. */
 fun NavBarButton.destinationRoute(): AppRoute = when (this) {
-    NavBarButton.Scanner -> AppRoute.Main.Scanner
-    NavBarButton.Wallet -> AppRoute.Sheets.Wallet
-    // The chats tab routes through the tipping flow seeded at the list.
-    NavBarButton.Chats -> AppRoute.Sheets.Tips(resumed = false)
+    NavBarButton.Scanner -> AppRoute.Tabs.Scanner
+    NavBarButton.Wallet -> AppRoute.Tabs.Wallet
+    NavBarButton.Chats -> AppRoute.Tabs.Chats
     // The "You" tab is the menu (settings) surface, augmented with the tip card + share.
-    NavBarButton.TipCard -> AppRoute.Sheets.Menu
+    NavBarButton.TipCard -> AppRoute.Tabs.Menu
 }
 
 /** The tab a top-level route belongs to, or null if the route isn't a tab home. */
 fun AppRoute.asNavBarTab(): NavBarButton? = when (this) {
-    AppRoute.Main.Scanner -> NavBarButton.Scanner
-    AppRoute.Sheets.Wallet -> NavBarButton.Wallet
-    // The tipping flow is home to the chats tab (the tip card moved to the You/menu tab).
-    is AppRoute.Sheets.Tips -> NavBarButton.Chats
-    AppRoute.Sheets.Menu -> NavBarButton.TipCard
+    AppRoute.Tabs.Scanner -> NavBarButton.Scanner
+    AppRoute.Tabs.Wallet -> NavBarButton.Wallet
+    AppRoute.Tabs.Chats -> NavBarButton.Chats
+    AppRoute.Tabs.Menu -> NavBarButton.TipCard
     else -> null
 }

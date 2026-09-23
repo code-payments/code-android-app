@@ -237,7 +237,7 @@ class AppRouterTest {
         loggedIn()
         val action = router.dispatch(DeepLink(verifyUrl("myaccount")))
         assertIs<DeeplinkAction.Navigate>(action)
-        assertEquals(AppRoute.Sheets.Menu, action.routes[0])
+        assertEquals(AppRoute.Tabs.Menu, action.routes[0])
         assertIs<AppRoute.Menu.MyAccount>(action.routes[1])
         assertIs<AppRoute.Verification>(action.routes[2])
     }
@@ -338,7 +338,7 @@ class AppRouterTest {
         val action = router.dispatch(DeepLink("https://app.flipcash.com/token/$mint"))
         assertIs<DeeplinkAction.OpenToken>(action)
         assertEquals(2, action.routes.size)
-        assertIs<AppRoute.Sheets.Wallet>(action.routes[0])
+        assertIs<AppRoute.Tabs.Wallet>(action.routes[0])
         val tokenInfo = action.routes[1]
         assertIs<AppRoute.Token.Info>(tokenInfo)
         assertEquals(Mint(mint), tokenInfo.mint)
@@ -379,7 +379,7 @@ class AppRouterTest {
         val action = router.dispatch(DeepLink(Linkify.tipChatById(sampleChatId)))
         assertIs<DeeplinkAction.Navigate>(action)
         assertEquals(2, action.routes.size)
-        assertIs<AppRoute.Sheets.Tips>(action.routes[0])
+        assertIs<AppRoute.Tabs.Chats>(action.routes[0])
         val chat = action.routes[1]
         assertIs<AppRoute.Messaging.Chat>(chat)
         val identifier = chat.identifier
@@ -409,7 +409,7 @@ class AppRouterTest {
 
         // Tipping yourself is a payment no-op, so the link lands on the You tab instead.
         assertIs<DeeplinkAction.Navigate>(action)
-        assertEquals(listOf(AppRoute.Sheets.Menu), action.routes)
+        assertEquals(listOf(AppRoute.Tabs.Menu), action.routes)
     }
 
     @Test
@@ -477,7 +477,7 @@ class AppRouterTest {
 
         assertIs<DeeplinkAction.Navigate>(action)
         assertEquals(2, action.routes.size)
-        assertIs<AppRoute.Sheets.Tips>(action.routes[0])
+        assertIs<AppRoute.Tabs.Chats>(action.routes[0])
         val chat = action.routes[1]
         assertIs<AppRoute.Messaging.Chat>(chat)
         val identifier = chat.identifier
@@ -602,7 +602,7 @@ class AppRouterTest {
         val action = router.dispatch(DeepLink("https://flipcash.com/$userId"))
 
         assertIs<DeeplinkAction.Navigate>(action)
-        assertEquals(AppRoute.Sheets.Menu, action.routes.single())
+        assertEquals(AppRoute.Tabs.Menu, action.routes.single())
     }
 
     // UUID.fromString would take these; the regex doesn't. A shape the app doesn't claim goes back
@@ -649,7 +649,7 @@ class AppRouterTest {
         currentUsername = "sally_streamer"
         val action = router.dispatch(DeepLink(Linkify.tipcard(TipCardOwner.ByUsername("sally_streamer"))))
         assertIs<DeeplinkAction.Navigate>(action)
-        assertEquals(AppRoute.Sheets.Menu, action.routes.single())
+        assertEquals(AppRoute.Tabs.Menu, action.routes.single())
     }
 
     // A link can be typed or pasted in any case; handles are lowercase on the wire.
@@ -659,7 +659,7 @@ class AppRouterTest {
         currentUsername = "sally_streamer"
         val action = router.dispatch(DeepLink("https://flipcash.com/Sally_Streamer"))
         assertIs<DeeplinkAction.Navigate>(action)
-        assertEquals(AppRoute.Sheets.Menu, action.routes.single())
+        assertEquals(AppRoute.Tabs.Menu, action.routes.single())
     }
 
     @Test
@@ -710,7 +710,7 @@ class AppRouterTest {
         val action = router.dispatch(DeepLink(url))
         assertIs<DeeplinkAction.Navigate>(action)
         assertEquals(3, action.routes.size)
-        assertIs<AppRoute.Sheets.Menu>(action.routes[0])
+        assertIs<AppRoute.Tabs.Menu>(action.routes[0])
         assertIs<AppRoute.Menu.MyAccount>(action.routes[1])
         val verification = action.routes[2]
         assertIs<AppRoute.Verification>(verification)

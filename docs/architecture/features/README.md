@@ -36,7 +36,7 @@ Two recurring shapes show up in the **Pattern** column:
 | **scanner** | Camera capture of a peer's Kik Code (e.g. on a cash bill) | `scanner/ScannerScreen.kt` | Screen-local; uses `:ui:scanner`, routes scans through `Router.classify` |
 | **withdrawal** | Withdraw funds on-chain | `withdrawal/WithdrawalFlowScreen.kt` · `withdrawal/WithdrawalViewModel` | **Flow** (`AppRoute.Transfers.Withdrawal`); entry → destination → confirmation |
 | **deposit** | Add funds via on-ramp / deposit address | `deposit/DepositFlowScreen.kt` · `…/internal/DepositViewModel` | **Flow** (`FlowRouteWithResult<DepositResult>`); USDC deposit info, Coinbase on-ramp |
-| **tipping** | Tip card, tip chats, and tip amount entry | `tipping/TippingFlowScreen.kt`, `tipping/TipCardScreen.kt` · `…/internal/TipFlowViewModel` | **Flow** (`AppRoute.Sheets.Tips`); intro → tip card → tips steps |
+| **tipping** | The Chats tab (tip DMs and groups), new chat, and new group | `tipping/ChatsScreen.kt` · `…/internal/ChatsViewModel` | **VM-driven** tab home (`AppRoute.Tabs.Chats`); combines the chat feed with tokens |
 | **transactions** | Activity / transaction history | `transactions/TransactionHistoryScreen.kt` · `…/internal/TransactionHistoryViewModel` | **VM-driven**; Paging-backed list from persistence ([05](../05-persistence.md)) |
 
 ## C. Currencies & tokens

@@ -32,7 +32,6 @@ import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.LocalTabBarVisibility
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.TabBarVisibilityController
-import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.transitions.CardExpandTransition
 import com.flipcash.app.core.tokens.TokenInfoEntry
@@ -102,8 +101,7 @@ internal fun AppContent(
     // A tab press replaces the whole back stack (tab-bar semantics — see AppNavigationBar), so every
     // tab home was destroyed and rebuilt on each switch: the wallet re-fetched its balances and the
     // chat list scrolled back to the top. Hold each tab home's ViewModels and scroll state outside the
-    // back stack so a switch shows what the tab last had. Only the four routes a tab press produces
-    // are held, so variants of a tab route (a resumed Tips, say) still get a fresh screen.
+    // back stack so a switch shows what the tab last had.
     val tabHomeKeys = remember {
         NavBarButton.entries.map { it.destinationRoute().toString() }.toSet()
     }
@@ -113,7 +111,7 @@ internal fun AppContent(
     // push keeps its tab home on the stack, so this fires on a replaceAll away from the tabs.
     LaunchedEffect(entryState, codeNavigator.backStack) {
         snapshotFlow {
-            codeNavigator.backStack.any { (it as? AppRoute)?.asNavBarTab() != null }
+            codeNavigator.backStack.any { it is AppRoute.Tabs }
         }.collect { onTabs -> if (!onTabs) entryState.releaseAll() }
     }
 
@@ -166,7 +164,7 @@ internal fun AppContent(
                 // into a detail screen and slides in. Pops always slide back out (a pop is always
                 // leaving a detail). Sheets/overlays keep their own (no) transition.
                 transitionSpec = {
-                    val landsOnTab = (codeNavigator.currentRouteKey as? AppRoute)?.asNavBarTab() != null
+                    val landsOnTab = codeNavigator.currentRouteKey is AppRoute.Tabs
                     when {
                         targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
                             EnterTransition.None togetherWith ExitTransition.None

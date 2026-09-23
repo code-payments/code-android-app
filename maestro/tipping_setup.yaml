@@ -13,7 +13,7 @@ tags:
 # Tipping is on by default -> the chats tab is present.
 - assertVisible: { id: nav_chats }
 - tapOn: { id: nav_chats }
-- extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
+- extendedWaitUntil: { visible: { id: chats_screen }, timeout: 8000 }
 
 # The display name is captured during onboarding, so tip setup lands directly on the
 # Tips list — no name step here. Open the tip card from the list.

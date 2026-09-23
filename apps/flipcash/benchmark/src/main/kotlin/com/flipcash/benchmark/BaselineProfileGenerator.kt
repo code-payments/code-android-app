@@ -114,7 +114,7 @@ class BaselineProfileGenerator {
         // The chats tab lists conversations; open the first one and send a text message. A
         // message is fund-free (money-safety: never tap Send Cash / confirm a spend). The
         // conversation is not hardcoded — send_contact_row resolves to the first row.
-        openTab("nav_chats", "tips_screen")
+        openTab("nav_chats", "chats_screen")
 
         device.wait(Until.findObject(By.res("send_contact_row")), TIMEOUT)?.click()
         device.wait(Until.findObject(By.res("chat_screen")), LOGIN_TIMEOUT)
@@ -132,7 +132,7 @@ class BaselineProfileGenerator {
 
         // Back to the conversation list, fling it for coverage, then back to the scanner.
         device.pressBack()
-        device.wait(Until.findObject(By.res("tips_screen")), TIMEOUT)
+        device.wait(Until.findObject(By.res("chats_screen")), TIMEOUT)
         device.waitForIdle()
         flingScroll("chat_list", Direction.UP, 2)
         flingScroll("chat_list", Direction.DOWN, 1)

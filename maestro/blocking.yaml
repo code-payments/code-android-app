@@ -11,7 +11,7 @@ tags:
 
 # Open the tip conversation (the chats tab).
 - tapOn: { id: nav_chats }
-- extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
+- extendedWaitUntil: { visible: { id: chats_screen }, timeout: 8000 }
 # Pick the chat by participant rather than by position: the list is ordered by recency and
 # carries the account's own self-tip chat, so index 0 is not stably the contact.
 - scrollUntilVisible:
@@ -26,7 +26,7 @@ tags:
 - tapOn: "Block"
 - assertVisible: "Block ${CONTACT_NAME}?"
 - tapOn: { text: "^Block$" }
-- extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
+- extendedWaitUntil: { visible: { id: chats_screen }, timeout: 8000 }
 
 # Verify they appear in My Account -> Blocked. Chats is a root tab, so the You tab is one tap
 # away rather than behind a sheet dismiss.

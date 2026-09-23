@@ -54,16 +54,16 @@ class BuildNavGraphForLaunchTest {
     @Test
     fun `logged in without deeplink opens on the Chats tab`() {
         val result = build(AuthState.Ready)!!
-        assertEquals(listOf(AppRoute.Sheets.Tips()), result.baseRoutes)
+        assertEquals(listOf(AppRoute.Tabs.Chats), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
-        assertEquals(listOf(AppRoute.Sheets.Tips()), result.resolvedBackStack())
+        assertEquals(listOf(AppRoute.Tabs.Chats), result.resolvedBackStack())
     }
 
     @Test
     fun `logged in with Navigate deeplink includes deeplink routes`() {
-        val routes = listOf(AppRoute.Main.Scanner)
+        val routes = listOf(AppRoute.Tabs.Scanner)
         val result = buildReady(DeeplinkAction.Navigate(routes))
-        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertEquals(listOf(AppRoute.Tabs.Wallet), result.baseRoutes)
         assertEquals(routes, result.deeplinkRoutes)
     }
 
@@ -71,7 +71,7 @@ class BuildNavGraphForLaunchTest {
     fun `logged in with OpenCashLink fires eagerly via pendingAction`() {
         val action = DeeplinkAction.OpenCashLink("testEntropy")
         val result = buildReady(action)
-        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertEquals(listOf(AppRoute.Tabs.Wallet), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
         assertEquals(action, result.pendingAction)
     }
@@ -80,7 +80,7 @@ class BuildNavGraphForLaunchTest {
     fun `logged in with Login action fires eagerly via pendingAction`() {
         val action = DeeplinkAction.Login("seed")
         val result = buildReady(action)
-        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertEquals(listOf(AppRoute.Tabs.Wallet), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
         assertEquals(action, result.pendingAction)
     }
@@ -91,10 +91,10 @@ class BuildNavGraphForLaunchTest {
         // no pushed screen, so nothing lands in deeplinkRoutes. See DeeplinkAction.OpenToken.
         val action = DeeplinkAction.OpenToken(
             mint = Mint(MINT),
-            routes = listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(Mint(MINT))),
+            routes = listOf(AppRoute.Tabs.Wallet, AppRoute.Token.Info(Mint(MINT))),
         )
         val result = buildReady(action)
-        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertEquals(listOf(AppRoute.Tabs.Wallet), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
         assertEquals(action, result.pendingAction)
     }
@@ -102,7 +102,7 @@ class BuildNavGraphForLaunchTest {
     @Test
     fun `logged in with None action opens the Chats tab without deeplink routes`() {
         val result = buildReady(DeeplinkAction.None)
-        assertEquals(listOf(AppRoute.Sheets.Tips()), result.baseRoutes)
+        assertEquals(listOf(AppRoute.Tabs.Chats), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
     }
 
@@ -195,13 +195,13 @@ class BuildNavGraphForLaunchTest {
     fun `token deeplink pushes token info onto the Wallet tab without a sheet`() {
         val result = buildReady(
             DeeplinkAction.Navigate(
-                listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink))
+                listOf(AppRoute.Tabs.Wallet, AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink))
             )
         )
 
         val stack = result.resolvedBackStack()
         assertEquals(2, stack.size)
-        assertEquals(AppRoute.Sheets.Wallet, stack[0])
+        assertEquals(AppRoute.Tabs.Wallet, stack[0])
         assertIs<AppRoute.Token.Info>(stack[1])
         assertTrue(stack.none { it is AppRoute.Main.Sheet }, "a tab home must never be wrapped in a sheet")
     }
@@ -211,7 +211,7 @@ class BuildNavGraphForLaunchTest {
         val result = buildReady(
             DeeplinkAction.Navigate(
                 listOf(
-                    AppRoute.Sheets.Tips(),
+                    AppRoute.Tabs.Chats,
                     AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(ChatId(listOf(1, 2, 3, 4)))),
                 )
             )
@@ -219,10 +219,10 @@ class BuildNavGraphForLaunchTest {
 
         val stack = result.resolvedBackStack()
         assertEquals(2, stack.size)
-        assertIs<AppRoute.Sheets.Tips>(stack[0])
+        assertIs<AppRoute.Tabs.Chats>(stack[0])
         assertIs<AppRoute.Messaging.Chat>(stack[1])
         // The launch home must be replaced by the target tab, not left underneath it.
-        assertTrue(stack.none { it == AppRoute.Sheets.Wallet })
+        assertTrue(stack.none { it == AppRoute.Tabs.Wallet })
         assertTrue(stack.none { it is AppRoute.Main.Sheet })
     }
 
@@ -231,7 +231,7 @@ class BuildNavGraphForLaunchTest {
         val result = buildReady(
             DeeplinkAction.Navigate(
                 listOf(
-                    AppRoute.Sheets.Menu,
+                    AppRoute.Tabs.Menu,
                     AppRoute.Menu.MyAccount,
                     AppRoute.Verification(
                         origin = AppRoute.Menu.MyAccount,
@@ -245,7 +245,7 @@ class BuildNavGraphForLaunchTest {
 
         val stack = result.resolvedBackStack()
         assertEquals(3, stack.size)
-        assertEquals(AppRoute.Sheets.Menu, stack[0])
+        assertEquals(AppRoute.Tabs.Menu, stack[0])
         assertTrue(stack.none { it is AppRoute.Main.Sheet })
     }
 
@@ -253,7 +253,7 @@ class BuildNavGraphForLaunchTest {
     fun `pending actions still launch on the Wallet tab`() {
         val action = DeeplinkAction.OpenCashLink("testEntropy")
         val result = buildReady(action)
-        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertEquals(listOf(AppRoute.Tabs.Wallet), result.baseRoutes)
         assertEquals(action, result.pendingAction)
     }
 }
