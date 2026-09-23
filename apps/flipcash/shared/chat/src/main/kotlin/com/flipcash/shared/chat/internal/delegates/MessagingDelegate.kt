@@ -190,7 +190,11 @@ class MessagingDelegate @Inject constructor(
         // own messages right after the pointer. Resolving the boundary past them puts the divider
         // above the first message someone else sent.
         val firstNotOwn = messageDataSource.firstNotSentByAfter(chatId, selfId, readThrough)
-        return UnreadBoundary.At(readThrough = firstNotOwn?.minus(1) ?: readThrough, count = count)
+        val boundary = firstNotOwn?.minus(1) ?: readThrough
+        // With nothing stored at or below the boundary, older unread messages may never have been
+        // fetched, so the count could come out short. No divider beats a wrong one.
+        if (!messageDataSource.hasAtOrBelow(chatId, boundary)) return UnreadBoundary.None
+        return UnreadBoundary.At(readThrough = boundary, count = count)
     }
 
     override suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int =

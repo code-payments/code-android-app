@@ -102,6 +102,13 @@ interface ChatMessageDao {
     suspend fun firstNotSentByAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Long?
 
     /**
+     * Whether any message in [chatIdHex] at or below [id] is stored, tombstones included. Without one,
+     * older unread messages may never have been fetched, so a count past [id] can come out short.
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id <= :id)")
+    suspend fun hasAtOrBelow(chatIdHex: String, id: Long): Boolean
+
+    /**
      * How many stored messages in [chatIdHex] come after [afterId], of any sender and including
      * tombstones — every row the transcript draws between the newest message and that id.
      */

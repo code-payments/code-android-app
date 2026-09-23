@@ -304,6 +304,18 @@ class ChatMessageDaoTest {
     }
 
     @Test
+    fun `hasAtOrBelow sees a stored row at or below the id, tombstones included`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 3), from(SENDER_HEX, 4)))
+        dao.upsert(from(SENDER_HEX, 1).copy(chatIdHex = OTHER_HEX))
+
+        assertEquals(false, dao.hasAtOrBelow(CHAT_HEX, 2))
+        assertEquals(true, dao.hasAtOrBelow(CHAT_HEX, 3))
+
+        dao.upsert(tombstone(3))
+        assertEquals(true, dao.hasAtOrBelow(CHAT_HEX, 3))
+    }
+
+    @Test
     fun `countAfter counts every stored row past the id`() = runTest {
         dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SENDER_HEX, 3), from(SENDER_HEX, 4)))
         dao.upsert(tombstone(3))

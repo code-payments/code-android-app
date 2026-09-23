@@ -67,8 +67,8 @@ class UnreadDividerPlacementTest {
     fun `resolving draws nothing`() = assertEquals(null, dividerAbove(UnreadBoundary.Resolving, row(1), row(2)))
 
     @Test
-    fun `every stored message unread puts the divider above the oldest`() =
-        assertEquals(1L, dividerAbove(UnreadBoundary.At(0, 2), row(1), row(2)))
+    fun `nothing stored at or below read-through`() =
+        assertEquals(null, dividerAbove(UnreadBoundary.None, row(3), row(4)))
 
     @Test
     fun `rows of one split message never straddle the divider`() {

@@ -163,6 +163,10 @@ class ChatMessageDataSource @Inject constructor(
             afterId = afterId,
         )
 
+    /** Whether any message in [chatId] at or below [id] is stored, deleted or not. */
+    suspend fun hasAtOrBelow(chatId: ChatId, id: Long): Boolean =
+        db?.chatMessageDao()?.hasAtOrBelow(mapper.chatIdHex(chatId), id) ?: false
+
     /** Every stored message in [chatId] past [afterId], deleted or not. */
     suspend fun countAfter(chatId: ChatId, afterId: Long): Int =
         db?.chatMessageDao()?.countAfter(mapper.chatIdHex(chatId), afterId) ?: 0

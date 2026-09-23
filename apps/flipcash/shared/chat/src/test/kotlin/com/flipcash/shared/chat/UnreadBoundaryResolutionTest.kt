@@ -30,6 +30,10 @@ class UnreadBoundaryResolutionTest {
         every { it.accountId } returns selfId
     }
 
+    init {
+        coEvery { messageDataSource.hasAtOrBelow(chatId, any()) } returns true
+    }
+
     private val delegate = MessagingDelegate(
         chatController = mockk(relaxed = true),
         messagingController = mockk(relaxed = true),
@@ -79,6 +83,20 @@ class UnreadBoundaryResolutionTest {
         coEvery { messageDataSource.firstNotSentByAfter(chatId, selfId, 1) } returns 3
 
         assertEquals(UnreadBoundary.At(readThrough = 2, count = 1), delegate.resolveUnreadBoundary(chatId))
+    }
+
+    /**
+     * 3:other 4:other with the pointer at 1. Nothing at or below the boundary is stored, so older
+     * unread messages may never have been fetched and the count could come out short.
+     */
+    @Test
+    fun `nothing stored at or below the boundary is no divider`() = runTest {
+        coEvery { memberDataSource.getSelfReadPointerOrNull(chatId, selfId) } returns 1
+        coEvery { messageDataSource.countInboundAfter(chatId, selfId, 1) } returns 2
+        coEvery { messageDataSource.firstNotSentByAfter(chatId, selfId, 1) } returns 3
+        coEvery { messageDataSource.hasAtOrBelow(chatId, 2) } returns false
+
+        assertEquals(UnreadBoundary.None, delegate.resolveUnreadBoundary(chatId))
     }
 
     @Test
