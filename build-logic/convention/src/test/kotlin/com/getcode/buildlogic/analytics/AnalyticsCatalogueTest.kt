@@ -173,6 +173,36 @@ class AnalyticsCatalogueTest {
     }
 
     @Test
+    fun aPropertyMayRepeatOneTheAmountSendsOnlyWhenItHasIt() {
+        val source = generate(
+            """
+            [[domains.ThingEvents.events]]
+            builder = "sell"
+            event = "Token Sell"
+            params = ["mint: String", "amount: Amount"]
+            properties = [{ key = "Mint", value = "mint" }, { group = "amount" }]
+            """.trimIndent(),
+        ).getValue("com/example/events/ThingEvents.kt")
+
+        assertContains(source, "text(\"Mint\", mint)\n            amount(amount)")
+    }
+
+    @Test
+    fun rejectsAPropertyRepeatingOneTheAmountAlwaysSends() {
+        val message = rejected(
+            """
+            [[domains.ThingEvents.events]]
+            builder = "sell"
+            event = "Token Sell"
+            params = ["fiat: Double", "amount: Amount"]
+            properties = [{ key = "Fiat", value = "fiat" }, { group = "amount" }]
+            """.trimIndent(),
+        )
+        assertContains(message, "ThingEvents.sell")
+        assertContains(message, "Fiat")
+    }
+
+    @Test
     fun nameTemplatesInterpolateEnumWireValues() {
         val source = generate(
             """

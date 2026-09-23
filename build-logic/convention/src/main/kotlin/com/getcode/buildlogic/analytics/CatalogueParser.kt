@@ -19,8 +19,13 @@ internal object CatalogueParser {
     /** The built-in group that calls the hand-written `amount(...)` helper. */
     private const val AMOUNT_GROUP = "amount"
 
-    /** The keys `amount(...)` writes, so a duplicate of one is caught like any other. */
-    private val AMOUNT_KEYS = listOf("Fiat", "Currency", "USDC", "Quarks", "Exchange Rate", "Mint")
+    /**
+     * The keys `amount(...)` always writes, so a duplicate of one is caught like any other. It
+     * also writes `Exchange Rate` and `Mint` when the amount has them, and those two may appear
+     * beside the group: the builder sends the property, and the amount's value replaces it when
+     * present. `SwapEvents` relies on that for `Mint`.
+     */
+    private val AMOUNT_KEYS = listOf("Fiat", "Currency", "USDC", "Quarks")
 
     private val PRIMITIVES = mapOf(
         "String" to ParamType.Text,
