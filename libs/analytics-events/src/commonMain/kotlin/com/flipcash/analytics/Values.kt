@@ -14,8 +14,6 @@ enum class TokenInfoSource(val value: String) {
 
 enum class PurchaseMethod(val value: String) { RESERVES("Reserves"), PHANTOM("Phantom"), COINBASE("Coinbase") }
 
-enum class WalletProvider(val value: String) { PHANTOM("Phantom") }
-
 enum class Button(val value: String) {
     CREATE_ACCOUNT("Create Account"), SAVE_ACCESS_KEY("Save Access Key"), WROTE_ACCESS_KEY("Wrote Access Key"),
     ALLOW_PUSH("Allow Push"), SKIP_PUSH("Skip Push"), ALLOW_CONTACTS("Allow Contacts"), SKIP_CONTACTS("Skip Contacts"),

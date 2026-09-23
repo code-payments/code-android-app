@@ -202,3 +202,42 @@ builder = "step"
 event = "Onramp: {step}"
 params = ["step: OnrampStep"]
 doc = "Show Verification Info is Android only; part 2 decides whether iOS sends it."
+
+# Wallet
+
+[enums.WalletProvider.cases]
+PHANTOM = "Phantom"
+
+[domains.WalletEvents]
+doc = "The Phantom deeplink flow."
+
+[[domains.WalletEvents.events]]
+builder = "connect"
+event = "Wallet: Connect"
+params = ["provider: WalletProvider"]
+properties = [{ key = "Provider", value = "provider" }]
+drift = "iOS sends no Provider, and fires on the request rather than after connecting."
+
+[[domains.WalletEvents.events]]
+builder = "requestAmount"
+event = "Wallet: Request Amount"
+params = ["provider: WalletProvider", "amount: Amount"]
+properties = [
+  { key = "Provider", value = "provider" },
+  { group = "amount" },
+]
+drift = "iOS sends no Provider, and sends only Fiat (the native amount) and Currency where Android sends the token amount's block (see Amount)."
+
+[[domains.WalletEvents.events]]
+builder = "transactionsFailed"
+event = "Wallet: Transactions Failed"
+params = ["provider: WalletProvider"]
+properties = [{ key = "Provider", value = "provider" }]
+drift = "iOS declares this with no Provider and never sends it."
+
+[[domains.WalletEvents.events]]
+builder = "cancel"
+event = "Wallet: Cancel"
+params = ["provider: WalletProvider"]
+properties = [{ key = "Provider", value = "provider" }]
+drift = "iOS sends no Provider, and fires on any error code where Android fires only on a user reject."
