@@ -120,3 +120,70 @@ event = "Sent Tip"
 params = ["state: State", "amount: Amount?", "error: String?"]
 properties = [{ group = "outcome" }]
 drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+# Add money
+
+[enums.AddMoneySource.cases]
+MENU = "Menu"
+GIVE_SHORTFALL = "Give Shortfall"
+BUY_SHORTFALL = "Buy Shortfall"
+USERNAME_SHORTFALL = "Username Shortfall"
+CHAT = "Chat"
+SCANNER = "Scanner"
+BALANCE = "Balance"
+
+[enums.AddMoneyMethod.cases]
+COINBASE = "Coinbase"
+PHANTOM = "Phantom"
+OTHER_WALLET = "Other Wallet"
+RESERVES = { value = "Reserves", drift = "iOS has no Reserves method." }
+
+[[domains.AddMoneyEvents.events]]
+builder = "opened"
+event = "Add Money: Opened"
+params = ["source: AddMoneySource"]
+properties = [{ key = "Source", value = "source" }]
+
+[[domains.AddMoneyEvents.events]]
+builder = "methodSelected"
+event = "Add Money: Method Selected"
+params = ["method: AddMoneyMethod"]
+properties = [{ key = "Method", value = "method" }]
+drift = "iOS has no Reserves method."
+
+[[domains.AddMoneyEvents.events]]
+builder = "amountConfirmed"
+event = "Add Money: Amount Confirmed"
+params = ["method: AddMoneyMethod", "amount: Amount"]
+properties = [
+  { key = "Method", value = "method" },
+  { group = "amount" },
+]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[domains.AddMoneyEvents.events]]
+builder = "paymentInvoked"
+event = "Add Money: Payment Invoked"
+params = ["method: AddMoneyMethod", "amount: Amount"]
+properties = [
+  { key = "Method", value = "method" },
+  { group = "amount" },
+]
+drift = "iOS sends Exchange Rate and no USDC (see Amount). Android's USDC carries the native amount here."
+
+[[domains.AddMoneyEvents.events]]
+builder = "addressCopied"
+event = "Add Money: Address Copied"
+params = ["mint: String"]
+properties = [{ key = "Mint", value = "mint" }]
+
+[[domains.AddMoneyEvents.events]]
+builder = "result"
+event = "Add Money"
+params = ["method: AddMoneyMethod", "state: State", "amount: Amount?", "error: String?"]
+properties = [
+  { key = "Method", value = "method" },
+  { group = "outcome" },
+]
+doc = "The outcome of an add-money flow, sent as the event named `Add Money`."
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."

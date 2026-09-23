@@ -1,16 +1,5 @@
 package com.flipcash.analytics
 
-enum class AddMoneySource(val value: String) {
-    MENU("Menu"), GIVE_SHORTFALL("Give Shortfall"), BUY_SHORTFALL("Buy Shortfall"),
-    USERNAME_SHORTFALL("Username Shortfall"), CHAT("Chat"), SCANNER("Scanner"), BALANCE("Balance"),
-}
-
-enum class AddMoneyMethod(val value: String) {
-    COINBASE("Coinbase"), PHANTOM("Phantom"), OTHER_WALLET("Other Wallet"),
-    // DRIFT: iOS has no Reserves method.
-    RESERVES("Reserves"),
-}
-
 enum class DisplayNameSource(val value: String) {
     ONBOARDING("Onboarding"), MY_ACCOUNT("My Account"), TIP_CARD_SETUP("Tip Card Setup"),
 }
