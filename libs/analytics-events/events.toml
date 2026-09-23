@@ -1,3 +1,26 @@
+# The analytics event catalogue: every event both apps can send, and the value
+# vocabularies they use. The build generates the builder objects and value enums from
+# this file into build/generated/analytics/commonMain (see
+# build-logic/.../analytics/KotlinEmitter.kt); nothing generated is checked in.
+# AnalyticsEvent.kt and Amount.kt stay hand-written.
+#
+# To add an event:
+#   1. Add a [[domains.<Domain>Events.events]] entry: `builder`, `event`, `params`,
+#      `properties`, and `doc` or `drift` where they apply. `event` and a `format`
+#      value may name a parameter as {param}; an enum parameter sends its wire value.
+#      `{ group = "amount" }` and `{ group = "outcome" }` expand in place.
+#   2. Add a test to src/commonTest that asserts the event name and properties as
+#      string literals. Never read the expected strings back from the enums: the
+#      literal is what stops a catalogue edit from renaming an event by accident.
+#   3. A new domain or enum also needs a typealias in
+#      kmp/shared-core/spm/Sources/SharedCoreKit/AnalyticsEvents.swift.
+#   4. iOS gets the event only from a flipcash-shared-core-spm release: after the
+#      change merges, run the Publish SharedCore workflow with the next minor version.
+#
+# A `drift` note records how iOS differs today and is emitted as a "DRIFT:" KDoc line.
+# The generator rejects unknown keys, unsent parameters and duplicate properties or
+# builders; its tests are in build-logic/convention/src/test.
+
 package = "com.flipcash.analytics"
 
 # Chat

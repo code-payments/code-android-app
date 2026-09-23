@@ -13,6 +13,8 @@ on:
       - 'libs/encryption/**'
       - 'libs/reporting/**'
       - 'libs/analytics-events/**'
+      - 'build-logic/convention/src/main/kotlin/AnalyticsCatalogueConventionPlugin.kt'
+      - 'build-logic/convention/src/main/kotlin/com/getcode/buildlogic/analytics/**'
       - 'gradle/libs.versions.toml'
       - '.github/workflows/shared-core-tests.yml'
 

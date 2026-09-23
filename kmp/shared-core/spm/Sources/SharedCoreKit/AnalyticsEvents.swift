@@ -5,7 +5,8 @@ import SharedCore
 public typealias TrackedEvent = SharedCore.AnalyticsEvent
 
 // The value vocabulary. Deliberately typealiases and not Swift enums, as with `ReportReason`:
-// the wire strings are written down once, in `Values.kt`. Kotlin's `Button`, `State` and
+// the wire strings are written down once, in
+// `libs/analytics-events/events.toml`. Kotlin's `Button`, `State` and
 // `Amount` are renamed here so they don't read as SwiftUI's `Button` and `@State`, or as
 // one of the app's money types.
 public typealias ChatType = SharedCore.ChatType

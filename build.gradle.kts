@@ -88,4 +88,6 @@ tasks.register("flipcashTestDebug") {
     dependsOn(androidUnitTestModules.map { "$it:testDebugUnitTest" })
     dependsOn(jvmUnitTestModules.map { "$it:test" })
     dependsOn(kmpUnitTestModules.map { "$it:testAndroidHostTest" })
+    // build-logic's own tests, which cover the analytics catalogue generator.
+    dependsOn(gradle.includedBuild("build-logic").task(":convention:test"))
 }
