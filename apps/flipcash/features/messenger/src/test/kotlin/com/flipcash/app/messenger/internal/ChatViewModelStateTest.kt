@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -457,6 +458,59 @@ class ChatViewModelStateTest {
         )(ChatViewModel.State())
         assertTrue(ready.sendCashReady)
         assertFalse(ChatViewModel.State().sendCashReady)
+    }
+
+    @Test
+    fun `a member collects a cash card and thanks the sender`() {
+        val state = ChatViewModel.State(
+            subject = group(isMember = true),
+            groupAccess = GroupAccess.Membered,
+        )
+        assertEquals(CashCardTap.Collect(thanks = true), state.cashCardTap)
+        assertEquals(
+            CashCardTap.Collect(thanks = true),
+            ChatViewModel.State(subject = dm).cashCardTap,
+        )
+    }
+
+    @Test
+    fun `an eligible non-member is told to join rather than collecting`() {
+        // The one reader outside the group who can see a card to tap. Whatever the card does must
+        // not open the link, so the claim path is never reached from here.
+        val state = ChatViewModel.State(
+            subject = group(isMember = false),
+            groupAccess = GroupAccess.Eligible,
+        )
+        assertTrue(state.readsFromOutside)
+        assertEquals(CashCardTap.JoinToCollect, state.cashCardTap)
+    }
+
+    @Test
+    fun `every viewer outside the group is told to join`() {
+        // A blurred transcript has nothing to tap, but the answer must not depend on that.
+        for (state in listOf(
+            ChatViewModel.State(subject = group(isMember = false), groupAccess = GroupAccess.Blocked(unmet)),
+            ChatViewModel.State(subject = group(isMember = false), groupAccess = null),
+            ChatViewModel.State(subject = group(isMember = null), groupAccess = GroupAccess.Eligible),
+        )) {
+            assertEquals(CashCardTap.JoinToCollect, state.cashCardTap)
+        }
+    }
+
+    @Test
+    fun `a viewer with no composer collects without a thank-you`() {
+        // The thank-you is a message the viewer posts, so a viewer who cannot post is never
+        // recorded for one, and the claim never reaches a send the server would refuse.
+        val deactivatedDm = ChatViewModel.State(subject = dm, isAnonymous = true)
+        assertEquals(CashCardTap.Collect(thanks = false), deactivatedDm.cashCardTap)
+
+        // The join's checkmark still holds the composer back for its beat.
+        val justJoined = ChatViewModel.State(
+            subject = group(isMember = true),
+            groupAccess = GroupAccess.Membered,
+            joinProgress = LoadingSuccessState(success = true),
+        )
+        assertEquals(CashCardTap.Collect(thanks = false), justJoined.cashCardTap)
     }
 
     /** What the ViewModel's own `draftSnapshot` composes, over a state the reducer produced. */

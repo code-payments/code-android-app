@@ -39,7 +39,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
@@ -572,8 +571,9 @@ private fun BareLinkCard(
 /**
  * What a tap on a card does.
  *
- * A cash link goes back out through the URL handler its link span used, so replacing the text with
- * a card changed how the message looks and not what tapping it does.
+ * A cash link is handed to the chat, which opens it through the URL handler its link span used
+ * unless the reader cannot collect from where they are — a non-member reading a group. So the card
+ * changed how the message looks and not what tapping it does, except for that reader.
  *
  * A token link does not. Its URL classifies as a deep link, and the router answers that with the
  * wallet sheet plus the token's card expanded in place — right for a link arriving from outside the
@@ -585,16 +585,10 @@ private fun BareLinkCard(
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
     val actionHandler = LocalChatActionHandler.current
-    val uriHandler = LocalUriHandler.current
     return { card ->
         when (card) {
-            // The entropy is reported and the link still leaves through the URL handler, in that
-            // order and unconditionally. Nothing here waits on the report or reads it back, so a
-            // tap opens the link whatever the transcript does with the name.
-            is LinkCard.Cash -> {
-                actionHandler(ChatAction.CashLinkOpened(card.entropy))
-                uriHandler.openUri(card.url)
-            }
+            // The chat opens it, because only the chat knows whether this reader may collect it.
+            is LinkCard.Cash -> actionHandler(ChatAction.CashLinkOpened(card.entropy, card.url))
             is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
             // Pushed over this chat rather than through the chat deep link, which replaces the
             // stack: Back has to return to the message that held the invite.
