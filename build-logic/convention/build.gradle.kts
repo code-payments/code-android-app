@@ -21,6 +21,10 @@ dependencies {
     compileOnly(libs.compose.compiler.gradle.plugin)
     compileOnly(libs.kotlin.serialization.gradle.plugin)
     compileOnly(libs.kover.gradle.plugin)
+
+    implementation(libs.tomlj)
+
+    testImplementation(kotlin("test-junit"))
 }
 
 gradlePlugin {
@@ -48,6 +52,10 @@ gradlePlugin {
         register("kmpTestFixtures") {
             id = "flipcash.kmp.test.fixtures"
             implementationClass = "KmpTestFixturesConventionPlugin"
+        }
+        register("analyticsCatalogue") {
+            id = "flipcash.analytics.catalogue"
+            implementationClass = "AnalyticsCatalogueConventionPlugin"
         }
     }
 }
