@@ -16,11 +16,6 @@ enum class PurchaseMethod(val value: String) { RESERVES("Reserves"), PHANTOM("Ph
 
 enum class WalletProvider(val value: String) { PHANTOM("Phantom") }
 
-enum class OnrampStep(val value: String) {
-    SHOW_INFO("Show Verification Info"), ENTER_PHONE("Show Enter Phone"), CONFIRM_PHONE("Show Confirm Phone"),
-    ENTER_EMAIL("Show Enter Email"), CONFIRM_EMAIL("Show Confirm Email"),
-}
-
 enum class Button(val value: String) {
     CREATE_ACCOUNT("Create Account"), SAVE_ACCESS_KEY("Save Access Key"), WROTE_ACCESS_KEY("Wrote Access Key"),
     ALLOW_PUSH("Allow Push"), SKIP_PUSH("Skip Push"), ALLOW_CONTACTS("Allow Contacts"), SKIP_CONTACTS("Skip Contacts"),

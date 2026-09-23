@@ -187,3 +187,18 @@ properties = [
 ]
 doc = "The outcome of an add-money flow, sent as the event named `Add Money`."
 drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+# Onramp
+
+[enums.OnrampStep.cases]
+SHOW_INFO = "Show Verification Info"
+ENTER_PHONE = "Show Enter Phone"
+CONFIRM_PHONE = "Show Confirm Phone"
+ENTER_EMAIL = "Show Enter Email"
+CONFIRM_EMAIL = "Show Confirm Email"
+
+[[domains.OnrampEvents.events]]
+builder = "step"
+event = "Onramp: {step}"
+params = ["step: OnrampStep"]
+doc = "Show Verification Info is Android only; part 2 decides whether iOS sends it."
