@@ -4,14 +4,6 @@ enum class DisplayNameSource(val value: String) {
     ONBOARDING("Onboarding"), MY_ACCOUNT("My Account"), TIP_CARD_SETUP("Tip Card Setup"),
 }
 
-/**
- * Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android
- * previously sent Wallet for all three. iOS's Give and Send sources stay native until part 2.
- */
-enum class TokenInfoSource(val value: String) {
-    DEEPLINK("Deeplink"), WALLET("Wallet"), DISCOVERY("Discovery"), CHAT("Chat"), CHAT_GATE("Chat Gate"),
-}
-
 enum class PurchaseMethod(val value: String) { RESERVES("Reserves"), PHANTOM("Phantom"), COINBASE("Coinbase") }
 
 enum class Button(val value: String) {
