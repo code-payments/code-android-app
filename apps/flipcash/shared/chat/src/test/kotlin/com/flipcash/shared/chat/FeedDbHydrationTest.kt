@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -106,6 +107,22 @@ class FeedDbHydrationTest {
         runCurrent()
 
         assertEquals(listOf(emptyList()), emissions)
+    }
+
+    @Test
+    fun `currentFeed is null while feed is silent and matches it once feed emits`() = runTest {
+        val emissions = collectFeed()
+
+        delegate.initialize(backgroundScope)
+        delegate.observeFeedFromDb()
+        runCurrent()
+        rows.emit(emptyList())
+        runCurrent()
+        assertNull(delegate.currentFeed(ChatType.TIP_DM, ChatType.GROUP))
+
+        stateHolder.update { it.copy(feedSyncState = FeedSyncState.Synced) }
+        runCurrent()
+        assertEquals(emissions.last(), delegate.currentFeed(ChatType.TIP_DM, ChatType.GROUP))
     }
 
     private fun TestScope.collectFeed(): List<List<ChatSummary>> {

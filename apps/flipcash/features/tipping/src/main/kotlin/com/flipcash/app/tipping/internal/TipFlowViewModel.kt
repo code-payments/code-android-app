@@ -15,9 +15,11 @@ import com.flipcash.features.tipping.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.toConversationReference
 import com.flipcash.shared.tipping.TippingCoordinator
+import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.flow.combine
@@ -89,14 +91,25 @@ internal class TipFlowViewModel @Inject constructor(
             })
             .launchIn(viewModelScope)
 
+        fun conversations(summaries: List<ChatSummary>, tokens: List<Token>): List<ConversationReference> {
+            val selfId = userManager.accountId
+            val tokensByMint = tokens.associateBy { it.address }
+            return summaries.map { it.toConversationReference(selfId, tokensByMint, resources) }
+        }
+
+        // On a cold launch the feed is usually built before this screen is, so draw it on the first
+        // frame rather than waiting for the collector below to get a turn on the main thread.
+        chatCoordinator.currentFeed(ChatType.TIP_DM, ChatType.GROUP)?.let { summaries ->
+            dispatchEvent(
+                Event.ChatsUpdated(Loadable.Loaded(conversations(summaries, tokenCoordinator.cachedTokens())))
+            )
+        }
+
         combine(
             chatCoordinator.feed(ChatType.TIP_DM, ChatType.GROUP),
             tokenCoordinator.tokens,
-        ) { summaries, tokens ->
-            val selfId = userManager.accountId
-            val tokensByMint = tokens.associateBy { it.address }
-            summaries.map { it.toConversationReference(selfId, tokensByMint, resources) }
-        }
+            ::conversations,
+        )
             // Off the main thread: on a cold launch the first mapping lands while the main thread
             // is drawing the app's first screens, and waiting for it holds the Chats tab blank.
             .flowOn(dispatchers.Default)

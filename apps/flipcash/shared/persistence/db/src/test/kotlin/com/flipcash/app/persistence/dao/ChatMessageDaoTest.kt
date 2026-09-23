@@ -116,6 +116,34 @@ class ChatMessageDaoTest {
         assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
     }
 
+    @Test
+    fun `getLatestVisibleForAllChats gives each chat its own latest visible message`() = runTest {
+        dao.upsert(listOf(text(1, "one"), text(2, "two")))
+        dao.upsert(tombstone(2))
+        dao.upsert(listOf(text(3, "three"), text(4, "four")).map { it.copy(chatIdHex = OTHER_HEX) })
+
+        val latest = dao.getLatestVisibleForAllChats().associate { it.chatIdHex to it.messageId }
+
+        assertEquals(mapOf(CHAT_HEX to 1L, OTHER_HEX to 4L), latest)
+    }
+
+    @Test
+    fun `getLatestVisibleForAllChats leaves out a chat whose messages are all deleted`() = runTest {
+        dao.upsert(tombstone(1))
+        dao.upsert(text(2, "two").copy(chatIdHex = OTHER_HEX))
+
+        assertEquals(listOf(OTHER_HEX), dao.getLatestVisibleForAllChats().map { it.chatIdHex })
+    }
+
+    @Test
+    fun `on a shared timestamp both latest-visible reads pick the highest message id`() = runTest {
+        val sameMs = 5_000L
+        dao.upsert(listOf(3L, 1L, 2L).map { text(it, "m$it").copy(timestampEpochMs = sameMs) })
+
+        assertEquals(3L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        assertEquals(listOf(3L), dao.getLatestVisibleForAllChats().map { it.messageId })
+    }
+
     /**
      * The optimistic row is written with no event sequence, because the client has none to write:
      * the server stamps it. Confirming has to carry the echo's stamp onto the row, or the message

@@ -91,7 +91,7 @@ class FeedGroupProjectionTest {
         members: Map<String, List<ChatMember>>,
     ) {
         private val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true).also {
-            coEvery { it.getLatestVisible(any()) } returns message(2)
+            coEvery { it.getLatestVisibleByChat() } returns entities.associate { e -> e.chatIdHex to message(2) }
         }
 
         private val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true).also { source ->

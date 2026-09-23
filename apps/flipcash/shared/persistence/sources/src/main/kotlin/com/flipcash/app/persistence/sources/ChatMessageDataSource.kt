@@ -123,6 +123,12 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun getLatestVisible(chatIdHex: String): ChatMessage? =
         db?.chatMessageDao()?.getLatestVisible(chatIdHex)?.let { toChatMessage(it) }
 
+    /** [getLatestVisible] for every chat, keyed by chat id hex; chats with none are absent. */
+    suspend fun getLatestVisibleByChat(): Map<String, ChatMessage> =
+        db?.chatMessageDao()?.getLatestVisibleForAllChats()
+            ?.associate { it.chatIdHex to toChatMessage(it) }
+            .orEmpty()
+
     suspend fun hasMessages(chatId: ChatId): Boolean =
         db?.chatMessageDao()?.getLatest(mapper.chatIdHex(chatId)) != null
 

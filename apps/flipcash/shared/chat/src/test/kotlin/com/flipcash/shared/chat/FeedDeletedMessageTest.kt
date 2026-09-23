@@ -87,6 +87,12 @@ class FeedDeletedMessageTest {
 
         val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
 
+        /** Stubs the chat's newest visible message, as the batched read returns it. */
+        fun latestVisible(message: ChatMessage?) {
+            coEvery { messageDataSource.getLatestVisibleByChat() } returns
+                message?.let { mapOf(entity.chatIdHex to it) }.orEmpty()
+        }
+
         private val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true).also { source ->
             every { source.observeAll() } returns flowOf(listOf(entity))
             every { source.toMetadata(any(), any(), any()) } answers {
@@ -128,8 +134,7 @@ class FeedDeletedMessageTest {
     fun `the preview falls back to the newest message that still has content`() = runTest {
         val harness = Harness(selfId, otherId, chatId, readPointer = 1)
         // Message 2 was deleted; the visible newest is message 1.
-        coEvery { harness.messageDataSource.getLatestVisible(any()) } returns
-            message(1, MessageContent.Text("still here"))
+        harness.latestVisible(message(1, MessageContent.Text("still here")))
 
         val summary = harness.summary(this)
 
@@ -144,8 +149,7 @@ class FeedDeletedMessageTest {
     fun `deleting the only unread message clears the splat`() = runTest {
         // The READ pointer sits at 1: message 2 arrived unread, then was deleted.
         val harness = Harness(selfId, otherId, chatId, readPointer = 1)
-        coEvery { harness.messageDataSource.getLatestVisible(any()) } returns
-            message(1, MessageContent.Text("read already"))
+        harness.latestVisible(message(1, MessageContent.Text("read already")))
 
         assertEquals(0, harness.summary(this)?.unreadCount)
     }
@@ -154,8 +158,7 @@ class FeedDeletedMessageTest {
     fun `an unread message older than the tombstone keeps the splat`() = runTest {
         // Nothing has been read, so the message the preview falls back to is itself unread.
         val harness = Harness(selfId, otherId, chatId, readPointer = 0)
-        coEvery { harness.messageDataSource.getLatestVisible(any()) } returns
-            message(1, MessageContent.Text("never read"))
+        harness.latestVisible(message(1, MessageContent.Text("never read")))
 
         assertEquals(1, harness.summary(this)?.unreadCount)
     }
@@ -163,7 +166,7 @@ class FeedDeletedMessageTest {
     @Test
     fun `a chat with nothing but tombstones has no preview`() = runTest {
         val harness = Harness(selfId, otherId, chatId, readPointer = 0)
-        coEvery { harness.messageDataSource.getLatestVisible(any()) } returns null
+        harness.latestVisible(null)
 
         val summary = harness.summary(this)
 
