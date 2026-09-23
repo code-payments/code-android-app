@@ -388,3 +388,17 @@ event = "Display Name Updated"
 params = ["source: DisplayNameSource"]
 properties = [{ key = "Source", value = "source" }]
 doc = "The user replaced an existing display name."
+
+# Error modal
+
+[[domains.ErrorModalEvents.events]]
+builder = "displayed"
+event = "Error Modal Displayed"
+params = ["title: String", "message: String", "screen: String?", "callSite: String?"]
+properties = [
+  { key = "Title", value = "title" },
+  { key = "Message", value = "message" },
+  { key = "Screen", value = "screen" },
+  { key = "Call Site", value = "callSite" },
+]
+drift = "iOS's Screen is `presentedSheet.description` or \"scan\" where Android's is the back stack top's `screenName()`, and iOS never sends Call Site."
