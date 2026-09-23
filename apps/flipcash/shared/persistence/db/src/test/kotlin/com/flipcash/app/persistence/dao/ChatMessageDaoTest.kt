@@ -212,6 +212,75 @@ class ChatMessageDaoTest {
     }
 
     /**
+     * The unread divider's count, against the cases iOS encodes too: someone else's messages past
+     * the viewer's READ pointer, without tombstones. The read-through message itself need not be
+     * stored for the range to count.
+     */
+    private fun from(sender: String, messageId: Long) = text(messageId, "m$messageId").copy(senderIdHex = sender)
+
+    private suspend fun unread(pointer: Long) = dao.countInboundAfter(CHAT_HEX, SELF_HEX, pointer)
+
+    @Test
+    fun `countInboundAfter counts only others' messages past the pointer`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SENDER_HEX, 3), from(SENDER_HEX, 4)))
+
+        assertEquals(2, unread(pointer = 2))
+    }
+
+    @Test
+    fun `countInboundAfter is zero when nothing is past the pointer`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SENDER_HEX, 2)))
+
+        assertEquals(0, unread(pointer = 2))
+    }
+
+    @Test
+    fun `countInboundAfter ignores the viewer's own messages`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SELF_HEX, 3)))
+
+        assertEquals(0, unread(pointer = 1))
+    }
+
+    @Test
+    fun `countInboundAfter counts past a read-through message that is gone`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SENDER_HEX, 3)))
+
+        assertEquals(1, unread(pointer = 2))
+    }
+
+    @Test
+    fun `countInboundAfter skips an unread tombstone`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SENDER_HEX, 2), from(SENDER_HEX, 3)))
+        dao.upsert(tombstone(2))
+
+        assertEquals(1, unread(pointer = 1))
+    }
+
+    @Test
+    fun `countInboundAfter counts past the viewer's own first message`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SENDER_HEX, 3)))
+
+        assertEquals(1, unread(pointer = 1))
+    }
+
+    @Test
+    fun `countInboundAfter ignores senderless rows and other chats`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), text(2, "system").copy(senderIdHex = null)))
+        dao.upsert(from(SENDER_HEX, 3).copy(chatIdHex = OTHER_HEX))
+
+        assertEquals(0, unread(pointer = 1))
+    }
+
+    @Test
+    fun `countAfter counts every stored row past the id`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SENDER_HEX, 3), from(SENDER_HEX, 4)))
+        dao.upsert(tombstone(3))
+        dao.upsert(from(SENDER_HEX, 9).copy(chatIdHex = OTHER_HEX))
+
+        assertEquals(3, dao.countAfter(CHAT_HEX, 1))
+    }
+
+    /**
      * Killing the app mid-send leaves the row `SENDING` with nothing alive to move it: failure is
      * only ever written from the `onFailure` of the coroutine that issued the send. The sweep is
      * what a fresh process has instead of that coroutine.
@@ -256,6 +325,7 @@ class ChatMessageDaoTest {
         const val CHAT_HEX = "aabb"
         const val OTHER_HEX = "ccdd"
         const val SENDER_HEX = "1122"
+        const val SELF_HEX = "3344"
         const val CLIENT_HEX = "eeff"
     }
 }

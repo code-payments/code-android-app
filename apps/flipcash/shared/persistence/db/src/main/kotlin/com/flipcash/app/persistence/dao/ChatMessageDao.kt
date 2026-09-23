@@ -76,6 +76,26 @@ interface ChatMessageDao {
         throughId: Long,
     ): List<ChatMessageEntity>
 
+    /**
+     * How many messages in [chatIdHex] someone else sent after [afterId] that still have content —
+     * the count the unread divider shows. A range rather than a lookup of [afterId], so the
+     * read-through message itself need not be stored.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM chat_messages " +
+            "WHERE chat_id_hex = :chatIdHex " +
+            "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
+            "AND is_deleted = 0 AND message_id > :afterId"
+    )
+    suspend fun countInboundAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Int
+
+    /**
+     * How many stored messages in [chatIdHex] come after [afterId], of any sender and including
+     * tombstones — every row the transcript draws between the newest message and that id.
+     */
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id > :afterId")
+    suspend fun countAfter(chatIdHex: String, afterId: Long): Int
+
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex LIMIT 1")
     suspend fun getByClientId(chatIdHex: String, clientIdHex: String): ChatMessageEntity?
 
