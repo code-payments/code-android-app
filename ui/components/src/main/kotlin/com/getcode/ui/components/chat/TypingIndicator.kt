@@ -60,20 +60,33 @@ import com.getcode.ui.utils.IDPreviewParameterProvider
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
+/**
+ * Dots in a bubble, led by an overlapping row of the last [MaxAvatars] of [typists]. An empty
+ * [typists] draws the dots alone.
+ *
+ * [avatar] draws one typist inside a circle the row sizes, clips and animates; it is measured to
+ * fill that circle. [key] identifies a typist across updates, so an avatar stays in place as others
+ * join and leave rather than animating out and back in. It becomes the lazy item key, so it has to
+ * be a type Android can save in a Bundle.
+ */
 @Composable
-fun TypingIndicator(
+fun <T> TypingIndicator(
+    typists: List<T>,
+    key: (T) -> Any,
     modifier: Modifier = Modifier,
-    userImages: List<Any> = emptyList(),
+    avatar: @Composable (T) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .padding(top = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (userImages.isNotEmpty()) {
+        if (typists.isNotEmpty()) {
             AvatarRow(
                 modifier = Modifier.weight(1f, fill = false),
-                userImages = userImages,
+                typists = typists,
+                key = key,
+                avatar = avatar,
             )
         }
 
@@ -82,8 +95,10 @@ fun TypingIndicator(
 }
 
 @Composable
-private fun AvatarRow(
-    userImages: List<Any>,
+private fun <T> AvatarRow(
+    typists: List<T>,
+    key: (T) -> Any,
+    avatar: @Composable (T) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val avatarSize = CodeTheme.dimens.staticGrid.x8
@@ -101,13 +116,13 @@ private fun AvatarRow(
         contentPadding = PaddingValues(end = CodeTheme.dimens.grid.x2)
     ) {
         itemsIndexed(
-            items = userImages.takeLast(MaxAvatars),
-            key = { _, item -> item.hashCode() }
-        ) { index, image ->
-            UserAvatar(
+            items = typists.takeLast(MaxAvatars),
+            key = { _, item -> key(item) }
+        ) { index, item ->
+            Box(
                 modifier = Modifier
                     .size(avatarSize)
-                    .zIndex(userImages.takeLast(MaxAvatars).count() - index.toFloat())
+                    .zIndex(typists.takeLast(MaxAvatars).count() - index.toFloat())
                     .clip(CircleShape)
                     .animateItem(
                         fadeOutSpec = spring(
@@ -115,14 +130,9 @@ private fun AvatarRow(
                             visibilityThreshold = 0.5f
                         )
                     ),
-                data = image
+                propagateMinConstraints = true,
             ) {
-                Image(
-                    modifier = Modifier.padding(5.dp),
-                    imageVector = Icons.Default.Person,
-                    colorFilter = ColorFilter.tint(Color.White),
-                    contentDescription = null
-                )
+                avatar(item)
             }
         }
     }
@@ -199,7 +209,7 @@ private fun TypingDots(
     }
 }
 
-private const val MaxAvatars = 10
+private const val MaxAvatars = 3
 private const val DotCount = 3
 private val DotSize = 7.dp
 
@@ -254,7 +264,9 @@ fun PreviewTypingIndicator() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.grid.x2),
-                        userImages = users
+                        typists = users,
+                        key = { it.hashCode() },
+                        avatar = { PreviewAvatar(it) },
                     )
                 }
             }
@@ -270,7 +282,9 @@ private fun TestAvatarRow() {
     DesignSystem {
         Column {
             AvatarRow(
-                userImages = imageList,
+                typists = imageList,
+                key = { it.hashCode() },
+                avatar = { PreviewAvatar(it) },
             )
             Button(onClick = {
                 imageList = imageList + "user${imageList.size + 1}"
@@ -284,6 +298,18 @@ private fun TestAvatarRow() {
                 Text("Remove Avatar")
             }
         }
+    }
+}
+
+@Composable
+private fun PreviewAvatar(data: Any) {
+    UserAvatar(data = data) {
+        Image(
+            modifier = Modifier.padding(5.dp),
+            imageVector = Icons.Default.Person,
+            colorFilter = ColorFilter.tint(Color.White),
+            contentDescription = null
+        )
     }
 }
 

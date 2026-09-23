@@ -2,13 +2,12 @@ package com.flipcash.app.messenger.internal
 
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
-import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.shared.chat.ActiveTypist
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.hexEncodedString
-import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
@@ -22,81 +21,74 @@ class TypingAvatarsTest {
     private val grace: ID = List(16) { 2 }
     private val linus: ID = List(16) { 3 }
 
-    private val adaPicture = MediaItem(renditions = emptyList())
+    private val adaProfile = profile("Ada")
+    private val graceProfile = profile("Grace")
 
     private val profiles = mapOf(
-        ada.hexEncodedString() to profile("Ada", picture = adaPicture),
-        grace.hexEncodedString() to profile("Grace", picture = null),
+        ada.hexEncodedString() to adaProfile,
+        grace.hexEncodedString() to graceProfile,
     )
 
-    private fun profile(name: String, picture: MediaItem?) = UserProfile(
+    private fun profile(name: String) = UserProfile(
         displayName = name,
         socialAccounts = emptyList(),
         phoneNumber = null,
         email = null,
-        profilePicture = picture,
     )
 
     private fun typing(userId: ID, atMillis: Long) =
         ActiveTypist(userId, Instant.fromEpochMilliseconds(atMillis))
 
-    private val pictureUrl: suspend (ID, MediaItem) -> String? = { userId, _ ->
-        "https://cdn/${userId.hexEncodedString()}"
-    }
-
     @Test
-    fun `a group lists its typists oldest first`() = runTest {
+    fun `a group lists its typists oldest first`() {
         val avatars = typingAvatars(
             // Out of order on purpose: a set carries no order, so `since` has to supply it.
             typists = setOf(typing(linus, 300), typing(ada, 100), typing(grace, 200)),
             chatType = ChatType.GROUP,
             profiles = profiles,
-            pictureUrl = pictureUrl,
         )
 
-        // Ada has a picture; Grace has a profile but no picture; Linus has no profile yet. The
-        // last two fall back to their ids, which is what draws the Person icon.
-        assertEquals(listOf("https://cdn/${ada.hexEncodedString()}", grace, linus), avatars)
+        // Linus has no profile yet, and is still listed so the fallback can hold his place.
+        assertEquals(
+            listOf(
+                TypingAvatar(ada, adaProfile),
+                TypingAvatar(grace, graceProfile),
+                TypingAvatar(linus, null),
+            ),
+            avatars,
+        )
     }
 
     @Test
-    fun `a DM with a typist lists nobody`() = runTest {
+    fun `a DM with a typist lists nobody`() {
         val typists = setOf(typing(ada, 100))
 
-        assertEquals(
-            emptyList(),
-            typingAvatars(typists, ChatType.CONTACT_DM, profiles, pictureUrl),
-        )
-        assertEquals(
-            emptyList(),
-            typingAvatars(typists, ChatType.TIP_DM, profiles, pictureUrl),
-        )
+        assertTrue(typingAvatars(typists, ChatType.CONTACT_DM, profiles).isEmpty())
+        assertTrue(typingAvatars(typists, ChatType.TIP_DM, profiles).isEmpty())
     }
 
     @Test
-    fun `a typist who stops typing drops out`() = runTest {
+    fun `a typist who stops typing drops out`() {
         val both = setOf(typing(ada, 100), typing(grace, 200))
         assertEquals(
-            listOf("https://cdn/${ada.hexEncodedString()}", grace),
-            typingAvatars(both, ChatType.GROUP, profiles, pictureUrl),
+            listOf(ada, grace),
+            typingAvatars(both, ChatType.GROUP, profiles).map { it.userId },
         )
 
         val adaStopped = both.filterNot { it.userId == ada }.toSet()
         assertEquals(
-            listOf<Any>(grace),
-            typingAvatars(adaStopped, ChatType.GROUP, profiles, pictureUrl),
+            listOf(grace),
+            typingAvatars(adaStopped, ChatType.GROUP, profiles).map { it.userId },
         )
     }
 
     @Test
-    fun `a picture with no URL falls back to the id`() = runTest {
-        val avatars = typingAvatars(
-            typists = setOf(typing(ada, 100)),
-            chatType = ChatType.GROUP,
-            profiles = profiles,
-            pictureUrl = { _, _ -> null },
-        )
+    fun `a typist keeps their key when their profile resolves`() {
+        // The indicator keys its lazy items on this; a key that moved when the profile landed
+        // would animate the avatar out and back in mid-typing.
+        val before = TypingAvatar(ada, profile = null)
+        val after = TypingAvatar(ada, adaProfile)
 
-        assertEquals(listOf<Any>(ada), avatars)
+        assertEquals(before.key, after.key)
     }
 }

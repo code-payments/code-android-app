@@ -20,7 +20,6 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
-import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.tokens.brandedName
@@ -40,7 +39,6 @@ import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
-import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
@@ -122,7 +120,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
@@ -166,7 +163,6 @@ internal class ChatViewModel @Inject constructor(
     private val linkCardResolver: LinkCardResolver,
     private val cashLinkClaims: CashLinkClaims,
     private val chatDraftStore: ChatDraftStore,
-    private val mediaUrlResolver: MediaUrlResolver,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -204,7 +200,7 @@ internal class ChatViewModel @Inject constructor(
         val chatInputState: TextFieldState = TextFieldState(),
         val typists: Set<ActiveTypist> = emptySet(),
         /** What the typing indicator draws ahead of its dots. See [typingAvatars]. */
-        val typingAvatars: List<Any> = emptyList(),
+        val typingAvatars: List<TypingAvatar> = emptyList(),
         val resolveState: ResolveState = ResolveState.Pending,
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
         val isSelfTyping: Boolean = false,
@@ -473,7 +469,7 @@ internal class ChatViewModel @Inject constructor(
         data object OnStopMessageInput: Event
         data object OnMessageInputConsumed: Event
         data class TypistsUpdated(val typists: Set<ActiveTypist>) : Event
-        data class TypingAvatarsUpdated(val avatars: List<Any>) : Event
+        data class TypingAvatarsUpdated(val avatars: List<TypingAvatar>) : Event
         data object ResolveCompleted : Event
         data object ResolveFailed : Event
 
@@ -1466,14 +1462,8 @@ internal class ChatViewModel @Inject constructor(
                 typists.filter { it.userId.hexEncodedString() !in profiles }
                     .forEach { chatCoordinator.requestSenderProfile(it.userId) }
             }
-            .mapLatest { (typists, chatType, profiles) ->
-                typingAvatars(typists, chatType, profiles.orEmpty()) { userId, picture ->
-                    mediaUrlResolver.urlForSize(
-                        media = picture,
-                        targetLongestSidePx = TypingAvatarPx,
-                        access = BlobAccessContext.profile(userId),
-                    )
-                }
+            .map { (typists, chatType, profiles) ->
+                typingAvatars(typists, chatType, profiles.orEmpty())
             }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.TypingAvatarsUpdated(it)) }

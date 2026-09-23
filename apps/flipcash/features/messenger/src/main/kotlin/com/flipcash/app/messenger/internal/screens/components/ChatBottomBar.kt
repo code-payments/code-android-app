@@ -51,11 +51,13 @@ import com.flipcash.app.messenger.internal.requiresStaff
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.flipcash.shared.chat.ui.ComposerReplyStrip
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
@@ -130,10 +132,24 @@ internal fun UserControlBottomBar(
         ) { show ->
             if (show) {
                 TypingIndicator(
+                    typists = state.typingAvatars,
+                    key = { it.key },
                     modifier = Modifier
                         .hazeBlur(HazeInput.Sources(hazeState), material),
-                    userImages = state.typingAvatars,
-                )
+                ) { typist ->
+                    // Drawn the way the transcript's sender gutter draws the same member, so the
+                    // face beside the dots is the face beside their messages.
+                    val profile = typist.profile
+                    if (profile != null) {
+                        ContactAvatar(
+                            image = profile.profilePicture,
+                            displayName = profile.displayName,
+                            access = BlobAccessContext.profile(typist.userId),
+                        )
+                    } else {
+                        ContactAvatar(contact = null, includeBorder = false)
+                    }
+                }
             }
         }
         Box {
