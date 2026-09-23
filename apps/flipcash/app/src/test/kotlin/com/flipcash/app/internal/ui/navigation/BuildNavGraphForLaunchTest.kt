@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.getcode.solana.keys.Mint
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.router.Router
 import com.flipcash.services.user.AuthState
 import dev.theolm.rinku.DeepLink
@@ -194,7 +195,7 @@ class BuildNavGraphForLaunchTest {
     fun `token deeplink pushes token info onto the Wallet tab without a sheet`() {
         val result = buildReady(
             DeeplinkAction.Navigate(
-                listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint, fromDeeplink = true))
+                listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink))
             )
         )
 

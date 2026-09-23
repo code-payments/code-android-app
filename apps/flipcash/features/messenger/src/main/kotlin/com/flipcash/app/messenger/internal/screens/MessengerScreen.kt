@@ -16,6 +16,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
@@ -75,8 +76,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             // is no card here for it to grow from.
                             AppRoute.Token.Info(
                                 action.mint,
-                                asPush = true,
-                                returnAfterBuy = action.returnAfterBuy,
+                                if (action.returnAfterBuy) TokenInfoEntry.ChatGate else TokenInfoEntry.Chat,
                             )
                         )
                     )

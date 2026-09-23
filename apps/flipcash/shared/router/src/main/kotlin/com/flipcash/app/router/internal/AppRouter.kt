@@ -13,6 +13,7 @@ import com.flipcash.app.core.navigation.fragments
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.core.tipping.TipCardOwner
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.chat
@@ -119,7 +120,7 @@ internal class AppRouter(
                 mint = type.mint,
                 routes = listOf(
                     AppRoute.Sheets.Wallet,
-                    AppRoute.Token.Info(type.mint, fromDeeplink = true),
+                    AppRoute.Token.Info(type.mint, TokenInfoEntry.Deeplink),
                 ),
             )
 

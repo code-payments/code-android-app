@@ -126,7 +126,7 @@ fun appEntryProvider(
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info>(testTag = "token_info_screen") { key ->
-        TokenInfoScreen(key.mint, key.shortfall, key.fromDeeplink, key.asPush, key.returnAfterBuy)
+        TokenInfoScreen(key.mint, key.entry)
     }
     annotatedEntry<AppRoute.Token.Transactions>(testTag = "transaction_history_screen") { key ->
         TransactionHistoryScreen(key.mint)

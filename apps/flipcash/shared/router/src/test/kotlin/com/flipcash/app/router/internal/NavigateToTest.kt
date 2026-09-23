@@ -6,6 +6,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.extensions.resolveRoutes
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.EmptyCodeNavigator
 import com.getcode.navigation.core.NavOptions
@@ -167,12 +168,12 @@ class NavigateToTest {
             AppRoute.Main.Scanner,
             AppRoute.Main.Sheet(
                 AppRoute.Sheets.ActivityHistory,
-                listOf(AppRoute.Token.Info(mint, fromDeeplink = true)),
+                listOf(AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink)),
             ),
         )
 
         navigator.navigateAll(
-            listOf(AppRoute.Sheets.ActivityHistory, AppRoute.Token.Info(mint, fromDeeplink = true)),
+            listOf(AppRoute.Sheets.ActivityHistory, AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink)),
             options = quietOptions,
         )
 

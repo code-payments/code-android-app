@@ -6,6 +6,7 @@ import com.flipcash.app.core.extensions.resolveBackStack
 import com.flipcash.app.core.extensions.resolveRoutes
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.solana.keys.Mint
 import org.junit.runner.RunWith
@@ -53,7 +54,7 @@ class ResolveRoutesTest {
     fun `sheet with inner routes bundles into Main Sheet`() {
         val routes = listOf(
             AppRoute.Sheets.ActivityHistory,
-            AppRoute.Token.Info(mint, fromDeeplink = true),
+            AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink),
         )
 
         val resolved = resolveRoutes(routes)
@@ -113,7 +114,7 @@ class ResolveRoutesTest {
     fun `resolved routes are structurally equal when inputs match`() {
         val routes = listOf(
             AppRoute.Sheets.ActivityHistory,
-            AppRoute.Token.Info(mint, fromDeeplink = true),
+            AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink),
         )
 
         val resolved1 = resolveRoutes(routes)
@@ -141,7 +142,7 @@ class ResolveRoutesTest {
     fun `wallet tab stays flat and token info pushes on top`() {
         val routes = listOf(
             AppRoute.Sheets.Wallet,
-            AppRoute.Token.Info(mint, fromDeeplink = true),
+            AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink),
         )
 
         val resolved = resolveRoutes(routes)
@@ -215,7 +216,7 @@ class ResolveRoutesTest {
     @Test
     fun `a token deeplink lands on the wallet tab exactly once`() {
         val base = listOf<NavKey>(AppRoute.Sheets.Wallet)
-        val deeplink = listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint, fromDeeplink = true))
+        val deeplink = listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint, TokenInfoEntry.Deeplink))
 
         val stack = resolveBackStack(base, deeplink)
         assertEquals(2, stack.size)
