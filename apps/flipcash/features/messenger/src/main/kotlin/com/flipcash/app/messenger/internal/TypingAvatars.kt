@@ -8,7 +8,7 @@ import com.getcode.utils.hexEncodedString
 
 /**
  * One face in the typing indicator. [profile] is null until the member's profile resolves, and the
- * avatar draws the unknown-person fallback until then.
+ * avatar draws what the transcript draws for a sender with no picture and no name until then.
  */
 internal data class TypingAvatar(
     val userId: ID,

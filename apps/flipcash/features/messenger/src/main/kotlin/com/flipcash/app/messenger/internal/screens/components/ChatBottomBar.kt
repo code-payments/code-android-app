@@ -142,17 +142,15 @@ internal fun UserControlBottomBar(
                         .hazeBlur(HazeInput.Sources(hazeState), material),
                 ) { typist ->
                     // Drawn the way the transcript's sender gutter draws the same member, so the
-                    // face beside the dots is the face beside their messages.
+                    // face beside the dots is the face beside their messages. A typist whose
+                    // profile hasn't resolved goes through the same call with no picture and no
+                    // name, rather than a separate unknown-person glyph.
                     val profile = typist.profile
-                    if (profile != null) {
-                        ContactAvatar(
-                            image = profile.profilePicture,
-                            displayName = profile.displayName,
-                            access = BlobAccessContext.profile(typist.userId),
-                        )
-                    } else {
-                        ContactAvatar(contact = null, includeBorder = false)
-                    }
+                    ContactAvatar(
+                        image = profile?.profilePicture,
+                        displayName = profile?.displayName.orEmpty(),
+                        access = BlobAccessContext.profile(typist.userId),
+                    )
                 }
             }
         }
