@@ -1,8 +1,5 @@
 package com.flipcash.analytics
 
-/** The `State` property on an event that reports an outcome. */
-enum class State(val value: String) { SUCCESS("Success"), FAILURE("Failure") }
-
 enum class AddMoneySource(val value: String) {
     MENU("Menu"), GIVE_SHORTFALL("Give Shortfall"), BUY_SHORTFALL("Buy Shortfall"),
     USERNAME_SHORTFALL("Username Shortfall"), CHAT("Chat"), SCANNER("Scanner"), BALANCE("Balance"),
@@ -29,8 +26,6 @@ enum class TokenInfoSource(val value: String) {
 enum class PurchaseMethod(val value: String) { RESERVES("Reserves"), PHANTOM("Phantom"), COINBASE("Coinbase") }
 
 enum class WalletProvider(val value: String) { PHANTOM("Phantom") }
-
-enum class CashLinkChoice(val value: String) { COPIED("Copied to clipboard"), SHARED("Shared to app") }
 
 enum class OnrampStep(val value: String) {
     SHOW_INFO("Show Verification Info"), ENTER_PHONE("Show Enter Phone"), CONFIRM_PHONE("Show Confirm Phone"),

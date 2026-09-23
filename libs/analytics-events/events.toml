@@ -35,3 +35,88 @@ builder = "messageReceived"
 event = "Message Received"
 params = ["chatType: ChatType"]
 properties = [{ key = "Chat Type", value = "chatType" }]
+
+# Transfers
+
+[enums.State]
+doc = "The `State` property on an event that reports an outcome."
+
+[enums.State.cases]
+SUCCESS = "Success"
+FAILURE = "Failure"
+
+[enums.CashLinkChoice.cases]
+COPIED = "Copied to clipboard"
+SHARED = "Shared to app"
+
+# State, then the amount, then Error: the block every outcome event ends with.
+[groups.outcome]
+properties = [
+  { key = "State", value = "state" },
+  { group = "amount" },
+  { key = "Error", value = "error" },
+]
+
+[[domains.TransferEvents.events]]
+builder = "grabBillStart"
+event = "Grab Bill Start"
+
+[[domains.TransferEvents.events]]
+builder = "giveBillStart"
+event = "Give Bill Start"
+
+[[domains.TransferEvents.events]]
+builder = "grabBill"
+event = "Grab Bill"
+params = ["state: State", "amount: Amount?", "grabTimeMillis: Long?", "error: String?"]
+properties = [
+  { key = "Grab Time", value = "grabTimeMillis" },
+  { group = "outcome" },
+]
+drift = "iOS sends Grab Time in seconds, not milliseconds, and on failure sends only Fiat and Currency of the amount (see Amount)."
+
+[[domains.TransferEvents.events]]
+builder = "giveBill"
+event = "Give Bill"
+params = ["state: State", "amount: Amount?", "error: String?"]
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[domains.TransferEvents.events]]
+builder = "withdrawal"
+event = "Withdrawal"
+params = ["state: State", "amount: Amount?", "error: String?"]
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[domains.TransferEvents.events]]
+builder = "sendCashLink"
+event = "Send Cash Link"
+params = ["state: State", "amount: Amount?", "choice: CashLinkChoice?", "app: String?", "error: String?"]
+properties = [
+  { key = "Cash Link Choice", value = "choice" },
+  { key = "App", value = "app" },
+  { group = "outcome" },
+]
+drift = "iOS sends no Cash Link Choice or App, and sends Exchange Rate and no USDC (see Amount). Android never sends Failure."
+
+[[domains.TransferEvents.events]]
+builder = "receiveCashLink"
+event = "Receive Cash Link"
+params = ["state: State", "amount: Amount?", "error: String?"]
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[domains.TransferEvents.events]]
+builder = "sentCash"
+event = "Sent Cash"
+params = ["state: State", "amount: Amount?", "error: String?"]
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[domains.TransferEvents.events]]
+builder = "sentTip"
+event = "Sent Tip"
+params = ["state: State", "amount: Amount?", "error: String?"]
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
