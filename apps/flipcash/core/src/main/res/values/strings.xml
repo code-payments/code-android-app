@@ -965,6 +965,10 @@
     <string name="label_linkCard_claim">Tap to claim</string>
     <string name="label_linkCard_claimed">Claimed</string>
     <string name="label_linkCard_expired">Expired</string>
+    <!-- Group invite link card. The untitled name is provisional, pending copy. -->
+    <string name="label_linkCard_untitledGroup">Group Chat</string>
+    <string name="action_linkCard_startChatting">Start Chatting</string>
+    <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
 
     <!-- Chat message selection bar and its actions -->
     <string name="action_copy">Copy</string>

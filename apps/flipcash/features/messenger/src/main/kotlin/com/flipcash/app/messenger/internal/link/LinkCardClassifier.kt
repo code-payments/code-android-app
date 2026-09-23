@@ -71,6 +71,16 @@ internal class LinkCardClassifier @Inject constructor(
                 mint = type.mint,
                 state = LinkCard.TokenInfo.State.Loading,
             )
+            // A group's invite, and only the bare `/chat/{uuid}`. The router claims anything under
+            // it, so the send-cash path beneath (`/chat/{uuid}/send`, iOS's `chatSendCash`) is
+            // refused here by shape: it opens a payment, not the group. `TipChat` falls to `else`.
+            is DeeplinkType.GroupChatInvite -> LinkCard.GroupInvite(
+                url = target,
+                start = link.start,
+                end = link.end,
+                chatId = type.chatId,
+                state = LinkCard.GroupInvite.State.Loading,
+            ).takeIf { target.toUri().pathSegments.size == GROUP_INVITE_SEGMENTS }
             else -> null
         }
     }
@@ -105,6 +115,9 @@ internal class LinkCardClassifier @Inject constructor(
     }
 
     companion object {
+        /** `chat`, then the id. */
+        private const val GROUP_INVITE_SEGMENTS = 2
+
         private const val JUMP_HOST = "jump.flipcash.com"
         private const val JUMP_SOURCE_PARAM = "source="
 

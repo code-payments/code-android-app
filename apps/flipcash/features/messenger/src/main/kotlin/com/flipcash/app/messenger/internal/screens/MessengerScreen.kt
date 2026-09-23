@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -75,6 +76,21 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             AppRoute.Token.Info(action.mint, asPush = true)
                         )
                     )
+                }
+            }
+
+            is ChatAction.OpenGroup -> {
+                // An invite to the chat already on screen has nowhere to go.
+                if (action.chatId != state.chatId) {
+                    keyboard.hideIfVisible {
+                        viewModel.dispatchEvent(
+                            ChatViewModel.Event.OpenScreen(
+                                // Pushed, so Back returns to this chat. The pushed screen gates
+                                // itself: a non-member sees the join or the buy there.
+                                AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(action.chatId))
+                            )
+                        )
+                    }
                 }
             }
 

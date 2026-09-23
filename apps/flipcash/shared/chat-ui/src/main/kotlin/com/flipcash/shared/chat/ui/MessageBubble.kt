@@ -580,6 +580,7 @@ private fun BareLinkCard(
  * app, wrong from inside a chat, where it swaps the transcript for the wallet on the way to a
  * screen the reader asked for directly. There is no wallet card here for the detail to grow out of.
  * So it pushes, exactly as the cash bubble's own token tap does, and back returns to the message.
+ * A group invite pushes the group's conversation for the same reason.
  */
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
@@ -595,6 +596,9 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
                 uriHandler.openUri(card.url)
             }
             is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
+            // Pushed over this chat rather than through the chat deep link, which replaces the
+            // stack: Back has to return to the message that held the invite.
+            is LinkCard.GroupInvite -> actionHandler(ChatAction.OpenGroup(card.chatId))
         }
     }
 }
@@ -1026,6 +1030,36 @@ private fun Preview_LinkCard_SplitMessage() {
             ),
         ),
     )
+}
+
+/**
+ * A group invite split around its card, above a cash link's card: the two cards at one width, the
+ * group's at least the cash card's height, and only the group's button taking a tap.
+ */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_LinkCard_GroupInviteBesideCash() {
+    val group = previewGroupCard(PreviewGroupResolved)
+    val text = "come hang ${group.url} we're planning friday"
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PreviewSplitMessage(
+            text = text,
+            card = group.copy(start = text.indexOf(group.url), end = text.indexOf(group.url) + group.url.length),
+        )
+        PreviewSplitMessage(
+            text = PREVIEW_CASH_LINK,
+            isFromSelf = true,
+            card = previewCard(
+                text = PREVIEW_CASH_LINK,
+                state = LinkCard.Cash.State.Resolved(
+                    amount = "$5.00",
+                    claim = LinkCard.Cash.Claim.Claimable,
+                    token = Token.usdf,
+                ),
+            ),
+        )
+    }
 }
 
 @Preview

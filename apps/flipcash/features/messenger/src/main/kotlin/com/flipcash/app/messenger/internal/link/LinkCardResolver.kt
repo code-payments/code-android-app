@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.link
 
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.LinkCardResolution
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.CoroutineScope
@@ -25,7 +26,8 @@ import java.util.concurrent.ConcurrentHashMap
  * hard stop. Nothing on this path may reach `BillController.receiveGiftCard`, because that claims
  * the link, and a card that claimed what it rendered would empty a link by scrolling past it.
  *
- * A token link needs only the mint's metadata, which the wallet already caches.
+ * A token link needs only the mint's metadata, which the wallet already caches. A group invite
+ * needs the group's public record, read in the redacted view -- see [GroupLinkLookup].
  *
  * The query runs in [scope] rather than in the caller's coroutine. The caller is a card that has
  * just been composed, and it is cancelled by an ordinary scroll. A query awaited inline dies with
@@ -42,6 +44,7 @@ internal class LinkCardResolver(
     private val scope: CoroutineScope,
     private val giftCard: suspend (entropy: String) -> Result<Snapshot>,
     private val tokenMetadata: suspend (mint: Mint) -> Result<Token>,
+    private val group: suspend (chatId: ChatId) -> Result<LinkCard.GroupInvite.State.Resolved>,
 ) : LinkCardResolution {
 
     data class Snapshot(
@@ -59,6 +62,7 @@ internal class LinkCardResolver(
      */
     private val cashQueries = mutableMapOf<String, Deferred<LinkCard.Cash.State>>()
     private val tokenQueries = mutableMapOf<Mint, Deferred<LinkCard.TokenInfo.State>>()
+    private val groupQueries = mutableMapOf<ChatId, Deferred<LinkCard.GroupInvite.State>>()
 
     /**
      * The answers that have landed, readable without the lock and without suspending — which is the
@@ -75,6 +79,7 @@ internal class LinkCardResolver(
      */
     private val cashAnswers = ConcurrentHashMap<String, LinkCard.Cash.State.Resolved>()
     private val tokenAnswers = ConcurrentHashMap<Mint, LinkCard.TokenInfo.State.Resolved>()
+    private val groupAnswers = ConcurrentHashMap<ChatId, LinkCard.GroupInvite.State.Resolved>()
 
     private val _revision = MutableStateFlow(0)
     override val revision: StateFlow<Int> = _revision.asStateFlow()
@@ -82,11 +87,13 @@ internal class LinkCardResolver(
     override fun peek(card: LinkCard): LinkCard? = when (card) {
         is LinkCard.Cash -> cashAnswers[card.entropy]?.let { card.copy(state = it) }
         is LinkCard.TokenInfo -> tokenAnswers[card.mint]?.let { card.copy(state = it) }
+        is LinkCard.GroupInvite -> groupAnswers[card.chatId]?.let { card.copy(state = it) }
     }
 
     override suspend fun resolve(card: LinkCard): LinkCard = when (card) {
         is LinkCard.Cash -> card.copy(state = cashState(card.entropy))
         is LinkCard.TokenInfo -> card.copy(state = tokenState(card.mint))
+        is LinkCard.GroupInvite -> card.copy(state = groupState(card.chatId))
     }
 
     /**
@@ -160,6 +167,14 @@ internal class LinkCardResolver(
                         .also { resolved -> tokenAnswers[mint] = resolved }
                 },
                 onFailure = { forget(tokenQueries, mint); LinkCard.TokenInfo.State.Unresolved },
+            )
+        }
+
+    private suspend fun groupState(chatId: ChatId): LinkCard.GroupInvite.State =
+        memoized(groupQueries, chatId) {
+            group(chatId).fold(
+                onSuccess = { resolved -> resolved.also { groupAnswers[chatId] = it } },
+                onFailure = { forget(groupQueries, chatId); LinkCard.GroupInvite.State.Unavailable },
             )
         }
 

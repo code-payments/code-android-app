@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -40,6 +41,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -91,6 +93,27 @@ internal fun LinkCardView(
     val live = rememberResolvedCard(card)
     val shape = CodeTheme.shapes.medium
 
+    if (live is LinkCard.GroupInvite) {
+        // Only the button opens a group, so the card takes no tap of its own. The long press
+        // still has to reach the transcript, or pressing the card would select nothing.
+        BoxWithConstraints(
+            modifier = modifier
+                .fillMaxWidth()
+                .addIf(onLongClick != null) {
+                    Modifier.pointerInput(onLongClick) {
+                        detectTapGestures(onLongPress = { onLongClick?.invoke() })
+                    }
+                },
+        ) {
+            GroupInviteLinkCard(
+                card = live,
+                minHeight = maxWidth * LinkCardDefaults.CARD_ASPECT,
+                onStart = onClick?.let { click -> { click(live) } },
+            )
+        }
+        return
+    }
+
     // The voucher's proportions, not its size: a bubble is a good deal narrower than the wallet's
     // card, and scaling the height with the width is what keeps it a card in chat instead of a
     // tall panel.
@@ -112,6 +135,8 @@ internal fun LinkCardView(
         when (live) {
             is LinkCard.Cash -> CashLinkCard(card = live, height = height)
             is LinkCard.TokenInfo -> TokenLinkCard(card = live, height = height)
+            // Drawn above; unreachable here.
+            is LinkCard.GroupInvite -> Unit
         }
     }
 }
