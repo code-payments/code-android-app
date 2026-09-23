@@ -175,6 +175,8 @@ class BuildNavGraphForLaunchTest {
         )
         val target = assertIs<AppRoute.OnboardingFlow>(route.target)
         assertEquals(AppRoute.OnboardingFlow.Phase.Permissions, target.phase)
+        // Display-name entry follows the access key, so this is an account still being created.
+        assertTrue(target.newAccount)
     }
 
     // -- Authenticating --
