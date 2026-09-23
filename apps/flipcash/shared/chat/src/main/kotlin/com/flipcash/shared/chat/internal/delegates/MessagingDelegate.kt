@@ -2,6 +2,7 @@
 
 package com.flipcash.shared.chat.internal.delegates
 
+import android.app.Notification
 import androidx.core.app.NotificationManagerCompat
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
@@ -34,6 +35,8 @@ import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.PendingMutation
 import com.flipcash.shared.chat.internal.ChatStateHolder
+import com.flipcash.shared.chat.internal.PostedNotification
+import com.flipcash.shared.chat.internal.planNotificationDismissal
 import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
@@ -119,7 +122,14 @@ class MessagingDelegate @Inject constructor(
     }
 
     override fun dismissNotifications(chatId: ChatId) {
-        notificationManager.cancel(chatId.hashCode())
+        val posted = notificationManager.activeNotifications.map {
+            PostedNotification(
+                id = it.id,
+                group = it.notification.group,
+                isGroupSummary = (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0,
+            )
+        }
+        planNotificationDismissal(chatId.hashCode(), posted).forEach(notificationManager::cancel)
     }
 
     override suspend fun hydrateChat(chatId: ChatId): ChatMembership? {
