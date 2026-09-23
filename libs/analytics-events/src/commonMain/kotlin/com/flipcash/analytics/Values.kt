@@ -4,8 +4,6 @@ enum class DisplayNameSource(val value: String) {
     ONBOARDING("Onboarding"), MY_ACCOUNT("My Account"), TIP_CARD_SETUP("Tip Card Setup"),
 }
 
-enum class PurchaseMethod(val value: String) { RESERVES("Reserves"), PHANTOM("Phantom"), COINBASE("Coinbase") }
-
 enum class Button(val value: String) {
     CREATE_ACCOUNT("Create Account"), SAVE_ACCESS_KEY("Save Access Key"), WROTE_ACCESS_KEY("Wrote Access Key"),
     ALLOW_PUSH("Allow Push"), SKIP_PUSH("Skip Push"), ALLOW_CONTACTS("Allow Contacts"), SKIP_CONTACTS("Skip Contacts"),

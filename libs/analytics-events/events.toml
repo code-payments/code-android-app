@@ -259,3 +259,37 @@ builder = "opened"
 event = "Token Info: Opened From {source}"
 params = ["source: TokenInfoSource", "mint: String"]
 properties = [{ key = "Mint", value = "mint" }]
+
+# Swap
+
+[enums.PurchaseMethod.cases]
+RESERVES = "Reserves"
+PHANTOM = "Phantom"
+COINBASE = "Coinbase"
+
+[domains.SwapEvents]
+doc = "Buying and selling a token."
+
+[[domains.SwapEvents.events]]
+builder = "purchase"
+event = "Token Purchase With {method}"
+params = ["method: PurchaseMethod", "mint: String", "amount: Amount", "error: String?"]
+properties = [
+  { key = "Mint", value = "mint" },
+  { group = "amount" },
+  { key = "Error", value = "error" },
+]
+doc = "Phantom and Coinbase are Android only; part 2 decides whether iOS sends them."
+drift = "(Reserves) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks."
+
+[[domains.SwapEvents.events]]
+builder = "sell"
+event = "Token Sell"
+params = ["mint: String", "amount: Amount", "fee: Double", "error: String?"]
+properties = [
+  { key = "Mint", value = "mint" },
+  { group = "amount" },
+  { key = "Fee", value = "fee" },
+  { key = "Error", value = "error" },
+]
+drift = "iOS also sends State, and sends only Fiat and Currency of the amount, with no USDC, Quarks or Fee."
