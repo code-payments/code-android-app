@@ -37,6 +37,7 @@ abstract class GenerateAnalyticsEvents : DefaultTask() {
 
         val root = outputDirectory.get().asFile
         root.deleteRecursively()
+        root.mkdirs()
         sources.forEach { (path, source) ->
             root.resolve(path).apply { parentFile.mkdirs() }.writeText(source)
         }

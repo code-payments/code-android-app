@@ -1,6 +1,8 @@
 plugins {
     kotlin("multiplatform")
     id("com.android.kotlin.multiplatform.library")
+    // Generates the builders and value enums from events.toml into commonMain.
+    alias(libs.plugins.flipcash.analytics.catalogue)
 }
 
 kotlin {
