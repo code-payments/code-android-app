@@ -1,1 +1,37 @@
 package = "com.flipcash.analytics"
+
+# Chat
+
+[enums.ChatType]
+doc = "The `Chat Type` property."
+
+[enums.ChatType.cases]
+CONTACT = "Contact"
+TIP = "Tip"
+GROUP = "Group"
+UNKNOWN = "Unknown"
+
+[[domains.ChatEvents.events]]
+builder = "sentMessage"
+event = "Sent Message"
+params = ["chatType: ChatType", "error: String?"]
+properties = [
+  { key = "Chat Type", value = "chatType" },
+  { key = "Error", value = "error" },
+]
+
+[[domains.ChatEvents.events]]
+builder = "tipReceived"
+event = "Tip Received"
+params = ["chatType: ChatType", "amount: Amount"]
+properties = [
+  { key = "Chat Type", value = "chatType" },
+  { group = "amount" },
+]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[domains.ChatEvents.events]]
+builder = "messageReceived"
+event = "Message Received"
+params = ["chatType: ChatType"]
+properties = [{ key = "Chat Type", value = "chatType" }]

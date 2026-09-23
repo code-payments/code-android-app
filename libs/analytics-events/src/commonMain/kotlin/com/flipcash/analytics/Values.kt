@@ -1,8 +1,5 @@
 package com.flipcash.analytics
 
-/** The `Chat Type` property. */
-enum class ChatType(val value: String) { CONTACT("Contact"), TIP("Tip"), GROUP("Group"), UNKNOWN("Unknown") }
-
 /** The `State` property on an event that reports an outcome. */
 enum class State(val value: String) { SUCCESS("Success"), FAILURE("Failure") }
 
