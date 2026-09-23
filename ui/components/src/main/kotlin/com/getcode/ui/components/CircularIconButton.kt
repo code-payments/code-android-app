@@ -23,8 +23,13 @@ import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 
+object CircularIconButtonDefaults {
+    val ButtonSize: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x8
+}
+
 private val ButtonSize: Dp
-    @Composable get() = CodeTheme.dimens.staticGrid.x8
+    @Composable get() = CircularIconButtonDefaults.ButtonSize
 private val ButtonBackground = Color.White.copy(alpha = 0.1f)
 
 

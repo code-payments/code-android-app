@@ -62,6 +62,7 @@ import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
+import com.getcode.ui.core.expandedTouchTarget
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.utils.KeyboardController
@@ -161,7 +162,16 @@ private fun ConversationTitleBar(
 ) {
     AppBarWithTitle(
         leftIcon = {
-            AppBarDefaults.UpNavigation { navigator.pop() }
+            // The avatar sits just past back and opens the profile, so a thumb that missed the
+            // arrow landed in the dead strip before it or on the avatar. Everything before the
+            // avatar goes back instead.
+            AppBarDefaults.UpNavigation(
+                modifier = Modifier.expandedTouchTarget(
+                    AppBarDefaults.leadingControlTouchOutset(),
+                    onTap = { navigator.pop() },
+                ),
+                onClick = { navigator.pop() },
+            )
         },
         title = {
             Row(

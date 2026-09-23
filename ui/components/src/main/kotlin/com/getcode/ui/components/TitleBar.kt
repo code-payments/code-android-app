@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
@@ -27,10 +29,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.navigation.core.LocalCodeNavigator
 import dev.chrisbanes.haze.HazeState
@@ -51,6 +55,37 @@ object AppBarDefaults {
         )
 
     internal val IconSize = 20.dp
+
+    // The bar's own height and the padding its leading and trailing slots put around a control.
+    // Named because [leadingControlTouchOutset] has to agree with [TopAppBarBase] on both.
+    internal val BarHeight = 56.dp
+    internal val SlotPadding = 5.dp
+
+    /**
+     * How far a leading control's touch target can grow past it, for a start-aligned title: to the bar's
+     * leading edge, top and bottom, and across the gap up to where the title starts. For use with
+     * `Modifier.expandedTouchTarget` on a control whose title is tappable too, so a tap that misses
+     * the control lands on it rather than in dead space next to the title.
+     */
+    @Composable
+    fun leadingControlTouchOutset(
+        contentPadding: PaddingValues = ContentPadding,
+        controlSize: Dp = CircularIconButtonDefaults.ButtonSize,
+    ): PaddingValues {
+        val direction = LocalLayoutDirection.current
+        val start = contentPadding.calculateStartPadding(direction)
+        val end = contentPadding.calculateEndPadding(direction)
+        // Mirrors TopAppBarBase: the slot is centred in the bar and then pushed down by the top
+        // padding, and the title starts one slot plus both horizontal paddings in.
+        val controlTop = (BarHeight - (controlSize + SlotPadding * 2)) / 2 +
+            contentPadding.calculateTopPadding() + SlotPadding
+        return PaddingValues(
+            start = start + SlotPadding,
+            top = controlTop,
+            end = SlotPadding + end,
+            bottom = BarHeight - controlTop - controlSize,
+        )
+    }
 
     @Composable
     fun UpNavigation(modifier: Modifier = Modifier, hazeState: HazeState? = null, onClick: () -> Unit) {
@@ -303,18 +338,18 @@ private fun TopAppBarBase(
     val horizontal = contentPadding.calculateHorizontalPadding()
 
     val emptyLeftSlot = @Composable {
-        Box(modifier = Modifier.padding(5.dp)) {
+        Box(modifier = Modifier.padding(AppBarDefaults.SlotPadding)) {
             AppBarDefaults.UpNavigation { }
         }
     }
     val leftSlot = @Composable {
-        Box(modifier = Modifier.padding(5.dp)) {
+        Box(modifier = Modifier.padding(AppBarDefaults.SlotPadding)) {
             leftIcon()
         }
     }
 
     val rightSlot = @Composable {
-        Box(modifier = Modifier.padding(5.dp)) {
+        Box(modifier = Modifier.padding(AppBarDefaults.SlotPadding)) {
             EndActionSlotHolder {
                 rightContents()
             }
@@ -330,7 +365,7 @@ private fun TopAppBarBase(
                     Modifier.windowInsetsPadding(WindowInsets.statusBars)
                 } else Modifier
             )
-            .height(56.dp),
+            .height(AppBarDefaults.BarHeight),
     ) { constraints ->
         // A centered title needs a phantom leading slot (a back button's worth of width) so it
         // stays optically centered against the end actions even when there's no real leading
