@@ -7,6 +7,7 @@ import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.core.tipping.TipCardOwner
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.AuthState
 import com.getcode.opencode.model.core.ID
@@ -341,7 +342,7 @@ class AppRouterTest {
         val tokenInfo = action.routes[1]
         assertIs<AppRoute.Token.Info>(tokenInfo)
         assertEquals(Mint(mint), tokenInfo.mint)
-        assertTrue(tokenInfo.fromDeeplink)
+        assertEquals(TokenInfoEntry.Deeplink, tokenInfo.entry)
     }
 
     // endregion

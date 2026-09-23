@@ -35,6 +35,7 @@ import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.transitions.CardExpandTransition
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.internal.ui.AppNavigationBar
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBillOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
@@ -57,10 +58,20 @@ import dev.theolm.rinku.DeepLink
 private fun isTokenInfoKey(key: Any?): Boolean {
     val s = key?.toString() ?: return false
     // The bespoke fade-in-place card-expand transition is only for the wallet/balance presentation.
-    // A drill-in push (asPush=true, e.g. from token discovery) is an ordinary stack push, so let it fall
-    // through to the default horizontal slide (and slide-back on pop / predictive-pop).
-    return s.startsWith("Info(") && s.contains("mint=") && !s.contains("asPush=true")
+    // A drill-in push (TokenInfoEntry.asPush, e.g. from token discovery) is an ordinary stack push, so
+    // let it fall through to the default horizontal slide (and slide-back on pop / predictive-pop).
+    return s.startsWith("Info(") && s.contains("mint=") && pushedTokenInfoEntries.none { s.contains(it) }
 }
+
+/** The `entry=…` fragments of an [AppRoute.Token.Info] key whose entry is presented as a push. */
+private val pushedTokenInfoEntries: List<String> =
+    listOf(
+        TokenInfoEntry.Wallet,
+        TokenInfoEntry.Deeplink,
+        TokenInfoEntry.Discovery,
+        TokenInfoEntry.Chat,
+        TokenInfoEntry.ChatGate,
+    ).filter { it.asPush }.map { "entry=$it" }
 
 /**
  * True when a scene key belongs to [AppRoute.Sheets.Give] (the give/cash screen, which is pushed

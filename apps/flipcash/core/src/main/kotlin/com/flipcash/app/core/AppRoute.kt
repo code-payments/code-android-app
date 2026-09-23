@@ -16,6 +16,7 @@ import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.navigation.SteppedFlowRoute
 import com.flipcash.app.core.userprofile.UpdateProfileResult
@@ -210,16 +211,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Info(
             val mint: Mint,
-            val shortfall: Fiat? = null,
-            val fromDeeplink: Boolean = false,
-            // A normal stack PUSH (slide in, back arrow) rather than the wallet card-expand presentation
-            // (fade-in-place, ✕ dismiss). Set when the screen is reached by drilling in from a list — e.g.
-            // token discovery — where a back arrow that slides back is the expected navigation.
-            val asPush: Boolean = false,
-            // Pop back to whatever opened this screen once a buy of [mint] succeeds, rather than
-            // staying here. Set by a chat's gate: the reader came to buy their way into the group,
-            // so the purchase finishing is the moment to put them back in front of Join.
-            val returnAfterBuy: Boolean = false,
+            val entry: TokenInfoEntry = TokenInfoEntry.Wallet,
         ) : Token
 
         @Serializable

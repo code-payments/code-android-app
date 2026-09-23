@@ -28,6 +28,7 @@ import com.flipcash.app.core.AppRoute.Token.*
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.tipping.TipCardOwner
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.scanner.internal.bills.ScannableContainer
 import com.flipcash.app.session.CodeScanEvent
@@ -110,7 +111,7 @@ internal fun Scanner() {
                 val routes: List<AppRoute> = when (deeplink) {
                     is DeeplinkType.TokenInfo -> listOf(
                         AppRoute.Sheets.Wallet,
-                        Info(deeplink.mint, fromDeeplink = true)
+                        Info(deeplink.mint, TokenInfoEntry.Deeplink)
                     )
                     // Scanned tip-DM code — same destination as the
                     // /tip/chat/{id} deeplink.

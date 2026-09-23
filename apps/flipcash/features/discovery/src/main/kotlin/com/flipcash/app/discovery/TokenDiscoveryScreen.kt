@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.discovery.internal.TokenDiscoveryScreen
 import com.flipcash.app.discovery.internal.TokenDiscoveryViewModel
 import com.flipcash.core.R
@@ -54,7 +55,7 @@ private fun TokenDiscoveryEventHandler(viewModel: TokenDiscoveryViewModel, navig
         viewModel.eventFlow
             .filterIsInstance<TokenDiscoveryViewModel.Event.OpenTokenInfo>()
             .map { it.mint }
-            .onEach { navigator.navigate(AppRoute.Token.Info(it, asPush = true)) }
+            .onEach { navigator.navigate(AppRoute.Token.Info(it, TokenInfoEntry.Discovery)) }
             .launchIn(this)
     }
 
