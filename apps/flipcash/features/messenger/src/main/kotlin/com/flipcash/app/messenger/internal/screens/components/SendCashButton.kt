@@ -45,6 +45,12 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.hazeBlur
 
+/**
+ * The currency symbol's size once the button has condensed to the symbol alone. The profile's Send
+ * Cash shortcut draws its symbol at this size too, so the two read as the same control.
+ */
+internal val CondensedSymbolFontSize = 22.sp
+
 @Composable
 internal fun RowScope.SendCashButton(
     state: ChatViewModel.State,
@@ -108,7 +114,7 @@ internal fun RowScope.SendCashButton(
     // any typography change.
     val symbolFontSize by animateFloatAsState(
         targetValue = if (isTyping) {
-            22.sp.value
+            CondensedSymbolFontSize.value
         } else {
             CodeTheme.typography.textMedium.fontSize.value
         },

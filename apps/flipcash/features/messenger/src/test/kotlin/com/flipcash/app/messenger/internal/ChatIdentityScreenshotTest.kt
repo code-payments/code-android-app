@@ -16,6 +16,7 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.ChatInfoCard
 import com.flipcash.app.messenger.internal.screens.profile.ProfileHeader
+import com.flipcash.app.messenger.internal.screens.profile.ProfileShortcuts
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
@@ -157,6 +158,39 @@ class ChatIdentityScreenshotTest {
         repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
 
         capture("chat_profile_header_identity.png")
+    }
+
+    @Test
+    fun rendersProfileHeaderShortcuts() {
+        val joinDate = Instant.fromEpochMilliseconds(1_700_000_000_000)
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            FlipcashPreview(showBackground = true) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    // Dollar and euro, so a symbol change is visible in the glyph.
+                    listOf("$", "€").forEach { symbol ->
+                        ProfileHeader(
+                            participant = namedTipUser,
+                            joinDate = joinDate,
+                            modifier = Modifier.width(300.dp),
+                            shortcuts = {
+                                ProfileShortcuts(
+                                    cashSymbol = symbol,
+                                    onMessage = {},
+                                    onSendCash = {},
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+        }
+        repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
+
+        capture("chat_profile_header_shortcuts.png")
     }
 
     private fun capture(name: String) {

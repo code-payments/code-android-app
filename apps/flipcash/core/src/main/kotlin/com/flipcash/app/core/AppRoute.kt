@@ -327,6 +327,9 @@ sealed interface AppRoute : NavKey, Parcelable {
             // Open straight into composing a reply with the keyboard up. Only the post-tip
             // hand-off (see TipCardDecorator) sets this; normal opens default to keyboard-closed.
             val openKeyboard: Boolean = false,
+            // Open with send cash already started: the fee sheet if this payment opens the DM, the
+            // keypad if the DM exists. Only a profile's "Send Cash" shortcut sets this.
+            val openSendCash: Boolean = false,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
                 get() = listOf(ChatStep.Conversation)

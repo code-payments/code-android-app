@@ -1197,6 +1197,9 @@
     <string name="title_blocklistEmpty">No One Blocked</string>
     <string name="description_blocklistEmpty">Block people from sending you messages by tapping their profile and selecting block</string>
     <string name="subtitle_joinedDate">Joined %1$s</string>
+    <!-- The profile's two shortcuts into the DM with this person. "Send Cash" beside it is
+         action_sendCash. -->
+    <string name="action_message">Message</string>
 
     <string name="error_title_failedToBlock">Something Went Wrong</string>
     <string name="error_description_failedToBlock">We were unable to block the user. Please try again</string>
