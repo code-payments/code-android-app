@@ -123,7 +123,7 @@ internal fun Scanner() {
                     // Same destination as the tapped /chat/{uuid} link: the chat screen is the
                     // gated preview when the viewer is not yet a member.
                     is DeeplinkType.GroupChatInvite -> listOf(
-                        AppRoute.Sheets.Tips(),
+                        AppRoute.Tabs.Chats,
                         AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(deeplink.chatId)),
                     )
                     else -> emptyList()
