@@ -9,7 +9,7 @@ appId: com.flipcash.app.android
     id: "seed_input_field"
 - inputText: ${SEED_PHRASE}
 - tapOn: Log in
-# Launch lands on the Wallet tab, not the camera (homeRoute = AppRoute.Tabs.Wallet).
+# A seed login with no deeplink lands on the Chats tab (AppRoute.Tabs.Chats).
 - extendedWaitUntil:
       visible:
-          id: "wallet_screen"
+          id: "chats_screen"
