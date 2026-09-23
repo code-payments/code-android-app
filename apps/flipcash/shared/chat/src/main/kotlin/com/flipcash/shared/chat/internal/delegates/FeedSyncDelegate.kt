@@ -118,9 +118,17 @@ class FeedSyncDelegate @Inject constructor(
 
     override fun feed(vararg chatTypes: ChatType): Flow<List<ChatSummary>> {
         val requested = chatTypes.toSet()
-        // Nothing until the database has been read: the chat list shows its empty state for an
-        // emitted empty list, so it must not see one that only means "not read yet".
-        return stateHolder.state.mapNotNull { it.feed }.map { feed ->
+        // Nothing until the list is known: the chat list shows its empty state for an emitted empty
+        // list, so it must not see one that only means "not read yet". Chats on disk are known as
+        // soon as they are read. An empty database is not, because on a fresh sign-in it is empty
+        // only until the first sync writes the account's chats, so it waits for that sync to answer.
+        return stateHolder.state.mapNotNull { state ->
+            state.feed?.takeIf { feed ->
+                feed.isNotEmpty() ||
+                    state.feedSyncState == FeedSyncState.Synced ||
+                    state.feedSyncState == FeedSyncState.Error
+            }
+        }.map { feed ->
             val selfId = userManager.accountId
             val selfPhone = userManager.profile?.verifiedPhoneNumber
             feed
