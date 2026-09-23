@@ -11,13 +11,13 @@ internal data class Catalogue(
     val domains: List<Domain>,
 )
 
-/** A value enum: a Kotlin enum whose cases carry the string sent to Mixpanel. */
+/** A value list: a Kotlin enum whose cases carry the string sent to Mixpanel. */
 internal data class EnumDef(val name: String, val doc: String?, val cases: List<EnumCase>)
 
 internal data class EnumCase(val name: String, val value: String, val drift: String?)
 
-/** One generated `object`, e.g. `ChatEvents`. */
-internal data class Domain(val name: String, val doc: String?, val builders: List<Builder>)
+/** One generated `object`, e.g. `ChatEvents`, named from the [title] entries give, e.g. `Chat`. */
+internal data class Domain(val name: String, val title: String, val doc: String?, val builders: List<Builder>)
 
 internal data class Builder(
     val name: String,
