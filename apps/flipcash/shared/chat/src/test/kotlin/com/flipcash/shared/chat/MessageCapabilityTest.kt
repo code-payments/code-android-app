@@ -314,4 +314,35 @@ class MessageCapabilityTest {
             atSend.withinWindows(sentAt, policy, now = sentAt + 90.minutes),
         )
     }
+
+    /**
+     * An eligible non-member reads a group's transcript under a Join gate. Reply, Edit and Delete
+     * all post into the chat, and there is no composer for them to land in until the join does.
+     */
+    @Test
+    fun `a viewer who cannot post keeps only copy and report`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Report),
+            resolveCapabilities(text(isFromSelf = false), canPost = false),
+        )
+        assertEquals(
+            setOf(MessageCapability.Report),
+            resolveCapabilities(cash(isFromSelf = false), canPost = false),
+        )
+        // Someone who left the group still has their own messages in its transcript.
+        assertEquals(
+            setOf(MessageCapability.Copy),
+            resolveCapabilities(text(), now = sentAt, canPost = false),
+        )
+        assertEquals(emptySet(), resolveCapabilities(cash(), canPost = false))
+    }
+
+    @Test
+    fun `narrowing a resolved set to read-only matches resolving without posting`() {
+        val resolved = resolveCapabilities(text(), now = sentAt)
+        assertEquals(
+            resolveCapabilities(text(), now = sentAt, canPost = false),
+            resolved.readOnly(),
+        )
+    }
 }
