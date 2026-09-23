@@ -147,6 +147,18 @@ class ChatMessageDataSource @Inject constructor(
         return dao.countNewerThan(hex, stored.timestampEpochMs)
     }
 
+    /** Stored, non-deleted messages in [chatId] past [afterId] that someone other than [selfId] sent. */
+    suspend fun countInboundAfter(chatId: ChatId, selfId: ID, afterId: Long): Int =
+        db?.chatMessageDao()?.countInboundAfter(
+            chatIdHex = mapper.chatIdHex(chatId),
+            selfIdHex = mapper.userIdHex(selfId),
+            afterId = afterId,
+        ) ?: 0
+
+    /** Every stored message in [chatId] past [afterId], deleted or not. */
+    suspend fun countAfter(chatId: ChatId, afterId: Long): Int =
+        db?.chatMessageDao()?.countAfter(mapper.chatIdHex(chatId), afterId) ?: 0
+
     suspend fun getInboundMessagesInRange(
         chatId: ChatId,
         selfId: ID,

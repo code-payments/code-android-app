@@ -33,6 +33,7 @@ import com.flipcash.shared.chat.internal.SenderResolver
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.PendingMutation
+import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
@@ -178,6 +179,17 @@ class MessagingDelegate @Inject constructor(
 
     override suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int? =
         messageDataSource.distanceFromNewest(chatId, messageId)
+
+    override suspend fun resolveUnreadBoundary(chatId: ChatId): UnreadBoundary {
+        val selfId = userManager.accountId ?: return UnreadBoundary.None
+        val readThrough = memberDataSource.getSelfReadPointerOrNull(chatId, selfId)
+            ?: return UnreadBoundary.None
+        val count = messageDataSource.countInboundAfter(chatId, selfId, readThrough)
+        return if (count > 0) UnreadBoundary.At(readThrough, count) else UnreadBoundary.None
+    }
+
+    override suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int =
+        messageDataSource.countAfter(chatId, messageId)
 
     override fun observeMembers(chatId: ChatId): Flow<List<ChatMember>> {
         return memberDataSource.observeMembers(chatId)
