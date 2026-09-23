@@ -2,7 +2,8 @@ package com.flipcash.shared.chat.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -40,6 +41,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +58,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.text.AnimatedNumberText
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.ConstraintMode
 
 /**
@@ -67,10 +70,14 @@ import com.getcode.ui.utils.ConstraintMode
  * the link opens to. The split is the point: a voucher for $15 and a card about Dollars should not
  * be the same gold rectangle, so the bill's colours stay with the card that stands for the token.
  *
- * The URL the card came from is cut from the body text, so the card is the link rather than an
- * ornament above it, so [onClick] has to carry the tap — a link-only message would otherwise draw
- * something that opens nothing. The whole card is handed back rather than its URL, because where a
- * tap should land differs by kind and only the caller knows the transcript it is landing in.
+ * The card sits on a row of its own with the URL left out of the text rows either side, so the card
+ * is the link rather than an ornament beside it, and [onClick] has to carry the tap — a link-only
+ * message would otherwise draw something that opens nothing. The whole card is handed back rather
+ * than its URL, because where a tap should land differs by kind and only the caller knows the
+ * transcript it is landing in. Null leaves the card inert, which is what it is with the backdrop up.
+ *
+ * The card takes the press for its tap, so the transcript's long press has to come through here
+ * too as [onLongClick], or pressing a card would select nothing.
  *
  * [card] arrives with its lookup still to do and the card runs it — see [rememberResolvedCard].
  * The transcript hands over what it can read off the message text, which is everything but the
@@ -79,28 +86,57 @@ import com.getcode.ui.utils.ConstraintMode
 @Composable
 internal fun LinkCardView(
     card: LinkCard,
-    onClick: (LinkCard) -> Unit,
+    onClick: ((LinkCard) -> Unit)?,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val live = rememberResolvedCard(card)
+    val shape = CodeTheme.shapes.medium
+
+    if (live is LinkCard.GroupInvite) {
+        // Only the button opens a group, so the card takes no tap of its own. The long press
+        // still has to reach the transcript, or pressing the card would select nothing.
+        BoxWithConstraints(
+            modifier = modifier
+                .fillMaxWidth()
+                .addIf(onLongClick != null) {
+                    Modifier.pointerInput(onLongClick) {
+                        detectTapGestures(onLongPress = { onLongClick?.invoke() })
+                    }
+                },
+        ) {
+            GroupInviteLinkCard(
+                card = live,
+                minHeight = maxWidth * LinkCardDefaults.CARD_ASPECT,
+                onStart = onClick?.let { click -> { click(live) } },
+            )
+        }
+        return
+    }
 
     // The voucher's proportions, not its size: a bubble is a good deal narrower than the wallet's
     // card, and scaling the height with the width is what keeps it a card in chat instead of a
     // tall panel.
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            // One target for the whole card in every state: an unresolved link is unresolved, not
+            // broken, and a spent one still opens to the page that says so.
+            .addIf(onClick != null || onLongClick != null) {
+                Modifier
+                    .clip(shape)
+                    .combinedClickable(
+                        onLongClick = onLongClick,
+                        onClick = { onClick?.invoke(live) },
+                    )
+            },
+    ) {
         val height: Dp = maxWidth * LinkCardDefaults.CARD_ASPECT
         when (live) {
-            is LinkCard.Cash -> CashLinkCard(
-                card = live,
-                height = height,
-                onClick = { onClick(live) },
-            )
-
-            is LinkCard.TokenInfo -> TokenLinkCard(
-                card = live,
-                height = height,
-                onClick = { onClick(live) },
-            )
+            is LinkCard.Cash -> CashLinkCard(card = live, height = height)
+            is LinkCard.TokenInfo -> TokenLinkCard(card = live, height = height)
+            // Drawn above; unreachable here.
+            is LinkCard.GroupInvite -> Unit
         }
     }
 }
@@ -147,7 +183,6 @@ private fun rememberResolvedCard(card: LinkCard): LinkCard {
 private fun CashLinkCard(
     card: LinkCard.Cash,
     height: Dp,
-    onClick: () -> Unit,
 ) {
     // Unresolved is also the unavailable state: a lookup that failed, timed out or was switched off
     // renders here. The same voucher, with nothing filled in — same size, same chrome — so nothing
@@ -175,7 +210,6 @@ private fun CashLinkCard(
         // Only claimed, because only claimed means someone tore it off. An expired link lapsed
         // where it sat; drawing it torn would say a person acted on it when nobody did.
         torn = state?.claim == LinkCard.Cash.Claim.Claimed,
-        onClick = onClick,
     ) {
         if (state == null) {
             // The tap is live before the lookup is — the whole voucher is clickable in every state,
@@ -248,7 +282,6 @@ private fun TokenRow(tokenName: String, tokenImage: Any?) {
 private fun TokenLinkCard(
     card: LinkCard.TokenInfo,
     height: Dp,
-    onClick: () -> Unit,
 ) {
     when (val state = card.state) {
         is LinkCard.TokenInfo.State.Resolved -> TokenCard(
@@ -258,7 +291,6 @@ private fun TokenLinkCard(
             balanceText = "",
             displayName = state.token.brandedName(),
             height = height,
-            onClick = onClick,
         )
 
         // The address is the one thing known about the mint before the network answers, and it is
@@ -268,14 +300,12 @@ private fun TokenLinkCard(
             mint = card.mint,
             height = height,
             loading = true,
-            onClick = onClick,
         )
 
         LinkCard.TokenInfo.State.Unresolved -> UnresolvedTokenCard(
             mint = card.mint,
             height = height,
             loading = false,
-            onClick = onClick,
         )
     }
 }
@@ -294,7 +324,6 @@ private fun UnresolvedTokenCard(
     mint: Mint,
     height: Dp,
     loading: Boolean,
-    onClick: () -> Unit,
 ) {
     val shape = CodeTheme.shapes.medium
     Box(
@@ -307,7 +336,6 @@ private fun UnresolvedTokenCard(
             // and the one thing already known about the token stays readable while it does.
             .then(if (loading) Modifier.shimmer(shape) else Modifier)
             .border(CodeTheme.dimens.border, CodeTheme.colors.surfaceVariant, shape)
-            .clickable(onClick = onClick)
             .padding(CodeTheme.dimens.inset),
     ) {
         Text(
@@ -355,7 +383,6 @@ private fun CashVoucher(
     spent: Boolean,
     torn: Boolean,
     loading: Boolean,
-    onClick: () -> Unit,
     stub: @Composable () -> Unit,
 ) {
     val corner = CodeTheme.shapes.medium.topStart
@@ -366,10 +393,7 @@ private fun CashVoucher(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(height)
-            // Tappable in every state: an unresolved link is unresolved, not broken, and a spent
-            // one still opens to the page that says so.
-            .clickable(onClick = onClick),
+            .height(height),
     ) {
         VoucherPiece(
             modifier = Modifier.weight(1f),

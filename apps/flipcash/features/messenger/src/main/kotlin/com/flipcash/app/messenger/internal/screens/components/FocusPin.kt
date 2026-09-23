@@ -209,6 +209,11 @@ internal fun LazyListLayoutInfo.headroomAbove(
     messages: LazyPagingItems<ChatListItem>,
     messageId: Long,
 ): Int {
-    val row = rowFor(messages, messageId) ?: return 0
+    // The topmost row of the message, which is the one that can be under the bar: a message split
+    // around its card is several rows, and rowFor answers with the lowest.
+    val row = visibleItemsInfo.lastOrNull { info ->
+        info.index < messages.itemCount &&
+            (messages.peek(info.index) as? ChatListItem.ContentBubble)?.messageId == messageId
+    } ?: return 0
     return viewportEndOffset - afterContentPadding - (row.offset + row.size)
 }

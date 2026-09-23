@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.models
 
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.MediaItem
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 
@@ -106,5 +108,55 @@ sealed interface LinkCard {
                 val token: Token,
             ) : State
         }
+    }
+
+    /**
+     * A group chat's invite link, `app.flipcash.com/chat/{uuid}`.
+     *
+     * Built from the chat's public record only — title, picture, member count, rules — and never
+     * from its roster, which is private to members whatever the group's mode. So there are no
+     * member avatars on the card and no member names, including as a fallback title.
+     */
+    data class GroupInvite(
+        override val url: String,
+        override val start: Int,
+        override val end: Int,
+        val chatId: ChatId,
+        val state: State,
+    ) : LinkCard {
+
+        sealed interface State {
+            /** The lookup is out. Drawn as a shimmer at the card's minimum height. */
+            data object Loading : State
+
+            /**
+             * No group to show: the lookup failed, or the chat is gone or is not a group. Not
+             * remembered, so the next appearance asks again.
+             */
+            data object Unavailable : State
+
+            data class Resolved(
+                /** The group's own title, or null when it has none; the card names it then. */
+                val title: String?,
+                /** The chat's picture, read through the chat's own access context. */
+                val picture: MediaItem?,
+                /** From the roster summary, never from counting members. */
+                val memberCount: Long,
+                /** The entry rule as the chat's head card states it, or null when it has none. */
+                val requirement: Requirement?,
+            ) : State
+        }
+
+        /**
+         * What the chat's head card says about its rules, already formatted: the card states the
+         * rule without judging the viewer against it.
+         */
+        data class Requirement(
+            /** Pre-formatted, e.g. "$100"; null when the rules name no balance. */
+            val amount: String?,
+            /** The token to name beside [amount], or null to state the amount alone. */
+            val currencyName: String?,
+            val staffOnly: Boolean,
+        )
     }
 }

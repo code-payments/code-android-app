@@ -54,6 +54,9 @@ internal fun shouldShowReceiptLabel(
     otherReadPointer: MessagePointer?,
 ): Boolean {
     if (!item.carriesReceipt) return false
+    // A split message's receipt goes under its last row only. The rows above share its status, so
+    // the rules below would already hide them -- except a failure, which shows everywhere it can.
+    if (!item.isLastRow) return false
     val status = effectiveReceiptStatus(item, otherReadPointer) ?: return false
     if (status == ReceiptStatus.FAILED) return true
     if (status != ReceiptStatus.SENT && status != ReceiptStatus.READ) return false

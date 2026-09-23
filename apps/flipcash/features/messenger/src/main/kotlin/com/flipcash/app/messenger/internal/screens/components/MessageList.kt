@@ -284,7 +284,8 @@ internal fun MessageList(
                     // half-clipped where the sheet cuts across it.
                     state.confirmingDelete -> false
                     state.editing != null -> bubble?.messageId == state.editing.messageId
-                    state.selection != null -> bubble?.itemKey == state.selection.itemKey
+                    // Every row of the message stays sharp, so a split message is focused whole.
+                    state.selection != null -> bubble?.messageKey == state.selection.messageKey
                     else -> true
                 }
 

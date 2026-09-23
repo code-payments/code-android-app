@@ -4,12 +4,15 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
+import com.flipcash.services.models.chat.ChatId
+import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
 import dev.theolm.rinku.DeepLink
 import org.json.JSONObject
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -38,6 +41,10 @@ class LinkCardClassifierTest {
                 "c", "cash" -> DeeplinkType.CashLink(link.entropyFragmentForTest().orEmpty())
                 "token" -> link.pathSegmentsForTest().getOrNull(1)
                     ?.let { DeeplinkType.TokenInfo(Mint(it)) }
+                // As `AppRouter` does: the id segment is checked, anything after it is not.
+                "chat" -> link.pathSegmentsForTest().getOrNull(1)
+                    ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                    ?.let { DeeplinkType.GroupChatInvite(ChatId(it.bytes)) }
                 else -> null
             }
         }
@@ -142,6 +149,34 @@ class LinkCardClassifierTest {
             "https%3A%2F%2Fevil.com%2Fc%2F%23%2Fe%3DKNi8pQr1n5hRU65vKJGge3"
 
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, hostile.length, hostile))))
+    }
+
+    /** Not in the canonical fixture yet; iOS holds the same case in its own classifier tests. */
+    @Test
+    fun `a group invite link becomes a group card`() {
+        val classifier = LinkCardClassifier(router)
+        val url = "https://app.flipcash.com/chat/6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162"
+
+        val card = classifier.firstCard(listOf(DetectedUrl(0, url.length, url)))
+
+        val group = card as? LinkCard.GroupInvite
+        assertEquals(
+            ChatId(UUID.fromString("6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162").bytes),
+            group?.chatId,
+        )
+        assertEquals(url, group?.url)
+        assertEquals(0, group?.start)
+        assertEquals(url.length, group?.end)
+        assertEquals(LinkCard.GroupInvite.State.Loading, group?.state)
+    }
+
+    /** The send-cash path under a chat opens a payment, not the group, so it stays a plain link. */
+    @Test
+    fun `a chat send cash link stays a link`() {
+        val classifier = LinkCardClassifier(router)
+        val url = "https://app.flipcash.com/chat/6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162/send"
+
+        assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))))
     }
 
     /** A jump wrapper is unwrapped once. One pointing at another jump is malformed, not a card. */

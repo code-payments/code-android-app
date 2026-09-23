@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.models
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
 
@@ -9,6 +10,12 @@ sealed interface ChatAction {
     data class AdvanceReadPointer(val messageId: Long) : ChatAction
     object RefreshContact : ChatAction
     data class ViewToken(val mint: Mint) : ChatAction
+
+    /**
+     * Opens the group a link card names, pushed over this chat so Back returns here. The pushed
+     * screen gates itself; a card never joins or buys on the reader's behalf.
+     */
+    data class OpenGroup(val chatId: ChatId) : ChatAction
     data object ViewProfile : ChatAction
 
     /**

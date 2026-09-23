@@ -64,6 +64,9 @@ import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
+import com.flipcash.shared.chat.models.MessagePart
+import com.flipcash.shared.chat.models.splitAroundLinkCard
+import kotlin.time.Instant
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
@@ -112,20 +115,47 @@ fun ContentBubble(
             is MessageContent.System -> maxWidth
         }
 
+        // A split message's citation goes on its first row and its marker on its last, so the
+        // pieces read as one message stacked rather than as three.
+        val quote = item.quote?.takeIf { item.isFirstRow }
+        val onQuoteClick = quote?.takeIf { interactive }?.let { cited ->
+            { actionHandler(ChatAction.JumpToMessage(cited.messageId)) }
+        }
+        val isEdited = item.isEdited && item.isLastRow
+        val card = item.linkCard?.takeIf { item.part == MessagePart.Card }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = if (item.isFromSelf) Arrangement.End else Arrangement.Start,
         ) {
-            when (val content = item.content) {
-                is MessageContent.Text -> TextBubble(
+            // The card row of a split message, bare whatever the message around it carries -- a
+            // text or a reply alike. The rows either side of it hold the prose.
+            if (card != null) {
+                BareLinkCard(
                     modifier = modifier,
-                    text = content.text,
+                    card = card,
                     isFromSelf = item.isFromSelf,
                     position = position,
                     maxWidth = bubbleMaxWidth,
-                    isEdited = item.isEdited,
+                    quote = quote,
+                    onQuoteClick = onQuoteClick,
+                    onQuoteLongClick = onLongClick?.takeIf { interactive },
+                    onLongClick = onLongClick?.takeIf { interactive },
+                    interactive = interactive,
+                    attention = attention,
+                )
+                return@Row
+            }
+
+            when (val content = item.content) {
+                is MessageContent.Text -> TextBubble(
+                    modifier = modifier,
+                    text = item.partText ?: content.text,
+                    isFromSelf = item.isFromSelf,
+                    position = position,
+                    maxWidth = bubbleMaxWidth,
+                    isEdited = isEdited,
                     jumbo = jumbo,
-                    linkCard = item.linkCard,
                     attention = attention,
                 )
 
@@ -175,18 +205,15 @@ fun ContentBubble(
                 // identical to any other message, which is what it is.
                 is MessageContent.Reply -> TextBubble(
                     modifier = modifier,
-                    text = content.linkableText().orEmpty(),
+                    text = item.partText ?: content.linkableText().orEmpty(),
                     isFromSelf = item.isFromSelf,
                     position = position,
                     maxWidth = bubbleMaxWidth,
-                    isEdited = item.isEdited,
-                    quote = item.quote,
-                    linkCard = item.linkCard,
+                    isEdited = isEdited,
+                    quote = quote,
                     // Dropped with the backdrop up, as the cash bubble's target is: the tap
                     // should dismiss the backdrop, not jump the transcript out from under it.
-                    onQuoteClick = item.quote?.takeIf { interactive }?.let { quote ->
-                        { actionHandler(ChatAction.JumpToMessage(quote.messageId)) }
-                    },
+                    onQuoteClick = onQuoteClick,
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
                     jumbo = jumbo,
                     attention = attention,
@@ -212,9 +239,12 @@ fun ContentBubble(
  * beneath it.
  */
 fun ChatListItem.ContentBubble.rendersBareEmoji(): Boolean {
+    if (part == MessagePart.Card) return false
     val text = when (val content = content) {
         is MessageContent.Text -> content.text
-        is MessageContent.Reply -> if (quote != null) {
+        // Only the row that draws the citation keeps its bubble for it; the other rows of a split
+        // reply are text like any other.
+        is MessageContent.Reply -> if (quote != null && isFirstRow) {
             return false
         } else {
             content.content.filterIsInstance<MessageContent.Text>().firstOrNull()?.text.orEmpty()
@@ -222,10 +252,19 @@ fun ChatListItem.ContentBubble.rendersBareEmoji(): Boolean {
 
         else -> return false
     }
-    return EmojiOnlyText.clusterCountOrNull(text) != null
+    return EmojiOnlyText.clusterCountOrNull(partText ?: text) != null
 }
 
+/**
+ * Whether this row draws with no bubble behind it: a bare emoji, or the card row of a split
+ * message. Either one breaks the bubble run and moves the "Edited" marker to the line under it.
+ */
+fun ChatListItem.ContentBubble.rendersBare(): Boolean =
+    part == MessagePart.Card || rendersBareEmoji()
+
 private const val EDITED_MARKER_SLOT = "edited-marker"
+
+internal const val REPLY_QUOTE_TAG = "bubble_reply_quote"
 
 /** How white a bubble goes at the peak of the flash a jump leaves on it. */
 private const val ATTENTION_SCRIM_ALPHA = 0.14f
@@ -278,7 +317,6 @@ private fun TextBubble(
     isEdited: Boolean = false,
     isTombstone: Boolean = false,
     quote: ChatQuote? = null,
-    linkCard: LinkCard? = null,
     onQuoteClick: (() -> Unit)? = null,
     onQuoteLongClick: (() -> Unit)? = null,
     jumbo: Boolean = false,
@@ -296,30 +334,7 @@ private fun TextBubble(
         return
     }
 
-    // The card is the link, drawn. Leaving the URL in the body underneath it would say the
-    // same thing twice, so the span the card was built from goes with it and the prose around
-    // it closes up; a message that was nothing but the link leaves no body at all.
-    val bodyString = if (linkCard == null) {
-        text
-    } else {
-        text.withoutLinkSpan(linkCard.start, linkCard.end)
-    }
-
-    // Nothing left to put in a bubble. The card is already a surface with its own fill and its own
-    // rounded shape, so a bubble behind it draws a second, slightly larger card around the first.
-    // A citation and the edited marker belong to the message rather than to the link, and either
-    // one keeps the bubble.
-    if (linkCard != null && bodyString.isEmpty() && quote == null && !isEdited) {
-        BareLinkCard(
-            card = linkCard,
-            isFromSelf = isFromSelf,
-            position = position,
-            maxWidth = maxWidth,
-            modifier = modifier,
-            attention = attention,
-        )
-        return
-    }
+    val bodyString = text
 
     // A reply hands the bubble the narrower surround, so the citation clears the body's own inset
     // on both sides; the body then puts the difference back and keeps the inset it has without a
@@ -408,42 +423,23 @@ private fun TextBubble(
             )
         }
 
-        val quotedOrPlainBody = @Composable {
-            if (quote == null) {
-                bodyText()
-            } else {
-                QuotedBody(
-                    gap = BubbleDefaults.surroundInset,
-                    quote = {
-                        ChatQuotePanel(
-                            quote = quote,
-                            onClick = onQuoteClick,
-                            onLongClick = onQuoteLongClick,
-                            // Tagged because the citation repeats the quoted message's own text, so a
-                            // UI test matching on that text cannot tell the two apart.
-                            modifier = Modifier.testTag("bubble_reply_quote"),
-                        )
-                    },
-                    body = bodyText,
-                )
-            }
-        }
-
-        // Inside the bubble, above what is left of the body, on the same surround the citation
-        // uses — the card and the message it came from are one message.
-        if (linkCard == null) {
-            quotedOrPlainBody()
+        if (quote == null) {
+            bodyText()
         } else {
-            val onCardClick = rememberLinkCardClick()
-            Column(verticalArrangement = Arrangement.spacedBy(BubbleDefaults.surroundInset)) {
-                LinkCardView(
-                    card = linkCard,
-                    onClick = onCardClick,
-                )
-                // A link on its own never reaches here -- it is drawn bubble-less above -- so
-                // what is left is a citation, an edited marker, or prose the link sat inside.
-                quotedOrPlainBody()
-            }
+            QuotedBody(
+                gap = BubbleDefaults.surroundInset,
+                quote = {
+                    ChatQuotePanel(
+                        quote = quote,
+                        onClick = onQuoteClick,
+                        onLongClick = onQuoteLongClick,
+                        // Tagged because the citation repeats the quoted message's own text, so a
+                        // UI test matching on that text cannot tell the two apart.
+                        modifier = Modifier.testTag(REPLY_QUOTE_TAG),
+                    )
+                },
+                body = bodyText,
+            )
         }
 
         if (isEdited) {
@@ -511,13 +507,16 @@ private val JUMBO_EMOJI_SIZE = 44.sp
 internal const val JUMBO_EMOJI_TAG = "bubble_jumbo_emoji"
 
 /**
- * A card standing in for the whole message, with no bubble behind it.
+ * The card row of a split message, with no bubble behind it.
  *
  * Everything the bubble would have contributed is already the card's: the fill, the rounded corners
  * and the tap. What is not the card's is the flash a jump leaves on the message it landed on, which
  * belongs to the transcript rather than to the bubble -- so this goes through [Bubble] as the jumbo
  * emoji does, with `bare` dropping the fill and the horizontal inset and leaving the flash, the
  * width ceiling and the corner clip where every other bubble already gets them.
+ *
+ * A reply whose link came first carries its citation here, above the card, on the same gap the
+ * card keeps from its neighbours: the row has no bubble for the panel to sit inside.
  */
 @Composable
 private fun BareLinkCard(
@@ -526,6 +525,11 @@ private fun BareLinkCard(
     position: BubblePosition,
     maxWidth: Dp,
     modifier: Modifier = Modifier,
+    quote: ChatQuote? = null,
+    onQuoteClick: (() -> Unit)? = null,
+    onQuoteLongClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    interactive: Boolean = true,
     attention: () -> Float = { 0f },
 ) {
     val onCardClick = rememberLinkCardClick()
@@ -544,7 +548,24 @@ private fun BareLinkCard(
         verticalPadding = 0.dp,
         attention = attention,
     ) {
-        LinkCardView(card = card, onClick = onCardClick)
+        Column(verticalArrangement = Arrangement.spacedBy(BubbleDefaults.surroundInset)) {
+            if (quote != null) {
+                ChatQuotePanel(
+                    quote = quote,
+                    onClick = onQuoteClick,
+                    onLongClick = onQuoteLongClick,
+                    modifier = Modifier.testTag(REPLY_QUOTE_TAG),
+                )
+            }
+            LinkCardView(
+                card = card,
+                // Dropped with the backdrop up, like every other target on the row.
+                onClick = if (interactive) onCardClick else null,
+                // The card takes the press for its own tap, so it has to hand the transcript's
+                // selection gesture back or a long press on it would select nothing.
+                onLongClick = onLongClick,
+            )
+        }
     }
 }
 
@@ -559,6 +580,7 @@ private fun BareLinkCard(
  * app, wrong from inside a chat, where it swaps the transcript for the wallet on the way to a
  * screen the reader asked for directly. There is no wallet card here for the detail to grow out of.
  * So it pushes, exactly as the cash bubble's own token tap does, and back returns to the message.
+ * A group invite pushes the group's conversation for the same reason.
  */
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
@@ -574,6 +596,9 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
                 uriHandler.openUri(card.url)
             }
             is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
+            // Pushed over this chat rather than through the chat deep link, which replaces the
+            // stack: Back has to return to the message that held the invite.
+            is LinkCard.GroupInvite -> actionHandler(ChatAction.OpenGroup(card.chatId))
         }
     }
 }
@@ -830,7 +855,7 @@ private data class BubbleCorners(
 /**
  * Whether [item] tucks into the same run as the bubble [other] next to it.
  *
- * A bare emoji breaks the run on both sides. It draws no bubble, so there is no edge for its
+ * A bare emoji or a card row breaks the run on both sides. It draws no bubble, so there is no edge for its
  * neighbour to square itself against, and a squared corner facing open space reads as half a bubble
  * with the other half missing. Either side being bare is enough, so the message under an emoji
  * closes its top corners the same way the message above it closes its bottom ones.
@@ -842,8 +867,8 @@ private fun groupsWith(
 ): Boolean = other != null &&
         item.isSameAuthorAs(other) &&
         config.isGrouped(item.timestamp, other.timestamp) &&
-        !item.rendersBareEmoji() &&
-        !other.rendersBareEmoji()
+        !item.rendersBare() &&
+        !other.rendersBare()
 
 fun bubblePositionOf(
     index: Int,
@@ -911,6 +936,34 @@ private fun previewCard(
 )
 
 /**
+ * [text] as the transcript would draw it: the bubble split around its card, top row first, with
+ * the positions the list would give each row.
+ */
+@Composable
+private fun PreviewSplitMessage(
+    text: String,
+    card: LinkCard,
+    isFromSelf: Boolean = false,
+    isEdited: Boolean = false,
+) {
+    val rows = ChatListItem.ContentBubble(
+        messageId = 1,
+        contentIndex = 0,
+        content = MessageContent.Text(text),
+        isFromSelf = isFromSelf,
+        timestamp = Instant.fromEpochSeconds(0),
+        isEdited = isEdited,
+        linkCard = card,
+    ).splitAroundLinkCard()
+    Column(
+        modifier = Modifier.width(360.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        rows.forEach { row -> ContentBubble(item = row, position = BubblePosition.Solo) }
+    }
+}
+
+/**
  * What the card looks like while its lookup is out — and so what every cash link looks like for the
  * moment after the transcript paints, since the transcript no longer waits for the answer.
  *
@@ -920,13 +973,10 @@ private fun previewCard(
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
-private fun Preview_TextBubble_LinkCard_Loading() {
-    TextBubble(
-        text = PREVIEW_CASH_TEXT,
-        isFromSelf = false,
-        position = BubblePosition.Solo,
-        maxWidth = 300.dp,
-        linkCard = previewCard(state = LinkCard.Cash.State.Loading),
+private fun Preview_LinkCard_Loading() {
+    PreviewSplitMessage(
+        text = PREVIEW_CASH_LINK,
+        card = previewCard(state = LinkCard.Cash.State.Loading, text = PREVIEW_CASH_LINK),
     )
 }
 
@@ -934,26 +984,21 @@ private fun Preview_TextBubble_LinkCard_Loading() {
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
-private fun Preview_TextBubble_LinkCard_Unresolved() {
-    TextBubble(
-        text = PREVIEW_CASH_TEXT,
-        isFromSelf = false,
-        position = BubblePosition.Solo,
-        maxWidth = 300.dp,
-        linkCard = previewCard(state = LinkCard.Cash.State.Unresolved),
+private fun Preview_LinkCard_Unresolved() {
+    PreviewSplitMessage(
+        text = PREVIEW_CASH_LINK,
+        card = previewCard(state = LinkCard.Cash.State.Unresolved, text = PREVIEW_CASH_LINK),
     )
 }
 
+/** Text before the link: a text row above a bare card row. */
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
-private fun Preview_TextBubble_LinkCard_Claimable() {
-    TextBubble(
+private fun Preview_LinkCard_Claimable() {
+    PreviewSplitMessage(
         text = PREVIEW_CASH_TEXT,
-        isFromSelf = false,
-        position = BubblePosition.Solo,
-        maxWidth = 300.dp,
-        linkCard = previewCard(
+        card = previewCard(
             state = LinkCard.Cash.State.Resolved(
                 amount = "$5.00",
                 claim = LinkCard.Cash.Claim.Claimable,
@@ -963,17 +1008,21 @@ private fun Preview_TextBubble_LinkCard_Claimable() {
     )
 }
 
+/**
+ * Text on both sides of the link, edited: three rows, with "Edited" inside the last bubble only and
+ * a second link left underlined in the trailing row.
+ */
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
-private fun Preview_TextBubble_LinkCard_Claimed() {
-    TextBubble(
-        text = "sent you this $PREVIEW_CASH_LINK",
+private fun Preview_LinkCard_SplitMessage() {
+    val text = "sent you this $PREVIEW_CASH_LINK go grab it before https://flipcash.app closes"
+    PreviewSplitMessage(
+        text = text,
         isFromSelf = true,
-        position = BubblePosition.Solo,
-        maxWidth = 300.dp,
-        linkCard = previewCard(
-            text = "sent you this $PREVIEW_CASH_LINK",
+        isEdited = true,
+        card = previewCard(
+            text = text,
             state = LinkCard.Cash.State.Resolved(
                 amount = "$5.00",
                 claim = LinkCard.Cash.Claim.Claimed,
@@ -981,6 +1030,36 @@ private fun Preview_TextBubble_LinkCard_Claimed() {
             ),
         ),
     )
+}
+
+/**
+ * A group invite split around its card, above a cash link's card: the two cards at one width, the
+ * group's at least the cash card's height, and only the group's button taking a tap.
+ */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_LinkCard_GroupInviteBesideCash() {
+    val group = previewGroupCard(PreviewGroupResolved)
+    val text = "come hang ${group.url} we're planning friday"
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PreviewSplitMessage(
+            text = text,
+            card = group.copy(start = text.indexOf(group.url), end = text.indexOf(group.url) + group.url.length),
+        )
+        PreviewSplitMessage(
+            text = PREVIEW_CASH_LINK,
+            isFromSelf = true,
+            card = previewCard(
+                text = PREVIEW_CASH_LINK,
+                state = LinkCard.Cash.State.Resolved(
+                    amount = "$5.00",
+                    claim = LinkCard.Cash.Claim.Claimable,
+                    token = Token.usdf,
+                ),
+            ),
+        )
+    }
 }
 
 @Preview

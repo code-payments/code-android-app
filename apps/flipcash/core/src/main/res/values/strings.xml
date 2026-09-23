@@ -892,8 +892,8 @@
 
     <string name="label_fromYourContacts">From Your Contacts</string>
     <string name="label_addContact">Add Contact</string>
-    <string name="label_chat_balanceRequirement">Balance Requirement: %1$s of %2$s</string>
-    <string name="label_chat_balanceRequirement_anyToken">Balance Requirement: %1$s</string>
+    <string name="label_chat_balanceRequirement">Balance Requirement:\n%1$s of %2$s</string>
+    <string name="label_chat_balanceRequirement_anyToken">Balance Requirement:\n%1$s</string>
     <string name="label_chat_staffRequirement">Flipcash Staff Only</string>
     <string name="subtitle_chatGate_minimumBalance">Minimum Balance: %1$s of %2$s</string>
     <string name="subtitle_chatGate_minimumBalance_anyToken">Minimum Balance: %1$s</string>
@@ -965,6 +965,10 @@
     <string name="label_linkCard_claim">Tap to claim</string>
     <string name="label_linkCard_claimed">Claimed</string>
     <string name="label_linkCard_expired">Expired</string>
+    <!-- Group invite link card. The untitled name is provisional, pending copy. -->
+    <string name="label_linkCard_untitledGroup">Group Chat</string>
+    <string name="action_linkCard_startChatting">Start Chatting</string>
+    <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
 
     <!-- Chat message selection bar and its actions -->
     <string name="action_copy">Copy</string>

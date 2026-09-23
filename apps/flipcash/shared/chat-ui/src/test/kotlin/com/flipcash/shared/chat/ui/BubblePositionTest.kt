@@ -2,8 +2,10 @@ package com.flipcash.shared.chat.ui
 
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
+import com.flipcash.shared.chat.models.splitAroundLinkCard
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
@@ -123,6 +125,36 @@ class BubblePositionTest {
                 BubblePosition.First,
                 BubblePosition.Solo,
                 BubblePosition.Solo,
+            ),
+            positionsOf(items),
+        )
+    }
+
+    @Test
+    fun `a card row breaks the run around it, as a bare emoji does`() {
+        val link = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
+        val text = "before $link after"
+        val carded = bubble(2, secondsIn = 10, senderId = alice.userId, text = text).copy(
+            linkCard = LinkCard.Cash(
+                url = link,
+                start = text.indexOf(link),
+                end = text.indexOf(link) + link.length,
+                entropy = "KNi8pQr1n5hRU65vKJGge3",
+                state = LinkCard.Cash.State.Unresolved,
+            ),
+        )
+        // Newest-first, as the view model emits a split message: its bottom row first.
+        val items = listOf(bubble(3, secondsIn = 20, senderId = alice.userId)) +
+            carded.splitAroundLinkCard().asReversed() +
+            bubble(1, secondsIn = 0, senderId = alice.userId)
+
+        assertEquals(
+            listOf(
+                BubblePosition.Last,  // newest, grouped under the trailing row
+                BubblePosition.First, // trailing, its run closed above by the card
+                BubblePosition.Solo,  // card, in no run
+                BubblePosition.Last,  // leading, its run closed below by the card
+                BubblePosition.First, // oldest, grouped over the leading row
             ),
             positionsOf(items),
         )

@@ -47,6 +47,26 @@ object BlurHash {
         return composeBitmap(width, height, numCompX, numCompY, colors)
     }
 
+    /**
+     * The image's average colour as `0xRRGGBB`, read from the hash's DC component without decoding
+     * the image, or null when [blurHash] is malformed by the same rules [decode] applies — and, as
+     * iOS does, when any character of it is outside the alphabet.
+     *
+     * The DC bytes are sRGB as stored; nothing is linearised, so this is the colour a designer
+     * would pick out of the preview. Cross-platform: `test-vectors/blurhash_average.json`.
+     */
+    fun averageColor(blurHash: String?): Int? {
+        if (blurHash == null || blurHash.length < 6) return null
+        if (blurHash.any { it !in CHARS }) return null
+
+        val sizeFlag = decode83(blurHash, 0, 1) ?: return null
+        val numCompX = sizeFlag % 9 + 1
+        val numCompY = sizeFlag / 9 + 1
+        if (blurHash.length != 4 + 2 * numCompX * numCompY) return null
+
+        return decode83(blurHash, 2, 6)
+    }
+
     private fun decode83(str: String, from: Int, to: Int): Int? {
         var result = 0
         for (i in from until to) {
