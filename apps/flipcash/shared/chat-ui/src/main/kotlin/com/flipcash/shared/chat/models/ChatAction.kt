@@ -9,7 +9,11 @@ sealed interface ChatAction {
     data class RetryMessage(val bubble: ChatListItem.ContentBubble) : ChatAction
     data class AdvanceReadPointer(val messageId: Long) : ChatAction
     object RefreshContact : ChatAction
-    data class ViewToken(val mint: Mint) : ChatAction
+    /**
+     * Opens a currency's info screen. [returnAfterBuy] brings the reader back here once they buy
+     * it — set by the group gate, where buying is how they get in.
+     */
+    data class ViewToken(val mint: Mint, val returnAfterBuy: Boolean = false) : ChatAction
 
     /**
      * Opens the group a link card names, pushed over this chat so Back returns here. The pushed

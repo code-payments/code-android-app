@@ -216,6 +216,10 @@ sealed interface AppRoute : NavKey, Parcelable {
             // (fade-in-place, ✕ dismiss). Set when the screen is reached by drilling in from a list — e.g.
             // token discovery — where a back arrow that slides back is the expected navigation.
             val asPush: Boolean = false,
+            // Pop back to whatever opened this screen once a buy of [mint] succeeds, rather than
+            // staying here. Set by a chat's gate: the reader came to buy their way into the group,
+            // so the purchase finishing is the moment to put them back in front of Join.
+            val returnAfterBuy: Boolean = false,
         ) : Token
 
         @Serializable
