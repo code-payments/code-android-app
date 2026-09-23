@@ -331,8 +331,9 @@ private fun BoxWithConstraintsScope.InitialsText(displayName: String) {
             .take(2)
             .mapNotNull { it.firstOrNull()?.uppercaseChar() }
             .joinToString("")
-            .ifEmpty { "?" }
     }
+    // A name with no letters leaves the gradient on its own, as iOS does, rather than a "?".
+    if (initials.isEmpty()) return
     val fontSize = with(LocalDensity.current) {
         (min(maxWidth, maxHeight) * 0.38f).toSp()
     }
