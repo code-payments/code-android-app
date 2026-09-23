@@ -271,6 +271,38 @@ class ChatMessageDaoTest {
         assertEquals(0, unread(pointer = 1))
     }
 
+    private suspend fun firstNotOwn(pointer: Long) = dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, pointer)
+
+    @Test
+    fun `firstNotSentByAfter is the first message past the pointer`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SENDER_HEX, 3), from(SENDER_HEX, 4)))
+
+        assertEquals(3L, firstNotOwn(pointer = 2))
+    }
+
+    @Test
+    fun `firstNotSentByAfter steps over the viewer's own messages after the pointer`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SELF_HEX, 3), from(SENDER_HEX, 4)))
+
+        assertEquals(4L, firstNotOwn(pointer = 1))
+    }
+
+    @Test
+    fun `firstNotSentByAfter lands on an unread tombstone`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SENDER_HEX, 2), from(SENDER_HEX, 3)))
+        dao.upsert(tombstone(2))
+
+        assertEquals(2L, firstNotOwn(pointer = 1))
+    }
+
+    @Test
+    fun `firstNotSentByAfter is null when only the viewer's messages follow`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SELF_HEX, 3)))
+        dao.upsert(from(SENDER_HEX, 9).copy(chatIdHex = OTHER_HEX))
+
+        assertEquals(null, firstNotOwn(pointer = 1))
+    }
+
     @Test
     fun `countAfter counts every stored row past the id`() = runTest {
         dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SENDER_HEX, 3), from(SENDER_HEX, 4)))

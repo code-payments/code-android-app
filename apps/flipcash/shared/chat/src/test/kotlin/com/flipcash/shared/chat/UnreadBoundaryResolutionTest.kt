@@ -63,8 +63,22 @@ class UnreadBoundaryResolutionTest {
     fun `unread past the pointer places the divider there`() = runTest {
         coEvery { memberDataSource.getSelfReadPointerOrNull(chatId, selfId) } returns 2
         coEvery { messageDataSource.countInboundAfter(chatId, selfId, 2) } returns 3
+        coEvery { messageDataSource.firstNotSentByAfter(chatId, selfId, 2) } returns 3
 
         assertEquals(UnreadBoundary.At(readThrough = 2, count = 3), delegate.resolveUnreadBoundary(chatId))
+    }
+
+    /**
+     * 1:other 2:self 3:other with the pointer at 1. The divider belongs above 3, and the list places
+     * it by comparing neighbours, so the boundary has to sit past the viewer's own message.
+     */
+    @Test
+    fun `the boundary steps over the viewer's own messages after the pointer`() = runTest {
+        coEvery { memberDataSource.getSelfReadPointerOrNull(chatId, selfId) } returns 1
+        coEvery { messageDataSource.countInboundAfter(chatId, selfId, 1) } returns 1
+        coEvery { messageDataSource.firstNotSentByAfter(chatId, selfId, 1) } returns 3
+
+        assertEquals(UnreadBoundary.At(readThrough = 2, count = 1), delegate.resolveUnreadBoundary(chatId))
     }
 
     @Test

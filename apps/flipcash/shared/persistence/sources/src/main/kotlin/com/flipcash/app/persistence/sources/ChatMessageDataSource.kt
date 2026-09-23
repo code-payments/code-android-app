@@ -155,6 +155,14 @@ class ChatMessageDataSource @Inject constructor(
             afterId = afterId,
         ) ?: 0
 
+    /** The first stored message in [chatId] past [afterId] that [selfId] did not send, or `null`. */
+    suspend fun firstNotSentByAfter(chatId: ChatId, selfId: ID, afterId: Long): Long? =
+        db?.chatMessageDao()?.firstNotSentByAfter(
+            chatIdHex = mapper.chatIdHex(chatId),
+            selfIdHex = mapper.userIdHex(selfId),
+            afterId = afterId,
+        )
+
     /** Every stored message in [chatId] past [afterId], deleted or not. */
     suspend fun countAfter(chatId: ChatId, afterId: Long): Int =
         db?.chatMessageDao()?.countAfter(mapper.chatIdHex(chatId), afterId) ?: 0

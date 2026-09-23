@@ -90,6 +90,18 @@ interface ChatMessageDao {
     suspend fun countInboundAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Int
 
     /**
+     * The first stored message in [chatIdHex] after [afterId] that [selfIdHex] did not send,
+     * tombstones included, or `null` when only the viewer's own messages follow. The unread divider
+     * sits above it: the viewer's own messages right after their pointer are not unread.
+     */
+    @Query(
+        "SELECT MIN(message_id) FROM chat_messages " +
+            "WHERE chat_id_hex = :chatIdHex AND message_id > :afterId " +
+            "AND (sender_id_hex IS NULL OR sender_id_hex != :selfIdHex)"
+    )
+    suspend fun firstNotSentByAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Long?
+
+    /**
      * How many stored messages in [chatIdHex] come after [afterId], of any sender and including
      * tombstones — every row the transcript draws between the newest message and that id.
      */

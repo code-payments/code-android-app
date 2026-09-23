@@ -185,7 +185,12 @@ class MessagingDelegate @Inject constructor(
         val readThrough = memberDataSource.getSelfReadPointerOrNull(chatId, selfId)
             ?: return UnreadBoundary.None
         val count = messageDataSource.countInboundAfter(chatId, selfId, readThrough)
-        return if (count > 0) UnreadBoundary.At(readThrough, count) else UnreadBoundary.None
+        if (count <= 0) return UnreadBoundary.None
+        // The list places the divider by comparing neighbours, so it cannot see past the viewer's
+        // own messages right after the pointer. Resolving the boundary past them puts the divider
+        // above the first message someone else sent.
+        val firstNotOwn = messageDataSource.firstNotSentByAfter(chatId, selfId, readThrough)
+        return UnreadBoundary.At(readThrough = firstNotOwn?.minus(1) ?: readThrough, count = count)
     }
 
     override suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int =

@@ -12,8 +12,10 @@ sealed interface UnreadBoundary {
     data object None : UnreadBoundary
 
     /**
-     * The divider sits above the first inbound message past [readThrough]. [count] is the inbound,
-     * non-deleted messages past it.
+     * The divider sits in the gap straddling [readThrough]: the viewer's READ pointer, moved past any
+     * of their own messages that directly follow it, so the divider lands above the first message
+     * someone else sent. It need not be a stored message's id. [count] is the inbound, non-deleted
+     * messages past the pointer.
      */
     data class At(val readThrough: Long, val count: Int) : UnreadBoundary
 }
