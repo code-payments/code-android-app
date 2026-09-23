@@ -402,3 +402,32 @@ properties = [
   { key = "Call Site", value = "callSite" },
 ]
 drift = "iOS's Screen is `presentedSheet.description` or \"scan\" where Android's is the back stack top's `screenName()`, and iOS never sends Call Site."
+
+# Account
+
+[[domains.AccountEvents.events]]
+builder = "createAccountPayment"
+event = "Create Account Payment"
+params = ["price: Double", "currency: String", "owner: String"]
+properties = [
+  { key = "Fiat", value = "price" },
+  { key = "Currency", value = "currency" },
+  { key = "Owner Public Key", value = "owner" },
+]
+doc = "Android only; part 2 decides whether iOS sends it. iOS's Create Account fires at registration and is a different moment."
+
+[[domains.AccountEvents.events]]
+builder = "enteredPhoneNumber"
+event = "Entered Phone Number"
+
+[[domains.AccountEvents.events]]
+builder = "verifiedPhoneNumber"
+event = "Verified Phone Number"
+
+[[domains.AccountEvents.events]]
+builder = "linkedPhoneNumber"
+event = "Linked Phone Number"
+
+[[domains.AccountEvents.events]]
+builder = "completeOnboarding"
+event = "Complete Onboarding"
