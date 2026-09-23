@@ -367,3 +367,24 @@ properties = [
   { key = "Error", value = "error" },
 ]
 drift = "iOS never passes Error, and sends this for every kind where Android sends it only for a cash link."
+
+# Display name
+
+[enums.DisplayNameSource.cases]
+ONBOARDING = "Onboarding"
+MY_ACCOUNT = "My Account"
+TIP_CARD_SETUP = "Tip Card Setup"
+
+[[domains.DisplayNameEvents.events]]
+builder = "set"
+event = "Display Name Set"
+params = ["source: DisplayNameSource"]
+properties = [{ key = "Source", value = "source" }]
+doc = "The user had no display name before this submission."
+
+[[domains.DisplayNameEvents.events]]
+builder = "updated"
+event = "Display Name Updated"
+params = ["source: DisplayNameSource"]
+properties = [{ key = "Source", value = "source" }]
+doc = "The user replaced an existing display name."
