@@ -27,6 +27,7 @@ import com.flipcash.app.core.tokens.isReserve
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
@@ -379,6 +380,27 @@ internal class ChatViewModel @Inject constructor(
             get() = joinProgress.success || isOutsideGroup
 
         /**
+         * What a tap on a cash card in this transcript does.
+         *
+         * Only a member collects. An eligible non-member reads the transcript sharp and so can see
+         * and tap a card, but the cash was sent to the group, so the card tells them to join
+         * instead. A blurred transcript has nothing to tap; it falls on the same side because it is
+         * also outside the group.
+         *
+         * A member always collects, but the claim is only answered with a thank-you when the
+         * composer is live, because the thank-you is a message the viewer posts. A deactivated DM
+         * has no composer, and a reply from it would be refused.
+         *
+         * Mirrors iOS, where the tap is refused at the gate's `.join` and recorded for a reply only
+         * at `.open`.
+         */
+        val cashCardTap: CashCardTap
+            get() = when {
+                isOutsideGroup -> CashCardTap.JoinToCollect
+                else -> CashCardTap.Collect(thanks = !isAnonymous && !replacesComposer)
+            }
+
+        /**
          * The link that invites someone into this group, or `null` when there is nobody to invite:
          * a DM, or a group this viewer has not joined.
          *
@@ -537,10 +559,17 @@ internal class ChatViewModel @Inject constructor(
         /**
          * The reader tapped a cash voucher in this transcript, naming the link.
          *
-         * Only the name: the tap has already left through the URL handler by the time this
-         * arrives, and nothing here claims anything. See [initClaimReplies].
+         * Only the name: the screen opens the link through the URL handler right after
+         * dispatching this, and nothing here claims anything. Dispatched only when
+         * [State.cashCardTap] lets the reader collect. See [initClaimReplies].
          */
         data class CashLinkOpened(val entropy: String) : Event
+
+        /**
+         * The reader tapped a cash voucher they cannot collect from here, per
+         * [State.cashCardTap]. The link was not opened; this only tells them why.
+         */
+        data object CashLinkRefused : Event
 
         /** Asks the transcript to scroll to [messageId] — a tap on a quote. */
         data class JumpToMessage(val messageId: Long) : Event
@@ -1009,8 +1038,22 @@ internal class ChatViewModel @Inject constructor(
      */
     private fun initClaimReplies() {
         eventFlow.filterIsInstance<Event.CashLinkOpened>()
-            .onEach { claimReplyTargets.tapped(it.entropy) }
+            .onEach { event ->
+                // Not recorded for a viewer who cannot post: nothing would come of the thank-you
+                // but a send the server refuses.
+                val tap = stateFlow.value.cashCardTap
+                if (tap is CashCardTap.Collect && tap.thanks) claimReplyTargets.tapped(event.entropy)
+            }
             .flowOn(Dispatchers.Main.immediate)
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.CashLinkRefused>()
+            .onEach {
+                BottomBarManager.showInfo(
+                    title = resources.getString(R.string.title_joinToCollect),
+                    message = resources.getString(R.string.description_joinToCollect),
+                )
+            }
             .launchIn(viewModelScope)
     }
 
@@ -2334,6 +2377,7 @@ internal class ChatViewModel @Inject constructor(
                 // Nothing on screen moves when a voucher is tapped -- the link leaves, the card
                 // keeps saying what it said, and the claim comes back as its own signal.
                 is Event.CashLinkOpened -> { state -> state }
+                Event.CashLinkRefused -> { state -> state }
                 // The request itself changes nothing: the target is only worth holding once the
                 // walk's bound resolves, and that read is what decides whether it can be reached.
                 is Event.JumpToMessage -> { state -> state }

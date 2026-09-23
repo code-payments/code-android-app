@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,6 +20,7 @@ import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
@@ -39,6 +41,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val messages = viewModel.messages.collectAsLazyPagingItems()
     val otherReadPointer by viewModel.otherReadPointer.collectAsStateWithLifecycle(null)
     val navigator = LocalCodeNavigator.current
+    val uriHandler = LocalUriHandler.current
 
     val hazeState = rememberHazeState()
     // Measured by the bar and read by the transcript: the blur has to cover the bar's own
@@ -122,8 +125,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.CancelReply)
             }
 
-            is ChatAction.CashLinkOpened -> {
-                viewModel.dispatchEvent(ChatViewModel.Event.CashLinkOpened(action.entropy))
+            is ChatAction.CashLinkOpened -> when (state.cashCardTap) {
+                CashCardTap.JoinToCollect -> viewModel.dispatchEvent(ChatViewModel.Event.CashLinkRefused)
+                // Reported before the link leaves, so the tap is on record by the time the claim
+                // can come back.
+                is CashCardTap.Collect -> {
+                    viewModel.dispatchEvent(ChatViewModel.Event.CashLinkOpened(action.entropy))
+                    uriHandler.openUri(action.url)
+                }
             }
 
             is ChatAction.JumpToMessage -> {

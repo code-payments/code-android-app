@@ -69,14 +69,15 @@ sealed interface ChatAction {
     data object CancelReply : ChatAction
 
     /**
-     * The reader tapped a cash voucher, naming the link they are about to open.
+     * The reader tapped a cash voucher.
      *
-     * Not a request to claim it, and not what opens it: the tap still leaves through the URL
+     * Not a request to claim it. The handler decides whether [url] opens at all — a non-member
+     * reading a group is told to join first — and when it does, the link leaves through the URL
      * handler and comes back as a deeplink, which is what keeps the card path off the claim path.
-     * This is the chat saying which link left from here, because that is the one thing lost at
+     * [entropy] is the chat noting which link left from here, because that is the one thing lost at
      * that boundary — a claim arrives back knowing an entropy and nothing about a transcript.
      */
-    data class CashLinkOpened(val entropy: String) : ChatAction
+    data class CashLinkOpened(val entropy: String, val url: String) : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit
