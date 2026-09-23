@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.AppRoute.Token.*
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.tipping.TipCardOwner
@@ -118,6 +119,12 @@ internal fun Scanner() {
                     is DeeplinkType.TipChat -> listOf(
                         AppRoute.Sheets.Tips(),
                         AppRoute.Messaging.Chat(deeplink.identifier),
+                    )
+                    // Same destination as the tapped /chat/{uuid} link: the chat screen is the
+                    // gated preview when the viewer is not yet a member.
+                    is DeeplinkType.GroupChatInvite -> listOf(
+                        AppRoute.Sheets.Tips(),
+                        AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(deeplink.chatId)),
                     )
                     else -> emptyList()
                 }

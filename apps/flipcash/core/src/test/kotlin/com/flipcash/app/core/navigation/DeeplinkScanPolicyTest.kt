@@ -23,23 +23,13 @@ class DeeplinkScanPolicyTest {
         assertTrue(DeeplinkType.TipChat(ChatIdentifier.ByChatId(CHAT_ID)).isScannable)
         assertTrue(DeeplinkType.Tipcard(USER_ID).isScannable)
         assertTrue(DeeplinkType.TipcardByUsername(USERNAME).isScannable)
+        assertTrue(DeeplinkType.GroupChatInvite(CHAT_ID).isScannable)
     }
 
     @Test
     fun `credential routes are never scannable`() {
         assertFalse(DeeplinkType.Login(ENTROPY).isScannable)
         assertFalse(DeeplinkType.EmailVerification(EMAIL, CODE).isScannable)
-    }
-
-    /**
-     * Not a security judgement -- an invite is harmless. It is that no scan path has ever opened
-     * one: `Scanner`'s `Navigatable` branch has no case for it and falls to `emptyList()`. Naming
-     * it here keeps that a stated decision rather than a gap, and flipping it means adding the
-     * destination too.
-     */
-    @Test
-    fun `a group chat invite is not a scan destination`() {
-        assertFalse(DeeplinkType.GroupChatInvite(CHAT_ID).isScannable)
     }
 
     private companion object {
