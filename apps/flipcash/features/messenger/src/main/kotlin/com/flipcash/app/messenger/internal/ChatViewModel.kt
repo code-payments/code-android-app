@@ -13,7 +13,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
-import androidx.paging.insertSeparators
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.contacts.ContactCoordinator
@@ -28,6 +27,7 @@ import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.messenger.internal.link.CashCardTap
+import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
@@ -264,6 +264,14 @@ internal class ChatViewModel @Inject constructor(
          * it. Set alongside [jumpTarget] and cleared with it.
          */
         val jumpBudget: Int? = null,
+        /**
+         * Where the "N Unread Messages" divider sits, read once per visit from the viewer's stored
+         * READ pointer. Never re-read: the list advances that pointer as the reader scrolls, and a
+         * boundary that followed it would slide the divider away from what was new at open.
+         */
+        val unreadBoundary: UnreadBoundary = UnreadBoundary.Resolving,
+        /** How many stored messages sit past the boundary, which bounds the walk that opens at it. */
+        val unreadWalkBudget: Int = 0,
         /**
          * True while the delete confirmation is up.
          *
@@ -576,6 +584,9 @@ internal class ChatViewModel @Inject constructor(
 
         /** The same request, once the walk's bound is known. */
         data class JumpResolved(val messageId: Long, val budget: Int) : Event
+
+        /** The chat's unread boundary, read once when its id became known. */
+        data class UnreadBoundaryResolved(val boundary: UnreadBoundary, val walkBudget: Int) : Event
         data object JumpConsumed : Event
     }
 
@@ -664,8 +675,12 @@ internal class ChatViewModel @Inject constructor(
      */
     private val claimReplyTargets = ClaimReplyTargets()
 
+    /**
+     * The transcript's rows before separators. Cached so a change to the unread boundary or the
+     * separator config re-runs only [messages]' separator pass, not the per-message lookups here.
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val messages: Flow<PagingData<ChatListItem>> =
+    private val mappedMessages: Flow<PagingData<ChatListItem.ContentBubble>> =
         combine(
             messageStream,
             pendingMutations,
@@ -771,13 +786,20 @@ internal class ChatViewModel @Inject constructor(
                         .splitAroundLinkCard()
                         .asReversed()
                 }
-            }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
-                if (before == null || after == null) return@insertSeparators null
-                if (stateFlow.value.separatorConfig.shouldSeparate(before.timestamp, after.timestamp)) {
-                    ChatListItem.DateSeparator(before.timestamp)
-                } else null
             }
-        }
+        }.cachedIn(viewModelScope)
+
+    /**
+     * The transcript as the list draws it: [mappedMessages] with date separators and the unread
+     * divider. The boundary and config are inputs rather than reads of the current state, so a
+     * page never takes its separators from one config and its neighbour's from another.
+     */
+    val messages: Flow<PagingData<ChatListItem>> =
+        combine(
+            mappedMessages,
+            stateFlow.map { it.unreadBoundary }.distinctUntilChanged(),
+            stateFlow.map { it.separatorConfig }.distinctUntilChanged(),
+        ) { paging, boundary, config -> paging.withSeparators(boundary, config) }
 
     /**
      * The citation shown for [this] message.
@@ -1741,6 +1763,19 @@ internal class ChatViewModel @Inject constructor(
                 dispatchEvent(Event.JumpResolved(event.messageId, distance))
             }
             .launchIn(viewModelScope)
+
+        // Read once per chat id. The list holds read reporting until this lands, so the pointer
+        // it reads is the one the viewer arrived with.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .onEach { chatId ->
+                val boundary = chatCoordinator.resolveUnreadBoundary(chatId)
+                val budget = (boundary as? UnreadBoundary.At)
+                    ?.let { chatCoordinator.countMessagesAfter(chatId, it.readThrough) }
+                    ?: 0
+                dispatchEvent(Event.UnreadBoundaryResolved(boundary, budget))
+            }
+            .launchIn(viewModelScope)
     }
 
     /** Leaves edit mode, restoring the draft the edit interrupted. */
@@ -2162,6 +2197,11 @@ internal class ChatViewModel @Inject constructor(
         private val DRAFT_WRITE_DEBOUNCE = 300.milliseconds
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            stateReducer(event, UNREAD_DIVIDER_LIFETIME)
+        }
+
+        /** [updateStateForEvent] under an explicit [lifetime], so tests can cover both policies. */
+        internal fun stateReducer(event: Event, lifetime: UnreadDividerLifetime): (State) -> State =
             when (event) {
                 is Event.OnChatOpened -> { state ->
                     when (val id = event.identifier) {
@@ -2274,7 +2314,11 @@ internal class ChatViewModel @Inject constructor(
                 is Event.ResolveFailed -> { state ->
                     state.copy(resolveState = ResolveState.Failed)
                 }
-                is Event.SendMessage -> { state -> state }
+                is Event.SendMessage -> { state ->
+                    val clears = lifetime == UnreadDividerLifetime.UntilSend &&
+                        state.unreadBoundary is UnreadBoundary.At
+                    if (clears) state.copy(unreadBoundary = UnreadBoundary.None) else state
+                }
                 is Event.RetryMessage -> { state -> state }
                 Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 Event.NavigateToInitPayment -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
@@ -2385,7 +2429,9 @@ internal class ChatViewModel @Inject constructor(
                     state.copy(jumpTarget = event.messageId, jumpBudget = event.budget)
                 }
                 Event.JumpConsumed -> { state -> state.copy(jumpTarget = null, jumpBudget = null) }
+                is Event.UnreadBoundaryResolved -> { state ->
+                    state.copy(unreadBoundary = event.boundary, unreadWalkBudget = event.walkBudget)
+                }
             }
-        }
     }
 }
