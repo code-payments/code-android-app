@@ -32,7 +32,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_MARK_READ = "com.flipcash.app.notifications.ACTION_MARK_READ"
         const val KEY_CHAT_ID_HEX = "chat_id_hex"
         const val KEY_NOTIFICATION_ID = "notification_id"
-        const val KEY_GROUP_KEY = "group_key"
         const val KEY_TEXT_REPLY = "key_text_reply"
     }
 
@@ -70,8 +69,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
             ?.toString()
             ?: return
 
-        val groupKey = intent.getStringExtra(KEY_GROUP_KEY)
-
         chatCoordinator.sendMessage(chatId, replyText)
             .onSuccess {
                 val notificationId = intent.getIntExtra(KEY_NOTIFICATION_ID, chatId.hashCode())
@@ -96,12 +93,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     .setColor(context.getColor(R.color.notification_color))
                     .setStyle(existingStyle)
                     .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
-                    .addAction(buildReplyAction(context, chatId, notificationId, groupKey))
-                    .addAction(buildMarkAsReadAction(context, chatId, groupKey))
+                    .addAction(buildReplyAction(context, chatId, notificationId))
+                    .addAction(buildMarkAsReadAction(context, chatId))
                     .setAutoCancel(true)
-                    .apply {
-                        if (groupKey != null) setGroup(groupKey)
-                    }
                     .build()
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -129,7 +123,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    private fun buildReplyAction(context: Context, chatId: ChatId, notificationId: Int, groupKey: String?): NotificationCompat.Action {
+    private fun buildReplyAction(context: Context, chatId: ChatId, notificationId: Int): NotificationCompat.Action {
         val remoteInput = RemoteInput.Builder(KEY_TEXT_REPLY)
             .setLabel(context.getString(R.string.notification_action_reply))
             .build()
@@ -138,7 +132,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
             action = ACTION_REPLY
             putExtra(KEY_CHAT_ID_HEX, chatId.bytes.toHexString())
             putExtra(KEY_NOTIFICATION_ID, notificationId)
-            if (groupKey != null) putExtra(KEY_GROUP_KEY, groupKey)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -156,11 +149,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    private fun buildMarkAsReadAction(context: Context, chatId: ChatId, groupKey: String?): NotificationCompat.Action {
+    private fun buildMarkAsReadAction(context: Context, chatId: ChatId): NotificationCompat.Action {
         val intent = Intent(context, NotificationActionReceiver::class.java).apply {
             action = ACTION_MARK_READ
             putExtra(KEY_CHAT_ID_HEX, chatId.bytes.toHexString())
-            if (groupKey != null) putExtra(KEY_GROUP_KEY, groupKey)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
