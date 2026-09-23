@@ -321,7 +321,7 @@ internal fun MessageList(
                     when {
                         // Node 10127:117171. The blur over this list is what makes it a preview;
                         // see GatedTranscriptPlaceholder for why it is drawn rather than fetched.
-                        state.isGatedPreview -> item(key = "gated-transcript-placeholder") {
+                        state.obscuresTranscript -> item(key = "gated-transcript-placeholder") {
                             GatedTranscriptPlaceholder(modifier = Modifier.fillParentMaxWidth())
                         }
 

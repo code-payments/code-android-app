@@ -308,29 +308,66 @@ internal class ChatViewModel @Inject constructor(
             get() = selection?.capabilities.orEmpty()
 
         /**
-         * Whether this conversation is being read from outside the group.
-         *
-         * Drives the blur over the transcript, the placeholder standing in for it, and the gate that
-         * stands where the composer does.
-         *
-         * Read off the subject rather than off [groupAccess], even though `Membered` is the same
-         * fact, because this one has to be right on the frame the group first renders. [groupAccess]
-         * arrives through the balance and staff flows, so it is null for as long as those take — and
-         * a withheld transcript that starts unblurred and then blurs has already shown what it was
-         * withholding. The subject is what the info card and the title bar draw from, so tying the
-         * blur to it means the three cannot disagree by a frame.
-         *
-         * [groupAccess] still decides what the gate's button does, which is the part that genuinely
-         * depends on the balance.
-         *
-         * A succeeded join keeps it true through the button's checkmark: one flag for all three
-         * renderers means the composer cannot arrive while the transcript is still blurred, and the
-         * roster — which can confirm membership on the next frame — cannot cut the confirmation
-         * short.
+         * Whether this conversation is being read from outside the group: a group the viewer has
+         * not joined, or one whose membership is not known yet.
          */
-        val isGatedPreview: Boolean
-            get() = joinProgress.success ||
-                (subject is ChatSubject.Group && subject.isMember != true)
+        val isOutsideGroup: Boolean
+            get() = subject is ChatSubject.Group && subject.isMember != true
+
+        /**
+         * Whether the server will hand this viewer the group's transcript in full without their
+         * joining it.
+         *
+         * The contract's line (`messaging.v1.ViewMode`): a non-member who satisfies a group's
+         * listener rules may read it in full, and a non-member of a group with no listener rules may
+         * not read it at all. So [GroupAccess.Eligible] alone is not enough — it is also the answer
+         * for a group with no rules, where there is nothing to read.
+         *
+         * Every unknown answers no. A null [groupAccess] is the balance or the staff flag not having
+         * arrived, and a null membership is a group hydrated by id that GetChat could not place the
+         * viewer in; reading either as eligible would show a transcript the viewer may not be owed.
+         */
+        val readsFromOutside: Boolean
+            get() = subject is ChatSubject.Group &&
+                subject.isMember == false &&
+                groupAccess == GroupAccess.Eligible &&
+                subject.rules?.listener.orEmpty().isNotEmpty()
+
+        /**
+         * Whether the transcript is blurred, and the placeholder stands in for it when empty.
+         *
+         * Read off the subject first, not off [groupAccess] alone, because this one has to be right
+         * on the frame the group first renders. [groupAccess] arrives through the balance and staff
+         * flows, so it is null for as long as those take — and a withheld transcript that starts
+         * unblurred and then blurs has already shown what it was withholding. So the blur goes on
+         * with the subject and only comes off once the access says [GroupAccess.Eligible]: an
+         * eligible viewer watches it fade, which is the direction that leaks nothing.
+         *
+         * [GroupAccess.Blocked] keeps it on, and a balance that drops while the chat is open turns
+         * [GroupAccess.Eligible] into [GroupAccess.Blocked] and puts it back.
+         *
+         * Not held by a succeeded join. The only viewer who can join is an eligible one, who is
+         * already reading the transcript sharp, and a group with no listener rules unblurring as the
+         * roster confirms the join is the same sharp-transcript-over-gate state an eligible viewer
+         * sits in.
+         *
+         * Mirrors iOS `ConversationGatePresentation.obscuresTranscript`.
+         */
+        val obscuresTranscript: Boolean
+            get() = isOutsideGroup && !readsFromOutside
+
+        /**
+         * Whether the gate stands where the composer does. Every viewer outside the group, eligible
+         * or not: reading a group from outside is not posting in it.
+         *
+         * A succeeded join keeps it true through the button's checkmark, so the roster — which can
+         * confirm membership on the next frame — cannot cut the confirmation short by swapping the
+         * composer in under it.
+         *
+         * Mirrors iOS `ConversationGatePresentation.replacesComposer`.
+         */
+        val replacesComposer: Boolean
+            get() = joinProgress.success || isOutsideGroup
 
         /**
          * The link that invites someone into this group, or `null` when there is nobody to invite:
@@ -999,7 +1036,9 @@ internal class ChatViewModel @Inject constructor(
      * as a placeholder rather than fetched, so asking for its messages would pull the very ones the
      * blur is over — and an unknown membership is withheld here for the same reason it is on screen.
      * A member whose feed has not synced yet is not stranded: the group feed sync sends its own load
-     * for a group whose cursor is still at zero.
+     * for a group whose cursor is still at zero. An eligible non-member's transcript is fetched once
+     * the gate says so, off [State.readsFromOutside], rather than here, where the balance that
+     * decides it has not arrived yet.
      */
     private suspend fun openTranscript(chatId: ChatId) {
         val hydrated = chatCoordinator.hydrateChat(chatId) ?: run {
@@ -1245,11 +1284,25 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.ChatDeactivated(isReadOnly = it)) }
             .launchIn(viewModelScope)
 
+        // An eligible non-member reads the group in full, but nothing else fetches its transcript:
+        // openTranscript leaves a group the viewer is outside of unloaded, and the group feed only
+        // carries groups the viewer is in. Keyed on the chat so a balance that dips and recovers
+        // refetches rather than trusting a page that may have moved on.
+        stateFlow.map { state -> state.chatId.takeIf { state.readsFromOutside } }
+            .distinctUntilChanged()
+            .filterNotNull()
+            .onEach { chatId -> chatCoordinator.loadMessages(chatId) }
+            .launchIn(viewModelScope)
+
         // Advance read pointer when user scrolls to messages
         eventFlow
             .filterIsInstance<Event.AdvanceReadPointer>()
             .onEach { event ->
-                val chatId = stateFlow.value.chatId ?: return@onEach
+                val state = stateFlow.value
+                val chatId = state.chatId ?: return@onEach
+                // A read pointer is a member's: an eligible non-member can see the messages now,
+                // but the server refuses to move a pointer for someone outside the chat.
+                if (state.isOutsideGroup) return@onEach
                 viewModelScope.launch { chatCoordinator.advanceReadPointer(chatId, event.messageId) }
             }
             .launchIn(viewModelScope)
@@ -2068,7 +2121,15 @@ internal class ChatViewModel @Inject constructor(
                 }
                 is Event.OnGroupResolved -> { state ->
                     val metadata = event.membership.metadata
+                    val previous = state.subject as? ChatSubject.Group
+                    // The access was decided for the old membership and rules. Kept across a change
+                    // to either, a stale Eligible would unblur a group whose rules just tightened
+                    // until the balance flow caught up, so it goes back to unknown instead.
+                    val accessStale = previous == null ||
+                        previous.isMember != event.membership.isMember ||
+                        previous.rules != metadata.rules
                     state.copy(
+                        groupAccess = if (accessStale) null else state.groupAccess,
                         subject = ChatSubject.Group(
                             chatId = metadata.chatId,
                             groupTitle = metadata.title,

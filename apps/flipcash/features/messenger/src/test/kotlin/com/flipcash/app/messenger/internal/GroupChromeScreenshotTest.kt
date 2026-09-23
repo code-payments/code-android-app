@@ -231,8 +231,8 @@ class GroupChromeScreenshotTest {
                         currency = badBoys,
                         joinProgress = LoadingSuccessState(loading = true),
                     )
-                    // The join came back accepted: the checkmark the gate holds while the blur
-                    // lifts, before the composer takes its place.
+                    // The join came back accepted: the checkmark the gate holds over the (already
+                    // sharp) transcript, before the composer takes its place.
                     GroupGateBar(
                         access = GroupAccess.Membered,
                         requirement = balanceRule,

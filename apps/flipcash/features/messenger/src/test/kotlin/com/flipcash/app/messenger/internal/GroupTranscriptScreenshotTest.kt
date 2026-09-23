@@ -4,22 +4,31 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.View
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.flipcash.app.messenger.internal.screens.components.GroupGateBar
 import com.flipcash.app.messenger.internal.screens.components.MessageRow
 import com.flipcash.app.theme.FlipcashThemeWrapper
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.GroupAccess
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
+import com.getcode.opencode.model.financial.Fiat
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
@@ -94,6 +103,68 @@ class GroupTranscriptScreenshotTest {
         repeat(20) { composeRule.mainClock.advanceTimeByFrame() }
 
         capture("group_transcript.png")
+    }
+
+    /**
+     * The same transcript seen from outside the group, once per access: an eligible viewer reads it
+     * sharp over the Join gate, while a blocked one and one whose balance has not arrived yet see it
+     * blurred. The blur and the gate read the state's own flags, so this is the split as the screen
+     * draws it rather than a restatement of it.
+     *
+     * A heavy fade stands in for `BlurredContent`. Robolectric's native graphics draws neither
+     * blur: Haze's runtime shader does not compile there, and `Modifier.blur` renders sharp.
+     */
+    @Test
+    fun rendersTranscriptFromOutsideTheGroup() {
+        val items = listOf(
+            bubble(3, "Not even close", noah, secondsIn = 20),
+            bubble(2, "I disagree. He isn't the best at all", noah, secondsIn = 10),
+            ChatListItem.DateSeparator(start),
+        )
+        val requirement = ChatRuleRequirement.MinimumBalance(mints = emptyList(), amount = Fiat(100.0))
+        val outsider = ChatSubject.Group(
+            chatId = ChatId(byteArrayOf(1)),
+            groupTitle = "Bad Boys",
+            picture = null,
+            memberCount = 412L,
+            rules = ChatRules(listener = listOf(requirement), speaker = emptyList()),
+            isMember = false,
+        )
+        val states = listOf(
+            ChatViewModel.State(subject = outsider, groupAccess = GroupAccess.Eligible),
+            ChatViewModel.State(subject = outsider, groupAccess = GroupAccess.Blocked(requirement)),
+            ChatViewModel.State(subject = outsider, groupAccess = null),
+        )
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            FlipcashThemeWrapper().Wrap {
+                val messages = flowOf(PagingData.from(items)).collectAsLazyPagingItems()
+                Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    states.forEach { state ->
+                        Column(modifier = Modifier.width(360.dp)) {
+                            Box(
+                                modifier = Modifier.alpha(if (state.obscuresTranscript) 0.15f else 1f),
+                            ) {
+                                Transcript(messages)
+                            }
+                            if (state.replacesComposer) {
+                                GroupGateBar(
+                                    access = state.groupAccess,
+                                    requirement = requirement,
+                                    staffOnly = false,
+                                    currency = null,
+                                    onAction = {},
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        repeat(20) { composeRule.mainClock.advanceTimeByFrame() }
+
+        capture("group_transcript_from_outside.png")
     }
 
     @Composable

@@ -6,6 +6,7 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatDraftReply
 import com.flipcash.shared.chat.ChatDraftSnapshot
@@ -26,12 +27,12 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The two answers the chat screen derives rather than stores: whether it is being read from outside
- * the group, and whether there is an invite to hand out.
+ * The answers the chat screen derives rather than stores: whether the transcript is blurred, whether
+ * the gate stands where the composer does, and whether there is an invite to hand out.
  *
- * Both are read by more than one renderer — the blur and the placeholder ask the first, the empty
- * state and the transcript's invite action ask the second — so what is pinned here is that each has
- * exactly one source and that a DM is never mistaken for a gated group.
+ * The first two used to be one flag and are now separate questions — an eligible non-member reads
+ * the transcript sharp under a Join gate — so what is pinned here is where they part, that every
+ * unknown keeps the blur on, and that a DM is never mistaken for a gated group.
  */
 class ChatViewModelStateTest {
 
@@ -39,12 +40,14 @@ class ChatViewModelStateTest {
     private val groupChatId = ChatId(groupUuid.bytes)
     private val unmet = ChatRuleRequirement.MinimumBalance(Fiat(100.0), emptyList())
 
-    private fun group(isMember: Boolean?) = ChatSubject.Group(
+    private val gatedRules = ChatRules(listener = listOf(unmet), speaker = emptyList())
+
+    private fun group(isMember: Boolean?, rules: ChatRules? = gatedRules) = ChatSubject.Group(
         chatId = groupChatId,
         groupTitle = "Ballers",
         picture = null,
         memberCount = 1L,
-        rules = null,
+        rules = rules,
         isMember = isMember,
     )
 
@@ -61,66 +64,113 @@ class ChatViewModelStateTest {
     )
 
     @Test
-    fun `a group the viewer is outside of is a gated preview`() {
-        assertTrue(
-            ChatViewModel.State(
-                subject = group(isMember = false),
-                groupAccess = GroupAccess.Blocked(unmet),
-            ).isGatedPreview
+    fun `an eligible non-member reads the transcript with the gate still up`() {
+        val state = ChatViewModel.State(
+            subject = group(isMember = false),
+            groupAccess = GroupAccess.Eligible,
         )
-        // Eligible is still outside: the transcript stays withheld until the join lands, which is
-        // what makes "Join Chat" and "Buy More" the same screen with two buttons.
-        assertTrue(
-            ChatViewModel.State(
-                subject = group(isMember = false),
-                groupAccess = GroupAccess.Eligible,
-            ).isGatedPreview
+        // The contract serves a non-member who satisfies the listener rules in full, so there is
+        // something to read — but reading is not posting, so the Join gate keeps the composer's place.
+        assertFalse(state.obscuresTranscript)
+        assertTrue(state.readsFromOutside)
+        assertTrue(state.replacesComposer)
+    }
+
+    @Test
+    fun `a blocked non-member stays blurred`() {
+        val state = ChatViewModel.State(
+            subject = group(isMember = false),
+            groupAccess = GroupAccess.Blocked(unmet),
         )
+        assertTrue(state.obscuresTranscript)
+        assertFalse(state.readsFromOutside)
+        assertTrue(state.replacesComposer)
+    }
+
+    @Test
+    fun `a balance that drops below the bar brings the blur back`() {
+        // The viewer spends the token with the chat open: the access flow re-emits Blocked, and
+        // nothing about the earlier Eligible may keep the transcript sharp.
+        val eligible = ChatViewModel.State(
+            subject = group(isMember = false),
+            groupAccess = GroupAccess.Eligible,
+        )
+        assertFalse(eligible.obscuresTranscript)
+
+        val blocked = eligible.copy(groupAccess = GroupAccess.Blocked(unmet))
+        assertTrue(blocked.obscuresTranscript)
+        assertTrue(blocked.replacesComposer)
     }
 
     @Test
     fun `the blur is on before the gate has decided anything`() {
-        // The reason this reads the subject and not the access: access arrives through the balance
-        // and staff flows, so it is null for their first frames, while the info card draws as soon
-        // as the subject resolves. Off the access alone, a withheld transcript rendered sharp and
-        // then blurred — which is showing the thing it is meant to withhold.
-        assertTrue(
-            ChatViewModel.State(
-                subject = group(isMember = false),
-                groupAccess = null,
-            ).isGatedPreview
+        // Access arrives through the balance and staff flows, so it is null for their first frames,
+        // while the info card draws as soon as the subject resolves. Unblurring on anything short of
+        // Eligible would render a withheld transcript sharp and then blur it.
+        val pending = ChatViewModel.State(
+            subject = group(isMember = false),
+            groupAccess = null,
         )
+        assertTrue(pending.obscuresTranscript)
+        assertTrue(pending.replacesComposer)
         // The same frame for a member is the other answer, not a pending one: nothing about their
         // balance can put them outside a group they are in.
-        assertFalse(
-            ChatViewModel.State(
-                subject = group(isMember = true),
-                groupAccess = null,
-            ).isGatedPreview
+        val member = ChatViewModel.State(
+            subject = group(isMember = true),
+            groupAccess = null,
         )
+        assertFalse(member.obscuresTranscript)
+        assertFalse(member.replacesComposer)
     }
 
     @Test
-    fun `a member reads the group unblurred`() {
-        assertFalse(
-            ChatViewModel.State(
-                subject = group(isMember = true),
-                groupAccess = GroupAccess.Membered,
-            ).isGatedPreview
+    fun `an eligible non-member of a group with no listener rules stays blurred`() {
+        // No listener rule means no one outside the group may read it (messaging.v1.ViewMode), so
+        // lifting the blur would uncover an empty chat rather than a transcript.
+        val state = ChatViewModel.State(
+            subject = group(isMember = false, rules = null),
+            groupAccess = GroupAccess.Eligible,
         )
-    }
-
-    @Test
-    fun `the gate holds while the join button is showing its checkmark`() {
-        // The roster can confirm membership before the checkmark has been drawn. Holding the gate
-        // for as long as the success is up keeps the blur and the button in place for the beat, so
-        // the composer does not arrive over a transcript that is still blurred.
+        assertTrue(state.obscuresTranscript)
+        assertFalse(state.readsFromOutside)
         assertTrue(
-            ChatViewModel.State(
-                subject = group(isMember = true),
-                groupAccess = GroupAccess.Membered,
-                joinProgress = LoadingSuccessState(success = true),
-            ).isGatedPreview
+            state.copy(
+                subject = group(
+                    isMember = false,
+                    rules = ChatRules(listener = emptyList(), speaker = emptyList()),
+                ),
+            ).obscuresTranscript
+        )
+    }
+
+    @Test
+    fun `a member reads the group with the composer`() {
+        val state = ChatViewModel.State(
+            subject = group(isMember = true),
+            groupAccess = GroupAccess.Membered,
+        )
+        assertFalse(state.obscuresTranscript)
+        assertFalse(state.replacesComposer)
+    }
+
+    @Test
+    fun `the gate holds the composer back while the join button is showing its checkmark`() {
+        // The roster can confirm membership before the checkmark has been drawn. The composer waits
+        // for the success to clear, but the transcript does not: the joiner was eligible, and so was
+        // already reading it sharp.
+        val state = ChatViewModel.State(
+            subject = group(isMember = true),
+            groupAccess = GroupAccess.Membered,
+            joinProgress = LoadingSuccessState(success = true),
+        )
+        assertTrue(state.replacesComposer)
+        assertFalse(state.obscuresTranscript)
+        // Nor does it re-blur the frame before the roster lands, while the viewer is still outside.
+        assertFalse(
+            state.copy(
+                subject = group(isMember = false),
+                groupAccess = GroupAccess.Eligible,
+            ).obscuresTranscript
         )
     }
 
@@ -133,7 +183,7 @@ class ChatViewModelStateTest {
                 subject = group(isMember = true),
                 groupAccess = GroupAccess.Membered,
                 joinProgress = LoadingSuccessState(),
-            ).isGatedPreview
+            ).replacesComposer
         )
     }
 
@@ -147,16 +197,17 @@ class ChatViewModelStateTest {
             ChatViewModel.State(
                 subject = group(isMember = null),
                 groupAccess = null,
-            ).isGatedPreview
+            ).obscuresTranscript
         )
-        // Still withheld once the balance answers: what the button offers is decided by the access,
-        // not the blur.
-        assertTrue(
-            ChatViewModel.State(
-                subject = group(isMember = null),
-                groupAccess = GroupAccess.Eligible,
-            ).isGatedPreview
+        // Still withheld once the balance answers: the access is computed as if the viewer were
+        // outside, and an unknown membership is not a known non-member.
+        val eligible = ChatViewModel.State(
+            subject = group(isMember = null),
+            groupAccess = GroupAccess.Eligible,
         )
+        assertTrue(eligible.obscuresTranscript)
+        assertFalse(eligible.readsFromOutside)
+        assertTrue(eligible.replacesComposer)
     }
 
     @Test
@@ -169,8 +220,11 @@ class ChatViewModelStateTest {
     @Test
     fun `a DM has no gate to render`() {
         // The null access is the whole point: a default would blur every contact conversation.
-        assertFalse(ChatViewModel.State(subject = dm, groupAccess = null).isGatedPreview)
-        assertFalse(ChatViewModel.State().isGatedPreview)
+        for (state in listOf(ChatViewModel.State(subject = dm, groupAccess = null), ChatViewModel.State())) {
+            assertFalse(state.obscuresTranscript)
+            assertFalse(state.replacesComposer)
+            assertFalse(state.readsFromOutside)
+        }
     }
 
     @Test
