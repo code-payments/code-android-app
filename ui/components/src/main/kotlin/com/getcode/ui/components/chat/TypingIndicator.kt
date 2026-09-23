@@ -1,6 +1,7 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
@@ -350,7 +351,8 @@ fun PreviewTypingIndicator() {
                 targetState = users.isNotEmpty(),
                 transitionSpec = {
                     (scaleIn(initialScale = 0.95f, transformOrigin = TransformOrigin(0f, 0.5f)) + fadeIn()) togetherWith
-                            (scaleOut(targetScale = 0.95f, transformOrigin = TransformOrigin(0f, 0.5f)) + fadeOut())
+                            (scaleOut(targetScale = 0.95f, transformOrigin = TransformOrigin(0f, 0.5f)) + fadeOut()) using
+                            SizeTransform(clip = false)
                 },
             ) { show ->
                 if (show) {

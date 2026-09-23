@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
@@ -127,7 +128,10 @@ internal fun UserControlBottomBar(
                             ChatAnimations.typingIndicator,
                             targetScale = 0.95f,
                             transformOrigin = TransformOrigin(0f, 0.5f)
-                        ) + fadeOut(ChatAnimations.typingIndicator))
+                        ) + fadeOut(ChatAnimations.typingIndicator)) using
+                        // The container shrinks to nothing as the indicator leaves; unclipped, the
+                        // indicator fades out whole instead of being cut off by the shrinking bounds.
+                        SizeTransform(clip = false)
             }
         ) { show ->
             if (show) {
