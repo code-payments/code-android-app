@@ -50,6 +50,12 @@ COPIED = "Copied to clipboard"
 SHARED = "Shared to app"
 
 # State, then the amount, then Error: the block every outcome event ends with.
+# People counters: cumulative per-user totals, sent as Mixpanel people properties.
+[counters]
+TIPS = "Tips Received"
+TIPS_VALUE = "Tips Received Value"
+MESSAGES = "Messages Received"
+
 [groups.outcome]
 properties = [
   { key = "State", value = "state" },
