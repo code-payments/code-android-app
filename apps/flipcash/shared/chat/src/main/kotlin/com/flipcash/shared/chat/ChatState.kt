@@ -7,10 +7,9 @@ import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
 data class ChatState(
-    val feed: List<ChatMetadata> = emptyList(),
-    // False until the feed has been read from the database once, so an empty [feed] before then
-    // means "not read yet", not "no chats".
-    val feedLoaded: Boolean = false,
+    // Null until the feed has been read from the database once, so an empty list means "no
+    // chats" and never "not read yet".
+    val feed: List<ChatMetadata>? = null,
     val typingIndicators: Map<ChatId, Set<ActiveTypist>> = emptyMap(),
     val reactionOverlays: Map<ChatId, Map<Long, ReactionSummary>> = emptyMap(),
     val feedSyncState: FeedSyncState = FeedSyncState.Idle,

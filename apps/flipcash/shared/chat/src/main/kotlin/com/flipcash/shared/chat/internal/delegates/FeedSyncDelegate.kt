@@ -37,9 +37,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -119,11 +119,11 @@ class FeedSyncDelegate @Inject constructor(
     override fun feed(vararg chatTypes: ChatType): Flow<List<ChatSummary>> {
         val requested = chatTypes.toSet()
         // Nothing until the database has been read: the chat list shows its empty state for an
-        // emitted empty list, and the state holder's initial empty feed isn't one.
-        return stateHolder.state.filter { it.feedLoaded }.map { state ->
+        // emitted empty list, so it must not see one that only means "not read yet".
+        return stateHolder.state.mapNotNull { it.feed }.map { feed ->
             val selfId = userManager.accountId
             val selfPhone = userManager.profile?.verifiedPhoneNumber
-            state.feed
+            feed
                 .filter { it.type in requested }
                 .filter { isRenderable(it, selfId, selfPhone) }
                 .map { metadata ->
@@ -199,7 +199,7 @@ class FeedSyncDelegate @Inject constructor(
         ) { metadataEntities, membersByChat ->
             buildFeedFromDb(metadataEntities, membersByChat)
         }.onEach { feed ->
-            stateHolder.update { it.copy(feed = feed, feedLoaded = true) }
+            stateHolder.update { it.copy(feed = feed) }
         }.launchIn(scope)
     }
 

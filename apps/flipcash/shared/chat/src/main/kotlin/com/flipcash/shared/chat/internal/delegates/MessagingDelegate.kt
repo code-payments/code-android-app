@@ -391,7 +391,7 @@ class MessagingDelegate @Inject constructor(
         // pointer below a deleted message and leave the chat permanently unread.
         val messageId = messageDataSource.getLatestMessageId(chatId)
             ?: stateHolder.current.feed
-                .firstOrNull { it.chatId == chatId }
+                ?.firstOrNull { it.chatId == chatId }
                 ?.lastMessage?.messageId
             ?: return Result.success(Unit)
         return advanceReadPointer(chatId, messageId)

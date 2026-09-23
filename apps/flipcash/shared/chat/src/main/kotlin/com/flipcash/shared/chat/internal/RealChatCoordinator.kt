@@ -148,7 +148,7 @@ class RealChatCoordinator @Inject constructor(
         // below starts competing with it for CPU (a cold-launch trace had the sync's gRPC work
         // on every core while the Room reads waited to run). Bounded, so a read that never
         // answers delays the sync rather than cancelling it.
-        withTimeoutOrNull(FEED_READ_WAIT) { stateHolder.state.first { it.feedLoaded } }
+        withTimeoutOrNull(FEED_READ_WAIT) { stateHolder.state.first { it.feed != null } }
         syncFeeds()
         eventStreamDelegate.open()
         eventStreamDelegate.startHeartbeat { syncFeeds() }
