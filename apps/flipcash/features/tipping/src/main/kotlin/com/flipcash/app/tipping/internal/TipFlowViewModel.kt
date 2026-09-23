@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.data.Loadable
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.shareable.ShareSheetController
@@ -20,6 +21,7 @@ import com.flipcash.shared.tipping.TippingCoordinator
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -37,6 +39,7 @@ internal class TipFlowViewModel @Inject constructor(
     shareable: ShareSheetController,
     tipCodePreviewCache: TipCodePreviewCache,
     private val resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel<TipFlowViewModel.State, TipFlowViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -93,7 +96,11 @@ internal class TipFlowViewModel @Inject constructor(
             val selfId = userManager.accountId
             val tokensByMint = tokens.associateBy { it.address }
             summaries.map { it.toConversationReference(selfId, tokensByMint, resources) }
-        }.onEach { dispatchEvent(Event.ChatsUpdated(Loadable.Loaded(it))) }.launchIn(viewModelScope)
+        }
+            // Off the main thread: on a cold launch the first mapping lands while the main thread
+            // is drawing the app's first screens, and waiting for it holds the Chats tab blank.
+            .flowOn(dispatchers.Default)
+            .onEach { dispatchEvent(Event.ChatsUpdated(Loadable.Loaded(it))) }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.ShareTipCard>()
