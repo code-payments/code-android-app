@@ -72,6 +72,7 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.splitAroundLinkCard
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
+import com.flipcash.shared.chat.readOnly
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
@@ -567,6 +568,13 @@ internal class ChatViewModel @Inject constructor(
     private val messagePolicy = stateFlow.map { it.messagePolicy }.distinctUntilChanged()
 
     /**
+     * Re-runs the transcript mapping when the viewer joins or leaves, so a message resolved while
+     * they were reading from outside picks up Reply the moment the join lands, rather than on the
+     * next page.
+     */
+    private val viewerCanPost = stateFlow.map { !it.isOutsideGroup }.distinctUntilChanged()
+
+    /**
      * Null for a DM, a map for a group — the distinction the transcript needs, because a DM's
      * counterparty is already named in the title bar and attributing each of their bubbles would be
      * noise. `null` rather than an empty map so the difference survives: an empty map in a group is
@@ -625,7 +633,8 @@ internal class ChatViewModel @Inject constructor(
             pendingMutations,
             messagePolicy,
             senderProfiles,
-        ) { pagingData, mutations, policy, profiles ->
+            viewerCanPost,
+        ) { pagingData, mutations, policy, profiles, canPost ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.flatMapIndexed { index, content ->
@@ -709,7 +718,7 @@ internal class ChatViewModel @Inject constructor(
                         // Resolved once, here, so no menu re-derives it: a later group-role
                         // taxonomy becomes another input to the resolver rather than a branch at
                         // each action site.
-                        capabilities = resolveCapabilities(message, policy),
+                        capabilities = resolveCapabilities(message, policy, canPost = canPost),
                         quote = quote,
                         sender = sender,
                         // Independent of the profile lookup above: the runs have to break by
@@ -2236,10 +2245,13 @@ internal class ChatViewModel @Inject constructor(
                     // The transcript resolved this bubble when it was mapped, which may have been
                     // well inside a window that has since closed. Narrow it again here so the bar
                     // offers what is open now rather than what was open when the row was built.
+                    // The same goes for membership: a viewer who has left since keeps only what a
+                    // reader outside the group may do.
                     val selected = event.bubble.takeUnless { alreadySelected }?.let { bubble ->
+                        val open = bubble.capabilities
+                            .withinWindows(bubble.timestamp, state.messagePolicy)
                         bubble.copy(
-                            capabilities = bubble.capabilities
-                                .withinWindows(bubble.timestamp, state.messagePolicy),
+                            capabilities = if (state.isOutsideGroup) open.readOnly() else open,
                         )
                     }
                     state.copy(

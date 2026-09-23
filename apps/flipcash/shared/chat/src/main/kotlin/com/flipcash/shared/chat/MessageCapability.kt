@@ -107,11 +107,36 @@ data class MessagePolicy(
  * Report follows one rule: anything a participant sent can be reported, and anything the server
  * wrote, or that no longer exists, cannot. Your own messages are left out because reporting one is
  * not a thing anyone does, and a row that is always present is a row people stop reading.
+ *
+ * A viewer who cannot post in the chat — someone reading a group from outside it — keeps only Copy
+ * and Report. Reply, Edit and Delete all post into the chat, and the gate that stands where their
+ * composer would is the only way in.
+ *
+ * @param canPost whether the viewer may post in this chat. False for a viewer outside a group,
+ * including one who has left it and still has messages of their own in the transcript.
  */
 fun resolveCapabilities(
     message: ChatMessage,
     policy: MessagePolicy = MessagePolicy.Default,
     now: Instant = Clock.System.now(),
+    canPost: Boolean = true,
+): Set<MessageCapability> {
+    val resolved = resolveForParticipant(message, policy, now)
+    return if (canPost) resolved else resolved.readOnly()
+}
+
+/**
+ * Drops what a viewer who cannot post may not do. Split out for the same reason as [withinWindows]:
+ * a set resolved while the viewer could post has to narrow at the menu if they have since left.
+ */
+fun Set<MessageCapability>.readOnly(): Set<MessageCapability> = filterTo(mutableSetOf()) {
+    it == MessageCapability.Copy || it == MessageCapability.Report
+}
+
+private fun resolveForParticipant(
+    message: ChatMessage,
+    policy: MessagePolicy,
+    now: Instant,
 ): Set<MessageCapability> {
     val contents = message.content
     if (contents.isEmpty()) return emptySet()
