@@ -121,7 +121,7 @@ internal fun GroupGateBar(
                 enabled = currency != null,
                 onClick = {
                     unmetBalance.mints.firstOrNull()
-                        ?.let { onAction(ChatAction.ViewToken(Mint(it.bytes))) }
+                        ?.let { onAction(ChatAction.ViewToken(Mint(it.bytes), returnAfterBuy = true)) }
                 },
             )
         } else {

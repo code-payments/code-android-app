@@ -73,7 +73,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             // A drill-in from the transcript, so push it: the fade-in-place
                             // expand is the wallet card growing into its own detail, and there
                             // is no card here for it to grow from.
-                            AppRoute.Token.Info(action.mint, asPush = true)
+                            AppRoute.Token.Info(
+                                action.mint,
+                                asPush = true,
+                                returnAfterBuy = action.returnAfterBuy,
+                            )
                         )
                     )
                 }

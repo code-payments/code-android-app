@@ -35,6 +35,7 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.flipcash.app.tokens.internal.components.info.CurrencyInfoTitlePill
@@ -66,6 +67,7 @@ fun TokenInfoScreen(
     shortFall: Fiat?,
     fromDeeplink: Boolean,
     asPush: Boolean = false,
+    returnAfterBuy: Boolean = false,
 ) {
     val navigator = LocalCodeNavigator.current
     val analytics = rememberAnalytics()
@@ -198,9 +200,18 @@ fun TokenInfoScreen(
                 when (screen) {
                     is AppRoute.Token.Swap -> {
                         navigator.navigateForResult<SwapResult>(screen) { result ->
-                            if (result is NavResultOrCanceled.ReturnValue &&
-                                result.value is SwapResult.OpenDeposit) {
-                                navigator.push(AppRoute.Transfers.Deposit(showOtherOptions = false))
+                            if (result !is NavResultOrCanceled.ReturnValue) return@navigateForResult
+                            when (result.value) {
+                                is SwapResult.OpenDeposit ->
+                                    navigator.push(AppRoute.Transfers.Deposit(showOtherOptions = false))
+                                // Only a buy of this currency. Add Money from here also ends in a
+                                // successful Buy, but of USDF to fund this one, and the reader
+                                // still has this purchase to make.
+                                is SwapResult.Success -> {
+                                    val bought = (screen.purpose as? SwapPurpose.Buy)?.mint
+                                    if (returnAfterBuy && bought == mint) navigator.pop()
+                                }
+                                else -> Unit
                             }
                         }
                     }
