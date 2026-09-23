@@ -50,9 +50,9 @@ class ChatListItemContentTypeTest {
     }
 
     @Test
-    fun `a carded bubble does not recycle against a plain text bubble`() {
+    fun `a card row does not recycle against a plain text bubble`() {
         val plain = bubble(MessageContent.Text("https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"))
-        val carded = bubble(plain.content, linkCard = card)
+        val carded = bubble(plain.content, linkCard = card).splitAroundLinkCard().single()
 
         assertNotEquals(plain.itemContentType, carded.itemContentType)
         assertEquals("link-card-bubble", carded.itemContentType)

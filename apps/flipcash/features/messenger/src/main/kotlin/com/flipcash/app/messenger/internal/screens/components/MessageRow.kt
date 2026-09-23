@@ -54,7 +54,7 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.features.messenger.R
 import com.flipcash.shared.chat.ui.ContentBubble
-import com.flipcash.shared.chat.ui.rendersBareEmoji
+import com.flipcash.shared.chat.ui.rendersBare
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
@@ -310,13 +310,14 @@ internal fun MessageRow(
                             }
                             val showReceipt =
                                 shouldShowReceiptLabel(index, item, messages, otherReadPointer)
-                            // An emoji-only message has no bubble, so its "Edited" marker has nowhere
-                            // to sit inside the message and comes out here instead — on the same line
-                            // as the receipt, and ahead of it, so the two read as one trailing note.
-                            // It stands alone on rows that carry no receipt, which is every incoming
-                            // one.
+                            // An emoji-only message, or a card row, has no bubble, so its "Edited"
+                            // marker has nowhere to sit inside the message and comes out here
+                            // instead — on the same line as the receipt, and ahead of it, so the two
+                            // read as one trailing note. It stands alone on rows that carry no
+                            // receipt, which is every incoming one. A split message marks only its
+                            // last row.
                             Row(verticalAlignment = Alignment.Top) {
-                                if (item.isEdited && item.rendersBareEmoji()) {
+                                if (item.isEdited && item.isLastRow && item.rendersBare()) {
                                     Text(
                                         modifier = Modifier.padding(
                                             top = CodeTheme.dimens.grid.x1,

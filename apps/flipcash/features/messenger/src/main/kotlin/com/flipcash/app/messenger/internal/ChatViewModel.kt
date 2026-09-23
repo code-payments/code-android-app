@@ -69,6 +69,7 @@ import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.ReceiptStatus
+import com.flipcash.shared.chat.models.splitAroundLinkCard
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.resolveCapabilities
@@ -589,7 +590,7 @@ internal class ChatViewModel @Inject constructor(
         ) { pagingData, mutations, policy, profiles ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
-                message.content.mapIndexed { index, content ->
+                message.content.flatMapIndexed { index, content ->
                     val enriched = if (content is MessageContent.Cash && content.tokenName.isBlank()) {
                         val token = tokenCoordinator.getTokenMetadata(content.mint).getOrNull()?.token
                         if (token != null) {
@@ -679,6 +680,11 @@ internal class ChatViewModel @Inject constructor(
                         senderId = message.senderId?.takeIf { !message.isFromSelf },
                         linkCard = linkCard,
                     )
+                        // A carded link takes a row of its own, with the prose either side of it
+                        // on rows above and below. Reversed because the list is: this page runs
+                        // newest-first under reverseLayout, so the row drawn lowest goes first.
+                        .splitAroundLinkCard()
+                        .asReversed()
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
                 if (before == null || after == null) return@insertSeparators null
@@ -2145,7 +2151,9 @@ internal class ChatViewModel @Inject constructor(
                 is Event.ChatDeactivated -> { state -> state.copy(isAnonymous = event.isReadOnly) }
                 is Event.MessagePolicyChanged -> { state -> state.copy(messagePolicy = event.policy) }
                 is Event.ToggleMessageSelection -> { state ->
-                    val alreadySelected = state.selection?.itemKey == event.bubble.itemKey
+                    // By message rather than by row: a message split around its card is one
+                    // selection whichever of its rows was pressed.
+                    val alreadySelected = state.selection?.messageKey == event.bubble.messageKey
                     // The transcript resolved this bubble when it was mapped, which may have been
                     // well inside a window that has since closed. Narrow it again here so the bar
                     // offers what is open now rather than what was open when the row was built.

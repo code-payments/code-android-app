@@ -63,6 +63,27 @@ sealed interface ChatListItem {
          * so early on every member's bubble has a null [sender] and two members read as one author.
          */
         val senderId: ID? = null,
+        /**
+         * Which row of a message split around its link card this is, or `null` for a row that is
+         * the whole message. See [splitAroundLinkCard].
+         *
+         * Every row of one message carries the same [messageId], [content] and [capabilities], so
+         * the selection bar, copy, edit, reply, retry and a jump act on the message from whichever
+         * row they start on.
+         */
+        val part: MessagePart? = null,
+        /**
+         * The text a [MessagePart.Leading] or [MessagePart.Trailing] row draws. [content] keeps the
+         * whole message, because that is what Copy and Edit act on.
+         */
+        val partText: String? = null,
+        /** Whether this is the topmost row of its message, which is where a reply's citation goes. */
+        val isFirstRow: Boolean = true,
+        /**
+         * Whether this is the bottommost row of its message, which is where the "Edited" marker and
+         * the receipt go.
+         */
+        val isLastRow: Boolean = true,
     ) : ChatListItem {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the
@@ -105,7 +126,14 @@ sealed interface ChatListItem {
         val isSelectable: Boolean
             get() = capabilities.isNotEmpty()
 
-        override val itemKey: Any = pendingClientIdHex ?: "$messageId-$contentIndex"
+        /**
+         * The message this row draws, shared by every row it is split into. Selection compares on
+         * this rather than on [itemKey], so the whole message stays sharp behind the backdrop.
+         */
+        val messageKey: Any get() = pendingClientIdHex ?: "$messageId-$contentIndex"
+
+        override val itemKey: Any = (pendingClientIdHex ?: "$messageId-$contentIndex")
+            .let { key -> part?.let { "$key#${it.id}" } ?: key }
 
         // A tombstone shares the text bubble's content type on purpose: deleting a message is an
         // in-place update of a row the list already holds, and giving it a type of its own would
@@ -116,7 +144,7 @@ sealed interface ChatListItem {
         // slot to text. Deleting one does drop and re-insert the row, which is right -- the
         // card has to go, and there is no in-place update that removes it.
         override val itemContentType: Any = when {
-            linkCard != null -> "link-card-bubble"
+            part == MessagePart.Card -> "link-card-bubble"
             else -> when (content) {
                 is MessageContent.Text -> "text-bubble"
                 is MessageContent.Deleted -> "text-bubble"
@@ -126,5 +154,63 @@ sealed interface ChatListItem {
                 is MessageContent.System -> "system-message"
             }
         }
+    }
+}
+
+/**
+ * One row of a message the transcript split around its link card, in the order the sender wrote
+ * them. [id] is the suffix on the row's [ChatListItem.itemKey]; iOS uses the same three.
+ */
+enum class MessagePart(val id: String) {
+    /** The text before the link. */
+    Leading("leading"),
+
+    /** The card, drawn bare. */
+    Card("card"),
+
+    /** The text after the link. */
+    Trailing("trailing"),
+}
+
+/**
+ * The rows this bubble draws, top to bottom: the text before its card, the card, and the text after
+ * it, each dropped when it would hold nothing but whitespace. A bubble with no card is one row, as
+ * it always was.
+ *
+ * The whitespace on either side of the link goes with it -- it was the gap around a word that now
+ * has a row of its own. Other links stay in whichever text row they fell in, underlined.
+ *
+ * The reply citation goes on the first row and the "Edited" marker and receipt on the last, so a
+ * split message reads as one message stacked in three pieces rather than as three messages.
+ *
+ * A card whose span does not fit the text is dropped rather than split, and the message renders as
+ * text with its links underlined.
+ */
+fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentBubble> {
+    val card = linkCard ?: return listOf(this)
+    val text = plainText ?: return listOf(copy(linkCard = null))
+    if (card.start < 0 || card.end > text.length || card.start >= card.end) {
+        return listOf(copy(linkCard = null))
+    }
+
+    var leadingEnd = card.start
+    while (leadingEnd > 0 && text[leadingEnd - 1].isWhitespace()) leadingEnd--
+    var trailingStart = card.end
+    while (trailingStart < text.length && text[trailingStart].isWhitespace()) trailingStart++
+
+    val parts = listOfNotNull(
+        text.substring(0, leadingEnd).takeIf { it.isNotBlank() }?.let { MessagePart.Leading to it },
+        MessagePart.Card to null,
+        text.substring(trailingStart).takeIf { it.isNotBlank() }?.let { MessagePart.Trailing to it },
+    )
+
+    return parts.mapIndexed { index, (part, segment) ->
+        copy(
+            part = part,
+            partText = segment,
+            linkCard = card.takeIf { part == MessagePart.Card },
+            isFirstRow = index == 0,
+            isLastRow = index == parts.lastIndex,
+        )
     }
 }
