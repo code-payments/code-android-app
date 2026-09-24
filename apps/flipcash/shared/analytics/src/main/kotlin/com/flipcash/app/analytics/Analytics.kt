@@ -15,9 +15,6 @@ import com.getcode.solana.keys.Mint
 
 interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
     fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair)
-    fun openOnramp(source: Analytics.OnrampSource)
-    fun onrampVerification(step: Analytics.OnrampVerificationStep)
-    fun onrampPurchase(step: Analytics.OnrampPurchaseStep, amount: Fiat? = null)
     fun connectWallet(provider: OnRampProvider.UsesDeeplinks)
     fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat)
     fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks)
@@ -52,9 +49,6 @@ interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
 
 object Analytics {
 
-    enum class OnrampSource { Settings, Balance, Give }
-    enum class OnrampVerificationStep { ShowInfo, EnterPhone, ConfirmPhone, EnterEmail, ConfirmEmail }
-    enum class OnrampPurchaseStep { PresetSelected, EnterCustomAmount, InvokePayment, InvokePaymentCustom, Completed }
     enum class TokenInfoSource { Deeplink, Wallet, Give }
     enum class PurchaseMethod { Reserves, Phantom, Coinbase }
     sealed interface SwapMethod {
@@ -76,10 +70,6 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun action(action: AppAction, source: AppActionSource?) = Unit
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) = Unit
-
-    override fun openOnramp(source: Analytics.OnrampSource) = Unit
-    override fun onrampVerification(step: Analytics.OnrampVerificationStep) = Unit
-    override fun onrampPurchase(step: Analytics.OnrampPurchaseStep, amount: Fiat?) = Unit
 
     override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
     override fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat) = Unit

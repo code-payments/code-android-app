@@ -7,7 +7,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.flipcash.app.analytics.Analytics
+import com.flipcash.analytics.OnrampStep
+import com.flipcash.analytics.events.OnrampEvents
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.internal.phone.PhoneCodeScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
@@ -43,7 +44,7 @@ fun PhoneCodeContent(
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {
-        analytics.onrampVerification(Analytics.OnrampVerificationStep.ConfirmPhone)
+        analytics.track(OnrampEvents.step(OnrampStep.CONFIRM_PHONE))
     }
 
     LaunchedEffect(viewModel) {

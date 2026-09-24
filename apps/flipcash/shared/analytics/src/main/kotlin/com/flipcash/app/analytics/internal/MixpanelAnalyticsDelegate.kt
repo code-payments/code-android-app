@@ -86,54 +86,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.PaidForAccount(price, currency, owner))
     }
 
-    override fun openOnramp(source: Analytics.OnrampSource) {
-        val event = when (source) {
-            Analytics.OnrampSource.Settings -> AnalyticsEvent.OnRampOpenEvent.Settings
-            Analytics.OnrampSource.Balance -> AnalyticsEvent.OnRampOpenEvent.Balance
-            Analytics.OnrampSource.Give -> AnalyticsEvent.OnRampOpenEvent.Give
-        }
-        track(event)
-    }
-
-    override fun onrampVerification(step: Analytics.OnrampVerificationStep) {
-        val event = when (step) {
-            Analytics.OnrampVerificationStep.ShowInfo -> AnalyticsEvent.OnRampVerificationEvent.ShowInfo
-            Analytics.OnrampVerificationStep.EnterPhone -> AnalyticsEvent.OnRampVerificationEvent.EnterPhone
-            Analytics.OnrampVerificationStep.ConfirmPhone -> AnalyticsEvent.OnRampVerificationEvent.ConfirmPhone
-            Analytics.OnrampVerificationStep.EnterEmail -> AnalyticsEvent.OnRampVerificationEvent.EnterEmail
-            Analytics.OnrampVerificationStep.ConfirmEmail -> AnalyticsEvent.OnRampVerificationEvent.ConfirmEmail
-        }
-        track(event)
-    }
-
-    override fun onrampPurchase(
-        step: Analytics.OnrampPurchaseStep,
-        amount: Fiat?
-    ) {
-        val event = when (step) {
-            Analytics.OnrampPurchaseStep.PresetSelected -> AnalyticsEvent.OnRampPurchaseEvent.PresetSelected
-            Analytics.OnrampPurchaseStep.EnterCustomAmount -> AnalyticsEvent.OnRampPurchaseEvent.EnterCustomAmount
-            Analytics.OnrampPurchaseStep.InvokePayment -> amount?.let {
-                AnalyticsEvent.OnRampPurchaseEvent.InvokePayment(
-                    it
-                )
-            }
-
-            Analytics.OnrampPurchaseStep.InvokePaymentCustom -> amount?.let {
-                AnalyticsEvent.OnRampPurchaseEvent.InvokePaymentCustom(
-                    it
-                )
-            }
-
-            Analytics.OnrampPurchaseStep.Completed -> amount?.let {
-                AnalyticsEvent.OnRampPurchaseEvent.Completed(
-                    it
-                )
-            }
-        } ?: return
-        track(event)
-    }
-
     override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) {
         track(AnalyticsEvent.WalletConnect(provider))
     }

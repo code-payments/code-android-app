@@ -212,40 +212,6 @@ internal sealed interface AnalyticsEvent {
         override fun toProperties() = mapOf("Provider" to providerName)
     }
 
-    sealed interface OnRampOpenEvent : AnalyticsEvent {
-        data object Settings : OnRampOpenEvent { override val name = "Onramp: Opened From Settings" }
-        data object Balance : OnRampOpenEvent { override val name = "Onramp: Opened From Balance" }
-        data object Give : OnRampOpenEvent { override val name = "Onramp: Opened From Give" }
-    }
-
-    sealed interface OnRampVerificationEvent : AnalyticsEvent {
-        data object ShowInfo : OnRampVerificationEvent { override val name = "Onramp: Show Verification Info" }
-        data object EnterPhone : OnRampVerificationEvent { override val name = "Onramp: Show Enter Phone" }
-        data object ConfirmPhone : OnRampVerificationEvent { override val name = "Onramp: Show Confirm Phone" }
-        data object EnterEmail : OnRampVerificationEvent { override val name = "Onramp: Show Enter Email" }
-        data object ConfirmEmail : OnRampVerificationEvent { override val name = "Onramp: Show Confirm Email" }
-    }
-
-    sealed interface OnRampPurchaseEvent : AnalyticsEvent {
-        data object PresetSelected : OnRampPurchaseEvent { override val name = "Onramp: Amount Selected" }
-        data object EnterCustomAmount : OnRampPurchaseEvent { override val name = "Onramp: Enter Custom Amount" }
-
-        data class InvokePayment(val amount: Fiat) : OnRampPurchaseEvent {
-            override val name = "Onramp: Invoke Payment"
-            override fun toProperties() = amount.asProperties()
-        }
-
-        data class InvokePaymentCustom(val amount: Fiat) : OnRampPurchaseEvent {
-            override val name = "Onramp: Invoke Payment Custom"
-            override fun toProperties() = amount.asProperties()
-        }
-
-        data class Completed(val amount: Fiat) : OnRampPurchaseEvent {
-            override val name = "Onramp: Completed"
-            override fun toProperties() = amount.asProperties()
-        }
-    }
-
     sealed interface OpenTokenInfoEvent : AnalyticsEvent {
         val mint: Mint
         override fun toProperties() = mapOf("Mint" to mint.base58())
