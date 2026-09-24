@@ -4,7 +4,7 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.events.AddMoneyEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
@@ -80,7 +80,7 @@ internal class MenuScreenViewModel @Inject constructor(
     releaseStageProvider: ReleaseStageProvider,
     purchaseMethodController: PurchaseMethodController,
     totalBalance: TotalBalanceProvider,
-    analytics: FlipcashAnalyticsService,
+    analytics: FlipcashAnalytics,
     private val tippingCoordinator: TippingCoordinator,
     private val tipCodePreviewCache: TipCodePreviewCache,
     private val shareable: ShareSheetController,

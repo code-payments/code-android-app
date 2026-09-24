@@ -17,7 +17,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.analytics.events.AccountEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.contacts.device.DeviceContactLookup
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.contacts.device.ScopeAwareContactReader
@@ -83,7 +83,7 @@ class ContactCoordinator @Inject constructor(
     private val contactDataSource: ContactDataSource,
     private val userManager: UserManager,
     private val dispatchers: DispatcherProvider,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
 ) : SessionListener, DefaultLifecycleObserver {
 
     companion object {

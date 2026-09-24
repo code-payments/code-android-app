@@ -1,7 +1,7 @@
 package com.flipcash.app.session.internal.delegates
 
 import app.cash.turbine.test
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.Scannable
@@ -44,7 +44,7 @@ class DelegateEventEmissionTest {
 
     private val billController = mockk<BillController>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val analytics = mockk<FlipcashAnalytics>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val walletReveal = mockk<WalletRevealCoordinator>(relaxed = true)
     private val networkObserver = mockk<NetworkConnectivityListener>(relaxed = true)

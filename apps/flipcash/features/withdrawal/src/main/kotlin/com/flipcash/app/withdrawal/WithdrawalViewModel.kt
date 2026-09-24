@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.tokens.TokenCoordinator
@@ -75,7 +75,7 @@ internal class WithdrawalViewModel @Inject constructor(
     transactionController: TransactionOperations,
     clipboardManager: ClipboardManager,
     activityFeedCoordinator: ActivityFeedCoordinator,
-    analytics: FlipcashAnalyticsService,
+    analytics: FlipcashAnalytics,
     private val tokenCoordinator: TokenCoordinator,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<WithdrawalViewModel.State, WithdrawalViewModel.Event>(

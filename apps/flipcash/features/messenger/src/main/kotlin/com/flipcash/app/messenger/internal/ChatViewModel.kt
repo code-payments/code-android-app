@@ -18,7 +18,7 @@ import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.analytics.events.ChatEvents
 import com.flipcash.analytics.events.TransferEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
@@ -163,7 +163,7 @@ internal class ChatViewModel @Inject constructor(
     private val purchaseMethodController: PurchaseMethodController,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val clipboardManager: ClipboardManager,
     private val userFlags: UserFlagsCoordinator,
     private val linkCardClassifier: LinkCardClassifier,

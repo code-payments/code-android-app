@@ -3,7 +3,7 @@ package com.flipcash.app.session.internal.delegates
 import com.flipcash.analytics.State
 import com.flipcash.analytics.events.ScanEvents
 import com.flipcash.analytics.events.TransferEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
@@ -57,7 +57,7 @@ class CodeScanDelegate @Inject constructor(
     private val billController: BillController,
     private val tokenCoordinator: TokenCoordinator,
     private val walletReveal: WalletRevealCoordinator,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val vibrator: Vibrator,
     private val userManager: UserManager,
     private val dispatchers: DispatcherProvider,

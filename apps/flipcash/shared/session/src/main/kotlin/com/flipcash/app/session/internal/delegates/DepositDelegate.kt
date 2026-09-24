@@ -2,7 +2,7 @@ package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.events.AddMoneyEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.session.DepositOperations
@@ -36,7 +36,7 @@ class DepositDelegate @Inject constructor(
     private val usdcSweep: UsdcDepositSweep,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     dispatchers: DispatcherProvider,
 ) : DepositOperations {
 

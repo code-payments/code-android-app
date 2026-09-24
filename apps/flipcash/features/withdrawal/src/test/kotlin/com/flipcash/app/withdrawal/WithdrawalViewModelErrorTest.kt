@@ -2,7 +2,7 @@ package com.flipcash.app.withdrawal
 
 import android.content.ClipboardManager
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
@@ -38,7 +38,7 @@ class WithdrawalViewModelErrorTest {
     private val transactionController = mockk<TransactionOperations>(relaxed = true)
     private val clipboardManager = mockk<ClipboardManager>(relaxed = true)
     private val activityFeedCoordinator = mockk<ActivityFeedCoordinator>(relaxed = true)
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val analytics = mockk<FlipcashAnalytics>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
 

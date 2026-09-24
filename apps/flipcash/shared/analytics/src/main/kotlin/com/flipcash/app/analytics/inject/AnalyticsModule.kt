@@ -1,7 +1,6 @@
 package com.flipcash.app.analytics.inject
 
 import com.flipcash.app.analytics.FlipcashAnalytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.TokenSymbolResolver
 import com.flipcash.app.analytics.internal.MixpanelAnalyticsDelegate
 import com.mixpanel.android.mpmetrics.MixpanelAPI
@@ -14,11 +13,8 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 object AnalyticsModule {
     @Provides
-    fun providesAnalyticsService(
+    fun providesFlipcashAnalytics(
         mixpanelAPI: MixpanelAPI,
         tokenSymbolResolver: TokenSymbolResolver,
-    ): FlipcashAnalyticsService = MixpanelAnalyticsDelegate(mixpanelAPI, tokenSymbolResolver)
-
-    @Provides
-    fun providesFlipcashAnalytics(service: FlipcashAnalyticsService): FlipcashAnalytics = service
+    ): FlipcashAnalytics = MixpanelAnalyticsDelegate(mixpanelAPI, tokenSymbolResolver)
 }

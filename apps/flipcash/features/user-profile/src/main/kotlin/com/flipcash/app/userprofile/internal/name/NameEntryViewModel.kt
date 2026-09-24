@@ -4,7 +4,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.events.DisplayNameEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.extensions.flatMapResult
@@ -38,7 +38,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @HiltViewModel
 class NameEntryViewModel @Inject constructor(
     private val userManager: UserManager,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val moderationController: ModerationController,
     private val profileController: ProfileController,
     private val resources: ResourceHelper,

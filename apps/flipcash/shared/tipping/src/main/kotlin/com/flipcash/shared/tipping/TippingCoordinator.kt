@@ -1,6 +1,6 @@
 package com.flipcash.shared.tipping
 
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.tipping.OwnTipCard
@@ -74,7 +74,7 @@ class TippingCoordinator @Inject constructor(
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val resources: ResourceHelper,
     private val purchaseMethodController: PurchaseMethodController,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val vibrator: Vibrator,
 ) : TipSelectionHolder {
     /** The signed-in user's id ([UserManager.accountId]), or null if unavailable. */

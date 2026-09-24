@@ -3,7 +3,7 @@ package com.flipcash.app.session.internal.delegates
 import com.flipcash.analytics.CashLinkChoice
 import com.flipcash.analytics.State
 import com.flipcash.analytics.events.TransferEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
@@ -75,7 +75,7 @@ class GiftCardSharingDelegate @Inject constructor(
     private val toastController: SessionToastController,
     private val tokenCoordinator: TokenCoordinator,
     private val transactionController: TransactionController,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val vibrator: Vibrator,
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,

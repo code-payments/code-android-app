@@ -3,7 +3,7 @@ package com.flipcash.app.session.internal.delegates
 import com.flipcash.analytics.State
 import com.flipcash.analytics.events.DeeplinkEvents
 import com.flipcash.analytics.events.TransferEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
@@ -52,7 +52,7 @@ class CashLinkDelegate @Inject constructor(
     private val stateHolder: SessionStateHolder,
     private val billController: BillController,
     private val tokenCoordinator: TokenCoordinator,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val resources: ResourceHelper,
     private val userManager: UserManager,
 ) : CashLinkOperations, CashLinkClaims {

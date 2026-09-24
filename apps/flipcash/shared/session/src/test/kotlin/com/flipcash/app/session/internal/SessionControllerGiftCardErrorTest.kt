@@ -1,6 +1,6 @@
 package com.flipcash.app.session.internal
 
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.Scannable
@@ -52,7 +52,7 @@ class SessionControllerGiftCardErrorTest {
     private val resources = FakeResourceHelper()
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val walletReveal = mockk<WalletRevealCoordinator>(relaxed = true)
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val analytics = mockk<FlipcashAnalytics>(relaxed = true)
     private val networkObserver = mockk<NetworkConnectivityListener>(relaxed = true)
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
     private val dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher())

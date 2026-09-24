@@ -1,7 +1,7 @@
 package com.flipcash.shared.chat.internal.delegates
 
 import com.flipcash.analytics.PeopleCounter
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -85,7 +85,7 @@ class EventStreamDelegate @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val userManager: UserManager,
     private val stateHolder: ChatStateHolder,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val exchange: Exchange,
 ) : EventStreamOperations {
 

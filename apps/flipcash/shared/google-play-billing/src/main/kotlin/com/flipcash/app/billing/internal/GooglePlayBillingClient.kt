@@ -22,7 +22,7 @@ import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.consumePurchase
 import com.flipcash.analytics.events.AccountEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.getcode.utils.getPublicKeyBase58
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.billing.BillingClientConnection
@@ -62,7 +62,7 @@ internal class GooglePlayBillingClient(
     @ApplicationContext context: Context,
     private val userManager: UserManager,
     private val purchases: PurchaseController,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val dispatchers: DispatcherProvider,
 ) : BillingClient, PurchasesUpdatedListener {
 

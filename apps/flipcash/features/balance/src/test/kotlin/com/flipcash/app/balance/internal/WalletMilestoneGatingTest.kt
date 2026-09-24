@@ -1,7 +1,7 @@
 package com.flipcash.app.balance.internal
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import com.flipcash.app.analytics.StubFlipcashAnalytics
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
@@ -67,7 +67,7 @@ class WalletMilestoneGatingTest {
         userFlags = mockk<UserFlagsCoordinator>(relaxed = true),
         dispatchers = dispatchers,
         purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true),
-        analytics = StubFlipcashAnalytics(),
+        analytics = FlipcashAnalytics.None,
         chatCoordinator = chatCoordinator,
         feedCoordinator = feedCoordinator,
         tokenCoordinator = tokenCoordinator,

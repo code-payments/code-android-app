@@ -1,7 +1,7 @@
 package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.analytics.events.ScanEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.tipping.OwnTipCard
 import com.flipcash.app.core.tipping.TipCardOwner
@@ -49,7 +49,7 @@ import javax.inject.Singleton
 @Singleton
 class TipCardDelegate @Inject constructor(
     private val tippingCoordinator: TippingCoordinator,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,
 ) : TipCardOperations {

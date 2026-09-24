@@ -11,7 +11,7 @@ import com.flipcash.analytics.events.SwapEvents
 import com.flipcash.analytics.events.WalletEvents
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.analytics.Button
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.onResult
@@ -122,7 +122,7 @@ class SwapViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val purchaseMethodController: PurchaseMethodController,
     private val coinbaseOnRampController: CoinbaseOnRampController,
     private val phantomWalletController: PhantomWalletController,

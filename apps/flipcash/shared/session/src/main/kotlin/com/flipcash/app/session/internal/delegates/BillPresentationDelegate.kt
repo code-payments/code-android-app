@@ -2,7 +2,7 @@ package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.analytics.State
 import com.flipcash.analytics.events.TransferEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.Scannable
@@ -61,7 +61,7 @@ class BillPresentationDelegate @Inject constructor(
     private val toastController: SessionToastController,
     private val tokenCoordinator: TokenCoordinator,
     private val walletReveal: WalletRevealCoordinator,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val vibrator: Vibrator,
     private val resources: ResourceHelper,
     private val networkObserver: NetworkConnectivityListener,

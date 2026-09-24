@@ -13,12 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import com.flipcash.app.analytics.StubFlipcashAnalytics
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.permissions.internal.notifications.components.AnimatedNotificationPreview
 import com.flipcash.app.permissions.internal.notifications.components.NotificationPermissionBottomBar
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.permissions.R
-import com.getcode.libs.analytics.LocalAnalytics
+import com.flipcash.app.analytics.LocalAnalytics
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.permissions.PermissionHandle
@@ -70,7 +70,7 @@ fun NotificationScreenContent(
 @Preview
 private fun PreviewNotificationPermissionScreen() {
     FlipcashPreview(showBackground = true) {
-        CompositionLocalProvider(LocalAnalytics provides StubFlipcashAnalytics()) {
+        CompositionLocalProvider(LocalAnalytics provides FlipcashAnalytics.None) {
             ProvideTestPermissions(granted = emptySet()) {
                 val state = rememberNotificationPermission()
                 NotificationScreenContent(state) { }

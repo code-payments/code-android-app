@@ -2,7 +2,7 @@ package com.flipcash.app.funding.internal
 
 import com.flipcash.analytics.AddMoneyMethod
 import com.flipcash.analytics.events.AddMoneyEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
@@ -54,7 +54,7 @@ class InternalPurchaseMethodController @Inject constructor(
     exchange: Exchange,
     private val resources: ResourceHelper,
     private val userManager: UserManager,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
 ) : PurchaseMethodController {
 
     private val scope = CoroutineScope(SupervisorJob())

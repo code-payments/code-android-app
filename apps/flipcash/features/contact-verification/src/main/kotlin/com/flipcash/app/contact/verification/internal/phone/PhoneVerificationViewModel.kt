@@ -4,7 +4,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.events.AccountEvents
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.CountryLocale
@@ -52,7 +52,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private val featureFlags: FeatureFlagController,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
 ) : BaseViewModel<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
