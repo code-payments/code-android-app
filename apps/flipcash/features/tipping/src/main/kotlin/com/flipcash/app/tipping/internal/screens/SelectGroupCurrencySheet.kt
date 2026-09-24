@@ -84,8 +84,7 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
         TokenList(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(padding)
-                .padding(horizontal = CodeTheme.dimens.inset),
+                .padding(padding),
             tokens = tokenState.tokens,
             styling = rememberTokenBalanceRowStyling(
                 // Pill balances, dividers and a radio mark per row, which is
@@ -100,7 +99,11 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
             header = {
                 Column {
                     AllCurrenciesCard(
-                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
+                        modifier = Modifier.padding(
+                            start = CardMargin,
+                            end = CardMargin,
+                            top = CodeTheme.dimens.grid.x3,
+                        ),
                         selected = state.currency == GroupCurrency.All,
                         total = state.totalBalance,
                         amount = state.amount,
@@ -178,7 +181,7 @@ private fun AllCurrenciesCard(
             )
             .clickable(onClick = onClick)
             .padding(
-                horizontal = CodeTheme.dimens.grid.x3,
+                horizontal = CodeTheme.dimens.inset - CardMargin,
                 vertical = CodeTheme.dimens.grid.x3,
             ),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
@@ -249,6 +252,11 @@ internal fun AllCurrenciesIcon(
 }
 
 private val CardCornerRadius = 12.dp
+
+// The token rows pad their contents by `inset`. The card's margin and its own padding add up to the
+// same, so its icon and check line up with the rows' icons and radios.
+private val CardMargin: Dp
+    @Composable get() = CodeTheme.dimens.grid.x2
 private val CardOutline = White.copy(alpha = 0.15f)
 private val AllCurrenciesDiscSize = 32.dp
 private val AllCurrenciesIconSize = 20.dp
