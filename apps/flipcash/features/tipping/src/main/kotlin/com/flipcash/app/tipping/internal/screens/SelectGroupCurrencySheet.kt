@@ -101,7 +101,7 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
             header = {
                 Column {
                     AllCurrenciesCard(
-                        modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
                         selected = state.currency == GroupCurrency.All,
                         total = state.totalBalance,
                         amount = state.amount,
