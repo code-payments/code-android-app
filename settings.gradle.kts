@@ -196,6 +196,7 @@ include(
 
     // Internal libs
     ":libs:analytics",
+    ":libs:analytics-events",
     ":libs:biometrics",
     ":libs:code-detection",
     ":libs:codes:kikcode",
@@ -327,6 +328,7 @@ val kmpUnitTestModules = setOf(
     // (macOS .dylib / Linux .so); it can't load on the Linux CI runner. Its ed25519.json
     // parity is gated via the iOS cinterop path (macOS) instead — so it's excluded here.
     ":libs:encryption:utils",
+    ":libs:analytics-events",
     ":libs:reporting",
 )
 // ed25519 and mnemonic excluded: both pull in the JNI-backed Ed25519Kmp Android actual for their

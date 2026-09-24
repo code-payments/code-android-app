@@ -12,6 +12,9 @@ on:
       - 'libs/currency-math/**'
       - 'libs/encryption/**'
       - 'libs/reporting/**'
+      - 'libs/analytics-events/**'
+      - 'build-logic/convention/src/main/kotlin/AnalyticsCatalogueConventionPlugin.kt'
+      - 'build-logic/convention/src/main/kotlin/com/getcode/buildlogic/analytics/**'
       - 'gradle/libs.versions.toml'
       - '.github/workflows/shared-core-tests.yml'
 
@@ -65,6 +68,7 @@ jobs:
       - name: Run the Kotlin tests on the iOS simulator target
         run: |
           ./gradlew \
+            :libs:analytics-events:iosSimulatorArm64Test \
             :libs:codes:kikcode:iosSimulatorArm64Test \
             :libs:currency-math:discrete-curve:iosSimulatorArm64Test \
             :libs:encryption:base58:iosSimulatorArm64Test \

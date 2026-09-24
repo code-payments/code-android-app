@@ -46,6 +46,7 @@ kotlin {
             export(project(":libs:encryption:mnemonic"))
             export(project(":libs:currency-math:discrete-curve"))
             export(project(":libs:reporting"))
+            export(project(":libs:analytics-events"))
         }
     }
 
@@ -61,6 +62,7 @@ kotlin {
                 api(project(":libs:encryption:mnemonic"))
                 api(project(":libs:currency-math:discrete-curve"))
                 api(project(":libs:reporting"))
+                api(project(":libs:analytics-events"))
             }
         }
     }
