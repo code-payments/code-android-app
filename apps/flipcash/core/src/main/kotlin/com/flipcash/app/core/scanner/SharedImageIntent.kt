@@ -31,3 +31,36 @@ fun sharedImageUri(intent: Intent): Uri? {
         else -> null
     }
 }
+
+/**
+ * Takes the shared image out of [intent], leaving nothing behind that the rest of the app could
+ * act on.
+ *
+ * Returns what [sharedImageUri] returns, and additionally strips two things from [intent] itself.
+ * Both strips run for any share, including one carrying no image at all, because the sender
+ * chooses what the intent holds:
+ *
+ * - **`data`.** The share filters are the only ones on `MainActivity` that don't pin a scheme and
+ *   host; a filter naming just a mime type accepts `content:` and `file:`. So a sender can hang an
+ *   arbitrary `Uri` off an otherwise ordinary image share, and the deeplink listener reads
+ *   `intent.data` and routes it. That route is tapped-link handling, which is allowed to open
+ *   `/login` — the thing the scan path refuses via `DeeplinkType.isScannable`. Clearing `data`
+ *   stops a share reaching it at all.
+ * - **`EXTRA_STREAM`.** `MainActivity` is `singleTask`, so this intent becomes the task's own and
+ *   is redelivered to `onCreate` on every restore from recents after a process death. Without the
+ *   strip, the same image is scanned again each time, long after the user shared it.
+ *
+ * Apply this before anything else reads the intent — in particular before `super.onNewIntent`,
+ * which is where the deeplink listener runs.
+ */
+fun consumeSharedImage(intent: Intent): Uri? {
+    if (intent.action != Intent.ACTION_SEND && intent.action != Intent.ACTION_SEND_MULTIPLE) {
+        return null
+    }
+
+    val uri = sharedImageUri(intent)
+    // Not `data = null`: that clears the type too, and the type is what `sharedImageUri` keys off.
+    intent.setDataAndType(null, intent.type)
+    intent.removeExtra(Intent.EXTRA_STREAM)
+    return uri
+}

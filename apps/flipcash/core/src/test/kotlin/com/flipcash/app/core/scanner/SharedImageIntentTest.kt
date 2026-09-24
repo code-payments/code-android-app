@@ -52,9 +52,60 @@ class SharedImageIntentTest {
         assertNull(sharedImageUri(intent))
     }
 
+    @Test
+    fun consumingAShareClearsTheDataUriItCameWith() {
+        // The share filters are the only ones on `MainActivity` that don't pin a scheme and host,
+        // so a sender can attach any `Uri` it likes alongside the image. Left in place it reaches
+        // the deeplink listener, which -- unlike the scan path -- will open `/login`.
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            setDataAndType(Uri.parse(HOSTILE_LOGIN_LINK), "image/jpeg")
+            putExtra(Intent.EXTRA_STREAM, IMAGE_URI)
+        }
+
+        assertEquals(IMAGE_URI, consumeSharedImage(intent))
+        assertNull(intent.data)
+    }
+
+    @Test
+    fun consumingAShareCarryingNoImageStillClearsItsDataUri() {
+        // The strip can't be conditional on finding an image: a sender that wants the deeplink,
+        // not the scan, simply omits `EXTRA_STREAM`.
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            setDataAndType(Uri.parse(HOSTILE_LOGIN_LINK), "image/jpeg")
+        }
+
+        assertNull(consumeSharedImage(intent))
+        assertNull(intent.data)
+    }
+
+    @Test
+    fun aConsumedShareYieldsNothingASecondTime() {
+        // `MainActivity` is `singleTask`, so this intent stays the task's own and is redelivered
+        // to `onCreate` on every restore from recents after a process death.
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/jpeg"
+            putExtra(Intent.EXTRA_STREAM, IMAGE_URI)
+        }
+
+        assertEquals(IMAGE_URI, consumeSharedImage(intent))
+        assertNull(consumeSharedImage(intent))
+    }
+
+    @Test
+    fun consumingLeavesAViewIntentAlone() {
+        // `VIEW` belongs to the App Link filters. Stripping it here would break every tapped
+        // `flipcash.com` link in the app.
+        val link = Uri.parse(LINK)
+        val intent = Intent(Intent.ACTION_VIEW, link)
+
+        assertNull(consumeSharedImage(intent))
+        assertEquals(link, intent.data)
+    }
+
     private companion object {
         val IMAGE_URI: Uri = Uri.parse("content://media/external/images/media/42")
         val OTHER_IMAGE_URI: Uri = Uri.parse("content://media/external/images/media/43")
         const val LINK = "https://send.flipcash.com/c/#/e=abc"
+        const val HOSTILE_LOGIN_LINK = "content://evil.example/login/#/e=attacker"
     }
 }

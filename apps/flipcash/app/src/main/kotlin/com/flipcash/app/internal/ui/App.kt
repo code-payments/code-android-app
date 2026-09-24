@@ -317,17 +317,35 @@ internal fun App(
                                 // inside the scanner itself.
                                 val pendingSharedImage by sharedImageChannel.pending.collectAsStateWithLifecycle()
                                 LaunchedEffect(pendingSharedImage, currentRoute) {
-                                    val uri = pendingSharedImage ?: return@LaunchedEffect
+                                    if (pendingSharedImage == null) return@LaunchedEffect
 
-                                    if (currentRoute is AppRoute.Loading) {
-                                        // Cold start — wait until navigation leaves Loading
-                                        // before routing to the Scan tab.
+                                    val authState = userState.authState
+
+                                    // Cold start, or a session still resolving — hold the image
+                                    // until navigation and auth have both settled rather than
+                                    // deciding on a state that is about to change.
+                                    if (currentRoute is AppRoute.Loading ||
+                                        authState == AuthState.Unknown ||
+                                        authState == AuthState.Authenticating
+                                    ) {
                                         return@LaunchedEffect
                                     }
 
-                                    if (userState.authState == AuthState.LoggedOut) {
-                                        // No Scan tab to route to, and a shared image isn't worth
-                                        // carrying across a sign-in.
+                                    // Already there: `Scanner()` is composed and takes it from
+                                    // here. Returning also keeps this effect, which re-runs on
+                                    // every route change, from navigating a second time.
+                                    if (currentRoute is AppRoute.Tabs.Scanner) {
+                                        return@LaunchedEffect
+                                    }
+
+                                    // Anything short of a ready session on an ordinary route has
+                                    // no Scan tab to reach, and `navigateAll` clears the back
+                                    // stack: routing a user out of onboarding or off the
+                                    // restriction screen strands them with nothing to come back
+                                    // to. A shared image is not worth that, so drop it.
+                                    if (authState != AuthState.Ready ||
+                                        currentRoute is AppRoute.Main.AppRestricted
+                                    ) {
                                         sharedImageChannel.clear()
                                         return@LaunchedEffect
                                     }

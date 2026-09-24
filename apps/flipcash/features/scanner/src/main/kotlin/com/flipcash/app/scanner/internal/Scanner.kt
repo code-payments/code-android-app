@@ -215,8 +215,15 @@ internal fun Scanner() {
     // gets it as far as navigating to this tab.
     val sharedImageChannel = LocalSharedImageChannel.current
     val pendingSharedImage by sharedImageChannel.pending.collectAsStateWithLifecycle()
-    LaunchedEffect(pendingSharedImage) {
+    LaunchedEffect(pendingSharedImage, biometricsState) {
         val uri = pendingSharedImage ?: return@LaunchedEffect
+        // Held rather than dropped while the app lock is up. The other two entry points are
+        // already covered — the camera checks `passed` below, and the gallery button sits under
+        // the blocking overlay — but this one arrives from outside the app, and the overlay draws
+        // over this entry rather than replacing it, so effects underneath still run. Without the
+        // check a share would run its side effects, up to signing and submitting a grab, on a
+        // locked app.
+        if (!biometricsState.passed) return@LaunchedEffect
         // Cleared before the call, not after: a failed scan must not be retried on every
         // recomposition, and a rotation mid-scan must not start a second search.
         sharedImageChannel.clear()
