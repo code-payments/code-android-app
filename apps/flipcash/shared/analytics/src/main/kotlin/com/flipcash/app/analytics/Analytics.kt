@@ -3,7 +3,6 @@ package com.flipcash.app.analytics
 import androidx.compose.runtime.Composable
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
 import com.getcode.libs.analytics.AppAction
@@ -15,11 +14,6 @@ import com.getcode.solana.keys.Mint
 
 interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
     fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair)
-    fun connectWallet(provider: OnRampProvider.UsesDeeplinks)
-    fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat)
-    fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks)
-    fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks)
-    fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks)
     fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint)
     fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable? = null)
     fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable? = null)
@@ -70,12 +64,6 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun action(action: AppAction, source: AppActionSource?) = Unit
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) = Unit
-
-    override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
-    override fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat) = Unit
-    override fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
-    override fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks) = Unit
-    override fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks) = Unit
 
     override fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint) = Unit
     override fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable?) = Unit

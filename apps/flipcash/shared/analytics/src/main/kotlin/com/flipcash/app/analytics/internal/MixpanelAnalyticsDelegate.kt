@@ -10,7 +10,6 @@ import com.flipcash.app.analytics.asProperties
 import com.flipcash.app.analytics.propertyValue
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
@@ -84,29 +83,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) {
         track(AnalyticsEvent.PaidForAccount(price, currency, owner))
-    }
-
-    override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) {
-        track(AnalyticsEvent.WalletConnect(provider))
-    }
-
-    override fun amountSelectedForWalletTransfer(
-        provider: OnRampProvider.UsesDeeplinks,
-        amount: Fiat
-    ) {
-        track(AnalyticsEvent.WalletRequestAmount(provider, amount))
-    }
-
-    override fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks) {
-        track(AnalyticsEvent.WalletSubmitTransaction(provider))
-    }
-
-    override fun walletTransactionFailed(provider: OnRampProvider.UsesDeeplinks) {
-        track(AnalyticsEvent.WalletTransactionFailed(provider))
-    }
-
-    override fun walletTransactionCancelled(provider: OnRampProvider.UsesDeeplinks) {
-        track(AnalyticsEvent.WalletTransactionCancelled(provider))
     }
 
     override fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint) {

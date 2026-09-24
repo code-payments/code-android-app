@@ -4,12 +4,18 @@ import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.analytics.AddMoneyMethod
 import com.flipcash.analytics.PropertyValue
 import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.WalletProvider
 import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.analytics.events.WalletEvents
 import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.onramp.CoinbaseOnRampController
+import com.flipcash.app.onramp.DeeplinkError
+import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.services.user.UserManager
@@ -19,6 +25,7 @@ import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Currency
@@ -221,6 +228,114 @@ class SwapViewModelErrorTest {
 
         verify(exactly = 0) { usdcDepositSweep.execute(any()) }
     }
+
+    // --- Wallet (Phantom) events -----------------------------------------------------------
+
+    @Test
+    fun `connecting phantom successfully tracks Wallet Connect`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        coEvery { phantomWalletController.connectWallet() } returns Result.success(Unit)
+
+        val vm = createViewModel()
+        vm.dispatchEvent(SwapViewModel.Event.StartPhantomCeremony)
+        advanceUntilIdle()
+
+        assertEquals(
+            WalletEvents.connect(OnRampProvider.Phantom.analytics),
+            analytics.events.single(),
+        )
+    }
+
+    @Test
+    fun `user rejecting the phantom connect tracks Wallet Cancel`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        coEvery { phantomWalletController.connectWallet() } returns Result.failure(
+            DeeplinkOnRampError.WalletProvidedError(
+                DeeplinkError.UserRejectedRequest,
+                message = "User cancelled connection",
+            )
+        )
+
+        val vm = createViewModel()
+        vm.dispatchEvent(SwapViewModel.Event.StartPhantomCeremony)
+        advanceUntilIdle()
+
+        assertEquals(
+            WalletEvents.cancel(OnRampProvider.Phantom.analytics),
+            analytics.events.single(),
+        )
+    }
+
+    @Test
+    fun `a failed send during the phantom connect tracks Wallet Transactions Failed`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            coEvery { phantomWalletController.connectWallet() } returns Result.failure(
+                DeeplinkOnRampError.FailedToSendTransaction(code = 7L, message = "boom")
+            )
+
+            val vm = createViewModel()
+            vm.dispatchEvent(SwapViewModel.Event.StartPhantomCeremony)
+            advanceUntilIdle()
+
+            assertEquals(
+                WalletEvents.transactionsFailed(OnRampProvider.Phantom.analytics),
+                analytics.events.single { it.name == "Wallet: Transactions Failed" },
+            )
+        }
+
+    @Test
+    fun `confirming a phantom transaction tracks Wallet Request Amount with the token amount`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            every { exchange.preferredRate } returns Rate.oneToOne
+
+            val verifiedFiat = VerifiedFiat(
+                LocalFiat.fromUsd(usdf = Fiat(12.0, CurrencyCode.USD)),
+                null,
+            )
+            coEvery {
+                verifiedFiatCalculator.compute(any(), any(), any(), any(), any())
+            } returns Result.success(verifiedFiat)
+
+            val token = mockk<Token>(relaxed = true) {
+                every { address } returns Mint.usdf
+            }
+            val tokenWithBalance = mockk<TokenWithBalance>(relaxed = true) {
+                every { this@mockk.token } returns token
+            }
+
+            // Fail the swap after the pre-sign callback fires, rather than succeeding — a
+            // successful WithSwapId result drives an unrelated swap-polling collector that
+            // would need its own mocking and isn't part of what this test is checking.
+            val swapId = SwapId(ByteArray(32) { 0 }.toList())
+            coEvery {
+                phantomWalletController.executeSwap(any(), any(), any(), any())
+            } coAnswers {
+                val onBeforeSign = arg<(suspend (SwapId) -> Unit)?>(3)
+                onBeforeSign?.invoke(swapId)
+                Result.failure(DeeplinkOnRampError.FailedToCreateTransaction(message = "boom"))
+            }
+
+            val vm = createViewModel()
+            vm.dispatchEvent(
+                SwapViewModel.Event.OnPurposeChanged(
+                    SwapPurpose.Buy(Mint.usdf, fundingSource = FundingSource.Phantom)
+                )
+            )
+            vm.dispatchEvent(SwapViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
+            vm.amountDelegate.setAmount(12.0)
+            vm.dispatchEvent(SwapViewModel.Event.ConfirmPhantomTransaction)
+            advanceUntilIdle()
+
+            assertEquals(
+                WalletEvents.requestAmount(
+                    OnRampProvider.Phantom.analytics,
+                    verifiedFiat.localFiat.underlyingTokenAmount.analytics,
+                ),
+                analytics.events.single { it.name == "Wallet: Request Amount" },
+            )
+        }
 
     @Test
     fun `a failed Coinbase delivery tracks Add Money as a failure`() = runTest(mainCoroutineRule.dispatcher) {

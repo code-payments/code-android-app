@@ -5,6 +5,7 @@ import com.flipcash.analytics.AddMoneyMethod
 import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.analytics.events.WalletEvents
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.Button
@@ -1828,7 +1829,7 @@ class SwapViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateBuyState(success = true))
                     dispatchEvent(Event.PhantomConnected)
                     dispatchEvent(Event.UpdateBuyState())
-                    analytics.connectWallet(OnRampProvider.Phantom)
+                    analytics.track(WalletEvents.connect(OnRampProvider.Phantom.analytics))
                 }.onFailure {
                     dispatchEvent(Event.UpdateBuyState())
                     handlePhantomError(it)
@@ -1846,9 +1847,11 @@ class SwapViewModel @Inject constructor(
                 fee = LocalFiat.Zero,
                 token = token,
                 onBeforeSign = {
-                    analytics.amountSelectedForWalletTransfer(
-                        OnRampProvider.Phantom,
-                        amount.localFiat.underlyingTokenAmount
+                    analytics.track(
+                        WalletEvents.requestAmount(
+                            OnRampProvider.Phantom.analytics,
+                            amount.localFiat.underlyingTokenAmount.analytics,
+                        )
                     )
                     addMoneyMethod?.let { method ->
                         analytics.track(
@@ -1880,10 +1883,10 @@ class SwapViewModel @Inject constructor(
             ?: DeeplinkOnRampError.FailedToCreateTransaction(message = error.message, cause = error)
 
         if (deeplinkError is DeeplinkOnRampError.WalletProvidedError && deeplinkError.code == DeeplinkError.UserRejectedRequest.code) {
-            analytics.walletTransactionCancelled(OnRampProvider.Phantom)
+            analytics.track(WalletEvents.cancel(OnRampProvider.Phantom.analytics))
         } else {
             if (deeplinkError is DeeplinkOnRampError.FailedToSendTransaction) {
-                analytics.walletTransactionFailed(OnRampProvider.Phantom)
+                analytics.track(WalletEvents.transactionsFailed(OnRampProvider.Phantom.analytics))
             }
             addMoneyMethod?.let { method ->
                 analytics.track(

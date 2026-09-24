@@ -3,7 +3,6 @@ package com.flipcash.app.analytics
 import androidx.core.net.toUri
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -172,44 +171,6 @@ internal sealed interface AnalyticsEvent {
 
     data class DeclaredOutcome(override val id: ID) : PoolEvent {
         override val name = "Pool: Declared Outcome"
-    }
-
-    sealed interface WalletEvent : AnalyticsEvent {
-        val provider: OnRampProvider.UsesDeeplinks
-        val providerName get() = when (provider) {
-            OnRampProvider.Phantom -> "Phantom"
-        }
-    }
-
-    data class WalletConnect(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
-        override val name = "Wallet: Connect"
-        override fun toProperties() = mapOf("Provider" to providerName)
-    }
-
-    data class WalletRequestAmount(
-        override val provider: OnRampProvider.UsesDeeplinks,
-        val amount: Fiat
-    ) : WalletEvent {
-        override val name = "Wallet: Request Amount"
-        override fun toProperties() = buildMap {
-            put("Provider", providerName)
-            putAll(amount.asProperties())
-        }
-    }
-
-    data class WalletSubmitTransaction(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
-        override val name = "Wallet: Transactions Submitted"
-        override fun toProperties() = mapOf("Provider" to providerName)
-    }
-
-    data class WalletTransactionFailed(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
-        override val name = "Wallet: Transactions Failed"
-        override fun toProperties() = mapOf("Provider" to providerName)
-    }
-
-    data class WalletTransactionCancelled(override val provider: OnRampProvider.UsesDeeplinks) : WalletEvent {
-        override val name = "Wallet: Cancel"
-        override fun toProperties() = mapOf("Provider" to providerName)
     }
 
     sealed interface OpenTokenInfoEvent : AnalyticsEvent {
