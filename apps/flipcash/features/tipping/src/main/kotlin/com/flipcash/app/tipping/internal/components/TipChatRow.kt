@@ -1,7 +1,6 @@
 package com.flipcash.app.tipping.internal.components
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.requiredSize
@@ -11,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.theme.FlipcashThemeWrapper
@@ -46,14 +46,28 @@ internal fun TipChatRow(
             )
         },
         title = {
-            Text(
+            Row(
                 modifier = Modifier.weight(1f),
-                // Name, or the `@handle` when there isn't one — the row's single line of identity
-                // (node 9442:103645 has the preview under it, so there is nowhere else to put it).
-                text = chat.name.orEmpty(),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textMain,
-            )
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+            ) {
+                Text(
+                    // Takes only what it needs, so the bell trails the name itself rather than
+                    // the far edge, and a long name ellipsizes before it pushes the bell off.
+                    modifier = Modifier.weight(1f, fill = false),
+                    // Name, or the `@handle` when there isn't one — the row's single line of
+                    // identity (node 9442:103645 has the preview under it, so there is nowhere
+                    // else to put it).
+                    text = chat.name.orEmpty(),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textMain,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                // An audible chat emits no indicator at all, so the gap is not spent either.
+                MutedIndicator(viewerState = chat.viewerState)
+            }
 
             ChatRowTrailing(
                 lastActivity = chat.lastActivity,
@@ -62,31 +76,17 @@ internal fun TipChatRow(
             )
         },
         subtitle = {
-            // The mute sits at the end of this line rather than the one above it, where the
-            // timestamp and unread badge already compete for the trailing corner. It reads as the
-            // bottom of a column of chat-level state, and matches where iOS draws it.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                // An audible chat emits no indicator at all, so the gap is not spent either and
-                // the preview keeps the full width.
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-            ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    ChatRowSubtitle(
-                        isTyping = chat.isTyping,
-                        preview = chat.lastMessagePreview,
-                        hasMessages = chat.hasMessages,
-                        fallback = {
-                            // Blank rather than absent: a chat with a message the row cannot
-                            // preview still occupies both lines, so it doesn't jump in height
-                            // against its neighbours.
-                            SubtitleText("")
-                        }
-                    )
+            ChatRowSubtitle(
+                isTyping = chat.isTyping,
+                preview = chat.lastMessagePreview,
+                hasMessages = chat.hasMessages,
+                fallback = {
+                    // Blank rather than absent: a chat with a message the row cannot preview
+                    // still occupies both lines, so it doesn't jump in height against its
+                    // neighbours.
+                    SubtitleText("")
                 }
-
-                MutedIndicator(viewerState = chat.viewerState)
-            }
+            )
         },
         showDivider = showDivider,
         onClick = onClick,

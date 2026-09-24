@@ -55,6 +55,8 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SwipeAction
 import com.getcode.ui.components.SwipeActionRow
+import com.getcode.ui.components.SwipeRevealGroup
+import com.getcode.ui.components.rememberSwipeRevealGroup
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
@@ -71,6 +73,8 @@ fun ChatsScreen() {
 
     val chats = state.chats
     val listState = rememberLazyListState()
+    // One row open at a time: swiping another row closes the one left revealed.
+    val revealGroup = rememberSwipeRevealGroup()
 
     CodeScaffold(
         // The list runs the full height and passes under the title bar, which fades it out against
@@ -143,6 +147,7 @@ fun ChatsScreen() {
                     // The same sheet the chat and group profiles open, so the list offers exactly
                     // the durations they do, and unmuting is its "Never" row rather than a toggle.
                     onMute = { chat -> navigator.push(AppRoute.Messaging.MuteChat(chat.chatId)) },
+                    revealGroup = revealGroup,
                 )
             }
         }
@@ -201,6 +206,7 @@ private fun LazyListScope.tipChatItems(
     chats: List<ConversationReference>,
     onClick: (ConversationReference) -> Unit,
     onMute: (ConversationReference) -> Unit,
+    revealGroup: SwipeRevealGroup,
 ) {
     // Keyed by chat so a row's swipe state stays with its chat when new activity reorders the list.
     itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
@@ -208,6 +214,7 @@ private fun LazyListScope.tipChatItems(
             isMuted = rememberIsMuted(chat.viewerState),
             onMute = { onMute(chat) },
             stateKey = chat.chatId,
+            revealGroup = revealGroup,
         ) {
             TipChatRow(
                 chat = chat,
@@ -234,6 +241,7 @@ private fun MuteSwipeRow(
     isMuted: Boolean,
     onMute: () -> Unit,
     stateKey: Any,
+    revealGroup: SwipeRevealGroup,
     content: @Composable () -> Unit,
 ) {
     val label = stringResource(
@@ -243,8 +251,9 @@ private fun MuteSwipeRow(
     SwipeActionRow(
         actions = listOf(
             SwipeAction(
-                // Neutral rather than the delete red: nothing is lost by it.
-                background = CodeTheme.colors.surfaceVariant,
+                // The profile's unverified badge treatment rather than the delete red: nothing is
+                // lost by it.
+                background = CodeTheme.colors.warning.copy(alpha = 0.15f),
                 onTriggered = onMute,
                 resetOnDismiss = true,
             ) {
@@ -255,7 +264,7 @@ private fun MuteSwipeRow(
                         Icons.Outlined.NotificationsOff
                     },
                     contentDescription = label,
-                    tint = CodeTheme.colors.textMain,
+                    tint = CodeTheme.colors.warning,
                     modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
                 )
             }
@@ -265,6 +274,7 @@ private fun MuteSwipeRow(
             customActions = listOf(CustomAccessibilityAction(label) { onMute(); true })
         },
         stateKey = stateKey,
+        revealGroup = revealGroup,
         content = content,
     )
 }
