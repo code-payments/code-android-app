@@ -8,7 +8,6 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import com.getcode.utils.getPublicKeyBase58
@@ -173,44 +172,6 @@ internal sealed interface AnalyticsEvent {
         override val name = "Pool: Declared Outcome"
     }
 
-    sealed interface TokenTransactionEvent : AnalyticsEvent {
-        val mint: Mint
-        val amount: Fiat
-        val error: Throwable?
-
-        override fun toProperties() = buildMap {
-            put("Mint", mint.base58())
-            putAll(amount.asProperties())
-            error?.let { put("Error", it.message.orEmpty()) }
-        }
-
-        sealed interface Purchase : TokenTransactionEvent {
-            data class Reserves(override val mint: Mint, override val amount: Fiat, override val error: Throwable? = null) : Purchase {
-                override val name = "Token Purchase With Reserves"
-            }
-            data class Phantom(override val mint: Mint, override val amount: Fiat, override val error: Throwable? = null) : Purchase {
-                override val name = "Token Purchase With Phantom"
-            }
-            data class Coinbase(override val mint: Mint, override val amount: Fiat, override val error: Throwable? = null) : Purchase {
-                override val name = "Token Purchase With Coinbase"
-            }
-        }
-
-        data class Sell(
-            override val mint: Mint,
-            override val amount: Fiat,
-            val feeAmount: Fiat,
-            override val error: Throwable? = null
-        ) : TokenTransactionEvent {
-            override val name = "Token Sell"
-            override fun toProperties() = buildMap {
-                put("Mint", mint.base58())
-                putAll(amount.asProperties())
-                put("Fee", feeAmount.decimalValue.toString())
-                error?.let { put("Error", it.message.orEmpty()) }
-            }
-        }
-    }
 }
 
 internal fun LocalFiat.asProperties(): Map<String, String> {

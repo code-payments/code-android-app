@@ -2,10 +2,13 @@ package com.flipcash.app.tokens.ui
 
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.analytics.AddMoneyMethod
+import com.flipcash.analytics.Amount
 import com.flipcash.analytics.PropertyValue
+import com.flipcash.analytics.PurchaseMethod
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.WalletProvider
 import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.analytics.events.SwapEvents
 import com.flipcash.analytics.events.WalletEvents
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.analytics.analytics
@@ -35,6 +38,7 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.utils.generate
@@ -159,7 +163,9 @@ class SwapViewModelErrorTest {
                 Result.failure(RuntimeException("buy failed"))
         }
 
-        val token = mockk<Token>(relaxed = true)
+        val token = mockk<Token>(relaxed = true) {
+            every { address } returns Mint.usdf
+        }
         val tokenWithBalance = mockk<TokenWithBalance>(relaxed = true) {
             every { this@mockk.token } returns token
         }
@@ -168,10 +174,28 @@ class SwapViewModelErrorTest {
         val vm = createViewModel()
         vm.dispatchEvent(SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Buy(mockk(relaxed = true))))
         vm.dispatchEvent(SwapViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
+        // A straight reserves buy funds itself from the target token; without this the
+        // ViewModel short-circuits before ever calling transactionController.buy.
+        vm.dispatchEvent(SwapViewModel.Event.OnFundingTokenResolved(tokenWithBalance))
         vm.dispatchEvent(SwapViewModel.Event.ProceedWithPurchase(amount))
         advanceUntilIdle()
 
         assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })
+
+        val result = analytics.events.single { it.name == "Token Purchase With Reserves" }
+        assertIs<PropertyValue.Number>(result.properties["Fiat"])
+        // The amount block is the net of the entry and its fee; only its shape is fixed here.
+        val amountKeys = setOf("Fiat", "Currency", "USDC", "Quarks")
+        val expected = SwapEvents.purchase(
+            PurchaseMethod.RESERVES,
+            Mint.usdf.base58(),
+            amount = Amount(fiat = 0.0, currency = "", usdc = 0.0, quarks = 0),
+            error = "buy failed",
+        )
+        assertEquals(
+            expected.copy(properties = expected.properties - amountKeys),
+            result.copy(properties = result.properties - amountKeys),
+        )
     }
 
     @Test
@@ -197,6 +221,22 @@ class SwapViewModelErrorTest {
         advanceUntilIdle()
 
         assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })
+
+        val result = analytics.events.single { it.name == "Token Sell" }
+        assertIs<PropertyValue.Number>(result.properties["Fee"])
+        // The amount and fee are computed off launchpad metadata the relaxed token mock doesn't
+        // model; only their shape is fixed here.
+        val amountKeys = setOf("Fiat", "Currency", "USDC", "Quarks", "Fee")
+        val expected = SwapEvents.sell(
+            mint = Mint.usdf.base58(),
+            amount = Amount(fiat = 0.0, currency = "", usdc = 0.0, quarks = 0),
+            fee = 0.0,
+            error = "sell failed",
+        )
+        assertEquals(
+            expected.copy(properties = expected.properties - amountKeys),
+            result.copy(properties = result.properties - amountKeys),
+        )
     }
 
     @Test

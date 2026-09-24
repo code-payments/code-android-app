@@ -9,13 +9,9 @@ import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.model.financial.CurrencyCode
-import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.Mint
 
 interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
     fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair)
-    fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable? = null)
-    fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable? = null)
     fun tipCardScanned()
 
     /** An image was picked from the gallery and the still-image search started. */
@@ -40,19 +36,6 @@ interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
     }
 }
 
-object Analytics {
-
-    enum class PurchaseMethod { Reserves, Phantom, Coinbase }
-    sealed interface SwapMethod {
-        enum class Buy(val with: PurchaseMethod) : SwapMethod {
-            Reserves(PurchaseMethod.Reserves),
-            Phantom(PurchaseMethod.Phantom),
-            Coinbase(PurchaseMethod.Coinbase)
-        }
-        data object Sell : SwapMethod
-    }
-}
-
 class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun track(event: com.flipcash.analytics.AnalyticsEvent) = Unit
     override fun increment(counter: com.flipcash.analytics.PeopleCounter, amount: Double) = Unit
@@ -62,9 +45,6 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun action(action: AppAction, source: AppActionSource?) = Unit
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) = Unit
-
-    override fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable?) = Unit
-    override fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable?) = Unit
 
     override fun tipCardScanned() = Unit
     override fun galleryImagePicked() = Unit

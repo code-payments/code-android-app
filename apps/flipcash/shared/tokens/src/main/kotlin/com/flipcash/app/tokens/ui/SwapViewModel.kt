@@ -3,11 +3,12 @@ package com.flipcash.app.tokens.ui
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.AddMoneyMethod
 import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.PurchaseMethod as AnalyticsPurchaseMethod
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.analytics.events.SwapEvents
 import com.flipcash.analytics.events.WalletEvents
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
-import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.analytics
@@ -1789,34 +1790,36 @@ class SwapViewModel @Inject constructor(
     }
 
     private fun trackTransaction(token: Token, error: Throwable? = null) {
-        val method = when (val purpose = stateFlow.value.purpose) {
+        val purchaseMethod = when (val purpose = stateFlow.value.purpose) {
             is SwapPurpose.Buy -> when (purpose.fundingSource) {
-                FundingSource.Phantom -> Analytics.SwapMethod.Buy.Phantom
-                FundingSource.Coinbase -> Analytics.SwapMethod.Buy.Coinbase
-                else -> Analytics.SwapMethod.Buy.Reserves
+                FundingSource.Phantom -> AnalyticsPurchaseMethod.PHANTOM
+                FundingSource.Coinbase -> AnalyticsPurchaseMethod.COINBASE
+                else -> AnalyticsPurchaseMethod.RESERVES
             }
 
-            else -> Analytics.SwapMethod.Sell
+            else -> null
         }
 
-        when (method) {
-            Analytics.SwapMethod.Sell -> {
-                analytics.sell(
-                    amount = netTransferAmount,
-                    feeAmount = feeAmount,
-                    mint = token.address,
-                    error = error
-                )
-            }
+        val errorMessage = error?.analytics
 
-            is Analytics.SwapMethod.Buy -> {
-                analytics.buy(
-                    method = method.with,
-                    amount = netTransferAmount,
-                    mint = token.address,
-                    error = error
+        if (purchaseMethod != null) {
+            analytics.track(
+                SwapEvents.purchase(
+                    method = purchaseMethod,
+                    mint = token.address.analytics,
+                    amount = netTransferAmount.analytics,
+                    error = errorMessage,
                 )
-            }
+            )
+        } else {
+            analytics.track(
+                SwapEvents.sell(
+                    mint = token.address.analytics,
+                    amount = netTransferAmount.analytics,
+                    fee = feeAmount.decimalValue,
+                    error = errorMessage,
+                )
+            )
         }
     }
 

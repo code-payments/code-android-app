@@ -2,7 +2,6 @@ package com.flipcash.app.analytics.internal
 
 import com.flipcash.analytics.PeopleCounter
 import com.flipcash.analytics.PropertyValue
-import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.TokenSymbolResolver
@@ -14,9 +13,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
 import com.getcode.opencode.model.financial.CurrencyCode
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.services.flipcash.BuildConfig
-import com.getcode.solana.keys.Mint
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
@@ -83,38 +80,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) {
         track(AnalyticsEvent.PaidForAccount(price, currency, owner))
-    }
-
-    override fun buy(
-        method: Analytics.PurchaseMethod,
-        mint: Mint,
-        amount: Fiat,
-        error: Throwable?
-    ) {
-        val event = when (method) {
-            Analytics.PurchaseMethod.Reserves -> AnalyticsEvent.TokenTransactionEvent.Purchase.Reserves(
-                mint,
-                amount,
-                error
-            )
-
-            Analytics.PurchaseMethod.Phantom -> AnalyticsEvent.TokenTransactionEvent.Purchase.Phantom(
-                mint,
-                amount,
-                error
-            )
-
-            Analytics.PurchaseMethod.Coinbase -> AnalyticsEvent.TokenTransactionEvent.Purchase.Coinbase(
-                mint,
-                amount,
-                error
-            )
-        }
-        track(event)
-    }
-
-    override fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable?) {
-        track(AnalyticsEvent.TokenTransactionEvent.Sell(mint, amount, feeAmount, error))
     }
 
     override fun tipCardScanned() {
