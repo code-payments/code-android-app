@@ -1,158 +1,83 @@
-# The analytics event catalogue: every event both apps can send, and the value
-# vocabularies they use. The build generates the builder objects and value enums from
-# this file into build/generated/analytics/commonMain (see
-# build-logic/.../analytics/KotlinEmitter.kt); nothing generated is checked in.
-# AnalyticsEvent.kt and Amount.kt stay hand-written.
+# The analytics event catalogue: every event both apps can send to Mixpanel, and the
+# properties each one carries. EVENTS.md, next to this file, is the same catalogue as a
+# readable page. To ask for an event without editing this file, open an issue with the
+# "Analytics event" form.
 #
-# To add an event:
-#   1. Add a [[domains.<Domain>Events.events]] entry: `builder`, `event`, `params`,
-#      `properties`, and `doc` or `drift` where they apply. `event` and a `format`
-#      value may name a parameter as {param}; an enum parameter sends its wire value.
-#      `{ group = "amount" }` and `{ group = "outcome" }` expand in place.
-#   2. Add a test to src/commonTest that asserts the event name and properties as
-#      string literals. Never read the expected strings back from the enums: the
-#      literal is what stops a catalogue edit from renaming an event by accident.
-#   3. A new domain or enum also needs a typealias in
+# To add an event, copy an [[event]] entry below and change it:
+#
+#   [[event]]
+#   domain = "Transfer"                     the part of the app it belongs to
+#   name = "Grab Bill"                      the event name exactly as Mixpanel shows it
+#   properties = [
+#     { name = "Grab Time", type = "duration", optional = true },
+#     { group = "outcome" },
+#   ]
+#
+# Each property has a `name` (the key Mixpanel shows) and a `type`:
+#   text       words, such as a mint address or an error message
+#   yes/no     true or false
+#   count      a whole number
+#   decimal    a number with a fraction, such as a zoom level or a fee
+#   duration   a length of time, sent in milliseconds
+#   a list     one value from a list in the Lists section, such as ChatType
+#
+# `optional = true` means the app may leave the property out; without it, the property
+# is sent every time. `{ group = "outcome" }` and `{ group = "amount" }` add the same
+# block of properties every outcome or amount event sends (see Groups).
+#
+# An event name can include a list value, such as "Token Purchase With {method}". Say
+# which list with `placeholders = { method = "PurchaseMethod" }`; a {placeholder} that
+# isn't listed there is text. A property can be fixed text around a value with
+# `format`, such as { name = "Error", format = "Failed to parse deeplink => {url}" }.
+#
+# `description` explains the event. `drift` records how iOS differs today, until the two
+# apps agree.
+#
+# The build checks every entry and stops with a message naming the event and what to
+# change. One it may ask for is `builder`, the name engineers call the event by. It
+# comes from the event name, so "Add Money: Opened" becomes `opened`; set `builder`
+# when two events would get the same one, or when the name gives none.
+#
+# For engineers: the build generates the builder objects and value enums from this file
+# into build/generated/analytics/commonMain (see build-logic/.../analytics). Nothing
+# generated is checked in except EVENTS.md. AnalyticsEvent.kt and Amount.kt stay
+# hand-written. `param` renames a property's parameter, and `order` lists the parameters
+# in a different order than the properties give them.
+#   1. Add a test to src/commonTest that asserts the event name and properties as string
+#      literals. Never read the expected strings back from the enums: the literal is what
+#      stops a catalogue edit from renaming an event by accident.
+#   2. A new domain or list also needs a typealias in
 #      kmp/shared-core/spm/Sources/SharedCoreKit/AnalyticsEvents.swift.
-#   4. iOS gets the event only from a flipcash-shared-core-spm release: after the
-#      change merges, run the Publish SharedCore workflow with the next minor version.
-#
-# A `drift` note records how iOS differs today and is emitted as a "DRIFT:" KDoc line.
-# The generator rejects unknown keys, unsent parameters and duplicate properties or
-# builders; its tests are in build-logic/convention/src/test.
+#   3. iOS gets the event only from a flipcash-shared-core-spm release: after the change
+#      merges, run the Publish SharedCore workflow with the next minor version.
+# The generator's tests are in build-logic/convention/src/test.
 
 package = "com.flipcash.analytics"
 
-# Chat
+# ---------------------------------------------------------------------------------------
+# Lists: the values a list-typed property can take. The left side is the name engineers
+# use; the right side is the text Mixpanel receives.
+# ---------------------------------------------------------------------------------------
 
-[enums.ChatType]
-doc = "The `Chat Type` property."
-
-[enums.ChatType.cases]
+[lists.ChatType]
+description = "The `Chat Type` property."
+[lists.ChatType.values]
 CONTACT = "Contact"
 TIP = "Tip"
 GROUP = "Group"
 UNKNOWN = "Unknown"
 
-[[domains.ChatEvents.events]]
-builder = "sentMessage"
-event = "Sent Message"
-params = ["chatType: ChatType", "error: String?"]
-properties = [
-  { key = "Chat Type", value = "chatType" },
-  { key = "Error", value = "error" },
-]
-
-[[domains.ChatEvents.events]]
-builder = "tipReceived"
-event = "Tip Received"
-params = ["chatType: ChatType", "amount: Amount"]
-properties = [
-  { key = "Chat Type", value = "chatType" },
-  { group = "amount" },
-]
-drift = "iOS sends Exchange Rate and no USDC (see Amount)."
-
-[[domains.ChatEvents.events]]
-builder = "messageReceived"
-event = "Message Received"
-params = ["chatType: ChatType"]
-properties = [{ key = "Chat Type", value = "chatType" }]
-
-# Transfers
-
-[enums.State]
-doc = "The `State` property on an event that reports an outcome."
-
-[enums.State.cases]
+[lists.State]
+description = "The `State` property on an event that reports an outcome."
+[lists.State.values]
 SUCCESS = "Success"
 FAILURE = "Failure"
 
-[enums.CashLinkChoice.cases]
+[lists.CashLinkChoice.values]
 COPIED = "Copied to clipboard"
 SHARED = "Shared to app"
 
-# State, then the amount, then Error: the block every outcome event ends with.
-# People counters: cumulative per-user totals, sent as Mixpanel people properties.
-[counters]
-TIPS = "Tips Received"
-TIPS_VALUE = "Tips Received Value"
-MESSAGES = "Messages Received"
-
-[groups.outcome]
-properties = [
-  { key = "State", value = "state" },
-  { group = "amount" },
-  { key = "Error", value = "error" },
-]
-
-[[domains.TransferEvents.events]]
-builder = "grabBillStart"
-event = "Grab Bill Start"
-
-[[domains.TransferEvents.events]]
-builder = "giveBillStart"
-event = "Give Bill Start"
-
-[[domains.TransferEvents.events]]
-builder = "grabBill"
-event = "Grab Bill"
-params = ["state: State", "amount: Amount?", "grabTimeMillis: Long?", "error: String?"]
-properties = [
-  { key = "Grab Time", value = "grabTimeMillis" },
-  { group = "outcome" },
-]
-drift = "iOS sends Grab Time in seconds, not milliseconds, and on failure sends only Fiat and Currency of the amount (see Amount)."
-
-[[domains.TransferEvents.events]]
-builder = "giveBill"
-event = "Give Bill"
-params = ["state: State", "amount: Amount?", "error: String?"]
-properties = [{ group = "outcome" }]
-drift = "iOS sends Exchange Rate and no USDC (see Amount)."
-
-[[domains.TransferEvents.events]]
-builder = "withdrawal"
-event = "Withdrawal"
-params = ["state: State", "amount: Amount?", "error: String?"]
-properties = [{ group = "outcome" }]
-drift = "iOS sends Exchange Rate and no USDC (see Amount)."
-
-[[domains.TransferEvents.events]]
-builder = "sendCashLink"
-event = "Send Cash Link"
-params = ["state: State", "amount: Amount?", "choice: CashLinkChoice?", "app: String?", "error: String?"]
-properties = [
-  { key = "Cash Link Choice", value = "choice" },
-  { key = "App", value = "app" },
-  { group = "outcome" },
-]
-drift = "iOS sends no Cash Link Choice or App, and sends Exchange Rate and no USDC (see Amount). Android never sends Failure."
-
-[[domains.TransferEvents.events]]
-builder = "receiveCashLink"
-event = "Receive Cash Link"
-params = ["state: State", "amount: Amount?", "error: String?"]
-properties = [{ group = "outcome" }]
-drift = "iOS sends Exchange Rate and no USDC (see Amount)."
-
-[[domains.TransferEvents.events]]
-builder = "sentCash"
-event = "Sent Cash"
-params = ["state: State", "amount: Amount?", "error: String?"]
-properties = [{ group = "outcome" }]
-drift = "iOS sends Exchange Rate and no USDC (see Amount)."
-
-[[domains.TransferEvents.events]]
-builder = "sentTip"
-event = "Sent Tip"
-params = ["state: State", "amount: Amount?", "error: String?"]
-properties = [{ group = "outcome" }]
-drift = "iOS sends Exchange Rate and no USDC (see Amount)."
-
-# Add money
-
-[enums.AddMoneySource.cases]
+[lists.AddMoneySource.values]
 MENU = "Menu"
 GIVE_SHORTFALL = "Give Shortfall"
 BUY_SHORTFALL = "Buy Shortfall"
@@ -161,309 +86,42 @@ CHAT = "Chat"
 SCANNER = "Scanner"
 BALANCE = "Balance"
 
-[enums.AddMoneyMethod.cases]
+[lists.AddMoneyMethod.values]
 COINBASE = "Coinbase"
 PHANTOM = "Phantom"
 OTHER_WALLET = "Other Wallet"
 RESERVES = { value = "Reserves", drift = "iOS has no Reserves method." }
 
-[[domains.AddMoneyEvents.events]]
-builder = "opened"
-event = "Add Money: Opened"
-params = ["source: AddMoneySource"]
-properties = [{ key = "Source", value = "source" }]
-
-[[domains.AddMoneyEvents.events]]
-builder = "methodSelected"
-event = "Add Money: Method Selected"
-params = ["method: AddMoneyMethod"]
-properties = [{ key = "Method", value = "method" }]
-drift = "iOS has no Reserves method."
-
-[[domains.AddMoneyEvents.events]]
-builder = "amountConfirmed"
-event = "Add Money: Amount Confirmed"
-params = ["method: AddMoneyMethod", "amount: Amount"]
-properties = [
-  { key = "Method", value = "method" },
-  { group = "amount" },
-]
-drift = "iOS sends Exchange Rate and no USDC (see Amount)."
-
-[[domains.AddMoneyEvents.events]]
-builder = "paymentInvoked"
-event = "Add Money: Payment Invoked"
-params = ["method: AddMoneyMethod", "amount: Amount"]
-properties = [
-  { key = "Method", value = "method" },
-  { group = "amount" },
-]
-drift = "iOS sends Exchange Rate and no USDC (see Amount). Android's USDC carries the native amount here."
-
-[[domains.AddMoneyEvents.events]]
-builder = "addressCopied"
-event = "Add Money: Address Copied"
-params = ["mint: String"]
-properties = [{ key = "Mint", value = "mint" }]
-
-[[domains.AddMoneyEvents.events]]
-builder = "result"
-event = "Add Money"
-params = ["method: AddMoneyMethod", "state: State", "amount: Amount?", "error: String?"]
-properties = [
-  { key = "Method", value = "method" },
-  { group = "outcome" },
-]
-doc = "The outcome of an add-money flow, sent as the event named `Add Money`."
-drift = "iOS sends Exchange Rate and no USDC (see Amount)."
-
-# Onramp
-
-[enums.OnrampStep.cases]
+[lists.OnrampStep.values]
 SHOW_INFO = "Show Verification Info"
 ENTER_PHONE = "Show Enter Phone"
 CONFIRM_PHONE = "Show Confirm Phone"
 ENTER_EMAIL = "Show Enter Email"
 CONFIRM_EMAIL = "Show Confirm Email"
 
-[[domains.OnrampEvents.events]]
-builder = "step"
-event = "Onramp: {step}"
-params = ["step: OnrampStep"]
-doc = "Show Verification Info is Android only; part 2 decides whether iOS sends it."
-
-# Wallet
-
-[enums.WalletProvider.cases]
+[lists.WalletProvider.values]
 PHANTOM = "Phantom"
 
-[domains.WalletEvents]
-doc = "The Phantom deeplink flow."
-
-[[domains.WalletEvents.events]]
-builder = "connect"
-event = "Wallet: Connect"
-params = ["provider: WalletProvider"]
-properties = [{ key = "Provider", value = "provider" }]
-drift = "iOS sends no Provider, and fires on the request rather than after connecting."
-
-[[domains.WalletEvents.events]]
-builder = "requestAmount"
-event = "Wallet: Request Amount"
-params = ["provider: WalletProvider", "amount: Amount"]
-properties = [
-  { key = "Provider", value = "provider" },
-  { group = "amount" },
-]
-drift = "iOS sends no Provider, and sends only Fiat (the native amount) and Currency where Android sends the token amount's block (see Amount)."
-
-[[domains.WalletEvents.events]]
-builder = "transactionsFailed"
-event = "Wallet: Transactions Failed"
-params = ["provider: WalletProvider"]
-properties = [{ key = "Provider", value = "provider" }]
-drift = "iOS declares this with no Provider and never sends it."
-
-[[domains.WalletEvents.events]]
-builder = "cancel"
-event = "Wallet: Cancel"
-params = ["provider: WalletProvider"]
-properties = [{ key = "Provider", value = "provider" }]
-drift = "iOS sends no Provider, and fires on any error code where Android fires only on a user reject."
-
-# Token info
-
-[enums.TokenInfoSource]
-doc = "Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. iOS's Give and Send sources stay native until part 2."
-
-[enums.TokenInfoSource.cases]
+[lists.TokenInfoSource]
+description = "Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. iOS's Give and Send sources stay native until part 2."
+[lists.TokenInfoSource.values]
 DEEPLINK = "Deeplink"
 WALLET = "Wallet"
 DISCOVERY = "Discovery"
 CHAT = "Chat"
 CHAT_GATE = "Chat Gate"
 
-[[domains.TokenInfoEvents.events]]
-builder = "opened"
-event = "Token Info: Opened From {source}"
-params = ["source: TokenInfoSource", "mint: String"]
-properties = [{ key = "Mint", value = "mint" }]
-
-# Swap
-
-[enums.PurchaseMethod.cases]
+[lists.PurchaseMethod.values]
 RESERVES = "Reserves"
 PHANTOM = "Phantom"
 COINBASE = "Coinbase"
 
-[domains.SwapEvents]
-doc = "Buying and selling a token."
-
-[[domains.SwapEvents.events]]
-builder = "purchase"
-event = "Token Purchase With {method}"
-params = ["method: PurchaseMethod", "mint: String", "amount: Amount", "error: String?"]
-properties = [
-  { key = "Mint", value = "mint" },
-  { group = "amount" },
-  { key = "Error", value = "error" },
-]
-doc = "Phantom and Coinbase are Android only; part 2 decides whether iOS sends them."
-drift = "(Reserves) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks."
-
-[[domains.SwapEvents.events]]
-builder = "sell"
-event = "Token Sell"
-params = ["mint: String", "amount: Amount", "fee: Double", "error: String?"]
-properties = [
-  { key = "Mint", value = "mint" },
-  { group = "amount" },
-  { key = "Fee", value = "fee" },
-  { key = "Error", value = "error" },
-]
-drift = "iOS also sends State, and sends only Fiat and Currency of the amount, with no USDC, Quarks or Fee."
-
-# Scan
-
-[domains.ScanEvents]
-doc = "The gallery scan path, and the tip card."
-
-[[domains.ScanEvents.events]]
-builder = "galleryImagePicked"
-event = "Gallery Scan: Image Picked"
-
-[[domains.ScanEvents.events]]
-builder = "gallerySucceeded"
-event = "Gallery Scan: Succeeded"
-params = ["tier: Int", "zoom: Double", "timeMillis: Long"]
-properties = [
-  { key = "Tier", value = "tier" },
-  { key = "Zoom", value = "zoom" },
-  { key = "Time", value = "timeMillis" },
-]
-doc = "@param tier which rung of the crop ladder decoded, 1 to 3."
-drift = "iOS sends this as Gallery Scan: Code Found, with Type {Kik, QR}, Tier as {wholeImage, quadrant, window}, Zoom, and Elapsed in seconds instead of Time in ms."
-
-[[domains.ScanEvents.events]]
-builder = "galleryFailed"
-event = "Gallery Scan: Failed"
-params = ["timeMillis: Long", "exhausted: Boolean"]
-properties = [
-  { key = "Time", value = "timeMillis" },
-  { key = "Exhausted", value = "exhausted" },
-]
-doc = "@param exhausted true when the budget ran out rather than the ladder ending."
-drift = "iOS sends this as Gallery Scan: Nothing Found, with State {Exhausted, Cancelled, Route Refused} and Elapsed in seconds instead of Time in ms and Exhausted."
-
-[[domains.ScanEvents.events]]
-builder = "tipCardScanned"
-event = "Tip Card Scanned"
-
-[[domains.ScanEvents.events]]
-builder = "tipCardPresented"
-event = "Tip Card Presented"
-
-# Deeplink
-
-[domains.DeeplinkEvents]
-doc = "[url] arrives with its query and fragment already stripped. `type` is a string because the two apps' deeplink vocabularies differ."
-
-[[domains.DeeplinkEvents.events]]
-builder = "open"
-event = "Deeplink: Open"
-params = ["url: String"]
-properties = [{ key = "URL", value = "url" }]
-
-[[domains.DeeplinkEvents.events]]
-builder = "parsed"
-event = "Deeplink: Parse"
-params = ["type: String"]
-properties = [{ key = "Type", value = "type" }]
-drift = "iOS's Type vocabulary is {Login, CashLink, EmailVerification, TokenInfo, Chat, ChatSendCash, Tip, Username, Wallet, DiscoverCurrencies, \"Sheet:<x>\"}, and iOS sends this for every link where Android sends it only on the gallery QR path."
-
-[[domains.DeeplinkEvents.events]]
-builder = "parseFailed"
-event = "Deeplink: Parse"
-params = ["url: String"]
-properties = [{ key = "Error", format = "Failed to parse deeplink => {url}" }]
-
-[[domains.DeeplinkEvents.events]]
-builder = "routed"
-event = "Deeplink: Routed"
-params = ["type: String", "error: String?"]
-properties = [
-  { key = "Type", value = "type" },
-  { key = "Error", value = "error" },
-]
-drift = "iOS never passes Error, and sends this for every kind where Android sends it only for a cash link."
-
-# Display name
-
-[enums.DisplayNameSource.cases]
+[lists.DisplayNameSource.values]
 ONBOARDING = "Onboarding"
 MY_ACCOUNT = "My Account"
 TIP_CARD_SETUP = "Tip Card Setup"
 
-[[domains.DisplayNameEvents.events]]
-builder = "set"
-event = "Display Name Set"
-params = ["source: DisplayNameSource"]
-properties = [{ key = "Source", value = "source" }]
-doc = "The user had no display name before this submission."
-
-[[domains.DisplayNameEvents.events]]
-builder = "updated"
-event = "Display Name Updated"
-params = ["source: DisplayNameSource"]
-properties = [{ key = "Source", value = "source" }]
-doc = "The user replaced an existing display name."
-
-# Error modal
-
-[[domains.ErrorModalEvents.events]]
-builder = "displayed"
-event = "Error Modal Displayed"
-params = ["title: String", "message: String", "screen: String?", "callSite: String?"]
-properties = [
-  { key = "Title", value = "title" },
-  { key = "Message", value = "message" },
-  { key = "Screen", value = "screen" },
-  { key = "Call Site", value = "callSite" },
-]
-drift = "iOS's Screen is `presentedSheet.description` or \"scan\" where Android's is the back stack top's `screenName()`, and iOS never sends Call Site."
-
-# Account
-
-[[domains.AccountEvents.events]]
-builder = "createAccountPayment"
-event = "Create Account Payment"
-params = ["price: Double", "currency: String", "owner: String"]
-properties = [
-  { key = "Fiat", value = "price" },
-  { key = "Currency", value = "currency" },
-  { key = "Owner Public Key", value = "owner" },
-]
-doc = "Android only; part 2 decides whether iOS sends it. iOS's Create Account fires at registration and is a different moment."
-
-[[domains.AccountEvents.events]]
-builder = "enteredPhoneNumber"
-event = "Entered Phone Number"
-
-[[domains.AccountEvents.events]]
-builder = "verifiedPhoneNumber"
-event = "Verified Phone Number"
-
-[[domains.AccountEvents.events]]
-builder = "linkedPhoneNumber"
-event = "Linked Phone Number"
-
-[[domains.AccountEvents.events]]
-builder = "completeOnboarding"
-event = "Complete Onboarding"
-
-# Buttons
-
-[enums.Button.cases]
+[lists.Button.values]
 CREATE_ACCOUNT = "Create Account"
 SAVE_ACCESS_KEY = "Save Access Key"
 WROTE_ACCESS_KEY = "Wrote Access Key"
@@ -477,7 +135,379 @@ BUY_WITH_COINBASE = "Buy With Coinbase"
 BUY_WITH_OTHER_WALLET = "Buy With Other Wallet"
 SHARE_TOKEN_INFO = "Share Token Info"
 
-[[domains.ButtonEvents.events]]
+# ---------------------------------------------------------------------------------------
+# Groups: blocks of properties several events send the same way.
+#
+# `amount` is built in. It sends Fiat, Currency, USDC and Quarks, plus Exchange Rate and
+# Mint when the amount has them.
+# ---------------------------------------------------------------------------------------
+
+# State, then the amount, then Error: the block every outcome event ends with.
+[groups.outcome]
+properties = [
+  { name = "State", type = "State" },
+  { group = "amount", optional = true },
+  { name = "Error", type = "text", optional = true },
+]
+
+# ---------------------------------------------------------------------------------------
+# People counters: cumulative per-user totals, sent as Mixpanel people properties.
+# ---------------------------------------------------------------------------------------
+
+[counters]
+TIPS = "Tips Received"
+TIPS_VALUE = "Tips Received Value"
+MESSAGES = "Messages Received"
+
+# ---------------------------------------------------------------------------------------
+# Domains that need a word of explanation.
+# ---------------------------------------------------------------------------------------
+
+[domains]
+Wallet = "The Phantom deeplink flow."
+Swap = "Buying and selling a token."
+Scan = "The gallery scan path, and the tip card."
+Deeplink = "[url] arrives with its query and fragment already stripped. `type` is a string because the two apps' deeplink vocabularies differ."
+
+# ---------------------------------------------------------------------------------------
+# Events
+# ---------------------------------------------------------------------------------------
+
+# Chat
+
+[[event]]
+domain = "Chat"
+name = "Sent Message"
+properties = [
+  { name = "Chat Type", type = "ChatType" },
+  { name = "Error", type = "text", optional = true },
+]
+
+[[event]]
+domain = "Chat"
+name = "Tip Received"
+properties = [
+  { name = "Chat Type", type = "ChatType" },
+  { group = "amount" },
+]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[event]]
+domain = "Chat"
+name = "Message Received"
+properties = [{ name = "Chat Type", type = "ChatType" }]
+
+# Transfers
+
+[[event]]
+domain = "Transfer"
+name = "Grab Bill Start"
+
+[[event]]
+domain = "Transfer"
+name = "Give Bill Start"
+
+[[event]]
+domain = "Transfer"
+name = "Grab Bill"
+order = ["state", "amount", "grabTimeMillis", "error"]
+properties = [
+  { name = "Grab Time", type = "duration", optional = true },
+  { group = "outcome" },
+]
+drift = "iOS sends Grab Time in seconds, not milliseconds, and on failure sends only Fiat and Currency of the amount (see Amount)."
+
+[[event]]
+domain = "Transfer"
+name = "Give Bill"
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[event]]
+domain = "Transfer"
+name = "Withdrawal"
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[event]]
+domain = "Transfer"
+name = "Send Cash Link"
+order = ["state", "amount", "choice", "app", "error"]
+properties = [
+  { name = "Cash Link Choice", type = "CashLinkChoice", optional = true, param = "choice" },
+  { name = "App", type = "text", optional = true },
+  { group = "outcome" },
+]
+drift = "iOS sends no Cash Link Choice or App, and sends Exchange Rate and no USDC (see Amount). Android never sends Failure."
+
+[[event]]
+domain = "Transfer"
+name = "Receive Cash Link"
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[event]]
+domain = "Transfer"
+name = "Sent Cash"
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[event]]
+domain = "Transfer"
+name = "Sent Tip"
+properties = [{ group = "outcome" }]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+# Add money
+
+[[event]]
+domain = "Add Money"
+name = "Add Money: Opened"
+properties = [{ name = "Source", type = "AddMoneySource" }]
+
+[[event]]
+domain = "Add Money"
+name = "Add Money: Method Selected"
+properties = [{ name = "Method", type = "AddMoneyMethod" }]
+drift = "iOS has no Reserves method."
+
+[[event]]
+domain = "Add Money"
+name = "Add Money: Amount Confirmed"
+properties = [
+  { name = "Method", type = "AddMoneyMethod" },
+  { group = "amount" },
+]
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[event]]
+domain = "Add Money"
+name = "Add Money: Payment Invoked"
+properties = [
+  { name = "Method", type = "AddMoneyMethod" },
+  { group = "amount" },
+]
+drift = "iOS sends Exchange Rate and no USDC (see Amount). Android's USDC carries the native amount here."
+
+[[event]]
+domain = "Add Money"
+name = "Add Money: Address Copied"
+properties = [{ name = "Mint", type = "text" }]
+
+[[event]]
+domain = "Add Money"
+name = "Add Money"
+builder = "result"
+properties = [
+  { name = "Method", type = "AddMoneyMethod" },
+  { group = "outcome" },
+]
+description = "The outcome of an add-money flow, sent as the event named `Add Money`."
+drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+# Onramp
+
+[[event]]
+domain = "Onramp"
+name = "Onramp: {step}"
+builder = "step"
+placeholders = { step = "OnrampStep" }
+description = "Show Verification Info is Android only; part 2 decides whether iOS sends it."
+
+# Wallet
+
+[[event]]
+domain = "Wallet"
+name = "Wallet: Connect"
+properties = [{ name = "Provider", type = "WalletProvider" }]
+drift = "iOS sends no Provider, and fires on the request rather than after connecting."
+
+[[event]]
+domain = "Wallet"
+name = "Wallet: Request Amount"
+properties = [
+  { name = "Provider", type = "WalletProvider" },
+  { group = "amount" },
+]
+drift = "iOS sends no Provider, and sends only Fiat (the native amount) and Currency where Android sends the token amount's block (see Amount)."
+
+[[event]]
+domain = "Wallet"
+name = "Wallet: Transactions Failed"
+properties = [{ name = "Provider", type = "WalletProvider" }]
+drift = "iOS declares this with no Provider and never sends it."
+
+[[event]]
+domain = "Wallet"
+name = "Wallet: Cancel"
+properties = [{ name = "Provider", type = "WalletProvider" }]
+drift = "iOS sends no Provider, and fires on any error code where Android fires only on a user reject."
+
+# Token info
+
+[[event]]
+domain = "Token Info"
+name = "Token Info: Opened From {source}"
+builder = "opened"
+placeholders = { source = "TokenInfoSource" }
+properties = [{ name = "Mint", type = "text" }]
+
+# Swap
+
+[[event]]
+domain = "Swap"
+name = "Token Purchase With {method}"
+builder = "purchase"
+placeholders = { method = "PurchaseMethod" }
+properties = [
+  { name = "Mint", type = "text" },
+  { group = "amount" },
+  { name = "Error", type = "text", optional = true },
+]
+description = "Phantom and Coinbase are Android only; part 2 decides whether iOS sends them."
+drift = "(Reserves) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks."
+
+[[event]]
+domain = "Swap"
+name = "Token Sell"
+builder = "sell"
+properties = [
+  { name = "Mint", type = "text" },
+  { group = "amount" },
+  { name = "Fee", type = "decimal" },
+  { name = "Error", type = "text", optional = true },
+]
+drift = "iOS also sends State, and sends only Fiat and Currency of the amount, with no USDC, Quarks or Fee."
+
+# Scan
+
+[[event]]
+domain = "Scan"
+name = "Gallery Scan: Image Picked"
+builder = "galleryImagePicked"
+
+[[event]]
+domain = "Scan"
+name = "Gallery Scan: Succeeded"
+builder = "gallerySucceeded"
+properties = [
+  { name = "Tier", type = "count" },
+  { name = "Zoom", type = "decimal" },
+  { name = "Time", type = "duration" },
+]
+description = "@param tier which rung of the crop ladder decoded, 1 to 3."
+drift = "iOS sends this as Gallery Scan: Code Found, with Type {Kik, QR}, Tier as {wholeImage, quadrant, window}, Zoom, and Elapsed in seconds instead of Time in ms."
+
+[[event]]
+domain = "Scan"
+name = "Gallery Scan: Failed"
+builder = "galleryFailed"
+properties = [
+  { name = "Time", type = "duration" },
+  { name = "Exhausted", type = "yes/no" },
+]
+description = "@param exhausted true when the budget ran out rather than the ladder ending."
+drift = "iOS sends this as Gallery Scan: Nothing Found, with State {Exhausted, Cancelled, Route Refused} and Elapsed in seconds instead of Time in ms and Exhausted."
+
+[[event]]
+domain = "Scan"
+name = "Tip Card Scanned"
+
+[[event]]
+domain = "Scan"
+name = "Tip Card Presented"
+
+# Deeplink
+
+[[event]]
+domain = "Deeplink"
+name = "Deeplink: Open"
+properties = [{ name = "URL", type = "text" }]
+
+[[event]]
+domain = "Deeplink"
+name = "Deeplink: Parse"
+builder = "parsed"
+properties = [{ name = "Type", type = "text" }]
+drift = "iOS's Type vocabulary is {Login, CashLink, EmailVerification, TokenInfo, Chat, ChatSendCash, Tip, Username, Wallet, DiscoverCurrencies, \"Sheet:<x>\"}, and iOS sends this for every link where Android sends it only on the gallery QR path."
+
+[[event]]
+domain = "Deeplink"
+name = "Deeplink: Parse"
+builder = "parseFailed"
+properties = [{ name = "Error", format = "Failed to parse deeplink => {url}" }]
+
+[[event]]
+domain = "Deeplink"
+name = "Deeplink: Routed"
+properties = [
+  { name = "Type", type = "text" },
+  { name = "Error", type = "text", optional = true },
+]
+drift = "iOS never passes Error, and sends this for every kind where Android sends it only for a cash link."
+
+# Display name
+
+[[event]]
+domain = "Display Name"
+name = "Display Name Set"
+builder = "set"
+properties = [{ name = "Source", type = "DisplayNameSource" }]
+description = "The user had no display name before this submission."
+
+[[event]]
+domain = "Display Name"
+name = "Display Name Updated"
+builder = "updated"
+properties = [{ name = "Source", type = "DisplayNameSource" }]
+description = "The user replaced an existing display name."
+
+# Error modal
+
+[[event]]
+domain = "Error Modal"
+name = "Error Modal Displayed"
+builder = "displayed"
+properties = [
+  { name = "Title", type = "text" },
+  { name = "Message", type = "text" },
+  { name = "Screen", type = "text", optional = true },
+  { name = "Call Site", type = "text", optional = true },
+]
+drift = "iOS's Screen is `presentedSheet.description` or \"scan\" where Android's is the back stack top's `screenName()`, and iOS never sends Call Site."
+
+# Account
+
+[[event]]
+domain = "Account"
+name = "Create Account Payment"
+properties = [
+  { name = "Fiat", type = "decimal", param = "price" },
+  { name = "Currency", type = "text" },
+  { name = "Owner Public Key", type = "text", param = "owner" },
+]
+description = "Android only; part 2 decides whether iOS sends it. iOS's Create Account fires at registration and is a different moment."
+
+[[event]]
+domain = "Account"
+name = "Entered Phone Number"
+
+[[event]]
+domain = "Account"
+name = "Verified Phone Number"
+
+[[event]]
+domain = "Account"
+name = "Linked Phone Number"
+
+[[event]]
+domain = "Account"
+name = "Complete Onboarding"
+
+# Buttons
+
+[[event]]
+domain = "Button"
+name = "Button: {button}"
 builder = "tapped"
-event = "Button: {button}"
-params = ["button: Button"]
+placeholders = { button = "Button" }
