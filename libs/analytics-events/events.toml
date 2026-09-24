@@ -73,10 +73,14 @@ description = "The `State` property on an event that reports an outcome."
 SUCCESS = "Success"
 FAILURE = "Failure"
 
+[lists.CashLinkChoice]
+description = "The `Cash Link Choice` property on Send Cash Link: how the user passed the link on."
 [lists.CashLinkChoice.values]
 COPIED = "Copied to clipboard"
 SHARED = "Shared to app"
 
+[lists.AddMoneySource]
+description = "The `Source` property on Add Money: Opened: where the user opened Add Money from."
 [lists.AddMoneySource.values]
 MENU = "Menu"
 GIVE_SHORTFALL = "Give Shortfall"
@@ -86,12 +90,16 @@ CHAT = "Chat"
 SCANNER = "Scanner"
 BALANCE = "Balance"
 
+[lists.AddMoneyMethod]
+description = "The `Method` property on the Add Money events: how the user adds money."
 [lists.AddMoneyMethod.values]
 COINBASE = "Coinbase"
 PHANTOM = "Phantom"
 OTHER_WALLET = "Other Wallet"
 RESERVES = { value = "Reserves", drift = "iOS has no Reserves method." }
 
+[lists.OnrampStep]
+description = "The verification screen shown, sent in the event name `Onramp: {step}`."
 [lists.OnrampStep.values]
 SHOW_INFO = "Show Verification Info"
 ENTER_PHONE = "Show Enter Phone"
@@ -99,6 +107,8 @@ CONFIRM_PHONE = "Show Confirm Phone"
 ENTER_EMAIL = "Show Enter Email"
 CONFIRM_EMAIL = "Show Confirm Email"
 
+[lists.WalletProvider]
+description = "The `Provider` property on the Wallet events: the wallet app the flow goes through."
 [lists.WalletProvider.values]
 PHANTOM = "Phantom"
 
@@ -111,16 +121,22 @@ DISCOVERY = "Discovery"
 CHAT = "Chat"
 CHAT_GATE = "Chat Gate"
 
+[lists.PurchaseMethod]
+description = "How a token is paid for, sent in the event name `Token Purchase With {method}`."
 [lists.PurchaseMethod.values]
 RESERVES = "Reserves"
 PHANTOM = "Phantom"
 COINBASE = "Coinbase"
 
+[lists.DisplayNameSource]
+description = "The `Source` property on the Display Name events: the screen the name was set on."
 [lists.DisplayNameSource.values]
 ONBOARDING = "Onboarding"
 MY_ACCOUNT = "My Account"
 TIP_CARD_SETUP = "Tip Card Setup"
 
+[lists.Button]
+description = "The button tapped, sent in the event name `Button: {button}`."
 [lists.Button.values]
 CREATE_ACCOUNT = "Create Account"
 SAVE_ACCESS_KEY = "Save Access Key"
