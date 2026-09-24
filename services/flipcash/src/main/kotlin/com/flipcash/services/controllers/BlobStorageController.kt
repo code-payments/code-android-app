@@ -1,7 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.BlobUploader
-import com.flipcash.services.blob.JPEGMetadata
+import com.flipcash.services.internal.extensions.withoutJpegMetadata
 import com.flipcash.services.models.BlobNotReadyException
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.blob.UploadPolicy
@@ -54,7 +54,7 @@ class BlobStorageController @Inject constructor(
         // trusting each call site to have already re-encoded its bytes clean. The reservation
         // signs the byte count, so this must run before it — the size reserved has to match the
         // size actually uploaded.
-        val bytes = JPEGMetadata.stripped(bytes)
+        val bytes = bytes.withoutJpegMetadata()
 
         val reservation = repository.initiateExternalUpload(mimeType, bytes.size.toLong(), owner)
             .getOrElse { return Result.failure(it) }

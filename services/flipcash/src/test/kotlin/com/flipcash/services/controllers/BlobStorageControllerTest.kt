@@ -1,7 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.BlobUploader
-import com.flipcash.services.blob.JPEGMetadata
+import com.flipcash.services.internal.extensions.withoutJpegMetadata
 import com.flipcash.services.models.BlobNotReadyException
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.blob.UploadReservation
@@ -178,7 +178,7 @@ class BlobStorageControllerTest {
             byteArrayOf(0xFF.toByte(), 0xE1.toByte(), 0x00, 0x11) +
             "Exif\u0000\u0000GPS 51.5N".toByteArray() +
             byteArrayOf(0xFF.toByte(), 0xDA.toByte(), 0x00, 0x02, 0xFF.toByte(), 0xD9.toByte())
-        val stripped = JPEGMetadata.stripped(jpegWithExif)
+        val stripped = jpegWithExif.withoutJpegMetadata()
         check(stripped.size < jpegWithExif.size) { "fixture must actually carry a stripped segment" }
 
         val sizes = mutableListOf<Long>()

@@ -1,4 +1,4 @@
-package com.flipcash.services.blob
+package com.flipcash.services.internal.extensions
 
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -9,7 +9,7 @@ import kotlin.test.assertFalse
  * (`FlipcashCore/Tests/FlipcashCoreTests/JPEGMetadataTests.swift`) — same inputs, same expectations —
  * so this doubles as a parity check between the two implementations.
  */
-class JPEGMetadataTest {
+class JpegMetadataTest {
 
     // MARK: - Stripping -
 
@@ -21,7 +21,7 @@ class JPEGMetadataTest {
             JPEG.Segment.Comment("shot at home"),
         )
 
-        val stripped = JPEGMetadata.stripped(jpeg)
+        val stripped = jpeg.withoutJpegMetadata()
 
         assertFalse(stripped.contains("GPS 51.5N"))
         assertFalse(stripped.contains("vendor-serial-1234"))
@@ -42,7 +42,7 @@ class JPEGMetadataTest {
             JPEG.Segment.App(0xEE, "Adobe".toByteArray()),
         )
 
-        val stripped = JPEGMetadata.stripped(jpeg)
+        val stripped = jpeg.withoutJpegMetadata()
 
         assertContentEquals(
             JPEG.build(
@@ -62,7 +62,7 @@ class JPEGMetadataTest {
             JPEG.Segment.App(0xE1, "http://ns.adobe.com/xap/1.0/\u0000creator".toByteArray()),
         )
 
-        val stripped = JPEGMetadata.stripped(jpeg)
+        val stripped = jpeg.withoutJpegMetadata()
 
         assertFalse(stripped.contains("camera-serial"))
         assertFalse(stripped.contains("creator"))
@@ -78,7 +78,7 @@ class JPEGMetadataTest {
             JPEG.segment(JPEG.Segment.Comment("padded secret")) +
             JPEG.scanAndEnd
 
-        val stripped = JPEGMetadata.stripped(jpeg)
+        val stripped = jpeg.withoutJpegMetadata()
 
         assertFalse(stripped.contains("padded secret"))
     }
@@ -93,7 +93,7 @@ class JPEGMetadataTest {
             JPEG.segment(JPEG.Segment.Comment("after standalones")) +
             JPEG.scanAndEnd
 
-        val stripped = JPEGMetadata.stripped(jpeg)
+        val stripped = jpeg.withoutJpegMetadata()
 
         assertFalse(stripped.contains("after standalones"))
     }
@@ -104,7 +104,7 @@ class JPEGMetadataTest {
     fun `returns a clean JPEG untouched`() {
         val jpeg = JPEG.build(JPEG.Segment.App(0xE0, "JFIF\u0000".toByteArray()))
 
-        assertContentEquals(jpeg, JPEGMetadata.stripped(jpeg))
+        assertContentEquals(jpeg, jpeg.withoutJpegMetadata())
     }
 
     // The decoder rejects a malformed stream on its own; a half-rewritten one would be worse.
@@ -116,7 +116,7 @@ class JPEGMetadataTest {
             byteArrayOf(0x10, 0x00) +
             "Exif\u0000\u0000truncated".toByteArray()
 
-        assertContentEquals(jpeg, JPEGMetadata.stripped(jpeg))
+        assertContentEquals(jpeg, jpeg.withoutJpegMetadata())
     }
 
     @Test
@@ -129,7 +129,7 @@ class JPEGMetadataTest {
         )
 
         for (input in inputs) {
-            assertContentEquals(input, JPEGMetadata.stripped(input))
+            assertContentEquals(input, input.withoutJpegMetadata())
         }
     }
 
