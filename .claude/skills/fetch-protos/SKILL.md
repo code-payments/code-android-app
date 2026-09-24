@@ -17,9 +17,9 @@ allowed-tools:
 
 # Fetch Protos
 
-The protos are no longer vendored here. Both contracts arrive as published
-artifacts, so "fetching" is bumping a version pin and reacting to what the new
-version changed.
+Both contracts arrive as published artifacts, not as protos in this repo, so
+"fetching" is bumping a version pin and reacting to what the new version
+changed.
 
 | Target | Artifact | Client repo | Upstream contract |
 |--------|----------|-------------|-------------------|

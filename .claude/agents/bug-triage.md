@@ -25,7 +25,7 @@ When given a bug report (Bugsnag link, stack trace, error description, or user r
 3. **Trace the Execution Path**: Follow the code path that leads to the crash. Examine:
    - The throwing method and its callers
    - State management (MVI/MVVM patterns, reactive streams)
-   - Threading (Coroutines, RxJava 3) — look for race conditions, missing dispatchers
+   - Threading (Coroutines + Flow, dispatchers from `DispatcherProvider`) — look for race conditions, missing dispatchers
    - Dependency injection (Hilt) — look for missing bindings or scoping issues
    - Null safety — look for unsafe casts, Java interop nullability gaps
    - CompositionLocal access — check if locals are accessed outside their provider scope
@@ -34,7 +34,7 @@ When given a bug report (Bugsnag link, stack trace, error description, or user r
    - Crypto operations — look for key management edge cases, encryption failures
 
 4. **Identify Patterns**: When the user mentions patterns (e.g., "same device", "repeated", "after update"), specifically investigate:
-   - Device-specific state corruption (Room/SQLCipher, DataStore)
+   - Device-specific state corruption (Room, DataStore)
    - Cached state inconsistencies
    - Migration issues
    - Retry loops or infinite error cycles
@@ -79,8 +79,8 @@ Concrete code changes with file paths and rationale.
 
 - Namespaces: `com.flipcash.app.android`, `com.getcode`, `com.flipcash.features.*`, `com.flipcash.shared.*`
 - DI: Hilt with CompositionLocal injection pattern
-- Async: Kotlin Coroutines + RxJava 3 coexist
-- DB: Room with SQLCipher encryption
+- Async: Kotlin Coroutines + Flow; dispatchers injected via `DispatcherProvider`
+- DB: Room, one database per user (name derived from account entropy, not encrypted); DataStore for preferences
 - Network: gRPC + Protobuf
 - Convention plugins handle module setup — check `build-logic/` if build config is relevant
 

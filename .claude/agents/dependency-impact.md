@@ -85,5 +85,5 @@ Proceed / Proceed with caution / Investigate further — with reasoning.
   - `flipcash.android.library` → `timber`, `kotlinx-coroutines-core`
   - `flipcash.android.library.compose` → Compose BOM, `compose-ui`, `compose-foundation`
   - `flipcash.android.feature` → Hilt, full Compose bundle, project deps
-- `api()` declarations leak transitively — check `ui:navigation` (leaks RxJava), `libs:locale:public` (leaks coroutines-rx3)
-- Some dependencies are hardcoded outside the catalog (emoji2, guava, sol4k, jsoup, webkit)
+- `api()` declarations leak transitively — read the `api(...)` lines of every module that declares the dependency, then follow its consumers
+- Some dependencies are declared as string coordinates outside the catalog; find them with `grep -rn 'implementation("' --include=*.kts .`
