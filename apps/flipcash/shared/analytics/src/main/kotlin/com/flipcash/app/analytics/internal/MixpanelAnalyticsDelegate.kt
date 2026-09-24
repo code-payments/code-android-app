@@ -85,15 +85,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.PaidForAccount(price, currency, owner))
     }
 
-    override fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint) {
-        val event = when (source) {
-            Analytics.TokenInfoSource.Deeplink -> AnalyticsEvent.OpenTokenInfoEvent.Deeplink(mint)
-            Analytics.TokenInfoSource.Wallet -> AnalyticsEvent.OpenTokenInfoEvent.Wallet(mint)
-            Analytics.TokenInfoSource.Give -> AnalyticsEvent.OpenTokenInfoEvent.Give(mint)
-        }
-        track(event)
-    }
-
     override fun buy(
         method: Analytics.PurchaseMethod,
         mint: Mint,

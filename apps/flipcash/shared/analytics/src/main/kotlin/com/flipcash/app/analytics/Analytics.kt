@@ -14,7 +14,6 @@ import com.getcode.solana.keys.Mint
 
 interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
     fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair)
-    fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint)
     fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable? = null)
     fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable? = null)
     fun tipCardScanned()
@@ -43,7 +42,6 @@ interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
 
 object Analytics {
 
-    enum class TokenInfoSource { Deeplink, Wallet, Give }
     enum class PurchaseMethod { Reserves, Phantom, Coinbase }
     sealed interface SwapMethod {
         enum class Buy(val with: PurchaseMethod) : SwapMethod {
@@ -65,7 +63,6 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) = Unit
 
-    override fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint) = Unit
     override fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable?) = Unit
     override fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable?) = Unit
 

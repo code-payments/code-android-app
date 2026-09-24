@@ -173,21 +173,6 @@ internal sealed interface AnalyticsEvent {
         override val name = "Pool: Declared Outcome"
     }
 
-    sealed interface OpenTokenInfoEvent : AnalyticsEvent {
-        val mint: Mint
-        override fun toProperties() = mapOf("Mint" to mint.base58())
-
-        data class Deeplink(override val mint: Mint) : OpenTokenInfoEvent {
-            override val name = "Token Info: Opened From Deeplink"
-        }
-        data class Wallet(override val mint: Mint) : OpenTokenInfoEvent {
-            override val name = "Token Info: Opened From Wallet"
-        }
-        data class Give(override val mint: Mint) : OpenTokenInfoEvent {
-            override val name = "Token Info: Opened From Give"
-        }
-    }
-
     sealed interface TokenTransactionEvent : AnalyticsEvent {
         val mint: Mint
         val amount: Fiat
