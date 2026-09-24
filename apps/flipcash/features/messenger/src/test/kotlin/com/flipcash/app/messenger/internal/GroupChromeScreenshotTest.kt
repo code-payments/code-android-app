@@ -178,28 +178,37 @@ class GroupChromeScreenshotTest {
                         staffOnly = false,
                         currency = badBoys,
                     )
-                    // The same state before the currency resolves: the button is disabled and the
-                    // caption falls back to the amount alone.
+                    // The same state before the currency resolves: "Buy More", still enabled — the
+                    // mint is the rule's, so the button buys the right thing before it can name it.
                     GroupGateBar(
-                        access = GroupAccess.Blocked(
-                            unmet = ChatRuleRequirement.MinimumBalance(
-                                mints = emptyList(),
-                                amount = Fiat(100.0),
-                            ),
-                        ),
-                        requirement = ChatRuleRequirement.MinimumBalance(
-                            mints = emptyList(),
-                            amount = Fiat(100.0),
-                        ),
+                        access = GroupAccess.Blocked(unmet = balanceRule),
+                        requirement = balanceRule,
+                        onAction = {},
+                        staffOnly = false,
+                        currency = null,
+                    )
+                    // Any holding counts: no token to buy, so "Add Cash", and the caption states
+                    // the amount alone.
+                    val anyMintRule = ChatRuleRequirement.MinimumBalance(
+                        mints = emptyList(),
+                        amount = Fiat(100.0),
+                    )
+                    GroupGateBar(
+                        access = GroupAccess.Blocked(unmet = anyMintRule),
+                        requirement = anyMintRule,
                         onAction = {},
                         staffOnly = false,
                         currency = null,
                     )
                     // Gated on the reserve: the caption drops "of Dollars" because the amount is
-                    // already a dollar figure, while the button still names what to go and buy.
+                    // already a dollar figure, and the button adds cash rather than buying.
+                    val reserveRule = ChatRuleRequirement.MinimumBalance(
+                        mints = listOf(Mint.usdf),
+                        amount = Fiat(100.0),
+                    )
                     GroupGateBar(
-                        access = GroupAccess.Blocked(unmet = balanceRule),
-                        requirement = balanceRule,
+                        access = GroupAccess.Blocked(unmet = reserveRule),
+                        requirement = reserveRule,
                         onAction = {},
                         staffOnly = false,
                         currency = RuleCurrency(name = "Dollars", isReserve = true),

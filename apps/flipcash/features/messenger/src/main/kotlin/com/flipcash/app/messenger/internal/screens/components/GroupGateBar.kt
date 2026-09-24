@@ -113,15 +113,23 @@ internal fun GroupGateBar(
         }
 
         if (unmetBalance != null) {
+            // Always enabled, as iOS's ConversationGatePanel is. A rule any holding satisfies, or
+            // one on the reserve, has no other token to buy, so it adds cash. A named mint buys
+            // that mint even before its name loads; the label just can't say which yet.
+            val mint = unmetBalance.mints.firstOrNull()?.let { Mint(it.bytes) }
+            val tokenToBuy = mint?.takeUnless { it == Mint.usdf }
             CodeButton(
                 modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.action_buyMoreToken, currency?.name.orEmpty()),
-                // Held until the currency's name resolves, so the label never reads "Buy More ". A
-                // rule that names no mint never resolves one and has no token screen to open.
-                enabled = currency != null,
+                text = when {
+                    tokenToBuy == null -> stringResource(R.string.action_addCash)
+                    currency == null -> stringResource(R.string.action_buyMore)
+                    else -> stringResource(R.string.action_buyMoreToken, currency.name)
+                },
                 onClick = {
-                    unmetBalance.mints.firstOrNull()
-                        ?.let { onAction(ChatAction.ViewToken(Mint(it.bytes), returnAfterBuy = true)) }
+                    onAction(
+                        if (tokenToBuy == null) ChatAction.AddCash
+                        else ChatAction.ViewToken(tokenToBuy, returnAfterBuy = true)
+                    )
                 },
             )
         } else {

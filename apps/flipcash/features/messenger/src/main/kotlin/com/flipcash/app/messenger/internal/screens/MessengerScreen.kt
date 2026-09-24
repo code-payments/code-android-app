@@ -86,6 +86,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 }
             }
 
+            ChatAction.AddCash -> {
+                keyboard.hideIfVisible {
+                    viewModel.dispatchEvent(ChatViewModel.Event.PresentDepositOptions)
+                }
+            }
+
             is ChatAction.OpenGroup -> {
                 // An invite to the chat already on screen has nowhere to go.
                 if (action.chatId != state.chatId) {
