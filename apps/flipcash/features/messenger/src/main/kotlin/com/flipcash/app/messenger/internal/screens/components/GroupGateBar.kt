@@ -116,8 +116,8 @@ internal fun GroupGateBar(
             CodeButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(R.string.action_buyMoreToken, currency?.name.orEmpty()),
-                // Nothing to buy until the currency resolves: the label would read "Buy More " and
-                // the token screen has no mint to open.
+                // Held until the currency's name resolves, so the label never reads "Buy More ". A
+                // rule that names no mint never resolves one and has no token screen to open.
                 enabled = currency != null,
                 onClick = {
                     unmetBalance.mints.firstOrNull()
