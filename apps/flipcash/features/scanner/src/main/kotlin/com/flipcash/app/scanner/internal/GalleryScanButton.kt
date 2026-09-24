@@ -19,7 +19,7 @@ import com.getcode.ui.components.CircularIconButton
 import dev.chrisbanes.haze.HazeState
 
 /**
- * The Scan tab's gallery entry point, in the scanner's top-right corner.
+ * The Scan tab's gallery entry point, in the scanner's bottom-right corner.
  *
  * `PickVisualMedia` runs out of process, so tapping this never asks for a permission -- which is
  * what lets the glyph be a plain static icon rather than a permission prompt with an icon on it.

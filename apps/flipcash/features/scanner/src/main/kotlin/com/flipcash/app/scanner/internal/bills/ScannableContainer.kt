@@ -4,7 +4,6 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +16,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.android.extensions.launchAppSettings
+import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.scanner.internal.GalleryScanButton
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.updates.LocalAppUpdater
@@ -37,7 +37,7 @@ import dev.chrisbanes.haze.rememberHazeState
  * The scanner surface: the camera preview (via [scannerView]) and its permission states. Bills are
  * not drawn here — a presented bill renders at the app root
  * ([com.flipcash.app.bills.BillOverlay]) so it can appear over any screen. The only in-screen
- * chrome is the gallery button in the top-right corner; the tab bar is hoisted to the app root.
+ * chrome is the gallery button in the bottom-right corner; the tab bar is hoisted to the app root.
  */
 @Composable
 internal fun ScannableContainer(
@@ -132,13 +132,19 @@ internal fun ScannableContainer(
             GalleryScanButton(
                 onImagePicked = onImagePicked,
                 hazeState = hazeState,
-                // Top-right, clear of the status bar. This corner rather than the bottom because
-                // the bottom belongs to the hoisted tab bar, and a control down there has to be
-                // positioned around a bar this screen does not own.
+                // Bottom-right, its end edge on the tab bar's. The bar is hoisted to the app root
+                // and this screen does not own it, so both numbers are read off the bar rather than
+                // chosen here: `AppNavigationBar` insets the bar by `grid.x8` horizontally, which is
+                // what "aligned with the bar's end" means; the clearance above it is the bar's
+                // measured height, handed down per tab-home entry as `LocalTabBarPadding` by
+                // `NavTabBarInsetEntryDecorator`, plus the same gap the bar leaves below itself.
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(CodeTheme.dimens.inset)
+                    .align(Alignment.BottomEnd)
+                    .padding(
+                        end = CodeTheme.dimens.grid.x8,
+                        bottom = LocalTabBarPadding.current.calculateBottomPadding() +
+                                CodeTheme.dimens.grid.x3,
+                    )
             )
         }
     }
