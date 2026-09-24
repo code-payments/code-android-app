@@ -42,11 +42,10 @@ fun RowScope.ChatRowTrailing(
     }
 
     if (unreadCount > 0) {
+        // No start padding: the title row's spacing already puts the design's 4dp between the
+        // timestamp and the pill.
         UnreadBadge(
-            modifier = Modifier.padding(
-                start = CodeTheme.dimens.grid.x1,
-                end = CodeTheme.dimens.grid.x1,
-            ),
+            modifier = Modifier.padding(end = CodeTheme.dimens.grid.x1),
             count = unreadCount,
         )
     } else if (canOpen) {

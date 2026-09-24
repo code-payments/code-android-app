@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,9 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.Badge
 import com.getcode.util.formatLocalized
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -92,15 +94,24 @@ fun ChatListRow(
     }
 }
 
+/**
+ * The chat's unread count in a pill beside the timestamp (node 10329:8245): dark text on the
+ * indicator colour, 18dp tall, a circle for one digit and widening for more.
+ */
 @Composable
 fun UnreadBadge(count: Int, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(CodeTheme.dimens.grid.x2)
-            .background(
-                color = CodeTheme.colors.indicator,
-                shape = CircleShape,
-            ),
+    Badge(
+        modifier = modifier,
+        count = count,
+        color = CodeTheme.colors.indicator,
+        contentColor = CodeTheme.colors.background,
+        // The default caption line height (18sp) plus the badge's vertical padding would make the
+        // pill 24dp; the design holds it to 18dp with the digits tracked in slightly.
+        textStyle = CodeTheme.typography.caption.copy(
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = 12.sp,
+            letterSpacing = (-0.06).em,
+        ),
     )
 }
 
