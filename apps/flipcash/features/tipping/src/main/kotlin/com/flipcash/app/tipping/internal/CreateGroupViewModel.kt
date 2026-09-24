@@ -144,16 +144,6 @@ internal class CreateGroupViewModel @Inject constructor(
             get() = balances.map { it.balance }.sum()
 
         /**
-         * Whether the heading has moved from asking for a requirement to naming one.
-         *
-         * Node 10127:118057 still asks "Minimum Balance Required" with the title typed and nothing
-         * else touched; node 10127:118194 reads "Balance Requirement" on a picked token with no
-         * amount yet, and node 10364:1059 reads it on All Currencies once an amount is set.
-         */
-        val requirementStarted: Boolean
-            get() = currency is GroupCurrency.Specific || amount != null
-
-        /**
          * The rules the draft describes, once it describes any.
          *
          * Listener only. A listener requirement is what gates *entry*, which is what this design

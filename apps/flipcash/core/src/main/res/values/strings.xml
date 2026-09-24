@@ -1041,7 +1041,6 @@
     <!-- The section label before a token is picked; it names the rule the creator is about to set. -->
     <string name="title_minimumBalanceRequired">Minimum Balance Required</string>
     <!-- And after, when the row below it already says which token (node 10127:118194). -->
-    <string name="title_balanceRequirement">Balance Requirement</string>
     <string name="subtitle_groupBalanceRequirement">People won\'t be able to join this chat if their balance is less than this amount</string>
     <string name="action_create">Create</string>
     <!-- StartChat rejects a creator who does not meet their own bar, so the form says so before the

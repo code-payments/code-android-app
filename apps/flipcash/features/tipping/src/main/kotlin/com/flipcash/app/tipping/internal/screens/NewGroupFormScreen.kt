@@ -296,9 +296,6 @@ private fun IdentityCard(
 
 /**
  * The balance rule: which currency, and how much of it.
- *
- * The heading asks for a "Minimum Balance Required" until the creator has set part of the rule —
- * see [CreateGroupViewModel.State.requirementStarted] for the frames that pin down when.
  */
 @Composable
 private fun RequirementSection(
@@ -313,13 +310,7 @@ private fun RequirementSection(
     ) {
         Text(
             modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x3),
-            text = stringResource(
-                if (!state.requirementStarted) {
-                    R.string.title_minimumBalanceRequired
-                } else {
-                    R.string.title_balanceRequirement
-                }
-            ),
+            text = stringResource(R.string.title_minimumBalanceRequired),
             style = LabelStyle,
             color = White50,
         )

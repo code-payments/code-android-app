@@ -1,6 +1,5 @@
 package com.flipcash.app.tipping.internal.screens
 
-import android.os.Parcelable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,7 +29,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.chat.NewGroupStep
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenBalanceStyle
 import com.flipcash.app.core.ui.TokenSelectionStyle
@@ -41,7 +39,7 @@ import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tipping.R
-import com.getcode.navigation.flow.rememberFlowNavigator
+import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
@@ -67,7 +65,8 @@ import com.getcode.ui.theme.CodeScaffold
  */
 @Composable
 internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
-    val flowNavigator = rememberFlowNavigator<NewGroupStep, Parcelable>()
+    // Exit through the sheet so it animates down rather than having its scene deleted mid-frame.
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     val tokenViewModel = hiltViewModel<SelectTokenViewModel>()
@@ -78,7 +77,7 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
             AppBarWithTitle(
                 title = stringResource(R.string.title_selectCurrency),
                 titleAlignment = Alignment.CenterHorizontally,
-                endContent = { AppBarDefaults.Close { flowNavigator.back() } },
+                endContent = { AppBarDefaults.Close(onClick = dismissSheet) },
             )
         },
     ) { padding ->
@@ -110,7 +109,7 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
                             viewModel.dispatchEvent(
                                 CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All)
                             )
-                            flowNavigator.back()
+                            dismissSheet()
                         },
                     )
 
@@ -136,7 +135,7 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
                         GroupCurrency.Specific(token.address)
                     )
                 )
-                flowNavigator.back()
+                dismissSheet()
             },
         )
     }

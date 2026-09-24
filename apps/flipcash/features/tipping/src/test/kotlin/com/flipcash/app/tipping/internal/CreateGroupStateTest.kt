@@ -92,15 +92,6 @@ class CreateGroupStateTest {
     }
 
     @Test
-    fun `the heading names the requirement once part of it is set`() {
-        // 10127:118057 asks; 10127:118194 names it on a token with no amount; 10364:1059 names it
-        // on All Currencies with an amount.
-        assertFalse(state(currency = GroupCurrency.All, amount = null).requirementStarted)
-        assertTrue(state(amount = null).requirementStarted)
-        assertTrue(state(currency = GroupCurrency.All).requirementStarted)
-    }
-
-    @Test
     fun `the draft becomes one listener minimum balance in one mint`() {
         val rules = state().rules
 

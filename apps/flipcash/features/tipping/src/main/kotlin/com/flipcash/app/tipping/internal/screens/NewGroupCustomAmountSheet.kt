@@ -1,17 +1,15 @@
 package com.flipcash.app.tipping.internal.screens
 
-import android.os.Parcelable
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import com.flipcash.app.core.chat.NewGroupStep
 import com.flipcash.app.tipping.internal.CreateGroupViewModel
 import com.flipcash.features.tipping.R
 import com.flipcash.shared.amountentry.AmountEntryScreen
-import com.getcode.navigation.flow.rememberFlowNavigator
+import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
@@ -31,7 +29,8 @@ import kotlinx.coroutines.flow.onEach
  */
 @Composable
 internal fun NewGroupCustomAmountSheet(viewModel: CreateGroupViewModel) {
-    val flowNavigator = rememberFlowNavigator<NewGroupStep, Parcelable>()
+    // Exit through the sheet so it animates down rather than having its scene deleted mid-frame.
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
 
     AmountEntryScreen(
         controller = viewModel.amountDelegate,
@@ -39,9 +38,9 @@ internal fun NewGroupCustomAmountSheet(viewModel: CreateGroupViewModel) {
         largeHeader = true,
         appBar = {
             AppBarWithTitle(
-                title = stringResource(R.string.title_balanceRequirement),
+                title = stringResource(R.string.title_minimumBalanceRequired),
                 titleAlignment = Alignment.CenterHorizontally,
-                endContent = { AppBarDefaults.Close { flowNavigator.back() } },
+                endContent = { AppBarDefaults.Close(onClick = dismissSheet) },
             )
         },
         headerCaption = {
@@ -57,7 +56,7 @@ internal fun NewGroupCustomAmountSheet(viewModel: CreateGroupViewModel) {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<CreateGroupViewModel.Event.OnAmountSelected>()
-            .onEach { flowNavigator.back() }
+            .onEach { dismissSheet() }
             .launchIn(this)
     }
 }
