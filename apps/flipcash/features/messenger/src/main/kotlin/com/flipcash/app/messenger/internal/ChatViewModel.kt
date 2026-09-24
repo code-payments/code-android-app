@@ -32,6 +32,7 @@ import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.messenger.internal.link.CashCardTap
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
@@ -170,9 +171,11 @@ internal class ChatViewModel @Inject constructor(
     private val linkCardResolver: LinkCardResolver,
     private val cashLinkClaims: CashLinkClaims,
     private val chatDraftStore: ChatDraftStore,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     sealed interface ResolveState {

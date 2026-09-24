@@ -15,6 +15,7 @@ import com.flipcash.app.messenger.internal.link.LinkCardResolver
 import com.flipcash.app.session.CashLinkClaims
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
@@ -39,14 +40,12 @@ import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -115,22 +114,6 @@ class ChatSendFailureAnalyticsTest {
         BottomBarManager.clear()
     }
 
-    /**
-     * [BaseViewModel.dispatchEvent] hands the event to its `eventFlow` on a `viewModelScope.launch`
-     * fixed to the real `Dispatchers.Default` — [ChatViewModel] takes no `DispatcherProvider` to
-     * swap it for a test one, so the send handler this pins runs on a genuine background thread
-     * outside [advanceUntilIdle]'s virtual clock. `withContext(Dispatchers.IO)` hops onto another
-     * real dispatcher so this coroutine actually blocks in wall-clock time, giving that thread a
-     * window to run rather than racing it.
-     */
-    private suspend fun awaitAnalyticsEvent(name: String, timeoutMs: Long = 5_000) {
-        val deadline = System.nanoTime() + timeoutMs * 1_000_000
-        while (analytics.events.none { it.name == name }) {
-            check(System.nanoTime() < deadline) { "Timed out waiting for a \"$name\" analytics event" }
-            withContext(Dispatchers.IO) { Thread.sleep(5) }
-        }
-    }
-
     private fun createViewModel(): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
         contactCoordinator = contactCoordinator,
@@ -150,6 +133,7 @@ class ChatSendFailureAnalyticsTest {
         linkCardResolver = linkCardResolver,
         cashLinkClaims = cashLinkClaims,
         chatDraftStore = chatDraftStore,
+        dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 
     @Test
@@ -172,7 +156,6 @@ class ChatSendFailureAnalyticsTest {
         vm.dispatchEvent(ChatViewModel.Event.OnContactFound(contact))
         vm.dispatchEvent(ChatViewModel.Event.OnSendRequested(amount, token))
         advanceUntilIdle()
-        awaitAnalyticsEvent("Sent Cash")
 
         val event = analytics.events.single { it.name == "Sent Cash" }
         assertEquals(PropertyValue.Text(AnalyticsState.FAILURE.value), event.properties["State"])
@@ -192,7 +175,6 @@ class ChatSendFailureAnalyticsTest {
         vm.dispatchEvent(ChatViewModel.Event.OnTipUserResolved(userId, profile))
         vm.dispatchEvent(ChatViewModel.Event.OnSendRequested(amount, token))
         advanceUntilIdle()
-        awaitAnalyticsEvent("Sent Tip")
 
         val event = analytics.events.single { it.name == "Sent Tip" }
         assertEquals(PropertyValue.Text(AnalyticsState.FAILURE.value), event.properties["State"])
