@@ -77,7 +77,15 @@ sealed interface GroupAccess {
                             requirement.mints.mapNotNull { byMint[it.bytes] }
                         }
                         val best = candidates.maxOrNull()
-                        best == null || best < requirement.amount
+                        // Compared at display precision, the held side rounded half-up to cents
+                        // (`Fiat.toDouble`): a balance the wallet shows as $5.00 meets a $5 bar even
+                        // when its exact worth is $4.998, and $4.995 passes too. A launchpad
+                        // holding's exact worth depends on the supply this client last saw, and one
+                        // that lags a buy prices the new tokens a fraction below what was paid. The
+                        // server enforces the rule against its own supply, so admitting half a cent
+                        // too generously costs one denied join. iOS's `ConversationGate.unmetBalance`
+                        // rounds the same way; keep the two in step.
+                        best == null || best.toDouble() < requirement.amount.decimalValue
                     }
                     // `UserFlags.is_staff` is the same field the rule is written against, and the
                     // client already has it — so staff are eligible for a staff chat and can rejoin

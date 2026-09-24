@@ -44,6 +44,10 @@ class GroupAccessTest {
     private fun held(seed: Byte, symbol: String, dollars: Double) =
         TokenWithBalance(token = token(seed, symbol), balance = Fiat(dollars))
 
+    /** Exact micro-dollars, for the cases that sit on a rounding edge. */
+    private fun heldMicros(seed: Byte, symbol: String, micros: Long) =
+        TokenWithBalance(token = token(seed, symbol), balance = Fiat(quarks = micros))
+
     private val badBoys = mint(1)
     private val other = mint(2)
 
@@ -108,6 +112,56 @@ class GroupAccessTest {
         )
 
         assertEquals(GroupAccess.Blocked(requirement), access)
+    }
+
+    @Test
+    fun `a balance that shows as the requirement clears the bar`() {
+        // $5 of a launchpad token valued at a supply that lags the buy comes back a fraction
+        // short. The wallet shows it as $5.00, so the gate must agree.
+        val access = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules(ChatRuleRequirement.MinimumBalance(Fiat(5.0), listOf(badBoys))),
+            balances = listOf(heldMicros(1, "BadBoys", 4_998_000)),
+            isStaff = false,
+        )
+
+        assertEquals(GroupAccess.Eligible, access)
+    }
+
+    @Test
+    fun `half a cent short rounds up to the requirement`() {
+        val access = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules(ChatRuleRequirement.MinimumBalance(Fiat(5.0), listOf(badBoys))),
+            balances = listOf(heldMicros(1, "BadBoys", 4_995_000)),
+            isStaff = false,
+        )
+
+        assertEquals(GroupAccess.Eligible, access)
+    }
+
+    @Test
+    fun `a balance that shows below the requirement is still blocked`() {
+        val requirement = ChatRuleRequirement.MinimumBalance(Fiat(5.0), listOf(badBoys))
+
+        assertEquals(
+            GroupAccess.Blocked(requirement),
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = rules(requirement),
+                balances = listOf(heldMicros(1, "BadBoys", 4_980_000)),
+                isStaff = false,
+            ),
+        )
+        assertEquals(
+            GroupAccess.Blocked(requirement),
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = rules(requirement),
+                balances = listOf(heldMicros(1, "BadBoys", 4_994_999)),
+                isStaff = false,
+            ),
+        )
     }
 
     @Test
