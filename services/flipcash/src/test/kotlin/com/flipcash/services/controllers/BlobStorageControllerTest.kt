@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.BlobUploader
+import com.flipcash.services.blob.JPEGMetadata
 import com.flipcash.services.models.BlobNotReadyException
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.blob.UploadReservation
@@ -19,9 +20,11 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -166,6 +169,31 @@ class BlobStorageControllerTest {
         val result = controller.upload(byteArrayOf(1, 2, 3), "image/png")
 
         assertEquals(blobId, result.getOrNull())
+    }
+
+    @Test
+    fun `upload strips EXIF metadata and reserves the stripped size`() = runTest {
+        stubOwner()
+        val jpegWithExif = byteArrayOf(0xFF.toByte(), 0xD8.toByte()) +
+            byteArrayOf(0xFF.toByte(), 0xE1.toByte(), 0x00, 0x11) +
+            "Exif\u0000\u0000GPS 51.5N".toByteArray() +
+            byteArrayOf(0xFF.toByte(), 0xDA.toByte(), 0x00, 0x02, 0xFF.toByte(), 0xD9.toByte())
+        val stripped = JPEGMetadata.stripped(jpegWithExif)
+        check(stripped.size < jpegWithExif.size) { "fixture must actually carry a stripped segment" }
+
+        val sizes = mutableListOf<Long>()
+        coEvery { repository.initiateExternalUpload(any(), capture(sizes), any()) } returns
+            Result.success(UploadReservation(blobId, target))
+        val uploadedBytes = slot<ByteArray>()
+        coEvery { uploader.upload(capture(uploadedBytes), any(), any()) } returns Result.success(Unit)
+        coEvery { repository.completeExternalUpload(any(), any()) } returns Result.success(BlobStatus.PROCESSING)
+        coEvery { repository.getBlobs(any(), any(), any()) } returns Result.success(listOf(readyBlob()))
+
+        val result = controller.upload(jpegWithExif, "image/jpeg")
+
+        assertEquals(blobId, result.getOrNull())
+        assertContentEquals(stripped, uploadedBytes.captured)
+        assertEquals(stripped.size.toLong(), sizes.single())
     }
 
     @Test
