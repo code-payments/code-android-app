@@ -95,6 +95,7 @@ class InterruptedSendRecoveryTest {
         }
 
         val feedDelegate = FeedSyncDelegate(
+            messagingController = mockk(relaxed = true),
             chatController = chatController,
             metadataDataSource = metadataDataSource,
             messageDataSource = messageDataSource,

@@ -106,6 +106,7 @@ class ReceivedEventTest {
         coEvery { metadataDataSource.getChatType(chatId) } returns ChatType.TIP_DM
 
         val feedDelegate = FeedSyncDelegate(
+            messagingController = mockk(relaxed = true),
             chatController = chatController,
             metadataDataSource = metadataDataSource,
             messageDataSource = messageDataSource,

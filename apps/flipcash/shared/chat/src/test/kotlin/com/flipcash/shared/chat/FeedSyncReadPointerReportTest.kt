@@ -92,6 +92,7 @@ class FeedSyncReadPointerReportTest {
         }
 
         val delegate = FeedSyncDelegate(
+            messagingController = mockk(relaxed = true),
             chatController = chatController,
             metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true),
             messageDataSource = mockk<ChatMessageDataSource>(relaxed = true),

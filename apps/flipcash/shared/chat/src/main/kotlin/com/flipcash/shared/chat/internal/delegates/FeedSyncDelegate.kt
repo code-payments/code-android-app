@@ -14,6 +14,8 @@ import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.mediator.ChatFeedRemoteMediator
 import com.flipcash.services.controllers.ChatController
+import com.flipcash.services.controllers.ChatMessagingController
+import com.flipcash.services.models.GetMessageError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
@@ -45,6 +47,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -70,6 +73,7 @@ class FeedSyncDelegate @Inject constructor(
     private val memberDataSource: ChatMemberDataSource,
     private val stateHolder: ChatStateHolder,
     private val userManager: UserManager,
+    private val messagingController: ChatMessagingController,
 ) : FeedOperations {
 
     companion object {
@@ -113,6 +117,8 @@ class FeedSyncDelegate @Inject constructor(
     val events: Flow<Event> = _events.receiveAsFlow()
 
     private var scope: CoroutineScope? = null
+    private val readStampsInFlight = ConcurrentHashMap.newKeySet<Pair<ChatId, Long>>()
+    private val readStampsNotFound = ConcurrentHashMap.newKeySet<Pair<ChatId, Long>>()
     private var syncJob: Job? = null
     private var feedObserverJob: Job? = null
 
@@ -142,7 +148,7 @@ class FeedSyncDelegate @Inject constructor(
             .filter { it.type in requested }
             .filter { isRenderable(it, selfId, selfPhone) }
             .map { metadata ->
-                val count = unreadCount(metadata, selfId) { id -> state.readStamps[metadata.chatId to id] }
+                val count = unreadCount(metadata, selfId) { id -> state.readStampAt(metadata.chatId, id) }
                 ChatSummary(metadata = metadata, unreadCount = count)
             }
     }
@@ -185,7 +191,10 @@ class FeedSyncDelegate @Inject constructor(
         val lastMessage = entity.lastMessageId?.let { messageDataSource.getLatestVisible(entity.chatIdHex) }
         val metadata = metadataDataSource.toMetadata(entity, members, lastMessage)
         val readPointer = selfReadPointer(metadata, selfId)
-        val readStamp = readPointer?.let { messageDataSource.getUnreadSeq(entity.chatIdHex, it) }
+        val readStamp = readPointer?.let {
+            messageDataSource.getUnreadSeq(entity.chatIdHex, it)
+                ?: stateHolder.state.value.fetchedReadStamps[metadata.chatId to it]
+        }
         val count = unreadCount(metadata, selfId) { id -> readStamp.takeIf { id == readPointer } }
         return ChatSummary(metadata = metadata, unreadCount = count)
     }
@@ -218,6 +227,7 @@ class FeedSyncDelegate @Inject constructor(
             buildFeedFromDb(metadataEntities, membersByChat)
         }.onEach { (feed, readStamps) ->
             stateHolder.update { it.copy(feed = feed, readStamps = readStamps) }
+            fetchMissingReadStamps(feed)
         }.launchIn(scope)
     }
 
@@ -241,6 +251,54 @@ class FeedSyncDelegate @Inject constructor(
         syncJob?.cancel()
         feedObserverJob?.cancel()
         feedObserverJob = null
+        readStampsInFlight.clear()
+        readStampsNotFound.clear()
+    }
+
+    /**
+     * Fetches the unread stamp on the message each unread chat's READ pointer names, where the
+     * device doesn't store that message, so the row can show an exact count rather than a dot.
+     *
+     * One request per key at a time. A NOT_FOUND key isn't asked for again this session and keeps
+     * the dot; any other failure leaves the key unresolved, so the next feed build retries it.
+     */
+    private fun fetchMissingReadStamps(feed: List<ChatMetadata>) {
+        val scope = scope ?: return
+        val state = stateHolder.state.value
+        val selfId = userManager.accountId
+        val selfPhone = userManager.profile?.verifiedPhoneNumber
+        for (metadata in feed) {
+            if (!isRenderable(metadata, selfId, selfPhone)) continue
+            val readPointer = selfReadPointer(metadata, selfId) ?: continue
+            val key = metadata.chatId to readPointer
+            if (state.readStampAt(metadata.chatId, readPointer) != null) continue
+            if (key in readStampsNotFound) continue
+            // With no stamp to look up, only a chat that is unread by its ids counts as unknown;
+            // a read chat needs no stamp.
+            if (unreadCount(metadata, selfId) { null } != null) continue
+            if (!readStampsInFlight.add(key)) continue
+
+            scope.launch {
+                messagingController.getMessage(metadata.chatId, readPointer)
+                    .onSuccess { message ->
+                        stateHolder.update {
+                            it.copy(fetchedReadStamps = it.fetchedReadStamps + (key to message.unreadSeq))
+                        }
+                    }
+                    .onFailure { cause ->
+                        if (cause is GetMessageError.NotFound) readStampsNotFound.add(key)
+                        val expected = cause is GetMessageError.NotFound || cause is GetMessageError.Denied
+                        trace(
+                            tag = TAG,
+                            message = "Fetching the read pointer's message $readPointer failed",
+                            error = cause,
+                            // Error routes through ErrorUtils, which drops transport failures.
+                            type = if (expected) TraceType.Log else TraceType.Error,
+                        )
+                    }
+                readStampsInFlight.remove(key)
+            }
+        }
     }
 
     /**
@@ -373,3 +431,7 @@ class FeedSyncDelegate @Inject constructor(
 
     // endregion
 }
+
+/** The unread stamp on [messageId] in [chatId]: the stored one, else one fetched this session. */
+private fun ChatState.readStampAt(chatId: ChatId, messageId: Long): Long? =
+    readStamps[chatId to messageId] ?: fetchedReadStamps[chatId to messageId]

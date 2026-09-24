@@ -86,6 +86,7 @@ class GroupChatRoutingTest {
 
         return RealChatCoordinator(
             feedDelegate = FeedSyncDelegate(
+                messagingController = mockk(relaxed = true),
                 chatController = chatController,
                 metadataDataSource = metadataDataSource,
                 messageDataSource = messageDataSource,
