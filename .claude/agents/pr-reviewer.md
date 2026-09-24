@@ -30,7 +30,7 @@ Review code changes (PR diff or local changes) and provide actionable, prioritiz
 
 ### Kotlin & Coroutines
 - Structured concurrency — no leaked coroutine scopes, proper cancellation
-- Dispatcher usage — IO work on `Dispatchers.IO`, no blocking on Main
+- Dispatcher usage — IO work on the dispatcher injected via `DispatcherProvider`, no blocking on Main
 - `Result` handling — MockK double-boxes `Result` inline class; Mockito should be used for `Result`-returning mocks in tests
 - Null safety — especially at Java/proto interop boundaries
 
