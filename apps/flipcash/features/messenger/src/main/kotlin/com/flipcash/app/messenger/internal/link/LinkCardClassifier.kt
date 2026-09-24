@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.link
 
 import android.net.Uri
 import androidx.core.net.toUri
+import com.flipcash.app.core.links.FIRST_PARTY_HOSTS
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
@@ -122,17 +123,11 @@ internal class LinkCardClassifier @Inject constructor(
         private const val JUMP_SOURCE_PARAM = "source="
 
         /**
-         * The union of the hosts the two apps claim — Android's manifest intent filters and iOS's
-         * associated-domains entitlement. `www.flipcash.com` is Android-only for routing and is
-         * here anyway: whether a link *is* a Flipcash link is not a question about which app opens
-         * it, and the cross-platform fixture has to agree on one answer.
+         * Flipcash's own hosts, shared with the external-link warning. `www.flipcash.com` is
+         * Android-only for routing and is here anyway: whether a link *is* a Flipcash link is not a
+         * question about which app opens it, and the cross-platform fixture has to agree on one
+         * answer.
          */
-        val CARD_HOSTS = setOf(
-            "app.flipcash.com",
-            "send.flipcash.com",
-            "flipcash.com",
-            "www.flipcash.com",
-            "jump.flipcash.com",
-        )
+        val CARD_HOSTS = FIRST_PARTY_HOSTS
     }
 }
