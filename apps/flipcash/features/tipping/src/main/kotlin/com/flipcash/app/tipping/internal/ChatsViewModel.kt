@@ -5,10 +5,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatSummary
+import com.flipcash.shared.chat.chatListFeed
+import com.flipcash.shared.chat.currentChatListFeed
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.toConversationReference
 import com.getcode.opencode.model.financial.Token
@@ -52,14 +53,14 @@ internal class ChatsViewModel @Inject constructor(
 
         // On a cold launch the feed is usually built before this screen is, so draw it on the first
         // frame rather than waiting for the collector below to get a turn on the main thread.
-        chatCoordinator.currentFeed(ChatType.TIP_DM, ChatType.GROUP)?.let { summaries ->
+        chatCoordinator.currentChatListFeed()?.let { summaries ->
             dispatchEvent(
                 Event.ChatsUpdated(Loadable.Loaded(conversations(summaries, tokenCoordinator.cachedTokens())))
             )
         }
 
         combine(
-            chatCoordinator.feed(ChatType.TIP_DM, ChatType.GROUP),
+            chatCoordinator.chatListFeed(),
             tokenCoordinator.tokens,
             ::conversations,
         )
