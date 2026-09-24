@@ -3,7 +3,6 @@ package com.flipcash.app.tipping.internal
 import android.net.Uri
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.Mint
 import com.flipcash.services.models.chat.BlobId
 
 /**
@@ -16,8 +15,11 @@ internal data class GroupDraft(
     val title: String,
     /** The re-encoded local copy, before upload. Null when the group has no picture. */
     val picture: Uri?,
-    /** The mint the balance requirement is denominated in. */
-    val mint: Mint,
+    /**
+     * What the balance requirement is measured in. [GroupCurrency.All] is a value of its own rather
+     * than a missing mint, so an any-currency draft and a one-token draft never share a key.
+     */
+    val currency: GroupCurrency,
     /** The required balance, in USD — the currency [com.flipcash.shared.chat.GroupAccess] compares in. */
     val amount: Fiat,
 )

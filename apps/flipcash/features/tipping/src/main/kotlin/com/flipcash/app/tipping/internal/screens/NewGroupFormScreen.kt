@@ -47,6 +47,7 @@ import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.ui.DisplayTextInput
 import com.flipcash.app.tipping.internal.BalancePresets
 import com.flipcash.app.tipping.internal.CreateGroupViewModel
+import com.flipcash.app.tipping.internal.GroupCurrency
 import com.flipcash.features.tipping.R
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.opencode.model.financial.Fiat
@@ -294,12 +295,7 @@ private fun IdentityCard(
 }
 
 /**
- * The balance rule: which mint, and how much of it.
- *
- * The heading changes once the creator picks the mint, not once an amount is: node 10127:118057
- * still asks for a "Minimum Balance Required" with the title already filled in and the form's
- * opening mint untouched, and node 10127:118194 reads "Balance Requirement" with the mint changed
- * and no amount yet.
+ * The balance rule: which currency, and how much of it.
  */
 @Composable
 private fun RequirementSection(
@@ -314,13 +310,7 @@ private fun RequirementSection(
     ) {
         Text(
             modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x3),
-            text = stringResource(
-                if (!state.mintChosen) {
-                    R.string.title_minimumBalanceRequired
-                } else {
-                    R.string.title_balanceRequirement
-                }
-            ),
+            text = stringResource(R.string.title_minimumBalanceRequired),
             style = LabelStyle,
             color = White50,
         )
@@ -398,30 +388,38 @@ private fun MintRow(state: CreateGroupViewModel.State, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val token = state.token
-        AsyncImage(
-            model = ImageRequest.Builder(LocalPlatformContext.current)
-                .data(token?.imageUrl)
-                .build(),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(MintIconSize)
-                .clip(CircleShape)
-                .background(White10),
-        )
+        val allCurrencies = state.currency == GroupCurrency.All
+        if (allCurrencies) {
+            // Node 10364:1059 — the sheet's card glyph, scaled to the row.
+            AllCurrenciesIcon(discSize = MintIconSize, iconSize = AllCurrenciesGlyphSize)
+        } else {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalPlatformContext.current)
+                    .data(state.token?.imageUrl)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(MintIconSize)
+                    .clip(CircleShape)
+                    .background(White10),
+            )
+        }
 
-        // The form seats a mint before it is drawn, so node 10127:118014 names one in the empty
-        // state and this row normally has a name to show. A wallet holding nothing has no mint to
-        // seat and no frame in the design either, so the row falls back to the sheet's own title
-        // rather than rendering a blank, tappable line.
+        // A picked token whose balance has since left the list has no name to show, so the row
+        // falls back to the sheet's own title rather than rendering a blank, tappable line.
+        val name = if (allCurrencies) {
+            stringResource(R.string.title_allCurrencies)
+        } else {
+            state.currencyName
+        }
         Text(
-            text = state.currencyName ?: stringResource(R.string.title_selectCurrency),
+            text = name ?: stringResource(R.string.title_selectCurrency),
             style = CodeTheme.typography.textMedium.copy(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
             ),
-            color = if (token == null) White50 else CodeTheme.colors.textMain,
+            color = if (name == null) White50 else CodeTheme.colors.textMain,
         )
 
         Icon(
@@ -456,6 +454,7 @@ private fun AmountChip(
 private val AvatarSize = 74.dp
 private val CameraIconSize = 40.dp
 private val MintIconSize = 20.dp
+private val AllCurrenciesGlyphSize = 12.dp
 private val ChipHeight = 60.dp
 
 private val LabelStyle
