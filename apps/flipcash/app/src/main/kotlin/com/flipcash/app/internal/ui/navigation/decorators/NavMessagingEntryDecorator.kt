@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
+import com.flipcash.analytics.events.ErrorModalEvents
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.getcode.manager.BottomBarManager
@@ -46,11 +47,13 @@ fun NavMessagingEntryDecorator(
                         BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> Unit
                         BottomBarManager.BottomBarMessageType.ERROR -> {
                             val screen = backStack.lastOrNull()?.screenName()
-                            analytics.displayedErrorModal(
-                                title = message.title,
-                                message = message.subtitle,
-                                screen = screen,
-                                callSite = message.callSite,
+                            analytics.track(
+                                ErrorModalEvents.displayed(
+                                    title = message.title,
+                                    message = message.subtitle,
+                                    screen = screen,
+                                    callSite = message.callSite,
+                                )
                             )
                         }
                         BottomBarManager.BottomBarMessageType.WARNING -> Unit

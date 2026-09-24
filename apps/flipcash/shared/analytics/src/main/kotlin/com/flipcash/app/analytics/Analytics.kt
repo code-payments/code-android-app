@@ -10,7 +10,6 @@ import com.getcode.opencode.model.financial.CurrencyCode
 
 interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
     fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair)
-    fun displayedErrorModal(title: String, message: String, screen: String? = null, callSite: String? = null)
 
     fun buttonTapped(button: Button) {
         action(button)
@@ -26,8 +25,6 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun action(action: AppAction, source: AppActionSource?) = Unit
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) = Unit
-
-    override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) = Unit
 }
 
 @Composable

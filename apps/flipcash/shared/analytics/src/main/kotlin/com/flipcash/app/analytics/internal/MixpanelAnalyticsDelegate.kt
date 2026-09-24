@@ -79,10 +79,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.PaidForAccount(price, currency, owner))
     }
 
-    override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) {
-        track(AnalyticsEvent.ErrorModalDisplayed(title, message, screen, callSite))
-    }
-
     // region Internal
 
     private fun track(event: AnalyticsEvent, vararg extra: Pair<String, String>) {

@@ -26,21 +26,6 @@ internal sealed interface AnalyticsEvent {
         )
     }
 
-    data class ErrorModalDisplayed(
-        val title: String,
-        val message: String,
-        val screen: String? = null,
-        val callSite: String? = null,
-    ): AnalyticsEvent {
-        override val name = "Error Modal Displayed"
-        override fun toProperties() = buildMap {
-            put("Title", title)
-            put("Message", message)
-            screen?.let { put("Screen", it) }
-            callSite?.let { put("Call Site", it) }
-        }
-    }
-
     sealed interface PoolEvent : AnalyticsEvent {
         val id: ID
         override fun toProperties() = mapOf("ID" to id.base58)
