@@ -1,6 +1,5 @@
 package com.flipcash.app.analytics
 
-import com.flipcash.app.core.DisplayNameSource
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -13,21 +12,6 @@ import com.getcode.utils.getPublicKeyBase58
 internal sealed interface AnalyticsEvent {
     val name: String
     fun toProperties(): Map<String, String> = emptyMap()
-
-    sealed interface DisplayNameEvent : AnalyticsEvent {
-        val source: DisplayNameSource
-        override fun toProperties() = mapOf("Source" to source.propertyValue)
-
-        /** The user had no display name before this submission. */
-        data class Set(override val source: DisplayNameSource) : DisplayNameEvent {
-            override val name = "Display Name Set"
-        }
-
-        /** The user replaced an existing display name. */
-        data class Updated(override val source: DisplayNameSource) : DisplayNameEvent {
-            override val name = "Display Name Updated"
-        }
-    }
 
     data class PaidForAccount(
         val price: Double,
@@ -99,10 +83,3 @@ internal fun Fiat.asProperties(): Map<String, String> {
         put("Quarks", quarks.toDouble().toString())
     }
 }
-
-internal val DisplayNameSource.propertyValue: String
-    get() = when (this) {
-        DisplayNameSource.Onboarding -> "Onboarding"
-        DisplayNameSource.MyAccount -> "My Account"
-        DisplayNameSource.TipCardSetup -> "Tip Card Setup"
-    }

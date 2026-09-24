@@ -3,11 +3,14 @@ package com.flipcash.app.userprofile.internal.name
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.events.DisplayNameEvents
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.features.userprofile.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ModerationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.ModerationResult
@@ -39,9 +42,11 @@ class NameEntryViewModel @Inject constructor(
     private val moderationController: ModerationController,
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel<NameEntryViewModel.State, NameEntryViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val nameFieldState: TextFieldState = TextFieldState(),
@@ -141,7 +146,12 @@ class NameEntryViewModel @Inject constructor(
                     stateFlow.value.nameFieldState.text.toString()
                 )
                 result.onSuccess {
-                    analytics.displayNameSubmitted(event.source, hadPreviousName)
+                    val analyticsEvent = if (hadPreviousName) {
+                        DisplayNameEvents.updated(event.source.analytics)
+                    } else {
+                        DisplayNameEvents.set(event.source.analytics)
+                    }
+                    analytics.track(analyticsEvent)
                 }
                 result
             }.onResult(
