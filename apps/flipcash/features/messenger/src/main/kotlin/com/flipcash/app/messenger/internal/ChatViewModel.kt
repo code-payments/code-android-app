@@ -13,10 +13,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
+import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.analytics.events.ChatEvents
 import com.flipcash.analytics.events.TransferEvents
-import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.contacts.ContactCoordinator
@@ -1915,7 +1916,7 @@ internal class ChatViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .onEach {
-                analytics.addMoneyOpened(Analytics.AddMoneySource.Chat)
+                analytics.track(AddMoneyEvents.opened(AddMoneySource.CHAT))
                 purchaseMethodController.presentDepositOptions()?.let { route ->
                     dispatchEvent(Event.OpenScreen(route))
                 }

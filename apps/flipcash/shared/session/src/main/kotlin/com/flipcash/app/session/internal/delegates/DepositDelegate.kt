@@ -1,6 +1,7 @@
 package com.flipcash.app.session.internal.delegates
 
-import com.flipcash.app.analytics.Analytics
+import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.funding.PurchaseMethodController
@@ -66,7 +67,7 @@ class DepositDelegate @Inject constructor(
                 ) {
                     scope.launch {
                         // the scanner's Give action is the only session caller today
-                        analytics.addMoneyOpened(Analytics.AddMoneySource.Scanner)
+                        analytics.track(AddMoneyEvents.opened(AddMoneySource.SCANNER))
                         val destination = purchaseMethodController.presentDepositOptions(popToRoot = true)
                         if (destination != null) {
                             onRoute?.invoke(destination)

@@ -1,7 +1,8 @@
 package com.flipcash.app.balance.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Analytics
+import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.app.core.AppRoute
@@ -176,7 +177,7 @@ internal class WalletViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
-                analytics.addMoneyOpened(Analytics.AddMoneySource.Balance)
+                analytics.track(AddMoneyEvents.opened(AddMoneySource.BALANCE))
                 purchaseMethodController.presentDepositOptions(popToRoot = true) }
             .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)

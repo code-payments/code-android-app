@@ -2,6 +2,7 @@ package com.flipcash.app.deposit.internal
 
 import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.setText
@@ -109,7 +110,7 @@ internal class DepositViewModel @Inject constructor(
                     label = resources.getString(R.string.title_clipboardLabelDepositAddress),
                 )
                 stateFlow.value.selectedTokenAddress?.let { mint ->
-                    analytics.addMoneyAddressCopied(mint)
+                    analytics.track(AddMoneyEvents.addressCopied(mint.base58()))
                 }
             }
             .onEach {

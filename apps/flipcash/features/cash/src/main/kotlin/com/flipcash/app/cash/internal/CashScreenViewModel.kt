@@ -1,7 +1,8 @@
 package com.flipcash.app.cash.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Analytics
+import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
@@ -289,7 +290,7 @@ internal class CashScreenViewModel @Inject constructor(
                 // route directly to the swap amount screen, skipping token info
                 val mint = stateFlow.value.selectedTokenAddress!!
                 if (mint == Mint.usdf) {
-                    analytics.addMoneyOpened(Analytics.AddMoneySource.GiveShortfall)
+                    analytics.track(AddMoneyEvents.opened(AddMoneySource.GIVE_SHORTFALL))
                 }
                 dispatchEvent(
                     Event.OpenScreen(

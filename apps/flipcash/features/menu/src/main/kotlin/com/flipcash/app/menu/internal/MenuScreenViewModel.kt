@@ -2,7 +2,8 @@ package com.flipcash.app.menu.internal
 
 import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Analytics
+import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.core.AppRoute
@@ -156,7 +157,7 @@ internal class MenuScreenViewModel @Inject constructor(
          * deliberate visit to Add Money.
          */
         data class PresentDepositOptions(
-            val source: Analytics.AddMoneySource = Analytics.AddMoneySource.Menu,
+            val source: AddMoneySource = AddMoneySource.MENU,
         ) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data class OnTipCardStateChanged(val tipCardState: TipCardState) : Event
@@ -246,7 +247,7 @@ internal class MenuScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull { event ->
-                analytics.addMoneyOpened(event.source)
+                analytics.track(AddMoneyEvents.opened(event.source))
                 purchaseMethodController.presentDepositOptions(popToRoot = true)
             }.onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
@@ -350,7 +351,7 @@ internal class MenuScreenViewModel @Inject constructor(
                                 onClick = {
                                     dispatchEvent(
                                         Event.PresentDepositOptions(
-                                            Analytics.AddMoneySource.UsernameShortfall
+                                            AddMoneySource.USERNAME_SHORTFALL
                                         )
                                     )
                                 },

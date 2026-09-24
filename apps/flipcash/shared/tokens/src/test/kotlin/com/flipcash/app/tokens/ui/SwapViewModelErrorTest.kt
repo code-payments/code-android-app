@@ -1,7 +1,11 @@
 package com.flipcash.app.tokens.ui
 
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.AddMoneyMethod
+import com.flipcash.analytics.PropertyValue
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.onramp.CoinbaseOnRampController
@@ -56,7 +60,9 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.stub
 import org.mockito.kotlin.whenever
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -74,7 +80,7 @@ class SwapViewModelErrorTest {
     private val resources = FakeResourceHelper()
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val feedCoordinator = mockk<ActivityFeedCoordinator>(relaxed = true)
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val analytics = RecordingAnalytics()
     private val purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true)
     private val coinbaseOnRampController = mockk<CoinbaseOnRampController>(relaxed = true)
     private val phantomWalletController = mockk<PhantomWalletController>(relaxed = true)
@@ -214,6 +220,44 @@ class SwapViewModelErrorTest {
         advanceUntilIdle()
 
         verify(exactly = 0) { usdcDepositSweep.execute(any()) }
+    }
+
+    @Test
+    fun `a failed Coinbase delivery tracks Add Money as a failure`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { tokenCoordinator.balanceForToken(Mint.usdf) } returns MutableStateFlow(Fiat.Zero)
+        coEvery { coinbaseOnRampController.awaitOrderDelivered("order-3") } returns
+            OrderDeliveryResult.Failed
+
+        val vm = createViewModel()
+        vm.dispatchEvent(
+            SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Buy(Mint.usdf, fundingSource = FundingSource.Coinbase))
+        )
+        vm.dispatchEvent(SwapViewModel.Event.DepositSubmitted(orderId = "order-3"))
+        advanceUntilIdle()
+
+        val result = analytics.events.single { it.name == "Add Money" }
+        // The amount block is the net of the entry and its fee; only its shape is fixed here.
+        assertIs<PropertyValue.Number>(result.properties["Fiat"])
+        val amountKeys = setOf("Fiat", "Currency", "USDC", "Quarks", "Exchange Rate", "Mint")
+        assertEquals(
+            AddMoneyEvents.result(AddMoneyMethod.COINBASE, AnalyticsState.FAILURE, amount = null, error = "Order delivery failed"),
+            result.copy(properties = result.properties - amountKeys),
+        )
+    }
+
+    @Test
+    fun `a deposit outside a USDF buy tracks no Add Money result`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { tokenCoordinator.balanceForToken(Mint.usdf) } returns MutableStateFlow(Fiat.Zero)
+        coEvery { coinbaseOnRampController.awaitOrderDelivered("order-4") } returns
+            OrderDeliveryResult.Failed
+
+        val vm = createViewModel()
+        vm.dispatchEvent(SwapViewModel.Event.DepositSubmitted(orderId = "order-4"))
+        advanceUntilIdle()
+
+        assertTrue(analytics.events.none { it.name == "Add Money" })
     }
 
     // --- Entry-currency conversion on the buy gate ---------------------------------------------
