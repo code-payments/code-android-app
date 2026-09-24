@@ -31,9 +31,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.Button
 import com.flipcash.analytics.TokenInfoSource
+import com.flipcash.analytics.events.ButtonEvents
 import com.flipcash.analytics.events.TokenInfoEvents
-import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
@@ -116,7 +117,7 @@ fun TokenInfoScreen(
                 state.token.dataOrNull?.let {
                     if (!state.isCashReserve) {
                         AppBarDefaults.Share(hazeState = haze) {
-                            analytics.buttonTapped(Button.TokenShare)
+                            analytics.track(ButtonEvents.tapped(Button.SHARE_TOKEN_INFO))
                             viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
                         }
                     }

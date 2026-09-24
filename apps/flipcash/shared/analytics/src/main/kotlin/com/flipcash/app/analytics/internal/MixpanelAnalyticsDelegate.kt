@@ -6,10 +6,8 @@ import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.TokenSymbolResolver
 import com.flipcash.app.analytics.asProperties
-import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.services.flipcash.BuildConfig
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -73,10 +71,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
 
     override fun action(action: AppAction, source: AppActionSource?) {
         track(name = action.value)
-    }
-
-    override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) {
-        track(AnalyticsEvent.PaidForAccount(price, currency, owner))
     }
 
     // region Internal

@@ -1,30 +1,14 @@
 package com.flipcash.app.analytics
 
-import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
-import com.getcode.utils.getPublicKeyBase58
 
 internal sealed interface AnalyticsEvent {
     val name: String
     fun toProperties(): Map<String, String> = emptyMap()
-
-    data class PaidForAccount(
-        val price: Double,
-        val currency: CurrencyCode,
-        val owner: KeyPair
-    ) : AnalyticsEvent {
-        override val name = "Create Account Payment"
-        override fun toProperties() = mapOf(
-            "Fiat" to price.toString(),
-            "Currency" to currency.name,
-            "Owner Public Key" to owner.getPublicKeyBase58()
-        )
-    }
 
     sealed interface PoolEvent : AnalyticsEvent {
         val id: ID

@@ -1,7 +1,9 @@
 package com.flipcash.app.login.router
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.Button
+import com.flipcash.analytics.events.ButtonEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.core.MainCoroutineRule
@@ -25,6 +27,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -46,7 +49,7 @@ class LoginViewModelCreateAccountTest {
     private val accounts: AccountController = mock()
     private val accountStore: AccountStore = mockk(relaxed = true)
     private val resources = FakeResourceHelper()
-    private val analytics: FlipcashAnalyticsService = mockk(relaxed = true)
+    private val analytics = RecordingAnalytics()
 
     private lateinit var dispatchers: TestDispatchers
 
@@ -84,6 +87,11 @@ class LoginViewModelCreateAccountTest {
         // so loading is set before the async createAccount() call is dispatched.
 
         assertTrue(viewModel.stateFlow.value.creatingAccount.loading)
+
+        // The tap is tracked off the eventFlow pipeline, which runs on `dispatchers.Default`
+        // rather than inline with dispatchEvent, so it needs a pump to have landed.
+        runCurrent()
+        assertEquals(ButtonEvents.tapped(Button.CREATE_ACCOUNT), analytics.events.single())
     }
 
     @Test

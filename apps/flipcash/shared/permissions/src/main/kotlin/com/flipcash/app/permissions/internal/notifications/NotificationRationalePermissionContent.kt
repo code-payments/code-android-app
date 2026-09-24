@@ -17,7 +17,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import com.flipcash.app.analytics.Button
+import com.flipcash.analytics.Button
+import com.flipcash.analytics.events.ButtonEvents
 import com.flipcash.app.analytics.StubFlipcashAnalytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.android.extensions.launchAppSettings
@@ -61,7 +62,7 @@ fun NotificationRationalePermissionContent(
                         .padding(bottom = CodeTheme.dimens.grid.x2)
                         .padding(horizontal = CodeTheme.dimens.inset),
                     onClick = {
-                        analytics.action(Button.SkipPush)
+                        analytics.track(ButtonEvents.tapped(Button.SKIP_PUSH))
                         onComplete()
                     },
                     text = if (permanentlyDenied) {

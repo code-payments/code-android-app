@@ -6,10 +6,11 @@ import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.PurchaseMethod as AnalyticsPurchaseMethod
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.analytics.events.ButtonEvents
 import com.flipcash.analytics.events.SwapEvents
 import com.flipcash.analytics.events.WalletEvents
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
-import com.flipcash.app.analytics.Button
+import com.flipcash.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
@@ -1595,7 +1596,7 @@ class SwapViewModel @Inject constructor(
                 val amount = metadata.purchaseAmount ?: return@onEach
                 when (method) {
                     PurchaseMethod.CoinbaseOnRamp -> {
-                        analytics.buttonTapped(Button.TokenBuyWithCoinbase)
+                        analytics.track(ButtonEvents.tapped(Button.BUY_WITH_COINBASE))
                         dispatchEvent(Event.CoinbaseSelected)
 
                         val profile = userManager.profile
@@ -1659,12 +1660,12 @@ class SwapViewModel @Inject constructor(
                     }
 
                     PurchaseMethod.PhantomWallet -> {
-                        analytics.buttonTapped(Button.TokenBuyWithPhantom)
+                        analytics.track(ButtonEvents.tapped(Button.BUY_WITH_PHANTOM))
                         dispatchEvent(Event.PhantomSelected)
                     }
 
                     PurchaseMethod.OtherWallet -> {
-                        analytics.buttonTapped(Button.TokenBuyWithOtherWallet)
+                        analytics.track(ButtonEvents.tapped(Button.BUY_WITH_OTHER_WALLET))
                         dispatchEvent(Event.OtherWalletSelected)
                     }
                 }

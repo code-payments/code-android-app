@@ -16,7 +16,7 @@ import androidx.lifecycle.LifecycleOwner
 import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.flipcash.app.analytics.Action
+import com.flipcash.analytics.events.AccountEvents
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.contacts.device.DeviceContactLookup
 import com.flipcash.app.contacts.device.PickedContactData
@@ -297,7 +297,7 @@ class ContactCoordinator @Inject constructor(
                 if (phone != null) {
                     contactVerificationController.linkForPayment(ContactMethod.Phone(phone))
                         .onSuccess {
-                            analytics.action(Action.LinkedPhoneNumber)
+                            analytics.track(AccountEvents.linkedPhoneNumber())
                             contactPrefs.edit { it[KEY_LINKED_FOR_PAYMENT] = true }
                         }
                 }

@@ -1,6 +1,8 @@
 package com.flipcash.app.login.internal
 
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.Button
+import com.flipcash.analytics.events.ButtonEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
@@ -25,6 +27,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verifyBlocking
 import org.mockito.kotlin.whenever
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -52,7 +55,7 @@ class LoginAccessKeyViewModelTest {
     private val userManager: UserManager = mockk(relaxed = true)
     private val userFlags: UserFlagsCoordinator = mockk(relaxed = true)
     private val featureFlags: FeatureFlagController = mockk(relaxed = true)
-    private val analytics: FlipcashAnalyticsService = mockk(relaxed = true)
+    private val analytics = RecordingAnalytics()
 
     private lateinit var dispatchers: TestDispatchers
 
@@ -114,5 +117,27 @@ class LoginAccessKeyViewModelTest {
         assertTrue(result.isSuccess)
         assertTrue(result.getOrThrow()) // requiresIap == true
         verifyBlocking(authManager, never()) { ensureCoreAccountProvisioned() }
+    }
+
+    @Test
+    fun `onWroteDownInstead tracks the Wrote Access Key button`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue } returns true
+        val viewModel = createViewModel()
+
+        viewModel.onWroteDownInstead()
+
+        assertEquals(ButtonEvents.tapped(Button.WROTE_ACCESS_KEY), analytics.events.single())
+    }
+
+    @Test
+    fun `saveImage tracks the Save Access Key button`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue } returns true
+        val viewModel = createViewModel()
+
+        viewModel.saveImage()
+
+        assertEquals(ButtonEvents.tapped(Button.SAVE_ACCESS_KEY), analytics.events.single())
     }
 }
