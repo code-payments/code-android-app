@@ -5,6 +5,7 @@ import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.TokenWithBalance
+import com.getcode.opencode.model.financial.sum
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -49,8 +50,9 @@ sealed interface GroupAccess {
          *
          * A [ChatRuleRequirement.MinimumBalance] is satisfied by the largest single balance among
          * the mints it names, not by their sum: the requirement is "hold $100 of this", and two
-         * unrelated $60 positions are not that. An empty `mints` names no token in particular, so
-         * any one of them can satisfy it.
+         * unrelated $60 positions are not that. An empty `mints` names no token in particular and
+         * is measured against everything held, added up, as iOS's `ConversationGate.unmetBalance`
+         * does with `totalBalance`.
          */
         fun evaluate(
             isMember: Boolean,
@@ -71,21 +73,20 @@ sealed interface GroupAccess {
             val unmet = listener.firstOrNull { requirement ->
                 when (requirement) {
                     is ChatRuleRequirement.MinimumBalance -> {
-                        val candidates = if (requirement.mints.isEmpty()) {
-                            byMint.values
+                        val held = if (requirement.mints.isEmpty()) {
+                            byMint.values.sum()
                         } else {
-                            requirement.mints.mapNotNull { byMint[it.bytes] }
+                            requirement.mints.mapNotNull { byMint[it.bytes] }.maxOrNull()
                         }
-                        val best = candidates.maxOrNull()
                         // Compared at display precision, the held side rounded half-up to cents
-                        // (`Fiat.toDouble`): a balance the wallet shows as $5.00 meets a $5 bar even
+                        // (`Fiat.toDouble`), and a total rounded once, after adding: a balance the wallet shows as $5.00 meets a $5 bar even
                         // when its exact worth is $4.998, and $4.995 passes too. A launchpad
                         // holding's exact worth depends on the supply this client last saw, and one
                         // that lags a buy prices the new tokens a fraction below what was paid. The
                         // server enforces the rule against its own supply, so admitting half a cent
                         // too generously costs one denied join. iOS's `ConversationGate.unmetBalance`
                         // rounds the same way; keep the two in step.
-                        best == null || best.toDouble() < requirement.amount.decimalValue
+                        held == null || held.toDouble() < requirement.amount.decimalValue
                     }
                     // `UserFlags.is_staff` is the same field the rule is written against, and the
                     // client already has it — so staff are eligible for a staff chat and can rejoin

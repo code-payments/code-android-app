@@ -191,6 +191,45 @@ class GroupAccessTest {
     }
 
     @Test
+    fun `no named mints is measured against everything held, added up`() {
+        val requirement = ChatRuleRequirement.MinimumBalance(Fiat(100.0), emptyList())
+
+        assertEquals(
+            GroupAccess.Eligible,
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = rules(requirement),
+                balances = listOf(held(1, "BadBoys", 60.0), held(2, "Other", 60.0)),
+                isStaff = false,
+            ),
+        )
+        assertEquals(
+            GroupAccess.Blocked(requirement),
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = rules(requirement),
+                balances = listOf(held(1, "BadBoys", 40.0), held(2, "Other", 40.0)),
+                isStaff = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `a total is rounded once, after adding`() {
+        val requirement = ChatRuleRequirement.MinimumBalance(Fiat(5.0), emptyList())
+
+        // Each $2.497 shows as $2.50, but together they are $4.994, which shows as $4.99.
+        val access = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules(requirement),
+            balances = listOf(heldMicros(1, "BadBoys", 2_497_000), heldMicros(2, "Other", 2_497_000)),
+            isStaff = false,
+        )
+
+        assertEquals(GroupAccess.Blocked(requirement), access)
+    }
+
+    @Test
     fun `several named mints are satisfied by the largest, not the sum`() {
         val requirement =
             ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys, other))
