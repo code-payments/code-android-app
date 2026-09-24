@@ -46,6 +46,7 @@ import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.NavBarButton
+import com.flipcash.app.core.scanner.LocalSharedImageChannel
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.featureflags.FeatureFlag
@@ -231,6 +232,7 @@ internal fun App(
                                     }
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current
+                                val sharedImageChannel = LocalSharedImageChannel.current
                                 val currentRoute = codeNavigator.currentRouteKey
                                 val keyboard = rememberKeyboardController()
                                 LaunchedEffect(deepLink, currentRoute) {
@@ -308,6 +310,32 @@ internal fun App(
                                         DeeplinkAction.None -> {}
                                     }
                                     deepLink = null
+                                }
+
+                                // Mirrors the deeplink effect above: `Scanner()` isn't composed
+                                // while another tab is showing, so the navigation to it can't live
+                                // inside the scanner itself.
+                                val pendingSharedImage by sharedImageChannel.pending.collectAsStateWithLifecycle()
+                                LaunchedEffect(pendingSharedImage, currentRoute) {
+                                    val uri = pendingSharedImage ?: return@LaunchedEffect
+
+                                    if (currentRoute is AppRoute.Loading) {
+                                        // Cold start — wait until navigation leaves Loading
+                                        // before routing to the Scan tab.
+                                        return@LaunchedEffect
+                                    }
+
+                                    if (userState.authState == AuthState.LoggedOut) {
+                                        // No Scan tab to route to, and a shared image isn't worth
+                                        // carrying across a sign-in.
+                                        sharedImageChannel.clear()
+                                        return@LaunchedEffect
+                                    }
+
+                                    // Not cleared here on the success path — `Scanner()` consumes
+                                    // it once composed; clearing here would drop it before the tab
+                                    // composes.
+                                    codeNavigator.navigateAll(listOf(AppRoute.Tabs.Scanner))
                                 }
 
                                 LaunchedEffect(userState.authState) {
