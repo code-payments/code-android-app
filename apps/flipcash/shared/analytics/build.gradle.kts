@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.firebase.perf)
 
     api(project(":libs:analytics"))
+    api(project(":libs:analytics-events"))
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
 

@@ -1,5 +1,6 @@
 package com.flipcash.app.analytics.inject
 
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.TokenSymbolResolver
 import com.flipcash.app.analytics.internal.MixpanelAnalyticsDelegate
@@ -17,4 +18,7 @@ object AnalyticsModule {
         mixpanelAPI: MixpanelAPI,
         tokenSymbolResolver: TokenSymbolResolver,
     ): FlipcashAnalyticsService = MixpanelAnalyticsDelegate(mixpanelAPI, tokenSymbolResolver)
+
+    @Provides
+    fun providesFlipcashAnalytics(service: FlipcashAnalyticsService): FlipcashAnalytics = service
 }

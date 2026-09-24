@@ -1,5 +1,7 @@
 package com.flipcash.app.analytics.internal
 
+import com.flipcash.analytics.PeopleCounter
+import com.flipcash.analytics.PropertyValue
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
@@ -56,6 +58,28 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
     }
 
     override fun unintentionalLogout() = Unit
+
+    override fun track(event: com.flipcash.analytics.AnalyticsEvent) {
+        val properties = event.toMixpanelProperties(tokenSymbolResolver)
+
+        if (BuildConfig.DEBUG) {
+            val propsString = properties.entries.joinToString { "${it.key} => ${it.value}" }
+            trace(
+                buildString {
+                    append("debug track ${event.name}")
+                    if (propsString.isNotEmpty()) append(", $propsString")
+                },
+                type = TraceType.Silent
+            )
+            return
+        }
+
+        mixpanelAPI.track(event.name, JSONObject(properties))
+    }
+
+    override fun increment(counter: PeopleCounter, amount: Double) {
+        increment(counter.key, amount)
+    }
 
     override fun action(action: AppAction, source: AppActionSource?) {
         track(name = action.value)
@@ -349,6 +373,30 @@ private val MINT_PROPERTIES = mapOf(
     "Mint" to "Token Symbol",
     "Payment Mint" to "Payment Token Symbol",
 )
+
+/**
+ * Converts [this] event's properties to the values Mixpanel's JSON takes, with a ticker
+ * added beside every mint the [resolver] knows (see [withTokenSymbols]).
+ */
+internal fun com.flipcash.analytics.AnalyticsEvent.toMixpanelProperties(
+    resolver: TokenSymbolResolver,
+): Map<String, Any> = buildMap {
+    properties.forEach { (key, value) ->
+        put(
+            key,
+            when (value) {
+                is PropertyValue.Text -> value.value
+                is PropertyValue.Number -> value.value
+                is PropertyValue.Flag -> value.value
+            }
+        )
+    }
+    MINT_PROPERTIES.forEach { (mintKey, symbolKey) ->
+        if (symbolKey in this) return@forEach
+        val mint = this[mintKey] as? String ?: return@forEach
+        resolver.symbolFor(mint)?.let { put(symbolKey, it) }
+    }
+}
 
 /**
  * Returns [properties] with a ticker added beside every mint the [resolver] knows.

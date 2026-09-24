@@ -15,7 +15,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 
-interface FlipcashAnalyticsService : AnalyticsService {
+interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
     fun transferStart(event: Analytics.Transfer.Initiate)
     fun transfer(event: Analytics.Transfer, amount: LocalFiat?, successful: Boolean = true, error: Throwable? = null)
     fun transfer(event: Analytics.Transfer, fiat: Fiat?, successful: Boolean = true, error: Throwable? = null)
@@ -115,6 +115,8 @@ object Analytics {
 }
 
 class StubFlipcashAnalytics : FlipcashAnalyticsService {
+    override fun track(event: com.flipcash.analytics.AnalyticsEvent) = Unit
+    override fun increment(counter: com.flipcash.analytics.PeopleCounter, amount: Double) = Unit
     override fun onAppStart() = Unit
     override fun onAppStarted() = Unit
     override fun unintentionalLogout() = Unit
