@@ -1,7 +1,7 @@
 # The analytics event catalogue: every event both apps can send to Mixpanel, and the
 # properties each one carries. EVENTS.md, next to this file, is the same catalogue as a
-# readable page. To ask for an event without editing this file, open an issue with the
-# "Analytics event" form.
+# readable page. To add or change an event, edit this file in a pull request. If you'd
+# rather not, ask an engineer to make the change.
 #
 # To add an event, copy an [[event]] entry below and change it:
 #

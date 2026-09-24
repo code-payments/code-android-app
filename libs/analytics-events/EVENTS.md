@@ -4,8 +4,7 @@
      ./gradlew :libs:analytics-events:writeAnalyticsEventsPage -->
 
 Every event both apps can send to Mixpanel, and the properties each one carries. To add
-or change an event, edit [events.toml](events.toml) in a pull request, or open an issue
-with the "Analytics event" form.
+or change an event, edit [events.toml](events.toml) in a pull request.
 
 Types: **text** is words, **yes/no** is true or false, **count** is a whole number,
 **decimal** is a number with a fraction, **duration** is milliseconds, and a **list**
