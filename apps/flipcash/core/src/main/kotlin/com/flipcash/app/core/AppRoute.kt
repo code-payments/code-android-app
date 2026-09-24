@@ -7,6 +7,7 @@ import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.reporting.ReportStep
 import com.flipcash.app.core.chat.NewGroupStep
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
 import com.flipcash.app.core.onboarding.OnboardingStep
@@ -401,6 +402,24 @@ sealed interface AppRoute : NavKey, Parcelable {
             override val initialStack: List<NavKey>
                 get() = listOf(ReportStep.ReasonSelection)
         }
+
+        /**
+         * How long to mute [chatId] for.
+         *
+         * A top-level route carrying the chat's id, for the reason [Report] is one: it is opened
+         * both from inside a chat (the DM and group profiles) and from the chat list, which has no
+         * chat flow behind it to ask which chat is meant. One route for both keeps the sheet and
+         * the mute request in one place.
+         *
+         * A [com.getcode.navigation.WrapContentSheet]: five rows at most, and whatever opened it is
+         * where you end up again once one is picked.
+         */
+        @Serializable
+        @Parcelize
+        data class MuteChat(val chatId: ChatId) :
+            Messaging,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.WrapContentSheet
     }
 
     @Serializable

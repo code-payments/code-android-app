@@ -939,6 +939,10 @@
          same as a permanent one. -->
     <string name="label_mutedUntil">Muted until %1$s</string>
     <string name="label_muted">Muted</string>
+    <!-- The chat list's swipe action. Both open the mute sheet: the first on an audible chat, the
+         second on a muted one, where the sheet is also how the mute is cleared. -->
+    <string name="content_description_muteChat">Mute notifications</string>
+    <string name="content_description_changeMute">Change mute</string>
     <string name="error_title_failedToMute">Something Went Wrong</string>
     <string name="error_description_failedToMute">We were unable to mute the chat. Please try again</string>
     <string name="error_title_failedToUnmute">Something Went Wrong</string>

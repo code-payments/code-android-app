@@ -45,7 +45,6 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
-import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.isDmAddressable
@@ -479,17 +478,6 @@ internal class ChatViewModel @Inject constructor(
         /** This chat's viewer state moved, from the stream or from the viewer's own request. */
         data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
 
-        /**
-         * A shape picked from the mute sheet. Carries the whole [MuteState] rather than a duration
-         * because a deadline and forever are not the same kind of thing, and the sheet is the last
-         * place that can tell them apart.
-         *
-         * No confirmation, unlike the leave: muting is undone by the row that replaces it.
-         */
-        data class MuteChat(val mute: MuteState) : Event
-
-        /** The group profile's "Unmute Chat" row. Its own request, not a mute of zero length. */
-        data object UnmuteChat : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data class OnChatInitFeeUpdated(val formatted: String?) : Event
         data class OnSendCashReadinessChanged(val ready: Boolean) : Event
@@ -1738,39 +1726,6 @@ internal class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        eventFlow.filterIsInstance<Event.MuteChat>()
-            .onEach { event ->
-                val chatId = stateFlow.value.chatId ?: return@onEach
-                // Nothing to dispatch on success: the stored viewer state is what the row reads,
-                // and `mute` writes it before returning, so the profile flips on the same flow the
-                // stream would have moved it on.
-                chatCoordinator.mute(chatId, event.mute)
-                    .onFailure {
-                        trace("failed to mute chat - ${it.localizedMessage}")
-                        BottomBarManager.showError(
-                            title = resources.getString(R.string.error_title_failedToMute),
-                            message = resources.getString(R.string.error_description_failedToMute),
-                        )
-                    }
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow.filterIsInstance<Event.UnmuteChat>()
-            .onEach {
-                val chatId = stateFlow.value.chatId ?: return@onEach
-                chatCoordinator.unmute(chatId)
-                    .onFailure {
-                        trace("failed to unmute chat - ${it.localizedMessage}")
-                        BottomBarManager.showError(
-                            title = resources.getString(R.string.error_title_failedToUnmute),
-                            message = resources.getString(
-                                R.string.error_description_failedToUnmute,
-                            ),
-                        )
-                    }
-            }
-            .launchIn(viewModelScope)
-
         // A bubble is what the UI has; a citation is what the composer needs, and building one
         // reads the stored message. A message this device never stored drops the request rather
         // than opening a strip with nothing in it.
@@ -2311,9 +2266,7 @@ internal class ChatViewModel @Inject constructor(
                 Event.CopyInviteLink,
                 Event.LeaveChat,
                 Event.LeaveConfirmed,
-                Event.LeftChat,
-                is Event.MuteChat,
-                Event.UnmuteChat -> { state -> state }
+                Event.LeftChat -> { state -> state }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the
