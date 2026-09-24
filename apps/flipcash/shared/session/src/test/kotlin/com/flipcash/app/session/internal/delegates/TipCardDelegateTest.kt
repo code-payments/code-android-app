@@ -1,6 +1,7 @@
 package com.flipcash.app.session.internal.delegates
 
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.events.ScanEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.tipping.TipCardOwner
@@ -38,7 +39,7 @@ class TipCardDelegateTest {
     private val tippingCoordinator = mockk<TippingCoordinator>(relaxed = true) {
         every { currentUserId } returns self
     }
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val analytics = RecordingAnalytics()
     private val resources = mockk<ResourceHelper>(relaxed = true)
 
     private fun delegate() = TipCardDelegate(
@@ -59,6 +60,7 @@ class TipCardDelegateTest {
 
         assertEquals(TipCardEvent.OwnCardScanned, event.await())
         coVerify(exactly = 0) { tippingCoordinator.resolveTipCard(any<ID>()) }
+        assertEquals(emptyList(), analytics.events)
     }
 
     @Test
@@ -73,5 +75,21 @@ class TipCardDelegateTest {
         delegate.resolveTipCard(TipCardOwner.ById(other))
 
         assertEquals(TipCardDelegate.Event.Present(card), presented.await())
+        assertEquals(listOf(ScanEvents.tipCardPresented()), analytics.events)
+    }
+
+    @Test
+    fun `resolving another user's tip card by username resolves and presents it`() = runTest {
+        val card = mockk<Scannable.TipCard>(relaxed = true)
+        coEvery { tippingCoordinator.resolveTipCard("other-user") } returns Result.success(card)
+
+        val delegate = delegate()
+        val presented = async { delegate.events.first() }
+        testScheduler.advanceUntilIdle()
+
+        delegate.resolveTipCard(TipCardOwner.ByUsername("other-user"))
+
+        assertEquals(TipCardDelegate.Event.Present(card), presented.await())
+        assertEquals(listOf(ScanEvents.tipCardPresented()), analytics.events)
     }
 }

@@ -103,54 +103,6 @@ internal sealed interface AnalyticsEvent {
         }
     }
 
-    /**
-     * The gallery scan path, end to end.
-     *
-     * [Succeeded] reports the tier and zoom that decoded and [Failed] the time a fruitless search
-     * took, which together are what would let the ladder's inherited constants be trimmed — they
-     * were carried over from Code and have never been measured against real screenshots.
-     */
-    sealed interface GalleryScanEvent : AnalyticsEvent {
-        data object ImagePicked : GalleryScanEvent {
-            override val name = "Gallery Scan: Image Picked"
-        }
-
-        data class Succeeded(
-            val tier: Int,
-            val zoom: Float,
-            val time: Long,
-        ) : GalleryScanEvent {
-            override val name = "Gallery Scan: Succeeded"
-            override fun toProperties() = mapOf(
-                "Tier" to tier.toString(),
-                "Zoom" to zoom.toString(),
-                "Time" to time.toString(),
-            )
-        }
-
-        data class Failed(
-            val time: Long,
-            /** True when the budget ran out rather than the ladder being walked to the end. */
-            val exhausted: Boolean,
-        ) : GalleryScanEvent {
-            override val name = "Gallery Scan: Failed"
-            override fun toProperties() = mapOf(
-                "Time" to time.toString(),
-                "Exhausted" to exhausted.toString(),
-            )
-        }
-    }
-
-    sealed interface TipCardEvent : AnalyticsEvent {
-        data object Scanned : TipCardEvent {
-            override val name = "Tip Card Scanned"
-        }
-
-        data object Presented : TipCardEvent {
-            override val name = "Tip Card Presented"
-        }
-    }
-
     sealed interface PoolEvent : AnalyticsEvent {
         val id: ID
         override fun toProperties() = mapOf("ID" to id.base58)

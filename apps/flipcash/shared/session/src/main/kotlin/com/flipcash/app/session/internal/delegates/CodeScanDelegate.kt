@@ -1,6 +1,7 @@
 package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.analytics.State
+import com.flipcash.analytics.events.ScanEvents
 import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.analytics
@@ -190,7 +191,7 @@ class CodeScanDelegate @Inject constructor(
         // rendezvous grab. Hand the id to the shell, which routes to TipCardOperations to
         // resolve and present the card.
         val userId = payload.userId ?: return
-        analytics.tipCardScanned()
+        analytics.track(ScanEvents.tipCardScanned())
         _events.trySend(Event.TipCardScanned(userId))
     }
 

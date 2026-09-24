@@ -2,6 +2,7 @@ package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.analytics.PropertyValue
 import com.flipcash.analytics.State
+import com.flipcash.analytics.events.ScanEvents
 import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.analytics.analytics
@@ -30,7 +31,6 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import io.mockk.slot
-import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -52,8 +52,7 @@ class CodeScanDelegateTest {
 
     private val billController = mockk<BillController>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
-    // A spy so the scan tests can still verify `tipCardScanned`, which moves in its own commit.
-    private val analytics = spyk(RecordingAnalytics())
+    private val analytics = RecordingAnalytics()
     private val vibrator = mockk<Vibrator>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val walletReveal = mockk<WalletRevealCoordinator>(relaxed = true)
@@ -376,7 +375,7 @@ class CodeScanDelegateTest {
         // dismissed bill has already re-opened the "a bill is up" gate at the top of onCodeScan.
         delegate.onCodeScan(remoteKikCode())
 
-        verify(exactly = 1) { analytics.tipCardScanned() }
+        assertEquals(listOf(ScanEvents.tipCardScanned()), analytics.events)
     }
 
     @Test
@@ -390,6 +389,6 @@ class CodeScanDelegateTest {
         every { mockPayload.userId } returns listOf(2.toByte())
         delegate.onCodeScan(remoteKikCode())
 
-        verify(exactly = 2) { analytics.tipCardScanned() }
+        assertEquals(listOf(ScanEvents.tipCardScanned(), ScanEvents.tipCardScanned()), analytics.events)
     }
 }
