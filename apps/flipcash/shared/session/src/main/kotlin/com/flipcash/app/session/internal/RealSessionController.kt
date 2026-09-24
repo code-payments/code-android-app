@@ -11,6 +11,7 @@ import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.observeUnreadChatListCount
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.updater.ProfileUpdater
@@ -244,9 +245,9 @@ class RealSessionController @Inject constructor(
             .map { it.authState }
             .filter { it.isAtLeastRegistered }
             .distinctUntilChanged()
-            .flatMapLatest { chatCoordinator.observeUnreadConversations(ChatType.TIP_DM) }
+            .flatMapLatest { chatCoordinator.observeUnreadChatListCount() }
             .distinctUntilChanged()
-            .onEach { count -> stateHolder.update { it.copy(tipsUnreadCount = count) } }
+            .onEach { count -> stateHolder.update { it.copy(chatListUnreadCount = count) } }
             .launchIn(scope)
 
         // Preload the blob upload policy once registered so profile-photo selection can filter and

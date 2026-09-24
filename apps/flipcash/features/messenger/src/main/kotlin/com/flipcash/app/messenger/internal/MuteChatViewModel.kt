@@ -4,10 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.currentChatListFeed
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
@@ -40,7 +40,7 @@ internal class MuteChatViewModel @Inject constructor(
      * from `null` would open it without the row and then grow it by one as the store answered.
      */
     fun currentViewerState(chatId: ChatId): ViewerState? =
-        chatCoordinator.currentFeed(ChatType.TIP_DM, ChatType.GROUP)
+        chatCoordinator.currentChatListFeed()
             ?.firstOrNull { it.metadata.chatId == chatId }
             ?.metadata?.viewerState
 

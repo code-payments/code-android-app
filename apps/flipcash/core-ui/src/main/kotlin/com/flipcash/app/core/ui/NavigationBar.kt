@@ -57,11 +57,11 @@ data class NavigationBarState(
     // Route-driven: the caller derives this from the current backstack tab so the highlighted tab
     // is correct on launch and persists while a sheet/modal is open (not tap-managed).
     val selectedTab: NavBarButton = NavBarButton.Wallet,
-    val tipUnreadCount: Int = 0,
+    val chatListUnreadCount: Int = 0,
 ) {
-    /** Unread count to badge [button] with, or 0 for none. Only the tip-DM inbox badges. */
+    /** Unread count to badge [button] with, or 0 for none. Only the Chats tab badges. */
     fun badgeCount(button: NavBarButton): Int = when (button) {
-        NavBarButton.Chats -> tipUnreadCount
+        NavBarButton.Chats -> chatListUnreadCount
         else -> 0
     }
 }
@@ -69,18 +69,18 @@ data class NavigationBarState(
 @Composable
 fun rememberNavigationBarState(
     selectedTab: NavBarButton = NavBarButton.Wallet,
-    tipUnreadCount: Int = 0,
+    chatListUnreadCount: Int = 0,
 ): NavigationBarState {
     return produceState(
         initialValue = NavigationBarState(
             selectedTab = selectedTab,
-            tipUnreadCount = tipUnreadCount,
+            chatListUnreadCount = chatListUnreadCount,
         ),
-        selectedTab, tipUnreadCount,
+        selectedTab, chatListUnreadCount,
     ) {
         value = NavigationBarState(
             selectedTab = selectedTab,
-            tipUnreadCount = tipUnreadCount,
+            chatListUnreadCount = chatListUnreadCount,
         )
     }.value
 }
@@ -291,7 +291,7 @@ private fun NavBarButton.icon(selected: Boolean): Painter = when (this) {
 @Composable
 private fun NavigationBarPreview() {
     NavigationBar(
-        state = rememberNavigationBarState(tipUnreadCount = 100),
+        state = rememberNavigationBarState(chatListUnreadCount = 100),
         onButtonClick = { }
     )
 }

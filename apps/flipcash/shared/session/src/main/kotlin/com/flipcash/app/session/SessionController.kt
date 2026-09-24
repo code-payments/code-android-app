@@ -181,7 +181,7 @@ data class SessionState(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val contactDmUnreadCount: Int = 0,
-    val tipsUnreadCount: Int = 0,
+    val chatListUnreadCount: Int = 0,
     val tokens: List<Token> = emptyList(),
 )
 

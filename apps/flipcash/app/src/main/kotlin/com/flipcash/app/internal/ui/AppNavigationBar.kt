@@ -78,10 +78,10 @@ internal fun AppNavigationBar(
         session?.billState?.map { it.bill != null } ?: flowOf(false)
     }.collectAsStateWithLifecycle(initialValue = false)
 
-    // Unread tip-DM count, badged onto the Chat tab, so the badge appears, updates and clears as
-    // conversations are read.
-    val tipUnreadCount by remember(session) {
-        session?.state?.map { it.tipsUnreadCount } ?: flowOf(0)
+    // Unread chats in the Chats list (tip DMs and groups), badged onto the Chats tab, so the badge
+    // appears, updates and clears as conversations are read.
+    val chatListUnreadCount by remember(session) {
+        session?.state?.map { it.chatListUnreadCount } ?: flowOf(0)
     }.collectAsStateWithLifecycle(initialValue = 0)
 
     val avatar = rememberProfileAvatar()
@@ -119,7 +119,7 @@ internal fun AppNavigationBar(
             if (!fadedOut) {
                 val state = rememberNavigationBarState(
                     selectedTab = selectedTab ?: NavBarButton.Wallet,
-                    tipUnreadCount = tipUnreadCount,
+                    chatListUnreadCount = chatListUnreadCount,
                 )
                 NavigationBar(
                     modifier = Modifier
