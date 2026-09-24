@@ -57,8 +57,10 @@ import kotlin.time.Instant
  *
  * The mute row is shown for a tip DM only. This route is also how a group member's profile opens,
  * and there the chat behind it is the group — a mute row on a member's profile would silence the
- * whole group from a screen that names one person. Contact DMs never reach this screen
- * ([com.flipcash.app.messenger.internal.ChatSubject.Contact] answers `canViewProfile` false).
+ * whole group from a screen that names one person. The muted chip follows the row for the same
+ * reason: the group's mute is not this person's, so a member's profile doesn't show it. Contact DMs
+ * never reach this screen ([com.flipcash.app.messenger.internal.ChatSubject.Contact] answers
+ * `canViewProfile` false).
  *
  * The Message and Send Cash shortcuts follow the same split, the other way round: they show on a
  * group member's profile and not on a tip DM's, where they would only reopen the chat behind it.
@@ -73,6 +75,7 @@ internal fun ChatProfileScreen(
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
+    val isTipDm = chatState.chatType == ChatType.TIP_DM
 
     CodeScaffold(
         topBar = {
@@ -87,7 +90,7 @@ internal fun ChatProfileScreen(
             // that asks someone else to look, which sits above the one that ends the conversation.
             // Same shape as the group's profile, where leaving holds the last place.
             items = buildList<MenuItem<ChatProfileAction>> {
-                if (chatState.chatType == ChatType.TIP_DM) {
+                if (isTipDm) {
                     add(MuteDm)
                 }
                 add(ReportUser)
@@ -102,7 +105,8 @@ internal fun ChatProfileScreen(
                 ProfileHeader(
                     participant = state.participant,
                     joinDate = state.joinDate,
-                    viewerState = chatState.viewerState,
+                    // Only where the mute is this person's chat; see the KDoc above.
+                    viewerState = chatState.viewerState.takeIf { isTipDm },
                     // Not flowNavigator, for the reason Report isn't: the DM is a top-level route,
                     // so LocalCodeNavigator hands it up and it opens over this chat.
                     shortcuts = recipient?.let { user ->
