@@ -92,6 +92,8 @@ class FeedGroupProjectionTest {
     ) {
         private val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true).also {
             coEvery { it.getLatestVisibleByChat() } returns entities.associate { e -> e.chatIdHex to message(2) }
+            // Every stored message is stamped with its own id, as [message] builds them.
+            coEvery { it.getUnreadSeq(any(), any()) } answers { secondArg() }
         }
 
         private val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true).also { source ->
@@ -121,6 +123,7 @@ class FeedGroupProjectionTest {
         }
 
         val delegate = FeedSyncDelegate(
+            messagingController = mockk(relaxed = true),
             chatController = mockk<ChatController>(relaxed = true),
             metadataDataSource = metadataDataSource,
             messageDataSource = messageDataSource,
@@ -182,7 +185,7 @@ class FeedGroupProjectionTest {
         assertEquals(1, feed.single().unreadCount)
     }
 
-    /** DM behaviour is unchanged: an absent self row still reads as a pointer of zero. */
+    /** A DM with no self row has read nothing, so both messages count. */
     @Test
     fun `a DM whose roster does not include you still counts unread`() = runTest {
         val harness = Harness(
@@ -192,7 +195,7 @@ class FeedGroupProjectionTest {
 
         val feed = harness.feed(this, ChatType.CONTACT_DM)
 
-        assertEquals(1, feed.single().unreadCount)
+        assertEquals(2, feed.single().unreadCount)
     }
 
     @Test

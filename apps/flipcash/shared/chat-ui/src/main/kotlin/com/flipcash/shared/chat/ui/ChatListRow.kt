@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,9 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.Badge
 import com.getcode.util.formatLocalized
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -92,15 +96,35 @@ fun ChatListRow(
     }
 }
 
+/**
+ * The chat's unread count in a pill beside the timestamp (node 10329:8245): dark text on the
+ * indicator colour, 18dp tall, a circle for one digit and widening for more. A null [count] is
+ * unread by a number that can't be known, and draws a plain dot rather than a guess.
+ */
 @Composable
-fun UnreadBadge(count: Int, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(CodeTheme.dimens.grid.x2)
-            .background(
-                color = CodeTheme.colors.indicator,
-                shape = CircleShape,
-            ),
+fun UnreadBadge(count: Int?, modifier: Modifier = Modifier) {
+    if (count == null) {
+        Box(
+            modifier = modifier
+                .size(CodeTheme.dimens.grid.x2)
+                .background(color = CodeTheme.colors.indicator, shape = CircleShape),
+        )
+        return
+    }
+    Badge(
+        modifier = modifier,
+        count = count,
+        color = CodeTheme.colors.indicator,
+        contentColor = CodeTheme.colors.background,
+        // Literal 4dp: `staticGrid.x1` is 5dp, and `grid.x1` scales with window width.
+        contentPadding = PaddingValues(horizontal = 4.dp),
+        // Fixed rather than padded: Avenir's 12sp line is ~16dp and doesn't shrink for a smaller
+        // line height, so vertical padding lands at 20dp instead of the design's 18.
+        height = 18.dp,
+        textStyle = CodeTheme.typography.caption.copy(
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = (-0.06).em,
+        ),
     )
 }
 

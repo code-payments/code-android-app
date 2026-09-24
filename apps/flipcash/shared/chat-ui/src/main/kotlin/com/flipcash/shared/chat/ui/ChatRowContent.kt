@@ -20,19 +20,20 @@ import kotlin.time.Instant
 /**
  * Trailing cluster of a chat row's title line — reusable by any conversation-style row
  * (contacts, tip chats, …): the last-activity timestamp, then an unread badge, or an
- * open-chevron when [canOpen] and there's nothing unread.
+ * open-chevron when [canOpen] and there's nothing unread. A null [unreadCount] is unread by a
+ * number that can't be known, and draws the badge without one.
  *
  * Relies on [UnreadBadge] and [formatLastActivity] from `ChatListRow`.
  */
 @Composable
 fun RowScope.ChatRowTrailing(
     lastActivity: Instant?,
-    unreadCount: Int,
+    unreadCount: Int?,
     canOpen: Boolean,
 ) {
     if (lastActivity != null) {
         val activityTextColor by animateColorAsState(
-            if (unreadCount > 0) CodeTheme.colors.indicator else CodeTheme.colors.textSecondary
+            if (unreadCount != 0) CodeTheme.colors.indicator else CodeTheme.colors.textSecondary
         )
         Text(
             text = formatLastActivity(lastActivity),
@@ -41,12 +42,11 @@ fun RowScope.ChatRowTrailing(
         )
     }
 
-    if (unreadCount > 0) {
+    if (unreadCount != 0) {
+        // No start padding: the title row's spacing already puts the design's 4dp between the
+        // timestamp and the pill.
         UnreadBadge(
-            modifier = Modifier.padding(
-                start = CodeTheme.dimens.grid.x1,
-                end = CodeTheme.dimens.grid.x1,
-            ),
+            modifier = Modifier.padding(end = CodeTheme.dimens.grid.x1),
             count = unreadCount,
         )
     } else if (canOpen) {

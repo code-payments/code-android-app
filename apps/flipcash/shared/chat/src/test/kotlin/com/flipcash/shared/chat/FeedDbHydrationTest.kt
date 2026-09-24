@@ -38,6 +38,7 @@ class FeedDbHydrationTest {
     private val stateHolder = ChatStateHolder()
 
     private val delegate = FeedSyncDelegate(
+        messagingController = mockk(relaxed = true),
         chatController = mockk<ChatController>(relaxed = true),
         metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true).also {
             every { it.observeAll() } returns rows

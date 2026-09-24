@@ -64,6 +64,15 @@ class TipChatRowScreenshotTest {
                 lastMessagePreview = "Sent you $0.25 in Dollars",
                 lastActivity = at,
             ),
+            // A two-digit unread count widens the pill rather than overflowing the circle.
+            ConversationReference(
+                chatId = ChatId(byteArrayOf(4)),
+                displayName = "Moony",
+                handle = null,
+                lastMessagePreview = "Chloe Anderson: Agreed!",
+                lastActivity = at,
+                unreadCount = 15,
+            ),
         )
 
         composeRule.mainClock.autoAdvance = false

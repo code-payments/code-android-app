@@ -111,6 +111,7 @@ class FeedDeletedMessageTest {
         }
 
         val delegate = FeedSyncDelegate(
+            messagingController = mockk(relaxed = true),
             chatController = mockk<ChatController>(relaxed = true),
             metadataDataSource = metadataDataSource,
             messageDataSource = messageDataSource,

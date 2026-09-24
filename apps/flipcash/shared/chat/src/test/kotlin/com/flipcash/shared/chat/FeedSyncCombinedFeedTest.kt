@@ -25,6 +25,7 @@ class FeedSyncCombinedFeedTest {
     )
 
     private fun delegateWith(chatController: ChatController) = FeedSyncDelegate(
+        messagingController = mockk(relaxed = true),
         chatController = chatController,
         metadataDataSource = mockk(relaxed = true),
         messageDataSource = mockk(relaxed = true),

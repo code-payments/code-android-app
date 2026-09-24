@@ -14,9 +14,10 @@ import kotlin.test.assertEquals
 import kotlin.time.Instant
 
 /**
- * The shared "does this chat show as unread" table, which iOS encodes too. Unread means the newest
- * visible message is past the viewer's READ pointer and someone else sent it. A group with no self
- * row is not unread, since its roster is paged; a DM with no self row reads its pointer as zero.
+ * The shared unread table, which iOS encodes too. Unread means the newest visible message is past
+ * the viewer's READ pointer and someone else sent it. A group with no self row is not unread, since
+ * its roster is paged; a DM with no self row has read nothing. The count is the newest message's
+ * unreadSeq less the stamp on the pointer's message, and null when that stamp can't be known.
  */
 class UnreadTableTest {
 
@@ -43,7 +44,17 @@ class UnreadTableTest {
         fromSelf: Boolean = false,
         selfPointer: Long?,
         type: ChatType,
-    ): Boolean {
+    ): Boolean = count(newest, fromSelf, selfPointer, type) != 0
+
+    /** [newestSeq] and [stamps] default to each message's stamp equalling its id. */
+    private fun count(
+        newest: Long?,
+        fromSelf: Boolean = false,
+        selfPointer: Long?,
+        type: ChatType,
+        newestSeq: Long? = newest,
+        stamps: (Long) -> Long? = { it },
+    ): Int? {
         val members = listOfNotNull(member(otherId), selfPointer?.let { member(selfId, it) })
         val lastMessage = newest?.let {
             ChatMessage(
@@ -51,7 +62,7 @@ class UnreadTableTest {
                 senderId = if (fromSelf) selfId else otherId,
                 content = listOf(MessageContent.Text("m$it")),
                 timestamp = Instant.fromEpochSeconds(it),
-                unreadSeq = it,
+                unreadSeq = newestSeq ?: it,
             )
         }
         val metadata = ChatMetadata(
@@ -61,7 +72,7 @@ class UnreadTableTest {
             lastMessage = lastMessage,
             lastActivity = Instant.fromEpochSeconds(2_000),
         )
-        return unreadCount(metadata, selfId) > 0
+        return unreadCount(metadata, selfId, stamps)
     }
 
     @Test
@@ -87,4 +98,24 @@ class UnreadTableTest {
     @Test
     fun `no messages`() =
         assertEquals(false, unread(newest = null, selfPointer = 4, type = ChatType.CONTACT_DM))
+
+    @Test
+    fun `counts the messages between the pointer and the newest`() =
+        assertEquals(3, count(newest = 9, selfPointer = 4, newestSeq = 7, stamps = { 4 }, type = ChatType.GROUP))
+
+    @Test
+    fun `no pointer counts every eligible message`() =
+        assertEquals(5, count(newest = 8, selfPointer = null, newestSeq = 5, type = ChatType.CONTACT_DM))
+
+    @Test
+    fun `pointer's message not stored is unread by an unknown count`() =
+        assertEquals(null, count(newest = 9, selfPointer = 4, stamps = { null }, type = ChatType.CONTACT_DM))
+
+    @Test
+    fun `newest not unread-eligible is unread by an unknown count`() =
+        assertEquals(null, count(newest = 9, selfPointer = 4, newestSeq = 4, stamps = { 4 }, type = ChatType.CONTACT_DM))
+
+    @Test
+    fun `read chats count zero whatever the stamps say`() =
+        assertEquals(0, count(newest = 5, selfPointer = 5, stamps = { null }, type = ChatType.CONTACT_DM))
 }

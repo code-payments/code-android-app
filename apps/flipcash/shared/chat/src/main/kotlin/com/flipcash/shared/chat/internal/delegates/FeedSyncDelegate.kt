@@ -14,6 +14,8 @@ import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.mediator.ChatFeedRemoteMediator
 import com.flipcash.services.controllers.ChatController
+import com.flipcash.services.controllers.ChatMessagingController
+import com.flipcash.services.models.GetMessageError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
@@ -26,6 +28,7 @@ import com.flipcash.shared.chat.FeedSyncState
 import com.flipcash.shared.chat.ChatState
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.isRenderable
+import com.flipcash.shared.chat.internal.selfReadPointer
 import com.flipcash.shared.chat.internal.unreadCount
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
@@ -44,6 +47,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -69,6 +73,7 @@ class FeedSyncDelegate @Inject constructor(
     private val memberDataSource: ChatMemberDataSource,
     private val stateHolder: ChatStateHolder,
     private val userManager: UserManager,
+    private val messagingController: ChatMessagingController,
 ) : FeedOperations {
 
     companion object {
@@ -112,6 +117,8 @@ class FeedSyncDelegate @Inject constructor(
     val events: Flow<Event> = _events.receiveAsFlow()
 
     private var scope: CoroutineScope? = null
+    private val readStampsInFlight = ConcurrentHashMap.newKeySet<Pair<ChatId, Long>>()
+    private val readStampsNotFound = ConcurrentHashMap.newKeySet<Pair<ChatId, Long>>()
     private var syncJob: Job? = null
     private var feedObserverJob: Job? = null
 
@@ -141,12 +148,13 @@ class FeedSyncDelegate @Inject constructor(
             .filter { it.type in requested }
             .filter { isRenderable(it, selfId, selfPhone) }
             .map { metadata ->
-                ChatSummary(metadata = metadata, unreadCount = unreadCount(metadata, selfId))
+                val count = unreadCount(metadata, selfId) { id -> state.readStampAt(metadata.chatId, id) }
+                ChatSummary(metadata = metadata, unreadCount = count)
             }
     }
 
     override fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int> {
-        return feed(*chatTypes).map { summaries -> summaries.count { it.unreadCount > 0 } }
+        return feed(*chatTypes).map { summaries -> summaries.count { it.unreadCount != 0 } }
     }
 
     override fun feedPaged(vararg chatTypes: ChatType): Flow<PagingData<ChatSummary>> {
@@ -182,7 +190,13 @@ class FeedSyncDelegate @Inject constructor(
         val members = memberDataSource.getMembersForChat(entity.chatIdHex)
         val lastMessage = entity.lastMessageId?.let { messageDataSource.getLatestVisible(entity.chatIdHex) }
         val metadata = metadataDataSource.toMetadata(entity, members, lastMessage)
-        return ChatSummary(metadata = metadata, unreadCount = unreadCount(metadata, selfId))
+        val readPointer = selfReadPointer(metadata, selfId)
+        val readStamp = readPointer?.let {
+            messageDataSource.getUnreadSeq(entity.chatIdHex, it)
+                ?: stateHolder.state.value.fetchedReadStamps[metadata.chatId to it]
+        }
+        val count = unreadCount(metadata, selfId) { id -> readStamp.takeIf { id == readPointer } }
+        return ChatSummary(metadata = metadata, unreadCount = count)
     }
 
     override fun refreshFeed() {
@@ -211,8 +225,9 @@ class FeedSyncDelegate @Inject constructor(
             memberDataSource.observeAll(),
         ) { metadataEntities, membersByChat ->
             buildFeedFromDb(metadataEntities, membersByChat)
-        }.onEach { feed ->
-            stateHolder.update { it.copy(feed = feed) }
+        }.onEach { (feed, readStamps) ->
+            stateHolder.update { it.copy(feed = feed, readStamps = readStamps) }
+            fetchMissingReadStamps(feed)
         }.launchIn(scope)
     }
 
@@ -236,6 +251,54 @@ class FeedSyncDelegate @Inject constructor(
         syncJob?.cancel()
         feedObserverJob?.cancel()
         feedObserverJob = null
+        readStampsInFlight.clear()
+        readStampsNotFound.clear()
+    }
+
+    /**
+     * Fetches the unread stamp on the message each unread chat's READ pointer names, where the
+     * device doesn't store that message, so the row can show an exact count rather than a dot.
+     *
+     * One request per key at a time. A NOT_FOUND key isn't asked for again this session and keeps
+     * the dot; any other failure leaves the key unresolved, so the next feed build retries it.
+     */
+    private fun fetchMissingReadStamps(feed: List<ChatMetadata>) {
+        val scope = scope ?: return
+        val state = stateHolder.state.value
+        val selfId = userManager.accountId
+        val selfPhone = userManager.profile?.verifiedPhoneNumber
+        for (metadata in feed) {
+            if (!isRenderable(metadata, selfId, selfPhone)) continue
+            val readPointer = selfReadPointer(metadata, selfId) ?: continue
+            val key = metadata.chatId to readPointer
+            if (state.readStampAt(metadata.chatId, readPointer) != null) continue
+            if (key in readStampsNotFound) continue
+            // With no stamp to look up, only a chat that is unread by its ids counts as unknown;
+            // a read chat needs no stamp.
+            if (unreadCount(metadata, selfId) { null } != null) continue
+            if (!readStampsInFlight.add(key)) continue
+
+            scope.launch {
+                messagingController.getMessage(metadata.chatId, readPointer)
+                    .onSuccess { message ->
+                        stateHolder.update {
+                            it.copy(fetchedReadStamps = it.fetchedReadStamps + (key to message.unreadSeq))
+                        }
+                    }
+                    .onFailure { cause ->
+                        if (cause is GetMessageError.NotFound) readStampsNotFound.add(key)
+                        val expected = cause is GetMessageError.NotFound || cause is GetMessageError.Denied
+                        trace(
+                            tag = TAG,
+                            message = "Fetching the read pointer's message $readPointer failed",
+                            error = cause,
+                            // Error routes through ErrorUtils, which drops transport failures.
+                            type = if (expected) TraceType.Log else TraceType.Error,
+                        )
+                    }
+                readStampsInFlight.remove(key)
+            }
+        }
     }
 
     /**
@@ -267,20 +330,28 @@ class FeedSyncDelegate @Inject constructor(
     private suspend fun buildFeedFromDb(
         metadataEntities: List<ChatMetadataEntity>,
         membersByChat: Map<String, List<ChatMember>>,
-    ): List<ChatMetadata> {
+    ): Pair<List<ChatMetadata>, Map<Pair<ChatId, Long>, Long>> {
         // `is_member` is a column rather than a field on ChatMetadata: a chat you have left is
         // still a chat you can be shown (Plan C's gate reads the same row), so the flag is dropped
         // here, at the edge of the list, rather than carried through the domain model.
         val latestVisible = messageDataSource.getLatestVisibleByChat()
-        return metadataEntities.filter { it.isMember }.map { entity ->
+        val selfId = userManager.accountId
+        val readStamps = mutableMapOf<Pair<ChatId, Long>, Long>()
+        val feed = metadataEntities.filter { it.isMember }.map { entity ->
             val members = membersByChat[entity.chatIdHex] ?: emptyList()
             // Deliberately the newest *visible* message, not the newest row: deleting the newest
             // message drops the feed back to the one before it, so the preview reads that message
             // instead of "Message deleted" and its unread splat clears with it (the fallback sits
             // at or below the read pointer whenever the deleted message was the only unread one).
             val lastMessage = entity.lastMessageId?.let { latestVisible[entity.chatIdHex] }
-            metadataDataSource.toMetadata(entity, members, lastMessage)
+            metadataDataSource.toMetadata(entity, members, lastMessage).also { metadata ->
+                // Only the stamp a row can ask for: the one on the message the READ pointer names.
+                val readPointer = selfReadPointer(metadata, selfId) ?: return@also
+                messageDataSource.getUnreadSeq(entity.chatIdHex, readPointer)
+                    ?.let { readStamps[metadata.chatId to readPointer] = it }
+            }
         }
+        return feed to readStamps
     }
 
     /**
@@ -360,3 +431,7 @@ class FeedSyncDelegate @Inject constructor(
 
     // endregion
 }
+
+/** The unread stamp on [messageId] in [chatId]: the stored one, else one fetched this session. */
+private fun ChatState.readStampAt(chatId: ChatId, messageId: Long): Long? =
+    readStamps[chatId to messageId] ?: fetchedReadStamps[chatId to messageId]

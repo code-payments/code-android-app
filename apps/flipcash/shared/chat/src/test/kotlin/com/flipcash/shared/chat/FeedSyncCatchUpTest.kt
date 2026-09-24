@@ -96,6 +96,7 @@ class FeedSyncCatchUpTest {
         }
 
         val delegate = FeedSyncDelegate(
+            messagingController = mockk(relaxed = true),
             chatController = chatController,
             metadataDataSource = metadataDataSource,
             messageDataSource = messageDataSource,

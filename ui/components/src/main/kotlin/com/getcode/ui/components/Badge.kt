@@ -10,6 +10,10 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -19,9 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import com.getcode.theme.CodeTheme
 
 
@@ -45,6 +52,11 @@ fun Badge(
     contentColor: Color = Color.White,
     textStyle: TextStyle = CodeTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold),
     scale: Float = 1f,
+    contentPadding: PaddingValues = PaddingValues(
+        horizontal = CodeTheme.dimens.grid.x1,
+        vertical = 3.dp,
+    ),
+    height: Dp = Dp.Unspecified,
     enterTransition: EnterTransition = scaleIn(tween(durationMillis = 300)) + fadeIn(),
     exitTransition: ExitTransition = fadeOut() + scaleOut(tween(durationMillis = 300))
 ) {
@@ -67,12 +79,10 @@ fun Badge(
         Box(
             modifier = Modifier
                 .squareMinSize()
+                .then(if (height.isSpecified) Modifier.height(height * scale) else Modifier)
                 .clip(CircleShape)
                 .background(color)
-                .padding(
-                    horizontal = CodeTheme.dimens.grid.x1 * scale,
-                    vertical = 3.dp * scale,
-                ),
+                .padding(contentPadding.scaled(scale)),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -82,4 +92,16 @@ fun Badge(
             )
         }
     }
+}
+
+@Composable
+private fun PaddingValues.scaled(scale: Float): PaddingValues {
+    if (scale == 1f) return this
+    val direction = LocalLayoutDirection.current
+    return PaddingValues(
+        start = calculateStartPadding(direction) * scale,
+        top = calculateTopPadding() * scale,
+        end = calculateEndPadding(direction) * scale,
+        bottom = calculateBottomPadding() * scale,
+    )
 }
