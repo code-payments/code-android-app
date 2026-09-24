@@ -4,11 +4,13 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -17,6 +19,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.links.ExternalLinkUriHandler
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -42,6 +45,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val otherReadPointer by viewModel.otherReadPointer.collectAsStateWithLifecycle(null)
     val navigator = LocalCodeNavigator.current
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    // Links a sender typed are the ones that can lead anywhere, so only the transcript asks before
+    // leaving. The cash card goes through [uriHandler] above: it is ours, and opens directly.
+    val transcriptUriHandler = remember(context, uriHandler) {
+        ExternalLinkUriHandler(context, uriHandler)
+    }
 
     val hazeState = rememberHazeState()
     // Measured by the bar and read by the transcript: the blur has to cover the bar's own
@@ -220,22 +229,24 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             modifier = Modifier.fillMaxSize(),
             enabled = state.obscuresTranscript,
         ) {
-            MessageList(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("chat_message_list")
-                    .softTopEdge(ChatTopEdge.blurHold(barHeight))
-                    .hazeSource(hazeState),
-                state = state,
-                contentPadding = overlapPadding,
-                messages = messages,
-                separatorConfig = state.separatorConfig,
-                otherReadPointer = otherReadPointer,
-                onAction = chatActionHandler,
-                linkCardResolution = viewModel.linkCardResolution,
-                canViewProfile = state.canViewProfile,
-                onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
-            )
+            CompositionLocalProvider(LocalUriHandler provides transcriptUriHandler) {
+                MessageList(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("chat_message_list")
+                        .softTopEdge(ChatTopEdge.blurHold(barHeight))
+                        .hazeSource(hazeState),
+                    state = state,
+                    contentPadding = overlapPadding,
+                    messages = messages,
+                    separatorConfig = state.separatorConfig,
+                    otherReadPointer = otherReadPointer,
+                    onAction = chatActionHandler,
+                    linkCardResolution = viewModel.linkCardResolution,
+                    canViewProfile = state.canViewProfile,
+                    onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
+                )
+            }
         }
     }
 }

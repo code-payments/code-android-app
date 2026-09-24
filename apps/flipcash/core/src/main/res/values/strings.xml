@@ -394,6 +394,10 @@
     <string name="subtitle_noSocialAccounts">No social accounts linked</string>
     <string name="prompt_title_unlinkSocialAccount">Unlink Account?</string>
     <string name="prompt_description_unlinkSocialAccount">This social account will be removed from your profile.</string>
+    <string name="prompt_title_externalLink">You\'re leaving Flipcash</string>
+    <!-- %1$s is the link's host. -->
+    <string name="prompt_description_externalLink">This link opens %1$s. Flipcash will never ask for your Access Key on a website</string>
+    <string name="action_openLink">Open Link</string>
     <string name="action_unlinkAccount">Unlink Account</string>
 
     <string name="title_verificationFlow">Verify Your Phone Number And Email To Continue</string>
