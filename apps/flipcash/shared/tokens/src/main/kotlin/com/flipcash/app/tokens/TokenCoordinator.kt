@@ -20,13 +20,13 @@ import com.flipcash.app.tokens.core.TotalBalanceProvider
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.DataSource
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HistoricalMintData
+import com.getcode.opencode.model.financial.LaunchpadReserveStateSnapshot
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
@@ -119,7 +119,6 @@ class TokenCoordinator @Inject constructor(
     private val accountController: AccountController,
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
-    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val dataSource: TokenDataSource,
     private val dispatchers: DispatcherProvider,
 ) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver, ReservesBalanceProvider,
@@ -152,11 +151,83 @@ class TokenCoordinator @Inject constructor(
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val fetchingMints = ConcurrentHashMap.newKeySet<Mint>()
 
+    /**
+     * What this account holds in one mint: its USD [value], and the on-chain [tokenQuarks] behind
+     * it where they are known. A launchpad holding's value is those quarks sold down from the
+     * token's supply, so a new supply re-prices them. iOS's `StoredBalance` keeps the same pair.
+     *
+     * [tokenQuarks] is null for a value restored from Room, which stores only the USD amount, and
+     * for one a speculative [add] or [subtract] has moved away from the last fetch.
+     */
+    data class Holding(
+        val value: Fiat,
+        val tokenQuarks: Long? = null,
+    )
+
     data class TokenState(
         val tokens: Map<Mint, Token> = emptyMap(),
-        val balances: Map<Mint, Fiat> = emptyMap(),
+        val holdings: Map<Mint, Holding> = emptyMap(),
         val appreciation: Map<Mint, Fiat> = emptyMap(),
-    )
+    ) {
+        /** Each holding's USD value. */
+        val balances: Map<Mint, Fiat> = holdings.mapValues { (_, holding) -> holding.value }
+
+        /**
+         * Applies fetched accounts, each with the supply its metadata carried.
+         *
+         * That supply can be older than one the reserve stream already delivered. Neither source
+         * is timestamped, and the fetch is the only one for a mint the stream has not reached, so
+         * neither is preferred: the stream's next delivery re-prices the fetched quarks. iOS
+         * settles the same two writers the same way (`VerifiedProtoService.saveReserveStates`).
+         */
+        internal fun withAccounts(updates: List<TokenWithBalance>): TokenState {
+            var next = this
+            for (update in updates) {
+                val mint = update.token.address
+                next = next.copy(
+                    tokens = next.tokens + (mint to update.token),
+                    holdings = next.holdings + (mint to Holding(update.balance, update.tokenQuarks)),
+                    appreciation = next.appreciation + (mint to update.appreciation),
+                )
+            }
+            return next
+        }
+
+        /**
+         * Applies reserve-state updates: each token takes the new supply, and a holding whose
+         * [Holding.tokenQuarks] are known is re-priced from them at that supply. Cost basis is held, so
+         * the change lands in appreciation.
+         *
+         * A balance with no known quarks keeps its value until the next fetch. Converting the USD
+         * value to quarks and back at the same supply cannot re-price it, and rounds down on both
+         * legs: a $5 holding lost a micro-dollar on every tick.
+         */
+        internal fun withReserveStates(updates: List<LaunchpadReserveStateSnapshot>): TokenState {
+            var next = this
+            for (update in updates) {
+                val mint = update.mint
+                val token = next.tokens[mint] ?: continue
+                val launchpad = token.launchpadMetadata ?: continue
+                val updatedToken = token.copy(
+                    launchpadMetadata = launchpad.copy(
+                        currentCirculatingSupplyQuarks = update.currentSupply,
+                    ),
+                )
+                next = next.copy(tokens = next.tokens + (mint to updatedToken))
+
+                val holding = next.holdings[mint] ?: continue
+                val quarks = holding.tokenQuarks ?: continue
+                val newBalance = runCatching { Fiat.tokenBalance(quarks, updatedToken) }
+                    .getOrNull() ?: continue
+                val costBasis = holding.value - (next.appreciation[mint] ?: Fiat.Zero)
+                next = next.copy(
+                    holdings = next.holdings + (mint to holding.copy(value = newBalance)),
+                    appreciation = next.appreciation + (mint to newBalance - costBasis),
+                )
+            }
+            return next
+        }
+    }
 
     private val _state = MutableStateFlow(TokenState())
     private val _hydrated = MutableStateFlow(false)
@@ -595,13 +666,7 @@ class TokenCoordinator @Inject constructor(
     private fun applyTokenUpdates(updates: List<TokenWithBalance>) {
         if (updates.isEmpty()) return
 
-        _state.update { state ->
-            state.copy(
-                tokens = state.tokens + updates.associate { it.token.address to it.token },
-                balances = state.balances + updates.associate { it.token.address to it.balance },
-                appreciation = state.appreciation + updates.associate { it.token.address to it.appreciation }
-            )
-        }
+        _state.update { it.withAccounts(updates) }
 
         trace(tag = TAG, message = "Applied ${updates.size} token update(s), total tokens: ${_state.value.tokens.size}", type = TraceType.Process)
     }
@@ -620,7 +685,9 @@ class TokenCoordinator @Inject constructor(
         } else {
             val newBalance = operation(currentBalance, amount)
             trace(tag = TAG, message = "Modified ${token.symbol} balance: ${currentBalance.formatted()} -> ${newBalance.formatted()}", type = TraceType.Process)
-            _state.update { it.copy(balances = it.balances + (token.address to newBalance)) }
+            // No quarks: they no longer describe this value, so the reserve stream must not
+            // re-price it from them. The fetch launched below restores both.
+            _state.update { it.copy(holdings = it.holdings + (token.address to Holding(newBalance))) }
             ensureValidTokenSelection()
 
             scope.launch {
@@ -641,48 +708,8 @@ class TokenCoordinator @Inject constructor(
             ).collect { response ->
                 trace(tag = TAG, message = "Received ${response.reserveStates.size} reserve state updates", type = TraceType.Process)
 
-                val state = _state.value
-                var updatedTokens = state.tokens
-                var updatedBalances = state.balances
-                var updatedAppreciation = state.appreciation
-
-                for (update in response.reserveStates) {
-                    val mint = update.reserveState.mint
-                    val token = state.tokens[mint] ?: continue
-                    val launchpad = token.launchpadMetadata ?: continue
-
-                    val updatedToken = token.copy(
-                        launchpadMetadata = launchpad.copy(
-                            currentCirculatingSupplyQuarks = update.reserveState.currentSupply
-                        )
-                    )
-                    updatedTokens = updatedTokens + (mint to updatedToken)
-
-                    val balance = state.balances[mint] ?: continue
-                    val exchangedValue = verifiedFiatCalculator.compute(
-                        amount = balance,
-                        token = updatedToken,
-                        balance = balance,
-                        rate = Rate.oneToOne,
-                        trace = false,
-                    ).getOrNull()?.localFiat?.underlyingTokenAmount
-
-                    if (exchangedValue != null) {
-                        val newBalance = Fiat.tokenBalance(
-                            quarks = exchangedValue.quarks,
-                            token = updatedToken
-                        )
-                        updatedBalances = updatedBalances + (mint to newBalance)
-
-                        val currentAppreciation = state.appreciation[mint] ?: Fiat.Zero
-                        val costBasis = balance - currentAppreciation
-                        val newAppreciation = newBalance - costBasis
-                        updatedAppreciation = updatedAppreciation + (mint to newAppreciation)
-                    }
-                }
-
-                _state.update {
-                    it.copy(tokens = updatedTokens, balances = updatedBalances, appreciation = updatedAppreciation)
+                _state.update { state ->
+                    state.withReserveStates(response.reserveStates.map { it.reserveState })
                 }
             }
         }

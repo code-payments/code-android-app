@@ -44,6 +44,10 @@ class GroupAccessTest {
     private fun held(seed: Byte, symbol: String, dollars: Double) =
         TokenWithBalance(token = token(seed, symbol), balance = Fiat(dollars))
 
+    /** Exact micro-dollars, for the cases that sit on a rounding edge. */
+    private fun heldMicros(seed: Byte, symbol: String, micros: Long) =
+        TokenWithBalance(token = token(seed, symbol), balance = Fiat(quarks = micros))
+
     private val badBoys = mint(1)
     private val other = mint(2)
 
@@ -111,6 +115,56 @@ class GroupAccessTest {
     }
 
     @Test
+    fun `a balance that shows as the requirement clears the bar`() {
+        // $5 of a launchpad token valued at a supply that lags the buy comes back a fraction
+        // short. The wallet shows it as $5.00, so the gate must agree.
+        val access = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules(ChatRuleRequirement.MinimumBalance(Fiat(5.0), listOf(badBoys))),
+            balances = listOf(heldMicros(1, "BadBoys", 4_998_000)),
+            isStaff = false,
+        )
+
+        assertEquals(GroupAccess.Eligible, access)
+    }
+
+    @Test
+    fun `half a cent short rounds up to the requirement`() {
+        val access = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules(ChatRuleRequirement.MinimumBalance(Fiat(5.0), listOf(badBoys))),
+            balances = listOf(heldMicros(1, "BadBoys", 4_995_000)),
+            isStaff = false,
+        )
+
+        assertEquals(GroupAccess.Eligible, access)
+    }
+
+    @Test
+    fun `a balance that shows below the requirement is still blocked`() {
+        val requirement = ChatRuleRequirement.MinimumBalance(Fiat(5.0), listOf(badBoys))
+
+        assertEquals(
+            GroupAccess.Blocked(requirement),
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = rules(requirement),
+                balances = listOf(heldMicros(1, "BadBoys", 4_980_000)),
+                isStaff = false,
+            ),
+        )
+        assertEquals(
+            GroupAccess.Blocked(requirement),
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = rules(requirement),
+                balances = listOf(heldMicros(1, "BadBoys", 4_994_999)),
+                isStaff = false,
+            ),
+        )
+    }
+
+    @Test
     fun `a balance in the wrong token does not count`() {
         val requirement = ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))
 
@@ -134,6 +188,45 @@ class GroupAccessTest {
         )
 
         assertEquals(GroupAccess.Eligible, access)
+    }
+
+    @Test
+    fun `no named mints is measured against everything held, added up`() {
+        val requirement = ChatRuleRequirement.MinimumBalance(Fiat(100.0), emptyList())
+
+        assertEquals(
+            GroupAccess.Eligible,
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = rules(requirement),
+                balances = listOf(held(1, "BadBoys", 60.0), held(2, "Other", 60.0)),
+                isStaff = false,
+            ),
+        )
+        assertEquals(
+            GroupAccess.Blocked(requirement),
+            GroupAccess.evaluate(
+                isMember = false,
+                rules = rules(requirement),
+                balances = listOf(held(1, "BadBoys", 40.0), held(2, "Other", 40.0)),
+                isStaff = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `a total is rounded once, after adding`() {
+        val requirement = ChatRuleRequirement.MinimumBalance(Fiat(5.0), emptyList())
+
+        // Each $2.497 shows as $2.50, but together they are $4.994, which shows as $4.99.
+        val access = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules(requirement),
+            balances = listOf(heldMicros(1, "BadBoys", 2_497_000), heldMicros(2, "Other", 2_497_000)),
+            isStaff = false,
+        )
+
+        assertEquals(GroupAccess.Blocked(requirement), access)
     }
 
     @Test

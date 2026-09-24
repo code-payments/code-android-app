@@ -24,6 +24,11 @@ data class TokenWithBalance(
     val balance: Fiat,
     val appreciation: Fiat = Fiat.MIN_VALUE,
     val displayName: String = token.name,
+    /**
+     * The on-chain amount [balance] was valued from, in the token's own quarks. Null when only the
+     * USD value is known, as for a balance restored from the local database.
+     */
+    val tokenQuarks: Long? = null,
 ) {
     val isReserves: Boolean
         get() = token.address == Mint.usdf

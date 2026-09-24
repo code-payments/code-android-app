@@ -233,7 +233,12 @@ class TokenController @Inject constructor(
         val tokenBalance = Fiat.tokenBalance(account.balance, metadata)
         val appreciation = tokenBalance - Fiat(fiat = account.usdCostBasis)
 
-        return TokenWithBalance(metadata, tokenBalance, appreciation)
+        return TokenWithBalance(
+            token = metadata,
+            balance = tokenBalance,
+            appreciation = appreciation,
+            tokenQuarks = account.balance,
+        )
     }
 
     // endregion

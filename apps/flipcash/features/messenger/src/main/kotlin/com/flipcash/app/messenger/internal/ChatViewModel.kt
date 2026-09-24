@@ -1319,27 +1319,27 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnViewerStateResolved(it)) }
             .launchIn(viewModelScope)
 
-        // The cache starts empty and fills in, so this is observed rather than read once — a
-        // requirement resolved against an empty cache would render its amount with no token beside
-        // it and never correct itself.
-        combine(
-            stateFlow.map { (it.subject as? ChatSubject.Group)?.rules.balanceRequirement() }
-                .distinctUntilChanged(),
-            tokenCoordinator.observeTokenCache(),
-        ) { requirement, tokens ->
-            // The name rather than the symbol, matching the create form's own mint row: the two
-            // screens name one holding, and the balance list a requirement is satisfied from
-            // renders the name as well (`TokenWithBalance.displayName`). `brandedName` is the same
-            // rule the link cards use, so the reserve reads "Dollars" here too rather than "USDF".
-            requirement?.mints?.firstOrNull()
-                ?.let { tokens[Mint(it.bytes)] }
-                ?.let { token ->
+        // Observed rather than read once: the rule can change under an open screen, and a buy
+        // hydrates a fresher copy of the token. See observeRuleToken for why it fetches as well.
+        stateFlow.map { state ->
+            (state.subject as? ChatSubject.Group)?.rules.balanceRequirement()
+                ?.mints?.firstOrNull()?.let { Mint(it.bytes) }
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { mint -> mint?.let { tokenCoordinator.observeRuleToken(it) } ?: flowOf(null) }
+            .map { token ->
+                // The name rather than the symbol, matching the create form's own mint row: the two
+                // screens name one holding, and the balance list a requirement is satisfied from
+                // renders the name as well (`TokenWithBalance.displayName`). `brandedName` is the
+                // same rule the link cards use, so the reserve reads "Dollars" here too rather than
+                // "USDF".
+                token?.let {
                     RuleCurrency(
-                        name = token.brandedName(resources),
-                        isReserve = token.isReserve,
+                        name = it.brandedName(resources),
+                        isReserve = it.isReserve,
                     )
                 }
-        }
+            }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnRuleCurrencyResolved(it)) }
             .launchIn(viewModelScope)
