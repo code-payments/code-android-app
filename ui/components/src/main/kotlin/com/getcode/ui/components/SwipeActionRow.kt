@@ -2,6 +2,8 @@ package com.getcode.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
@@ -33,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +75,20 @@ class SwipeAction(
 )
 
 private enum class SwipeState { Settled, Revealed, Dismissed }
+
+/**
+ * Keeps at most one [SwipeActionRow] open among the rows given the same group: starting a swipe on
+ * one row closes whichever other row was left revealed.
+ *
+ * Rows are told apart by their `stateKey`, so give each row in a group a distinct one.
+ */
+@Stable
+class SwipeRevealGroup {
+    internal var openKey: Any? by mutableStateOf(null)
+}
+
+@Composable
+fun rememberSwipeRevealGroup(): SwipeRevealGroup = remember { SwipeRevealGroup() }
 
 /**
  * Convenience overload that wraps [content] with a single red delete action.
@@ -124,6 +141,7 @@ fun SwipeActionRow(
     modifier: Modifier = Modifier,
     stateKey: Any? = null,
     initiallyRevealed: Boolean = false,
+    revealGroup: SwipeRevealGroup? = null,
     content: @Composable () -> Unit,
 ) {
     if (actions.isEmpty()) {
@@ -163,11 +181,47 @@ fun SwipeActionRow(
     }
     var rowWidthPx by remember(stateKey) { mutableFloatStateOf(0f) }
 
-    // Fire callback once for rejected dismiss (reset case)
+    // Fire callback once for rejected dismiss (reset case), then send the row home. A rejected
+    // settle does not do that by itself: the drag settles on the nearest anchor it is allowed,
+    // which after a full swipe is Revealed, and the row stays open under whatever the callback
+    // opened.
     LaunchedEffect(pendingResetCallback) {
         if (pendingResetCallback) {
             currentDismissCallback()
-            pendingResetCallback = false
+            state.animateTo(SwipeState.Settled)
+        }
+    }
+
+    val dragInteractions = remember { MutableInteractionSource() }
+    // The reset flag is re-armed by the next drag rather than by the effect above finishing. The
+    // settle asks to confirm Dismissed on every frame it heads there, so the flag has to stay set
+    // for the rest of the gesture to fire the callback once; and the effect can be left suspended
+    // by the settle interrupting its animation, which must not leave the flag stuck at true for
+    // the next swipe to write again without relaunching anything.
+    LaunchedEffect(dragInteractions) {
+        dragInteractions.interactions.collect { interaction ->
+            if (interaction is DragInteraction.Start) pendingResetCallback = false
+        }
+    }
+    if (revealGroup != null) {
+        val fallbackKey = remember { Any() }
+        val groupKey = stateKey ?: fallbackKey
+        // Claimed when the drag starts rather than when it settles, so the other row closes while
+        // this one opens. Keyed to the drag and not to the offset, which also moves while a row
+        // is closing and would have it claim the group straight back.
+        LaunchedEffect(dragInteractions, revealGroup, groupKey) {
+            dragInteractions.interactions.collect { interaction ->
+                if (interaction is DragInteraction.Start) revealGroup.openKey = groupKey
+            }
+        }
+        LaunchedEffect(state, revealGroup, groupKey) {
+            snapshotFlow { revealGroup.openKey }.collect { openKey ->
+                if (openKey != null && openKey != groupKey &&
+                    state.currentValue != SwipeState.Settled
+                ) {
+                    state.animateTo(SwipeState.Settled)
+                }
+            }
         }
     }
 
@@ -252,7 +306,11 @@ fun SwipeActionRow(
         Box(
             modifier = Modifier
                 .offset { IntOffset(state.offset.toInt(), 0) }
-                .anchoredDraggable(state, Orientation.Horizontal),
+                .anchoredDraggable(
+                    state = state,
+                    orientation = Orientation.Horizontal,
+                    interactionSource = dragInteractions,
+                ),
         ) {
             content()
         }
