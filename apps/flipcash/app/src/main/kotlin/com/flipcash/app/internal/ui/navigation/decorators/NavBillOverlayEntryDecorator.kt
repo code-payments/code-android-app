@@ -31,12 +31,15 @@ import com.getcode.navigation.scrim.ScrimOverlay
 @Suppress("FunctionName")
 fun NavBillOverlayEntryDecorator(): NavEntryDecorator<NavKey> {
     return NavEntryDecorator { entry ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        val isSheet = entry.metadata[NavMetadataKeys.IsSheet.key] == true
+        // A wrap-content sheet is sized by what it measures, so filling here would stretch it to
+        // the full expanded height.
+        val wrapsContent = entry.metadata[NavMetadataKeys.IsWrapContentSheet.key] == true
+        Box(modifier = if (wrapsContent) Modifier else Modifier.fillMaxSize()) {
             entry.Content()
 
             // Sheets are painted above the base scene by NavDisplay, so they must NOT carry the
             // bill themselves — otherwise the bill would cover the sheet again.
-            val isSheet = entry.metadata[NavMetadataKeys.IsSheet.key] == true
             if (!isSheet) {
                 ScrimOverlay(LocalScrimController.current)
                 BillOverlay()

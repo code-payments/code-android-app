@@ -143,8 +143,12 @@ internal fun ChatProfileScreen(
                     ChatProfileAction.Block ->
                         viewModel.dispatchEvent(ChatProfileViewModel.Event.BlockUser)
                     // Both muting and unmuting go through the picker, which is why this row
-                    // navigates either way rather than acting on one of them here.
-                    ChatProfileAction.Mute -> flowNavigator.navigateTo(ChatStep.MuteChat)
+                    // navigates either way rather than acting on one of them here. The outer
+                    // navigator, as with Report: the sheet is a top-level route shared with the
+                    // chat list, so it opens over the chat rather than inside it.
+                    ChatProfileAction.Mute -> chatState.chatId?.let { chatId ->
+                        navigator.push(AppRoute.Messaging.MuteChat(chatId))
+                    }
                     // Not flowNavigator: Report is a top-level route rather than a step of
                     // this flow, and LocalCodeNavigator hands a non-FlowStep route up to its
                     // parent. So it opens over the chat rather than inside it.

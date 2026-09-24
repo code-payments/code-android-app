@@ -54,19 +54,6 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Serializable
     data object InviteToGroup : ChatStep, Sheet, WrapContentSheet
 
-    /**
-     * How long to mute the conversation for.
-     *
-     * A [WrapContentSheet] for the same reason [InviteToGroup] is one: four rows, chosen from the
-     * group's profile, and the profile is where you end up again once one is picked. Carries
-     * nothing — the chat is the one the flow is already open on, and the shape the user picks
-     * travels back as an event rather than as a nav result, because muting is a request the view
-     * model makes rather than an answer the sheet returns.
-     */
-    @Parcelize
-    @Serializable
-    data object MuteChat : ChatStep, Sheet, WrapContentSheet
-
     @Parcelize
     @Serializable
     data class Profile(val contact: ChatParticipant): ChatStep
@@ -86,8 +73,8 @@ sealed interface ChatStep : FlowStep, Parcelable {
     /**
      * Node 10187:110373 — what about the group can be changed, as a list of the things that can.
      *
-     * A pushed screen rather than a sheet, unlike [InviteToGroup] and [MuteChat]: those end on the
-     * choice they present, while this one is a way through to another screen and has to be
+     * A pushed screen rather than a sheet, unlike [InviteToGroup]: that ends on the choice it
+     * presents, while this one is a way through to another screen and has to be
      * somewhere back can return to. Carries nothing for the same reason [GroupProfile] does not —
      * the flow is already open on the group, and every step here reads it off the conversation's
      * view model.

@@ -18,6 +18,10 @@ import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -62,6 +66,11 @@ internal fun ChatMuteStatusChip(
     reserveSpace: Boolean = true,
 ) {
     val label = rememberMutedLabel(viewerState)
+    // The label goes null the moment the mute clears, while the chip is still fading out. Drawing
+    // that would empty the text on the exit's first frame and fade out a bell on its own, so the
+    // exit keeps the last label it showed.
+    var shownLabel by remember { mutableStateOf(label.orEmpty()) }
+    if (label != null && label != shownLabel) shownLabel = label
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         // Holds the line's height whether or not there is a mute, so the rows below don't move the
@@ -84,7 +93,7 @@ internal fun ChatMuteStatusChip(
             enter = fadeIn() + scaleIn(initialScale = 0.85f, animationSpec = spring()),
             exit = fadeOut(animationSpec = tween(durationMillis = 200)),
         ) {
-            Chip(label = label.orEmpty())
+            Chip(label = shownLabel)
         }
     }
 }

@@ -141,8 +141,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     // it sits over the profile the user asked from.
                     GroupProfileAction.Invite -> flowNavigator.navigateTo(ChatStep.InviteToGroup)
                     // Both muting and unmuting go through the picker, which is why this row
-                    // navigates either way rather than acting on one of them here.
-                    GroupProfileAction.Mute -> flowNavigator.navigateTo(ChatStep.MuteChat)
+                    // navigates either way rather than acting on one of them here. The outer
+                    // navigator, as with Report: the sheet is a top-level route shared with the
+                    // chat list, so it opens over the chat rather than inside it.
+                    GroupProfileAction.Mute -> state.chatId?.let { chatId ->
+                        navigator.push(AppRoute.Messaging.MuteChat(chatId))
+                    }
                     GroupProfileAction.Leave ->
                         viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat)
                     // The outer navigator, not this flow's: reporting is its own top-level

@@ -7,12 +7,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +28,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -40,10 +48,15 @@ import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.app.tipping.internal.components.TipChatRow
 import com.flipcash.features.tipping.R
 import com.flipcash.shared.chat.ui.ConversationReference
+import com.flipcash.shared.chat.ui.rememberIsMuted
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.SwipeAction
+import com.getcode.ui.components.SwipeActionRow
+import com.getcode.ui.components.SwipeRevealGroup
+import com.getcode.ui.components.rememberSwipeRevealGroup
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
@@ -60,6 +73,8 @@ fun ChatsScreen() {
 
     val chats = state.chats
     val listState = rememberLazyListState()
+    // One row open at a time: swiping another row closes the one left revealed.
+    val revealGroup = rememberSwipeRevealGroup()
 
     CodeScaffold(
         // The list runs the full height and passes under the title bar, which fades it out against
@@ -122,9 +137,18 @@ fun ChatsScreen() {
             if (chats.isLoaded() && chats.data.isEmpty()) {
                 item { NoChatsYet(Modifier.fillParentMaxSize()) }
             } else {
-                tipChatItems(chats.dataOrNull.orEmpty()) { chat ->
-                    navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chat.chatId)))
-                }
+                tipChatItems(
+                    chats = chats.dataOrNull.orEmpty(),
+                    onClick = { chat ->
+                        navigator.push(
+                            AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chat.chatId))
+                        )
+                    },
+                    // The same sheet the chat and group profiles open, so the list offers exactly
+                    // the durations they do, and unmuting is its "Never" row rather than a toggle.
+                    onMute = { chat -> navigator.push(AppRoute.Messaging.MuteChat(chat.chatId)) },
+                    revealGroup = revealGroup,
+                )
             }
         }
     }
@@ -181,15 +205,78 @@ private fun NoChatsYet(modifier: Modifier = Modifier) {
 private fun LazyListScope.tipChatItems(
     chats: List<ConversationReference>,
     onClick: (ConversationReference) -> Unit,
+    onMute: (ConversationReference) -> Unit,
+    revealGroup: SwipeRevealGroup,
 ) {
-    itemsIndexed(chats) { index, chat ->
-        TipChatRow(
-            chat = chat,
-            showDivider = index < chats.lastIndex,
+    // Keyed by chat so a row's swipe state stays with its chat when new activity reorders the list.
+    itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
+        MuteSwipeRow(
+            isMuted = rememberIsMuted(chat.viewerState),
+            onMute = { onMute(chat) },
+            stateKey = chat.chatId,
+            revealGroup = revealGroup,
         ) {
-            onClick(chat)
+            TipChatRow(
+                chat = chat,
+                showDivider = index < chats.lastIndex,
+            ) {
+                onClick(chat)
+            }
         }
     }
+}
+
+/**
+ * A trailing swipe that opens the mute sheet, whichever way the chat is muted.
+ *
+ * The icon names the state the chat would be moved out of: a crossed-out bell on an audible chat,
+ * and a plain one on a muted chat, where the sheet is also how the mute is cleared. It never mutes
+ * directly, because a mute always needs a duration.
+ *
+ * Resets rather than settling open: a full swipe opens the sheet, and a row left swiped under it
+ * would still be sitting open once the sheet closed.
+ */
+@Composable
+private fun MuteSwipeRow(
+    isMuted: Boolean,
+    onMute: () -> Unit,
+    stateKey: Any,
+    revealGroup: SwipeRevealGroup,
+    content: @Composable () -> Unit,
+) {
+    val label = stringResource(
+        if (isMuted) R.string.content_description_changeMute
+        else R.string.content_description_muteChat
+    )
+    SwipeActionRow(
+        actions = listOf(
+            SwipeAction(
+                // The profile's unverified badge treatment rather than the delete red: nothing is
+                // lost by it.
+                background = CodeTheme.colors.warning.copy(alpha = 0.15f),
+                onTriggered = onMute,
+                resetOnDismiss = true,
+            ) {
+                Icon(
+                    imageVector = if (isMuted) {
+                        Icons.Outlined.Notifications
+                    } else {
+                        Icons.Outlined.NotificationsOff
+                    },
+                    contentDescription = label,
+                    tint = CodeTheme.colors.warning,
+                    modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
+                )
+            }
+        ),
+        // A swipe is out of reach with a screen reader, so the row offers the same action there.
+        modifier = Modifier.semantics {
+            customActions = listOf(CustomAccessibilityAction(label) { onMute(); true })
+        },
+        stateKey = stateKey,
+        revealGroup = revealGroup,
+        content = content,
+    )
 }
 
 @Composable

@@ -5,7 +5,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
@@ -24,7 +28,7 @@ import kotlin.time.Clock
  * already wrong by the time the deadline passes; [rememberIsMuted] waits the deadline out and stops
  * drawing on its own. Emits nothing at all when the chat is audible, so a row pays no layout for it.
  *
- * Sized and tinted to sit with the caption text it stands beside — the row's preview, the title
+ * Sized and tinted to sit quietly beside the name it follows — the chat list row's, the title
  * bar's name — rather than to be noticed on its own. It states a setting, it does not ask for
  * anything. Filled rather than outlined, matching iOS' `bell.slash.fill`. The mute row and the
  * profile chip stay outlined, as iOS' do — those sit at body size beside a label that already
@@ -61,11 +65,15 @@ fun MutedIndicator(
 @Composable
 fun rememberIsMuted(viewerState: ViewerState?): Boolean {
     val mute = viewerState?.mute
-    return produceState(initialValue = viewerState.isMutedAt(), mute) {
-        value = viewerState.isMutedAt()
-        val until = (mute as? MuteState.Until)?.until ?: return@produceState
+    // Only the lapse is waited for. The state itself is read in the same pass it changes in: a
+    // producer re-answering it would hold the previous answer for a frame, which on an unmute is a
+    // frame of "muted" with no deadline, drawn as a plain "Muted".
+    var lapsed by remember(mute) { mutableStateOf(false) }
+    LaunchedEffect(mute) {
+        val until = (mute as? MuteState.Until)?.until ?: return@LaunchedEffect
         val remaining = until - Clock.System.now()
         if (remaining.isPositive()) delay(remaining)
-        value = false
-    }.value
+        lapsed = true
+    }
+    return !lapsed && viewerState.isMutedAt()
 }
