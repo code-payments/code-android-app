@@ -129,6 +129,13 @@ class ChatMessageDataSource @Inject constructor(
             ?.associate { it.chatIdHex to toChatMessage(it) }
             .orEmpty()
 
+    /**
+     * The server's unread stamp on one stored message, or null when that message isn't stored —
+     * the running count of unread-eligible messages, so two stamps subtract to the count between.
+     */
+    suspend fun getUnreadSeq(chatIdHex: String, messageId: Long): Long? =
+        db?.chatMessageDao()?.getUnreadSeq(chatIdHex, messageId)
+
     suspend fun hasMessages(chatId: ChatId): Boolean =
         db?.chatMessageDao()?.getLatest(mapper.chatIdHex(chatId)) != null
 

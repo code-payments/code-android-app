@@ -41,7 +41,8 @@ data class ConversationReference(
     val hasMessages: Boolean = true,
     /** The chat's last-activity timestamp; drives recency sorting and the row's trailing timestamp. */
     val lastActivity: Instant? = null,
-    val unreadCount: Int = 0,
+    /** Messages past the viewer's READ pointer: 0 when read, null when unread by an unknown count. */
+    val unreadCount: Int? = 0,
     val isTyping: Boolean = false,
     /**
      * The viewer's own state on this chat, which is where the row's mute comes from.

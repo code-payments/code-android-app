@@ -104,6 +104,8 @@ class FeedPagedTest {
 
         val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true).also {
             coEvery { it.getLatestVisible(any()) } returns lastMessage
+            // The pointer's message (id 1) carries stamp 1, one below the newest.
+            coEvery { it.getUnreadSeq(any(), 1) } returns 1
         }
 
         // Explicit rather than relaxed: `Result` is a value class, so a relaxed mock hands the

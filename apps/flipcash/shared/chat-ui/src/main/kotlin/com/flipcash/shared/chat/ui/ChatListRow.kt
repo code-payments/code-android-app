@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -96,10 +98,19 @@ fun ChatListRow(
 
 /**
  * The chat's unread count in a pill beside the timestamp (node 10329:8245): dark text on the
- * indicator colour, 18dp tall, a circle for one digit and widening for more.
+ * indicator colour, 18dp tall, a circle for one digit and widening for more. A null [count] is
+ * unread by a number that can't be known, and draws a plain dot rather than a guess.
  */
 @Composable
-fun UnreadBadge(count: Int, modifier: Modifier = Modifier) {
+fun UnreadBadge(count: Int?, modifier: Modifier = Modifier) {
+    if (count == null) {
+        Box(
+            modifier = modifier
+                .size(CodeTheme.dimens.grid.x2)
+                .background(color = CodeTheme.colors.indicator, shape = CircleShape),
+        )
+        return
+    }
     Badge(
         modifier = modifier,
         count = count,

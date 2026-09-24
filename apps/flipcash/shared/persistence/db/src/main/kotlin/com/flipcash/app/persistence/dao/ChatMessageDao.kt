@@ -140,6 +140,9 @@ interface ChatMessageDao {
     @Query("SELECT event_sequence FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
     suspend fun getEventSequence(chatIdHex: String, messageId: Long): Long?
 
+    @Query("SELECT unread_seq FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
+    suspend fun getUnreadSeq(chatIdHex: String, messageId: Long): Long?
+
     @Transaction
     suspend fun upsert(entity: ChatMessageEntity) {
         // Event-sequence guard: skip if the stored sequence is strictly newer (last-writer-wins).

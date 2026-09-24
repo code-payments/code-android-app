@@ -10,6 +10,10 @@ data class ChatState(
     // Null until the feed has been read from the database once, so an empty list means "no
     // chats" and never "not read yet".
     val feed: List<ChatMetadata>? = null,
+    // The unread stamp on the message each chat's READ pointer names, keyed by chat and that
+    // message's id, read alongside [feed] so a row can count its unread messages. A chat whose
+    // pointed-at message isn't stored is absent.
+    val readStamps: Map<Pair<ChatId, Long>, Long> = emptyMap(),
     val typingIndicators: Map<ChatId, Set<ActiveTypist>> = emptyMap(),
     val reactionOverlays: Map<ChatId, Map<Long, ReactionSummary>> = emptyMap(),
     val feedSyncState: FeedSyncState = FeedSyncState.Idle,
@@ -19,7 +23,8 @@ data class ChatState(
 
 data class ChatSummary(
     val metadata: ChatMetadata,
-    val unreadCount: Int,
+    /** Messages past the viewer's READ pointer: 0 when read, null when unread by an unknown count. */
+    val unreadCount: Int?,
 )
 
 data class ActiveTypist(

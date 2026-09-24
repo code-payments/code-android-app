@@ -26,6 +26,7 @@ import com.flipcash.shared.chat.FeedSyncState
 import com.flipcash.shared.chat.ChatState
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.isRenderable
+import com.flipcash.shared.chat.internal.selfReadPointer
 import com.flipcash.shared.chat.internal.unreadCount
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
@@ -141,12 +142,13 @@ class FeedSyncDelegate @Inject constructor(
             .filter { it.type in requested }
             .filter { isRenderable(it, selfId, selfPhone) }
             .map { metadata ->
-                ChatSummary(metadata = metadata, unreadCount = unreadCount(metadata, selfId))
+                val count = unreadCount(metadata, selfId) { id -> state.readStamps[metadata.chatId to id] }
+                ChatSummary(metadata = metadata, unreadCount = count)
             }
     }
 
     override fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int> {
-        return feed(*chatTypes).map { summaries -> summaries.count { it.unreadCount > 0 } }
+        return feed(*chatTypes).map { summaries -> summaries.count { it.unreadCount != 0 } }
     }
 
     override fun feedPaged(vararg chatTypes: ChatType): Flow<PagingData<ChatSummary>> {
@@ -182,7 +184,10 @@ class FeedSyncDelegate @Inject constructor(
         val members = memberDataSource.getMembersForChat(entity.chatIdHex)
         val lastMessage = entity.lastMessageId?.let { messageDataSource.getLatestVisible(entity.chatIdHex) }
         val metadata = metadataDataSource.toMetadata(entity, members, lastMessage)
-        return ChatSummary(metadata = metadata, unreadCount = unreadCount(metadata, selfId))
+        val readPointer = selfReadPointer(metadata, selfId)
+        val readStamp = readPointer?.let { messageDataSource.getUnreadSeq(entity.chatIdHex, it) }
+        val count = unreadCount(metadata, selfId) { id -> readStamp.takeIf { id == readPointer } }
+        return ChatSummary(metadata = metadata, unreadCount = count)
     }
 
     override fun refreshFeed() {
@@ -211,8 +216,8 @@ class FeedSyncDelegate @Inject constructor(
             memberDataSource.observeAll(),
         ) { metadataEntities, membersByChat ->
             buildFeedFromDb(metadataEntities, membersByChat)
-        }.onEach { feed ->
-            stateHolder.update { it.copy(feed = feed) }
+        }.onEach { (feed, readStamps) ->
+            stateHolder.update { it.copy(feed = feed, readStamps = readStamps) }
         }.launchIn(scope)
     }
 
@@ -267,20 +272,28 @@ class FeedSyncDelegate @Inject constructor(
     private suspend fun buildFeedFromDb(
         metadataEntities: List<ChatMetadataEntity>,
         membersByChat: Map<String, List<ChatMember>>,
-    ): List<ChatMetadata> {
+    ): Pair<List<ChatMetadata>, Map<Pair<ChatId, Long>, Long>> {
         // `is_member` is a column rather than a field on ChatMetadata: a chat you have left is
         // still a chat you can be shown (Plan C's gate reads the same row), so the flag is dropped
         // here, at the edge of the list, rather than carried through the domain model.
         val latestVisible = messageDataSource.getLatestVisibleByChat()
-        return metadataEntities.filter { it.isMember }.map { entity ->
+        val selfId = userManager.accountId
+        val readStamps = mutableMapOf<Pair<ChatId, Long>, Long>()
+        val feed = metadataEntities.filter { it.isMember }.map { entity ->
             val members = membersByChat[entity.chatIdHex] ?: emptyList()
             // Deliberately the newest *visible* message, not the newest row: deleting the newest
             // message drops the feed back to the one before it, so the preview reads that message
             // instead of "Message deleted" and its unread splat clears with it (the fallback sits
             // at or below the read pointer whenever the deleted message was the only unread one).
             val lastMessage = entity.lastMessageId?.let { latestVisible[entity.chatIdHex] }
-            metadataDataSource.toMetadata(entity, members, lastMessage)
+            metadataDataSource.toMetadata(entity, members, lastMessage).also { metadata ->
+                // Only the stamp a row can ask for: the one on the message the READ pointer names.
+                val readPointer = selfReadPointer(metadata, selfId) ?: return@also
+                messageDataSource.getUnreadSeq(entity.chatIdHex, readPointer)
+                    ?.let { readStamps[metadata.chatId to readPointer] = it }
+            }
         }
+        return feed to readStamps
     }
 
     /**
