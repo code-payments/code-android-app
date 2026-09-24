@@ -14,12 +14,12 @@ class AnalyticsCatalogueTest {
         assertFailsWith<CatalogueException> { generate(toml) }.message.orEmpty()
 
     @Test
-    fun valueEnumsKeepCaseOrderAndCarryDriftAsKDoc() {
+    fun listsKeepValueOrderAndCarryDescriptionAndDriftAsKDoc() {
         val source = generate(
             """
-            [enums.Method]
-            doc = "How the user paid."
-            [enums.Method.cases]
+            [lists.Method]
+            description = "How the user paid."
+            [lists.Method.values]
             ZULU = "Zulu"
             ALPHA = { value = "Alpha", drift = "iOS has no Alpha." }
             """.trimIndent(),
@@ -45,23 +45,22 @@ class AnalyticsCatalogueTest {
     }
 
     @Test
-    fun eventMapsEachParameterTypeToItsPropertyCall() {
+    fun eachTypeWordBecomesAParameterAndItsPropertyCall() {
         val source = generate(
             """
-            [enums.Kind.cases]
+            [lists.Kind.values]
             ONE = "One"
 
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
-            params = ["kind: Kind", "label: String", "rate: Double", "millis: Long", "tier: Int", "done: Boolean"]
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
             properties = [
-              { key = "Kind", value = "kind" },
-              { key = "Label", value = "label" },
-              { key = "Rate", value = "rate" },
-              { key = "Time", value = "millis" },
-              { key = "Tier", value = "tier" },
-              { key = "Done", value = "done" },
+              { name = "Kind", type = "Kind" },
+              { name = "Label", type = "text" },
+              { name = "Rate", type = "decimal" },
+              { name = "Time", type = "duration" },
+              { name = "Tier", type = "count" },
+              { name = "Done", type = "yes/no" },
             ]
             """.trimIndent(),
         ).getValue("com/example/events/ThingEvents.kt")
@@ -77,12 +76,12 @@ class AnalyticsCatalogueTest {
             // Generated from events.toml -- do not edit.
 
             object ThingEvents {
-                fun happened(kind: Kind, label: String, rate: Double, millis: Long, tier: Int, done: Boolean): AnalyticsEvent =
+                fun thingHappened(kind: Kind, label: String, rate: Double, timeMillis: Long, tier: Int, done: Boolean): AnalyticsEvent =
                     event("Thing Happened") {
                         text("Kind", kind.value)
                         text("Label", label)
                         number("Rate", rate)
-                        number("Time", millis)
+                        number("Time", timeMillis)
                         number("Tier", tier.toDouble())
                         flag("Done", done)
                     }
@@ -97,22 +96,21 @@ class AnalyticsCatalogueTest {
     fun optionalPropertiesPassNullThroughSoTheBuilderOmitsThem() {
         val source = generate(
             """
-            [enums.Kind.cases]
+            [lists.Kind.values]
             ONE = "One"
 
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
-            params = ["kind: Kind?", "error: String?", "tier: Int?"]
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
             properties = [
-              { key = "Kind", value = "kind" },
-              { key = "Error", value = "error" },
-              { key = "Tier", value = "tier" },
+              { name = "Kind", type = "Kind", optional = true },
+              { name = "Error", type = "text", optional = true },
+              { name = "Tier", type = "count", optional = true },
             ]
             """.trimIndent(),
         ).getValue("com/example/events/ThingEvents.kt")
 
-        assertContains(source, "fun happened(kind: Kind?, error: String?, tier: Int?): AnalyticsEvent =")
+        assertContains(source, "fun thingHappened(kind: Kind?, error: String?, tier: Int?): AnalyticsEvent =")
         assertContains(source, "text(\"Kind\", kind?.value)")
         assertContains(source, "text(\"Error\", error)")
         assertContains(source, "number(\"Tier\", tier?.toDouble())")
@@ -122,35 +120,95 @@ class AnalyticsCatalogueTest {
     fun anEventWithNoPropertiesHasNoBlock() {
         val source = generate(
             """
-            [[domains.ThingEvents.events]]
-            builder = "started"
-            event = "Thing Started"
+            [[event]]
+            domain = "Thing"
+            name = "Thing Started"
             """.trimIndent(),
         ).getValue("com/example/events/ThingEvents.kt")
 
-        assertContains(source, "    fun started(): AnalyticsEvent = event(\"Thing Started\")\n")
+        assertContains(source, "    fun thingStarted(): AnalyticsEvent = event(\"Thing Started\")\n")
+    }
+
+    @Test
+    fun theBuilderNameDropsTheDomainPrefixAndTheDomainNamesTheObject() {
+        val files = generate(
+            """
+            [[event]]
+            domain = "Add Money"
+            name = "Add Money: Method Selected"
+            """.trimIndent(),
+        )
+
+        val source = files.getValue("com/example/events/AddMoneyEvents.kt")
+        assertContains(source, "object AddMoneyEvents {")
+        assertContains(source, "fun methodSelected(): AnalyticsEvent = event(\"Add Money: Method Selected\")")
+    }
+
+    @Test
+    fun theParameterNameIsTheKeyInCamelCase() {
+        val source = generate(
+            """
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
+            properties = [
+              { name = "URL", type = "text" },
+              { name = "Call Site", type = "text" },
+            ]
+            """.trimIndent(),
+        ).getValue("com/example/events/ThingEvents.kt")
+
+        assertContains(source, "fun thingHappened(url: String, callSite: String): AnalyticsEvent =")
+        assertContains(source, "text(\"Call Site\", callSite)")
+    }
+
+    @Test
+    fun builderParamAndOrderOverrideWhatIsDerived() {
+        val source = generate(
+            """
+            [[event]]
+            domain = "Account"
+            name = "Create Account Payment"
+            builder = "payment"
+            order = ["owner", "price"]
+            properties = [
+              { name = "Fiat", type = "decimal", param = "price" },
+              { name = "Owner Public Key", type = "text", param = "owner" },
+            ]
+            """.trimIndent(),
+        ).getValue("com/example/events/AccountEvents.kt")
+
+        assertContains(
+            source,
+            """
+                fun payment(owner: String, price: Double): AnalyticsEvent =
+                    event("Create Account Payment") {
+                        number("Fiat", price)
+                        text("Owner Public Key", owner)
+                    }
+            """.trimIndent().prependIndent("    "),
+        )
     }
 
     @Test
     fun groupsExpandInPlaceAndTheAmountGroupCallsTheHandWrittenHelper() {
         val source = generate(
             """
-            [enums.State.cases]
+            [lists.State.values]
             SUCCESS = "Success"
 
             [groups.outcome]
             properties = [
-              { key = "State", value = "state" },
-              { group = "amount" },
-              { key = "Error", value = "error" },
+              { name = "State", type = "State" },
+              { group = "amount", optional = true },
+              { name = "Error", type = "text", optional = true },
             ]
 
-            [[domains.ThingEvents.events]]
-            builder = "grabbed"
-            event = "Grabbed"
-            params = ["state: State", "amount: Amount?", "millis: Long?", "error: String?"]
+            [[event]]
+            domain = "Thing"
+            name = "Grabbed"
             properties = [
-              { key = "Time", value = "millis" },
+              { name = "Grab Time", type = "duration", optional = true },
               { group = "outcome" },
             ]
             """.trimIndent(),
@@ -161,9 +219,9 @@ class AnalyticsCatalogueTest {
         assertContains(
             source,
             """
-                fun grabbed(state: State, amount: Amount?, millis: Long?, error: String?): AnalyticsEvent =
+                fun grabbed(grabTimeMillis: Long?, state: State, amount: Amount?, error: String?): AnalyticsEvent =
                     event("Grabbed") {
-                        number("Time", millis)
+                        number("Grab Time", grabTimeMillis)
                         text("State", state.value)
                         amount(amount)
                         text("Error", error)
@@ -176,61 +234,51 @@ class AnalyticsCatalogueTest {
     fun aPropertyMayRepeatOneTheAmountSendsOnlyWhenItHasIt() {
         val source = generate(
             """
-            [[domains.ThingEvents.events]]
-            builder = "sell"
-            event = "Token Sell"
-            params = ["mint: String", "amount: Amount"]
-            properties = [{ key = "Mint", value = "mint" }, { group = "amount" }]
+            [[event]]
+            domain = "Swap"
+            name = "Token Sell"
+            properties = [{ name = "Mint", type = "text" }, { group = "amount" }]
             """.trimIndent(),
-        ).getValue("com/example/events/ThingEvents.kt")
+        ).getValue("com/example/events/SwapEvents.kt")
 
+        assertContains(source, "fun tokenSell(mint: String, amount: Amount): AnalyticsEvent =")
         assertContains(source, "text(\"Mint\", mint)\n            amount(amount)")
     }
 
     @Test
-    fun rejectsAPropertyRepeatingOneTheAmountAlwaysSends() {
-        val message = rejected(
-            """
-            [[domains.ThingEvents.events]]
-            builder = "sell"
-            event = "Token Sell"
-            params = ["fiat: Double", "amount: Amount"]
-            properties = [{ key = "Fiat", value = "fiat" }, { group = "amount" }]
-            """.trimIndent(),
-        )
-        assertContains(message, "ThingEvents.sell")
-        assertContains(message, "Fiat")
-    }
-
-    @Test
-    fun nameTemplatesInterpolateEnumWireValues() {
+    fun namePlaceholdersAreTextUnlessTypedAsAList() {
         val source = generate(
             """
-            [enums.Method.cases]
+            [lists.Method.values]
             RESERVES = "Reserves"
 
-            [[domains.ThingEvents.events]]
+            [[event]]
+            domain = "Swap"
+            name = "Token Purchase With {method} From {place}"
             builder = "purchase"
-            event = "Token Purchase With {method}"
-            params = ["method: Method"]
+            placeholders = { method = "Method" }
             """.trimIndent(),
-        ).getValue("com/example/events/ThingEvents.kt")
+        ).getValue("com/example/events/SwapEvents.kt")
 
-        assertContains(source, "fun purchase(method: Method): AnalyticsEvent = event(\"Token Purchase With \${method.value}\")")
+        assertContains(
+            source,
+            "fun purchase(method: Method, place: String): AnalyticsEvent = " +
+                "event(\"Token Purchase With \${method.value} From \${place}\")",
+        )
     }
 
     @Test
     fun fixedFormatValuesInterpolateAndEscapeLiterals() {
         val source = generate(
             """
-            [[domains.ThingEvents.events]]
-            builder = "parseFailed"
-            event = "Deeplink: Parse"
-            params = ["url: String"]
-            properties = [{ key = "Error", format = "Failed to parse ${'$'}deeplink \"=>\" {url}" }]
+            [[event]]
+            domain = "Deeplink"
+            name = "Deeplink: Parse"
+            properties = [{ name = "Error", format = "Failed to parse ${'$'}deeplink \"=>\" {url}" }]
             """.trimIndent(),
-        ).getValue("com/example/events/ThingEvents.kt")
+        ).getValue("com/example/events/DeeplinkEvents.kt")
 
+        assertContains(source, "fun parse(url: String): AnalyticsEvent =")
         assertContains(source, """text("Error", "Failed to parse \${'$'}deeplink \"=>\" ${'$'}{url}")""")
     }
 
@@ -238,33 +286,34 @@ class AnalyticsCatalogueTest {
     fun twoBuildersMaySendOneEventName() {
         val source = generate(
             """
-            [[domains.ThingEvents.events]]
+            [[event]]
+            domain = "Deeplink"
+            name = "Deeplink: Parse"
             builder = "parsed"
-            event = "Deeplink: Parse"
-            params = ["type: String"]
-            properties = [{ key = "Type", value = "type" }]
+            properties = [{ name = "Type", type = "text" }]
 
-            [[domains.ThingEvents.events]]
+            [[event]]
+            domain = "Deeplink"
+            name = "Deeplink: Parse"
             builder = "parseFailed"
-            event = "Deeplink: Parse"
             """.trimIndent(),
-        ).getValue("com/example/events/ThingEvents.kt")
+        ).getValue("com/example/events/DeeplinkEvents.kt")
 
         assertContains(source, "fun parsed(type: String): AnalyticsEvent =")
         assertContains(source, "fun parseFailed(): AnalyticsEvent = event(\"Deeplink: Parse\")")
     }
 
     @Test
-    fun docAndDriftBecomeKDocWrappedAtTheLineLimit() {
+    fun descriptionAndDriftBecomeKDocWrappedAtTheLineLimit() {
         val source = generate(
             """
-            [domains.ThingEvents]
-            doc = "Things."
+            [domains]
+            Thing = "Things."
 
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
-            doc = "The user had no display name before this submission."
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
+            description = "The user had no display name before this submission."
             drift = "iOS sends Exchange Rate and no USDC, and fires on the request rather than after connecting to the wallet."
             """.trimIndent(),
         ).getValue("com/example/events/ThingEvents.kt")
@@ -280,7 +329,7 @@ class AnalyticsCatalogueTest {
                  * DRIFT: iOS sends Exchange Rate and no USDC, and fires on the request rather than after
                  * connecting to the wallet.
                  */
-                fun happened(): AnalyticsEvent = event("Thing Happened")
+                fun thingHappened(): AnalyticsEvent = event("Thing Happened")
             """.trimIndent(),
         )
     }
@@ -312,180 +361,221 @@ class AnalyticsCatalogueTest {
         assertEquals(emptyMap(), generate(""))
     }
 
-    // Rejections. Each message names the entry at fault.
+    // Rejections. Each message names the event at fault and says what to change.
 
     @Test
     fun rejectsTomlSyntaxErrors() {
-        assertContains(rejected("[enums.Method\n"), "events.toml")
+        assertContains(rejected("[lists.Method\n"), "events.toml")
     }
 
     @Test
-    fun rejectsAnUnknownParameterType() {
+    fun rejectsAnUnknownTypeWordAndListsTheWords() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
-            params = ["kind: Knid"]
-            properties = [{ key = "Kind", value = "kind" }]
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
+            properties = [{ name = "Label", type = "strng" }]
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.happened")
-        assertContains(message, "Knid")
+        assertContains(message, "\"Thing Happened\"")
+        assertContains(message, "strng")
+        assertContains(message, "text, yes/no, count, decimal, duration")
     }
 
     @Test
-    fun rejectsADuplicateBuilderInADomain() {
+    fun rejectsAnUnknownListAndSaysWhereListsGo() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
+            [lists.ChatType.values]
+            TIP = "Tip"
 
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened Again"
+            [[event]]
+            domain = "Chat"
+            name = "Sent Message"
+            properties = [{ name = "Chat Type", type = "ChatTyp" }]
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.happened")
-        assertContains(message, "more than once")
+        assertContains(message, "\"Sent Message\"")
+        assertContains(message, "ChatTyp")
+        assertContains(message, "[lists.ChatTyp]")
+        assertContains(message, "ChatType")
     }
 
     @Test
-    fun rejectsATemplateNamingAMissingParameter() {
+    fun rejectsTwoEventsThatWouldGetTheSameBuilderName() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "purchase"
-            event = "Token Purchase With {method}"
+            [[event]]
+            domain = "Deeplink"
+            name = "Deeplink: Parse"
+
+            [[event]]
+            domain = "Deeplink"
+            name = "Deeplink: Parse"
+            properties = [{ name = "Type", type = "text" }]
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.purchase")
-        assertContains(message, "{method}")
+        assertContains(message, "\"Deeplink: Parse\"")
+        assertContains(message, "`parse`")
+        assertContains(message, "add `builder")
     }
 
     @Test
-    fun rejectsAFormatNamingAMissingParameter() {
+    fun rejectsANameThatGivesNoBuilderName() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "parseFailed"
-            event = "Deeplink: Parse"
-            properties = [{ key = "Error", format = "Failed => {url}" }]
+            [lists.Step.values]
+            ONE = "One"
+
+            [[event]]
+            domain = "Onramp"
+            name = "Onramp: {step}"
+            placeholders = { step = "Step" }
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.parseFailed")
-        assertContains(message, "{url}")
+        assertContains(message, "\"Onramp: {step}\"")
+        assertContains(message, "add `builder")
     }
 
     @Test
-    fun rejectsAnEnumCaseWithNoWireString() {
-        val empty = rejected("[enums.Method.cases]\nRESERVES = \"\"")
-        assertContains(empty, "Method.RESERVES")
-
-        val missing = rejected("[enums.Method.cases]\nRESERVES = { drift = \"iOS has none.\" }")
-        assertContains(missing, "Method.RESERVES")
-    }
-
-    @Test
-    fun rejectsAPropertyReadingAnUndeclaredParameter() {
+    fun rejectsTwoPropertiesThatWouldGetTheSameParameterName() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
-            properties = [{ key = "Label", value = "label" }]
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
+            properties = [{ name = "Call Site", type = "text" }, { name = "Call-Site", type = "text" }]
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.happened")
-        assertContains(message, "label")
+        assertContains(message, "\"Thing Happened\"")
+        assertContains(message, "`callSite`")
+        assertContains(message, "add `param")
     }
 
     @Test
-    fun rejectsAParameterNoPropertyReads() {
+    fun rejectsAnOrderThatDoesNotNameEveryParameter() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
-            params = ["label: String"]
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
+            order = ["label", "labl"]
+            properties = [{ name = "Label", type = "text" }, { name = "Tier", type = "count" }]
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.happened")
-        assertContains(message, "label")
+        assertContains(message, "\"Thing Happened\"")
+        assertContains(message, "missing tier")
+        assertContains(message, "labl")
+    }
+
+    @Test
+    fun rejectsAListValueWithNoWireString() {
+        val empty = rejected("[lists.Method.values]\nRESERVES = \"\"")
+        assertContains(empty, "Method")
+        assertContains(empty, "RESERVES")
+        assertContains(empty, "the text Mixpanel receives")
+
+        val missing = rejected("[lists.Method.values]\nRESERVES = { drift = \"iOS has none.\" }")
+        assertContains(missing, "RESERVES")
+    }
+
+    @Test
+    fun rejectsAPlaceholderThatIsNotTextOrAList() {
+        val message = rejected(
+            """
+            [[event]]
+            domain = "Thing"
+            name = "Thing {tier}"
+            builder = "thing"
+            placeholders = { tier = "count" }
+            """.trimIndent(),
+        )
+        assertContains(message, "\"Thing {tier}\"")
+        assertContains(message, "{tier}")
+    }
+
+    @Test
+    fun rejectsAPlaceholderTypeNothingUses() {
+        val message = rejected(
+            """
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
+            placeholders = { method = "text" }
+            """.trimIndent(),
+        )
+        assertContains(message, "\"Thing Happened\"")
+        assertContains(message, "method")
     }
 
     @Test
     fun rejectsAnUnknownKeySoATypoIsNotSilentlyIgnored() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
             drfit = "iOS sends nothing."
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.happened")
+        assertContains(message, "\"Thing Happened\"")
         assertContains(message, "drfit")
+    }
+
+    @Test
+    fun rejectsAnEventWithNoDomain() {
+        val message = rejected("[[event]]\nname = \"Thing Happened\"")
+        assertContains(message, "\"Thing Happened\"")
+        assertContains(message, "domain")
     }
 
     @Test
     fun rejectsAnUnknownGroup() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
             properties = [{ group = "outcom" }]
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.happened")
+        assertContains(message, "\"Thing Happened\"")
         assertContains(message, "outcom")
     }
 
     @Test
-    fun rejectsAnAmountSentAsAPlainProperty() {
+    fun rejectsAPropertyRepeatingOneTheAmountAlwaysSends() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
-            params = ["amount: Amount"]
-            properties = [{ key = "Amount", value = "amount" }]
+            [[event]]
+            domain = "Swap"
+            name = "Token Sell"
+            properties = [{ name = "Fiat", type = "decimal" }, { group = "amount" }]
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.happened")
-        assertContains(message, "amount group")
+        assertContains(message, "\"Token Sell\"")
+        assertContains(message, "Fiat")
     }
 
     @Test
     fun rejectsTheSameKeyTwiceInOneEvent() {
         val message = rejected(
             """
-            [[domains.ThingEvents.events]]
-            builder = "happened"
-            event = "Thing Happened"
-            params = ["a: String", "b: String"]
-            properties = [{ key = "Label", value = "a" }, { key = "Label", value = "b" }]
+            [[event]]
+            domain = "Thing"
+            name = "Thing Happened"
+            properties = [{ name = "Label", type = "text" }, { name = "Label", type = "text", param = "other" }]
             """.trimIndent(),
         )
-        assertContains(message, "ThingEvents.happened")
+        assertContains(message, "\"Thing Happened\"")
         assertContains(message, "Label")
     }
 
     @Test
-    fun rejectsANullableParameterInATemplate() {
-        val message = rejected(
-            """
-            [[domains.ThingEvents.events]]
-            builder = "parseFailed"
-            event = "Deeplink: Parse"
-            params = ["url: String?"]
-            properties = [{ key = "Error", format = "Failed => {url}" }]
-            """.trimIndent(),
-        )
-        assertContains(message, "ThingEvents.parseFailed")
-        assertContains(message, "url")
+    fun rejectsADomainDescriptionNoEventUses() {
+        val message = rejected("[domains]\nWalet = \"The Phantom flow.\"")
+        assertContains(message, "Walet")
     }
 
     private fun assertContains(actual: String, expected: String) =

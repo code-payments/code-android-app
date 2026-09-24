@@ -90,4 +90,6 @@ tasks.register("flipcashTestDebug") {
     dependsOn(kmpUnitTestModules.map { "$it:testAndroidHostTest" })
     // build-logic's own tests, which cover the analytics catalogue generator.
     dependsOn(gradle.includedBuild("build-logic").task(":convention:test"))
+    // EVENTS.md is generated from events.toml but checked in; fail when someone edits one alone.
+    dependsOn(":libs:analytics-events:checkAnalyticsEventsPage")
 }

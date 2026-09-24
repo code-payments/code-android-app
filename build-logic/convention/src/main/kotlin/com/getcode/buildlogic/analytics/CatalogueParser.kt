@@ -5,12 +5,17 @@ import org.tomlj.TomlArray
 import org.tomlj.TomlTable
 
 /**
- * Reads `events.toml` into a [Catalogue], rejecting anything the generator would otherwise have
- * to guess at: unknown keys, types and groups, parameters nothing reads, templates naming a
- * parameter that isn't there, and duplicates.
+ * Reads `events.toml` into a [Catalogue]. An entry describes the event in plain words and this
+ * derives the Kotlin: the builder name from the event name, each parameter from a property, and
+ * the parameter order from where the properties sit.
  *
- * Keys that come from the data (enum, domain and group names) are always looked up as one-element
- * paths, since tomlj reads a plain string key as a dotted path.
+ * Anything the generator would otherwise have to guess at is rejected: unknown keys, types,
+ * lists and groups, names that don't make a usable function or parameter, and duplicates.
+ * The people reading these messages may not know Kotlin, so each one names the event and says
+ * what to change in the file.
+ *
+ * Keys that come from the data (list, domain and group names) are always looked up as
+ * one-element paths, since tomlj reads a plain string key as a dotted path.
  */
 internal object CatalogueParser {
 
@@ -27,17 +32,22 @@ internal object CatalogueParser {
      */
     private val AMOUNT_KEYS = listOf("Fiat", "Currency", "USDC", "Quarks")
 
-    private val PRIMITIVES = mapOf(
-        "String" to ParamType.Text,
-        "Double" to ParamType.Decimal,
-        "Long" to ParamType.Whole,
-        "Int" to ParamType.SmallWhole,
-        "Boolean" to ParamType.Flag,
-        "Amount" to ParamType.Amount,
+    /** The plain-word property types, in the order messages list them. */
+    private val TYPE_WORDS = linkedMapOf(
+        "text" to ParamType.Text,
+        "yes/no" to ParamType.Flag,
+        "count" to ParamType.SmallWhole,
+        "decimal" to ParamType.Decimal,
+        "duration" to ParamType.Whole,
     )
 
-    /** Types the module already declares by hand, which an enum must not shadow. */
-    private val RESERVED_TYPES = PRIMITIVES.keys + setOf("AnalyticsEvent", "PropertyValue", "PeopleCounter")
+    /** A `duration` is sent in milliseconds, and its parameter says so. */
+    private const val DURATION_SUFFIX = "Millis"
+
+    /** Types the module already declares by hand, which a list must not shadow. */
+    private val RESERVED_TYPES = setOf(
+        "String", "Double", "Long", "Int", "Boolean", "Amount", "AnalyticsEvent", "PropertyValue", "PeopleCounter",
+    )
 
     private val KEYWORDS = setOf(
         "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in",
@@ -48,112 +58,125 @@ internal object CatalogueParser {
     private val TYPE_NAME = Regex("[A-Z][A-Za-z0-9]*")
     private val CASE_NAME = Regex("[A-Z][A-Z0-9_]*")
     private val MEMBER_NAME = Regex("[a-z][A-Za-z0-9]*")
-    private val PARAM = Regex("""\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)(\?)?\s*""")
+    private val WORD_BREAK = Regex("[^A-Za-z0-9]+")
+    private val PLACEHOLDER = Regex("""\{[^{}]*}""")
 
     fun parse(text: String): Catalogue {
         val root = Toml.parse(text)
         if (root.hasErrors()) {
             fail(FILE, root.errors().joinToString("; ") { "line ${it.position().line()}: ${it.message}" })
         }
-        root.requireOnly(FILE, "package", "counters", "enums", "groups", "domains")
+        root.requireOnly(FILE, "package", "lists", "counters", "groups", "domains", "event")
 
         val packageName = root.string("package", FILE) ?: fail(FILE, "`package` is required")
 
-        val enums = root.subtables("enums", FILE).map { (name, table) -> enumDef(name, table) }
-        enums.groupBy { it.name }.forEach { (name, defs) ->
-            if (defs.size > 1) fail("enums.$name", "declared more than once")
-        }
-        val types = PRIMITIVES + enums.associate { it.name to ParamType.Enum(it.name) }
+        val lists = root.subtables("lists", FILE).map { (name, table) -> list(name, table) }
+        val types = Types(lists.map { it.name })
 
         val counters = root.table("counters", FILE)?.let { table ->
-            table.keySet().map { name -> enumCase("PeopleCounter", name, table.get(listOf(name))) }
+            table.keySet().map { name -> value("counters", name, table.get(listOf(name))) }
         }.orEmpty()
 
         val groups = root.subtables("groups", FILE).toMap()
         groups.forEach { (name, table) ->
-            val where = "groups.$name"
-            if (name == AMOUNT_GROUP) fail(where, "`$AMOUNT_GROUP` is built in and cannot be redefined")
+            val where = "group \"$name\""
+            if (name == AMOUNT_GROUP) fail(where, "`$AMOUNT_GROUP` is built in, so a group can't use that name")
             table.requireOnly(where, "properties")
         }
 
-        val domains = root.subtables("domains", FILE).map { (name, table) -> domain(name, table, types, groups) }
+        val descriptions = root.table("domains", FILE)?.let { table ->
+            table.keySet().associateWith { name -> table.string(name, "domains") }
+        }.orEmpty()
 
-        return Catalogue(packageName, enums, counters, domains)
+        val entries = root.tables("event", FILE).mapIndexed { index, table -> entry(index, table, types, groups) }
+        val byDomain = entries.groupBy { it.first }
+        descriptions.keys.firstOrNull { it !in byDomain }?.let { unused ->
+            fail("domains", "\"$unused\" has a description, but no event has `domain = \"$unused\"`")
+        }
+
+        val domains = byDomain.map { (domain, found) ->
+            val events = found.map { it.second }
+            events.groupBy { it.builder.name }.forEach { (builder, same) ->
+                if (same.size > 1) {
+                    fail(
+                        "domain \"$domain\"",
+                        same.joinToString(" and ") { "event \"${it.eventName}\"" } +
+                            " would all get the builder `$builder`. To fix it, add `builder = \"...\"` " +
+                            "to all but one of them, with a short name of your own such as \"${builder}Failed\"",
+                    )
+                }
+            }
+            Domain(objectName(domain), domain, descriptions[domain], events.map { it.builder })
+        }
+
+        return Catalogue(packageName, lists, counters, domains)
     }
 
-    private fun enumDef(name: String, table: TomlTable): EnumDef {
-        val where = "enums.$name"
-        if (!TYPE_NAME.matches(name)) fail(where, "an enum name must be UpperCamelCase")
-        if (name in RESERVED_TYPES) fail(where, "`$name` is already a type in the module")
-        table.requireOnly(where, "doc", "cases")
-        val cases = table.table("cases", where) ?: fail(where, "`cases` is required")
-        if (cases.isEmpty) fail(where, "an enum needs at least one case")
+    private fun list(name: String, table: TomlTable): EnumDef {
+        val where = "list $name"
+        if (!TYPE_NAME.matches(name)) fail(where, "a list name is words run together, each starting with a capital, such as \"ChatType\"")
+        if (name in RESERVED_TYPES) fail(where, "`$name` is already a type in the module, so pick another list name")
+        table.requireOnly(where, "description", "values")
+        val values = table.table("values", where) ?: fail(where, "add a [lists.$name.values] table with the list's values")
+        if (values.isEmpty) fail(where, "a list needs at least one value")
         return EnumDef(
             name = name,
-            doc = table.string("doc", where),
-            cases = cases.keySet().map { case -> enumCase(name, case, cases.get(listOf(case))) },
+            doc = table.string("description", where),
+            cases = values.keySet().map { case -> value(where, case, values.get(listOf(case))) },
         )
     }
 
-    private fun enumCase(enum: String, name: String, raw: Any?): EnumCase {
-        val where = "$enum.$name"
-        if (!CASE_NAME.matches(name)) fail(where, "a case name must be UPPER_SNAKE_CASE")
-        val (value, drift) = when (raw) {
+    private fun value(owner: String, name: String, raw: Any?): EnumCase {
+        val where = "$owner, value $name"
+        if (!CASE_NAME.matches(name)) fail(where, "a value's name is capitals and underscores, such as CHAT_GATE")
+        val (wire, drift) = when (raw) {
             is String -> raw to null
             is TomlTable -> {
                 raw.requireOnly(where, "value", "drift")
                 raw.string("value", where) to raw.string("drift", where)
             }
-            else -> fail(where, "a case is a wire string or `{ value = \"...\", drift = \"...\" }`")
+            else -> fail(where, "write it as $name = \"...\" or $name = { value = \"...\", drift = \"...\" }")
         }
-        if (value.isNullOrEmpty()) fail(where, "a case needs a non-empty wire string")
-        return EnumCase(name, value, drift)
+        if (wire.isNullOrEmpty()) fail(where, "give it the text Mixpanel receives, such as $name = \"${titleCase(name)}\"")
+        return EnumCase(name, wire, drift)
     }
 
-    private fun domain(
-        name: String,
-        table: TomlTable,
-        types: Map<String, ParamType>,
-        groups: Map<String, TomlTable>,
-    ): Domain {
-        val where = "domains.$name"
-        if (!TYPE_NAME.matches(name)) fail(where, "a domain name must be UpperCamelCase")
-        table.requireOnly(where, "doc", "events")
-        val entries = table.tables("events", where)
-        val builders = entries.mapIndexed { index, entry -> builder(name, index, entry, types, groups) }
-        builders.groupBy { it.name }.forEach { (builder, found) ->
-            if (found.size > 1) fail("$name.$builder", "builder is declared more than once")
+    /** One `[[event]]`, paired with the domain it belongs to. */
+    private fun entry(index: Int, table: TomlTable, types: Types, groups: Map<String, TomlTable>): Pair<String, Entry> {
+        val eventName = table.string("name", "event #${index + 1}")
+            ?: fail("event #${index + 1}", "every [[event]] needs a `name`: the event name as Mixpanel shows it")
+        val where = "event \"$eventName\""
+        table.requireOnly(where, "domain", "name", "builder", "placeholders", "properties", "order", "description", "drift")
+        val domain = table.string("domain", where)
+            ?: fail(where, "add `domain = \"...\"`, the part of the app it belongs to, such as \"Transfer\"")
+        if (words(domain).isEmpty() || !objectName(domain).let(TYPE_NAME::matches)) {
+            fail(where, "`domain = \"$domain\"` must be words, such as \"Add Money\"")
         }
-        return Domain(name, table.string("doc", where), builders)
-    }
 
-    private fun builder(
-        domain: String,
-        index: Int,
-        table: TomlTable,
-        types: Map<String, ParamType>,
-        groups: Map<String, TomlTable>,
-    ): Builder {
-        val name = table.string("builder", "$domain event #${index + 1}")
-            ?: fail("$domain event #${index + 1}", "`builder` is required")
-        val where = "$domain.$name"
-        if (!MEMBER_NAME.matches(name) || name in KEYWORDS) fail(where, "`$name` is not a usable function name")
-        table.requireOnly(where, "builder", "event", "params", "properties", "doc", "drift")
+        val placeholderTypes = table.table("placeholders", where)?.let { placeholders ->
+            placeholders.keySet().associateWith { name ->
+                val word = placeholders.string(name, where)!!
+                val type = types.resolve(word, where, "placeholder {$name}")
+                if (type != ParamType.Text && type !is ParamType.Enum) {
+                    fail(where, "{$name} can only be text or a list, since it's written into the name")
+                }
+                type
+            }
+        }.orEmpty()
 
-        val params = table.strings("params", where).map { param(it, where, types) }
-        params.groupBy { it.name }.forEach { (param, found) ->
-            if (found.size > 1) fail(where, "parameter `$param` is declared more than once")
-        }
-        val byName = params.associateBy { it.name }
-        val used = mutableSetOf<String>()
+        val params = Params(where)
+        val usedPlaceholders = mutableSetOf<String>()
+        fun slots(text: String) = template(text, where, placeholderTypes, params, usedPlaceholders)
 
-        val eventName = table.string("event", where) ?: fail(where, "`event` is required")
-        val event = template(eventName, where, byName, used)
-
+        val event = slots(eventName)
         val properties = mutableListOf<Property>()
-        table.tables("properties", where).forEach { entry ->
-            expand(entry, where, byName, groups, used, properties, groupStack = emptyList())
+        table.tables("properties", where).forEach { property ->
+            expand(property, where, types, groups, params, ::slots, properties, groupStack = emptyList())
         }
+        (placeholderTypes.keys - usedPlaceholders).firstOrNull()?.let { unused ->
+            fail(where, "`placeholders` gives a type for {$unused}, but neither the name nor a format has {$unused}")
+        }
+
         val keys = properties.flatMap { property ->
             when (property) {
                 is Property.Value -> listOf(property.key)
@@ -162,120 +185,226 @@ internal object CatalogueParser {
             }
         }
         keys.groupBy { it }.forEach { (key, found) ->
-            if (found.size > 1) fail(where, "property \"$key\" is sent more than once")
+            if (found.size > 1) {
+                val why = if (key in AMOUNT_KEYS) " (the amount group already sends \"$key\")" else ""
+                fail(where, "the property \"$key\" is sent more than once$why. Remove one of them")
+            }
         }
 
-        params.firstOrNull { it.name !in used }?.let { fail(where, "parameter `${it.name}` is never sent") }
+        val builderName = table.string("builder", where) ?: derivedBuilder(eventName, where)
+        if (!MEMBER_NAME.matches(builderName) || builderName in KEYWORDS) {
+            fail(where, "`builder = \"$builderName\"` must be one word, or words run together, starting lowercase, such as \"opened\"")
+        }
 
-        return Builder(
-            name = name,
+        val ordered = table.array("order", where)?.let { order(it, where, params.all) } ?: params.all
+
+        val builder = Builder(
+            name = builderName,
             event = event,
-            params = params,
+            params = ordered,
             properties = properties,
-            doc = table.string("doc", where),
+            doc = table.string("description", where),
             drift = table.string("drift", where),
         )
+        return domain to Entry(eventName, builder)
     }
 
-    private fun param(declaration: String, where: String, types: Map<String, ParamType>): Param {
-        val match = PARAM.matchEntire(declaration)
-            ?: fail(where, "parameter \"$declaration\" is not `name: Type` or `name: Type?`")
-        val (name, typeName, optional) = match.destructured
-        if (!MEMBER_NAME.matches(name) || name in KEYWORDS) fail(where, "`$name` is not a usable parameter name")
-        val type = types[typeName] ?: fail(where, "parameter `$name` has unknown type `$typeName`")
-        return Param(name, type, nullable = optional.isNotEmpty())
+    private class Entry(val eventName: String, val builder: Builder)
+
+    /** The event name in camelCase, without the `Domain:` prefix and the `{placeholders}`. */
+    private fun derivedBuilder(eventName: String, where: String): String {
+        val name = camelCase(eventName.substringAfter(':').replace(PLACEHOLDER, " "))
+        if (name.isEmpty() || !MEMBER_NAME.matches(name) || name in KEYWORDS) {
+            fail(where, "no builder name can be made from this event name, so add `builder = \"...\"`, a short name such as \"opened\"")
+        }
+        return name
+    }
+
+    private fun order(order: TomlArray, where: String, params: List<Param>): List<Param> {
+        val names = order.toList().map { it as? String ?: fail(where, "`order` is a list of parameter names in quotes") }
+        val byName = params.associateBy { it.name }
+        val missing = params.map { it.name }.filter { it !in names }
+        val unknown = names.filter { it !in byName }
+        val twice = names.groupBy { it }.filterValues { it.size > 1 }.keys
+        if (missing.isNotEmpty() || unknown.isNotEmpty() || twice.isNotEmpty()) {
+            val problems = listOfNotNull(
+                missing.takeIf { it.isNotEmpty() }?.let { "missing ${it.joinToString()}" },
+                unknown.takeIf { it.isNotEmpty() }?.let { "${it.joinToString()} isn't a parameter" },
+                twice.takeIf { it.isNotEmpty() }?.let { "${it.joinToString()} is listed twice" },
+            )
+            fail(
+                where,
+                "`order` must list every parameter once: ${params.joinToString { it.name }}. " +
+                    "Right now it's ${problems.joinToString("; ")}",
+            )
+        }
+        return names.map(byName::getValue)
     }
 
     private fun expand(
         entry: TomlTable,
         where: String,
-        params: Map<String, Param>,
+        types: Types,
         groups: Map<String, TomlTable>,
-        used: MutableSet<String>,
+        params: Params,
+        template: (String) -> Template,
         into: MutableList<Property>,
         groupStack: List<String>,
     ) {
         val group = entry.string("group", where)
         if (group != null) {
-            entry.requireOnly(where, "group")
+            entry.requireOnly(where, "group", "optional")
+            val optional = entry.boolean("optional", where)
             when {
                 group == AMOUNT_GROUP -> {
-                    val param = params[AMOUNT_GROUP]
-                        ?: fail(where, "the `amount` group reads a parameter `amount: Amount`, which isn't declared")
-                    if (param.type != ParamType.Amount) fail(where, "the `amount` group needs `amount` to be an Amount")
-                    used += param.name
+                    val param = params.add(Param(AMOUNT_GROUP, ParamType.Amount, optional), "the amount group")
                     into += Property.AmountBlock(param)
                 }
-                group in groupStack -> fail(where, "group `$group` includes itself")
+                optional -> fail(where, "only the amount group can be `optional`; mark the properties inside group \"$group\" instead")
+                group in groupStack -> fail(where, "group \"$group\" includes itself")
                 else -> {
-                    val table = groups[group] ?: fail(where, "unknown group `$group`")
-                    table.tables("properties", "groups.$group").forEach { nested ->
-                        expand(nested, where, params, groups, used, into, groupStack + group)
+                    val table = groups[group]
+                        ?: fail(where, "there's no group \"$group\". Groups: ${(groups.keys + AMOUNT_GROUP).joinToString()}")
+                    table.tables("properties", "group \"$group\"").forEach { nested ->
+                        expand(nested, where, types, groups, params, template, into, groupStack + group)
                     }
                 }
             }
             return
         }
 
-        entry.requireOnly(where, "key", "value", "format")
-        val key = entry.string("key", where) ?: fail(where, "a property needs a `key`, or a `group`")
-        val value = entry.string("value", where)
+        entry.requireOnly(where, "name", "type", "optional", "param", "format")
+        val key = entry.string("name", where)
+            ?: fail(where, "every property needs a `name`, the key Mixpanel shows, or a `group`")
         val format = entry.string("format", where)
-        into += when {
-            value != null && format != null -> fail(where, "property \"$key\" has both `value` and `format`")
-            value != null -> {
-                val param = params[value] ?: fail(where, "property \"$key\" reads `$value`, which isn't a parameter")
-                if (param.type == ParamType.Amount) {
-                    fail(where, "property \"$key\": an Amount is sent through the amount group, not as a property")
-                }
-                used += param.name
-                Property.Value(key, param)
+        if (format != null) {
+            if (entry.keySet().any { it in setOf("type", "optional", "param") }) {
+                fail(where, "the property \"$key\" has a `format`, so it's always text and can't have `type`, `optional` or `param`")
             }
-            format != null -> Property.Format(key, template(format, where, params, used))
-            else -> fail(where, "property \"$key\" needs a `value` or a `format`")
+            into += Property.Format(key, template(format))
+            return
         }
+
+        val word = entry.string("type", where)
+            ?: fail(where, "the property \"$key\" needs a `type`: ${TYPE_WORDS.keys.joinToString()}, or a list name")
+        val type = types.resolve(word, where, "the property \"$key\"")
+        val name = entry.string("param", where)
+            ?: (camelCase(key) + if (type == ParamType.Whole) DURATION_SUFFIX else "")
+        val param = params.add(Param(name, type, entry.boolean("optional", where)), "the property \"$key\"")
+        into += Property.Value(key, param)
     }
 
-    /** Splits `Token Purchase With {method}` into literal text and parameter slots. */
-    private fun template(text: String, where: String, params: Map<String, Param>, used: MutableSet<String>): Template {
+    /**
+     * Splits `Token Purchase With {method}` into literal text and parameter slots. A placeholder
+     * is a text parameter unless the entry's `placeholders` gives it a list, and one that appears
+     * twice reads the same parameter.
+     */
+    private fun template(
+        text: String,
+        where: String,
+        placeholderTypes: Map<String, ParamType>,
+        params: Params,
+        used: MutableSet<String>,
+    ): Template {
         val parts = mutableListOf<Template.Part>()
         var index = 0
         while (index < text.length) {
             val open = text.indexOf('{', index)
             val close = text.indexOf('}', index)
             if (open < 0) {
-                if (close >= 0) fail(where, "\"$text\" has a `}` with no `{`")
+                if (close >= 0) fail(where, "\"$text\" has a `}` with no `{` before it")
                 parts += Template.Part.Literal(text.substring(index))
                 break
             }
-            if (close in index until open) fail(where, "\"$text\" has a `}` with no `{`")
+            if (close in index until open) fail(where, "\"$text\" has a `}` with no `{` before it")
             val end = text.indexOf('}', open)
-            if (end < 0) fail(where, "\"$text\" has a `{` with no `}`")
+            if (end < 0) fail(where, "\"$text\" has a `{` with no `}` after it")
             if (open > index) parts += Template.Part.Literal(text.substring(index, open))
             val slot = text.substring(open + 1, end)
-            val param = params[slot] ?: fail(where, "\"$text\" names {$slot}, which isn't a parameter")
-            if (param.nullable) fail(where, "\"$text\" names {$slot}, which is optional and would print \"null\"")
-            if (param.type != ParamType.Text && param.type !is ParamType.Enum) {
-                fail(where, "\"$text\" names {$slot}; only String and enum parameters can appear in text")
+            if (!MEMBER_NAME.matches(slot) || slot in KEYWORDS) {
+                fail(where, "{$slot} in \"$text\" must be one word, or words run together, starting lowercase, such as {method}")
             }
-            used += param.name
+            val param = if (slot in used) {
+                params.find(slot)!!
+            } else {
+                params.add(Param(slot, placeholderTypes[slot] ?: ParamType.Text, false), "{$slot}")
+            }
+            used += slot
             parts += Template.Part.Slot(param)
             index = end + 1
         }
         return Template(parts)
     }
 
+    /** Collects an entry's parameters in the order its name and properties produce them. */
+    private class Params(private val where: String) {
+        val all = mutableListOf<Param>()
+
+        fun find(name: String) = all.firstOrNull { it.name == name }
+
+        fun add(param: Param, source: String): Param {
+            if (!MEMBER_NAME.matches(param.name) || param.name in KEYWORDS) {
+                fail(where, "$source can't be passed as `${param.name}`, so add `param = \"...\"`, a name such as \"choice\"")
+            }
+            find(param.name)?.let {
+                fail(where, "two properties would both be passed as `${param.name}`, so add `param = \"...\"` to one of them")
+            }
+            all += param
+            return param
+        }
+    }
+
+    /** The type words and the catalogue's lists. */
+    private class Types(private val lists: List<String>) {
+        fun resolve(word: String, where: String, subject: String): ParamType {
+            TYPE_WORDS[word]?.let { return it }
+            if (word in lists) return ParamType.Enum(word)
+            val known = "The types are ${TYPE_WORDS.keys.joinToString()}, or one of the lists: " +
+                lists.joinToString().ifEmpty { "(none yet)" }
+            if (word.firstOrNull()?.isUpperCase() == true) {
+                fail(where, "$subject uses the list \"$word\", which doesn't exist. Add it as [lists.$word], or check the spelling. $known")
+            }
+            fail(where, "$subject has the type \"$word\", which isn't a type. $known")
+        }
+    }
+
+    private fun words(text: String) = text.split(WORD_BREAK).filter { it.isNotEmpty() }
+
+    /** `CHAT_GATE` → `Chat Gate`, as an example wire string. */
+    private fun titleCase(name: String) =
+        words(name).joinToString(" ") { it.lowercase().replaceFirstChar(Char::uppercaseChar) }
+
+    /** `Owner Public Key` → `ownerPublicKey`, `URL` → `url`. */
+    private fun camelCase(text: String) = words(text).mapIndexed { index, word ->
+        val lower = word.lowercase()
+        if (index == 0) lower else lower.replaceFirstChar(Char::uppercaseChar)
+    }.joinToString("")
+
+    /** `Add Money` → `AddMoneyEvents`; a domain already run together keeps its capitals. */
+    private fun objectName(domain: String) =
+        words(domain).joinToString("") { it.replaceFirstChar(Char::uppercaseChar) } + "Events"
+
     private fun TomlTable.requireOnly(where: String, vararg allowed: String) {
         val unknown = keySet() - allowed.toSet()
         if (unknown.isNotEmpty()) {
-            fail(where, "unknown key(s) ${unknown.joinToString { "`$it`" }}; expected ${allowed.joinToString { "`$it`" }}")
+            fail(
+                where,
+                "${unknown.joinToString { "`$it`" }} isn't something this entry can have. " +
+                    "Check the spelling; it can have ${allowed.joinToString { "`$it`" }}",
+            )
         }
     }
 
     private fun TomlTable.string(key: String, where: String): String? = when (val value = get(listOf(key))) {
         null -> null
         is String -> value
-        else -> fail(where, "`$key` must be a string")
+        else -> fail(where, "`$key` must be text in quotes")
+    }
+
+    private fun TomlTable.boolean(key: String, where: String): Boolean = when (val value = get(listOf(key))) {
+        null -> false
+        is Boolean -> value
+        else -> fail(where, "`$key` must be true or false, without quotes")
     }
 
     private fun TomlTable.table(key: String, where: String): TomlTable? = when (val value = get(listOf(key))) {
@@ -294,15 +423,11 @@ internal object CatalogueParser {
     private fun TomlTable.array(key: String, where: String): TomlArray? = when (val value = get(listOf(key))) {
         null -> null
         is TomlArray -> value
-        else -> fail(where, "`$key` must be an array")
+        else -> fail(where, "`$key` must be a list in square brackets")
     }
 
     private fun TomlTable.tables(key: String, where: String): List<TomlTable> =
-        array(key, where)?.toList()?.map { it as? TomlTable ?: fail(where, "every entry in `$key` must be a table") }
-            .orEmpty()
-
-    private fun TomlTable.strings(key: String, where: String): List<String> =
-        array(key, where)?.toList()?.map { it as? String ?: fail(where, "every entry in `$key` must be a string") }
+        array(key, where)?.toList()?.map { it as? TomlTable ?: fail(where, "every entry in `$key` must be { ... }") }
             .orEmpty()
 
     private fun fail(where: String, message: String): Nothing =
