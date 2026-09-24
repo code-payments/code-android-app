@@ -12,7 +12,6 @@ import com.flipcash.app.analytics.toAnalyticsEvent
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
@@ -267,10 +266,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.TokenTransactionEvent.Sell(mint, amount, feeAmount, error))
     }
 
-    override fun messageSentInChat(type: ChatType, error: Throwable?) {
-        track(AnalyticsEvent.ChatEvent.SentMessage(chatType = type, error = error))
-    }
-
     override fun tipCardScanned() {
         track(AnalyticsEvent.TipCardEvent.Scanned)
     }
@@ -314,18 +309,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
             AnalyticsEvent.DisplayNameEvent.Set(source)
         }
         track(event)
-    }
-
-    override fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double) {
-        increment(counter.propertyValue, amount)
-    }
-
-    override fun tipReceived(chatType: ChatType, amount: Fiat, mint: Mint) {
-        track(AnalyticsEvent.ChatEvent.TipReceived(chatType, amount, mint))
-    }
-
-    override fun messageReceived(chatType: ChatType) {
-        track(AnalyticsEvent.ChatEvent.MessageReceived(chatType))
     }
 
     // region Internal

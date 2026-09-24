@@ -1,7 +1,7 @@
 package com.flipcash.shared.chat
 
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.PeopleCounter
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
@@ -32,7 +32,6 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.network.NetworkConnectivityListener
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -47,6 +46,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
@@ -61,7 +61,7 @@ class ReceivedCounterTest {
 
     private val chatUpdatesChannel = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
 
-    private lateinit var analytics: FlipcashAnalyticsService
+    private lateinit var analytics: RecordingAnalytics
     private lateinit var metadataDataSource: ChatMetadataDataSource
     private lateinit var exchange: Exchange
     private lateinit var coordinator: RealChatCoordinator
@@ -72,7 +72,7 @@ class ReceivedCounterTest {
 
     @Before
     fun setUp() {
-        analytics = mockk(relaxed = true)
+        analytics = RecordingAnalytics()
         exchange = mockk(relaxed = true)
         every { exchange.rateToUsd(CurrencyCode.USD) } returns Rate(1.0, CurrencyCode.USD)
         every { exchange.rateToUsd(CurrencyCode.CAD) } returns Rate(0.5, CurrencyCode.USD)
@@ -217,9 +217,9 @@ class ReceivedCounterTest {
             coordinator.onUserLoggedIn(mockk(relaxed = true))
             deliver(tipMessage(messageId = 1L, senderId = otherId))
 
-            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
-            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages, 1.0) }
-            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, 5.0) }
+            assertEquals(1, analytics.increments.count { it == PeopleCounter.TIPS to 1.0 })
+            assertEquals(1, analytics.increments.count { it == PeopleCounter.MESSAGES to 1.0 })
+            assertEquals(1, analytics.increments.count { it == PeopleCounter.TIPS_VALUE to 5.0 })
         }
     }
 
@@ -229,8 +229,8 @@ class ReceivedCounterTest {
             coordinator.onUserLoggedIn(mockk(relaxed = true))
             deliver(textMessage(messageId = 1L, senderId = otherId))
 
-            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages, 1.0) }
-            coVerify(exactly = 0) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, any()) }
+            assertEquals(1, analytics.increments.count { it == PeopleCounter.MESSAGES to 1.0 })
+            assertEquals(0, analytics.increments.count { it.first == PeopleCounter.TIPS })
         }
     }
 
@@ -240,7 +240,7 @@ class ReceivedCounterTest {
             coordinator.onUserLoggedIn(mockk(relaxed = true))
             deliver(tipMessage(messageId = 1L, senderId = selfId))
 
-            coVerify(exactly = 0) { analytics.incrementReceivedCounter(any(), any()) }
+            assertEquals(emptyList(), analytics.increments)
         }
     }
 
@@ -253,7 +253,7 @@ class ReceivedCounterTest {
             deliver(msg)
             deliver(msg) // gap fill / reconnect replays the same message
 
-            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
+            assertEquals(1, analytics.increments.count { it == PeopleCounter.TIPS to 1.0 })
         }
     }
 
@@ -264,7 +264,7 @@ class ReceivedCounterTest {
             coordinator.onUserLoggedIn(mockk(relaxed = true))
             deliver(textMessage(messageId = 10L, senderId = otherId))
 
-            coVerify(exactly = 0) { analytics.incrementReceivedCounter(any(), any()) }
+            assertEquals(emptyList(), analytics.increments)
         }
     }
 
@@ -275,7 +275,7 @@ class ReceivedCounterTest {
             val cad = Fiat(fiat = 10.0, currencyCode = CurrencyCode.CAD)
             deliver(tipMessage(messageId = 1L, senderId = otherId, amount = cad))
 
-            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, 5.0) }
+            assertEquals(1, analytics.increments.count { it == PeopleCounter.TIPS_VALUE to 5.0 })
         }
     }
 
@@ -287,8 +287,8 @@ class ReceivedCounterTest {
             val eur = Fiat(fiat = 10.0, currencyCode = CurrencyCode.EUR)
             deliver(tipMessage(messageId = 1L, senderId = otherId, amount = eur))
 
-            coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
-            coVerify(exactly = 0) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, any()) }
+            assertEquals(1, analytics.increments.count { it == PeopleCounter.TIPS to 1.0 })
+            assertEquals(0, analytics.increments.count { it.first == PeopleCounter.TIPS_VALUE })
         }
     }
 

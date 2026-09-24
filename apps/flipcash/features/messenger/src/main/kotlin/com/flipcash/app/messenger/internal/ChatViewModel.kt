@@ -13,8 +13,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
+import com.flipcash.analytics.events.ChatEvents
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -1838,11 +1840,11 @@ internal class ChatViewModel @Inject constructor(
                     chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
                         .onSuccess {
                             trace("message sent successfully")
-                            analytics.messageSentInChat(type = chatType)
+                            analytics.track(ChatEvents.sentMessage(chatType.analytics, null))
                         }
                         .onFailure { cause ->
                             trace("message failed to send - ${cause.localizedMessage}")
-                            analytics.messageSentInChat(type = chatType, error = cause)
+                            analytics.track(ChatEvents.sentMessage(chatType.analytics, cause.analytics))
                         }
                 }
             }

@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
 import com.getcode.libs.analytics.AppAction
@@ -37,7 +36,6 @@ interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
     fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint)
     fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable? = null)
     fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable? = null)
-    fun messageSentInChat(type: ChatType, error: Throwable? = null)
     fun tipCardScanned()
 
     /** An image was picked from the gallery and the still-image search started. */
@@ -57,27 +55,12 @@ interface FlipcashAnalyticsService : AnalyticsService, FlipcashAnalytics {
     /** @param hadPreviousName true when the user is replacing a name, false on first set. */
     fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean)
 
-    /** Increments a cumulative per-user counter. [amount] defaults to a single occurrence. */
-    fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double = 1.0)
-
-    fun tipReceived(chatType: ChatType, amount: Fiat, mint: Mint)
-    fun messageReceived(chatType: ChatType)
-
     fun buttonTapped(button: Button) {
         action(button)
     }
 }
 
 object Analytics {
-
-    /**
-     * Cumulative per-user counters stored as Mixpanel people properties.
-     *
-     * These are incremented once per received message and are NOT idempotent —
-     * every caller must be behind the analytics watermark. See
-     * ChatMetadataDataSource.getAnalyticsCountedThrough.
-     */
-    enum class ReceivedCounter { Tips, TipsValue, Messages }
 
     sealed interface Transfer {
         sealed interface Initiate: Transfer {
@@ -148,7 +131,6 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable?) = Unit
     override fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable?) = Unit
 
-    override fun messageSentInChat(type: ChatType, error: Throwable?) = Unit
     override fun tipCardScanned() = Unit
     override fun galleryImagePicked() = Unit
     override fun galleryScanSucceeded(tier: Int, zoom: Float, timeMillis: Long) = Unit
@@ -160,9 +142,6 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun deeplinkRouted(type: DeeplinkType, error: Throwable?) = Unit
     override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) = Unit
     override fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean) = Unit
-    override fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double) = Unit
-    override fun tipReceived(chatType: ChatType, amount: Fiat, mint: Mint) = Unit
-    override fun messageReceived(chatType: ChatType) = Unit
 }
 
 @Composable

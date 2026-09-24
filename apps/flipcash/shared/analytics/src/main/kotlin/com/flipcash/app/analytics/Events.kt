@@ -4,7 +4,6 @@ import androidx.core.net.toUri
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -158,38 +157,9 @@ internal sealed interface AnalyticsEvent {
         override val name = "Sent Cash"
     }
 
-    sealed interface ChatEvent: AnalyticsEvent {
-        data class SentMessage(
-            val chatType: ChatType,
-            val error: Throwable? = null
-        ): ChatEvent {
-            override val name = "Sent Message"
-
-            override fun toProperties() = buildMap {
-                put("Chat Type", chatType.propertyValue)
-                error?.let { put("Error", it.message.orEmpty()) }
-            }
-        }
-
-        data class TipReceived(
-            val chatType: ChatType,
-            val amount: Fiat,
-            val mint: Mint,
-        ) : ChatEvent {
-            override val name = "Tip Received"
-            override fun toProperties() = buildMap {
-                put("Chat Type", chatType.propertyValue)
-                putAll(amount.asProperties())
-                // Token Symbol is added centrally by the delegate.
-                put("Mint", mint.base58())
-            }
-        }
-
-        data class MessageReceived(val chatType: ChatType) : ChatEvent {
-            override val name = "Message Received"
-            override fun toProperties() = mapOf("Chat Type" to chatType.propertyValue)
-        }
-    }
+    // Marker only: `SentMessage`/`TipReceived`/`MessageReceived` moved to the shared
+    // `ChatEvents` builders in `:libs:analytics-events`. `SentCash` is its one remaining member.
+    sealed interface ChatEvent : AnalyticsEvent
 
     /**
      * The gallery scan path, end to end.
@@ -450,14 +420,6 @@ internal val Analytics.AddMoneyMethod.propertyValue: String
         Analytics.AddMoneyMethod.Reserves -> "Reserves"
     }
 
-internal val ChatType.propertyValue: String
-    get() = when (this) {
-        ChatType.CONTACT_DM -> "Contact"
-        ChatType.TIP_DM -> "Tip"
-        ChatType.GROUP -> "Group"
-        ChatType.UNKNOWN -> "Unknown"
-    }
-
 internal fun LocalFiat.asProperties(): Map<String, String> {
     return buildMap {
         putAll(underlyingTokenAmount.asProperties())
@@ -496,11 +458,4 @@ internal val DisplayNameSource.propertyValue: String
         DisplayNameSource.Onboarding -> "Onboarding"
         DisplayNameSource.MyAccount -> "My Account"
         DisplayNameSource.TipCardSetup -> "Tip Card Setup"
-    }
-
-internal val Analytics.ReceivedCounter.propertyValue: String
-    get() = when (this) {
-        Analytics.ReceivedCounter.Tips -> "Tips Received"
-        Analytics.ReceivedCounter.TipsValue -> "Tips Received Value"
-        Analytics.ReceivedCounter.Messages -> "Messages Received"
     }
