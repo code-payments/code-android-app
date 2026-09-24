@@ -16,6 +16,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:analytics"))
+    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
     implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:featureflags"))

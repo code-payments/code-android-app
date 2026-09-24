@@ -15,6 +15,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:shared:accesskey"))
     implementation(project(":apps:flipcash:shared:analytics"))
+    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:featureflags"))
