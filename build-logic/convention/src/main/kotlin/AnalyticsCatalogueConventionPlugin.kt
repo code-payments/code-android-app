@@ -1,4 +1,6 @@
+import com.getcode.buildlogic.analytics.CheckAnalyticsEventsPage
 import com.getcode.buildlogic.analytics.GenerateAnalyticsEvents
+import com.getcode.buildlogic.analytics.WriteAnalyticsEventsPage
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -21,6 +23,9 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
  * every compilation, including the Kotlin/Native ones the XCFramework build links. Lint reads
  * source directories straight off disk, so it is made to depend on the task explicitly, as in
  * [KmpTestFixturesConventionPlugin].
+ *
+ * `EVENTS.md`, the catalogue as a readable page, is checked in next to `events.toml`.
+ * `writeAnalyticsEventsPage` rewrites it; `checkAnalyticsEventsPage` fails when it is stale.
  */
 class AnalyticsCatalogueConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -28,6 +33,18 @@ class AnalyticsCatalogueConventionPlugin : Plugin<Project> {
             val generateAnalyticsEvents = tasks.register<GenerateAnalyticsEvents>("generateAnalyticsEvents") {
                 catalogue.set(layout.projectDirectory.file("events.toml"))
                 outputDirectory.set(layout.buildDirectory.dir("generated/analytics/commonMain/kotlin"))
+            }
+
+            val catalogueFile = layout.projectDirectory.file("events.toml")
+            val pageFile = layout.projectDirectory.file("EVENTS.md")
+            tasks.register<WriteAnalyticsEventsPage>("writeAnalyticsEventsPage") {
+                catalogue.set(catalogueFile)
+                page.set(pageFile)
+            }
+            tasks.register<CheckAnalyticsEventsPage>("checkAnalyticsEventsPage") {
+                catalogue.set(catalogueFile)
+                page.set(pageFile)
+                fixCommand.set("./gradlew ${path.substringBeforeLast(':')}:writeAnalyticsEventsPage")
             }
 
             tasks.matching { it.name.startsWith("lint") || it.name.endsWith("LintModel") }
