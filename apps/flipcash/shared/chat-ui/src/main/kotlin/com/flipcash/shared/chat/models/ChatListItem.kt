@@ -16,6 +16,18 @@ sealed interface ChatListItem {
         override val itemContentType: Any = "date-separator"
     }
 
+    /**
+     * "N Unread Messages", above the first message that arrived after the viewer last read the
+     * chat. [date] is set when a day also changes at that gap: the list takes one item per gap, so
+     * the date is drawn above the divider rather than as a separator of its own.
+     *
+     * At most one per transcript, so its key is fixed.
+     */
+    data class UnreadDivider(val count: Int, val date: Instant? = null) : ChatListItem {
+        override val itemKey: Any = "unread-divider"
+        override val itemContentType: Any = "unread-divider"
+    }
+
     data class ContentBubble(
         val messageId: Long,
         val contentIndex: Int,

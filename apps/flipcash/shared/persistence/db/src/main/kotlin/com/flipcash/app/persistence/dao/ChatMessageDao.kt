@@ -76,6 +76,45 @@ interface ChatMessageDao {
         throughId: Long,
     ): List<ChatMessageEntity>
 
+    /**
+     * How many messages in [chatIdHex] someone else sent after [afterId] that still have content —
+     * the count the unread divider shows. A range rather than a lookup of [afterId], so the
+     * read-through message itself need not be stored.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM chat_messages " +
+            "WHERE chat_id_hex = :chatIdHex " +
+            "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
+            "AND is_deleted = 0 AND message_id > :afterId"
+    )
+    suspend fun countInboundAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Int
+
+    /**
+     * The first stored message in [chatIdHex] after [afterId] that [selfIdHex] did not send,
+     * tombstones included, or `null` when only the viewer's own messages follow. The unread divider
+     * sits above it: the viewer's own messages right after their pointer are not unread.
+     */
+    @Query(
+        "SELECT MIN(message_id) FROM chat_messages " +
+            "WHERE chat_id_hex = :chatIdHex AND message_id > :afterId " +
+            "AND (sender_id_hex IS NULL OR sender_id_hex != :selfIdHex)"
+    )
+    suspend fun firstNotSentByAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Long?
+
+    /**
+     * Whether any message in [chatIdHex] at or below [id] is stored, tombstones included. Without one,
+     * older unread messages may never have been fetched, so a count past [id] can come out short.
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id <= :id)")
+    suspend fun hasAtOrBelow(chatIdHex: String, id: Long): Boolean
+
+    /**
+     * How many stored messages in [chatIdHex] come after [afterId], of any sender and including
+     * tombstones — every row the transcript draws between the newest message and that id.
+     */
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id > :afterId")
+    suspend fun countAfter(chatIdHex: String, afterId: Long): Int
+
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex LIMIT 1")
     suspend fun getByClientId(chatIdHex: String, clientIdHex: String): ChatMessageEntity?
 

@@ -33,6 +33,7 @@ import com.flipcash.shared.chat.internal.SenderResolver
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.PendingMutation
+import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
@@ -178,6 +179,26 @@ class MessagingDelegate @Inject constructor(
 
     override suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int? =
         messageDataSource.distanceFromNewest(chatId, messageId)
+
+    override suspend fun resolveUnreadBoundary(chatId: ChatId): UnreadBoundary {
+        val selfId = userManager.accountId ?: return UnreadBoundary.None
+        val readThrough = memberDataSource.getSelfReadPointerOrNull(chatId, selfId)
+            ?: return UnreadBoundary.None
+        val count = messageDataSource.countInboundAfter(chatId, selfId, readThrough)
+        if (count <= 0) return UnreadBoundary.None
+        // The list places the divider by comparing neighbours, so it cannot see past the viewer's
+        // own messages right after the pointer. Resolving the boundary past them puts the divider
+        // above the first message someone else sent.
+        val firstNotOwn = messageDataSource.firstNotSentByAfter(chatId, selfId, readThrough)
+        val boundary = firstNotOwn?.minus(1) ?: readThrough
+        // With nothing stored at or below the boundary, older unread messages may never have been
+        // fetched, so the count could come out short. No divider beats a wrong one.
+        if (!messageDataSource.hasAtOrBelow(chatId, boundary)) return UnreadBoundary.None
+        return UnreadBoundary.At(readThrough = boundary, count = count)
+    }
+
+    override suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int =
+        messageDataSource.countAfter(chatId, messageId)
 
     override fun observeMembers(chatId: ChatId): Flow<List<ChatMember>> {
         return memberDataSource.observeMembers(chatId)

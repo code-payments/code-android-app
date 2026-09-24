@@ -190,6 +190,16 @@ interface MessagingOperations {
      */
     suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int?
 
+    /**
+     * Where the "N unread" divider sits in [chatId], read from the viewer's stored READ pointer.
+     * [UnreadBoundary.None] when the viewer's own member row is not stored or nothing inbound is
+     * unread. Read once per visit: later pointer writes must not move it.
+     */
+    suspend fun resolveUnreadBoundary(chatId: ChatId): UnreadBoundary
+
+    /** How many stored messages in [chatId] sit past [messageId]. Bounds the walk to the unread divider. */
+    suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int
+
     /** Observes the member list for [chatId]. */
     fun observeMembers(chatId: ChatId): Flow<List<ChatMember>>
 

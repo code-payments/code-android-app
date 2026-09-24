@@ -41,6 +41,7 @@ import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
@@ -88,7 +89,12 @@ internal fun MessageList(
         LocalChatActionHandler provides onAction,
         LocalLinkCardResolution provides linkCardResolution,
     ) {
-        HandleMessageReads(listState, messages)
+        // Whether the list has settled where this visit opens it: at the unread divider, or at the
+        // bottom when there is none. Saveable for the same reason refreshSettled is — the screen is
+        // rebuilt under the amount-entry step, and this visit's opening must not replay on the way
+        // back.
+        var hasPositioned by rememberSaveable { mutableStateOf(false) }
+        HandleMessageReads(listState, messages, enabled = hasPositioned)
 
         // Haptic feedback when a new incoming message arrives
         // Track the newest message key — only fire when it changes to an incoming message
@@ -167,32 +173,7 @@ internal fun MessageList(
             val budget = (state.jumpBudget?.plus(JUMP_PAGE_SIZE) ?: MAX_JUMP_ITEMS)
                 .coerceAtMost(MAX_JUMP_ITEMS)
 
-            var index = indexOf(messages, target)
-            while (index == null && messages.loadedCount <= budget) {
-                // Touching the last loaded index is what emits the ViewportHint that drives one
-                // more append. One page at a time: with placeholders on, itemCount is the whole
-                // chat, so hinting at the end would append at the far side of history instead.
-                val hint = messages.appendHintIndex
-                if (hint < 0) break
-
-                val before = messages.loadedCount
-                messages[hint]
-
-                // Wait for that append to land rather than for a frame: one frame is not a
-                // guarantee, and a walk that races the pager gives up and scrolls nowhere.
-                // loadedCount grows either way — placeholders on, placeholdersAfter shrinks; off,
-                // itemCount grows.
-                val progressed = withTimeoutOrNull(JUMP_STEP_TIMEOUT_MS) {
-                    snapshotFlow { messages.loadedCount to messages.loadState.append }
-                        .first { (count, append) -> count > before || append.endOfPaginationReached }
-                        .first > before
-                }
-                if (progressed != true) break
-
-                index = indexOf(messages, target)
-            }
-
-            index?.let {
+            messages.walkUntil(budget) { indexOf(messages, target) }?.let {
                 listState.centerItem(it)
                 attentionId = target
                 attentionRequest++
@@ -201,6 +182,32 @@ internal fun MessageList(
             // on, so the coroutine is cancelled here. The flash runs in its own effect for the
             // same reason.
             onJumpConsumed()
+        }
+
+        // Opens the chat at the first unread message. The first layout is at the bottom, like any
+        // other chat; if the divider is already on screen there, that is where it stays. Otherwise
+        // the list walks back to it the way a jump does and puts it just under the top bar, with
+        // the unread messages running down from it. Reads are held until this settles, so the
+        // bottom of the transcript is not marked read by the frame that passes through it.
+        LaunchedEffect(state.unreadBoundary) {
+            when (val boundary = state.unreadBoundary) {
+                UnreadBoundary.Resolving -> return@LaunchedEffect
+                UnreadBoundary.None -> hasPositioned = true
+                is UnreadBoundary.At -> {
+                    if (hasPositioned) return@LaunchedEffect
+                    snapshotFlow { hasLoaded && listState.layoutInfo.visibleItemsInfo.isNotEmpty() }
+                        .first { it }
+                    if (!listState.layoutInfo.showsUnreadDivider(messages)) {
+                        val budget = (state.unreadWalkBudget + JUMP_PAGE_SIZE)
+                            .coerceAtMost(MAX_JUMP_ITEMS)
+                        // Not reached in budget: the chat stays at the bottom, as it would have
+                        // opened without a divider.
+                        messages.walkUntil(budget) { unreadDividerIndex(messages) }
+                            ?.let { listState.alignBelowTopBar(it) }
+                    }
+                    hasPositioned = true
+                }
+            }
         }
 
         // Holds the focused message at the position it was long-pressed at, against the keyboard
@@ -355,6 +362,7 @@ internal fun MessageList(
                     val oldestTimestamp = when (oldest) {
                         is ChatListItem.ContentBubble -> oldest.timestamp
                         is ChatListItem.DateSeparator -> null // already a separator
+                        is ChatListItem.UnreadDivider -> null // carries the oldest message's date
                         null -> null
                     }
                     if (oldestTimestamp != null) {
@@ -468,6 +476,69 @@ private val LazyPagingItems<ChatListItem>.loadedCount: Int
  */
 private val LazyPagingItems<ChatListItem>.appendHintIndex: Int
     get() = (itemSnapshotList.placeholdersBefore + loadedCount).coerceAtMost(itemCount - 1)
+
+/**
+ * Appends one page at a time until [find] answers or [budget] items are loaded, and returns what
+ * [find] last answered.
+ */
+private suspend fun LazyPagingItems<ChatListItem>.walkUntil(budget: Int, find: () -> Int?): Int? {
+    var index = find()
+    while (index == null && loadedCount <= budget) {
+        // Touching the last loaded index is what emits the ViewportHint that drives one more
+        // append. One page at a time: with placeholders on, itemCount is the whole chat, so hinting
+        // at the end would append at the far side of history instead.
+        val hint = appendHintIndex
+        if (hint < 0) break
+
+        val before = loadedCount
+        this[hint]
+
+        // Wait for that append to land rather than for a frame: one frame is not a guarantee, and a
+        // walk that races the pager gives up and scrolls nowhere. loadedCount grows either way —
+        // placeholders on, placeholdersAfter shrinks; off, itemCount grows.
+        val progressed = withTimeoutOrNull(JUMP_STEP_TIMEOUT_MS) {
+            snapshotFlow { loadedCount to loadState.append }
+                .first { (count, append) -> count > before || append.endOfPaginationReached }
+                .first > before
+        }
+        if (progressed != true) break
+
+        index = find()
+    }
+    return index
+}
+
+/** The presented index of the unread divider, or `null` while it is still unloaded. */
+private fun unreadDividerIndex(messages: LazyPagingItems<ChatListItem>): Int? =
+    (0 until messages.itemCount).firstOrNull { messages.peek(it) is ChatListItem.UnreadDivider }
+
+/**
+ * Whether the unread divider is laid out whole below the top bar. A divider under the bar's fade
+ * counts as off screen: the viewer can't read it there.
+ */
+private fun LazyListLayoutInfo.showsUnreadDivider(messages: LazyPagingItems<ChatListItem>): Boolean {
+    val band = centeringBand()
+    return visibleItemsInfo.any { info ->
+        info.index < messages.itemCount &&
+            messages.peek(info.index) is ChatListItem.UnreadDivider &&
+            info.offset >= band.first && info.offset + info.size <= band.last
+    }
+}
+
+/**
+ * Puts [index] directly under the top bar, with no animation: the chat is opening there, not
+ * moving there.
+ *
+ * The item's upper edge goes at the top of the centering band rather than its lower edge — the top
+ * of the band is the bar's lower edge, so anything above it would sit under the bar's fade.
+ */
+private suspend fun LazyListState.alignBelowTopBar(index: Int) {
+    val band = layoutInfo.centeringBand()
+    val height = measuredHeight(index) ?: 0
+    // In this reverseLayout list the item's leading edge is its bottom, placed at -offset from the
+    // band's start (its bottom edge), so the room it leaves over goes below it.
+    scrollToItem(index, scrollOffset = -(band.last - band.first - height).coerceAtLeast(0))
+}
 
 /** The presented index of [messageId], or `null` while it is still unloaded. */
 private fun indexOf(messages: LazyPagingItems<ChatListItem>, messageId: Long): Int? =

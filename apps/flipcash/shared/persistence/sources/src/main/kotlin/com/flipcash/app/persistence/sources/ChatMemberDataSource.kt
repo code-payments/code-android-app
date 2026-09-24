@@ -50,12 +50,17 @@ class ChatMemberDataSource @Inject constructor(
 
     /** The READ pointer [selfId] has already advanced to in [chatId], or 0 if none is cached. */
     suspend fun getSelfReadPointer(chatId: ChatId, selfId: ID): Long =
+        getSelfReadPointerOrNull(chatId, selfId) ?: 0L
+
+    /**
+     * The READ pointer [selfId] has already advanced to in [chatId]: 0 when the self row carries
+     * none, `null` when there is no self row. A group's roster is paged, so a missing row means
+     * nothing is known, not that nothing has been read.
+     */
+    suspend fun getSelfReadPointerOrNull(chatId: ChatId, selfId: ID): Long? =
         getMembersForChat(chatId)
             .firstOrNull { it.userId == selfId }
-            ?.pointers
-            ?.firstOrNull { it.type == PointerType.READ }
-            ?.value
-            ?: 0L
+            ?.let { self -> self.pointers.firstOrNull { it.type == PointerType.READ }?.value ?: 0L }
 
     suspend fun upsert(chatId: ChatId, members: List<ChatMember>) {
         val database = db ?: return

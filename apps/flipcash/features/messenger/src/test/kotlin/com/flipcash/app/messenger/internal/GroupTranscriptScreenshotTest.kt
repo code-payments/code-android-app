@@ -106,6 +106,40 @@ class GroupTranscriptScreenshotTest {
     }
 
     /**
+     * The unread divider between read and unread messages, first on its own and then sharing its
+     * gap with a day change, where the date sits above it.
+     */
+    @Test
+    fun rendersUnreadDivider() {
+        val alone = listOf(
+            bubble(5, "Watch the tape", chloe, secondsIn = 40),
+            bubble(4, "What are you talking about. Did you see him last night?", chloe, secondsIn = 30),
+            ChatListItem.UnreadDivider(count = 2, date = null),
+            bubble(3, "Fine, Saturday then", sender = null, isFromSelf = true, secondsIn = 20),
+            bubble(2, "I disagree. He isn't the best at all", noah, secondsIn = 10),
+            ChatListItem.DateSeparator(start),
+        )
+        val withDate = listOf(
+            bubble(5, "Watch the tape", chloe, secondsIn = 90_000),
+            ChatListItem.UnreadDivider(count = 1, date = start + 90_000.seconds),
+            bubble(3, "Fine, Saturday then", sender = null, isFromSelf = true, secondsIn = 20),
+            ChatListItem.DateSeparator(start),
+        )
+
+        composeRule.setContent {
+            FlipcashThemeWrapper().Wrap {
+                Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    Transcript(flowOf(PagingData.from(alone)).collectAsLazyPagingItems())
+                    Transcript(flowOf(PagingData.from(withDate)).collectAsLazyPagingItems())
+                }
+            }
+        }
+        repeat(20) { composeRule.mainClock.advanceTimeByFrame() }
+
+        capture("unread_divider.png")
+    }
+
+    /**
      * The same transcript seen from outside the group, once per access: an eligible viewer reads it
      * sharp over the Join gate, while a blocked one and one whose balance has not arrived yet see it
      * blurred. The blur and the gate read the state's own flags, so this is the split as the screen
