@@ -13,6 +13,7 @@ import com.flipcash.services.models.StartChatError
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.StartChatParameters
@@ -128,7 +129,9 @@ class CreateGroupViewModelErrorTest {
                 listOf(TokenWithBalance(token = token(1, "BadBoys"), balance = Fiat(250.0)))
             )
         )
-        dispatchEvent(CreateGroupViewModel.Event.OnMintSelected(badBoys))
+        dispatchEvent(
+            CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.Specific(badBoys))
+        )
         dispatchEvent(CreateGroupViewModel.Event.OnAmountSelected(Fiat(100)))
     }
 
@@ -167,6 +170,48 @@ class CreateGroupViewModelErrorTest {
             // The form is usable again: a refusal is not a spinner the user has to back out of.
             assertTrue(vm.stateFlow.value.processingState.isIdle)
             assertNull(vm.stateFlow.value.created)
+        }
+
+    /**
+     * An All Currencies rule names no token, so the refusal cannot say which one to get more of —
+     * "You Need More " with nothing after it is what the shared title would read.
+     */
+    @Test
+    fun `an any-currency refusal does not name a token`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = createViewModel()
+            vm.completeDraft()
+            vm.dispatchEvent(CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All))
+            failing(StartChatError.RulesNotSatisfied())
+
+            vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+            advanceUntilIdle()
+
+            assertTrue(titles().contains("error_title_groupRuleNotSelfSatisfiedTotal"))
+        }
+
+    /** `mints = []` is the whole of what makes a rule any-currency on the wire. */
+    @Test
+    fun `an any-currency group is created with no mints`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = createViewModel()
+            vm.completeDraft()
+            vm.dispatchEvent(CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All))
+
+            val parameters = mutableListOf<StartChatParameters>()
+            coEvery {
+                chatCoordinator.create(capture(parameters), any())
+            } returns Result.success(created())
+
+            vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+            advanceUntilIdle()
+
+            val rules = (parameters.single() as StartChatParameters.Group).rules
+            val requirement = rules?.listener?.single() as ChatRuleRequirement.MinimumBalance
+            assertEquals(emptyList(), requirement.mints)
+            assertEquals(Fiat(100), requirement.amount)
         }
 
     @Test

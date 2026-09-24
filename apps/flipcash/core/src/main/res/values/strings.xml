@@ -1048,6 +1048,17 @@
          call rather than surfacing RULES_NOT_SATISFIED as a failure. -->
     <string name="error_title_groupRuleNotSelfSatisfied">You Need More %1$s</string>
     <string name="error_description_groupRuleNotSelfSatisfied">You have to meet the balance requirement you set to create this group</string>
+    <!-- The same refusal for an All Currencies rule, which names no one token to need more of. -->
+    <string name="error_title_groupRuleNotSelfSatisfiedTotal">You Need a Higher Balance</string>
+    <!-- The currency sheet's header card (node 10370:997): a rule measured against every holding added up. -->
+    <string name="title_allCurrencies">All Currencies</string>
+    <!-- %1$s is the total of every balance, %2$s the requirement it is measured against. -->
+    <string name="subtitle_allCurrenciesMeets">You have %1$s total · meets %2$s</string>
+    <!-- The short variant, shown in the error colour (node 10372:1126). -->
+    <string name="subtitle_allCurrenciesNeeds">You have %1$s total · need %2$s</string>
+    <!-- Before an amount is set there is nothing to meet. -->
+    <string name="subtitle_allCurrenciesTotal">You have %1$s total</string>
+    <string name="title_specificCurrency">Specific Currency</string>
     <string name="error_title_groupTitleNotAllowed">This Group Name is Not Allowed</string>
     <string name="error_title_groupRulesInvalid">These Rules Aren\'t Allowed</string>
     <string name="error_description_groupRulesInvalid">Try a different balance requirement</string>

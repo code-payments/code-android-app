@@ -33,7 +33,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
-import com.getcode.solana.keys.Mint
+import com.getcode.opencode.model.financial.sum
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -62,13 +62,13 @@ internal val BalancePresets: List<Fiat> = listOf(Fiat(10), Fiat(50), Fiat(100))
  * The draft behind creating a public group — section 10153:22901 — shared across the flow's steps.
  *
  * One view model for all four steps rather than one each, because they are four views of a single
- * draft: the title and picture are entered on the form, the mint on the currency sheet, the amount
+ * draft: the title and picture are entered on the form, the currency on its sheet, the amount
  * on a chip or the custom keypad, and the invite step shares what the draft became. Holding it here
  * is also what gives an attempt's idempotency key a lifetime longer than a single screen — see
  * [GroupCreateAttempt].
  *
  * Two rules are enforced before the call rather than after it. The creator has to satisfy the rules
- * they are setting, so Create stays inert while the selected mint's balance is under the amount —
+ * they are setting, so Create stays inert while the balance the rule measures is under the amount —
  * `StartChat` would answer `RULES_NOT_SATISFIED`, which is a worse way to learn it. And the picture
  * has to be uploaded and `READY` first, because `GroupChatParameters.picture` is a blob id, not
  * bytes. Both server results are still handled: a balance can move between the check and the call.
@@ -99,13 +99,8 @@ internal class CreateGroupViewModel @Inject constructor(
         val balances: List<TokenWithBalance> = emptyList(),
         /** The preferred rate, for reading a custom keypad entry back into USD. */
         val rate: Rate = Rate.oneToOne,
-        val mint: Mint? = null,
-        /**
-         * Whether the creator has picked the mint, rather than inherited the one the form opened
-         * on. Not `mint != null`: the form always opens with one named, so nothing about the mint
-         * itself distinguishes a default from a choice.
-         */
-        val mintChosen: Boolean = false,
+        /** What the requirement is measured in. The form opens on every holding added up. */
+        val currency: GroupCurrency = GroupCurrency.All,
         val amount: Fiat? = null,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
         /** The chat `StartChat` returned. Non-null is the whole precondition for the invite step. */
@@ -117,9 +112,14 @@ internal class CreateGroupViewModel @Inject constructor(
         val hasTitle: Boolean
             get() = title.isNotEmpty()
 
-        /** The selected mint's metadata, which is where the row's name and image come from. */
+        /**
+         * The selected token's metadata, which is where the row's name and image come from. Null
+         * for [GroupCurrency.All], which names no token.
+         */
         val token: Token?
-            get() = mint?.let { selected -> balances.firstOrNull { it.token.address == selected }?.token }
+            get() = (currency as? GroupCurrency.Specific)?.let { selected ->
+                balances.firstOrNull { it.token.address == selected.mint }?.token
+            }
 
         /**
          * What the form and its errors call the requirement's currency — `$BadBoys` in node
@@ -129,26 +129,38 @@ internal class CreateGroupViewModel @Inject constructor(
          * list this mint was picked from already renders
          * ([com.getcode.opencode.model.financial.TokenWithBalance.displayName]), so the symbol
          * would name the same holding two different ways one screen apart.
+         *
+         * Null for [GroupCurrency.All]: there is no one currency to name, and the error that reads
+         * this has a wording of its own for that case.
          */
         val currencyName: String?
             get() = token?.name
 
         /**
+         * Every holding added up, in USD — what an any-currency rule is measured against, and what
+         * the currency sheet's header card reports.
+         */
+        val totalBalance: Fiat
+            get() = balances.map { it.balance }.sum()
+
+        /**
+         * Whether the heading has moved from asking for a requirement to naming one.
+         *
+         * Node 10127:118057 still asks "Minimum Balance Required" with the title typed and nothing
+         * else touched; node 10127:118194 reads "Balance Requirement" on a picked token with no
+         * amount yet, and node 10364:1059 reads it on All Currencies once an amount is set.
+         */
+        val requirementStarted: Boolean
+            get() = currency is GroupCurrency.Specific || amount != null
+
+        /**
          * The rules the draft describes, once it describes any.
          *
-         * Listener only, and exactly one mint. A listener requirement is what gates *entry*, which
-         * is what this design sets; `speaker` is left empty rather than null because
-         * [ChatRules] holds both as lists.
+         * Listener only. A listener requirement is what gates *entry*, which is what this design
+         * sets; `speaker` is left empty rather than null because [ChatRules] holds both as lists.
          */
         val rules: ChatRules?
-            get() {
-                val mint = mint ?: return null
-                val amount = amount ?: return null
-                return ChatRules(
-                    listener = listOf(ChatRuleRequirement.MinimumBalance(amount, listOf(mint))),
-                    speaker = emptyList(),
-                )
-            }
+            get() = amount?.let { rulesFor(currency, it) }
 
         /**
          * The creator measured against their own rule, by the same predicate the join gate uses.
@@ -157,17 +169,24 @@ internal class CreateGroupViewModel @Inject constructor(
          * the question being asked is exactly the one the gate asks of a stranger.
          */
         val access: GroupAccess?
-            get() = rules?.let {
-                GroupAccess.evaluate(
-                    isMember = false,
-                    rules = it,
-                    balances = balances,
-                    // [rules] only ever builds a minimum balance — the form has no staff control —
-                    // so nothing here reads this. It is passed rather than defaulted so that adding
-                    // such a control has to come back and answer the question.
-                    isStaff = false,
-                )
-            }
+            get() = rules?.let(::accessFor)
+
+        /**
+         * Whether the total meets the amount — the header card's `meets` or `need`, which it shows
+         * whichever currency is selected. Null until there is an amount to measure against.
+         */
+        val allCurrenciesSatisfied: Boolean?
+            get() = amount?.let { accessFor(rulesFor(GroupCurrency.All, it)) is GroupAccess.Eligible }
+
+        private fun accessFor(rules: ChatRules): GroupAccess = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules,
+            balances = balances,
+            // [rulesFor] only ever builds a minimum balance — the form has no staff control — so
+            // nothing here reads this. It is passed rather than defaulted so that adding such a
+            // control has to come back and answer the question.
+            isStaff = false,
+        )
 
         /** Null rules can't be unsatisfied — an incomplete draft is blocked by [canCreate] instead. */
         val selfSatisfied: Boolean
@@ -199,8 +218,8 @@ internal class CreateGroupViewModel @Inject constructor(
         data class OnBalancesChanged(val balances: List<TokenWithBalance>) : Event
         data class OnRateChanged(val rate: Rate) : Event
 
-        /** A mint was chosen on the currency sheet (node 10127:118100). */
-        data class OnMintSelected(val mint: Mint) : Event
+        /** The header card or a token was chosen on the currency sheet (node 10370:997). */
+        data class OnCurrencySelected(val currency: GroupCurrency) : Event
 
         /** A preset chip, or a confirmed custom keypad entry. Always USD. */
         data class OnAmountSelected(val amount: Fiat) : Event
@@ -330,7 +349,6 @@ internal class CreateGroupViewModel @Inject constructor(
         val state = stateFlow.value
         if (!state.processingState.isIdle) return
 
-        val mint = state.mint ?: return
         val amount = state.amount ?: return
         if (!state.hasTitle) return
 
@@ -344,7 +362,7 @@ internal class CreateGroupViewModel @Inject constructor(
         val draft = GroupDraft(
             title = state.title,
             picture = state.image.dataOrNull,
-            mint = mint,
+            currency = state.currency,
             amount = amount,
         )
 
@@ -430,7 +448,11 @@ internal class CreateGroupViewModel @Inject constructor(
 
     private fun announceNotSelfSatisfied(currencyName: String?) {
         BottomBarManager.showAlert(
-            title = resources.getString(R.string.error_title_groupRuleNotSelfSatisfied, currencyName.orEmpty()),
+            title = if (currencyName != null) {
+                resources.getString(R.string.error_title_groupRuleNotSelfSatisfied, currencyName)
+            } else {
+                resources.getString(R.string.error_title_groupRuleNotSelfSatisfiedTotal)
+            },
             message = resources.getString(R.string.error_description_groupRuleNotSelfSatisfied),
         )
     }
@@ -497,6 +519,12 @@ internal class CreateGroupViewModel @Inject constructor(
     }
 
     companion object {
+        /** One listener minimum balance of [amount], in whatever [currency] names. */
+        private fun rulesFor(currency: GroupCurrency, amount: Fiat) = ChatRules(
+            listener = listOf(ChatRuleRequirement.MinimumBalance(amount, currency.mints)),
+            speaker = emptyList(),
+        )
+
         @VisibleForTesting
         internal val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
@@ -518,30 +546,9 @@ internal class CreateGroupViewModel @Inject constructor(
                     state.copy(image = Loadable.Loading(), imageMimeType = "")
                 }
 
-                is Event.OnBalancesChanged -> { state ->
-                    state.copy(
-                        balances = event.balances,
-                        // The form opens with a mint already named (node 10127:118057), so one is
-                        // seated here rather than left for the sheet. The largest holding is the
-                        // one the creator can actually set a requirement in — picking anything
-                        // else would open the form on a rule its own author fails.
-                        //
-                        // Balances under a cent are skipped because the currency sheet skips them
-                        // too (`SelectTokenViewModel` filters `TokenPurpose.Balance` on
-                        // `hasDisplayableValue`). Seating from a wider list than the picker offers
-                        // would name a mint the picker cannot show, leaving no way back to it. A
-                        // wallet holding only dust therefore seats nothing and shows the sheet's
-                        // own "Select Currency" — an empty picker under a named currency would be
-                        // the worse of the two.
-                        mint = state.mint ?: event.balances
-                            .filter { it.balance.hasDisplayableValue }
-                            .maxByOrNull { it.balance.quarks }
-                            ?.token?.address,
-                    )
-                }
+                is Event.OnBalancesChanged -> { state -> state.copy(balances = event.balances) }
                 is Event.OnRateChanged -> { state -> state.copy(rate = event.rate) }
-                is Event.OnMintSelected ->
-                    { state -> state.copy(mint = event.mint, mintChosen = true) }
+                is Event.OnCurrencySelected -> { state -> state.copy(currency = event.currency) }
                 is Event.OnAmountSelected -> { state -> state.copy(amount = event.amount) }
                 Event.ConfirmCustomAmount -> { state -> state }
                 Event.CreateRequested -> { state -> state }
