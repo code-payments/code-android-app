@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
@@ -51,11 +52,13 @@ import com.flipcash.app.messenger.internal.requiresStaff
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.flipcash.shared.chat.ui.ComposerReplyStrip
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
@@ -125,14 +128,30 @@ internal fun UserControlBottomBar(
                             ChatAnimations.typingIndicator,
                             targetScale = 0.95f,
                             transformOrigin = TransformOrigin(0f, 0.5f)
-                        ) + fadeOut(ChatAnimations.typingIndicator))
+                        ) + fadeOut(ChatAnimations.typingIndicator)) using
+                        // The container shrinks to nothing as the indicator leaves; unclipped, the
+                        // indicator fades out whole instead of being cut off by the shrinking bounds.
+                        SizeTransform(clip = false)
             }
         ) { show ->
             if (show) {
                 TypingIndicator(
+                    typists = state.typingAvatars,
+                    key = { it.key },
                     modifier = Modifier
                         .hazeBlur(HazeInput.Sources(hazeState), material),
-                )
+                ) { typist ->
+                    // Drawn the way the transcript's sender gutter draws the same member, so the
+                    // face beside the dots is the face beside their messages. A typist whose
+                    // profile hasn't resolved goes through the same call with no picture and no
+                    // name, rather than a separate unknown-person glyph.
+                    val profile = typist.profile
+                    ContactAvatar(
+                        image = profile?.profilePicture,
+                        displayName = profile?.displayName.orEmpty(),
+                        access = BlobAccessContext.profile(typist.userId),
+                    )
+                }
             }
         }
         Box {

@@ -201,6 +201,8 @@ internal class ChatViewModel @Inject constructor(
         val chatType: ChatType = ChatType.UNKNOWN,
         val chatInputState: TextFieldState = TextFieldState(),
         val typists: Set<ActiveTypist> = emptySet(),
+        /** What the typing indicator draws ahead of its dots. See [typingAvatars]. */
+        val typingAvatars: List<TypingAvatar> = emptyList(),
         val resolveState: ResolveState = ResolveState.Pending,
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
         val isSelfTyping: Boolean = false,
@@ -498,6 +500,7 @@ internal class ChatViewModel @Inject constructor(
         data object OnStopMessageInput: Event
         data object OnMessageInputConsumed: Event
         data class TypistsUpdated(val typists: Set<ActiveTypist>) : Event
+        data class TypingAvatarsUpdated(val avatars: List<TypingAvatar>) : Event
         data object ResolveCompleted : Event
         data object ResolveFailed : Event
 
@@ -1517,6 +1520,27 @@ internal class ChatViewModel @Inject constructor(
             .onEach { typists -> dispatchEvent(Event.TypistsUpdated(typists)) }
             .launchIn(viewModelScope)
 
+        // Faces for the typing indicator, from the same profiles the transcript attributes
+        // messages with. A typist the roster doesn't cover is asked for, like an unknown sender,
+        // and draws the fallback until their profile lands.
+        combine(
+            stateFlow.map { it.typists }.distinctUntilChanged(),
+            stateFlow.map { it.chatType }.distinctUntilChanged(),
+            senderProfiles,
+            ::Triple,
+        )
+            .onEach { (typists, _, profiles) ->
+                profiles ?: return@onEach
+                typists.filter { it.userId.hexEncodedString() !in profiles }
+                    .forEach { chatCoordinator.requestSenderProfile(it.userId) }
+            }
+            .map { (typists, chatType, profiles) ->
+                typingAvatars(typists, chatType, profiles.orEmpty())
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.TypingAvatarsUpdated(it)) }
+            .launchIn(viewModelScope)
+
         // A DM opens its composer once a payment has been exchanged. A group has no such
         // exchange to wait for: its own rules say who may post, and [GroupAccess] has already
         // applied them — a group that reaches the composer at all is [GroupAccess.Membered], and
@@ -2315,6 +2339,7 @@ internal class ChatViewModel @Inject constructor(
                 Event.OnStopMessageInput -> { state -> state }
                 Event.OnMessageInputConsumed -> { state -> state.copy(messageInputRequested = false) }
                 is Event.TypistsUpdated -> { state -> state.copy(typists = event.typists) }
+                is Event.TypingAvatarsUpdated -> { state -> state.copy(typingAvatars = event.avatars) }
                 Event.ResolveCompleted -> { state ->
                     state.copy(resolveState = ResolveState.Resolved)
                 }
