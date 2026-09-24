@@ -1,6 +1,5 @@
 package com.flipcash.shared.tipping
 
-import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.chat.ChatIdentifier

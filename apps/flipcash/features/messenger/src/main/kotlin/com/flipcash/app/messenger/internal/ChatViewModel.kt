@@ -13,7 +13,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
+import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.ChatEvents
+import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.analytics
@@ -2019,16 +2021,17 @@ internal class ChatViewModel @Inject constructor(
                     // other send from this screen (contact DM or unlocked tip DM) is a plain cash
                     // send. Same `tipAction` the wire `action` above was set from, not a second
                     // "is this a tip" check that could drift from it.
-                    val transferEvent =
-                        if (tipAction == TipAction.TIP) Analytics.Transfer.SentTip else Analytics.Transfer.SentCash
+                    val isTip = tipAction == TipAction.TIP
 
                     result.onSuccess {
                         dispatchEvent(Event.SendStateUpdated(success = true))
                         delay(400.milliseconds)
-                        analytics.transfer(
-                            event = transferEvent,
-                            amount = verifiedFiat.localFiat,
-                            successful = true,
+                        analytics.track(
+                            if (isTip) {
+                                TransferEvents.sentTip(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null)
+                            } else {
+                                TransferEvents.sentCash(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null)
+                            }
                         )
                         dispatchEvent(
                             Dispatchers.Main,
@@ -2036,10 +2039,12 @@ internal class ChatViewModel @Inject constructor(
                         )
                     }.onFailure { cause ->
                         dispatchEvent(Event.SendStateUpdated())
-                        analytics.transfer(
-                            event = transferEvent,
-                            amount = verifiedFiat.localFiat,
-                            error = cause,
+                        analytics.track(
+                            if (isTip) {
+                                TransferEvents.sentTip(AnalyticsState.FAILURE, verifiedFiat.localFiat.analytics, cause.analytics)
+                            } else {
+                                TransferEvents.sentCash(AnalyticsState.FAILURE, verifiedFiat.localFiat.analytics, cause.analytics)
+                            }
                         )
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_cashFailedToSend),

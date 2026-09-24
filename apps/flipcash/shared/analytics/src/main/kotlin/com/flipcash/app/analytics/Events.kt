@@ -105,62 +105,6 @@ internal sealed interface AnalyticsEvent {
         }
     }
 
-    sealed interface Transfer : AnalyticsEvent
-
-    data object GrabBillStart: Transfer {
-        override val name = "Grab Bill Start"
-    }
-
-    data class GrabBill(val time: Long?) : Transfer {
-        override val name = "Grab Bill"
-        override fun toProperties() = buildMap {
-            time?.let { put("Grab Time", it.toString()) }
-        }
-    }
-
-    data object GiveBill : Transfer {
-        override val name = "Give Bill"
-    }
-
-    data object GiveBillStart : Transfer {
-        override val name = "Give Bill Start"
-    }
-
-    data object Withdrawal : Transfer {
-        override val name = "Withdrawal"
-    }
-
-    data class SentCashLink(
-        val clipboard: Boolean? = null,
-        val app: String? = null
-    ) : Transfer {
-        override val name = "Send Cash Link"
-        override fun toProperties() = buildMap {
-            if (clipboard == true) {
-                put("Cash Link Choice", "Copied to clipboard")
-            } else if (app != null) {
-                put("Cash Link Choice", "Shared to app")
-                put("App", app)
-            }
-        }
-    }
-
-    data object ClaimedCashLink : Transfer {
-        override val name = "Receive Cash Link"
-    }
-
-    data object SentTip : Transfer {
-        override val name = "Sent Tip"
-    }
-
-    data object SentCash : ChatEvent {
-        override val name = "Sent Cash"
-    }
-
-    // Marker only: `SentMessage`/`TipReceived`/`MessageReceived` moved to the shared
-    // `ChatEvents` builders in `:libs:analytics-events`. `SentCash` is its one remaining member.
-    sealed interface ChatEvent : AnalyticsEvent
-
     /**
      * The gallery scan path, end to end.
      *
@@ -438,19 +382,6 @@ internal fun Fiat.asProperties(): Map<String, String> {
         put("USDC", decimalValue.toString())
         put("Quarks", quarks.toDouble().toString())
     }
-}
-
-internal fun Analytics.Transfer.toAnalyticsEvent(): AnalyticsEvent = when (this) {
-    is Analytics.Transfer.Initiate.GrabBillStart  -> AnalyticsEvent.GrabBillStart
-    is Analytics.Transfer.GrabBill                -> AnalyticsEvent.GrabBill(time = time)
-    is Analytics.Transfer.Initiate.GiveBillStart  -> AnalyticsEvent.GiveBillStart
-    is Analytics.Transfer.GiveBill                -> AnalyticsEvent.GiveBill
-    is Analytics.Transfer.Withdrawal              -> AnalyticsEvent.Withdrawal
-    is Analytics.Transfer.ClaimedCashLink         -> AnalyticsEvent.ClaimedCashLink
-    is Analytics.Transfer.SentCashLink.Clipboard  -> AnalyticsEvent.SentCashLink(clipboard = true)
-    is Analytics.Transfer.SentCashLink.App        -> AnalyticsEvent.SentCashLink(app = name)
-    is Analytics.Transfer.SentCash                -> AnalyticsEvent.SentCash
-    is Analytics.Transfer.SentTip                 -> AnalyticsEvent.SentTip
 }
 
 internal val DisplayNameSource.propertyValue: String

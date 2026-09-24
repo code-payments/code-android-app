@@ -5,9 +5,11 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
-import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -465,11 +467,8 @@ internal class WithdrawalViewModel @Inject constructor(
                 )
             }.onResult(
                 onError = {
-                    analytics.transfer(
-                        event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.selectedAmount.localFiat,
-                        successful = false,
-                        error = it,
+                    analytics.track(
+                        TransferEvents.withdrawal(AnalyticsState.FAILURE, stateFlow.value.selectedAmount.localFiat.analytics, it.analytics)
                     )
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
                     BottomBarManager.showError(
@@ -478,9 +477,8 @@ internal class WithdrawalViewModel @Inject constructor(
                     )
                 },
                 onSuccess = {
-                    analytics.transfer(
-                        event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.selectedAmount.localFiat,
+                    analytics.track(
+                        TransferEvents.withdrawal(AnalyticsState.SUCCESS, stateFlow.value.selectedAmount.localFiat.analytics, null)
                     )
                     viewModelScope.launch {
                         coroutineScope {
@@ -564,9 +562,8 @@ internal class WithdrawalViewModel @Inject constructor(
                 )
             }.onResult(
                 onSuccess = {
-                    analytics.transfer(
-                        event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.selectedAmount.localFiat,
+                    analytics.track(
+                        TransferEvents.withdrawal(AnalyticsState.SUCCESS, stateFlow.value.selectedAmount.localFiat.analytics, null)
                     )
                     viewModelScope.launch {
                         coroutineScope {
@@ -578,11 +575,8 @@ internal class WithdrawalViewModel @Inject constructor(
                     }
                 },
                 onError = {
-                    analytics.transfer(
-                        event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.selectedAmount.localFiat,
-                        successful = false,
-                        error = it,
+                    analytics.track(
+                        TransferEvents.withdrawal(AnalyticsState.FAILURE, stateFlow.value.selectedAmount.localFiat.analytics, it.analytics)
                     )
                     dispatchEvent(Event.UpdateWithdrawalState(loading = false))
                     BottomBarManager.showError(

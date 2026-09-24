@@ -1,6 +1,10 @@
 package com.flipcash.app.session.internal.delegates
 
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.PropertyValue
+import com.flipcash.analytics.State
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.internal.bill.BillController
@@ -13,6 +17,10 @@ import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.Mint
 import com.getcode.opencode.model.financial.Token
 import com.getcode.util.vibration.Vibrator
 import com.kik.kikx.models.ScannableKikCode
@@ -22,6 +30,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import io.mockk.slot
+import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -31,6 +40,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -42,13 +52,21 @@ class CodeScanDelegateTest {
 
     private val billController = mockk<BillController>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    // A spy so the scan tests can still verify `tipCardScanned`, which moves in its own commit.
+    private val analytics = spyk(RecordingAnalytics())
     private val vibrator = mockk<Vibrator>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val walletReveal = mockk<WalletRevealCoordinator>(relaxed = true)
     private val dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher())
 
     private val stateHolder = SessionStateHolder()
+
+    private val localFiat = LocalFiat(
+        underlyingTokenAmount = Fiat(quarks = 25_000_000L, currencyCode = CurrencyCode.USD),
+        nativeAmount = Fiat(quarks = 34_000_000L, currencyCode = CurrencyCode.CAD),
+        rate = Rate(fx = 1.36, currency = CurrencyCode.CAD),
+        mint = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),
+    )
 
     private val mockPayload = mockk<OpenCodePayload>(relaxed = true) {
         every { kind } returns PayloadKind.Cash
@@ -258,6 +276,57 @@ class CodeScanDelegateTest {
             walletReveal.capture(token.address)
             tokenCoordinator.add(token, amount)
         }
+    }
+
+    @Test
+    fun `a grab tracks its start, then Grab Bill with the amount it landed`() = runTest {
+        val onGrabbed = slot<suspend (Token, LocalFiat, VerifiedState?) -> Unit>()
+        every {
+            billController.attemptGrab(
+                owner = any(),
+                payload = any(),
+                onGrabbed = capture(onGrabbed),
+                onError = any(),
+            )
+        } answers {}
+
+        val delegate = createDelegate()
+        delegate.onCodeScan(remoteKikCode())
+        onGrabbed.captured.invoke(mockk(relaxed = true), localFiat, null)
+
+        assertEquals(2, analytics.events.size)
+        assertEquals(TransferEvents.grabBillStart(), analytics.events[0])
+        // Grab Time is measured from the scan, so only its type is fixed here.
+        val grab = analytics.events[1]
+        assertIs<PropertyValue.Number>(grab.properties["Grab Time"])
+        assertEquals(
+            TransferEvents.grabBill(State.SUCCESS, localFiat.analytics, grabTimeMillis = null, error = null),
+            grab.copy(properties = grab.properties - "Grab Time"),
+        )
+    }
+
+    @Test
+    fun `a failed grab tracks Grab Bill as a failure with the scanned fiat`() = runTest {
+        val scanned = Fiat(quarks = 5_000_000L, currencyCode = CurrencyCode.USD)
+        every { mockPayload.fiat } returns scanned
+        val onError = slot<(Throwable) -> Unit>()
+        every {
+            billController.attemptGrab(
+                owner = any(),
+                payload = any(),
+                onGrabbed = any(),
+                onError = capture(onError),
+            )
+        } answers {}
+
+        val delegate = createDelegate()
+        delegate.onCodeScan(remoteKikCode())
+        onError.captured.invoke(RuntimeException("grab failed"))
+
+        assertEquals(
+            TransferEvents.grabBill(State.FAILURE, scanned.analytics, grabTimeMillis = null, error = "grab failed"),
+            analytics.events.last(),
+        )
     }
 
     // --- Error clears rendezvous so re-scan is possible ---

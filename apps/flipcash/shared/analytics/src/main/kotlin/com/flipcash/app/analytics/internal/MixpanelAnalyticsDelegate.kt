@@ -8,7 +8,6 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.TokenSymbolResolver
 import com.flipcash.app.analytics.asProperties
 import com.flipcash.app.analytics.propertyValue
-import com.flipcash.app.analytics.toAnalyticsEvent
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -17,7 +16,6 @@ import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.services.flipcash.BuildConfig
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.TraceType
@@ -82,38 +80,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
 
     override fun action(action: AppAction, source: AppActionSource?) {
         track(name = action.value)
-    }
-
-    override fun transferStart(event: Analytics.Transfer.Initiate) {
-        track(event.toAnalyticsEvent())
-    }
-
-    override fun transfer(
-        event: Analytics.Transfer,
-        amount: LocalFiat?,
-        successful: Boolean,
-        error: Throwable?
-    ) {
-        track(
-            event.toAnalyticsEvent(),
-            "State" to if (successful) "Success" else "Failure",
-            *amount?.asProperties()?.toList()?.toTypedArray() ?: emptyArray(),
-            *error.asProperty()
-        )
-    }
-
-    override fun transfer(
-        event: Analytics.Transfer,
-        fiat: Fiat?,
-        successful: Boolean,
-        error: Throwable?
-    ) {
-        track(
-            event.toAnalyticsEvent(),
-            "State" to if (successful) "Success" else "Failure",
-            *fiat?.asProperties()?.toList()?.toTypedArray() ?: emptyArray(),
-            *error.asProperty()
-        )
     }
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) {
