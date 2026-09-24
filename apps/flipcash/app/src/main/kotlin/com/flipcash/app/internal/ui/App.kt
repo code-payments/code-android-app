@@ -37,7 +37,9 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
+import com.flipcash.analytics.events.DeeplinkEvents
 import com.flipcash.app.analytics.rememberAnalytics
+import com.flipcash.app.analytics.withoutQueryOrFragment
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.bill.customization.BillPlaygroundScaffold
 import com.flipcash.app.cardexpand.CardExpansionController
@@ -117,7 +119,7 @@ internal fun App(
     var deeplinkHandled by remember { mutableStateOf(false) }
     val userManager = LocalUserManager.current!!
     DeepLinkListener {
-        analytics.deeplinkOpened(it.data)
+        analytics.track(DeeplinkEvents.open(it.data.withoutQueryOrFragment()))
         deepLink = it
     }
 

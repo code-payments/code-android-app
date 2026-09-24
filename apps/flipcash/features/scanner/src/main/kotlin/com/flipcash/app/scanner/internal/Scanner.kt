@@ -22,8 +22,11 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.events.DeeplinkEvents
 import com.flipcash.analytics.events.ScanEvents
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.analytics.rememberAnalytics
+import com.flipcash.app.analytics.withoutQueryOrFragment
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.AppRoute.Token.*
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -151,7 +154,11 @@ internal fun Scanner() {
     val firstScannableDeeplink = { urls: List<String> ->
         urls.firstNotNullOfOrNull { url ->
             val type = router.classify(DeepLink(url))
-            analytics.deeplinkParsed(type, url)
+            if (type != null) {
+                analytics.track(DeeplinkEvents.parsed(type.analytics))
+            } else {
+                analytics.track(DeeplinkEvents.parseFailed(url.withoutQueryOrFragment()))
+            }
             type
         }?.takeIf { it.isScannable }
     }

@@ -8,7 +8,6 @@ import com.flipcash.app.analytics.TokenSymbolResolver
 import com.flipcash.app.analytics.asProperties
 import com.flipcash.app.analytics.propertyValue
 import com.flipcash.app.core.DisplayNameSource
-import com.flipcash.app.core.navigation.DeeplinkType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
@@ -80,18 +79,6 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) {
         track(AnalyticsEvent.PaidForAccount(price, currency, owner))
-    }
-
-    override fun deeplinkOpened(url: String) {
-        track(AnalyticsEvent.DeeplinkEvent.Open(url))
-    }
-
-    override fun deeplinkParsed(type: DeeplinkType?, url: String) {
-        track(AnalyticsEvent.DeeplinkEvent.Parse(type, url))
-    }
-
-    override fun deeplinkRouted(type: DeeplinkType, error: Throwable?) {
-        track(AnalyticsEvent.DeeplinkEvent.Routed(type, error))
     }
 
     override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) {

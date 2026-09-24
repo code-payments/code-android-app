@@ -1,8 +1,6 @@
 package com.flipcash.app.analytics
 
-import androidx.core.net.toUri
 import com.flipcash.app.core.DisplayNameSource
-import com.flipcash.app.core.navigation.DeeplinkType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -56,50 +54,6 @@ internal sealed interface AnalyticsEvent {
             put("Message", message)
             screen?.let { put("Screen", it) }
             callSite?.let { put("Call Site", it) }
-        }
-    }
-
-    sealed interface DeeplinkEvent : AnalyticsEvent {
-        data class Open(val url: String) : DeeplinkEvent {
-            override val name = "Deeplink: Open"
-            override fun toProperties() = mapOf("URL" to url.sanitized())
-
-            private fun String.sanitized(): String {
-                val uri = this.toUri()
-                return try {
-                    uri.buildUpon()
-                        .clearQuery()
-                        .fragment(null)
-                        .build()
-                        .toString()
-                } catch (_: Exception) {
-                    uri.path ?: url
-                }
-            }
-        }
-
-        data class Parse(
-            val type: DeeplinkType? = null,
-            val url: String,
-        ) : DeeplinkEvent {
-            override val name = "Deeplink: Parse"
-            override fun toProperties() = buildMap {
-                type?.let { put("Type", it.javaClass.simpleName) }
-                if (type == null) {
-                    put("Error", "Failed to parse deeplink => $url")
-                }
-            }
-        }
-
-        data class Routed(
-            val type: DeeplinkType,
-            val error: Throwable? = null
-        ) : DeeplinkEvent {
-            override val name = "Deeplink: Routed"
-            override fun toProperties() = buildMap {
-                put("Type", type.javaClass.simpleName)
-                error?.let { put("Error", it.message.orEmpty()) }
-            }
         }
     }
 

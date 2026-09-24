@@ -1,6 +1,7 @@
 package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.analytics.State
+import com.flipcash.analytics.events.DeeplinkEvents
 import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.analytics.analytics
@@ -22,7 +23,6 @@ import com.getcode.util.resources.ResourceHelper
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -43,8 +43,7 @@ class CashLinkDelegateTest {
 
     private val billController = mockk<BillController>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
-    // A spy so these tests can still verify `deeplinkRouted`, which moves in its own commit.
-    private val analytics = spyk(RecordingAnalytics())
+    private val analytics = RecordingAnalytics()
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
 
@@ -93,9 +92,10 @@ class CashLinkDelegateTest {
                 onError = any(),
             )
         }
-        verify {
-            analytics.deeplinkRouted(any(), error = any<IllegalArgumentException>())
-        }
+        assertEquals(
+            DeeplinkEvents.routed("CashLink", error = "Cash link not provided"),
+            analytics.events.single(),
+        )
     }
 
     @Test
@@ -146,9 +146,10 @@ class CashLinkDelegateTest {
                 onError = any(),
             )
         }
-        verify {
-            analytics.deeplinkRouted(any(), error = any<IllegalStateException>())
-        }
+        assertEquals(
+            DeeplinkEvents.routed("CashLink", error = "No owner found"),
+            analytics.events.single(),
+        )
     }
 
     @Test
@@ -165,6 +166,10 @@ class CashLinkDelegateTest {
                 onError = any(),
             )
         }
+        assertEquals(
+            DeeplinkEvents.routed("CashLink", error = null),
+            analytics.events.single { it.name == "Deeplink: Routed" },
+        )
     }
 
     @Test

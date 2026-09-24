@@ -1,6 +1,7 @@
 package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.analytics.State
+import com.flipcash.analytics.events.DeeplinkEvents
 import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.analytics
@@ -85,9 +86,11 @@ class CashLinkDelegate @Inject constructor(
                 message = "Cash link not provided",
                 type = TraceType.Silent
             )
-            analytics.deeplinkRouted(
-                DeeplinkType.CashLink(),
-                error = IllegalArgumentException("Cash link not provided")
+            analytics.track(
+                DeeplinkEvents.routed(
+                    DeeplinkType.CashLink().analytics,
+                    error = IllegalArgumentException("Cash link not provided").analytics,
+                )
             )
             return
         }
@@ -99,9 +102,11 @@ class CashLinkDelegate @Inject constructor(
                 message = "No owner found",
                 type = TraceType.Silent
             )
-            analytics.deeplinkRouted(
-                DeeplinkType.CashLink(),
-                error = IllegalStateException("No owner found")
+            analytics.track(
+                DeeplinkEvents.routed(
+                    DeeplinkType.CashLink().analytics,
+                    error = IllegalStateException("No owner found").analytics,
+                )
             )
             return
         }
@@ -112,16 +117,18 @@ class CashLinkDelegate @Inject constructor(
                 message = "Cash link empty",
                 type = TraceType.Silent
             )
-            analytics.deeplinkRouted(
-                DeeplinkType.CashLink(),
-                error = IllegalArgumentException("Cash link empty")
+            analytics.track(
+                DeeplinkEvents.routed(
+                    DeeplinkType.CashLink().analytics,
+                    error = IllegalArgumentException("Cash link empty").analytics,
+                )
             )
             return
         }
 
         if (giftCardClaimInProgress.value == null) {
             giftCardClaimInProgress.value = entropy
-            analytics.deeplinkRouted(DeeplinkType.CashLink())
+            analytics.track(DeeplinkEvents.routed(DeeplinkType.CashLink().analytics, error = null))
             claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
         }
     }
