@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.AppRoute
@@ -140,7 +141,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 when (item.action) {
                     // The same sheet the transcript's own invite CTA opens, pushed on this flow so
                     // it sits over the profile the user asked from.
-                    GroupProfileAction.Invite -> flowNavigator.navigateTo(ChatStep.InviteToGroup)
+                    GroupProfileAction.Invite -> {
+                        viewModel.dispatchEvent(
+                            ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE)
+                        )
+                        flowNavigator.navigateTo(ChatStep.InviteToGroup)
+                    }
                     // Both muting and unmuting go through the picker, which is why this row
                     // navigates either way rather than acting on one of them here. The outer
                     // navigator, as with Report: the sheet is a top-level route shared with the

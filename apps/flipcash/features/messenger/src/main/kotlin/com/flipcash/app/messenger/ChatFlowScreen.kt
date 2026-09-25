@@ -267,6 +267,7 @@ private fun FlowGroupInviteSheet() {
     GroupInviteSheet(
         inviteUrl = state.groupInviteUrl,
         group = state.subject as? ChatSubject.Group,
+        onShare = { viewModel.dispatchEvent(ChatViewModel.Event.InviteLinkShared) },
         onCopy = { viewModel.dispatchEvent(ChatViewModel.Event.CopyInviteLink) },
         onDismiss = dismissSheet,
     )

@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.flipcash.analytics.GroupGateFunding
+import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
@@ -80,6 +82,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.ViewToken -> {
+                // Only the gate asks to come back after a buy, so that flag is what marks its tap.
+                if (action.returnAfterBuy) {
+                    viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.BUY_TOKEN))
+                }
                 keyboard.hideIfVisible {
                     viewModel.dispatchEvent(
                         ChatViewModel.Event.OpenScreen(
@@ -96,6 +102,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             ChatAction.AddCash -> {
+                // The gate is the only place in the transcript that offers it.
+                viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.ADD_CASH))
                 keyboard.hideIfVisible {
                     viewModel.dispatchEvent(ChatViewModel.Event.PresentDepositOptions)
                 }
@@ -160,6 +168,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 // The sheet, not the share sheet: copying the link is the other way to hand it out,
                 // and going straight to the system share picker would bury it. The sheet reads the
                 // url off the same state the CTA that got here is gated on.
+                viewModel.dispatchEvent(ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT))
                 keyboard.hideIfVisible { navigator.push(ChatStep.InviteToGroup) }
             }
 
@@ -170,7 +179,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 // is its own — it has no participant to open one on.
                 keyboard.hideIfVisible {
                     when (state.subject) {
-                        is ChatSubject.Group -> navigator.push(ChatStep.GroupProfile)
+                        is ChatSubject.Group -> {
+                            viewModel.dispatchEvent(ChatViewModel.Event.GroupInfoOpened)
+                            navigator.push(ChatStep.GroupProfile)
+                        }
                         else -> state.participant?.let { navigator.push(ChatStep.Profile(it)) }
                     }
                 }
