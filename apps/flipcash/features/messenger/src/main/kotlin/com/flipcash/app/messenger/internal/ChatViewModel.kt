@@ -41,6 +41,7 @@ import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.messenger.internal.link.CashCardTap
+import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
@@ -92,6 +93,9 @@ import com.flipcash.shared.chat.MessageReactions
 import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.reactions.ReactionStripComposer
+import com.flipcash.shared.chat.reactions.ReactorNameResolver
+import com.flipcash.shared.chat.reactions.ReactorsListModel
+import com.flipcash.shared.chat.reactions.ReactorsPrefetchCache
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
@@ -192,6 +196,7 @@ internal class ChatViewModel @Inject constructor(
     private val recentReactionsStore: RecentReactionsStore,
     private val emojiCatalogLoader: EmojiCatalogLoader,
     private val toastController: SystemToastController,
+    private val userProfileDataSource: UserProfileDataSource,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
@@ -743,6 +748,74 @@ internal class ChatViewModel @Inject constructor(
     fun memberParticipant(userId: ID): ChatParticipant.TipUser? =
         senderProfiles.value?.get(userId.hexEncodedString())
             ?.let { ChatParticipant.TipUser(userId, it) }
+
+    /**
+     * One [ReactorsListModel] per messageId, started on [Event.OpenReactors] (see
+     * [initMessageActionHandlers]) rather than on the reactors sheet's own composition — loading
+     * has to begin on the pill long-press itself, and the sheet is a fresh Compose tree on every
+     * push. `getReactorsPage` is captured against whatever [ChatId] is current at call time
+     * rather than the chat this view model was built for; a chat never changes under one instance
+     * in practice, but reading [stateFlow] here keeps the cache correct if that ever changes.
+     */
+    private val reactorsPrefetchCache = ReactorsPrefetchCache(scope = viewModelScope) { messageId, emoji, token ->
+        val chatId = stateFlow.value.chatId ?: return@ReactorsPrefetchCache Result.failure(
+            IllegalStateException("No active chat to fetch reactors for")
+        )
+        chatCoordinator.getReactorsPage(chatId, messageId, emoji, token)
+    }
+
+    fun reactorsRows(messageId: Long): StateFlow<List<ReactorsListModel.Row>> = reactorsPrefetchCache.rows(messageId)
+
+    fun reactorsLoading(messageId: Long): StateFlow<Boolean> = reactorsPrefetchCache.loading(messageId)
+
+    fun reactorsHasMore(messageId: Long): Boolean = reactorsPrefetchCache.hasMore(messageId)
+
+    fun loadMoreReactors(messageId: Long) = reactorsPrefetchCache.loadMoreIfNeeded(messageId)
+
+    /**
+     * The reactors sheet's display name for [userId] (decision 4), re-emitting as later sources —
+     * the member roster, then a server fetch — resolve. Kicks off [ChatCoordinator.requestSenderProfile]
+     * itself when nothing has an answer yet, mirroring [resolveSenderName]'s fallback for the
+     * transcript.
+     */
+    fun reactorName(userId: ID): Flow<String?> {
+        val chatId = stateFlow.value.chatId
+        val selfLabel = resources.getString(R.string.title_you)
+        val members = chatId?.let { chatCoordinator.observeMembers(it) } ?: flowOf(emptyList())
+        var requested = false
+        return combine(
+            userProfileDataSource.observeProfiles(),
+            members,
+            senderProfiles,
+        ) { cachedProfiles, memberList, sentProfiles ->
+            ReactorNameResolver.resolve(
+                userId = userId,
+                selfUserId = userManager.accountId,
+                selfLabel = selfLabel,
+                cachedProfile = cachedProfiles[userId.hexEncodedString()],
+                members = memberList,
+                senderProfiles = sentProfiles.orEmpty(),
+            )
+        }.onEach { name ->
+            if (name == null && !requested) {
+                requested = true
+                chatCoordinator.requestSenderProfile(userId)
+            }
+        }
+    }
+
+    /** [ChatParticipant] for [userId] to open a profile from the reactors sheet, unlike
+     * [memberParticipant] this also covers a reactor absent from [senderProfiles] by falling back
+     * to whatever the cached profile store or member roster already has. */
+    suspend fun reactorParticipant(userId: ID): ChatParticipant.TipUser? {
+        memberParticipant(userId)?.let { return it }
+        val chatId = stateFlow.value.chatId
+        val fromMembers = chatId?.let { id ->
+            chatCoordinator.observeMembers(id).first().firstOrNull { it.userId == userId }?.userProfile
+        }
+        val profile = fromMembers ?: userProfileDataSource.getCachedProfile(userId)
+        return profile?.let { ChatParticipant.TipUser(userId, it) }
+    }
 
     /**
      * How a drawn card reaches the lookup. Provided to the transcript, read by `LinkCardView`.
@@ -1773,11 +1846,21 @@ internal class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        // OpenReactionPicker/OpenReactors carry no side effect here — the screen's action handler
-        // pushes the ChatStep, the same as every other transcript-triggered navigation (see
-        // MessengerScreen's chatActionHandler). The reducer above is a no-op for both too; they
-        // exist as events at all only so a picker pick, once B2 adds it, can reach ToggleReaction
-        // through the same dispatch path everything else in the transcript uses.
+        // OpenReactionPicker carries no side effect here — the screen's action handler pushes the
+        // ChatStep, the same as every other transcript-triggered navigation (see MessengerScreen's
+        // chatActionHandler). The reducer above is a no-op for both too; they exist as events at
+        // all so a picker pick can reach ToggleReaction through the same dispatch path everything
+        // else in the transcript uses.
+        //
+        // OpenReactors does have one: it starts the reactors fetch (see reactorsPrefetchCache)
+        // before the navigator pushes ChatStep.Reactors, so loading begins on the long-press
+        // rather than on the sheet's own composition.
+        eventFlow.filterIsInstance<Event.OpenReactors>()
+            .onEach { event ->
+                val emojis = reactionOverlay.value[event.messageId]?.pills?.map { it.emoji }.orEmpty()
+                reactorsPrefetchCache.start(event.messageId, emojis)
+            }
+            .launchIn(viewModelScope)
 
         // See ReactionRefreshPlanner and MessageList's reaction-refresh effects: the transcript
         // computes which ids need a refresh (the newest window on open/resume, Room-sourced pages
