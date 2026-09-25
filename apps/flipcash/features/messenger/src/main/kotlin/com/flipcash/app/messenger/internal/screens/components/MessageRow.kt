@@ -10,6 +10,9 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,7 +60,7 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.features.messenger.R
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.ui.ContentBubble
-import com.flipcash.shared.chat.ui.QuickReactionStrip
+import com.flipcash.shared.chat.ui.QuickReactionStripPopup
 import com.flipcash.shared.chat.ui.ReactionPillRow
 import com.flipcash.shared.chat.ui.rendersBare
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -323,8 +326,9 @@ internal fun MessageRow(
                                 // reach for a reaction with something faster than opening the
                                 // picker, and disappears the moment selection moves off.
                                 if (selecting && focused && item.canReact && quickReactionStrip.isNotEmpty()) {
-                                    QuickReactionStrip(
+                                    QuickReactionStripPopup(
                                         entries = quickReactionStrip,
+                                        hugsTrailing = item.isFromSelf,
                                         onToggle = { emoji ->
                                             onAction(
                                                 ChatAction.ToggleReaction(
@@ -335,9 +339,9 @@ internal fun MessageRow(
                                             )
                                         },
                                         onOpenPicker = { onAction(ChatAction.OpenReactionPicker(item.messageId)) },
-                                        modifier = Modifier
-                                            .align(if (item.isFromSelf) Alignment.TopEnd else Alignment.TopStart)
-                                            .offset(y = -QUICK_STRIP_OFFSET),
+                                        // Clear of the selection bar's actions at the top.
+                                        minTop = WindowInsets.statusBars.asPaddingValues()
+                                            .calculateTopPadding() + SELECTION_BAR_CLEARANCE,
                                     )
                                 }
                             }
@@ -484,7 +488,7 @@ private fun senderNameInset(showsGutter: Boolean): Dp =
 // doesn't expose its resolved width outward, so the pill row underneath it re-derives the same
 // fraction of the shared row width instead.
 private const val BUBBLE_ROW_WIDTH_FRACTION = 0.78f
-private val QUICK_STRIP_OFFSET = 12.dp
+private val SELECTION_BAR_CLEARANCE = 72.dp
 
 private val AFFORDANCE_SIZE = 32.dp
 private val AFFORDANCE_INSET = 20.dp
