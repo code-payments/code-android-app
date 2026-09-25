@@ -15,8 +15,9 @@ import kotlin.time.Instant
  * is synced verbatim. A failure here is either a real regression or a cross-platform decision that
  * has to be made in the canonical fixture and re-synced to both platforms — never a local edit.
  *
- * Covers `defaults`, `recents` and `drawability`; `merge`, `order` and `strip` are covered by
- * `apps:flipcash:shared:chat`'s `ReactionVectorsTest`, next to where `ReactionState` lives.
+ * Covers `defaults` and `recents`; `merge`, `order` and `strip` are covered by
+ * `apps:flipcash:shared:chat`'s `ReactionVectorsTest`, next to where `ReactionState` lives, and
+ * `drawability` by the instrumented `EmojiDrawabilityVectorTest`, which needs a real emoji font.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
@@ -61,29 +62,6 @@ class RecentReactionsVectorTest {
 
             val actual = RecentReactions.rank(stats, undrawable, limit)
             assertEquals(expected, actual, "vector `$name`: $note")
-        }
-    }
-
-    /**
-     * [EmojiDrawability] delegates to [android.graphics.Paint.hasGlyph], which asks the device's
-     * real font fallback and so cannot be pinned to a fixed answer in a JVM unit test the way the
-     * pure-logic sections above can. This only checks that the predicate runs and returns a
-     * boolean for each vector's emoji, naming the vector so a crash points at the offending
-     * sequence; the actual drawability answer is verified on-device (see the module's
-     * instrumented/UI-level coverage; chunk B wires the strip and picker up to a real predicate).
-     */
-    @Test
-    fun `drawability vectors run without crashing`() {
-        val vectors = section("drawability")
-        assertTrue(vectors.length() > 0, "reactions.json loaded no drawability vectors")
-
-        for (i in 0 until vectors.length()) {
-            val vector = vectors.getJSONObject(i)
-            val emoji = vector.getString("emoji")
-            val note = vector.optString("note", "")
-            // Must not throw for any vector's emoji; the boolean result is real-device behavior.
-            EmojiDrawability.isDrawable(emoji)
-            assertTrue(true, "vector `$emoji`: $note")
         }
     }
 
