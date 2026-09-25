@@ -2,6 +2,7 @@ package com.flipcash.shared.chat.models
 
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.MessageCapability
+import com.flipcash.shared.chat.reactions.ReactionPill
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -96,6 +97,17 @@ sealed interface ChatListItem {
          * the receipt go.
          */
         val isLastRow: Boolean = true,
+        /**
+         * This message's reaction pills, in display order — the live overlay when one exists,
+         * otherwise `MessageReactions.from` applied to the message's own stored summary. Empty
+         * for a message with no reactions.
+         */
+        val reactionPills: List<ReactionPill> = emptyList(),
+        /**
+         * Whether the viewer may react to this message — system messages and messages still
+         * pending send are excluded. See `com.flipcash.shared.chat.canReact`.
+         */
+        val canReact: Boolean = false,
     ) : ChatListItem {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the
