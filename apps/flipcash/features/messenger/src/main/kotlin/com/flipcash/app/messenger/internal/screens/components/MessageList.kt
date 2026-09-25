@@ -33,6 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
@@ -49,6 +52,7 @@ import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.LocalLinkCardResolution
 import com.flipcash.shared.chat.models.SeparatorConfig
+import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.rememberKeyboardController
@@ -232,6 +236,55 @@ internal fun MessageList(
                 .dropWhile { it !is LoadState.Loading }
                 .first { it !is LoadState.Loading }
             refreshSettled = true
+        }
+
+        // Reaction refresh (decision 6, see ReactionRefreshPlanner): a live overlay override only
+        // exists for a chat this device is actively watching, so a reaction added while the app was
+        // backgrounded — or before this chat was ever opened — has to be asked for explicitly.
+        //
+        // Two hooks, matching the two ways a message's reaction state can go stale here:
+        //
+        // 1. The newest window, on open and every resume. Modeled on ChatViewModel's own
+        //    repeatOnLifecycle(STARTED) pattern (see initLinkCardFreshness) but anchored to this
+        //    screen's own lifecycle owner rather than the process one, because the id list this
+        //    needs only exists in this composition's LazyPagingItems snapshot. Each restart of the
+        //    block re-asks for the same 60 newest ids — refreshing an id twice is a no-op for the
+        //    coordinator, and re-asking is exactly the point: a reader who backgrounded the app is
+        //    the one case an overlay update could have been missed.
+        // 2. Older pages, as they page in from Room. `messages.loadState.mediator?.append` tells
+        //    apart a page the RemoteMediator just pulled over the network — already current, no
+        //    ask needed — from one the pager served out of the local cache, which may be showing
+        //    reaction state as stale as this device's last sync. The first snapshot this effect
+        //    sees is left unrequested; hook 1 already owns that opening batch.
+        val lifecycleOwner = LocalLifecycleOwner.current
+        LaunchedEffect(lifecycleOwner, state.chatId, messages) {
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                snapshotFlow { initialLoadComplete }.first { it }
+                val ids = ReactionRefreshPlanner.initialWindow(messages.newestFirstMessageIds())
+                if (ids.isNotEmpty()) onAction(ChatAction.RefreshReactionIds(ids))
+            }
+        }
+
+        LaunchedEffect(state.chatId, messages) {
+            val refreshedPageIds = mutableSetOf<Long>()
+            var previousIds: Set<Long>? = null
+            snapshotFlow { messages.newestFirstMessageIds().toSet() }
+                .collect { currentIds ->
+                    val seenBefore = previousIds
+                    previousIds = currentIds
+                    if (seenBefore == null) return@collect
+                    val newIds = (currentIds - seenBefore).toList()
+                    if (newIds.isEmpty()) return@collect
+                    val sourcedFromServer = messages.loadState.mediator?.append is LoadState.Loading
+                    ReactionRefreshPlanner.forLoadedPage(
+                        pageIds = newIds,
+                        sourcedFromServer = sourcedFromServer,
+                        alreadyRefreshed = refreshedPageIds,
+                    ).forEach { chunk ->
+                        onAction(ChatAction.RefreshReactionIds(chunk))
+                        refreshedPageIds += chunk
+                    }
+                }
         }
 
         LazyColumn(
@@ -472,6 +525,14 @@ internal fun MessageList(
  */
 private val LazyPagingItems<ChatListItem>.loadedCount: Int
     get() = itemSnapshotList.items.size
+
+/**
+ * Currently loaded message ids, newest first — index 0 is the newest, same order the haptic
+ * effect above reads [LazyPagingItems.peek] in. Feeds `ReactionRefreshPlanner`, which needs to
+ * know what "the newest 60" and "a newly loaded page" mean in terms this list already has.
+ */
+private fun LazyPagingItems<ChatListItem>.newestFirstMessageIds(): List<Long> =
+    itemSnapshotList.items.mapNotNull { (it as? ChatListItem.ContentBubble)?.messageId }
 
 /**
  * The first index the pager has nothing for — the hint that drives one more append.

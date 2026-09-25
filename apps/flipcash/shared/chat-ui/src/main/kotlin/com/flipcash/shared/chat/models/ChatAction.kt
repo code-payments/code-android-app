@@ -101,6 +101,14 @@ sealed interface ChatAction {
 
     /** Opens who-reacted for [messageId], from a long-press on a pill. */
     data class OpenReactors(val messageId: Long) : ChatAction
+
+    /**
+     * Asks the coordinator to refresh reaction state for [messageIds] — the transcript's own
+     * refresh-on-paging hook (see `ReactionRefreshPlanner`), not a reader gesture. The transcript
+     * decides when and which ids; this only carries the request down to the viewmodel that owns
+     * the coordinator.
+     */
+    data class RefreshReactionIds(val messageIds: List<Long>) : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit

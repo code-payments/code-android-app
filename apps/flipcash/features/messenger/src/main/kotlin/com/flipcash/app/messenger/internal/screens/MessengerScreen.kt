@@ -216,6 +216,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.OpenReactors(action.messageId))
                 navigator.push(ChatStep.Reactors(action.messageId))
             }
+
+            is ChatAction.RefreshReactionIds -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.RefreshReactionIds(action.messageIds))
+            }
         }
 
         Unit

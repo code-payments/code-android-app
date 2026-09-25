@@ -627,6 +627,13 @@ internal class ChatViewModel @Inject constructor(
         data class QuickReactionStripComposed(val entries: List<ReactionStrip.Entry>) : Event
 
         /**
+         * The transcript's own refresh-on-paging hook has ids it wants reaction state refreshed
+         * for — see [ReactionRefreshPlanner] and the [ChatAction.RefreshReactionIds] that carries
+         * this down from `MessageList`. Not a reader gesture, so it changes no visible state.
+         */
+        data class RefreshReactionIds(val messageIds: List<Long>) : Event
+
+        /**
          * The reader tapped a cash voucher in this transcript, naming the link.
          *
          * Only the name: the screen opens the link through the URL handler right after
@@ -1777,6 +1784,18 @@ internal class ChatViewModel @Inject constructor(
         // exist as events at all only so a picker pick, once B2 adds it, can reach ToggleReaction
         // through the same dispatch path everything else in the transcript uses.
 
+        // See ReactionRefreshPlanner and MessageList's reaction-refresh effects: the transcript
+        // computes which ids need a refresh (the newest window on open/resume, Room-sourced pages
+        // as they page in) and hands the batch down here — this just forwards it to the
+        // coordinator. No reducer case: nothing about visible state changes from this.
+        eventFlow.filterIsInstance<Event.RefreshReactionIds>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                if (event.messageIds.isEmpty()) return@onEach
+                chatCoordinator.refreshReactions(chatId, event.messageIds)
+            }
+            .launchIn(viewModelScope)
+
         // A failed add/remove the coordinator has already rolled back optimistically — this only
         // tells the reader why the pill snapped back.
         chatCoordinator.reactionErrors
@@ -2669,6 +2688,7 @@ internal class ChatViewModel @Inject constructor(
                 is Event.OpenReactionPicker -> { state -> state }
                 is Event.OpenReactors -> { state -> state }
                 is Event.QuickReactionStripComposed -> { state -> state.copy(quickReactionStrip = event.entries) }
+                is Event.RefreshReactionIds -> { state -> state }
                 // Nothing on screen moves when a voucher is tapped -- the link leaves, the card
                 // keeps saying what it said, and the claim comes back as its own signal.
                 is Event.CashLinkOpened -> { state -> state }
