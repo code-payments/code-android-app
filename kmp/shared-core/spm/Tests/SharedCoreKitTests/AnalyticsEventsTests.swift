@@ -35,4 +35,10 @@ import Testing
     @Test func tokenInfoSourcesAreTheFiveTheSpecNames() {
         #expect(TokenInfoSource.entries.map(\.value) == ["Deeplink", "Wallet", "Discovery", "Chat", "Chat Gate"])
     }
+
+    @Test func buildsAGroupEventWithAnOptionalLeftOut() {
+        let event = GroupEvents.shared.gateShown(access: GroupAccess.blocked, gateMint: nil, memberCount: 3)
+        #expect(event.name == "Group: Gate Shown")
+        #expect(event.scalarProperties == ["Access": .text("Blocked"), "Member Count": .number(3)])
+    }
 }

@@ -12,7 +12,16 @@ import com.getcode.solana.keys.base58
 import com.flipcash.analytics.ChatType as AnalyticsChatType
 import com.flipcash.analytics.DisplayNameSource as AnalyticsDisplayNameSource
 import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.services.models.EditChatError
+import com.flipcash.services.models.JoinChatError
+import com.flipcash.services.models.LeaveChatError
+import com.flipcash.services.models.MuteChatError
+import com.flipcash.services.models.StartChatError
+import com.flipcash.services.models.UnmuteChatError
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
+import com.getcode.opencode.model.core.errors.ValidationException
 
 /*
  * Converts Android domain types into what the shared builders in `:libs:analytics-events`
@@ -30,6 +39,42 @@ val ChatType.analytics: AnalyticsChatType
 /** Android's `Error` format. iOS sends `domain.error:code`; part 2 settles one. */
 val Throwable.analytics: String
     get() = message.orEmpty()
+
+/**
+ * The `Error` property on the group and mute events: the chat RPC's result name as the proto
+ * spells it, or `Network` when the call failed in transport. Spelled out rather than taken from
+ * `javaClass.simpleName`, which R8 renames in release builds.
+ *
+ * `Validation` is the request failing proto validation before it was sent, which has no result
+ * name because the server never answered.
+ */
+val Throwable.chatResult: String
+    get() = when (this) {
+        is StartChatError.Denied, is EditChatError.Denied, is JoinChatError.Denied,
+        is LeaveChatError.Denied, is MuteChatError.Denied, is UnmuteChatError.Denied -> "Denied"
+        is EditChatError.NotFound, is JoinChatError.NotFound, is LeaveChatError.NotFound,
+        is MuteChatError.NotFound, is UnmuteChatError.NotFound -> "NotFound"
+        is StartChatError.TitleModerated, is EditChatError.TitleModerated -> "TitleModerated"
+        is StartChatError.PictureBlobNotAccepted, is EditChatError.PictureBlobNotAccepted -> "PictureBlobNotAccepted"
+        is StartChatError.InvalidRules -> "InvalidRules"
+        is StartChatError.RulesNotSatisfied, is JoinChatError.RulesNotSatisfied -> "RulesNotSatisfied"
+        is StartChatError.Unrecognized, is EditChatError.Unrecognized, is JoinChatError.Unrecognized,
+        is LeaveChatError.Unrecognized, is MuteChatError.Unrecognized, is UnmuteChatError.Unrecognized -> "Unrecognized"
+        is ValidationException -> "Validation"
+        else -> "Network"
+    }
+
+/**
+ * The `Gate Mint` property: the mint a group's listener balance rule names, or null when the
+ * group has no token gate — no rules, or a rule any currency satisfies.
+ */
+val ChatRules?.gateMint: String?
+    get() = this?.listener
+        ?.filterIsInstance<ChatRuleRequirement.MinimumBalance>()
+        ?.firstOrNull()
+        ?.mints
+        ?.singleOrNull()
+        ?.base58()
 
 /** The native amount and currency, with the token amount as `USDC` and `Quarks`. */
 val LocalFiat.analytics: Amount

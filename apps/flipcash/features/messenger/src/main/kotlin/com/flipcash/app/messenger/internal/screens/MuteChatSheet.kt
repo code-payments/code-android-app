@@ -22,7 +22,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.flipcash.app.messenger.internal.MuteOption
 import com.flipcash.features.messenger.R
-import com.flipcash.services.models.chat.MuteState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
@@ -49,7 +48,7 @@ import com.getcode.ui.components.ChoiceRow
 @Composable
 internal fun MuteChatSheet(
     isMuted: Boolean,
-    onMute: (MuteState) -> Unit,
+    onMute: (MuteOption) -> Unit,
     onUnmute: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -113,7 +112,7 @@ internal fun MuteChatSheet(
                     ),
                     onClick = {
                         pinnedOffersUnmute = offersUnmute
-                        onMute(option.toMuteState())
+                        onMute(option)
                     },
                 )
             }

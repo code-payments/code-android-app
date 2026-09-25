@@ -3,15 +3,23 @@ package com.flipcash.app.analytics
 import com.flipcash.analytics.Amount
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.services.models.JoinChatError
+import com.flipcash.services.models.MuteChatError
+import com.flipcash.services.models.StartChatError
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
+import io.mockk.mockk
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
@@ -88,5 +96,39 @@ class ConversionsTest {
             "https://app.flipcash.com/c/abc",
             "https://app.flipcash.com/c/abc?a=b#c".withoutQueryOrFragment(),
         )
+    }
+
+    @Test
+    fun `a chat error reports the proto result name, not its message`() {
+        assertEquals("RulesNotSatisfied", JoinChatError.RulesNotSatisfied().chatResult)
+        assertEquals("NotFound", JoinChatError.NotFound().chatResult)
+        // MuteChatError.Denied's message is "Caller is not a member".
+        assertEquals("Denied", MuteChatError.Denied().chatResult)
+        assertEquals("TitleModerated", StartChatError.TitleModerated(mockk(relaxed = true)).chatResult)
+    }
+
+    @Test
+    fun `a transport failure reports Network`() {
+        val cause = RuntimeException("UNAVAILABLE: io exception")
+        assertEquals("Network", JoinChatError.Other(cause).chatResult)
+    }
+
+    @Test
+    fun `a gate mint is the one mint the listener rule names`() {
+        val rules = ChatRules(
+            listener = listOf(ChatRuleRequirement.MinimumBalance(Fiat(10.0), listOf(mint))),
+            speaker = emptyList(),
+        )
+        assertEquals(mint.base58(), rules.gateMint)
+    }
+
+    @Test
+    fun `an any-currency or ungated group has no gate mint`() {
+        val anyCurrency = ChatRules(
+            listener = listOf(ChatRuleRequirement.MinimumBalance(Fiat(10.0), emptyList())),
+            speaker = emptyList(),
+        )
+        assertNull(anyCurrency.gateMint)
+        assertNull((null as ChatRules?).gateMint)
     }
 }

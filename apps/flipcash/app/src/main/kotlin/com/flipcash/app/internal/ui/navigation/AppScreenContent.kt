@@ -124,7 +124,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Report> { key ->
         ReportFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
-    annotatedEntry<AppRoute.Messaging.MuteChat> { key -> MuteChatScreen(key.chatId) }
+    annotatedEntry<AppRoute.Messaging.MuteChat> { key -> MuteChatScreen(key.chatId, key.chatType) }
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info>(testTag = "token_info_screen") { key ->

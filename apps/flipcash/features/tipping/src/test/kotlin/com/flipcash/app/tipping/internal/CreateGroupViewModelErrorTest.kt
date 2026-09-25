@@ -2,6 +2,9 @@ package com.flipcash.app.tipping.internal
 
 import android.net.Uri
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.GroupEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.blob.ImageUploadPreparer
 import com.flipcash.app.core.MainCoroutineRule
@@ -27,6 +30,7 @@ import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.FakeResourceHelper
 import com.getcode.view.SuccessHoldDuration
@@ -73,6 +77,7 @@ class CreateGroupViewModelErrorTest {
     private val blobStorage = mockk<BlobStorageCoordinator>(relaxed = true)
     private val imagePreparer = mockk<ImageUploadPreparer>(relaxed = true)
     private val contentReader = mockk<ContentReader>(relaxed = true)
+    private val analytics = RecordingAnalytics()
 
     private lateinit var dispatchers: TestDispatchers
 
@@ -100,6 +105,7 @@ class CreateGroupViewModelErrorTest {
         imagePreparer = imagePreparer,
         contentReader = contentReader,
         resources = resources,
+        analytics = analytics,
     )
 
     private fun token(seed: Byte, symbol: String) = MintMetadata(
@@ -393,5 +399,56 @@ class CreateGroupViewModelErrorTest {
 
             assertEquals(created(), vm.stateFlow.value.created)
             assertEquals(uri, vm.stateFlow.value.image.dataOrNull)
+        }
+
+    @Test
+    fun `a created group reports its gate mint and no picture`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = createViewModel()
+            vm.completeDraft()
+            coEvery { chatCoordinator.create(any(), any()) } returns Result.success(created())
+
+            vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+            advanceTimeBy(SuccessHoldDuration)
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(
+                    GroupEvents.created(
+                        state = AnalyticsState.SUCCESS,
+                        error = null,
+                        gateMint = badBoys.base58(),
+                        hasPicture = false,
+                    )
+                ),
+                analytics.events,
+            )
+        }
+
+    /** The proto's result name, not the message; an any-currency group has no gate mint to send. */
+    @Test
+    fun `a refused any-currency group reports the result name and no gate mint`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = createViewModel()
+            vm.completeDraft()
+            vm.dispatchEvent(CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All))
+            failing(StartChatError.RulesNotSatisfied())
+
+            vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(
+                    GroupEvents.created(
+                        state = AnalyticsState.FAILURE,
+                        error = "RulesNotSatisfied",
+                        gateMint = null,
+                        hasPicture = false,
+                    )
+                ),
+                analytics.events,
+            )
         }
 }

@@ -72,4 +72,40 @@ class ChatEventsTest {
             ChatEvents.messageReceived(ChatType.UNKNOWN),
         )
     }
+    @Test
+    fun mutedCarriesEveryDurationByItsWireString() {
+        assertEquals(
+            listOf("1 Hour", "8 Hours", "1 Week", "Always"),
+            MuteDuration.entries.map {
+                (ChatEvents.muted(ChatType.GROUP, it, State.SUCCESS, null).properties.getValue("Duration") as PropertyValue.Text).value
+            },
+        )
+    }
+
+    @Test
+    fun mutedCarriesChatTypeDurationStateAndError() {
+        assertEquals(
+            AnalyticsEvent(
+                "Chat Muted",
+                mapOf(
+                    "Chat Type" to PropertyValue.Text("Contact"),
+                    "Duration" to PropertyValue.Text("8 Hours"),
+                    "State" to PropertyValue.Text("Failure"),
+                    "Error" to PropertyValue.Text("NotFound"),
+                ),
+            ),
+            ChatEvents.muted(ChatType.CONTACT, MuteDuration.EIGHT_HOURS, State.FAILURE, "NotFound"),
+        )
+    }
+
+    @Test
+    fun unmutedCarriesChatTypeAndState() {
+        assertEquals(
+            AnalyticsEvent(
+                "Chat Unmuted",
+                mapOf("Chat Type" to PropertyValue.Text("Group"), "State" to PropertyValue.Text("Success")),
+            ),
+            ChatEvents.unmuted(ChatType.GROUP, State.SUCCESS, null),
+        )
+    }
 }

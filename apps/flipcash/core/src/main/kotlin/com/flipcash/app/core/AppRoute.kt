@@ -8,6 +8,7 @@ import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.reporting.ReportStep
 import com.flipcash.app.core.chat.NewGroupStep
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
 import com.flipcash.app.core.onboarding.OnboardingStep
@@ -416,7 +417,7 @@ sealed interface AppRoute : NavKey, Parcelable {
          */
         @Serializable
         @Parcelize
-        data class MuteChat(val chatId: ChatId) :
+        data class MuteChat(val chatId: ChatId, val chatType: ChatType) :
             Messaging,
             com.getcode.navigation.Sheet,
             com.getcode.navigation.WrapContentSheet

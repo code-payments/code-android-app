@@ -22,7 +22,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.GroupInviteSource
 import com.flipcash.analytics.events.DeeplinkEvents
+import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.analytics.events.ScanEvents
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.analytics.rememberAnalytics
@@ -126,10 +128,13 @@ internal fun Scanner() {
                     )
                     // Same destination as the tapped /chat/{uuid} link: the chat screen is the
                     // gated preview when the viewer is not yet a member.
-                    is DeeplinkType.GroupChatInvite -> listOf(
-                        AppRoute.Tabs.Chats,
-                        AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(deeplink.chatId)),
-                    )
+                    is DeeplinkType.GroupChatInvite -> {
+                        analytics.track(GroupEvents.inviteFollowed(GroupInviteSource.QR))
+                        listOf(
+                            AppRoute.Tabs.Chats,
+                            AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(deeplink.chatId)),
+                        )
+                    }
                     else -> emptyList()
                 }
                 if (routes.isNotEmpty()) {

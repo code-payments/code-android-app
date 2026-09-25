@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 internal fun GroupInviteSheet(
     inviteUrl: String?,
     group: ChatSubject.Group?,
+    onShare: () -> Unit,
     onCopy: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -82,6 +83,7 @@ internal fun GroupInviteSheet(
                     label = stringResource(R.string.action_sendInviteLink),
                     icon = R.drawable.ic_at,
                     onClick = {
+                        onShare()
                         scope.launch {
                             shareController.present(
                                 Shareable.GroupInvite(

@@ -2,6 +2,8 @@ package com.flipcash.app.messenger.internal.screens.profile.edit
 
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.GroupField
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.blob.ImageUploadPreparer
 import com.flipcash.app.core.data.Loadable
@@ -10,11 +12,11 @@ import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.EditChatError
+import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.RejectionReason
-import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.shared.chat.ChatCoordinator
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -23,6 +25,8 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -31,8 +35,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The group-picture edit behind node 10187:110373's Icon row.
@@ -54,6 +56,7 @@ class EditGroupPictureViewModel @Inject constructor(
     private val imagePreparer: ImageUploadPreparer,
     private val contentReader: ContentReader,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
 ) : BaseViewModel<EditGroupPictureViewModel.State, EditGroupPictureViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -194,7 +197,7 @@ class EditGroupPictureViewModel @Inject constructor(
         chatCoordinator.editChat(
             chatId = chatId,
             parameters = pictureOnly(blobId),
-        ).onSuccess {
+        ).also { analytics.trackEdited(GroupField.PICTURE, it) }.onSuccess {
             dispatchEvent(Event.UpdateProcessingState(success = true))
             delay(500.milliseconds)
             dispatchEvent(Event.OnPictureAccepted)

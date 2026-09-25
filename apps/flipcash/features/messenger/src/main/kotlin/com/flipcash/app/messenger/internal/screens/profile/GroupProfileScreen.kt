@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.AppRoute
@@ -42,6 +43,7 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
@@ -139,13 +141,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 when (item.action) {
                     // The same sheet the transcript's own invite CTA opens, pushed on this flow so
                     // it sits over the profile the user asked from.
-                    GroupProfileAction.Invite -> flowNavigator.navigateTo(ChatStep.InviteToGroup)
+                    GroupProfileAction.Invite -> {
+                        viewModel.dispatchEvent(
+                            ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE)
+                        )
+                        flowNavigator.navigateTo(ChatStep.InviteToGroup)
+                    }
                     // Both muting and unmuting go through the picker, which is why this row
                     // navigates either way rather than acting on one of them here. The outer
                     // navigator, as with Report: the sheet is a top-level route shared with the
                     // chat list, so it opens over the chat rather than inside it.
                     GroupProfileAction.Mute -> state.chatId?.let { chatId ->
-                        navigator.push(AppRoute.Messaging.MuteChat(chatId))
+                        navigator.push(AppRoute.Messaging.MuteChat(chatId, ChatType.GROUP))
                     }
                     GroupProfileAction.Leave ->
                         viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat)

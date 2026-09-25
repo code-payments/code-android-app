@@ -14,12 +14,19 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
+import com.flipcash.analytics.GroupGateFunding
+import com.flipcash.analytics.GroupInviteMethod
+import com.flipcash.analytics.GroupInviteSource
+import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.analytics.events.ChatEvents
+import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
+import com.flipcash.app.analytics.gateMint
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -134,6 +141,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -473,6 +481,21 @@ internal class ChatViewModel @Inject constructor(
 
         /** The invite sheet's "Copy Invite Link" row. */
         data object CopyInviteLink : Event
+
+        /** The invite sheet was presented, from the transcript's CTA or the group profile. */
+        data class InviteSheetOpened(val source: GroupInviteSheetSource) : Event
+
+        /** The invite sheet's "Send Invite Link" row, which hands the link to the share sheet. */
+        data object InviteLinkShared : Event
+
+        /** The gate's buy or add-cash button. The navigation is the screen's; this is the record. */
+        data class GateFundingTapped(val method: GroupGateFunding) : Event
+
+        /** The group's profile was pushed from the transcript. */
+        data object GroupInfoOpened : Event
+
+        /** A group invite card in the transcript was tapped through to another group. */
+        data object InviteCardFollowed : Event
 
         /** The group profile's "Leave Chat" row, which puts the confirmation up. */
         data object LeaveChat : Event
@@ -991,6 +1014,7 @@ internal class ChatViewModel @Inject constructor(
         initLinkCardFreshness()
         initClaimReplies()
         initDraftHandlers()
+        initGroupAnalytics()
 
         viewModelScope.launch {
             // Yield to let the first frame render before setting up remaining collectors
@@ -1562,6 +1586,62 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    /**
+     * The group events that are not an RPC's answer: the gate appearing, and the taps on the
+     * invite sheet, an invite card, the gate's funding button and the group profile. The screens report the taps
+     * as events so the member count and the gate mint come from the state this holds.
+     */
+    private fun initGroupAnalytics() {
+        // Once per view model, which is once per visit: the chat flow scopes it to the Chat route.
+        // Keyed on the gate being drawn — outside the group with the access decided — and not on
+        // every re-decision after, so a balance moving under an open chat does not send it again.
+        stateFlow
+            .mapNotNull { state ->
+                val group = state.subject as? ChatSubject.Group ?: return@mapNotNull null
+                if (!state.isOutsideGroup) return@mapNotNull null
+                val access = when (state.groupAccess) {
+                    GroupAccess.Eligible -> AnalyticsGroupAccess.ELIGIBLE
+                    is GroupAccess.Blocked -> AnalyticsGroupAccess.BLOCKED
+                    GroupAccess.Membered, null -> return@mapNotNull null
+                }
+                GroupEvents.gateShown(access, group.rules.gateMint, group.memberCount.toInt())
+            }
+            .take(1)
+            .onEach { analytics.track(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.InviteSheetOpened>()
+            .onEach { event ->
+                val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+                analytics.track(GroupEvents.inviteSheetOpened(event.source, group.memberCount.toInt()))
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.InviteLinkShared>()
+            .onEach { analytics.track(GroupEvents.inviteShared(GroupInviteMethod.SHARE)) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.GateFundingTapped>()
+            .onEach { event ->
+                val group = stateFlow.value.subject as? ChatSubject.Group
+                analytics.track(GroupEvents.gateFundingTapped(event.method, group?.rules.gateMint))
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.InviteCardFollowed>()
+            .onEach { analytics.track(GroupEvents.inviteFollowed(GroupInviteSource.CHAT_CARD)) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.GroupInfoOpened>()
+            .onEach {
+                val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+                analytics.track(
+                    GroupEvents.infoOpened(group.memberCount.toInt(), isMember = group.isMember == true)
+                )
+            }
+            .launchIn(viewModelScope)
+    }
+
     private fun initMessageActionHandlers() {
         // Read off the state rather than carried on the event, so the row that copies the link and
         // the row that shares it are handing out the one url [State.groupInviteUrl] builds.
@@ -1572,6 +1652,7 @@ internal class ChatViewModel @Inject constructor(
                     text = url,
                     label = resources.getString(R.string.title_clipboardLabelGroupInviteLink),
                 )
+                analytics.track(GroupEvents.inviteShared(GroupInviteMethod.COPY))
             }
             .launchIn(viewModelScope)
 
@@ -1658,10 +1739,13 @@ internal class ChatViewModel @Inject constructor(
                     dispatchEvent(Event.JoinStateUpdated())
                     return@onEach
                 }
+                // Read before the call: the roster the count comes from moves with the join.
+                val group = stateFlow.value.subject as? ChatSubject.Group
                 // No optimistic flip. `join` caches the chat and the membership flag comes back
                 // through observeMetadata, which is the same path a join from another device takes —
                 // one source for the gate rather than two that can disagree.
                 chatCoordinator.join(chatId)
+                    .also { analytics.trackJoined(group, it) }
                     .onSuccess {
                         // The gate holds its own confirmation rather than waiting to be replaced:
                         // membership comes back through the roster, which can land on the next frame
@@ -1720,9 +1804,11 @@ internal class ChatViewModel @Inject constructor(
         eventFlow.filterIsInstance<Event.LeaveConfirmed>()
             .onEach {
                 val chatId = stateFlow.value.chatId ?: return@onEach
+                val memberCount = (stateFlow.value.subject as? ChatSubject.Group)?.memberCount?.toInt() ?: 0
                 // `leave` clears the membership locally before the call, so the gate is back in
                 // place by the time the profile closes — the same single source the join reads.
                 chatCoordinator.leave(chatId)
+                    .also { analytics.trackLeft(memberCount, it) }
                     .onSuccess { dispatchEvent(Event.LeftChat) }
                     .onFailure {
                         trace("failed to leave chat - ${it.localizedMessage}")
@@ -2275,6 +2361,11 @@ internal class ChatViewModel @Inject constructor(
                     state.copy(viewerState = event.viewerState)
                 }
                 Event.CopyInviteLink,
+                is Event.InviteSheetOpened,
+                Event.InviteLinkShared,
+                is Event.GateFundingTapped,
+                Event.GroupInfoOpened,
+                Event.InviteCardFollowed,
                 Event.LeaveChat,
                 Event.LeaveConfirmed,
                 Event.LeftChat -> { state -> state }
