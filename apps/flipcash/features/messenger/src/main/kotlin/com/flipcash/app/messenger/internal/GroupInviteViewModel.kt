@@ -20,8 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -64,13 +63,14 @@ internal class GroupInviteViewModel @Inject constructor(
     val invited: Flow<ChatId> = _invited.receiveAsFlow()
 
     init {
-        chatCoordinator.feed(ChatType.CONTACT_DM, ChatType.TIP_DM)
-            .onEach { summaries ->
-                val selfId = userManager.accountId
-                val chats = summaries.map { it.toConversationReference(selfId, emptyMap(), resources) }
-                _state.update { it.copy(recentChats = chats) }
-            }
-            .launchIn(viewModelScope)
+        // One read, not a subscription: a chat receiving a message while the sheet is up would
+        // otherwise jump to the top and move the row out from under the viewer's finger.
+        viewModelScope.launch {
+            val summaries = chatCoordinator.feed(ChatType.CONTACT_DM, ChatType.TIP_DM).first()
+            val selfId = userManager.accountId
+            val chats = summaries.map { it.toConversationReference(selfId, emptyMap(), resources) }
+            _state.update { it.copy(recentChats = chats) }
+        }
     }
 
     fun toggle(chatId: ChatId) {

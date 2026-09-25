@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatSummary
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -11,6 +12,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -135,6 +137,21 @@ class GroupInviteViewModelTest {
         // A chat whose link failed is not sent the message that was meant to follow it.
         coVerify(exactly = 0) { chatCoordinator.sendMessage(alice, "hi", any()) }
         coVerify(exactly = 0) { chatCoordinator.sendMessage(bob, "hi", any()) }
+    }
+
+    @Test
+    fun `the list is the feed as the sheet opened, not later updates`() = runTest(scheduler) {
+        val feed = MutableSharedFlow<List<ChatSummary>>(replay = 1)
+        every { chatCoordinator.feed(*anyVararg()) } returns feed
+        feed.emit(emptyList())
+
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(emptyList<Any>(), model.state.value.recentChats)
+
+        feed.emit(listOf(mockk(relaxed = true)))
+        advanceUntilIdle()
+        assertEquals(emptyList<Any>(), model.state.value.recentChats)
     }
 
     @Test

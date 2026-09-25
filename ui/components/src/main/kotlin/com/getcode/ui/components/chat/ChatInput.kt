@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -63,6 +64,12 @@ sealed interface ChatInputSubmit {
 
     /** Confirms an edit of a message already in the transcript. */
     data class ConfirmEdit(override val perform: () -> Unit) : ChatInputSubmit
+
+    /**
+     * A named action that does not need the field's text, such as sending a group invite with an
+     * optional message. Shown as [label] whether or not anything is typed.
+     */
+    data class Action(val label: String, override val perform: () -> Unit) : ChatInputSubmit
 }
 
 @Composable
@@ -75,7 +82,7 @@ fun ChatInput(
     submit: ChatInputSubmit,
 ) {
     val shape = CodeTheme.shapes.medium
-    val sendVisible = state.text.isNotEmpty()
+    val sendVisible = state.text.isNotEmpty() || submit is ChatInputSubmit.Action
     val sendSpec = spring<Float>(dampingRatio = 0.66f, stiffness = 4000f)
     val sendAlpha by animateFloatAsState(
         targetValue = if (sendVisible) 1f else 0f,
@@ -139,7 +146,7 @@ fun ChatInput(
                         .clip(CodeTheme.shapes.extraSmall)
                         // Reads the current submit rather than the one the crossfade happens to
                         // be showing, so a tap mid-transition does what the composer is now for.
-                        .clickable(enabled = sendVisible) { submit.perform() }
+                        .clickable(enabled = sendVisible && enabled) { submit.perform() }
                         .padding(CodeTheme.dimens.staticGrid.x1),
                 ) {
                     // The button stays put and only its glyph changes, so entering and leaving edit
@@ -156,7 +163,14 @@ fun ChatInput(
                         },
                         label = "send glyph",
                     ) { target ->
-                        if (target is ChatInputSubmit.ConfirmEdit) {
+                        if (target is ChatInputSubmit.Action) {
+                            Text(
+                                modifier = Modifier.padding(horizontal = CodeTheme.dimens.staticGrid.x2),
+                                text = target.label,
+                                style = CodeTheme.typography.textMedium,
+                                color = Color.Black,
+                            )
+                        } else if (target is ChatInputSubmit.ConfirmEdit) {
                             Icon(
                                 modifier = Modifier
                                     .testTag("chat_confirm_edit_icon")
@@ -204,6 +218,20 @@ private fun Preview_ChatInput_Typing() {
                 modifier = Modifier.padding(15.dp),
                 submit = ChatInputSubmit.Send {},
                 state = TextFieldState("That’s very kind of you. I ha")
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_ChatInput_Action() {
+    DesignSystem {
+        Box(modifier = Modifier.background(Color(0xFF19191A))) {
+            ChatInput(
+                modifier = Modifier.padding(15.dp),
+                hint = "Add a message",
+                submit = ChatInputSubmit.Action(label = "Invite") {},
             )
         }
     }
