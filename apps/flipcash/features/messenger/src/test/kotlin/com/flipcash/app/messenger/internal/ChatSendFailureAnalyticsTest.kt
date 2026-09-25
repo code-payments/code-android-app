@@ -17,6 +17,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.models.UserProfile
+import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
@@ -91,6 +92,7 @@ class ChatSendFailureAnalyticsTest {
     private val chatDraftStore = mockk<ChatDraftStore>(relaxed = true)
     private val recentReactionsStore = mockk<RecentReactionsStore>(relaxed = true)
     private val emojiCatalogLoader = mockk<EmojiCatalogLoader>(relaxed = true)
+    private val userProfileDataSource = mockk<UserProfileDataSource>(relaxed = true)
 
     private val token = mockk<Token>(relaxed = true)
     private val amount = Fiat(5.0)
@@ -140,6 +142,7 @@ class ChatSendFailureAnalyticsTest {
         recentReactionsStore = recentReactionsStore,
         toastController = mockk(relaxed = true),
         emojiCatalogLoader = emojiCatalogLoader,
+        userProfileDataSource = userProfileDataSource,
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 

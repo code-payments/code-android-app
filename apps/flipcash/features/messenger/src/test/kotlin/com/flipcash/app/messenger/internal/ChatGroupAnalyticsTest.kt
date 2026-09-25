@@ -8,6 +8,7 @@ import com.flipcash.analytics.PropertyValue
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
@@ -96,6 +97,7 @@ class ChatGroupAnalyticsTest {
     private val chatDraftStore = mockk<ChatDraftStore>(relaxed = true)
     private val recentReactionsStore = mockk<RecentReactionsStore>(relaxed = true)
     private val emojiCatalogLoader = mockk<EmojiCatalogLoader>(relaxed = true)
+    private val userProfileDataSource = mockk<UserProfileDataSource>(relaxed = true)
 
     private val chatId = ChatId(UUID.randomUUID().bytes)
     private val mint = Mint("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaa")
@@ -148,6 +150,7 @@ class ChatGroupAnalyticsTest {
         recentReactionsStore = recentReactionsStore,
         toastController = mockk(relaxed = true),
         emojiCatalogLoader = emojiCatalogLoader,
+        userProfileDataSource = userProfileDataSource,
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 
