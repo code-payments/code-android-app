@@ -24,14 +24,14 @@ class ChatTypeConvertersTest {
                         ReactorSerialized(userIdHex = "aabb", reactedAtEpochSeconds = 1000L),
                         ReactorSerialized(userIdHex = "ccdd", reactedAtEpochSeconds = 2000L),
                     ),
-                    sequence = 5,
+                    version = 5,
                 ),
                 EmojiReactionSerialized(
                     emoji = "\uD83D\uDC4D",
                     count = 1,
                     selfReactor = null,
                     sampleReactors = emptyList(),
-                    sequence = 3,
+                    version = 3,
                 ),
             ),
         )

@@ -9,7 +9,7 @@ data class ReactionUpdate(
     val actor: ID,
     val action: Action,
     val count: Long,
-    val sequence: Long,
+    val version: Long,
     val reactedAt: Instant,
 ) {
     enum class Action {

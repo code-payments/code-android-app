@@ -266,7 +266,7 @@ internal fun MessagingModel.EmojiReaction.toEmojiReaction(): EmojiReaction {
         count = count,
         selfReactor = if (hasSelfReactor()) selfReactor.toReactor() else null,
         sampleReactors = sampleReactorsList.map { it.toReactor() },
-        sequence = version,
+        version = version,
     )
 }
 
@@ -289,7 +289,7 @@ internal fun MessagingModel.ReactionUpdate.toReactionUpdate(): ReactionUpdate {
             else -> ReactionUpdate.Action.UNKNOWN
         },
         count = count,
-        sequence = version,
+        version = version,
         reactedAt = Instant.fromEpochSeconds(reactedTs.seconds, reactedTs.nanos),
     )
 }

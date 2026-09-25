@@ -61,7 +61,7 @@ class ChatMessagingControllerTest {
         count = count,
         selfReactor = null,
         sampleReactors = emptyList(),
-        sequence = 1,
+        version = 1,
     )
 
     // region getMessage

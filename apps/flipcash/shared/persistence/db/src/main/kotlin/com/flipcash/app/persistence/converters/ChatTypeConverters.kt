@@ -259,7 +259,7 @@ data class EmojiReactionSerialized(
     val count: Long,
     val selfReactor: ReactorSerialized? = null,
     val sampleReactors: List<ReactorSerialized>,
-    val sequence: Long,
+    val version: Long,
 )
 
 @Serializable

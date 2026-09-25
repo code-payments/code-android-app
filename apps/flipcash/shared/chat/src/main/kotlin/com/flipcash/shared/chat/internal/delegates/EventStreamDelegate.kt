@@ -60,7 +60,7 @@ import kotlin.time.Duration.Companion.seconds
  *   gap is detected, a timed [getDelta][performDeltaSync] backfill is scheduled.
  * - **Reaction overlays** — merges [ReactionUpdate]s into an in-memory
  *   `Map<ChatId, Map<Long, ReactionSummary>>` with last-writer-wins on
- *   `EmojiReaction.sequence`.
+ *   `EmojiReaction.version`.
  * - **Typing indicators** — maintains per-chat `Set<ActiveTypist>` in [ChatStateHolder].
  * - **Eager balance update** — credits incoming cash messages to [TokenCoordinator]
  *   before the server balance refresh arrives.
@@ -474,7 +474,7 @@ class EventStreamDelegate @Inject constructor(
         val idx = existingReactions.indexOfFirst { it.emoji == update.emoji }
         if (idx >= 0) {
             val current = existingReactions[idx]
-            if (update.sequence <= current.sequence) return
+            if (update.version <= current.version) return
             val selfReactor = when {
                 isSelfActor && update.action == ReactionUpdate.Action.ADDED ->
                     Reactor(userId = update.actor, reactedAt = update.reactedAt, version = current.selfReactor?.version ?: 0)
@@ -486,7 +486,7 @@ class EventStreamDelegate @Inject constructor(
                 count = update.count,
                 selfReactor = selfReactor,
                 sampleReactors = current.sampleReactors,
-                sequence = update.sequence,
+                version = update.version,
             )
         } else {
             val selfReactor = if (isSelfActor && update.action == ReactionUpdate.Action.ADDED) {
@@ -500,7 +500,7 @@ class EventStreamDelegate @Inject constructor(
                     count = update.count,
                     selfReactor = selfReactor,
                     sampleReactors = emptyList(),
-                    sequence = update.sequence,
+                    version = update.version,
                 )
             )
         }

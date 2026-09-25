@@ -302,7 +302,7 @@ class ChatCoordinatorEventsTest {
                         actor = otherId,
                         action = ReactionUpdate.Action.ADDED,
                         count = 1,
-                        sequence = 1,
+                        version = 1,
                         reactedAt = Instant.fromEpochSeconds(1000),
                     ),
                 ),
@@ -337,7 +337,7 @@ class ChatCoordinatorEventsTest {
                         actor = otherId,
                         action = ReactionUpdate.Action.ADDED,
                         count = 3,
-                        sequence = 5,
+                        version = 5,
                         reactedAt = Instant.fromEpochSeconds(1000),
                     ),
                 ),
@@ -355,7 +355,7 @@ class ChatCoordinatorEventsTest {
                         actor = otherId,
                         action = ReactionUpdate.Action.REMOVED,
                         count = 1,
-                        sequence = 2, // older than 5
+                        version = 2, // older than 5
                         reactedAt = Instant.fromEpochSeconds(500),
                     ),
                 ),
@@ -367,7 +367,7 @@ class ChatCoordinatorEventsTest {
             assertNotNull(reactions)
             assertEquals(1, reactions.size)
             assertEquals(3L, reactions[0].count) // stayed at 3, stale update rejected
-            assertEquals(5L, reactions[0].sequence)
+            assertEquals(5L, reactions[0].version)
         }
     }
 
@@ -386,7 +386,7 @@ class ChatCoordinatorEventsTest {
                         actor = otherId,
                         action = ReactionUpdate.Action.ADDED,
                         count = 1,
-                        sequence = 1,
+                        version = 1,
                         reactedAt = Instant.fromEpochSeconds(1000),
                     ),
                 ),
@@ -404,7 +404,7 @@ class ChatCoordinatorEventsTest {
                         actor = otherId,
                         action = ReactionUpdate.Action.REMOVED,
                         count = 0,
-                        sequence = 2,
+                        version = 2,
                         reactedAt = Instant.fromEpochSeconds(2000),
                     ),
                 ),
@@ -432,7 +432,7 @@ class ChatCoordinatorEventsTest {
                         actor = otherId,
                         action = ReactionUpdate.Action.ADDED,
                         count = 2,
-                        sequence = 1,
+                        version = 1,
                         reactedAt = Instant.fromEpochSeconds(1000),
                     ),
                     ReactionUpdate(
@@ -441,7 +441,7 @@ class ChatCoordinatorEventsTest {
                         actor = otherId,
                         action = ReactionUpdate.Action.ADDED,
                         count = 5,
-                        sequence = 2,
+                        version = 2,
                         reactedAt = Instant.fromEpochSeconds(1000),
                     ),
                 ),

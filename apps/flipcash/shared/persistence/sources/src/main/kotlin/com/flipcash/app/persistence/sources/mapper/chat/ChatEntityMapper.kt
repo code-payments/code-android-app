@@ -436,7 +436,7 @@ private fun EmojiReaction.toSerialized(): EmojiReactionSerialized = EmojiReactio
     count = count,
     selfReactor = selfReactor?.toSerialized(),
     sampleReactors = sampleReactors.map { it.toSerialized() },
-    sequence = sequence,
+    version = version,
 )
 
 private fun Reactor.toSerialized(): ReactorSerialized = ReactorSerialized(
@@ -455,7 +455,7 @@ private fun EmojiReactionSerialized.toDomain(): EmojiReaction = EmojiReaction(
     count = count,
     selfReactor = selfReactor?.toDomain(),
     sampleReactors = sampleReactors.map { it.toDomain() },
-    sequence = sequence,
+    version = version,
 )
 
 private fun ReactorSerialized.toDomain(): Reactor = Reactor(
