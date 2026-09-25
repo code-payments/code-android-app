@@ -83,4 +83,19 @@ class TransferEventsTest {
             TransferEvents.sendCashLink(State.SUCCESS, null, CashLinkChoice.SHARED, "com.whatsapp", null),
         )
     }
+
+    @Test
+    fun sendCashLinkToAGroupChatThatFailed() {
+        assertEquals(
+            AnalyticsEvent(
+                "Send Cash Link",
+                mapOf(
+                    "Cash Link Choice" to PropertyValue.Text("Posted to group chat"),
+                    "State" to PropertyValue.Text("Failure"),
+                    "Error" to PropertyValue.Text("offline"),
+                ),
+            ),
+            TransferEvents.sendCashLink(State.FAILURE, null, CashLinkChoice.GROUP_CHAT, null, "offline"),
+        )
+    }
 }

@@ -14,6 +14,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.CashLinkChoice
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteMethod
@@ -45,6 +46,7 @@ import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
 import com.flipcash.app.session.CashLinkClaims
+import com.flipcash.app.session.ChatCashLinks
 import com.flipcash.app.session.SettledClaim
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -177,6 +179,7 @@ internal class ChatViewModel @Inject constructor(
     private val linkCardClassifier: LinkCardClassifier,
     private val linkCardResolver: LinkCardResolver,
     private val cashLinkClaims: CashLinkClaims,
+    private val chatCashLinks: ChatCashLinks,
     private val chatDraftStore: ChatDraftStore,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
@@ -1933,9 +1936,10 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.OnSendCash>()
-            // Both contact DMs and tip DMs can send cash; the recipient is whichever participant
-            // backs the chat. The final send branches on that type (see Event.OnSendRequested).
-            .filter { stateFlow.value.participant != null }
+            // Contact DMs and tip DMs send to whichever participant backs the chat; a group has no
+            // participant and sends a cash link instead. The final send branches on that type (see
+            // Event.OnSendRequested).
+            .filter { stateFlow.value.participant != null || stateFlow.value.chatType == ChatType.GROUP }
             .onEach {
                 if (!tokenCoordinator.hasGiveableBalance()) {
                     if (!tokenCoordinator.hasBalance()) {
@@ -1947,8 +1951,9 @@ internal class ChatViewModel @Inject constructor(
                 }
                 // The payment that opens a tip DM costs exactly the recipient's fee, so there is
                 // nothing to enter — send it straight to the sheet that states the fee. Every
-                // other send, including the moment before the fee resolves, keeps the keypad.
-                val fee = minAmountFlow.value
+                // other send, including the moment before the fee resolves, keeps the keypad. A
+                // group has no one to charge a fee, so it always gets the keypad.
+                val fee = minAmountFlow.value.takeUnless { stateFlow.value.chatType == ChatType.GROUP }
                 if (fee != null) {
                     dispatchEvent(Event.NavigateToInitPayment)
                 } else {
@@ -1968,8 +1973,9 @@ internal class ChatViewModel @Inject constructor(
 
         // Send cash. The transfer itself is delegated by chat type: a contact DM pays a phone
         // number (contact metadata), a tip DM pays a user id (tip metadata). Both delegates resolve
-        // the recipient, transfer, debit the local balance, and sync the feed; this handler owns the
-        // shared amount verification, send state, analytics, and error UI.
+        // the recipient, transfer, debit the local balance, and sync the feed. A group funds a cash
+        // link and posts it (ChatCashLinks). This handler owns the shared amount verification, send
+        // state, analytics, and error UI.
         eventFlow.filterIsInstance<Event.OnSendRequested>()
             .onEach { (amount, token) ->
                 viewModelScope.launch {
@@ -2056,41 +2062,49 @@ internal class ChatViewModel @Inject constructor(
                             origin = if (tipAction == TipAction.TIP) TipOrigin.TIPCARD else TipOrigin.CHAT,
                             action = tipAction,
                         )
+                        // A group has no one participant to pay, so the cash goes in as a link
+                        // that the first member to tap claims.
                         null -> {
-                            dispatchEvent(Event.SendStateUpdated())
-                            return@launch
+                            if (chatId == null || stateFlow.value.chatType != ChatType.GROUP) {
+                                dispatchEvent(Event.SendStateUpdated())
+                                return@launch
+                            }
+                            chatCashLinks.sendToChat(
+                                chatId = chatId,
+                                amount = verifiedFiat,
+                                token = token,
+                                owner = owner,
+                            )
                         }
                     }
 
-                    // Report what was sent — the tip call to action above is a tip, and every
-                    // other send from this screen (contact DM or unlocked tip DM) is a plain cash
-                    // send. Same `tipAction` the wire `action` above was set from, not a second
-                    // "is this a tip" check that could drift from it.
+                    // Report what was sent. A group's send is a cash link. Otherwise the tip call
+                    // to action above is a tip, and every other send from this screen (contact DM
+                    // or unlocked tip DM) is a plain cash send. Same `tipAction` the wire `action`
+                    // above was set from, not a second "is this a tip" check that could drift
+                    // from it.
+                    val isCashLink = stateFlow.value.participant == null
                     val isTip = tipAction == TipAction.TIP
+                    val sent = { state: AnalyticsState, error: String? ->
+                        val sentAmount = verifiedFiat.localFiat.analytics
+                        when {
+                            isCashLink -> TransferEvents.sendCashLink(state, sentAmount, CashLinkChoice.GROUP_CHAT, null, error)
+                            isTip -> TransferEvents.sentTip(state, sentAmount, error)
+                            else -> TransferEvents.sentCash(state, sentAmount, error)
+                        }
+                    }
 
                     result.onSuccess {
                         dispatchEvent(Event.SendStateUpdated(success = true))
                         delay(400.milliseconds)
-                        analytics.track(
-                            if (isTip) {
-                                TransferEvents.sentTip(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null)
-                            } else {
-                                TransferEvents.sentCash(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null)
-                            }
-                        )
+                        analytics.track(sent(AnalyticsState.SUCCESS, null))
                         dispatchEvent(
                             Dispatchers.Main,
                             Event.SendComplete(verifiedFiat.localFiat.nativeAmount)
                         )
                     }.onFailure { cause ->
                         dispatchEvent(Event.SendStateUpdated())
-                        analytics.track(
-                            if (isTip) {
-                                TransferEvents.sentTip(AnalyticsState.FAILURE, verifiedFiat.localFiat.analytics, cause.analytics)
-                            } else {
-                                TransferEvents.sentCash(AnalyticsState.FAILURE, verifiedFiat.localFiat.analytics, cause.analytics)
-                            }
-                        )
+                        analytics.track(sent(AnalyticsState.FAILURE, cause.analytics))
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_cashFailedToSend),
                             message = resources.getString(R.string.error_description_cashFailedToSend),

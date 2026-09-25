@@ -16,12 +16,10 @@ import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareableConfirmationController
-import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.core.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -38,11 +36,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -73,8 +69,7 @@ class GiftCardSharingDelegate @Inject constructor(
     private val shareSheetController: ShareSheetController,
     private val shareConfirmationController: ShareableConfirmationController,
     private val toastController: SessionToastController,
-    private val tokenCoordinator: TokenCoordinator,
-    private val transactionController: TransactionController,
+    private val funding: GiftCardFunding,
     private val analytics: FlipcashAnalytics,
     private val vibrator: Vibrator,
     private val resources: ResourceHelper,
@@ -259,42 +254,22 @@ class GiftCardSharingDelegate @Inject constructor(
         amount: LocalFiat,
         token: Token,
         verifiedState: VerifiedState,
-    ): Result<LocalFiat> = suspendCancellableCoroutine { cont ->
-        billController.fundGiftCard(
-            giftCard = giftCard,
-            amount = amount,
-            token = token,
-            owner = owner,
-            verifiedState = verifiedState,
-            onFunded = {
-                tokenCoordinator.subtract(token, amount)
-                shareSheetController.reset()
-                cont.resume(Result.success(it))
-            },
-            onError = {
-                _events.trySend(Event.DismissBill(PutInWallet))
-                BottomBarManager.showError(
-                    title = resources.getString(R.string.error_title_failedToCreateGiftCard),
-                    message = resources.getString(R.string.error_description_failedToCreateGiftCard)
-                )
-                cont.resume(Result.failure(it))
-            }
-        )
-    }
+    ): Result<LocalFiat> = funding.fund(giftCard, owner, amount, token, verifiedState)
+        .onSuccess { shareSheetController.reset() }
+        .onFailure {
+            _events.trySend(Event.DismissBill(PutInWallet))
+            BottomBarManager.showError(
+                title = resources.getString(R.string.error_title_failedToCreateGiftCard),
+                message = resources.getString(R.string.error_description_failedToCreateGiftCard)
+            )
+        }
 
     private suspend fun cancelGiftCard(
         owner: AccountCluster,
         giftCard: GiftCardAccount
     ) {
-        transactionController.cancelRemoteSend(
-            vault = giftCard.cluster.vaultPublicKey,
-            owner = owner,
-        ).onFailure {
-            _events.trySend(Event.DismissBill(PutInWallet))
-        }.onSuccess {
-            tokenCoordinator.update()
-            _events.trySend(Event.DismissBill(PutInWallet))
-        }
+        funding.cancel(owner, giftCard)
+        _events.trySend(Event.DismissBill(PutInWallet))
     }
 }
 

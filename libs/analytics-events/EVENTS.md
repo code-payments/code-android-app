@@ -204,7 +204,7 @@ No properties.
 | amount | group | yes | [amount](#amount) |
 | Error | text | yes | |
 
-> **Drift:** iOS sends no Cash Link Choice or App, and sends Exchange Rate and no USDC (see Amount). Android never sends Failure.
+> **Drift:** iOS sends no Cash Link Choice or App, and sends Exchange Rate and no USDC (see Amount). Android sends Failure only for a link posted to a group chat.
 
 ### Receive Cash Link
 
@@ -559,6 +559,7 @@ The `Cash Link Choice` property on Send Cash Link: how the user passed the link 
 |---|---|---|
 | Copied to clipboard | `COPIED` | |
 | Shared to app | `SHARED` | |
+| Posted to group chat | `GROUP_CHAT` | |
 
 ### AddMoneySource
 
