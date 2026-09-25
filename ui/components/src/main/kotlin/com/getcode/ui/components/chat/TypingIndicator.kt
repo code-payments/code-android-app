@@ -152,6 +152,16 @@ private fun <T> AvatarStack(
         }
     }
 
+    // A typist can change without changing key, such as when their profile resolves after they
+    // started typing. The effect above only runs when the keys change, so without this the avatar
+    // keeps drawing the typist as they first arrived.
+    LaunchedEffect(shown) {
+        shown.forEach { item ->
+            val itemKey = key(item)
+            entries.firstOrNull { it.key == itemKey && !it.leaving }?.item = item
+        }
+    }
+
     // Stacking order: later slots on top, and a leaving avatar beneath everything, so the ones
     // that close the gap slide over it.
     fun StackEntry<T>.z(): Float = if (leaving) -1f else slot.value
