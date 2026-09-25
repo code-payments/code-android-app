@@ -1,14 +1,15 @@
 package com.flipcash.app.messenger.internal.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -17,16 +18,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -45,13 +53,18 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
-import com.getcode.theme.White05
 import com.getcode.theme.White50
-import com.getcode.theme.inputColors
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.components.TextInput
+import com.getcode.ui.components.chat.ChatInput
+import com.getcode.ui.components.chat.ChatInputSubmit
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 
 /**
@@ -147,37 +160,45 @@ internal fun GroupInviteSheet(
         }
 
         val recentChats = state.recentChats.orEmpty()
-        if (recentChats.isNotEmpty()) {
-            Text(
-                modifier = Modifier.padding(
-                    horizontal = CodeTheme.dimens.inset,
-                    vertical = CodeTheme.dimens.grid.x2,
-                ),
-                text = stringResource(R.string.label_recentChats),
-                style = CodeTheme.typography.textSmall,
-                color = White50,
-            )
-        }
+        val hazeState = rememberHazeState()
+        val density = LocalDensity.current
+        var composerHeight by remember { mutableStateOf(0.dp) }
 
-        // Takes what is left of the sheet without claiming it, so a short list does not push the
-        // message bar to the bottom of the screen.
-        LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
-            items(recentChats, key = { it.chatId.toString() }) { chat ->
-                RecentChatRow(
-                    chat = chat,
-                    selected = chat.chatId in state.selection,
-                    enabled = !state.sending,
-                    onClick = { onToggle(chat.chatId) },
+        // The list runs the rest of the sheet and scrolls under the message bar, which blurs what
+        // passes behind it more the lower it goes (node 10330:19709), rather than stopping above it.
+        Box(modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState),
+                contentPadding = PaddingValues(
+                    bottom = if (state.showsComposer) composerHeight else 0.dp,
+                ),
+            ) {
+                if (recentChats.isNotEmpty()) {
+                    item(key = "header") { RecentChatsHeader() }
+                }
+                items(recentChats, key = { it.chatId.toString() }) { chat ->
+                    RecentChatRow(
+                        chat = chat,
+                        selected = chat.chatId in state.selection,
+                        enabled = !state.sending,
+                        onClick = { onToggle(chat.chatId) },
+                    )
+                }
+            }
+
+            if (state.showsComposer) {
+                InviteComposer(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .onSizeChanged { composerHeight = with(density) { it.height.toDp() } },
+                    hazeState = hazeState,
+                    sending = state.sending,
+                    onMessageChanged = onMessageChanged,
+                    onInvite = onInvite,
                 )
             }
-        }
-
-        if (state.showsComposer) {
-            InviteComposer(
-                sending = state.sending,
-                onMessageChanged = onMessageChanged,
-                onInvite = onInvite,
-            )
         }
     }
 }
@@ -192,7 +213,24 @@ private fun ShortcutIcon(icon: Int) {
     )
 }
 
-/** Node 10330:19387 — one 1:1 chat, picked or not. The whole row takes the tap. */
+/** Node 10330:19568 — the list's label, ruled off from the rows below it. */
+@Composable
+private fun RecentChatsHeader() {
+    Column(modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset)) {
+        Text(
+            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
+            text = stringResource(R.string.label_recentChats),
+            style = CodeTheme.typography.textSmall,
+            color = White50,
+        )
+        HorizontalDivider(color = CodeTheme.colors.divider)
+    }
+}
+
+/**
+ * Node 10330:19387 — one 1:1 chat, picked or not. The whole row takes the tap. Its divider starts
+ * at the name, not the avatar, as in node 10330:19585.
+ */
 @Composable
 private fun RecentChatRow(
     chat: ConversationReference,
@@ -204,9 +242,9 @@ private fun RecentChatRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = enabled, role = Role.Checkbox, onClick = onClick)
-            .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x2),
+            .padding(horizontal = CodeTheme.dimens.inset),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+        horizontalArrangement = Arrangement.spacedBy(RowGap),
     ) {
         ContactAvatar(
             image = chat.image,
@@ -216,21 +254,30 @@ private fun RecentChatRow(
                 .requiredSize(CodeTheme.dimens.staticGrid.x6)
                 .clip(CircleShape),
         )
-        Text(
-            modifier = Modifier.weight(1f),
-            text = chat.name.orEmpty(),
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        // The same mark the token and currency pickers use, so this reads as the same kind of list.
-        Image(
-            painter = painterResource(
-                if (selected) R.drawable.ic_checked else R.drawable.ic_unchecked
-            ),
-            contentDescription = null,
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x4),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = chat.name.orEmpty(),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textMain,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // The same mark the token and currency pickers use, so this reads as the same kind
+                // of list.
+                Image(
+                    painter = painterResource(
+                        if (selected) R.drawable.ic_checked else R.drawable.ic_unchecked
+                    ),
+                    contentDescription = null,
+                )
+            }
+            HorizontalDivider(color = CodeTheme.colors.divider)
+        }
     }
 }
 
@@ -238,59 +285,50 @@ private fun RecentChatRow(
  * Node 10329:11963 — the message to go with the link, and the send. Only drawn once a chat is
  * picked; the field keeps its own text, and the sheet's view model reads it at send time.
  *
- * One pill holds both: the field draws no box of its own, so the hint sits on the pill's inset
- * like the design's bare "Add a message" label rather than in a second rounded field.
+ * The chat screen's own composer, so typing here feels like typing in a chat, with an Invite label
+ * in place of the send arrow because the link goes out whether or not a message is typed. Behind
+ * it, the list blurs in from nothing at the top edge to full at the bottom.
  */
 @Composable
 private fun InviteComposer(
+    hazeState: HazeState,
     sending: Boolean,
     onMessageChanged: (String) -> Unit,
     onInvite: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val message = rememberTextFieldState()
-    Row(
-        modifier = Modifier
+    LaunchedEffect(message) {
+        snapshotFlow { message.text.toString() }.collect(onMessageChanged)
+    }
+    val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
+    Box(
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x2)
-            .clip(ComposerShape)
-            .background(White05)
-            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
-        TextInput(
-            modifier = Modifier.weight(1f),
-            state = message,
-            placeholder = stringResource(R.string.hint_addAMessage),
-            enabled = !sending,
-            minHeight = InviteButtonHeight,
-            colors = inputColors(
-                borderColor = Color.Transparent,
-                backgroundColor = Color.Transparent,
-                placeholderColor = CodeTheme.colors.textMain.copy(alpha = 0.4f),
-            ),
-            onStateChanged = { onMessageChanged(message.text.toString()) },
-        )
-        Box(
-            modifier = Modifier
-                .height(InviteButtonHeight)
-                .clip(InviteButtonShape)
-                .background(White)
-                .clickable(enabled = !sending, role = Role.Button, onClick = onInvite)
-                .padding(horizontal = CodeTheme.dimens.grid.x3),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.action_invite),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.background,
+            .hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                style = material.then {
+                    progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
+                },
             )
-        }
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x2),
+    ) {
+        ChatInput(
+            modifier = Modifier.border(
+                CodeTheme.dimens.border,
+                CodeTheme.colors.divider,
+                CodeTheme.shapes.medium,
+            ),
+            enabled = !sending,
+            hint = stringResource(R.string.hint_addAMessage),
+            state = message,
+            submit = ChatInputSubmit.Action(label = stringResource(R.string.action_invite)) {
+                onInvite()
+            },
+        )
     }
 }
 
-// Node 10329:11963's measurements. The theme has no 14dp shape, and the button's 34dp height is
-// what lines the field's text up with the button's label.
-private val ComposerShape = RoundedCornerShape(14.dp)
-private val InviteButtonShape = RoundedCornerShape(6.dp)
-private val InviteButtonHeight = 34.dp
+// Node 10330:19572: the gap between avatar and name, which is also where the row's divider starts.
+private val RowGap = 16.dp
