@@ -14,8 +14,10 @@ object ReactionsModule {
 
     @Provides
     @Singleton
-    fun providesRecentReactionsStore(@ApplicationContext context: Context): RecentReactionsStore =
-        DataStoreRecentReactionsStore(context)
+    fun providesRecentReactionsStore(
+        @ApplicationContext context: Context,
+        owner: RecentReactionsOwner,
+    ): RecentReactionsStore = DataStoreRecentReactionsStore(context, owner)
 
     @Provides
     @Singleton

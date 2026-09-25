@@ -28,17 +28,28 @@ interface RecentReactionsStore {
     suspend fun stats(): Map<String, RecentReactions.Usage>
 }
 
+/**
+ * The signed-in account whose recents [DataStoreRecentReactionsStore] reads and writes, or null
+ * when nobody is signed in. One device serves every account, and switching back to one should find
+ * its recents where it left them, so each account's usage lives under its own keys.
+ */
+fun interface RecentReactionsOwner {
+    fun current(): String?
+}
+
 @Singleton
 class DataStoreRecentReactionsStore @Inject constructor(
     @ApplicationContext context: Context,
+    private val owner: RecentReactionsOwner,
 ) : RecentReactionsStore {
 
     private val dataStore = context.recentReactionsDataStore
 
     override suspend fun record(emoji: String) {
+        val owner = owner.current() ?: return
         val now = Clock.System.now()
         dataStore.edit { prefs ->
-            val key = key(emoji)
+            val key = key(owner, emoji)
             val current = decode(prefs[key])
             prefs[key] = encode(RecentReactions.Usage(count = current.count + 1, lastUsed = now))
         }
@@ -48,16 +59,19 @@ class DataStoreRecentReactionsStore @Inject constructor(
         RecentReactions.rank(stats(), undrawable, limit)
 
     override suspend fun stats(): Map<String, RecentReactions.Usage> {
+        val prefix = prefix(owner.current() ?: return emptyMap())
         val prefs = dataStore.data.first()
         return prefs.asMap().mapNotNull { (prefsKey, raw) ->
-            val emoji = prefsKey.name.removePrefix(KEY_PREFIX)
+            val emoji = prefsKey.name.removePrefix(prefix)
             if (emoji == prefsKey.name) return@mapNotNull null // not one of ours
             val usage = decode(raw as? String) ?: return@mapNotNull null
             emoji to usage
         }.toMap()
     }
 
-    private fun key(emoji: String) = stringPreferencesKey("$KEY_PREFIX$emoji")
+    private fun prefix(owner: String) = "$owner:$KEY_PREFIX"
+
+    private fun key(owner: String, emoji: String) = stringPreferencesKey("${prefix(owner)}$emoji")
 
     private fun encode(usage: RecentReactions.Usage): String = "${usage.count}:${usage.lastUsed.epochSeconds}"
 
