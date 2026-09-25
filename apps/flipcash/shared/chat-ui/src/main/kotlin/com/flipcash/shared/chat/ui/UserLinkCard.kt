@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -48,8 +49,9 @@ import kotlin.time.Instant
  * text needs up to the width it is given. Tapped as a whole; a card with no account behind it takes
  * no tap.
  *
- * Built from the person's public profile only, and shares nothing with the tip card. The corner
- * and border are the group invite card's; the rest is in [UserLinkCardDefaults].
+ * Built from the person's public profile only, and shares nothing with the tip card. [shape] is
+ * the outline of the bubble the card stands in for, as for every link card; the border is the
+ * group invite card's, and the rest is in [UserLinkCardDefaults].
  *
  * At accessibility font sizes the avatar moves above the text and every line wraps, where a row
  * would cut each one short.
@@ -63,9 +65,9 @@ internal fun UserLinkCard(
     card: LinkCard.User,
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    shape: Shape = GroupInviteCardDefaults.SHAPE,
     onLongClick: (() -> Unit)? = null,
 ) {
-    val shape = GroupInviteCardDefaults.SHAPE
     val state = card.state
 
     if (state is LinkCard.User.State.Loading) {
@@ -220,8 +222,9 @@ private fun Identity(
 }
 
 /**
- * This card's own values, one for one with iOS's `LinkUserCardContent.Layout`. The corner radius
- * and border are [GroupInviteCardDefaults.SHAPE] and [GroupInviteCardDefaults.STROKE].
+ * This card's own values, one for one with iOS's `LinkUserCardContent.Layout`. In a transcript the
+ * outline is the bubble's; outside one it is [GroupInviteCardDefaults.SHAPE]. The border is
+ * [GroupInviteCardDefaults.STROKE].
  */
 internal object UserLinkCardDefaults {
     /** The black over the decoded BlurHash backdrop. Provisional, pending design sign-off. */
