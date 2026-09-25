@@ -772,6 +772,10 @@ internal class ChatViewModel @Inject constructor(
 
     fun loadMoreReactors(messageId: Long) = reactorsPrefetchCache.loadMoreIfNeeded(messageId)
 
+    /** [messageId]'s pills, live — the reactors sheet's summary row (decision 4: title + pills). */
+    fun reactionPills(messageId: Long): Flow<List<com.flipcash.shared.chat.reactions.ReactionPill>> =
+        reactionOverlay.map { it[messageId]?.pills.orEmpty() }.distinctUntilChanged()
+
     /** A reactors-sheet row's resolved identity: the name to show (decision 4's precedence,
      * "You" for the viewer), and the profile to draw an avatar from when one is known. */
     data class ReactorDisplay(val name: String, val profile: UserProfile?)

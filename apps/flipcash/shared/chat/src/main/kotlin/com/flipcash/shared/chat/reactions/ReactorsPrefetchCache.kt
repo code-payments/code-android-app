@@ -3,45 +3,46 @@ package com.flipcash.shared.chat.reactions
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.repository.ReactorsPage
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
  * Owns one [ReactorsListModel] per messageId, keyed so the reactors sheet and whatever started the
- * fetch read the same instance rather than each building their own.
+ * fetch read the same rows/loading state rather than each building their own.
  *
  * Loading has to start on the pill long-press (decision: `OpenReactors` fires the fetch), not on
- * the sheet's first composition — the sheet is a fresh Compose tree on every push, and a fetch
- * gated on its `LaunchedEffect` would show a load on the same tap it could otherwise be racing.
- * [start] is called from `ChatViewModel`'s `OpenReactors` handler, one step before the navigator
- * pushes `ChatStep.Reactors`, and the sheet then only *reads* [rows]/[loading] for the id it opened
- * on rather than kicking off its own load. [start] is idempotent per messageId so re-opening an
- * already-fetched sheet doesn't refetch from scratch.
+ * the reactors sheet's first composition — the sheet is a fresh Compose tree on every push, and a
+ * fetch gated on its `LaunchedEffect` would race the same tap that opened it. [start] is called
+ * from `ChatViewModel`'s `OpenReactors` handler, one step before the navigator pushes
+ * `ChatStep.Reactors`; [rows]/[loading] are backed by one shared `StateFlow` each (keyed by
+ * messageId), rather than a per-messageId flow instance created inside [start] — a composition that
+ * calls [rows] *before* [start] has run still sees the update once it does, because it collects a
+ * `.map` over the same always-live backing flow rather than a separate object [start] would
+ * otherwise swap in.
  */
 class ReactorsPrefetchCache(
     private val scope: CoroutineScope,
     private val fetchPage: suspend (messageId: Long, emoji: String, token: PagingToken?) -> Result<ReactorsPage>,
 ) {
 
-    private class Holder(val model: ReactorsListModel) {
-        val rows = MutableStateFlow<List<ReactorsListModel.Row>>(emptyList())
-        val loading = MutableStateFlow(true)
-    }
+    private val models = mutableMapOf<Long, ReactorsListModel>()
+    private val allRows = MutableStateFlow<Map<Long, List<ReactorsListModel.Row>>>(emptyMap())
+    private val allLoading = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
 
-    private val cache = mutableMapOf<Long, Holder>()
-
-    /** The merged rows for [messageId], or an always-empty flow before [start] has been called. */
-    fun rows(messageId: Long): StateFlow<List<ReactorsListModel.Row>> =
-        cache[messageId]?.rows?.asStateFlow() ?: EMPTY_ROWS
+    /** The merged rows for [messageId], empty before [start] has produced a first page. */
+    fun rows(messageId: Long): Flow<List<ReactorsListModel.Row>> =
+        allRows.map { it[messageId].orEmpty() }.distinctUntilChanged()
 
     /** Whether a page is in flight for [messageId]. */
-    fun loading(messageId: Long): StateFlow<Boolean> =
-        cache[messageId]?.loading?.asStateFlow() ?: NOT_LOADING
+    fun loading(messageId: Long): Flow<Boolean> =
+        allLoading.map { it[messageId] == true }.distinctUntilChanged()
 
     /** True while at least one of [messageId]'s emojis still has an unfetched page. */
-    fun hasMore(messageId: Long): Boolean = cache[messageId]?.model?.hasMore ?: false
+    fun hasMore(messageId: Long): Boolean = models[messageId]?.hasMore ?: false
 
     /**
      * Starts the first round of pages for [messageId]'s [emojis] if nothing has started yet.
@@ -50,35 +51,32 @@ class ReactorsPrefetchCache(
      * fetch/rows rather than starting over.
      */
     fun start(messageId: Long, emojis: List<String>) {
-        if (emojis.isEmpty() || cache.containsKey(messageId)) return
-        val holder = Holder(ReactorsListModel(emojis) { emoji, token -> fetchPage(messageId, emoji, token) })
-        cache[messageId] = holder
-        loadMore(messageId, holder)
+        if (emojis.isEmpty() || models.containsKey(messageId)) return
+        models[messageId] = ReactorsListModel(emojis) { emoji, token -> fetchPage(messageId, emoji, token) }
+        loadMore(messageId)
     }
 
     /** Fetches the next page for every emoji of [messageId] that still has more, once no load is already in flight. */
     fun loadMoreIfNeeded(messageId: Long) {
-        val holder = cache[messageId] ?: return
-        if (holder.loading.value || !holder.model.hasMore) return
-        loadMore(messageId, holder)
+        val model = models[messageId] ?: return
+        if (allLoading.value[messageId] == true || !model.hasMore) return
+        loadMore(messageId)
     }
 
-    private fun loadMore(messageId: Long, holder: Holder) {
-        holder.loading.value = true
+    private fun loadMore(messageId: Long) {
+        allLoading.update { it + (messageId to true) }
         scope.launch {
-            holder.model.loadMoreIfNeeded()
-            holder.rows.value = holder.model.rows
-            holder.loading.value = false
+            val model = models.getValue(messageId)
+            model.loadMoreIfNeeded()
+            allRows.update { it + (messageId to model.rows) }
+            allLoading.update { it + (messageId to false) }
         }
     }
 
     /** Drops [messageId]'s cached fetch/rows — for a message that leaves the transcript (deleted, etc). */
     fun clear(messageId: Long) {
-        cache.remove(messageId)
-    }
-
-    private companion object {
-        val EMPTY_ROWS = MutableStateFlow<List<ReactorsListModel.Row>>(emptyList()).asStateFlow()
-        val NOT_LOADING = MutableStateFlow(false).asStateFlow()
+        models.remove(messageId)
+        allRows.update { it - messageId }
+        allLoading.update { it - messageId }
     }
 }
