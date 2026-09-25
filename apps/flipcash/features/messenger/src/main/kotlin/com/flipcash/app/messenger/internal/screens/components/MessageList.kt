@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,8 +42,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
+import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
-import com.flipcash.shared.chat.ui.ChatAnimations
+import com.flipcash.app.messenger.internal.toGroupInviteCard
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessagePointer
@@ -55,8 +57,10 @@ import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.LocalLinkCardResolution
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
+import com.flipcash.shared.chat.ui.ChatAnimations
+import com.flipcash.shared.chat.ui.GroupInviteCardDefaults
+import com.flipcash.shared.chat.ui.GroupInviteLinkCard
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.delay
@@ -67,6 +71,9 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withTimeoutOrNull
+
+// The empty group's invite card, as a share of the row: 290 of 402 in node 10330:19164.
+private const val GROUP_INVITE_CARD_WIDTH = 0.72f
 
 @Composable
 internal fun MessageList(
@@ -381,37 +388,13 @@ internal fun MessageList(
             // This prevents these items from being the only content before messages
             // load, which would cause the list to start at the wrong scroll position.
             if (messages.itemCount > 0 || refreshSettled) {
-                // Emitted before the info card, and so drawn below it: this list is reverseLayout,
-                // where the last item is the topmost one. Both of the items below belong under the
-                // card the way the designs show them, and neither can appear while there are
-                // messages — one stands in for a transcript, the other says there isn't one yet.
-                if (messages.itemCount == 0) {
-                    val inviteUrl = state.groupInviteUrl
-                    when {
-                        // Node 10127:117171. The blur over this list is what makes it a preview;
-                        // see GatedTranscriptPlaceholder for why it is drawn rather than fetched.
-                        state.obscuresTranscript -> item(key = "gated-transcript-placeholder") {
-                            GatedTranscriptPlaceholder(modifier = Modifier.fillParentMaxWidth())
-                        }
-
-                        // Node 10127:118280 — the group the creator has just made. Inviting
-                        // someone is the only thing to do with an empty group, so it is offered
-                        // here rather than left to the profile screen.
-                        inviteUrl != null -> item(key = "group-invite-action") {
-                            Box(
-                                modifier = Modifier
-                                    .fillParentMaxWidth()
-                                    .padding(top = CodeTheme.dimens.grid.x4),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CodeButton(
-                                    text = stringResource(R.string.action_invitePeopleToJoin),
-                                    shape = CircleShape,
-                                    enabled = !selecting,
-                                    onClick = { onAction(ChatAction.InviteToGroup) },
-                                )
-                            }
-                        }
+                // Node 10127:117171. Emitted before the info card, and so drawn below it: this list
+                // is reverseLayout, where the last item is the topmost one. The blur over this list
+                // is what makes it a preview; see GatedTranscriptPlaceholder for why it is drawn
+                // rather than fetched.
+                if (messages.itemCount == 0 && state.obscuresTranscript) {
+                    item(key = "gated-transcript-placeholder") {
+                        GatedTranscriptPlaceholder(modifier = Modifier.fillParentMaxWidth())
                     }
                 }
 
@@ -438,27 +421,57 @@ internal fun MessageList(
                     }
                 }
 
-                // Chat start shows contact info container
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillParentMaxWidth(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        ChatInfoCard(
-                            subject = state.subject,
+                // Chat start shows contact info container. An empty group the viewer can invite to
+                // shows its invite card there instead (node 10330:19164): inviting someone is the
+                // only thing to do with an empty group, and it is the same card a DM transcript
+                // renders for the link, with a different CTA and destination.
+                val inviteUrl = state.groupInviteUrl
+                val inviteGroup = state.subject as? ChatSubject.Group
+                if (messages.itemCount == 0 && inviteUrl != null && inviteGroup != null) {
+                    item(key = "group-invite-card") {
+                        val card = remember(inviteGroup, inviteUrl, state.ruleCurrency) {
+                            inviteGroup.toGroupInviteCard(
+                                inviteUrl = inviteUrl,
+                                currencyName = state.ruleCurrency?.nameInRequirement,
+                            )
+                        }
+                        Box(
+                            modifier = Modifier.fillParentMaxWidth(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BoxWithConstraints(Modifier.fillMaxWidth(GROUP_INVITE_CARD_WIDTH)) {
+                                GroupInviteLinkCard(
+                                    card = card,
+                                    minHeight = maxWidth * GroupInviteCardDefaults.ASPECT,
+                                    ctaLabel = stringResource(R.string.action_linkCard_invitePeople),
+                                    onStart = { onAction(ChatAction.InviteToGroup) }
+                                        .takeIf { !selecting },
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    item {
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.63f),
-                            onRefreshContact = { onAction(ChatAction.RefreshContact) },
-                            // null hides the chevron and makes the card non-tappable when the
-                            // profile isn't viewable (non-tip-DM chats).
-                            onOpenProfile = if (canViewProfile && !selecting) {
-                                { onAction(ChatAction.ViewProfile) }
-                            } else {
-                                null
-                            },
-                            currencyName = state.ruleCurrency?.nameInRequirement,
-                        )
+                                .fillParentMaxWidth(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ChatInfoCard(
+                                subject = state.subject,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.63f),
+                                onRefreshContact = { onAction(ChatAction.RefreshContact) },
+                                // null hides the chevron and makes the card non-tappable when the
+                                // profile isn't viewable (non-tip-DM chats).
+                                onOpenProfile = if (canViewProfile && !selecting) {
+                                    { onAction(ChatAction.ViewProfile) }
+                                } else {
+                                    null
+                                },
+                                currencyName = state.ruleCurrency?.nameInRequirement,
+                            )
+                        }
                     }
                 }
             }
