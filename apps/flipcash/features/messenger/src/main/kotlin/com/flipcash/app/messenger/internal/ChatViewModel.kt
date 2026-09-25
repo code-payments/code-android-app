@@ -1731,13 +1731,6 @@ internal class ChatViewModel @Inject constructor(
             .onEach { event ->
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 viewModelScope.launch {
-                    // Only an add is worth ranking for the quick strip's "most used" slots — a
-                    // remove is the reader taking it back, not a preference to weight. The live
-                    // overlay is what's already reacted as far as this session knows; a message
-                    // with no override yet has no self-reactions to take back, so it's an add.
-                    val alreadyReacted = reactionOverlay.value[event.messageId]
-                        ?.selfReactions?.any { it.emoji == event.emoji } == true
-                    if (!alreadyReacted) recentReactionsStore.record(event.emoji)
                     chatCoordinator.toggleReaction(chatId, event.messageId, event.emoji)
                 }
             }

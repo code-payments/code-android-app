@@ -101,7 +101,8 @@ class ReactionsDelegateTest {
         assertEquals(com.flipcash.shared.chat.reactions.ReactionError.REACTION_FAILED, error)
 
         coVerify(exactly = 0) { messageDataSource.mergeReactions(any(), any(), any()) }
-        coVerify(exactly = 0) { recentReactionsStore.record(any()) }
+        // Recents count the tap, as on iOS, whether or not the server takes it.
+        coVerify(exactly = 1) { recentReactionsStore.record(emoji) }
     }
 
     @Test
@@ -197,6 +198,8 @@ class ReactionsDelegateTest {
 
         coVerify { messagingController.removeReaction(chatId, 1L, Emoji(emoji)) }
         coVerify(exactly = 0) { messagingController.addReaction(any(), any(), any()) }
+        // Taking a reaction back is not a use of it.
+        coVerify(exactly = 0) { recentReactionsStore.record(any()) }
     }
 
     @Test

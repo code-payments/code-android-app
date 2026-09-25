@@ -86,7 +86,11 @@ class ReactionsDelegate @Inject constructor(
 
     override suspend fun toggleReaction(chatId: ChatId, messageId: Long, emoji: String) {
         val state = snapshot(chatId, messageId)
+        // Recorded at tap time, as iOS does: the snapshot knows reactions stored in Room, so a tap
+        // that takes back an existing reaction is not counted as a use.
+        val wasReacted = state.selfReactions.any { it.emoji == emoji }
         val call = state.tap(emoji, Clock.System.now())
+        if (!wasReacted) recentReactionsStore.record(emoji)
         localVersion.update { it + 1 }
         if (call != null) sendCall(chatId, messageId, state, call)
     }
@@ -118,9 +122,8 @@ class ReactionsDelegate @Inject constructor(
     }
 
     /**
-     * Sends [call], settles it against [state], persists confirmed state on success, records a
-     * successful add to the recents ranking, reports a non-silent failure on [reactionErrors], and
-     * loops once more if settling produced a coalesced follow-up call — the same shape as the iOS
+     * Sends [call], settles it against [state], persists confirmed state on success, reports a
+     * non-silent failure on [reactionErrors], and loops once more if settling produced a coalesced follow-up call — the same shape as the iOS
      * reference's tap → send → respond cycle.
      */
     private suspend fun sendCall(chatId: ChatId, messageId: Long, state: ReactionState, call: ReactionCall) {
@@ -128,7 +131,6 @@ class ReactionsDelegate @Inject constructor(
         val (followUp, error) = state.respond(call.emoji, result)
         if (result is ReactionResult.Ok) {
             persist(chatId, messageId, state)
-            if (call.op == ReactionCall.Op.ADD) recentReactionsStore.record(call.emoji)
         }
         localVersion.update { it + 1 }
         error?.let { _reactionErrors.emit(it) }
