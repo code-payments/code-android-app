@@ -97,7 +97,35 @@ interface EventStreamOperations {
 data class MessageReactions(
     val pills: List<ReactionPill>,
     val selfReactions: List<SelfReaction>,
-)
+) {
+    companion object {
+        /**
+         * Builds [MessageReactions] straight from a persisted [ReactionSummary] — no pending taps,
+         * no in-flight calls. This is the ViewModel's fallback for a message
+         * [ReactionOperations.observeChatReactions] has no live override for: apply this to
+         * [com.flipcash.services.models.chat.ChatMessage.reactions] and let a live override, when
+         * present, win. Goes through [com.flipcash.shared.chat.reactions.ReactionState] so the
+         * count-0-tombstone filtering and pill ordering match the live path exactly.
+         */
+        fun from(summary: ReactionSummary?): MessageReactions {
+            val state = com.flipcash.shared.chat.reactions.ReactionState()
+            summary?.let {
+                state.applySummary(
+                    it.reactions.map { reaction ->
+                        com.flipcash.shared.chat.reactions.ReactionState.SummaryEntry(
+                            emoji = reaction.emoji.value,
+                            count = reaction.count,
+                            selfReacted = reaction.selfReactor != null,
+                            version = reaction.version,
+                            selfReactedAt = reaction.selfReactor?.reactedAt,
+                        )
+                    },
+                )
+            }
+            return MessageReactions(pills = state.pills, selfReactions = state.selfReactions)
+        }
+    }
+}
 
 /**
  * Reaction taps and lookups for a single message: toggling, refreshing confirmed state from the
@@ -107,9 +135,21 @@ data class MessageReactions(
  */
 interface ReactionOperations {
     /**
-     * Reactive per-message reaction state for every message in [chatId] that has one — confirmed
-     * server state (persisted, and kept current by the event stream) merged with this device's own
-     * pending taps and in-flight calls, keyed by message id.
+     * Reactive **live overrides** for reactions in [chatId], keyed by message id — not one entry
+     * per message in the chat. A message appears here once this device has a pending tap, an
+     * in-flight call, or a confirmed overlay for it (an [EventStreamOperations] reaction update, or
+     * an explicit [refreshReactions]); a message whose reactions have only ever been seen via a
+     * paged Room read, or attached to a server-fetched [com.flipcash.services.models.chat.ChatMessage],
+     * is absent from this map even though it may well have reactions.
+     *
+     * The **ViewModel is responsible for completeness**: for a message missing from this map, fall
+     * back to [MessageReactions.from] applied to that message's own
+     * [com.flipcash.services.models.chat.ChatMessage.reactions] (the Room-decoded confirmed
+     * summary), and let an entry here win when both exist. This works because a write to
+     * `reactions_json` (a merge, or a plain message upsert that carries a summary) goes through
+     * Room, and Room invalidates the `chat_messages` `PagingSource` on any write to that table, so
+     * the paged message list already re-emits with the fresh summary — no separate signal needed
+     * for the Room-only case.
      */
     fun observeChatReactions(chatId: ChatId): Flow<Map<Long, MessageReactions>>
 
