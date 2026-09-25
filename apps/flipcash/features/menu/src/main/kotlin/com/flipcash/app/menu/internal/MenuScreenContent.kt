@@ -930,7 +930,10 @@ private fun ShareTile(
     }
 }
 
-/** The "Version … • Build …" footer; its repeated tap toggles beta access (see the ViewModel). */
+/**
+ * The two-line version footer, "Version … • Build …" over "<commit> • <track>". Its repeated tap
+ * toggles beta access (see the ViewModel).
+ */
 @Composable
 private fun VersionFooter(
     viewModel: MenuScreenViewModel,
@@ -946,8 +949,16 @@ private fun VersionFooter(
                 .noRippleClickable(enabled = enabled) {
                     viewModel.dispatchEvent(Event.OnVersionInfoClicked)
                 },
-            text = stringResource(
-                R.string.subtitle_appVersionInfoFooter,
+            text = state.appVersionInfo.commitLabel?.let { commit ->
+                stringResource(
+                    R.string.subtitle_appVersionInfoFooter,
+                    state.appVersionInfo.versionName,
+                    state.appVersionInfo.versionCode,
+                    commit,
+                    state.releaseTrack,
+                )
+            } ?: stringResource(
+                R.string.subtitle_appVersionInfoFooterNoCommit,
                 state.appVersionInfo.versionName,
                 state.appVersionInfo.versionCode,
                 state.releaseTrack,
