@@ -61,4 +61,12 @@ data class ChatMetadataEntity(
     // ViewerState.Permissions — a column no write has reached yet denies rather than grants.
     @ColumnInfo(name = "can_edit", defaultValue = "0")
     val canEdit: Boolean = false,
+    // Group creator; null for DMs and for group chats reconstructed without a server round
+    // trip. Stored hex-encoded, matching every other user id column in this database.
+    @ColumnInfo(name = "creator_hex")
+    val creatorHex: String? = null,
+    // Transitional E2EE flag (DMs only) -- see chat/v1 model.proto Metadata.use_e2ee. Ignored
+    // behaviourally for now; carried so a chat rebuilt from Room agrees with the network value.
+    @ColumnInfo(name = "use_e2ee", defaultValue = "0")
+    val useE2ee: Boolean = false,
 )

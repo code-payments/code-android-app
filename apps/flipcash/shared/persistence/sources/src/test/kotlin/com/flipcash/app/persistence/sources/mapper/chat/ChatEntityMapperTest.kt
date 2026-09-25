@@ -224,6 +224,41 @@ class ChatEntityMapperTest {
         assertEquals(null, entity.rulesJson)
     }
 
+    /**
+     * `ChatMetadata.creator`/`useE2ee` are only ever set from the network today
+     * ([toChatMetadata] in services/flipcash), but a chat rebuilt from Room goes through this
+     * mapper's [ChatEntityMapper.toEntity]/[ChatEntityMapper.toMetadata] round trip -- if either
+     * field were dropped there, a chat reloaded from the database would silently lose its group
+     * creator or its transitional E2EE flag.
+     */
+    @Test
+    fun `group creator and use_e2ee survive the round trip through the row`() {
+        val metadata = groupMetadata().copy(
+            creator = listOf(0xCD.toByte()),
+            useE2ee = true,
+        )
+
+        val entity = mapper.toEntity(metadata)
+        assertEquals("cd", entity.creatorHex)
+        assertEquals(true, entity.useE2ee)
+
+        val restored = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
+        assertEquals(listOf(0xCD.toByte()), restored.creator)
+        assertEquals(true, restored.useE2ee)
+    }
+
+    @Test
+    fun `a chat with no creator and no e2ee round trips to null and false`() {
+        val entity = mapper.toEntity(metadata(latestEventSequence = 0))
+
+        assertEquals(null, entity.creatorHex)
+        assertEquals(false, entity.useE2ee)
+
+        val restored = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
+        assertEquals(null, restored.creator)
+        assertEquals(false, restored.useE2ee)
+    }
+
     @Test
     fun `a timed mute is written as its deadline`() {
         val entity = mapper.toEntity(

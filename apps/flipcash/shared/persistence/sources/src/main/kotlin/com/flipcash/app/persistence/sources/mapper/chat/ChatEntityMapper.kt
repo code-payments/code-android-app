@@ -90,6 +90,8 @@ class ChatEntityMapper @Inject constructor() {
             muteForever = isMuteForever(metadata.viewerState?.mute),
             viewerStateVersion = metadata.viewerState?.version ?: 0,
             canEdit = metadata.viewerState?.permissions?.canEdit ?: false,
+            creatorHex = metadata.creator?.hexEncodedString(),
+            useE2ee = metadata.useE2ee,
         )
     }
 
@@ -119,6 +121,8 @@ class ChatEntityMapper @Inject constructor() {
             // thing the write gate compares, so a metadata rebuilt from this row and pushed back
             // through an upsert is a no-op rather than a re-application of what is already there.
             viewerState = entity.toViewerState(),
+            creator = entity.creatorHex?.hexToIdExt(),
+            useE2ee = entity.useE2ee,
         )
     }
 
