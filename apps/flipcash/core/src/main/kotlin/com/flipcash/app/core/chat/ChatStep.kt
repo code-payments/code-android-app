@@ -1,6 +1,7 @@
 package com.flipcash.app.core.chat
 
 import android.os.Parcelable
+import com.getcode.navigation.HalfSheet
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.WrapContentSheet
 import com.getcode.navigation.flow.FlowStep
@@ -100,18 +101,22 @@ sealed interface ChatStep : FlowStep, Parcelable {
     /**
      * The full emoji picker for a message's reaction, opened from the pill row's "+" or the
      * quick strip's "+". A plain [Sheet] rather than [WrapContentSheet]: the picker's catalog
-     * needs the screen's height, unlike the short, fixed-content sheets above.
+     * needs the screen's height, unlike the short, fixed-content sheets above. [HalfSheet]
+     * matches iOS's `EmojiPickerSheet.presentationDetents([.medium, .large])` — it rests at half
+     * height and only grows to the expanded detent once the grid reports it has more than that to
+     * show (see `AllowSheetExpansionWhenScrollable`).
      */
     @Parcelize
     @Serializable
-    data class ReactionPicker(val messageId: Long) : ChatStep, Sheet
+    data class ReactionPicker(val messageId: Long) : ChatStep, Sheet, HalfSheet
 
     /**
      * Who reacted, and with what — opened by long-pressing a pill. A plain [Sheet] for the same
      * reason as [ReactionPicker]: a per-emoji reactor list can run long enough to need the full
-     * sheet height rather than wrapping its content.
+     * sheet height rather than wrapping its content. [HalfSheet] matches iOS's
+     * `ReactorsSheet.presentationDetents([.medium, .large])`.
      */
     @Parcelize
     @Serializable
-    data class Reactors(val messageId: Long) : ChatStep, Sheet
+    data class Reactors(val messageId: Long) : ChatStep, Sheet, HalfSheet
 }
