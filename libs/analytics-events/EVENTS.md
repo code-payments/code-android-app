@@ -35,6 +35,124 @@ app has no value for it.
 |---|---|---|---|
 | Chat Type | list | no | [ChatType](#chattype) |
 
+### Chat Muted
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Chat Type | list | no | [ChatType](#chattype) |
+| Duration | list | no | [MuteDuration](#muteduration) |
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Chat Unmuted
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Chat Type | list | no | [ChatType](#chattype) |
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+## Group
+
+Group chats. `Member Count` is the member count before the action, from what the screen already holds. `Gate Mint` is left out when the group has no token gate. `Error` is the RPC's result name as the proto spells it, such as RulesNotSatisfied, or Network for a transport failure.
+
+### Group: New Opened
+
+The New Group form opened.
+
+No properties.
+
+### Group: Created
+
+StartChat returned, on success or failure.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+| Gate Mint | text | yes | |
+| Has Picture | yes/no | no | |
+
+### Group: Edited
+
+EditChat returned after a rename or a picture change.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Field | list | no | [GroupField](#groupfield) |
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Invite Sheet Opened
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Source | list | no | [GroupInviteSheetSource](#groupinvitesheetsource) |
+| Member Count | count | no | |
+
+### Group: Invite Shared
+
+Share was tapped in the invite sheet, or the invite link was copied.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Method | list | no | [GroupInviteMethod](#groupinvitemethod) |
+
+### Group: Invite Followed
+
+A group opened from an invite link, a scanned QR code, or an invite card in a chat.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Source | list | no | [GroupInviteSource](#groupinvitesource) |
+
+### Group: Gate Shown
+
+The gate first appeared for a chat. Sent once per visit to the chat.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Access | list | no | [GroupAccess](#groupaccess) |
+| Gate Mint | text | yes | |
+| Member Count | count | no | |
+
+### Group: Gate Funding Tapped
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Method | list | no | [GroupGateFunding](#groupgatefunding) |
+| Gate Mint | text | yes | |
+
+### Group: Joined
+
+JoinChat returned.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+| Member Count | count | no | |
+| Gated | yes/no | no | |
+
+### Group: Left
+
+LeaveChat returned after the user confirmed.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+| Member Count | count | no | |
+
+### Group: Info Opened
+
+The group info (profile) screen opened.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Member Count | count | no | |
+| Is Member | yes/no | no | |
+
 ## Transfer
 
 ### Grab Bill Start
@@ -497,7 +615,73 @@ Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 
 | Wallet | `WALLET` | |
 | Discovery | `DISCOVERY` | |
 | Chat | `CHAT` | |
-| Chat Gate | `CHAT_GATE` | |
+| Chat Gate | `CHAT_GATE` | iOS doesn't send this source: its gate buy button pushes the buy screen and never opens Token Info. Group: Gate Funding Tapped covers that tap on both apps. |
+
+### MuteDuration
+
+The `Duration` property on Chat Muted: the mute option picked. Both apps offer the same four.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| 1 Hour | `ONE_HOUR` | |
+| 8 Hours | `EIGHT_HOURS` | |
+| 1 Week | `ONE_WEEK` | |
+| Always | `ALWAYS` | |
+
+### GroupField
+
+The `Field` property on Group: Edited: what the edit changed.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Name | `NAME` | |
+| Picture | `PICTURE` | |
+
+### GroupInviteSheetSource
+
+The `Source` property on Group: Invite Sheet Opened. Chat is Android's transcript CTA and iOS's head card.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Chat | `CHAT` | |
+| Profile | `PROFILE` | |
+
+### GroupInviteMethod
+
+The `Method` property on Group: Invite Shared: how the invite link left the app.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Share | `SHARE` | |
+| Copy | `COPY` | |
+
+### GroupInviteSource
+
+The `Source` property on Group: Invite Followed: what the group was opened from.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Link | `LINK` | |
+| QR | `QR` | |
+| Chat Card | `CHAT_CARD` | |
+
+### GroupAccess
+
+The `Access` property on Group: Gate Shown: whether the viewer can join as they are.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Eligible | `ELIGIBLE` | |
+| Blocked | `BLOCKED` | |
+
+### GroupGateFunding
+
+The `Method` property on Group: Gate Funding Tapped: the funding button tapped on the gate.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Buy Token | `BUY_TOKEN` | |
+| Add Cash | `ADD_CASH` | |
 
 ### PurchaseMethod
 
