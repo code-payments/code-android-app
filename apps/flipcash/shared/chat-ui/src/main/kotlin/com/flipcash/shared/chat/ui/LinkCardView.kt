@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -45,7 +46,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.tokens.brandedName
 import com.flipcash.app.core.ui.TokenCard
@@ -82,16 +87,21 @@ import com.getcode.ui.utils.ConstraintMode
  * [card] arrives with its lookup still to do and the card runs it — see [rememberResolvedCard].
  * The transcript hands over what it can read off the message text, which is everything but the
  * amount and the claim, and is not held up by the rest.
+ *
+ * [shape] is the outline of the bubble the card stands in for, from [bubbleShape], so a card in a
+ * run squares the corners facing its neighbours exactly as a text bubble there would. Every kind
+ * cuts its own pieces from it: the voucher's two halves and the stub it leaves behind, the bill,
+ * the invite's frame.
  */
 @Composable
 internal fun LinkCardView(
     card: LinkCard,
+    shape: CornerBasedShape,
     onClick: ((LinkCard) -> Unit)?,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
 ) {
     val live = rememberResolvedCard(card)
-    val shape = CodeTheme.shapes.medium
 
     if (live is LinkCard.GroupInvite) {
         // Only the button opens a group, so the card takes no tap of its own. The long press
@@ -99,6 +109,7 @@ internal fun LinkCardView(
         BoxWithConstraints(
             modifier = modifier
                 .fillMaxWidth()
+                .semantics { linkCardShape = shape }
                 .addIf(onLongClick != null) {
                     Modifier.pointerInput(onLongClick) {
                         detectTapGestures(onLongPress = { onLongClick?.invoke() })
@@ -109,6 +120,10 @@ internal fun LinkCardView(
                 card = live,
                 minHeight = maxWidth * LinkCardDefaults.CARD_ASPECT,
                 onStart = onClick?.let { click -> { click(live) } },
+                // A transcript card opens the group named on it, so it says "View"; the group's
+                // own empty state draws this card with "Invite People".
+                ctaLabel = stringResource(R.string.action_linkCard_view),
+                shape = shape,
             )
         }
         return
@@ -120,6 +135,7 @@ internal fun LinkCardView(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
+            .semantics { linkCardShape = shape }
             // One target for the whole card in every state: an unresolved link is unresolved, not
             // broken, and a spent one still opens to the page that says so.
             .addIf(onClick != null || onLongClick != null) {
@@ -133,8 +149,8 @@ internal fun LinkCardView(
     ) {
         val height: Dp = maxWidth * LinkCardDefaults.CARD_ASPECT
         when (live) {
-            is LinkCard.Cash -> CashLinkCard(card = live, height = height)
-            is LinkCard.TokenInfo -> TokenLinkCard(card = live, height = height)
+            is LinkCard.Cash -> CashLinkCard(card = live, height = height, shape = shape)
+            is LinkCard.TokenInfo -> TokenLinkCard(card = live, height = height, shape = shape)
             // Drawn above; unreachable here.
             is LinkCard.GroupInvite -> Unit
         }
@@ -183,6 +199,7 @@ private fun rememberResolvedCard(card: LinkCard): LinkCard {
 private fun CashLinkCard(
     card: LinkCard.Cash,
     height: Dp,
+    shape: CornerBasedShape,
 ) {
     // Unresolved is also the unavailable state: a lookup that failed, timed out or was switched off
     // renders here. The same voucher, with nothing filled in — same size, same chrome — so nothing
@@ -198,6 +215,7 @@ private fun CashLinkCard(
 
     CashVoucher(
         height = height,
+        shape = shape,
         loading = loading,
         tokenName = state?.token?.brandedName()
             ?: stringResource(R.string.label_linkCard_cash),
@@ -282,6 +300,7 @@ private fun TokenRow(tokenName: String, tokenImage: Any?) {
 private fun TokenLinkCard(
     card: LinkCard.TokenInfo,
     height: Dp,
+    shape: CornerBasedShape,
 ) {
     when (val state = card.state) {
         is LinkCard.TokenInfo.State.Resolved -> TokenCard(
@@ -291,6 +310,7 @@ private fun TokenLinkCard(
             balanceText = "",
             displayName = state.token.brandedName(),
             height = height,
+            shape = shape,
         )
 
         // The address is the one thing known about the mint before the network answers, and it is
@@ -299,12 +319,14 @@ private fun TokenLinkCard(
         LinkCard.TokenInfo.State.Loading -> UnresolvedTokenCard(
             mint = card.mint,
             height = height,
+            shape = shape,
             loading = true,
         )
 
         LinkCard.TokenInfo.State.Unresolved -> UnresolvedTokenCard(
             mint = card.mint,
             height = height,
+            shape = shape,
             loading = false,
         )
     }
@@ -323,9 +345,9 @@ private fun TokenLinkCard(
 private fun UnresolvedTokenCard(
     mint: Mint,
     height: Dp,
+    shape: CornerBasedShape,
     loading: Boolean,
 ) {
-    val shape = CodeTheme.shapes.medium
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -373,10 +395,14 @@ private const val ABBREVIATED_MINT_CHARS = 4
  * Tearing costs no height. The stub's band is held open whether or not the stub is drawn in it,
  * because the claim state arrives from the lookup after the row is first drawn — a card that
  * changed size on resolve would shove the transcript around under the reader.
+ *
+ * The upper piece takes [shape]'s top corners and the stub its bottom ones, so the two together
+ * are the bubble's outline with a seam across it.
  */
 @Composable
 private fun CashVoucher(
     height: Dp,
+    shape: CornerBasedShape,
     tokenName: String,
     tokenImage: Any?,
     amount: String?,
@@ -385,7 +411,6 @@ private fun CashVoucher(
     loading: Boolean,
     stub: @Composable () -> Unit,
 ) {
-    val corner = CodeTheme.shapes.medium.topStart
     val square = CornerSize(0.dp)
     val inset = CodeTheme.dimens.inset
     val stubHeight = height * LinkCardDefaults.STUB_FRACTION
@@ -397,7 +422,7 @@ private fun CashVoucher(
     ) {
         VoucherPiece(
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(corner, corner, square, square),
+            shape = shape.copy(bottomEnd = square, bottomStart = square),
             spent = spent,
             notchAtBottom = true,
             // Nothing left to tear along once it has been torn.
@@ -451,13 +476,14 @@ private fun CashVoucher(
             // [stub] standing inside it.
             GhostStub(
                 modifier = Modifier.height(stubHeight),
-                corner = corner,
+                bottomStart = shape.bottomStart,
+                bottomEnd = shape.bottomEnd,
                 content = stub,
             )
         } else {
             VoucherPiece(
                 modifier = Modifier.height(stubHeight),
-                shape = RoundedCornerShape(square, square, corner, corner),
+                shape = shape.copy(topStart = square, topEnd = square),
                 spent = spent,
                 notchAtBottom = false,
                 scored = false,
@@ -487,7 +513,8 @@ private fun CashVoucher(
 @Composable
 private fun GhostStub(
     modifier: Modifier,
-    corner: CornerSize,
+    bottomStart: CornerSize,
+    bottomEnd: CornerSize,
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
@@ -505,7 +532,13 @@ private fun GhostStub(
             .fillMaxWidth()
             .drawBehind {
                 val r = notchRadius
-                val c = corner.toPx(size, this)
+                val start = bottomStart.toPx(size, this)
+                val end = bottomEnd.toPx(size, this)
+                val (left, right) = if (layoutDirection == LayoutDirection.Ltr) {
+                    start to end
+                } else {
+                    end to start
+                }
                 val w = size.width
                 val h = size.height
                 val outline = Path().apply {
@@ -514,10 +547,10 @@ private fun GhostStub(
                     arcTo(Rect(Offset(-r, -r), Size(r * 2, r * 2)), 90f, -90f, false)
                     lineTo(w - r, 0f)
                     arcTo(Rect(Offset(w - r, -r), Size(r * 2, r * 2)), 180f, -90f, false)
-                    lineTo(w, h - c)
-                    arcTo(Rect(Offset(w - c * 2, h - c * 2), Size(c * 2, c * 2)), 0f, 90f, false)
-                    lineTo(c, h)
-                    arcTo(Rect(Offset(0f, h - c * 2), Size(c * 2, c * 2)), 90f, 90f, false)
+                    lineTo(w, h - right)
+                    arcTo(Rect(Offset(w - right * 2, h - right * 2), Size(right * 2, right * 2)), 0f, 90f, false)
+                    lineTo(left, h)
+                    arcTo(Rect(Offset(0f, h - left * 2), Size(left * 2, left * 2)), 90f, 90f, false)
                     close()
                 }
                 drawPath(
@@ -540,7 +573,7 @@ private fun GhostStub(
 @Composable
 private fun VoucherPiece(
     modifier: Modifier,
-    shape: RoundedCornerShape,
+    shape: Shape,
     spent: Boolean,
     notchAtBottom: Boolean,
     scored: Boolean,
@@ -663,6 +696,13 @@ private fun StubPill(text: String) {
         maxLines = 1,
     )
 }
+
+/**
+ * The outline a card was drawn with, for tests: it is otherwise only visible as pixels, and the
+ * point of it is that it matches [bubbleShape] at the card's place in its run.
+ */
+internal val LinkCardShapeKey = SemanticsPropertyKey<Shape>("LinkCardShape")
+private var SemanticsPropertyReceiver.linkCardShape by LinkCardShapeKey
 
 private object LinkCardDefaults {
     /**
