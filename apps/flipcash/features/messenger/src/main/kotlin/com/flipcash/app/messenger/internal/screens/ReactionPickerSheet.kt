@@ -1,6 +1,21 @@
 package com.flipcash.app.messenger.internal.screens
 
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -212,7 +227,7 @@ private fun EmojiGrid(
                 .hazeSource(hazeState),
             contentPadding = PaddingValues(
                 top = 4.dp,
-                bottom = if (showBar) 45.dp + 24.dp else 16.dp,
+                bottom = if (showBar) CATEGORY_BAR_HEIGHT + 24.dp else 16.dp,
             ),
         ) {
             items(rows, key = { row ->
@@ -288,8 +303,10 @@ private fun RowScope.EmojiCell(entry: EmojiCatalogEntry, onSelected: (String) ->
 /**
  * The floating jump bar to each category, a glass capsule over the grid (node 9768:1624), frosted
  * with a Haze blur of the grid scrolling beneath it — Android's analogue of iOS's `.glassEffect`
- * (see [com.flipcash.app.core.ui.NavigationBar] for the same pattern). Unlike iOS, there is no
- * drag-across-the-bar gesture — only a tap per slot (a deliberate scope cut; see the chunk report).
+ * (see [com.flipcash.app.core.ui.NavigationBar] for the same pattern). The selected category sits on
+ * its own capsule indicator, which springs between slots. As on iOS, the indicator can be pressed and
+ * dragged across the bar; [onSelect] fires only once it's let go over a category, so a plain tap is
+ * the same gesture with no travel.
  */
 @Composable
 private fun CategoryBar(
@@ -305,46 +322,116 @@ private fun CategoryBar(
         backgroundColor(backdrop)
         colorEffects(listOf(HazeColorEffect.tint(backdrop.copy(alpha = 0.72f))))
     }
+    val haptics = LocalHapticFeedback.current
+    val density = LocalDensity.current
+    val selectedIndex = sections.indexOfFirst { it.id == selected }.coerceAtLeast(0)
+
+    // Where the finger is along the bar while it drags the indicator, null otherwise.
+    var dragX by remember { mutableStateOf<Float?>(null) }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 30.dp)
-            .height(45.dp)
+            .height(CATEGORY_BAR_HEIGHT)
             .clip(CircleShape)
             .hazeBlur(HazeInput.Sources(hazeState), liquidGlass),
     ) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 6.dp),
+                .padding(horizontal = 6.dp)
+                .pointerInput(sections) {
+                    val count = sections.size
+                    fun indexAt(x: Float): Int =
+                        (x / (size.width.toFloat() / count)).toInt().coerceIn(0, count - 1)
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
+                        down.consume()
+                        dragX = down.position.x
+                        var hovered = indexAt(down.position.x)
+                        var lastX = down.position.x
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (!change.pressed) {
+                                lastX = change.position.x
+                                change.consume()
+                                break
+                            }
+                            change.consume()
+                            lastX = change.position.x
+                            dragX = lastX
+                            val index = indexAt(lastX)
+                            if (index != hovered) {
+                                hovered = index
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            }
+                        }
+                        dragX = null
+                        onSelect(sections[indexAt(lastX)].id)
+                    }
+                },
         ) {
-            for (section in sections) {
-                val isSelected = section.id == selected
-                val indicatorColor by animateColorAsState(
-                    targetValue = if (isSelected) {
-                        CodeTheme.colors.textMain.copy(alpha = 0.14f)
-                    } else {
-                        Color.Transparent
-                    },
-                    label = "categoryBarIndicator",
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                        .background(indicatorColor)
-                        .unboundedClickable { onSelect(section.id) }
-                        .semantics { contentDescription = section.title },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(text = section.entries.firstOrNull()?.emoji.orEmpty(), fontSize = 20.sp)
+            val barWidth = constraints.maxWidth.toFloat()
+            val slot = barWidth / sections.size.coerceAtLeast(1)
+            val indicatorWidth = with(density) { minOf(slot, (INDICATOR_HEIGHT + 6.dp).toPx()) }
+            val restingX = slot * (selectedIndex + 0.5f)
+            val targetX = dragX?.coerceIn(slot / 2, barWidth - slot / 2) ?: restingX
+            // Follow the finger 1:1 while dragging; only the press, release and selection animate.
+            val indicatorX by animateFloatAsState(
+                targetValue = targetX,
+                animationSpec = if (dragX != null) snap() else settleSpring(),
+                label = "categoryIndicatorX",
+            )
+            val indicatorScale by animateFloatAsState(
+                targetValue = if (dragX == null) 1f else 1.15f,
+                animationSpec = settleSpring(),
+                label = "categoryIndicatorScale",
+            )
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset { IntOffset((indicatorX - indicatorWidth / 2).roundToInt(), 0) }
+                    .size(width = with(density) { indicatorWidth.toDp() }, height = INDICATOR_HEIGHT)
+                    .graphicsLayer {
+                        scaleX = indicatorScale
+                        scaleY = indicatorScale
+                    }
+                    .clip(CircleShape)
+                    .background(CodeTheme.colors.textMain.copy(alpha = 0.14f)),
+            )
+
+            Row(modifier = Modifier.fillMaxSize()) {
+                sections.forEachIndexed { index, section ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .semantics {
+                                contentDescription = section.title
+                                this.selected = index == selectedIndex
+                                onClick {
+                                    onSelect(section.id)
+                                    true
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(text = section.entries.firstOrNull()?.emoji.orEmpty(), fontSize = 20.sp)
+                    }
                 }
             }
         }
     }
 }
+
+// iOS's `.spring(duration: 0.35, bounce: 0.2)`.
+private fun <T> settleSpring() = spring<T>(dampingRatio = 0.8f, stiffness = 320f)
+
+private val CATEGORY_BAR_HEIGHT = 45.dp
+private val INDICATOR_HEIGHT = 38.dp
 
 @Composable
 private fun SearchField(state: TextFieldState, modifier: Modifier = Modifier) {
