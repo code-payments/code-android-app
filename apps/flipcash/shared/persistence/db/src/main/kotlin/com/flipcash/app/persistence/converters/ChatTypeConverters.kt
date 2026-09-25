@@ -4,9 +4,11 @@ import androidx.room.TypeConverter
 import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.services.models.VerifiableContactMethod
 import com.flipcash.services.models.chat.MediaItem
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNames
 
 private val json = Json {
     ignoreUnknownKeys = true
@@ -289,13 +291,15 @@ data class ReactionSummarySerialized(
     val reactions: List<EmojiReactionSerialized>,
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class EmojiReactionSerialized(
     val emoji: String,
     val count: Long,
     val selfReactor: ReactorSerialized? = null,
     val sampleReactors: List<ReactorSerialized>,
-    val version: Long,
+    // Rows written before the field was renamed to match the proto store it as `sequence`.
+    @JsonNames("sequence") val version: Long,
 )
 
 @Serializable

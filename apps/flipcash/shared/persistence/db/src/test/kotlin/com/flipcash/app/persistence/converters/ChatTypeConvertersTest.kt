@@ -41,6 +41,16 @@ class ChatTypeConvertersTest {
     }
 
     @Test
+    fun `fromReactionSummary reads rows stored before sequence was renamed to version`() {
+        val stored = """{"messageId":42,"reactions":[{"emoji":"\uD83D\uDC4D","count":1,""" +
+            """"selfReactor":null,"sampleReactors":[],"sequence":7}]}"""
+
+        val deserialized = converter.fromReactionSummary(stored)
+
+        assertEquals(7L, deserialized?.reactions?.single()?.version)
+    }
+
+    @Test
     fun `fromReactionSummary returns null for null input`() {
         assertNull(converter.fromReactionSummary(null))
     }
