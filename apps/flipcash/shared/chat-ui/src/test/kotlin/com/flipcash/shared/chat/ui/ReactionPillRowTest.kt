@@ -8,6 +8,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
@@ -63,6 +65,22 @@ class ReactionPillRowTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun `a message with no reactions draws no row and no plus, matching iOS`() {
+        setRow(pills = emptyList(), canReact = true)
+
+        composeTestRule.onNodeWithTag("reaction_pill_plus").assertDoesNotExist()
+    }
+
+    @Test
+    fun `plus is a 28dp circle`() {
+        setRow(pills = listOf(pill("😀")))
+
+        composeTestRule.onNodeWithTag("reaction_pill_plus")
+            .assertWidthIsEqualTo(28.dp)
+            .assertHeightIsEqualTo(28.dp)
     }
 
     @Test

@@ -344,7 +344,7 @@ internal fun MessageRow(
                             // Same width as the bubble above it (decision 2) — matched here
                             // against the same fraction MessageBubble sizes a text/reply/deleted
                             // bubble to, since the row doesn't expose its resolved width outward.
-                            if (!selecting && (item.reactionPills.isNotEmpty() || item.canReact)) {
+                            if (!selecting && item.reactionPills.isNotEmpty()) {
                                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                                     ReactionPillRow(
                                         pills = item.reactionPills,

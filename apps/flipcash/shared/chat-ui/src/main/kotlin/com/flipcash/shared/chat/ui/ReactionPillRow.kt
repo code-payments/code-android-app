@@ -146,7 +146,8 @@ object ReactionPillRowLayout {
  * select the message — its own `combinedClickable` handles the long-press so it never reaches the
  * bubble's. "N more" expands the row in place — every pill then draws, unbounded lines — and
  * stays expanded for the rest of this composition. "+" (hidden when `canReact` is false) opens
- * the reaction picker.
+ * the reaction picker. With no [pills] nothing draws: the long-press strip is how a first
+ * reaction gets added, as on iOS.
  */
 @Composable
 fun ReactionPillRow(
@@ -159,7 +160,8 @@ fun ReactionPillRow(
     alignEnd: Boolean = false,
     maxLines: Int = 2,
 ) {
-    if (pills.isEmpty() && !canReact) return
+    // iOS draws no row at all until a message has a reaction; "+" only rides along with pills.
+    if (pills.isEmpty()) return
 
     var expanded by remember(pills) { mutableStateOf(false) }
 
@@ -394,6 +396,7 @@ private fun PlusChip(size: Dp, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .testTag("reaction_pill_plus")
+            .size(size)
             .background(
                 color = Color.White.copy(alpha = 0.06f),
                 shape = RoundedCornerShape(percent = 50),
