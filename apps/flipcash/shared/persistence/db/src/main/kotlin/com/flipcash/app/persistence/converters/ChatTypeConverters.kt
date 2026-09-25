@@ -13,6 +13,33 @@ private val json = Json {
     encodeDefaults = true
 }
 
+/**
+ * Merges a message's stored `reactions_json` with an incoming payload, per emoji, keeping
+ * whichever side carries the higher `version` — mirrors iOS's `mergeReactions`/`applySummary`.
+ * `incomingJson == null` keeps [storedJson] as-is: a write that carries no reaction data (an
+ * ordinary content upsert) must not erase confirmed reactions already on disk. `storedJson ==
+ * null` (nothing stored yet) takes [incomingJson] outright.
+ */
+internal fun mergeReactionsJson(storedJson: String?, incomingJson: String?): String? {
+    if (incomingJson == null) return storedJson
+    if (storedJson == null) return incomingJson
+    val stored = json.decodeFromString<ReactionSummarySerialized>(storedJson)
+    val incoming = json.decodeFromString<ReactionSummarySerialized>(incomingJson)
+    val storedByEmoji = stored.reactions.associateBy { it.emoji }
+    val incomingByEmoji = incoming.reactions.associateBy { it.emoji }
+    val merged = (storedByEmoji.keys + incomingByEmoji.keys).mapNotNull { emoji ->
+        val storedEntry = storedByEmoji[emoji]
+        val incomingEntry = incomingByEmoji[emoji]
+        when {
+            incomingEntry == null -> storedEntry
+            storedEntry == null -> incomingEntry
+            incomingEntry.version >= storedEntry.version -> incomingEntry
+            else -> storedEntry
+        }
+    }
+    return json.encodeToString(incoming.copy(reactions = merged))
+}
+
 class ChatTypeConverters {
 
     // region MessageContent
