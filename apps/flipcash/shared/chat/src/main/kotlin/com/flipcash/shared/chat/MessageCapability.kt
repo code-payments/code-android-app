@@ -205,3 +205,22 @@ fun Set<MessageCapability>.withinWindows(
 /** True while a message sent at [sentAt] is inside this window, or always if there is none. */
 private fun Duration?.stillOpen(sentAt: Instant, now: Instant): Boolean =
     this == null || now - sentAt <= this
+
+/**
+ * Whether [message] may be reacted to.
+ *
+ * Reactions have no edit/delete-style windows and no report-only carve-out: anyone's message is
+ * reactable, own or another participant's, text or cash. Only two things rule a message out —
+ * a system notice (nothing a participant sent) and an unconfirmed send (`eventSequence == 0`,
+ * the same guard [resolveForParticipant] uses: no valid request can name a message the server
+ * has not acknowledged). A tombstone has no content left ([MessageContent.Deleted] clears it),
+ * so the empty-content check below already excludes it.
+ */
+fun canReact(message: ChatMessage): Boolean {
+    val contents = message.content
+    if (contents.isEmpty()) return false
+    if (contents.any { it is MessageContent.Deleted }) return false
+    if (message.eventSequence == 0L) return false
+    if (contents.all { it is MessageContent.System }) return false
+    return true
+}
