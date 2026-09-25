@@ -126,6 +126,34 @@ class ChatEntityMapperTest {
         assertEquals(false, entity(MessageContent.Text("still here")).isDeleted)
     }
 
+    /**
+     * `MessageContent.Encrypted` is a decode result kept verbatim (not decrypted) so it can be
+     * persisted and later re-encoded faithfully -- see that type's doc. A byte-for-byte round
+     * trip through the row proves the ciphertext isn't quietly discarded on the way through Room.
+     */
+    @Test
+    fun `encrypted content survives the round trip through the message row`() {
+        val encrypted = MessageContent.Encrypted(
+            scheme = 1,
+            nonce = byteArrayOf(0x01, 0x02, 0x03, -1, 0x00),
+            ciphertext = byteArrayOf(-128, 0x7F, 0x10, 0x20, 0x30, 0x40),
+        )
+        val message = ChatMessage(
+            messageId = 1,
+            senderId = listOf(0xAB.toByte()),
+            content = listOf(encrypted),
+            timestamp = Instant.fromEpochSeconds(1_000),
+            unreadSeq = 1,
+        )
+
+        val entity = mapper.toEntity(CHAT_HEX, message)
+        val restored = mapper.toMessage(entity).content.single() as MessageContent.Encrypted
+
+        assertEquals(1, restored.scheme)
+        assertEquals(true, encrypted.nonce.contentEquals(restored.nonce))
+        assertEquals(true, encrypted.ciphertext.contentEquals(restored.ciphertext))
+    }
+
     private fun groupMetadata() = ChatMetadata(
         chatId = ChatId(CHAT_HEX),
         type = ChatType.GROUP,

@@ -195,8 +195,14 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
             deletedBy = if (deleted.hasDeletedBy()) deleted.deletedBy.toId() else null,
         )
         // Not decoded: E2EE crypto (X25519/HKDF/XChaCha20) is a cross-platform parity hotspot
-        // that needs its own decision. Rendered as unsupported rather than dropped.
-        MessagingModel.Content.TypeCase.ENCRYPTED -> MessageContent.Encrypted
+        // that needs its own decision. Rendered as unsupported rather than dropped, but the raw
+        // fields are kept verbatim so the message can round-trip through storage and be
+        // faithfully re-encoded (e.g. on edit) without losing the ciphertext.
+        MessagingModel.Content.TypeCase.ENCRYPTED -> MessageContent.Encrypted(
+            scheme = encrypted.schemeValue,
+            nonce = encrypted.nonce.toByteArray(),
+            ciphertext = encrypted.ciphertext.toByteArray(),
+        )
         else -> MessageContent.Text("")
     }
 }

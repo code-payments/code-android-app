@@ -328,7 +328,11 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         deletedAt = deletedTs.epochSeconds,
         deletedBy = deletedBy?.hexEncodedString(),
     )
-    is MessageContent.Encrypted -> MessageContentSerialized.Encrypted
+    is MessageContent.Encrypted -> MessageContentSerialized.Encrypted(
+        scheme = scheme,
+        nonce = nonce.toList().hexEncodedString(),
+        ciphertext = ciphertext.toList().hexEncodedString(),
+    )
 }
 
 private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
@@ -358,7 +362,11 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
         deletedTs = Instant.fromEpochSeconds(deletedAt),
         deletedBy = deletedBy?.hexToIdExt(),
     )
-    is MessageContentSerialized.Encrypted -> MessageContent.Encrypted
+    is MessageContentSerialized.Encrypted -> MessageContent.Encrypted(
+        scheme = scheme,
+        nonce = nonce.hexToIdExt().toByteArray(),
+        ciphertext = ciphertext.hexToIdExt().toByteArray(),
+    )
 }
 
 private fun MessagePointer.toSerialized(): MessagePointerSerialized = MessagePointerSerialized(
