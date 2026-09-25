@@ -306,6 +306,11 @@ internal fun MessageList(
                     focused = focused,
                     animateInsertion = animateInsertion,
                     showsSenderGutter = isGroup,
+                    quickReactionStrip = if (focused && bubble?.messageId == state.selection?.messageId) {
+                        state.quickReactionStrip
+                    } else {
+                        emptyList()
+                    },
                     attention = if (bubble != null && bubble.messageId == attentionId) {
                         readAttention
                     } else {

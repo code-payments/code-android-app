@@ -3,8 +3,14 @@ package com.flipcash.shared.chat.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +28,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.shared.chat.reactions.ReactionPill
+import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.getcode.theme.CodeTheme
 
 /**
@@ -252,6 +259,62 @@ fun ReactionPillRow(
                 val lineOffset = if (alignEnd) containerWidth - lineWidths[placement.line] else 0
                 placement.item.placeRelative(placement.x + lineOffset, lineY[placement.line])
             }
+        }
+    }
+}
+
+/**
+ * The strip a long-press on a reactable, selected bubble shows above it (decision 5): up to the 12
+ * entries [ReactionStripComposer][com.flipcash.shared.chat.reactions.ReactionStripComposer]
+ * composed, self-reacted ones highlighted, plus a trailing "+" that opens the full picker. A tap
+ * on an entry both toggles the reaction and clears the selection — [onToggle] is the one signal
+ * for both, same as the pill row's tap is a plain toggle without one.
+ *
+ * Horizontally scrolling rather than wrapping: it draws above a single bubble, where wrapping to a
+ * second line would push it further from the message it's reacting to.
+ */
+@Composable
+fun QuickReactionStrip(
+    entries: List<ReactionStrip.Entry>,
+    onToggle: (emoji: String) -> Unit,
+    onOpenPicker: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (entries.isEmpty()) return
+
+    Row(
+        modifier = modifier
+            .background(color = Color.Black.copy(alpha = 0.72f), shape = RoundedCornerShape(percent = 50))
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 6.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        entries.forEach { entry ->
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .let { base ->
+                        if (entry.highlighted) {
+                            base.background(Color.White.copy(alpha = 0.16f), CircleShape)
+                        } else {
+                            base
+                        }
+                    }
+                    .combinedClickable(onClick = { onToggle(entry.emoji) }, onLongClick = {}),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = entry.emoji, fontSize = 20.sp)
+            }
+        }
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(Color.White.copy(alpha = 0.06f), CircleShape)
+                .combinedClickable(onClick = onOpenPicker, onLongClick = {}),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = "+", fontSize = 18.sp)
         }
     }
 }

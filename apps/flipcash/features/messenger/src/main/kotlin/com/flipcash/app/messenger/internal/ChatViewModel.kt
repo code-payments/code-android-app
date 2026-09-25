@@ -89,6 +89,12 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.readOnly
 import com.flipcash.shared.chat.MessageReactions
 import com.flipcash.shared.chat.reactions.ReactionError
+import com.flipcash.shared.chat.reactions.ReactionStrip
+import com.flipcash.shared.chat.reactions.ReactionStripComposer
+import com.flipcash.shared.chat.reactions.SelfReaction
+import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
+import com.getcode.libs.emojis.reactions.EmojiDrawability
+import com.getcode.libs.emojis.reactions.RecentReactionsStore
 import com.flipcash.shared.chat.canReact
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.ui.detectUrls
@@ -182,6 +188,8 @@ internal class ChatViewModel @Inject constructor(
     private val linkCardResolver: LinkCardResolver,
     private val cashLinkClaims: CashLinkClaims,
     private val chatDraftStore: ChatDraftStore,
+    private val recentReactionsStore: RecentReactionsStore,
+    private val emojiCatalogLoader: EmojiCatalogLoader,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
@@ -327,6 +335,12 @@ internal class ChatViewModel @Inject constructor(
          * the whole round trip and read as dead — which is what it looked like before it had one.
          */
         val joinProgress: LoadingSuccessState = LoadingSuccessState(),
+        /**
+         * The quick strip's entries for [selection], recomposed whenever the selected message
+         * changes — empty while nothing is selected, while the selected message can't be reacted
+         * to, or before the catalog/recents have loaded for the first selection of this session.
+         */
+        val quickReactionStrip: List<ReactionStrip.Entry> = emptyList(),
     ) {
         /**
          * The DM counterparty, or `null` for a group.
@@ -609,6 +623,9 @@ internal class ChatViewModel @Inject constructor(
         /** Opens who-reacted for [messageId], from a long-press on a pill. */
         data class OpenReactors(val messageId: Long) : Event
 
+        /** Internal: the quick strip's entries for the current selection have (re)composed. */
+        data class QuickReactionStripComposed(val entries: List<ReactionStrip.Entry>) : Event
+
         /**
          * The reader tapped a cash voucher in this transcript, naming the link.
          *
@@ -672,11 +689,17 @@ internal class ChatViewModel @Inject constructor(
      * Live reaction overrides for the open chat — see [ReactionOperations.observeChatReactions].
      * A message missing here falls back to `MessageReactions.from(message.reactions)` in
      * [mappedMessages], per that function's contract.
+     *
+     * Held as a [StateFlow] (Eagerly, like [senderProfiles]) rather than left cold: the toggle
+     * handler needs a synchronous read of "is this already self-reacted" to decide whether a tap
+     * is an add worth ranking for the quick strip, and a cold flow would mean starting a second
+     * collection just to answer that one question.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val reactionOverlay: Flow<Map<Long, MessageReactions>> = stateFlow.mapNotNull { it.chatId }
+    private val reactionOverlay: StateFlow<Map<Long, MessageReactions>> = stateFlow.mapNotNull { it.chatId }
         .distinctUntilChanged()
         .flatMapLatest { chatCoordinator.observeChatReactions(it) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     /**
      * Null for a DM, a map for a group — the distinction the transcript needs, because a DM's
@@ -1700,7 +1723,51 @@ internal class ChatViewModel @Inject constructor(
         eventFlow.filterIsInstance<Event.ToggleReaction>()
             .onEach { event ->
                 val chatId = stateFlow.value.chatId ?: return@onEach
-                viewModelScope.launch { chatCoordinator.toggleReaction(chatId, event.messageId, event.emoji) }
+                viewModelScope.launch {
+                    // Only an add is worth ranking for the quick strip's "most used" slots — a
+                    // remove is the reader taking it back, not a preference to weight. The live
+                    // overlay is what's already reacted as far as this session knows; a message
+                    // with no override yet has no self-reactions to take back, so it's an add.
+                    val alreadyReacted = reactionOverlay.value[event.messageId]
+                        ?.selfReactions?.any { it.emoji == event.emoji } == true
+                    if (!alreadyReacted) recentReactionsStore.record(event.emoji)
+                    chatCoordinator.toggleReaction(chatId, event.messageId, event.emoji)
+                }
+            }
+            .launchIn(viewModelScope)
+
+        // The quick strip above a selected, reactable bubble — recomposed each time the selection
+        // moves to a different message. Reads the live overlay for self-reactions rather than the
+        // selected bubble's own (possibly stale) snapshot, the same source [mappedMessages] treats
+        // as authoritative.
+        stateFlow.map { it.selection?.takeIf { bubble -> bubble.canReact }?.messageId }
+            .distinctUntilChanged()
+            .flatMapLatest { messageId ->
+                if (messageId == null) {
+                    flowOf(emptyList())
+                } else {
+                    reactionOverlay.map { overlay ->
+                        overlay[messageId]?.selfReactions.orEmpty()
+                    }.distinctUntilChanged()
+                }
+            }
+            .onEach { selfReactions ->
+                val entries = if (selfReactions.isEmpty() && stateFlow.value.selection == null) {
+                    emptyList()
+                } else {
+                    val catalog = emojiCatalogLoader.load()
+                    val undrawable = catalog.firstCategoryEntries
+                        .map { it.emoji }
+                        .filterNot { EmojiDrawability.isDrawable(it) }
+                        .toSet()
+                    ReactionStripComposer.compose(
+                        recentStats = recentReactionsStore.stats(),
+                        selfReactions = selfReactions,
+                        catalogFillSource = catalog.firstCategoryEntries.map { it.emoji },
+                        undrawable = undrawable,
+                    )
+                }
+                dispatchEvent(Event.QuickReactionStripComposed(entries))
             }
             .launchIn(viewModelScope)
 
@@ -2601,6 +2668,7 @@ internal class ChatViewModel @Inject constructor(
                 }
                 is Event.OpenReactionPicker -> { state -> state }
                 is Event.OpenReactors -> { state -> state }
+                is Event.QuickReactionStripComposed -> { state -> state.copy(quickReactionStrip = event.entries) }
                 // Nothing on screen moves when a voucher is tapped -- the link leaves, the card
                 // keeps saying what it said, and the claim comes back as its own signal.
                 is Event.CashLinkOpened -> { state -> state }

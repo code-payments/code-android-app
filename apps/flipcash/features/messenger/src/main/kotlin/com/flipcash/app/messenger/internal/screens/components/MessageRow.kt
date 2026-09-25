@@ -10,6 +10,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
@@ -53,7 +55,10 @@ import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.features.messenger.R
+import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.ui.ContentBubble
+import com.flipcash.shared.chat.ui.QuickReactionStrip
+import com.flipcash.shared.chat.ui.ReactionPillRow
 import com.flipcash.shared.chat.ui.rendersBare
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.chat.ui.bubblePositionOf
@@ -86,6 +91,7 @@ internal fun MessageRow(
     focused: Boolean,
     animateInsertion: Boolean,
     showsSenderGutter: Boolean,
+    quickReactionStrip: List<ReactionStrip.Entry> = emptyList(),
     attention: () -> Float = { 0f },
 ) {
     val onAction = LocalChatActionHandler.current
@@ -311,6 +317,53 @@ internal fun MessageRow(
                                     ),
                                     attention = attention,
                                 )
+
+                                // The quick strip lives above the bubble, only while this exact
+                                // message is the selected one — it replaces the backdrop's own
+                                // reach for a reaction with something faster than opening the
+                                // picker, and disappears the moment selection moves off.
+                                if (selecting && focused && item.canReact && quickReactionStrip.isNotEmpty()) {
+                                    QuickReactionStrip(
+                                        entries = quickReactionStrip,
+                                        onToggle = { emoji ->
+                                            onAction(
+                                                ChatAction.ToggleReaction(
+                                                    messageId = item.messageId,
+                                                    emoji = emoji,
+                                                    fromStrip = true,
+                                                )
+                                            )
+                                        },
+                                        onOpenPicker = { onAction(ChatAction.OpenReactionPicker(item.messageId)) },
+                                        modifier = Modifier
+                                            .align(if (item.isFromSelf) Alignment.TopEnd else Alignment.TopStart)
+                                            .offset(y = -QUICK_STRIP_OFFSET),
+                                    )
+                                }
+                            }
+                            // Same width as the bubble above it (decision 2) — matched here
+                            // against the same fraction MessageBubble sizes a text/reply/deleted
+                            // bubble to, since the row doesn't expose its resolved width outward.
+                            if (!selecting && (item.reactionPills.isNotEmpty() || item.canReact)) {
+                                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                    ReactionPillRow(
+                                        pills = item.reactionPills,
+                                        canReact = item.canReact,
+                                        onToggle = { emoji ->
+                                            onAction(ChatAction.ToggleReaction(item.messageId, emoji))
+                                        },
+                                        onPillLongClick = {
+                                            onAction(ChatAction.OpenReactors(item.messageId))
+                                        },
+                                        onOpenPicker = {
+                                            onAction(ChatAction.OpenReactionPicker(item.messageId))
+                                        },
+                                        modifier = Modifier
+                                            .align(if (item.isFromSelf) Alignment.TopEnd else Alignment.TopStart)
+                                            .width(maxWidth * BUBBLE_ROW_WIDTH_FRACTION),
+                                        alignEnd = item.isFromSelf,
+                                    )
+                                }
                             }
                             val showReceipt =
                                 shouldShowReceiptLabel(index, item, messages, otherReadPointer)
@@ -426,6 +479,12 @@ private fun senderNameInset(showsGutter: Boolean): Dp =
     } else {
         CodeTheme.dimens.grid.x1
     }
+
+// Matches MessageBubble's own BUBBLE_MAX_WIDTH_FRACTION for a text/reply/deleted bubble — the row
+// doesn't expose its resolved width outward, so the pill row underneath it re-derives the same
+// fraction of the shared row width instead.
+private const val BUBBLE_ROW_WIDTH_FRACTION = 0.78f
+private val QUICK_STRIP_OFFSET = 12.dp
 
 private val AFFORDANCE_SIZE = 32.dp
 private val AFFORDANCE_INSET = 20.dp

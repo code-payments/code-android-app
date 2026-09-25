@@ -23,6 +23,8 @@ import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
+import com.getcode.libs.emojis.reactions.RecentReactionsStore
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
@@ -87,6 +89,8 @@ class ChatSendFailureAnalyticsTest {
     private val linkCardResolver = mockk<LinkCardResolver>(relaxed = true)
     private val cashLinkClaims = mockk<CashLinkClaims>(relaxed = true)
     private val chatDraftStore = mockk<ChatDraftStore>(relaxed = true)
+    private val recentReactionsStore = mockk<RecentReactionsStore>(relaxed = true)
+    private val emojiCatalogLoader = mockk<EmojiCatalogLoader>(relaxed = true)
 
     private val token = mockk<Token>(relaxed = true)
     private val amount = Fiat(5.0)
@@ -133,6 +137,8 @@ class ChatSendFailureAnalyticsTest {
         linkCardResolver = linkCardResolver,
         cashLinkClaims = cashLinkClaims,
         chatDraftStore = chatDraftStore,
+        recentReactionsStore = recentReactionsStore,
+        emojiCatalogLoader = emojiCatalogLoader,
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 
