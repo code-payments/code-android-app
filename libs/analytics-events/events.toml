@@ -78,6 +78,7 @@ description = "The `Cash Link Choice` property on Send Cash Link: how the user p
 [lists.CashLinkChoice.values]
 COPIED = "Copied to clipboard"
 SHARED = "Shared to app"
+GROUP_CHAT = "Posted to group chat"
 
 [lists.AddMoneySource]
 description = "The `Source` property on Add Money: Opened: where the user opened Add Money from."
@@ -417,7 +418,7 @@ properties = [
   { name = "App", type = "text", optional = true },
   { group = "outcome" },
 ]
-drift = "iOS sends no Cash Link Choice or App, and sends Exchange Rate and no USDC (see Amount). Android never sends Failure."
+drift = "iOS sends no Cash Link Choice or App, and sends Exchange Rate and no USDC (see Amount). Android sends Failure only for a link posted to a group chat."
 
 [[event]]
 domain = "Transfer"

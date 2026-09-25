@@ -140,6 +140,7 @@ class ChatGroupAnalyticsTest {
         linkCardClassifier = linkCardClassifier,
         linkCardResolver = linkCardResolver,
         cashLinkClaims = cashLinkClaims,
+        chatCashLinks = mockk(relaxed = true),
         chatDraftStore = chatDraftStore,
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )

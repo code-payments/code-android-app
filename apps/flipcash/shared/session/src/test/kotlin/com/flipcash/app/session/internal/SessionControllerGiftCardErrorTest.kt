@@ -8,6 +8,7 @@ import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.internal.delegates.BillPresentationDelegate
 import com.flipcash.app.session.internal.delegates.CashLinkDelegate
 import com.flipcash.app.session.internal.delegates.CodeScanDelegate
+import com.flipcash.app.session.internal.delegates.GiftCardFunding
 import com.flipcash.app.session.internal.delegates.GiftCardSharingDelegate
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
@@ -114,8 +115,7 @@ class SessionControllerGiftCardErrorTest {
             shareSheetController = shareSheetController,
             shareConfirmationController = mockk(relaxed = true),
             toastController = mockk(relaxed = true),
-            tokenCoordinator = tokenCoordinator,
-            transactionController = mockk(relaxed = true),
+            funding = GiftCardFunding(billController, tokenCoordinator, mockk(relaxed = true)),
             analytics = analytics,
             vibrator = mockk(relaxed = true),
             resources = resources,

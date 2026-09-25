@@ -2,9 +2,11 @@ package com.flipcash.app.session.inject
 
 import com.flipcash.app.core.toast.ToastController
 import com.flipcash.app.session.CashLinkClaims
+import com.flipcash.app.session.ChatCashLinks
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.internal.RealSessionController
 import com.flipcash.app.session.internal.delegates.CashLinkDelegate
+import com.flipcash.app.session.internal.delegates.ChatCashLinkDelegate
 import com.flipcash.app.session.internal.toast.SessionToastController
 import dagger.Binds
 import dagger.Module
@@ -31,4 +33,8 @@ abstract class SessionModule {
     @Binds
     @Singleton
     abstract fun bindCashLinkClaims(impl: CashLinkDelegate): CashLinkClaims
+
+    @Binds
+    @Singleton
+    abstract fun bindChatCashLinks(impl: ChatCashLinkDelegate): ChatCashLinks
 }
