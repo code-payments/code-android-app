@@ -2,9 +2,9 @@
 name: fetch-protos
 description: >
   Bump a client-protocol artifact, summarize the contract changes it carries,
-  and scaffold new service stubs. Usage: /fetch-protos [flipcash|opencode] [version]
+  and scaffold new service stubs. Usage: /fetch-protos [flipcash|opencode] [version] [scaffold]
 user-invocable: true
-argument-hint: "[flipcash|opencode] [version]"
+argument-hint: "[flipcash|opencode] [version] [scaffold]"
 allowed-tools:
   - Bash
   - Read
@@ -39,12 +39,14 @@ Parse `$ARGUMENTS` to determine targets and an optional version.
 **Rules:**
 - Known targets: `flipcash`, `opencode`
 - If no targets specified, check **both**
-- A semver-looking string as the last argument is the version to move to; without
-  one, use the latest release
+- A semver-looking string is the version to move to; without one, use the latest
+  release
+- The word `scaffold` anywhere in the arguments opts in to Step 6 scaffolding
 - Examples:
   - `/fetch-protos` → check both artifacts for newer releases
   - `/fetch-protos flipcash` → flipcash only, latest release
   - `/fetch-protos opencode 0.2.0` → opencode at 0.2.0
+  - `/fetch-protos flipcash scaffold` → flipcash latest, scaffolding new RPCs
 
 ## Steps
 
@@ -164,8 +166,9 @@ mapped — follow the same pattern.
 ##### UserFlags-specific chain
 
 When `UserFlags` fields change, the following files form a chain that must all be
-updated together. Ask the user whether the new field should be **read-only** (display
-only) or **editable** (overridable via the debug editor).
+updated together. Default a new field to **read-only** (display only) rather than
+**editable** (overridable via the debug editor); flag it in the summary if it looks
+like a flag you'd want to override.
 
 | # | File | What to update |
 |---|------|----------------|
@@ -187,12 +190,13 @@ For **read-only** fields (e.g., booleans like `enablePhoneNumberSend`):
 - In `UserFlagsViewModel`, add to `readOnlyEntries` with a string resource label
 - No changes needed in `Overrides`, `Field.kt`, or `UserFlagsCoordinator`
 
-Present a report of domain model updates needed and apply them after user confirmation.
+Apply the domain model updates and include them in the Step 7 summary.
 
 ### Step 6 — Scaffold new service stubs
 
-For RPCs marked as needing scaffolding, ask the user if they want to scaffold them.
-If confirmed, generate code following the patterns below.
+Scaffold only if the invocation asks for it (e.g. `/fetch-protos flipcash scaffold`);
+otherwise list the RPCs that need scaffolding in the Step 7 summary. When scaffolding,
+generate code following the patterns below.
 
 #### Api method pattern
 
@@ -304,6 +308,8 @@ the corresponding Hilt module (`FlipcashModule.kt` or `OpenCodeModule.kt`).
 
 ### Step 7 — Review and commit
 
+Re-run the Step 4 build; done when it passes with the new code in place.
+
 Show the user a summary of all changes (proto updates + any scaffolded code).
 
 Offer to commit with a conventional commit message:
@@ -325,4 +331,3 @@ feat(<target>): scaffold service stubs for new RPCs
 - Try to edit the generated protobuf code — it lives in the published artifact
 - Commit without user approval
 - Skip build verification
-- Scaffold service code without asking the user first

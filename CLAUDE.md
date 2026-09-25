@@ -85,6 +85,10 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 - **Protobuf models**: Backend models come from the published `com.flipcash:{ocp,flipcash2}-client-protocol` artifacts, not from protos in this repo; the contracts are generated in their own repos
 - **Dark mode only**: App forces `MODE_NIGHT_YES`
 
+## Definition of Done
+
+A code change is done when the touched modules' unit tests pass and `./gradlew :apps:flipcash:app:compileDebugKotlin` succeeds.
+
 ## Namespaces
 
 - App: `com.flipcash.app.android` (no `applicationIdSuffix` — debug and release share the ID, so installing one replaces the other)
