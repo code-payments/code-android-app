@@ -338,7 +338,12 @@ internal fun MessageRow(
                                                 )
                                             )
                                         },
-                                        onOpenPicker = { onAction(ChatAction.OpenReactionPicker(item.messageId)) },
+                                        // Leave selection first, as iOS dismisses its context
+                                        // menu, so the strip doesn't float over the picker.
+                                        onOpenPicker = {
+                                            onAction(ChatAction.ClearSelection)
+                                            onAction(ChatAction.OpenReactionPicker(item.messageId))
+                                        },
                                         // Clear of the selection bar's actions at the top.
                                         minTop = WindowInsets.statusBars.asPaddingValues()
                                             .calculateTopPadding() + SELECTION_BAR_CLEARANCE,
