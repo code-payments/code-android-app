@@ -387,6 +387,12 @@ class ChatMessageDaoTest {
         ?.associate { it.emoji to it.version }
         .orEmpty()
 
+    private fun countsByEmoji(json: String?) = json
+        ?.let { reactionJsonCodec.decodeFromString<ReactionSummarySerialized>(it) }
+        ?.reactions
+        ?.associate { it.emoji to it.count }
+        .orEmpty()
+
     /**
      * A plain content upsert (edit, delivery-status refresh, server echo) carries no reaction data
      * of its own. It must not wipe out a reaction a prior `ReactionUpdate` already confirmed.
@@ -441,8 +447,12 @@ class ChatMessageDaoTest {
         assertNull(dao.getReactionsJson(CHAT_HEX, 99))
     }
 
+    /**
+     * A stored emoji the incoming payload omits is treated as emptied on the server (mirrors iOS's
+     * `applySummary`), not left stale: it tombstones to count 0 while keeping its version.
+     */
     @Test
-    fun `mergeReactionsJson keeps a stored emoji the incoming payload omits`() = runTest {
+    fun `mergeReactionsJson tombstones a stored emoji the incoming payload omits`() = runTest {
         dao.upsert(text(1, "hi"))
         dao.mergeReactionsJson(CHAT_HEX, 1, reactionsJson("👍" to 1, "❤️" to 1))
 
@@ -451,6 +461,10 @@ class ChatMessageDaoTest {
         assertEquals(
             mapOf("👍" to 2L, "❤️" to 1L),
             versionsByEmoji(dao.getReactionsJson(CHAT_HEX, 1)),
+        )
+        assertEquals(
+            mapOf("👍" to 2L, "❤️" to 0L),
+            countsByEmoji(dao.getReactionsJson(CHAT_HEX, 1)),
         )
     }
 

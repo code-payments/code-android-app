@@ -14,8 +14,13 @@ private val json = Json {
 }
 
 /**
- * Merges a message's stored `reactions_json` with an incoming payload, per emoji, keeping
- * whichever side carries the higher `version` — mirrors iOS's `mergeReactions`/`applySummary`.
+ * Merges a message's stored `reactions_json` with an incoming payload, per emoji — mirrors iOS's
+ * `applySummary`. `incoming` is treated as a full confirmed summary: an emoji [storedJson] holds
+ * that [incomingJson] omits has emptied, so it is kept as a tombstone (count 0, self/sample
+ * reactors cleared, `version` retained so a later, older add for it is still rejected) rather than
+ * left stale. An emoji present on both sides keeps whichever entry's `version` is strictly higher;
+ * a tie keeps [storedJson]'s entry, matching [com.flipcash.shared.chat.reactions.ReactionState]'s
+ * accept-by-version rule (`accept` rejects `<=`, so only a strictly newer version replaces it).
  * `incomingJson == null` keeps [storedJson] as-is: a write that carries no reaction data (an
  * ordinary content upsert) must not erase confirmed reactions already on disk. `storedJson ==
  * null` (nothing stored yet) takes [incomingJson] outright.
@@ -31,9 +36,13 @@ internal fun mergeReactionsJson(storedJson: String?, incomingJson: String?): Str
         val storedEntry = storedByEmoji[emoji]
         val incomingEntry = incomingByEmoji[emoji]
         when {
-            incomingEntry == null -> storedEntry
+            incomingEntry == null -> storedEntry?.copy(
+                count = 0,
+                selfReactor = null,
+                sampleReactors = emptyList(),
+            )
             storedEntry == null -> incomingEntry
-            incomingEntry.version >= storedEntry.version -> incomingEntry
+            incomingEntry.version > storedEntry.version -> incomingEntry
             else -> storedEntry
         }
     }

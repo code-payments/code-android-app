@@ -183,4 +183,53 @@ class ChatTypeConvertersTest {
     }
 
     // endregion
+
+    // region mergeReactionsJson
+
+    private fun reactionsJson(vararg entries: Triple<String, Long, Long>) = converter.toReactionSummary(
+        ReactionSummarySerialized(
+            messageId = 1,
+            reactions = entries.map { (emoji, count, version) ->
+                EmojiReactionSerialized(
+                    emoji = emoji,
+                    count = count,
+                    selfReactor = if (count > 0) ReactorSerialized(userIdHex = "self", reactedAtEpochSeconds = 1L) else null,
+                    sampleReactors = emptyList(),
+                    version = version,
+                )
+            },
+        )
+    )!!
+
+    private fun decode(json: String?) = json?.let { converter.fromReactionSummary(it) }
+
+    @Test
+    fun `mergeReactionsJson tombstones a stored emoji the incoming summary omits`() {
+        val stored = reactionsJson(Triple("👍", 1L, 1L), Triple("❤️", 1L, 3L))
+        val incoming = reactionsJson(Triple("👍", 2L, 2L))
+
+        val merged = decode(mergeReactionsJson(stored, incoming))!!
+        val byEmoji = merged.reactions.associateBy { it.emoji }
+
+        // The still-present emoji takes the incoming (newer) entry outright.
+        assertEquals(EmojiReactionSerialized("👍", 2L, byEmoji["👍"]?.selfReactor, emptyList(), 2L), byEmoji["👍"])
+        // The omitted emoji becomes a tombstone: count 0, self/sample reactors cleared, version kept.
+        assertEquals(
+            EmojiReactionSerialized(emoji = "❤️", count = 0L, selfReactor = null, sampleReactors = emptyList(), version = 3L),
+            byEmoji["❤️"],
+        )
+    }
+
+    @Test
+    fun `mergeReactionsJson keeps the stored entry on a version tie`() {
+        val stored = reactionsJson(Triple("👍", 5L, 3L))
+        val incoming = reactionsJson(Triple("👍", 1L, 3L))
+
+        val merged = decode(mergeReactionsJson(stored, incoming))!!
+
+        // Strictly-greater only, matching ReactionState.accept: a tie does not let incoming win.
+        assertEquals(5L, merged.reactions.single { it.emoji == "👍" }.count)
+    }
+
+    // endregion
 }
