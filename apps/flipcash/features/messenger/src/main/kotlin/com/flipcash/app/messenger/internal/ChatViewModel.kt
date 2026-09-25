@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
+import androidx.paging.map
 import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
@@ -86,6 +87,9 @@ import com.flipcash.shared.chat.models.splitAroundLinkCard
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.readOnly
+import com.flipcash.shared.chat.MessageReactions
+import com.flipcash.shared.chat.reactions.ReactionError
+import com.flipcash.shared.chat.canReact
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
@@ -588,6 +592,24 @@ internal class ChatViewModel @Inject constructor(
         data object CancelReply : Event
 
         /**
+         * Toggles the viewer's reaction with [emoji] on [messageId] — a tap on a pill, on the
+         * quick strip above a selected bubble, or a pick from the full picker. When it came from
+         * the strip, [clearsSelection] takes the bubble out of selection mode the same tap it acts
+         * on; a tap on the pill row under a bubble that isn't selected leaves selection untouched.
+         */
+        data class ToggleReaction(
+            val messageId: Long,
+            val emoji: String,
+            val clearsSelection: Boolean = false,
+        ) : Event
+
+        /** Opens the full emoji picker for [messageId], from a pill row's or the strip's "+". */
+        data class OpenReactionPicker(val messageId: Long) : Event
+
+        /** Opens who-reacted for [messageId], from a long-press on a pill. */
+        data class OpenReactors(val messageId: Long) : Event
+
+        /**
          * The reader tapped a cash voucher in this transcript, naming the link.
          *
          * Only the name: the screen opens the link through the URL handler right after
@@ -645,6 +667,16 @@ internal class ChatViewModel @Inject constructor(
      * next page.
      */
     private val viewerCanPost = stateFlow.map { !it.isOutsideGroup }.distinctUntilChanged()
+
+    /**
+     * Live reaction overrides for the open chat — see [ReactionOperations.observeChatReactions].
+     * A message missing here falls back to `MessageReactions.from(message.reactions)` in
+     * [mappedMessages], per that function's contract.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val reactionOverlay: Flow<Map<Long, MessageReactions>> = stateFlow.mapNotNull { it.chatId }
+        .distinctUntilChanged()
+        .flatMapLatest { chatCoordinator.observeChatReactions(it) }
 
     /**
      * Null for a DM, a map for a group — the distinction the transcript needs, because a DM's
@@ -802,12 +834,34 @@ internal class ChatViewModel @Inject constructor(
                         // after the first page does.
                         senderId = message.senderId?.takeIf { !message.isFromSelf },
                         linkCard = linkCard,
+                        // Stored fallback only — see the reactionOverlay pass below, which fills
+                        // in a live override for whichever row ends up as `isLastRow` once
+                        // `splitAroundLinkCard` has run.
+                        reactionPills = MessageReactions.from(message.reactions).pills,
+                        canReact = canReact(message),
                     )
                         // A carded link takes a row of its own, with the prose either side of it
                         // on rows above and below. Reversed because the list is: this page runs
                         // newest-first under reverseLayout, so the row drawn lowest goes first.
                         .splitAroundLinkCard()
                         .asReversed()
+                }
+            }
+        }
+        // A live reaction override — an in-flight tap, or a refreshed/streamed confirmed state —
+        // beats the stored fallback baked in above. Combined as its own pass over the already-built
+        // pages rather than folded into the combine above: it needs nothing else that combine reads
+        // (only the message id already on each row), and keeping it separate means a reaction
+        // update re-maps pills without re-running sender resolution, link classification or the
+        // policy/capability pass over every row.
+        .let { pages ->
+            combine(pages, reactionOverlay) { data, overlay ->
+                if (overlay.isEmpty()) return@combine data
+                data.map { bubble ->
+                    // Only the row the "Edited" marker also lands on carries the pill row, so a
+                    // split message shows one set of pills, not one per row.
+                    val live = if (bubble.isLastRow) overlay[bubble.messageId] else null
+                    if (live == null) bubble else bubble.copy(reactionPills = live.pills)
                 }
             }
         }.cachedIn(viewModelScope)
@@ -1643,6 +1697,40 @@ internal class ChatViewModel @Inject constructor(
     }
 
     private fun initMessageActionHandlers() {
+        eventFlow.filterIsInstance<Event.ToggleReaction>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                viewModelScope.launch { chatCoordinator.toggleReaction(chatId, event.messageId, event.emoji) }
+            }
+            .launchIn(viewModelScope)
+
+        // OpenReactionPicker/OpenReactors carry no side effect here — the screen's action handler
+        // pushes the ChatStep, the same as every other transcript-triggered navigation (see
+        // MessengerScreen's chatActionHandler). The reducer above is a no-op for both too; they
+        // exist as events at all only so a picker pick, once B2 adds it, can reach ToggleReaction
+        // through the same dispatch path everything else in the transcript uses.
+
+        // A failed add/remove the coordinator has already rolled back optimistically — this only
+        // tells the reader why the pill snapped back.
+        chatCoordinator.reactionErrors
+            .onEach { error ->
+                BottomBarManager.showError(
+                    title = resources.getString(
+                        when (error) {
+                            ReactionError.REACTION_FAILED -> R.string.title_reactionNotAdded
+                            ReactionError.TOO_MANY_REACTION_TYPES -> R.string.title_reactionLimitReached
+                        }
+                    ),
+                    message = resources.getString(
+                        when (error) {
+                            ReactionError.REACTION_FAILED -> R.string.description_reactionNotAdded
+                            ReactionError.TOO_MANY_REACTION_TYPES -> R.string.description_reactionLimitReached
+                        }
+                    ),
+                )
+            }
+            .launchIn(viewModelScope)
+
         // Read off the state rather than carried on the event, so the row that copies the link and
         // the row that shares it are handing out the one url [State.groupInviteUrl] builds.
         eventFlow.filterIsInstance<Event.CopyInviteLink>()
@@ -2505,6 +2593,14 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 Event.CancelReply -> { state -> state.copy(replyingTo = null) }
+                // The toggle itself is handled in initMessageActionHandlers (it calls the
+                // coordinator); the reducer's only job is to take the bubble out of selection mode
+                // when the tap came from the quick strip.
+                is Event.ToggleReaction -> { state ->
+                    if (event.clearsSelection) state.copy(selection = null) else state
+                }
+                is Event.OpenReactionPicker -> { state -> state }
+                is Event.OpenReactors -> { state -> state }
                 // Nothing on screen moves when a voucher is tapped -- the link leaves, the card
                 // keeps saying what it said, and the claim comes back as its own signal.
                 is Event.CashLinkOpened -> { state -> state }

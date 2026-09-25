@@ -87,9 +87,14 @@ sealed interface ChatAction {
 
     /**
      * Toggles the viewer's reaction with [emoji] on [messageId] — a tap on a pill, on a quick-strip
-     * entry, or a pick from the full picker all resolve to this one action.
+     * entry, or a pick from the full picker all resolve to this one action. [fromStrip] is true
+     * only for the quick strip above a selected bubble, whose tap also exits selection mode.
      */
-    data class ToggleReaction(val messageId: Long, val emoji: String) : ChatAction
+    data class ToggleReaction(
+        val messageId: Long,
+        val emoji: String,
+        val fromStrip: Boolean = false,
+    ) : ChatAction
 
     /** Opens the full emoji picker for [messageId], from the pill row's or the quick strip's "+". */
     data class OpenReactionPicker(val messageId: Long) : ChatAction

@@ -196,6 +196,26 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     keyboard.hideIfVisible { navigator.push(ChatStep.Profile(it)) }
                 }
             }
+
+            is ChatAction.ToggleReaction -> {
+                viewModel.dispatchEvent(
+                    ChatViewModel.Event.ToggleReaction(
+                        messageId = action.messageId,
+                        emoji = action.emoji,
+                        clearsSelection = action.fromStrip,
+                    )
+                )
+            }
+
+            is ChatAction.OpenReactionPicker -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.OpenReactionPicker(action.messageId))
+                navigator.push(ChatStep.ReactionPicker(action.messageId))
+            }
+
+            is ChatAction.OpenReactors -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.OpenReactors(action.messageId))
+                navigator.push(ChatStep.Reactors(action.messageId))
+            }
         }
 
         Unit
