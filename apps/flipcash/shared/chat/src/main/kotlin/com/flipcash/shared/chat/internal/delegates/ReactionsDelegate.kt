@@ -75,10 +75,13 @@ class ReactionsDelegate @Inject constructor(
         combine(stateHolder.state, localVersion) { state, _ ->
             val overlayIds = state.reactionOverlays[chatId]?.keys.orEmpty()
             val liveIds = liveStates[chatId]?.keys.orEmpty()
-            (overlayIds + liveIds).associateWith { messageId ->
+            val ids = overlayIds + liveIds
+            val result = mutableMapOf<Long, MessageReactions>()
+            for (messageId in ids) {
                 val reactionState = snapshot(chatId, messageId)
-                MessageReactions(pills = reactionState.pills, selfReactions = reactionState.selfReactions)
+                result[messageId] = MessageReactions(pills = reactionState.pills, selfReactions = reactionState.selfReactions)
             }
+            result
         }.distinctUntilChanged()
 
     override suspend fun toggleReaction(chatId: ChatId, messageId: Long, emoji: String) {
@@ -166,9 +169,24 @@ class ReactionsDelegate @Inject constructor(
         }
     }
 
-    /** Gets or creates the message's [ReactionState] and folds in the latest confirmed overlay. */
-    private fun snapshot(chatId: ChatId, messageId: Long): ReactionState {
-        val state = liveStates.getOrPut(chatId) { mutableMapOf() }.getOrPut(messageId) { ReactionState() }
+    /**
+     * Gets or creates the message's [ReactionState] and folds in the latest confirmed overlay.
+     *
+     * A freshly-created state is first seeded from Room: after a relaunch the confirmed reactions
+     * for a message this device already knew about live only on disk, not in [ChatStateHolder] —
+     * without this, the first tap on an emoji the user already reacted with would compute an ADD
+     * instead of a REMOVE. Only done once per message (the `getOrPut` below only runs the seed
+     * block when creating), since after that [ChatStateHolder]'s overlay (kept current by
+     * [EventStreamDelegate] and [refreshReactions]) is the live source of truth.
+     */
+    private suspend fun snapshot(chatId: ChatId, messageId: Long): ReactionState {
+        val chatStates = liveStates.getOrPut(chatId) { mutableMapOf() }
+        val state = chatStates[messageId] ?: ReactionState().also { fresh ->
+            messageDataSource.getMessage(chatId, messageId)?.reactions?.let { summary ->
+                fresh.applySummary(summary.reactions.map { it.toSummaryEntry() })
+            }
+            chatStates[messageId] = fresh
+        }
         stateHolder.current.reactionOverlays[chatId]?.get(messageId)?.let { summary ->
             state.applySummary(summary.reactions.map { it.toSummaryEntry() })
         }

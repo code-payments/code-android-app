@@ -4,6 +4,7 @@ import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.AddReactionError
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.EmojiReaction
 import com.flipcash.services.models.chat.ReactionSummary
@@ -159,6 +160,43 @@ class ReactionsDelegateTest {
         coVerify { messageDataSource.mergeReactions(chatId, 1L, any()) }
         val overlay = stateHolder.current.reactionOverlays[chatId]?.get(1L)
         assertEquals(3, overlay?.reactions?.first()?.count)
+    }
+
+    /**
+     * After relaunch, a confirmed self-reaction lives only in Room — [ChatStateHolder]'s in-memory
+     * overlay is empty. Tapping that emoji must still compute a REMOVE, not an ADD: `snapshot` has
+     * to seed the fresh [com.flipcash.shared.chat.reactions.ReactionState] from the stored summary,
+     * not just from the overlay.
+     */
+    @Test
+    fun `toggling an emoji already reacted to in Room, with no overlay, sends a remove`() = runTest {
+        coEvery { messageDataSource.getMessage(chatId, 1L) } returns ChatMessage(
+            messageId = 1L,
+            senderId = selfId,
+            content = emptyList(),
+            timestamp = Instant.fromEpochSeconds(1000),
+            unreadSeq = 0,
+            reactions = ReactionSummary(
+                messageId = 1L,
+                reactions = listOf(
+                    EmojiReaction(
+                        emoji = Emoji(emoji),
+                        count = 1,
+                        selfReactor = Reactor(userId = selfId, reactedAt = Instant.fromEpochSeconds(1000), version = 1),
+                        sampleReactors = emptyList(),
+                        version = 1,
+                    )
+                ),
+            ),
+        )
+        coEvery { messagingController.removeReaction(chatId, 1L, Emoji(emoji)) } returns Result.success(
+            EmojiReaction(emoji = Emoji(emoji), count = 0, selfReactor = null, sampleReactors = emptyList(), version = 2)
+        )
+
+        delegate.toggleReaction(chatId, 1L, emoji)
+
+        coVerify { messagingController.removeReaction(chatId, 1L, Emoji(emoji)) }
+        coVerify(exactly = 0) { messagingController.addReaction(any(), any(), any()) }
     }
 
     @Test
