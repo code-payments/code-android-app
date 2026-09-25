@@ -5,13 +5,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,11 +34,21 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -114,13 +124,10 @@ internal fun ReactorsSheet(
             state = listState,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 480.dp)
                 .navigationBarsPadding(),
-            contentPadding = PaddingValues(
-                horizontal = CodeTheme.dimens.inset,
-                vertical = CodeTheme.dimens.grid.x3,
-            ),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            // No horizontal padding: rows inset their own leading edge, and overflowing emoji run
+            // off the screen edge rather than stopping at a margin.
+            contentPadding = PaddingValues(vertical = CodeTheme.dimens.grid.x2),
         ) {
             if (showPlaceholders) {
                 // min(max pill count, 5) placeholder rows.
@@ -191,7 +198,10 @@ private fun SummaryPillRow(pills: List<ReactionPill>) {
     }
 }
 
-/** One reactor: avatar, name/handle, and every emoji they reacted with. */
+/**
+ * One reactor: avatar and name/handle, then every emoji they reacted with. Only the person opens
+ * their profile; the emoji are theirs to scroll, not a tap target.
+ */
 @Composable
 private fun ReactorRow(
     userId: ID,
@@ -202,54 +212,83 @@ private fun ReactorRow(
     val displayFlow = remember(userId, resolveDisplay) { resolveDisplay(userId) }
     val display by displayFlow.collectAsStateWithLifecycle(initialValue = null)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(CodeTheme.dimens.grid.x2))
-            .clickable(enabled = display != null, onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-    ) {
-        val profile = display?.profile
-        if (profile != null) {
-            ContactAvatar(userProfile = profile, modifier = Modifier.size(48.dp).clip(CircleShape))
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)),
-            )
-        }
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = display?.name ?: "",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = CodeTheme.colors.textMain,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val handle = profile?.handle
-            if (!handle.isNullOrBlank()) {
-                Text(
-                    text = handle,
-                    fontSize = 13.sp,
-                    color = CodeTheme.colors.textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-
-        // Horizontal scroll with edge fades only when it overflows its min width — every row draws
-        // at least 140.dp so a one-emoji row doesn't shrink to a sliver next to a five-emoji one.
-        val scrollState = rememberScrollState()
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        // The person keeps priority over the emoji, which always get at least MinEmojiWidth.
+        val personMaxWidth = (maxWidth - RowLeadingInset - MinEmojiWidth).coerceAtLeast(0.dp)
         Row(
             modifier = Modifier
-                .widthIn(min = 140.dp)
-                .horizontalScroll(scrollState),
+                .fillMaxWidth()
+                .padding(start = RowLeadingInset)
+                .padding(vertical = 8.5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier
+                    .widthIn(max = personMaxWidth)
+                    .clickable(enabled = display != null, onClick = onClick),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(15.dp),
+            ) {
+                val profile = display?.profile
+                if (profile != null) {
+                    ContactAvatar(userProfile = profile, modifier = Modifier.size(48.dp).clip(CircleShape))
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)),
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = display?.name ?: "",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = CodeTheme.colors.textMain,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    val handle = profile?.handle
+                    if (!handle.isNullOrBlank()) {
+                        Text(
+                            text = handle,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = CodeTheme.colors.textMain.copy(alpha = 0.5f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+
+            ReactorEmojis(emojis = emojis, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+/**
+ * A reactor's emoji, trailing-aligned in whatever the name leaves. When there are more than fit
+ * they scroll sideways, opening on the first emoji, and fade out across the margins instead of
+ * stopping at a hard edge. The leading margin is also the gap to the name.
+ */
+@Composable
+private fun ReactorEmojis(emojis: List<String>, modifier: Modifier = Modifier) {
+    val scrollState = rememberScrollState()
+    val overflows = scrollState.maxValue > 0
+    Box(
+        modifier = modifier
+            .semantics(mergeDescendants = true) { contentDescription = emojis.joinToString(" ") }
+            .then(if (overflows) Modifier.edgeFade(EmojiLeadingMargin, EmojiTrailingMargin) else Modifier),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        Row(
+            modifier = Modifier
+                .horizontalScroll(scrollState)
+                .padding(start = EmojiLeadingMargin, end = EmojiTrailingMargin)
+                .clearAndSetSemantics { },
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             for (emoji in emojis) {
@@ -259,12 +298,47 @@ private fun ReactorRow(
     }
 }
 
+/** Fades content out across [leading] and [trailing], eased so the fade has no visible start line. */
+private fun Modifier.edgeFade(leading: Dp, trailing: Dp): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val leadingPx = leading.toPx()
+        val trailingPx = trailing.toPx()
+        drawRect(
+            brush = Brush.horizontalGradient(*EdgeFadeStops, startX = 0f, endX = leadingPx),
+            size = Size(leadingPx, size.height),
+            blendMode = BlendMode.DstIn,
+        )
+        drawRect(
+            brush = Brush.horizontalGradient(*EdgeFadeStops, startX = size.width, endX = size.width - trailingPx),
+            topLeft = Offset(size.width - trailingPx, 0f),
+            size = Size(trailingPx, size.height),
+            blendMode = BlendMode.DstIn,
+        )
+    }
+
+private val EdgeFadeStops = arrayOf(
+    0f to Color.Black.copy(alpha = 0f),
+    0.25f to Color.Black.copy(alpha = 0.15f),
+    0.5f to Color.Black.copy(alpha = 0.5f),
+    0.75f to Color.Black.copy(alpha = 0.85f),
+    1f to Color.Black,
+)
+
+private val RowLeadingInset = 20.dp
+private val MinEmojiWidth = 140.dp
+private val EmojiLeadingMargin = 16.dp
+private val EmojiTrailingMargin = 20.dp
+
 @Composable
 private fun ReactorRowPlaceholder() {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = RowLeadingInset, vertical = 8.5.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+        horizontalArrangement = Arrangement.spacedBy(15.dp),
     ) {
         Box(
             modifier = Modifier
