@@ -18,11 +18,13 @@ import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.FeedOperations
 import com.flipcash.shared.chat.GroupOperations
 import com.flipcash.shared.chat.MessagingOperations
+import com.flipcash.shared.chat.ReactionOperations
 import com.flipcash.shared.chat.internal.delegates.EventStreamDelegate
 import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
 import com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate
 import com.flipcash.shared.chat.internal.delegates.DmChatResolverDelegate
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
+import com.flipcash.shared.chat.internal.delegates.ReactionsDelegate
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.providers.SessionListener
 import com.getcode.utils.TraceType
@@ -86,6 +88,7 @@ class RealChatCoordinator @Inject constructor(
     private val dmChatResolverDelegate: DmChatResolverDelegate,
     private val messagingDelegate: MessagingDelegate,
     private val groupFeedDelegate: GroupFeedDelegate,
+    private val reactionsDelegate: ReactionsDelegate,
     private val stateHolder: ChatStateHolder,
     private val draftStore: ChatDraftStore,
     private val userManager: UserManager,
@@ -98,7 +101,8 @@ class RealChatCoordinator @Inject constructor(
     EventStreamOperations by eventStreamDelegate,
     DmChatResolver by dmChatResolverDelegate,
     MessagingOperations by messagingDelegate,
-    GroupOperations by groupFeedDelegate {
+    GroupOperations by groupFeedDelegate,
+    ReactionOperations by reactionsDelegate {
 
     companion object {
         private const val TAG = "ChatCoordinator"
@@ -330,6 +334,7 @@ class RealChatCoordinator @Inject constructor(
         networkObserverJob?.cancel()
         stateHolder.reset()
         eventStreamDelegate.clearAll()
+        reactionsDelegate.clearAll()
         cluster.value = null
         supervisorJob.cancel()
         trace(tag = TAG, message = "teardown complete", type = TraceType.Process)
