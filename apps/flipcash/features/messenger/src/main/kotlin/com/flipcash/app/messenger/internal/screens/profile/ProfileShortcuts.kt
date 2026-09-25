@@ -103,17 +103,21 @@ internal fun ProfileShortcuts(
     }
 }
 
+/**
+ * One labelled circle: the profile's shortcuts, and the invite sheet's Share and Copy tiles.
+ */
 @Composable
-private fun ProfileShortcut(
+internal fun ProfileShortcut(
     label: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     glyph: @Composable () -> Unit,
 ) {
     // The whole column takes the tap, so the label is as much a target as the circle, but only the
     // circle shows the ripple.
     val interactionSource = remember { MutableInteractionSource() }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .width(CodeTheme.dimens.staticGrid.x20)
             .clickable(
                 interactionSource = interactionSource,
