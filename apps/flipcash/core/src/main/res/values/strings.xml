@@ -1005,9 +1005,7 @@
     <string name="description_messageNotDeleted">The message couldn\'t be deleted, so it is still visible to everyone.</string>
     <string name="title_clipboardLabelMessage">Message</string>
     <string name="title_reactionNotAdded">Couldn\'t add reaction</string>
-    <string name="description_reactionNotAdded">Please try again.</string>
     <string name="title_reactionLimitReached">This message has the maximum number of reactions</string>
-    <string name="description_reactionLimitReached">Remove one to add another.</string>
 
     <string name="label_unknownContact">Unknown Contact</string>
     <string name="title_allowFullContactAccess">Allow Full Contact Access</string>

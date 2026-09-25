@@ -138,6 +138,7 @@ class ChatSendFailureAnalyticsTest {
         cashLinkClaims = cashLinkClaims,
         chatDraftStore = chatDraftStore,
         recentReactionsStore = recentReactionsStore,
+        toastController = mockk(relaxed = true),
         emojiCatalogLoader = emojiCatalogLoader,
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )

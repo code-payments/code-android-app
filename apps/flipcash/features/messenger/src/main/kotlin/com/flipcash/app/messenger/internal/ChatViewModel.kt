@@ -32,6 +32,7 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.tokens.brandedName
@@ -190,6 +191,7 @@ internal class ChatViewModel @Inject constructor(
     private val chatDraftStore: ChatDraftStore,
     private val recentReactionsStore: RecentReactionsStore,
     private val emojiCatalogLoader: EmojiCatalogLoader,
+    private val toastController: SystemToastController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
@@ -1790,22 +1792,15 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         // A failed add/remove the coordinator has already rolled back optimistically — this only
-        // tells the reader why the pill snapped back.
+        // tells the reader why the pill snapped back. One line, as iOS's toast is.
         chatCoordinator.reactionErrors
             .onEach { error ->
-                BottomBarManager.showError(
-                    title = resources.getString(
-                        when (error) {
-                            ReactionError.REACTION_FAILED -> R.string.title_reactionNotAdded
-                            ReactionError.TOO_MANY_REACTION_TYPES -> R.string.title_reactionLimitReached
-                        }
-                    ),
-                    message = resources.getString(
-                        when (error) {
-                            ReactionError.REACTION_FAILED -> R.string.description_reactionNotAdded
-                            ReactionError.TOO_MANY_REACTION_TYPES -> R.string.description_reactionLimitReached
-                        }
-                    ),
+                toastController.showToast(
+                    when (error) {
+                        ReactionError.REACTION_FAILED -> R.string.title_reactionNotAdded
+                        ReactionError.TOO_MANY_REACTION_TYPES -> R.string.title_reactionLimitReached
+                    },
+                    replacePrevious = true,
                 )
             }
             .launchIn(viewModelScope)
