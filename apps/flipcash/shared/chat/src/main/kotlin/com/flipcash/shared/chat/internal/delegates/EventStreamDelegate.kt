@@ -11,6 +11,7 @@ import com.flipcash.services.controllers.EventStreamingController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatUpdate
+import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.EmojiReaction
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MetadataUpdate
@@ -18,6 +19,7 @@ import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ReactionUpdate
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.RosterChange
+import com.flipcash.shared.chat.reactions.ReactionState
 import com.flipcash.services.models.chat.TypingNotification
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.GetDeltaError
@@ -27,6 +29,7 @@ import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -114,6 +117,17 @@ class EventStreamDelegate @Inject constructor(
     private var scope: CoroutineScope? = null
     private var eventStreamCollectJob: Job? = null
     private var heartbeatJob: Job? = null
+
+    /**
+     * One [ReactionState] per message touched by a stream update, keyed by chat then message id.
+     * Only [ReactionState.applyUpdate] is called here — server-confirmed state only. A coordinator
+     * layer above this owns any pending taps, and merges its own [ReactionState] against what this
+     * delegate persists rather than sharing an instance with it.
+     */
+    private val reactionStates: MutableMap<ChatId, MutableMap<Long, ReactionState>> = mutableMapOf()
+
+    private fun reactionState(chatId: ChatId, messageId: Long): ReactionState =
+        reactionStates.getOrPut(chatId) { mutableMapOf() }.getOrPut(messageId) { ReactionState() }
 
     // region EventStreamOperations
 
@@ -285,6 +299,7 @@ class EventStreamDelegate @Inject constructor(
 
     internal fun clearAll() {
         sequenceTracker.clearAll()
+        reactionStates.clear()
     }
 
     private fun ensureCollector(scope: CoroutineScope) {
@@ -398,14 +413,31 @@ class EventStreamDelegate @Inject constructor(
         // --- Process reaction updates ---
 
         if (update.reactionUpdates.isNotEmpty()) {
-            stateHolder.update { state ->
-                val chatOverlays = state.reactionOverlays[chatId]?.toMutableMap() ?: mutableMapOf()
-                for (reactionUpdate in update.reactionUpdates) {
-                    applyReactionUpdate(chatOverlays, reactionUpdate)
-                }
-                state.copy(
-                    reactionOverlays = state.reactionOverlays + (chatId to chatOverlays.toMap())
+            val touchedMessageIds = mutableSetOf<Long>()
+            for (reactionUpdate in update.reactionUpdates) {
+                reactionState(chatId, reactionUpdate.messageId).applyUpdate(
+                    emoji = reactionUpdate.emoji.value,
+                    actorIsSelf = reactionUpdate.actor == userManager.accountId,
+                    added = reactionUpdate.action == ReactionUpdate.Action.ADDED,
+                    count = reactionUpdate.count,
+                    version = reactionUpdate.version,
+                    reactedAt = reactionUpdate.reactedAt,
                 )
+                touchedMessageIds.add(reactionUpdate.messageId)
+            }
+
+            val selfId = userManager.accountId
+            val summaries = touchedMessageIds.associateWith { messageId ->
+                reactionState(chatId, messageId).toReactionSummary(messageId, selfId)
+            }
+
+            stateHolder.update { state ->
+                val chatOverlays = (state.reactionOverlays[chatId] ?: emptyMap()) + summaries
+                state.copy(reactionOverlays = state.reactionOverlays + (chatId to chatOverlays))
+            }
+
+            for ((messageId, summary) in summaries) {
+                messageDataSource.mergeReactions(chatId, messageId, summary)
             }
         }
 
@@ -458,60 +490,29 @@ class EventStreamDelegate @Inject constructor(
         }
     }
 
-    private fun applyReactionUpdate(
-        overlays: MutableMap<Long, ReactionSummary>,
-        update: ReactionUpdate,
-    ) {
-        val existing = overlays[update.messageId]
-        val existingReactions = existing?.reactions?.toMutableList() ?: mutableListOf()
-
-        // The server does not report a "self" flag on the update itself, so the client
-        // maintains EmojiReaction.selfReactor by comparing the update's actor to the
-        // signed-in user: an ADDED update from self sets it, a REMOVED update from self
-        // clears it, and an update from anyone else leaves the existing self state alone.
-        val isSelfActor = update.actor == userManager.accountId
-
-        val idx = existingReactions.indexOfFirst { it.emoji == update.emoji }
-        if (idx >= 0) {
-            val current = existingReactions[idx]
-            if (update.version <= current.version) return
-            val selfReactor = when {
-                isSelfActor && update.action == ReactionUpdate.Action.ADDED ->
-                    Reactor(userId = update.actor, reactedAt = update.reactedAt, version = current.selfReactor?.version ?: 0)
-                isSelfActor && update.action == ReactionUpdate.Action.REMOVED -> null
-                else -> current.selfReactor
-            }
-            existingReactions[idx] = EmojiReaction(
-                emoji = update.emoji,
-                count = update.count,
-                selfReactor = selfReactor,
-                sampleReactors = current.sampleReactors,
-                version = update.version,
-            )
-        } else {
-            val selfReactor = if (isSelfActor && update.action == ReactionUpdate.Action.ADDED) {
-                Reactor(userId = update.actor, reactedAt = update.reactedAt)
-            } else {
-                null
-            }
-            existingReactions.add(
+    /**
+     * [ReactionState.summaryEntries] as a [ReactionSummary] — the shape [observeReactions] exposes
+     * and [ChatMessageDataSource.mergeReactions] persists. The reducer tracks only whether the
+     * viewer reacted, not the full [Reactor] the wire type wants for `selfReactor`, so that field
+     * is rebuilt here from [selfId]; a stream update carries no sample reactors at all (those come
+     * from the reactors sheet's own paged fetch), so [EmojiReaction.sampleReactors] is always empty
+     * for a summary built this way.
+     */
+    private fun ReactionState.toReactionSummary(messageId: Long, selfId: ID?): ReactionSummary =
+        ReactionSummary(
+            messageId = messageId,
+            reactions = summaryEntries.map { entry ->
                 EmojiReaction(
-                    emoji = update.emoji,
-                    count = update.count,
-                    selfReactor = selfReactor,
+                    emoji = Emoji(entry.emoji),
+                    count = entry.count,
+                    selfReactor = if (entry.selfReacted && selfId != null) {
+                        Reactor(userId = selfId, reactedAt = entry.selfReactedAt ?: Clock.System.now(), version = entry.version)
+                    } else null,
                     sampleReactors = emptyList(),
-                    version = update.version,
+                    version = entry.version,
                 )
-            )
-        }
-
-        existingReactions.removeAll { it.count <= 0 }
-
-        overlays[update.messageId] = ReactionSummary(
-            messageId = update.messageId,
-            reactions = existingReactions.toList(),
+            },
         )
-    }
 
     private fun scheduleGapFill(chatId: ChatId) {
         val scope = scope ?: return

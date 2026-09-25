@@ -418,6 +418,77 @@ class ChatCoordinatorEventsTest {
         }
     }
 
+    /**
+     * The reducer's tombstone: a removal-to-zero keeps the emoji's version rather than dropping
+     * it, so a stale ADDED that arrives after the removal (redelivered, or racing on the wire)
+     * cannot resurrect the pill. The old ad hoc overlay merge had no tombstone — it forgot the
+     * emoji's version as soon as the count hit zero — so a late stale ADDED like this one would
+     * have been accepted.
+     */
+    @Test
+    fun `stale ADDED after a removal-to-zero is ignored`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("😀"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.ADDED,
+                        count = 1,
+                        version = 1,
+                        reactedAt = Instant.fromEpochSeconds(1000),
+                    ),
+                ),
+            ))
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
+
+            // Removal takes the count to zero at version 2.
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("😀"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.REMOVED,
+                        count = 0,
+                        version = 2,
+                        reactedAt = Instant.fromEpochSeconds(2000),
+                    ),
+                ),
+            ))
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
+
+            // A stale ADDED redelivered at version 1 must not resurrect the pill.
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("😀"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.ADDED,
+                        count = 1,
+                        version = 1,
+                        reactedAt = Instant.fromEpochSeconds(1000),
+                    ),
+                ),
+            ))
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
+
+            val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
+            assertNotNull(reactions)
+            assertTrue(reactions.isEmpty())
+        }
+    }
+
     @Test
     fun `multiple emoji reactions on same message`() = runTest(testDispatchers.dispatcher) {
         tornDown {
@@ -452,6 +523,37 @@ class ChatCoordinatorEventsTest {
             val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
             assertNotNull(reactions)
             assertEquals(2, reactions.size)
+        }
+    }
+
+    /** A stream reaction update is persisted, not just held in the in-memory overlay. */
+    @Test
+    fun `reaction update is persisted to the message data source`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("😀"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.ADDED,
+                        count = 1,
+                        version = 1,
+                        reactedAt = Instant.fromEpochSeconds(1000),
+                    ),
+                ),
+            ))
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
+
+            coVerify {
+                messageDataSource.mergeReactions(chatId, 1L, match { summary ->
+                    summary.reactions.singleOrNull()?.let { it.emoji.value == "😀" && it.count == 1L } == true
+                })
+            }
         }
     }
 
