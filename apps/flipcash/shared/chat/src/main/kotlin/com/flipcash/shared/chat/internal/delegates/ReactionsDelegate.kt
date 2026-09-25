@@ -112,8 +112,14 @@ class ReactionsDelegate @Inject constructor(
         messageId: Long,
         emoji: String,
         token: PagingToken?,
+        limit: Int,
     ): Result<ReactorsPage> =
-        messagingController.getReactors(chatId, messageId, Emoji(emoji), QueryOptions(token = token))
+        messagingController.getReactors(
+            chatId,
+            messageId,
+            Emoji(emoji),
+            QueryOptions(token = token, limit = limit),
+        )
 
     /** Drops all in-memory reaction state (pending taps, in-flight calls, confirmed cache). */
     fun clearAll() {

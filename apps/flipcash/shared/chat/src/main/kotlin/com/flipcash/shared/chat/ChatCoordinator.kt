@@ -178,13 +178,22 @@ interface ReactionOperations {
      */
     suspend fun refreshReactions(chatId: ChatId, messageIds: List<Long>): Result<Unit>
 
-    /** One page of the users who reacted to [messageId] with [emoji], for the "who reacted" sheet. */
+    /**
+     * One page of the users who reacted to [messageId] with [emoji], for the "who reacted" sheet.
+     * [limit] defaults to the reactors sheet's own page size (decision 4), not the
+     * general-purpose [com.flipcash.services.models.QueryOptions] default.
+     */
     suspend fun getReactorsPage(
         chatId: ChatId,
         messageId: Long,
         emoji: String,
         token: PagingToken? = null,
+        limit: Int = REACTORS_PAGE_SIZE,
     ): Result<ReactorsPage>
+
+    companion object {
+        const val REACTORS_PAGE_SIZE = 50
+    }
 }
 
 /**
