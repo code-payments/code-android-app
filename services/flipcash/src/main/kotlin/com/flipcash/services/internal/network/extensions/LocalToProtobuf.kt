@@ -171,10 +171,20 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                 .setDeleted(deletedBuilder)
                 .build()
         }
-        // The client never constructs this locally -- it only exists as a decode result for
-        // incoming `Content.encrypted` (see MessageContent.Encrypted). Sending EncryptedContent
-        // needs its own crypto implementation (X25519/HKDF/XChaCha20), tracked separately.
-        is MessageContent.Encrypted -> error("MessageContent.Encrypted cannot be sent; encryption is not implemented")
+        // The client never constructs this locally from scratch -- it only exists as a decode
+        // result for incoming `Content.encrypted` (see MessageContent.Encrypted). An edit that
+        // rewrites the text of a message envelope containing this (e.g. a reply body) re-sends
+        // the untouched fields verbatim, so this is a faithful round-trip of the original wire
+        // bytes, not new encryption. Encrypting new content needs its own crypto implementation
+        // (X25519/HKDF/XChaCha20), tracked separately.
+        is MessageContent.Encrypted -> MessagingModel.Content.newBuilder()
+            .setEncrypted(
+                MessagingModel.EncryptedContent.newBuilder()
+                    .setSchemeValue(scheme)
+                    .setNonce(nonce.toByteString())
+                    .setCiphertext(ciphertext.toByteString())
+            )
+            .build()
     }
 }
 
