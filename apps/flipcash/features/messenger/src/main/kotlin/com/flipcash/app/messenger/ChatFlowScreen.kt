@@ -1,6 +1,9 @@
 package com.flipcash.app.messenger
 
 import android.os.Parcelable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -8,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -115,6 +120,15 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.EditGroupPicture> {
         FlowEditGroupPictureScreen()
+    }
+
+    // Placeholder entries: content lands in a follow-up. Registering the step now is what lets
+    // ChatViewModel's OpenReactionPicker/OpenReactors dispatch a real navigation.
+    annotatedEntry<ChatStep.ReactionPicker> {
+        FlowReactionPickerScreen()
+    }
+    annotatedEntry<ChatStep.Reactors> {
+        FlowReactorsScreen()
     }
 }
 
@@ -317,4 +331,28 @@ private fun FlowEditGroupNameScreen() {
 @Composable
 private fun FlowEditGroupPictureScreen() {
     EditGroupPictureScreen(flowSharedViewModel<ChatViewModel>())
+}
+
+/**
+ * Placeholder for the full emoji picker sheet — content is a separate change. This exists only so
+ * [ChatStep.ReactionPicker] is a real, navigable destination for
+ * `ChatViewModel.Event.OpenReactionPicker` to reach; [flowSharedViewModel] keeps it on the same
+ * conversation view model the picker will read from once it has content.
+ */
+@Composable
+private fun FlowReactionPickerScreen() {
+    flowSharedViewModel<ChatViewModel>()
+    Box(modifier = Modifier.fillMaxWidth().height(1.dp))
+}
+
+/**
+ * Placeholder for the reactors sheet — content is a separate change. This exists only so
+ * [ChatStep.Reactors] is a real, navigable destination for `ChatViewModel.Event.OpenReactors` to
+ * reach; [flowSharedViewModel] keeps it on the same conversation view model the sheet will read
+ * from once it has content.
+ */
+@Composable
+private fun FlowReactorsScreen() {
+    flowSharedViewModel<ChatViewModel>()
+    Box(modifier = Modifier.fillMaxWidth().height(1.dp))
 }

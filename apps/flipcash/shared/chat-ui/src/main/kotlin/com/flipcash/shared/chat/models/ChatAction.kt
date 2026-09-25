@@ -84,6 +84,18 @@ sealed interface ChatAction {
      * that boundary — a claim arrives back knowing an entropy and nothing about a transcript.
      */
     data class CashLinkOpened(val entropy: String, val url: String) : ChatAction
+
+    /**
+     * Toggles the viewer's reaction with [emoji] on [messageId] — a tap on a pill, on a quick-strip
+     * entry, or a pick from the full picker all resolve to this one action.
+     */
+    data class ToggleReaction(val messageId: Long, val emoji: String) : ChatAction
+
+    /** Opens the full emoji picker for [messageId], from the pill row's or the quick strip's "+". */
+    data class OpenReactionPicker(val messageId: Long) : ChatAction
+
+    /** Opens who-reacted for [messageId], from a long-press on a pill. */
+    data class OpenReactors(val messageId: Long) : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit
