@@ -133,6 +133,7 @@ class ChatMetadataEditStreamTest {
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,
             groupFeedDelegate = mockk(relaxed = true),
+            reactionsDelegate = mockk(relaxed = true),
         )
     }
 

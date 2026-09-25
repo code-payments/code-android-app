@@ -149,6 +149,7 @@ class ChatCoordinatorLifecycleStreamTest {
             networkObserver = networkObserver,
             dispatchers = testDispatchers,
             groupFeedDelegate = mockk(relaxed = true),
+            reactionsDelegate = mockk(relaxed = true),
         )
     }
 
