@@ -301,6 +301,70 @@ class ChatEntityMapperTest {
         assertEquals(true, restored.viewerState?.permissions?.canEdit)
     }
 
+    // region Reactions
+
+    @Test
+    fun `null reactions round-trip through encode and decode as null`() {
+        assertEquals(null, mapper.encodeReactions(null))
+        assertEquals(null, mapper.decodeReactions(null))
+    }
+
+    @Test
+    fun `a reaction summary round-trips through encode and decode`() {
+        val summary = reactionSummary(emoji("👍") to 3L)
+
+        val decoded = mapper.decodeReactions(mapper.encodeReactions(summary))
+
+        assertEquals(summary, decoded)
+    }
+
+    @Test
+    fun `merge keeps the stored entry when incoming omits its emoji`() {
+        val stored = reactionSummary(emoji("👍") to 1L, emoji("❤️") to 1L)
+        val incoming = reactionSummary(emoji("👍") to 2L)
+
+        val merged = mapper.mergeReactions(stored, incoming)
+
+        assertEquals(setOf("👍", "❤️"), merged.reactions.map { it.emoji.value }.toSet())
+    }
+
+    @Test
+    fun `merge keeps the higher-version entry per emoji`() {
+        val stored = reactionSummary(emoji("👍") to 5L)
+        val incoming = reactionSummary(emoji("👍") to 2L)
+
+        val merged = mapper.mergeReactions(stored, incoming)
+
+        assertEquals(5L, merged.reactions.single().count)
+    }
+
+    @Test
+    fun `merge onto null stored state returns the incoming summary unchanged`() {
+        val incoming = reactionSummary(emoji("👍") to 1L)
+
+        assertEquals(incoming, mapper.mergeReactions(null, incoming))
+    }
+
+    private fun emoji(value: String) = com.flipcash.services.models.chat.Emoji(value)
+
+    /** Builds a [ReactionSummary] with one [EmojiReaction] per (emoji, version) pair, version doubling as count for easy assertions. */
+    private fun reactionSummary(
+        vararg entries: Pair<com.flipcash.services.models.chat.Emoji, Long>,
+    ) = com.flipcash.services.models.chat.ReactionSummary(
+        messageId = 42L,
+        reactions = entries.map { (emoji, version) ->
+            com.flipcash.services.models.chat.EmojiReaction(
+                emoji = emoji,
+                count = version,
+                selfReactor = null,
+                sampleReactors = emptyList(),
+                version = version,
+            )
+        },
+    )
+
+    // endregion
+
     private companion object {
         const val CHAT_HEX = "aabbccdd"
     }

@@ -57,6 +57,8 @@ import kotlin.time.Instant
 @Singleton
 class ChatEntityMapper @Inject constructor() {
 
+    private val reactionJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
     // region ChatMetadata
 
     /**
@@ -171,9 +173,7 @@ class ChatEntityMapper @Inject constructor() {
             unreadSeq = message.unreadSeq,
             eventSequence = message.eventSequence,
             lastEditedTsEpochMs = message.lastEditedTs?.toEpochMilliseconds(),
-            reactionsJson = message.reactions?.toSerialized()?.let {
-                kotlinx.serialization.json.Json.encodeToString(it)
-            },
+            reactionsJson = encodeReactions(message.reactions),
             isDeleted = message.content.any { it is MessageContent.Deleted },
         )
     }
@@ -187,9 +187,7 @@ class ChatEntityMapper @Inject constructor() {
             unreadSeq = entity.unreadSeq,
             eventSequence = entity.eventSequence,
             lastEditedTs = entity.lastEditedTsEpochMs?.let { Instant.fromEpochMilliseconds(it) },
-            reactions = entity.reactionsJson?.let {
-                kotlinx.serialization.json.Json.decodeFromString<ReactionSummarySerialized>(it).toDomain()
-            },
+            reactions = decodeReactions(entity.reactionsJson),
             deliveryStatus = when (entity.status) {
                 MessageStatus.SENDING -> DeliveryStatus.SENDING
                 MessageStatus.SENT -> DeliveryStatus.SENT
@@ -216,6 +214,38 @@ class ChatEntityMapper @Inject constructor() {
             status = MessageStatus.SENDING,
             pendingClientIdHex = clientMessageId.bytes.toList().hexEncodedString(),
         )
+    }
+
+    /** Encodes a [ReactionSummary] for [ChatMessageEntity.reactionsJson], or `null` for none. */
+    fun encodeReactions(summary: ReactionSummary?): String? =
+        summary?.toSerialized()?.let { reactionJson.encodeToString(it) }
+
+    /** Decodes [ChatMessageEntity.reactionsJson] back to a [ReactionSummary], or `null` for none. */
+    fun decodeReactions(json: String?): ReactionSummary? =
+        json?.let { reactionJson.decodeFromString<ReactionSummarySerialized>(it).toDomain() }
+
+    /**
+     * Merges [incoming] onto [stored], per emoji, keeping whichever entry carries the higher
+     * `version` — mirrors [com.flipcash.shared.chat.reactions.ReactionState]'s accept-by-version
+     * rule so a message upsert can't clobber a newer confirmed reaction with a stale one. An emoji
+     * [stored] holds that [incoming] omits is kept: [incoming] is a live payload attached to one
+     * message write, not an authoritative "this and only this" summary.
+     */
+    fun mergeReactions(stored: ReactionSummary?, incoming: ReactionSummary): ReactionSummary {
+        if (stored == null) return incoming
+        val storedByEmoji = stored.reactions.associateBy { it.emoji }
+        val incomingByEmoji = incoming.reactions.associateBy { it.emoji }
+        val merged = (storedByEmoji.keys + incomingByEmoji.keys).mapNotNull { emoji ->
+            val storedEntry = storedByEmoji[emoji]
+            val incomingEntry = incomingByEmoji[emoji]
+            when {
+                incomingEntry == null -> storedEntry
+                storedEntry == null -> incomingEntry
+                incomingEntry.version >= storedEntry.version -> incomingEntry
+                else -> storedEntry
+            }
+        }
+        return ReactionSummary(messageId = incoming.messageId, reactions = merged)
     }
 
     // endregion
