@@ -772,15 +772,22 @@ internal class ChatViewModel @Inject constructor(
 
     fun loadMoreReactors(messageId: Long) = reactorsPrefetchCache.loadMoreIfNeeded(messageId)
 
+    /** A reactors-sheet row's resolved identity: the name to show (decision 4's precedence,
+     * "You" for the viewer), and the profile to draw an avatar from when one is known. */
+    data class ReactorDisplay(val name: String, val profile: UserProfile?)
+
     /**
-     * The reactors sheet's display name for [userId] (decision 4), re-emitting as later sources —
-     * the member roster, then a server fetch — resolve. Kicks off [ChatCoordinator.requestSenderProfile]
-     * itself when nothing has an answer yet, mirroring [resolveSenderName]'s fallback for the
-     * transcript.
+     * The reactors sheet's display name and avatar source for [userId] (decision 4), re-emitting
+     * as later sources — the member roster, then a server fetch — resolve. Kicks off
+     * [ChatCoordinator.requestSenderProfile] itself when nothing has an answer yet, mirroring
+     * [resolveSenderName]'s fallback for the transcript. The self case shows the viewer's own
+     * picture (so their avatar isn't blank) under the "You" label rather than their own profile
+     * name.
      */
-    fun reactorName(userId: ID): Flow<String?> {
+    fun reactorDisplay(userId: ID): Flow<ReactorDisplay?> {
         val chatId = stateFlow.value.chatId
         val selfLabel = resources.getString(R.string.title_you)
+        val selfUserId = userManager.accountId
         val members = chatId?.let { chatCoordinator.observeMembers(it) } ?: flowOf(emptyList())
         var requested = false
         return combine(
@@ -788,16 +795,25 @@ internal class ChatViewModel @Inject constructor(
             members,
             senderProfiles,
         ) { cachedProfiles, memberList, sentProfiles ->
-            ReactorNameResolver.resolve(
+            val cached = cachedProfiles[userId.hexEncodedString()]
+            val name = ReactorNameResolver.resolve(
                 userId = userId,
-                selfUserId = userManager.accountId,
+                selfUserId = selfUserId,
                 selfLabel = selfLabel,
-                cachedProfile = cachedProfiles[userId.hexEncodedString()],
+                cachedProfile = cached,
                 members = memberList,
                 senderProfiles = sentProfiles.orEmpty(),
-            )
-        }.onEach { name ->
-            if (name == null && !requested) {
+            ) ?: return@combine null
+            val profile = if (selfUserId != null && userId == selfUserId) {
+                userManager.profile
+            } else {
+                cached
+                    ?: memberList.firstOrNull { it.userId == userId }?.userProfile
+                    ?: sentProfiles?.get(userId.hexEncodedString())
+            }
+            ReactorDisplay(name = name, profile = profile)
+        }.onEach { display ->
+            if (display == null && !requested) {
                 requested = true
                 chatCoordinator.requestSenderProfile(userId)
             }
