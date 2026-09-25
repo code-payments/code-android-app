@@ -1,18 +1,14 @@
 package com.flipcash.app.messenger
 
 import android.os.Parcelable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -29,6 +25,8 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.StartSendCashOnceReady
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
+import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
+import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
@@ -56,6 +54,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChatFlowScreen(
@@ -122,13 +121,11 @@ private fun chatEntryProvider(
         FlowEditGroupPictureScreen()
     }
 
-    // Placeholder entries: content lands in a follow-up. Registering the step now is what lets
-    // ChatViewModel's OpenReactionPicker/OpenReactors dispatch a real navigation.
-    annotatedEntry<ChatStep.ReactionPicker> {
-        FlowReactionPickerScreen()
+    annotatedEntry<ChatStep.ReactionPicker> { step ->
+        FlowReactionPickerScreen(step.messageId)
     }
-    annotatedEntry<ChatStep.Reactors> {
-        FlowReactorsScreen()
+    annotatedEntry<ChatStep.Reactors> { step ->
+        FlowReactorsScreen(step.messageId)
     }
 }
 
@@ -333,26 +330,62 @@ private fun FlowEditGroupPictureScreen() {
     EditGroupPictureScreen(flowSharedViewModel<ChatViewModel>())
 }
 
-/**
- * Placeholder for the full emoji picker sheet — content is a separate change. This exists only so
- * [ChatStep.ReactionPicker] is a real, navigable destination for
- * `ChatViewModel.Event.OpenReactionPicker` to reach; [flowSharedViewModel] keeps it on the same
- * conversation view model the picker will read from once it has content.
- */
+/** The full emoji picker for [messageId] — a tap on any emoji toggles it and dismisses. */
 @Composable
-private fun FlowReactionPickerScreen() {
-    flowSharedViewModel<ChatViewModel>()
-    Box(modifier = Modifier.fillMaxWidth().height(1.dp))
+private fun FlowReactionPickerScreen(messageId: Long) {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+
+    ReactionPickerSheet(
+        loadSections = { query -> viewModel.emojiPickerSections(query) },
+        onSelected = { emoji ->
+            viewModel.dispatchEvent(
+                ChatViewModel.Event.ToggleReaction(messageId, emoji, clearsSelection = true)
+            )
+            dismissSheet()
+        },
+        onDismiss = dismissSheet,
+    )
 }
 
 /**
- * Placeholder for the reactors sheet — content is a separate change. This exists only so
- * [ChatStep.Reactors] is a real, navigable destination for `ChatViewModel.Event.OpenReactors` to
- * reach; [flowSharedViewModel] keeps it on the same conversation view model the sheet will read
- * from once it has content.
+ * Who reacted to [messageId], and with what. Tapping a row dismisses this sheet first, then opens
+ * the reactor's profile — [ChatViewModel.reactorParticipant] resolves a [ChatParticipant] even for
+ * a reactor absent from `senderProfiles`.
  */
 @Composable
-private fun FlowReactorsScreen() {
-    flowSharedViewModel<ChatViewModel>()
-    Box(modifier = Modifier.fillMaxWidth().height(1.dp))
+private fun FlowReactorsScreen(messageId: Long) {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val navigator = LocalCodeNavigator.current
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val pills by remember(viewModel, messageId) { viewModel.reactionPills(messageId) }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val rows by remember(viewModel, messageId) { viewModel.reactorsRows(messageId) }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val loading by remember(viewModel, messageId) { viewModel.reactorsLoading(messageId) }
+        .collectAsStateWithLifecycle(initialValue = true)
+
+    ReactorsSheet(
+        pills = pills,
+        rows = rows,
+        loading = loading,
+        hasMore = { viewModel.reactorsHasMore(messageId) },
+        resolveDisplay = { userId -> viewModel.reactorDisplay(userId) },
+        onLoadMore = { viewModel.loadMoreReactors(messageId) },
+        onOpenProfile = { userId ->
+            // Dismiss first (decision: profile opens after the sheet closes), then resolve the
+            // participant — a row is only tappable once reactorDisplay has already resolved it, so
+            // this is a re-read of state already on screen rather than a fresh network round trip
+            // in the common case; reactorParticipant only reaches further (member roster, cached
+            // profile store) for a reactor absent from senderProfiles.
+            dismissSheet()
+            coroutineScope.launch {
+                val participant = viewModel.reactorParticipant(userId) ?: return@launch
+                navigator.push(ChatStep.Profile(contact = participant))
+            }
+        },
+        onDismiss = dismissSheet,
+    )
 }
