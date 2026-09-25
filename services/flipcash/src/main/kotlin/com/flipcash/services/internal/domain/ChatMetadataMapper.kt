@@ -50,6 +50,9 @@ class ChatMetadataMapper @Inject constructor(
             rosterSummary = from.rosterSummary.toRosterSummary(),
             rules = if (from.hasRules()) from.rules.toChatRules() else null,
             viewerState = if (from.hasViewerState()) from.viewerState.toViewerState() else null,
+            creator = if (from.hasCreator()) from.creator.toId() else null,
+            // Transitional flag (see chat/v1 model.proto doc); ignored behaviourally for now.
+            useE2ee = from.useE2Ee,
         )
     }
 }

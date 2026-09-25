@@ -191,7 +191,17 @@ sealed interface MessageContentSerialized {
     @SerialName("system")
     data class System(val fallbackText: String) : MessageContentSerialized
 
-
+    // Mirrors MessageContent.Encrypted -- see that type's doc. The content itself is never
+    // decoded client-side, but scheme/nonce/ciphertext are kept (hex-encoded) so a stored
+    // message can round-trip and be faithfully re-encoded later. Defaults keep pre-existing
+    // marker-only rows (written before this field set existed) decodable.
+    @Serializable
+    @SerialName("encrypted")
+    data class Encrypted(
+        val scheme: Int = 0,
+        val nonce: String = "",
+        val ciphertext: String = "",
+    ) : MessageContentSerialized
 }
 
 @Serializable

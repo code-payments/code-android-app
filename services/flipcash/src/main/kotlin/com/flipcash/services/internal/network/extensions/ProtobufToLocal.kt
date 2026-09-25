@@ -117,6 +117,11 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
             sendingUserId = if (chatMetadata.hasSendingUserId()) chatMetadata.sendingUserId.toId() else null,
             chatType = chatMetadata.type.toChatType(),
             message = if (chatMetadata.hasMessage()) chatMetadata.message.toChatMessage() else null,
+            // TODO(push/v1 ChatMetadata.message_ref): a long message now arrives as
+            // `message_id` only (fetch via Messaging.GetMessage(chatId, messageId)). Carried
+            // here for a future fetch; today the message-less case still falls back to
+            // PushHandlingPlanner's existing LoadMessages sync, so nothing is dropped.
+            messageId = if (chatMetadata.hasMessageId()) chatMetadata.messageId.value else null,
             muted = chatMetadata.muted,
         )
     } else null
@@ -188,6 +193,15 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
         MessagingModel.Content.TypeCase.DELETED -> MessageContent.Deleted(
             deletedTs = Instant.fromEpochSeconds(deleted.deletedTs.seconds, deleted.deletedTs.nanos),
             deletedBy = if (deleted.hasDeletedBy()) deleted.deletedBy.toId() else null,
+        )
+        // Not decoded: E2EE crypto (X25519/HKDF/XChaCha20) is a cross-platform parity hotspot
+        // that needs its own decision. Rendered as unsupported rather than dropped, but the raw
+        // fields are kept verbatim so the message can round-trip through storage and be
+        // faithfully re-encoded (e.g. on edit) without losing the ciphertext.
+        MessagingModel.Content.TypeCase.ENCRYPTED -> MessageContent.Encrypted(
+            scheme = encrypted.schemeValue,
+            nonce = encrypted.nonce.toByteArray(),
+            ciphertext = encrypted.ciphertext.toByteArray(),
         )
         else -> MessageContent.Text("")
     }
@@ -399,6 +413,9 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         rosterSummary = rosterSummary.toRosterSummary(),
         rules = if (hasRules()) rules.toChatRules() else null,
         viewerState = if (hasViewerState()) viewerState.toViewerState() else null,
+        creator = if (hasCreator()) creator.toId() else null,
+        // Transitional flag (see chat/v1 model.proto doc); ignored behaviourally for now.
+        useE2ee = useE2Ee,
     )
 }
 

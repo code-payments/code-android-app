@@ -83,5 +83,6 @@ fun MessageContent.linkableText(): String? = when (this) {
     is MessageContent.Deleted,
     is MessageContent.Media,
     is MessageContent.System,
+    is MessageContent.Encrypted,
     -> null
 }

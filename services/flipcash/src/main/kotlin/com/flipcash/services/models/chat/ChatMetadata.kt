@@ -1,5 +1,6 @@
 package com.flipcash.services.models.chat
 
+import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
 data class ChatMetadata(
@@ -22,4 +23,9 @@ data class ChatMetadata(
     val rules: ChatRules? = null,
     // Per-viewer chat state, absent when the chat holds nothing about the viewer.
     val viewerState: ViewerState? = null,
+    // Group creator; null for DMs and for group chats reconstructed without a server round trip.
+    val creator: ID? = null,
+    // Transitional E2EE flag (DMs only): true means clients should send new content as
+    // EncryptedContent. Ignored behaviourally for now -- see chat/v1 model.proto.
+    val useE2ee: Boolean = false,
 )

@@ -83,6 +83,31 @@ class ChatTypeConvertersTest {
         assertNull(converter.toMessageContentList(null))
     }
 
+    @Test
+    fun `fromMessageContentList and toMessageContentList roundtrip encrypted content`() {
+        val original = listOf(
+            MessageContentSerialized.Encrypted(
+                scheme = 1,
+                nonce = "aabbccddeeff00112233445566778899aabbccddeeff00",
+                ciphertext = "0011223344556677",
+            )
+        )
+        val serialized = converter.toMessageContentList(original)
+        val deserialized = converter.fromMessageContentList(serialized)
+        assertEquals(original, deserialized)
+    }
+
+    @Test
+    fun `a marker-only encrypted row written before scheme, nonce and ciphertext existed still decodes`() {
+        // Shape MessageContentSerialized.Encrypted had before it carried these fields -- proves
+        // the new fields' defaults keep old rows from crashing on load.
+        val legacyJson = """[{"type":"encrypted"}]"""
+
+        val result = converter.fromMessageContentList(legacyJson)
+
+        assertEquals(listOf(MessageContentSerialized.Encrypted(scheme = 0, nonce = "", ciphertext = "")), result)
+    }
+
     // endregion
 
     // region MessageStatus

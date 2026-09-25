@@ -105,8 +105,9 @@ import com.getcode.utils.subByteArray
         // half-written messages this table exists to keep.
         AutoMigration(from = 35, to = 36), // chat_draft table
         AutoMigration(from = 36, to = 37, spec = FlipcashDatabase.Migration36To37::class),
+        AutoMigration(from = 37, to = 38), // chat_metadata.creator_hex (nullable), use_e2ee (default 0)
     ],
-    version = 37,
+    version = 38,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
