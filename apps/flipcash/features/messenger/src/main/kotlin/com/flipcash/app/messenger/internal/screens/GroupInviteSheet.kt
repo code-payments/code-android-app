@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -46,6 +48,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White50
+import com.getcode.theme.inputColors
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.TextInput
@@ -232,8 +235,11 @@ private fun RecentChatRow(
 }
 
 /**
- * Node 10330:19549 — the message to go with the link, and the send. Only drawn once a chat is
+ * Node 10329:11963 — the message to go with the link, and the send. Only drawn once a chat is
  * picked; the field keeps its own text, and the sheet's view model reads it at send time.
+ *
+ * One pill holds both: the field draws no box of its own, so the hint sits on the pill's inset
+ * like the design's bare "Add a message" label rather than in a second rounded field.
  */
 @Composable
 private fun InviteComposer(
@@ -246,9 +252,9 @@ private fun InviteComposer(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x2)
-            .clip(CodeTheme.shapes.medium)
+            .clip(ComposerShape)
             .background(White05)
-            .padding(CodeTheme.dimens.grid.x1),
+            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
@@ -257,17 +263,21 @@ private fun InviteComposer(
             state = message,
             placeholder = stringResource(R.string.hint_addAMessage),
             enabled = !sending,
+            minHeight = InviteButtonHeight,
+            colors = inputColors(
+                borderColor = Color.Transparent,
+                backgroundColor = Color.Transparent,
+                placeholderColor = CodeTheme.colors.textMain.copy(alpha = 0.4f),
+            ),
             onStateChanged = { onMessageChanged(message.text.toString()) },
         )
         Box(
             modifier = Modifier
+                .height(InviteButtonHeight)
                 .clip(InviteButtonShape)
                 .background(White)
                 .clickable(enabled = !sending, role = Role.Button, onClick = onInvite)
-                .padding(
-                    horizontal = CodeTheme.dimens.grid.x3,
-                    vertical = CodeTheme.dimens.grid.x2,
-                ),
+                .padding(horizontal = CodeTheme.dimens.grid.x3),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -279,4 +289,8 @@ private fun InviteComposer(
     }
 }
 
+// Node 10329:11963's measurements. The theme has no 14dp shape, and the button's 34dp height is
+// what lines the field's text up with the button's label.
+private val ComposerShape = RoundedCornerShape(14.dp)
 private val InviteButtonShape = RoundedCornerShape(6.dp)
+private val InviteButtonHeight = 34.dp
