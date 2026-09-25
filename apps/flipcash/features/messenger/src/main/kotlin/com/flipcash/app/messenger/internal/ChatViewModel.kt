@@ -13,8 +13,13 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.analytics.events.ChatEvents
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -27,6 +32,7 @@ import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.messenger.internal.link.CashCardTap
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
@@ -157,16 +163,18 @@ internal class ChatViewModel @Inject constructor(
     private val purchaseMethodController: PurchaseMethodController,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val clipboardManager: ClipboardManager,
     private val userFlags: UserFlagsCoordinator,
     private val linkCardClassifier: LinkCardClassifier,
     private val linkCardResolver: LinkCardResolver,
     private val cashLinkClaims: CashLinkClaims,
     private val chatDraftStore: ChatDraftStore,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     sealed interface ResolveState {
@@ -1793,11 +1801,11 @@ internal class ChatViewModel @Inject constructor(
                     chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
                         .onSuccess {
                             trace("message sent successfully")
-                            analytics.messageSentInChat(type = chatType)
+                            analytics.track(ChatEvents.sentMessage(chatType.analytics, null))
                         }
                         .onFailure { cause ->
                             trace("message failed to send - ${cause.localizedMessage}")
-                            analytics.messageSentInChat(type = chatType, error = cause)
+                            analytics.track(ChatEvents.sentMessage(chatType.analytics, cause.analytics))
                         }
                 }
             }
@@ -1866,7 +1874,7 @@ internal class ChatViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .onEach {
-                analytics.addMoneyOpened(Analytics.AddMoneySource.Chat)
+                analytics.track(AddMoneyEvents.opened(AddMoneySource.CHAT))
                 purchaseMethodController.presentDepositOptions()?.let { route ->
                     dispatchEvent(Event.OpenScreen(route))
                 }
@@ -1972,16 +1980,17 @@ internal class ChatViewModel @Inject constructor(
                     // other send from this screen (contact DM or unlocked tip DM) is a plain cash
                     // send. Same `tipAction` the wire `action` above was set from, not a second
                     // "is this a tip" check that could drift from it.
-                    val transferEvent =
-                        if (tipAction == TipAction.TIP) Analytics.Transfer.SentTip else Analytics.Transfer.SentCash
+                    val isTip = tipAction == TipAction.TIP
 
                     result.onSuccess {
                         dispatchEvent(Event.SendStateUpdated(success = true))
                         delay(400.milliseconds)
-                        analytics.transfer(
-                            event = transferEvent,
-                            amount = verifiedFiat.localFiat,
-                            successful = true,
+                        analytics.track(
+                            if (isTip) {
+                                TransferEvents.sentTip(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null)
+                            } else {
+                                TransferEvents.sentCash(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null)
+                            }
                         )
                         dispatchEvent(
                             Dispatchers.Main,
@@ -1989,10 +1998,12 @@ internal class ChatViewModel @Inject constructor(
                         )
                     }.onFailure { cause ->
                         dispatchEvent(Event.SendStateUpdated())
-                        analytics.transfer(
-                            event = transferEvent,
-                            amount = verifiedFiat.localFiat,
-                            error = cause,
+                        analytics.track(
+                            if (isTip) {
+                                TransferEvents.sentTip(AnalyticsState.FAILURE, verifiedFiat.localFiat.analytics, cause.analytics)
+                            } else {
+                                TransferEvents.sentCash(AnalyticsState.FAILURE, verifiedFiat.localFiat.analytics, cause.analytics)
+                            }
                         )
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_cashFailedToSend),

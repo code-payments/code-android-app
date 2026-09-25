@@ -31,8 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.Button
+import com.flipcash.analytics.Button
+import com.flipcash.analytics.TokenInfoSource
+import com.flipcash.analytics.events.ButtonEvents
+import com.flipcash.analytics.events.TokenInfoEvents
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.SwapResult
@@ -114,7 +117,7 @@ fun TokenInfoScreen(
                 state.token.dataOrNull?.let {
                     if (!state.isCashReserve) {
                         AppBarDefaults.Share(hazeState = haze) {
-                            analytics.buttonTapped(Button.TokenShare)
+                            analytics.track(ButtonEvents.tapped(Button.SHARE_TOKEN_INFO))
                             viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
                         }
                     }
@@ -172,14 +175,7 @@ fun TokenInfoScreen(
     }
 
     LaunchedEffect(Unit) {
-        val source = when (entry) {
-            TokenInfoEntry.Deeplink -> Analytics.TokenInfoSource.Deeplink
-            TokenInfoEntry.Wallet,
-            TokenInfoEntry.Discovery,
-            TokenInfoEntry.Chat,
-            TokenInfoEntry.ChatGate -> Analytics.TokenInfoSource.Wallet
-        }
-        analytics.openTokenInfo(source = source, mint = mint)
+        analytics.track(TokenInfoEvents.opened(entry.toTokenInfoSource(), mint.analytics))
     }
 
     LaunchedEffect(Unit) {
@@ -215,6 +211,20 @@ fun TokenInfoScreen(
             }.launchIn(this)
     }
 }
+
+/**
+ * Where a currency-info screen was opened from, for the shared `Token Info: Opened From …`
+ * event. Exhaustive with no `else`, so a new [TokenInfoEntry] fails to compile here rather than
+ * silently falling back to the wrong source.
+ */
+internal fun TokenInfoEntry.toTokenInfoSource(): TokenInfoSource =
+    when (this) {
+        TokenInfoEntry.Deeplink -> TokenInfoSource.DEEPLINK
+        TokenInfoEntry.Wallet -> TokenInfoSource.WALLET
+        TokenInfoEntry.Discovery -> TokenInfoSource.DISCOVERY
+        TokenInfoEntry.Chat -> TokenInfoSource.CHAT
+        TokenInfoEntry.ChatGate -> TokenInfoSource.CHAT_GATE
+    }
 
 private enum class OverlaySlot { Bar, Content }
 

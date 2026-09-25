@@ -1,7 +1,10 @@
 package com.flipcash.app.session.internal.delegates
 
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.State
+import com.flipcash.analytics.events.ScanEvents
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.CodeScanEvent
@@ -54,7 +57,7 @@ class CodeScanDelegate @Inject constructor(
     private val billController: BillController,
     private val tokenCoordinator: TokenCoordinator,
     private val walletReveal: WalletRevealCoordinator,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val vibrator: Vibrator,
     private val userManager: UserManager,
     private val dispatchers: DispatcherProvider,
@@ -138,7 +141,7 @@ class CodeScanDelegate @Inject constructor(
         )
         val owner = userManager.accountCluster ?: return
 
-        analytics.transferStart(Analytics.Transfer.Initiate.GrabBillStart)
+        analytics.track(TransferEvents.grabBillStart())
         billController.attemptGrab(
             owner = owner,
             payload = payload,
@@ -161,17 +164,14 @@ class CodeScanDelegate @Inject constructor(
                 )
                 _events.trySend(Event.BillReady(bill))
 
-                analytics.transfer(Analytics.Transfer.GrabBill(grabTime), amount)
+                analytics.track(TransferEvents.grabBill(State.SUCCESS, amount.analytics, grabTime, null))
                 BottomBarManager.clear()
                 _events.trySend(Event.CheckPendingFeed)
                 _events.trySend(Event.RefreshFeed)
             },
             onError = {
-                analytics.transfer(
-                    event = Analytics.Transfer.GrabBill(),
-                    fiat = payload.fiat,
-                    successful = false,
-                    error = it
+                analytics.track(
+                    TransferEvents.grabBill(State.FAILURE, payload.fiat?.analytics, null, it.analytics)
                 )
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
 
@@ -191,7 +191,7 @@ class CodeScanDelegate @Inject constructor(
         // rendezvous grab. Hand the id to the shell, which routes to TipCardOperations to
         // resolve and present the card.
         val userId = payload.userId ?: return
-        analytics.tipCardScanned()
+        analytics.track(ScanEvents.tipCardScanned())
         _events.trySend(Event.TipCardScanned(userId))
     }
 

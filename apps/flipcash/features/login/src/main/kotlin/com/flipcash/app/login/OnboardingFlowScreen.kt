@@ -22,8 +22,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
-import com.flipcash.app.analytics.Action
-import com.flipcash.app.analytics.Button
+import com.flipcash.analytics.Button
+import com.flipcash.analytics.events.AccountEvents
+import com.flipcash.analytics.events.ButtonEvents
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.userprofile.UpdateProfileStep
@@ -55,7 +57,6 @@ import com.flipcash.app.purchase.internal.PurchaseAccountViewModel
 import com.flipcash.features.login.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
-import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.navigation.annotatedEntry
@@ -156,7 +157,7 @@ private fun PermissionsPhaseFlowHost(
     val checker = LocalPermissionChecker.current
     val contactConfig = PermissionConfigs.contacts()
     val notificationConfig = PermissionConfigs.notifications()
-    val analytics = LocalAnalytics.current
+    val analytics = rememberAnalytics()
 
     val featureFlags = LocalFeatureFlags.current
     val userManager = LocalUserManager.current
@@ -193,7 +194,7 @@ private fun PermissionsPhaseFlowHost(
         onExit = { reason, _ ->
             when (reason) {
                 is FlowExitReason.Completed -> {
-                    analytics.action(Action.CompletedOnboarding)
+                    analytics.track(AccountEvents.completeOnboarding())
                     trace(tag = "Onboarding", message = "Onboarding complete — releasing to $home", type = TraceType.Process)
                     userManager?.set(AuthState.Ready)
                     outerNavigator.navigate(
@@ -571,14 +572,14 @@ private fun PurchaseStepContent() {
 @Composable
 private fun ContactPermissionStepContent() {
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
-    val analytics = LocalAnalytics.current
+    val analytics = rememberAnalytics()
     val contactCoordinator = LocalContactCoordinator.current
     val scope = rememberCoroutineScope()
 
     val permissionState = rememberContactPermission { result ->
         when (result) {
             PermissionResult.Granted -> {
-                analytics.action(Button.AllowContacts)
+                analytics.track(ButtonEvents.tapped(Button.ALLOW_CONTACTS))
                 scope.launch { contactCoordinator.sync() }
                 flowNavigator.proceed()
             }
@@ -591,7 +592,7 @@ private fun ContactPermissionStepContent() {
     ContactScreenContent(
         accessHandle = permissionState.asContactAccessHandle(),
         onSkip = {
-            analytics.action(Button.SkipContacts)
+            analytics.track(ButtonEvents.tapped(Button.SKIP_CONTACTS))
             flowNavigator.proceed()
         },
     )
@@ -602,7 +603,7 @@ private fun ContactPermissionStepContent() {
 @Composable
 private fun NotificationPermissionStepContent() {
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
-    val analytics = LocalAnalytics.current
+    val analytics = rememberAnalytics()
     val checker = LocalPermissionChecker.current
     val notificationConfig = PermissionConfigs.notifications()
 
@@ -617,7 +618,7 @@ private fun NotificationPermissionStepContent() {
     val permissionState = rememberNotificationPermission { result ->
         when (result) {
             PermissionResult.Granted -> {
-                analytics.action(Button.AllowPush)
+                analytics.track(ButtonEvents.tapped(Button.ALLOW_PUSH))
                 flowNavigator.proceed()
             }
             PermissionResult.Denied -> flowNavigator.navigateTo(
@@ -633,7 +634,7 @@ private fun NotificationPermissionStepContent() {
     NotificationScreenContent(
         permissionState = permissionState,
         onSkip = {
-            analytics.action(Button.SkipPush)
+            analytics.track(ButtonEvents.tapped(Button.SKIP_PUSH))
             flowNavigator.proceed()
         },
     )

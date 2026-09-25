@@ -1,7 +1,9 @@
 package com.flipcash.app.balance.internal
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import com.flipcash.app.analytics.StubFlipcashAnalytics
+import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
@@ -55,6 +57,8 @@ class BalanceViewModelTest {
         every { pending } returns MutableStateFlow(null)
     }
 
+    private val analytics = RecordingAnalytics()
+
     private lateinit var dispatchers: TestDispatchers
 
     private fun createViewModel() = WalletViewModel(
@@ -62,7 +66,7 @@ class BalanceViewModelTest {
         userFlags = userFlags,
         dispatchers = dispatchers,
         purchaseMethodController = purchaseMethodController,
-        analytics = StubFlipcashAnalytics(),
+        analytics = analytics,
         chatCoordinator = chatCoordinator,
         feedCoordinator = feedCoordinator,
         tokenCoordinator = tokenCoordinator,
@@ -83,6 +87,7 @@ class BalanceViewModelTest {
             // The removed AddMoneyUX flag used to short-circuit to a plain Deposit route;
             // the add-money sheet must now always be presented.
             coVerify(exactly = 1) { purchaseMethodController.presentDepositOptions(popToRoot = true) }
+            assertEquals(listOf(AddMoneyEvents.opened(AddMoneySource.BALANCE)), analytics.events)
         }
 
     @Test

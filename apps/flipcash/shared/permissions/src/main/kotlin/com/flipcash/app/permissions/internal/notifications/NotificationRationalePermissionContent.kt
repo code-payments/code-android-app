@@ -17,14 +17,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import com.flipcash.app.analytics.Button
-import com.flipcash.app.analytics.StubFlipcashAnalytics
+import com.flipcash.analytics.Button
+import com.flipcash.analytics.events.ButtonEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.permissions.internal.notifications.components.AnimatedSwitchPreview
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.permissions.R
-import com.getcode.libs.analytics.LocalAnalytics
+import com.flipcash.app.analytics.LocalAnalytics
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -61,7 +62,7 @@ fun NotificationRationalePermissionContent(
                         .padding(bottom = CodeTheme.dimens.grid.x2)
                         .padding(horizontal = CodeTheme.dimens.inset),
                     onClick = {
-                        analytics.action(Button.SkipPush)
+                        analytics.track(ButtonEvents.tapped(Button.SKIP_PUSH))
                         onComplete()
                     },
                     text = if (permanentlyDenied) {
@@ -132,7 +133,7 @@ fun NotificationRationalePermissionContent(
 @Preview
 private fun PreviewNotificationRationalePermissionScreen() {
     FlipcashPreview(showBackground = true) {
-        CompositionLocalProvider(LocalAnalytics provides StubFlipcashAnalytics()) {
+        CompositionLocalProvider(LocalAnalytics provides FlipcashAnalytics.None) {
             NotificationRationalePermissionContent(onComplete = {})
         }
     }

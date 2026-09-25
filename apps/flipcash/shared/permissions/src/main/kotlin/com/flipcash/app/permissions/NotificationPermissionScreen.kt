@@ -3,12 +3,13 @@ package com.flipcash.app.permissions
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import com.flipcash.app.analytics.Action
-import com.flipcash.app.analytics.Button
+import com.flipcash.analytics.Button
+import com.flipcash.analytics.events.AccountEvents
+import com.flipcash.analytics.events.ButtonEvents
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.permissions.internal.notifications.NotificationRationalePermissionContent
 import com.flipcash.app.permissions.internal.notifications.NotificationScreenContent
-import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.core.NavOptions
 import com.getcode.util.permissions.PermissionResult
@@ -17,13 +18,13 @@ import com.getcode.util.permissions.rememberNotificationPermission
 @Composable
 fun NotificationPermissionScreen(fromOnboarding: Boolean = false) {
     val navigator = LocalCodeNavigator.current
-    val analytics = LocalAnalytics.current
+    val analytics = rememberAnalytics()
 
     val permissionState = rememberNotificationPermission { result ->
         when (result) {
             PermissionResult.Granted -> {
-                analytics.action(Button.AllowPush)
-                if (fromOnboarding) analytics.action(Action.CompletedOnboarding)
+                analytics.track(ButtonEvents.tapped(Button.ALLOW_PUSH))
+                if (fromOnboarding) analytics.track(AccountEvents.completeOnboarding())
                 navigator.navigate(
                     route = AppRoute.Tabs.Scanner,
                     options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)
@@ -59,7 +60,7 @@ fun NotificationPermissionScreen(fromOnboarding: Boolean = false) {
     NotificationScreenContent(
         permissionState = permissionState,
         onSkip = {
-            analytics.action(Button.SkipPush)
+            analytics.track(ButtonEvents.tapped(Button.SKIP_PUSH))
             navigator.navigate(
                 route = AppRoute.Tabs.Scanner,
                 options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)

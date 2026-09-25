@@ -21,7 +21,9 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.consumePurchase
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.events.AccountEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.getcode.utils.getPublicKeyBase58
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.billing.BillingClientConnection
 import com.flipcash.app.billing.BillingClientState
@@ -60,7 +62,7 @@ internal class GooglePlayBillingClient(
     @ApplicationContext context: Context,
     private val userManager: UserManager,
     private val purchases: PurchaseController,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val dispatchers: DispatcherProvider,
 ) : BillingClient, PurchasesUpdatedListener {
 
@@ -262,10 +264,12 @@ internal class GooglePlayBillingClient(
                         currency = purchasePrice.currency
                     )
                 ).onSuccess {
-                    analytics.paidForAccount(
-                        price = purchasePrice.amount,
-                        currency = purchasePrice.currency,
-                        owner = owner,
+                    analytics.track(
+                        AccountEvents.createAccountPayment(
+                            price = purchasePrice.amount,
+                            currency = purchasePrice.currency.name,
+                            owner = owner.getPublicKeyBase58(),
+                        )
                     )
                     acknowledgeOrConsume(item)
                 }.onFailure {

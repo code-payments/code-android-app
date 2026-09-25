@@ -1,8 +1,9 @@
 package com.flipcash.app.login.internal
 
+import com.flipcash.analytics.Button
+import com.flipcash.analytics.events.ButtonEvents
 import com.flipcash.app.accesskey.BaseAccessKeyViewModel
-import com.flipcash.app.analytics.Button
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.storage.MediaSaver
@@ -32,11 +33,11 @@ internal class LoginAccessKeyViewModel @Inject constructor(
     private val userFlags: UserFlagsCoordinator,
     private val featureFlags: FeatureFlagController,
     private val authManager: AuthManager,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
 ): BaseAccessKeyViewModel(resources, mnemonicManager, mediaSaver, userManager, qrCodeGenerator, dispatchers) {
 
     suspend fun onWroteDownInstead(): Result<Boolean> {
-        trackButton(Button.WroteAccessKey)
+        trackButton(Button.WROTE_ACCESS_KEY)
         uiFlow.update { it.copy(skipState = LoadingSuccessState(loading = true)) }
         return runCatching {
             authManager.onUserAccessKeySeen()
@@ -59,7 +60,7 @@ internal class LoginAccessKeyViewModel @Inject constructor(
     }
 
     suspend fun saveImage(): Result<Boolean> {
-        trackButton(Button.SaveAccessKey)
+        trackButton(Button.SAVE_ACCESS_KEY)
         return saveBitmapToFile()
             .onSuccess { authManager.onUserAccessKeySeen() }
             .mapCatching {
@@ -86,7 +87,7 @@ internal class LoginAccessKeyViewModel @Inject constructor(
     }
 
     private fun trackButton(button: Button): Result<Unit> {
-        analytics.buttonTapped(button)
+        analytics.track(ButtonEvents.tapped(button))
         return Result.success(Unit)
     }
 }

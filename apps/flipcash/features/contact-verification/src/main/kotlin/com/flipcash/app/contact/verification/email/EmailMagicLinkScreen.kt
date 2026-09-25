@@ -8,7 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.flipcash.app.analytics.Analytics
+import com.flipcash.analytics.OnrampStep
+import com.flipcash.analytics.events.OnrampEvents
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.internal.email.EmailMagicLinkScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
@@ -43,7 +44,7 @@ fun EmailMagicLinkContent(
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {
-        analytics.onrampVerification(Analytics.OnrampVerificationStep.ConfirmEmail)
+        analytics.track(OnrampEvents.step(OnrampStep.CONFIRM_EMAIL))
     }
 
     Column(

@@ -1,10 +1,18 @@
 package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.AddMoneyMethod
+import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.PurchaseMethod as AnalyticsPurchaseMethod
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.analytics.events.ButtonEvents
+import com.flipcash.analytics.events.SwapEvents
+import com.flipcash.analytics.events.WalletEvents
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.Button
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.Button
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
@@ -114,7 +122,7 @@ class SwapViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val purchaseMethodController: PurchaseMethodController,
     private val coinbaseOnRampController: CoinbaseOnRampController,
     private val phantomWalletController: PhantomWalletController,
@@ -466,13 +474,13 @@ class SwapViewModel @Inject constructor(
     // "Add Money" funnel events only apply when acquiring USDF via an external
     // funding source; token buys funded from reserves or launchpad purchases are
     // tracked separately via buy()/sell().
-    private val addMoneyMethod: Analytics.AddMoneyMethod?
+    private val addMoneyMethod: AddMoneyMethod?
         get() {
             val purpose = stateFlow.value.purpose as? SwapPurpose.Buy ?: return null
             if (purpose.mint != Mint.usdf) return null
             return when (purpose.fundingSource) {
-                FundingSource.Coinbase -> Analytics.AddMoneyMethod.Coinbase
-                FundingSource.Phantom -> Analytics.AddMoneyMethod.Phantom
+                FundingSource.Coinbase -> AddMoneyMethod.COINBASE
+                FundingSource.Phantom -> AddMoneyMethod.PHANTOM
                 FundingSource.Flexible -> null
             }
         }
@@ -905,12 +913,14 @@ class SwapViewModel @Inject constructor(
             .onEach { (delegateState, purpose) ->
                 val isAddingMoney = stateFlow.value.isAddingMoney
                 addMoneyMethod?.let { method ->
-                    analytics.addMoneyAmountConfirmed(
-                        method = method,
-                        amount = Fiat(
-                            delegateState.enteredAmount,
-                            delegateState.currency.code ?: CurrencyCode.USD,
-                        ),
+                    analytics.track(
+                        AddMoneyEvents.amountConfirmed(
+                            method = method,
+                            amount = Fiat(
+                                delegateState.enteredAmount,
+                                delegateState.currency.code ?: CurrencyCode.USD,
+                            ).analytics,
+                        )
                     )
                 }
                 when (purpose) {
@@ -1109,11 +1119,13 @@ class SwapViewModel @Inject constructor(
                         OrderDeliveryResult.Failed -> {
                             dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
                             addMoneyMethod?.let { method ->
-                                analytics.addMoney(
-                                    method = method,
-                                    amount = netTransferAmount,
-                                    successful = false,
-                                    error = IllegalStateException("Order delivery failed"),
+                                analytics.track(
+                                    AddMoneyEvents.result(
+                                        method = method,
+                                        state = AnalyticsState.FAILURE,
+                                        amount = netTransferAmount.analytics,
+                                        error = IllegalStateException("Order delivery failed").analytics,
+                                    )
                                 )
                             }
                             false
@@ -1123,11 +1135,13 @@ class SwapViewModel @Inject constructor(
                         OrderDeliveryResult.TimedOut -> {
                             dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
                             addMoneyMethod?.let { method ->
-                                analytics.addMoney(
-                                    method = method,
-                                    amount = netTransferAmount,
-                                    successful = false,
-                                    error = IllegalStateException("Order delivery timed out"),
+                                analytics.track(
+                                    AddMoneyEvents.result(
+                                        method = method,
+                                        state = AnalyticsState.FAILURE,
+                                        amount = netTransferAmount.analytics,
+                                        error = IllegalStateException("Order delivery timed out").analytics,
+                                    )
                                 )
                             }
                             false
@@ -1146,7 +1160,9 @@ class SwapViewModel @Inject constructor(
                 feedCoordinator.fetchSinceLatest()
                 dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
                 addMoneyMethod?.let { method ->
-                    analytics.addMoney(method, netTransferAmount)
+                    analytics.track(
+                        AddMoneyEvents.result(method, AnalyticsState.SUCCESS, netTransferAmount.analytics, null)
+                    )
                 }
             }.launchIn(viewModelScope)
 
@@ -1554,7 +1570,9 @@ class SwapViewModel @Inject constructor(
                 when (s) {
                     is CoinbaseOnRampState.Failed -> {
                         addMoneyMethod?.let { method ->
-                            analytics.addMoney(method, successful = false, error = s.error)
+                            analytics.track(
+                                AddMoneyEvents.result(method, AnalyticsState.FAILURE, null, s.error.analytics)
+                            )
                         }
                         dispatchEvent(Event.UpdateBuyState())
                     }
@@ -1578,7 +1596,7 @@ class SwapViewModel @Inject constructor(
                 val amount = metadata.purchaseAmount ?: return@onEach
                 when (method) {
                     PurchaseMethod.CoinbaseOnRamp -> {
-                        analytics.buttonTapped(Button.TokenBuyWithCoinbase)
+                        analytics.track(ButtonEvents.tapped(Button.BUY_WITH_COINBASE))
                         dispatchEvent(Event.CoinbaseSelected)
 
                         val profile = userManager.profile
@@ -1642,12 +1660,12 @@ class SwapViewModel @Inject constructor(
                     }
 
                     PurchaseMethod.PhantomWallet -> {
-                        analytics.buttonTapped(Button.TokenBuyWithPhantom)
+                        analytics.track(ButtonEvents.tapped(Button.BUY_WITH_PHANTOM))
                         dispatchEvent(Event.PhantomSelected)
                     }
 
                     PurchaseMethod.OtherWallet -> {
-                        analytics.buttonTapped(Button.TokenBuyWithOtherWallet)
+                        analytics.track(ButtonEvents.tapped(Button.BUY_WITH_OTHER_WALLET))
                         dispatchEvent(Event.OtherWalletSelected)
                     }
                 }
@@ -1656,7 +1674,7 @@ class SwapViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
-                analytics.addMoneyOpened(Analytics.AddMoneySource.BuyShortfall)
+                analytics.track(AddMoneyEvents.opened(AddMoneySource.BUY_SHORTFALL))
                 // present the add-money/deposit sheet; navigate to whatever the user picks.
                 // popToRoot = false: the chosen add-money route replaces this buy flow (see the
                 // OpenScreen handler in SwapEntryScreen), so finishing it pops a single level back
@@ -1738,7 +1756,9 @@ class SwapViewModel @Inject constructor(
         ).onSuccess {
             trackTransaction(token)
             addMoneyMethod?.let { method ->
-                analytics.addMoneyPaymentInvoked(method, amountFiat.localFiat.nativeAmount)
+                analytics.track(
+                    AddMoneyEvents.paymentInvoked(method, amountFiat.localFiat.nativeAmount.analytics)
+                )
             }
         }.onFailure { error ->
             dispatchEvent(Event.UpdateBuyState())
@@ -1752,11 +1772,13 @@ class SwapViewModel @Inject constructor(
                 else -> {
                     trackTransaction(token, error = error)
                     addMoneyMethod?.let { method ->
-                        analytics.addMoney(
-                            method = method,
-                            amount = amountFiat.localFiat.nativeAmount,
-                            successful = false,
-                            error = error,
+                        analytics.track(
+                            AddMoneyEvents.result(
+                                method = method,
+                                state = AnalyticsState.FAILURE,
+                                amount = amountFiat.localFiat.nativeAmount.analytics,
+                                error = error.analytics,
+                            )
                         )
                     }
                     BottomBarManager.showError(
@@ -1769,34 +1791,36 @@ class SwapViewModel @Inject constructor(
     }
 
     private fun trackTransaction(token: Token, error: Throwable? = null) {
-        val method = when (val purpose = stateFlow.value.purpose) {
+        val purchaseMethod = when (val purpose = stateFlow.value.purpose) {
             is SwapPurpose.Buy -> when (purpose.fundingSource) {
-                FundingSource.Phantom -> Analytics.SwapMethod.Buy.Phantom
-                FundingSource.Coinbase -> Analytics.SwapMethod.Buy.Coinbase
-                else -> Analytics.SwapMethod.Buy.Reserves
+                FundingSource.Phantom -> AnalyticsPurchaseMethod.PHANTOM
+                FundingSource.Coinbase -> AnalyticsPurchaseMethod.COINBASE
+                else -> AnalyticsPurchaseMethod.RESERVES
             }
 
-            else -> Analytics.SwapMethod.Sell
+            else -> null
         }
 
-        when (method) {
-            Analytics.SwapMethod.Sell -> {
-                analytics.sell(
-                    amount = netTransferAmount,
-                    feeAmount = feeAmount,
-                    mint = token.address,
-                    error = error
-                )
-            }
+        val errorMessage = error?.analytics
 
-            is Analytics.SwapMethod.Buy -> {
-                analytics.buy(
-                    method = method.with,
-                    amount = netTransferAmount,
-                    mint = token.address,
-                    error = error
+        if (purchaseMethod != null) {
+            analytics.track(
+                SwapEvents.purchase(
+                    method = purchaseMethod,
+                    mint = token.address.analytics,
+                    amount = netTransferAmount.analytics,
+                    error = errorMessage,
                 )
-            }
+            )
+        } else {
+            analytics.track(
+                SwapEvents.sell(
+                    mint = token.address.analytics,
+                    amount = netTransferAmount.analytics,
+                    fee = feeAmount.decimalValue,
+                    error = errorMessage,
+                )
+            )
         }
     }
 
@@ -1809,7 +1833,7 @@ class SwapViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateBuyState(success = true))
                     dispatchEvent(Event.PhantomConnected)
                     dispatchEvent(Event.UpdateBuyState())
-                    analytics.connectWallet(OnRampProvider.Phantom)
+                    analytics.track(WalletEvents.connect(OnRampProvider.Phantom.analytics))
                 }.onFailure {
                     dispatchEvent(Event.UpdateBuyState())
                     handlePhantomError(it)
@@ -1827,12 +1851,16 @@ class SwapViewModel @Inject constructor(
                 fee = LocalFiat.Zero,
                 token = token,
                 onBeforeSign = {
-                    analytics.amountSelectedForWalletTransfer(
-                        OnRampProvider.Phantom,
-                        amount.localFiat.underlyingTokenAmount
+                    analytics.track(
+                        WalletEvents.requestAmount(
+                            OnRampProvider.Phantom.analytics,
+                            amount.localFiat.underlyingTokenAmount.analytics,
+                        )
                     )
                     addMoneyMethod?.let { method ->
-                        analytics.addMoneyPaymentInvoked(method, amount.localFiat.nativeAmount)
+                        analytics.track(
+                            AddMoneyEvents.paymentInvoked(method, amount.localFiat.nativeAmount.analytics)
+                        )
                     }
                 },
             ).onSuccess { result ->
@@ -1859,13 +1887,15 @@ class SwapViewModel @Inject constructor(
             ?: DeeplinkOnRampError.FailedToCreateTransaction(message = error.message, cause = error)
 
         if (deeplinkError is DeeplinkOnRampError.WalletProvidedError && deeplinkError.code == DeeplinkError.UserRejectedRequest.code) {
-            analytics.walletTransactionCancelled(OnRampProvider.Phantom)
+            analytics.track(WalletEvents.cancel(OnRampProvider.Phantom.analytics))
         } else {
             if (deeplinkError is DeeplinkOnRampError.FailedToSendTransaction) {
-                analytics.walletTransactionFailed(OnRampProvider.Phantom)
+                analytics.track(WalletEvents.transactionsFailed(OnRampProvider.Phantom.analytics))
             }
             addMoneyMethod?.let { method ->
-                analytics.addMoney(method, successful = false, error = deeplinkError)
+                analytics.track(
+                    AddMoneyEvents.result(method, AnalyticsState.FAILURE, null, deeplinkError.analytics)
+                )
             }
         }
 

@@ -1,7 +1,11 @@
 package com.flipcash.app.session.internal.delegates
 
 import app.cash.turbine.test
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.CashLinkChoice
+import com.flipcash.analytics.State
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.Scannable
@@ -22,6 +26,10 @@ import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.Mint
 import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Vibrator
@@ -42,6 +50,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -55,13 +64,20 @@ class GiftCardSharingDelegateTest {
     private val toastController = mockk<SessionToastController>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val transactionController = mockk<TransactionController>(relaxed = true)
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val analytics = RecordingAnalytics()
     private val vibrator = mockk<Vibrator>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
     private val verifiedState = mockk<VerifiedState>(relaxed = true)
     private val amount = mockk<LocalFiat>(relaxed = true)
     private val token = mockk<Token>(relaxed = true)
+
+    private val localFiat = LocalFiat(
+        underlyingTokenAmount = Fiat(quarks = 25_000_000L, currencyCode = CurrencyCode.USD),
+        nativeAmount = Fiat(quarks = 34_000_000L, currencyCode = CurrencyCode.CAD),
+        rate = Rate(fx = 1.36, currency = CurrencyCode.CAD),
+        mint = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),
+    )
 
     private lateinit var shareSheetController: ShareSheetController
 
@@ -317,5 +333,59 @@ class GiftCardSharingDelegateTest {
                 onError = any(),
             )
         }
+    }
+
+    @Test
+    fun `a copied cash link tracks Send Cash Link with the clipboard choice`() = runTest {
+        sendConfirmedCashLink(ShareResult.CopiedToClipboard)
+
+        assertEquals(
+            TransferEvents.sendCashLink(State.SUCCESS, localFiat.analytics, CashLinkChoice.COPIED, app = null, error = null),
+            analytics.events.single(),
+        )
+    }
+
+    @Test
+    fun `a cash link shared to an app tracks Send Cash Link with the app`() = runTest {
+        sendConfirmedCashLink(ShareResult.SharedToApp(to = "com.example.messages"))
+
+        assertEquals(
+            TransferEvents.sendCashLink(State.SUCCESS, localFiat.analytics, CashLinkChoice.SHARED, app = "com.example.messages", error = null),
+            analytics.events.single(),
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun TestScope.sendConfirmedCashLink(result: ShareResult) {
+        every {
+            billController.fundGiftCard(
+                giftCard = any(),
+                amount = any(),
+                token = any(),
+                owner = any(),
+                verifiedState = any(),
+                onFunded = any(),
+                onError = any(),
+            )
+        } answers {
+            val onFunded = args[5] as suspend (LocalFiat) -> Unit
+            runBlocking { onFunded(localFiat) }
+        }
+        coEvery {
+            shareConfirmationController.confirm(any(), any())
+        } answers { ShareConfirmationResult.Confirmed(secondArg()) }
+
+        val bill = Scannable.CashBill(
+            token = token,
+            amount = localFiat,
+            didReceive = false,
+            kind = Scannable.Payable.Kind.cash,
+            verifiedState = verifiedState,
+        )
+        val delegate = createDelegate()
+        delegate.shareGiftCard(bill, accountCluster)
+        advanceUntilIdle()
+        shareSheetController.onShared?.invoke(result)
+        advanceUntilIdle()
     }
 }

@@ -195,7 +195,6 @@ include(
     ":apps:flipcash:features:tipping",
 
     // Internal libs
-    ":libs:analytics",
     ":libs:analytics-events",
     ":libs:biometrics",
     ":libs:code-detection",

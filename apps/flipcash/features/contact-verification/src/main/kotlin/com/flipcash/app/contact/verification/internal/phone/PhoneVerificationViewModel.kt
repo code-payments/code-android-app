@@ -3,8 +3,8 @@ package com.flipcash.app.contact.verification.internal.phone
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Action
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.events.AccountEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.CountryLocale
@@ -52,7 +52,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private val featureFlags: FeatureFlagController,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
 ) : BaseViewModel<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -189,7 +189,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
 
                     viewModelScope.launch {
                         delay(1.seconds)
-                        analytics.action(Action.VerifiedPhoneNumber)
+                        analytics.track(AccountEvents.verifiedPhoneNumber())
                         dispatchEvent(Event.OnCodeVerified)
                         dispatchEvent(Event.OnVerifyingCodeChanged())
                     }
@@ -239,7 +239,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
             .onResult(
                 onSuccess = {
                     trace(tag = traceTag, message = "linkForPayment succeeded", type = TraceType.Process)
-                    analytics.action(Action.LinkedPhoneNumber)
+                    analytics.track(AccountEvents.linkedPhoneNumber())
                     dispatchEvent(Event.OnPhoneVerificationComplete)
                 },
                 onError = {
@@ -315,7 +315,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
         }
 
         if (!isResend) {
-            analytics.action(Action.EnteredPhoneNumber)
+            analytics.track(AccountEvents.enteredPhoneNumber())
         }
 
         trace(tag = traceTag, message = if (isResend) "Resending verification code" else "Sending verification code", type = TraceType.Process)

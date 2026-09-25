@@ -8,7 +8,9 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.events.ChatEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -78,7 +80,7 @@ class MessagingDelegate @Inject constructor(
     private val notificationManager: NotificationManagerCompat,
     private val userManager: UserManager,
     private val stateHolder: ChatStateHolder,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val senderResolver: SenderResolver,
 ) : MessagingOperations {
 
@@ -466,9 +468,10 @@ class MessagingDelegate @Inject constructor(
                 .firstOrNull { it.action == MessageContent.Cash.Action.TIPPED }
 
             if (tip != null) {
-                analytics.tipReceived(chatType, tip.amount, tip.mint)
+                val amount = tip.amount.analytics.copy(mint = tip.mint.analytics)
+                analytics.track(ChatEvents.tipReceived(chatType.analytics, amount))
             } else {
-                analytics.messageReceived(chatType)
+                analytics.track(ChatEvents.messageReceived(chatType.analytics))
             }
         }
     }

@@ -22,7 +22,11 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.events.DeeplinkEvents
+import com.flipcash.analytics.events.ScanEvents
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.analytics.rememberAnalytics
+import com.flipcash.app.analytics.withoutQueryOrFragment
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.AppRoute.Token.*
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -150,7 +154,11 @@ internal fun Scanner() {
     val firstScannableDeeplink = { urls: List<String> ->
         urls.firstNotNullOfOrNull { url ->
             val type = router.classify(DeepLink(url))
-            analytics.deeplinkParsed(type, url)
+            if (type != null) {
+                analytics.track(DeeplinkEvents.parsed(type.analytics))
+            } else {
+                analytics.track(DeeplinkEvents.parseFailed(url.withoutQueryOrFragment()))
+            }
             type
         }?.takeIf { it.isScannable }
     }
@@ -164,17 +172,19 @@ internal fun Scanner() {
 
     val onImagePicked = { uri: Uri ->
         scanJob.getAndSet(null)?.cancel()
-        analytics.galleryImagePicked()
+        analytics.track(ScanEvents.galleryImagePicked())
         scanJob.set(scope.launch {
             isScanningStillImage = true
             val started = TimeSource.Monotonic.markNow()
             try {
                 when (val result = kikCodeAnalyzer.detect(uri)) {
                     is StaticImageResult.Found -> {
-                        analytics.galleryScanSucceeded(
-                            tier = result.tier,
-                            zoom = result.zoom,
-                            timeMillis = started.elapsedNow().inWholeMilliseconds,
+                        analytics.track(
+                            ScanEvents.gallerySucceeded(
+                                tier = result.tier,
+                                zoom = result.zoom.toDouble(),
+                                timeMillis = started.elapsedNow().inWholeMilliseconds,
+                            )
                         )
                         // No dedup to get past: `CodeScanDelegate` suppresses a rendezvous only
                         // once a grab has succeeded, and clears it again on failure, so picking
@@ -193,9 +203,11 @@ internal fun Scanner() {
                         } else {
                             // Reported after the QR fallback, so the event counts searches that
                             // found nothing at all rather than searches the ladder missed.
-                            analytics.galleryScanFailed(
-                                timeMillis = started.elapsedNow().inWholeMilliseconds,
-                                exhausted = result is StaticImageResult.Exhausted,
+                            analytics.track(
+                                ScanEvents.galleryFailed(
+                                    timeMillis = started.elapsedNow().inWholeMilliseconds,
+                                    exhausted = result is StaticImageResult.Exhausted,
+                                )
                             )
                             showNoCodeFound()
                         }

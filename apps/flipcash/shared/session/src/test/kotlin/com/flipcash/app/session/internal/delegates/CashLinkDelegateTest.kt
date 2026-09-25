@@ -1,6 +1,10 @@
 package com.flipcash.app.session.internal.delegates
 
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.State
+import com.flipcash.analytics.events.DeeplinkEvents
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.SettledClaim
@@ -10,6 +14,10 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.Mint
 import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.every
@@ -35,11 +43,18 @@ class CashLinkDelegateTest {
 
     private val billController = mockk<BillController>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val analytics = RecordingAnalytics()
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
+
+    private val localFiat = LocalFiat(
+        underlyingTokenAmount = Fiat(quarks = 25_000_000L, currencyCode = CurrencyCode.USD),
+        nativeAmount = Fiat(quarks = 34_000_000L, currencyCode = CurrencyCode.CAD),
+        rate = Rate(fx = 1.36, currency = CurrencyCode.CAD),
+        mint = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),
+    )
 
     private fun createDelegate(): CashLinkDelegate {
         return CashLinkDelegate(
@@ -77,9 +92,10 @@ class CashLinkDelegateTest {
                 onError = any(),
             )
         }
-        verify {
-            analytics.deeplinkRouted(any(), error = any<IllegalArgumentException>())
-        }
+        assertEquals(
+            DeeplinkEvents.routed("CashLink", error = "Cash link not provided"),
+            analytics.events.single(),
+        )
     }
 
     @Test
@@ -130,9 +146,10 @@ class CashLinkDelegateTest {
                 onError = any(),
             )
         }
-        verify {
-            analytics.deeplinkRouted(any(), error = any<IllegalStateException>())
-        }
+        assertEquals(
+            DeeplinkEvents.routed("CashLink", error = "No owner found"),
+            analytics.events.single(),
+        )
     }
 
     @Test
@@ -149,6 +166,10 @@ class CashLinkDelegateTest {
                 onError = any(),
             )
         }
+        assertEquals(
+            DeeplinkEvents.routed("CashLink", error = null),
+            analytics.events.single { it.name == "Deeplink: Routed" },
+        )
     }
 
     @Test
@@ -206,10 +227,14 @@ class CashLinkDelegateTest {
                 onError = any(),
             )
         }
-        onReceived.captured.invoke(mockk(relaxed = true), mockk(relaxed = true))
+        onReceived.captured.invoke(mockk(relaxed = true), localFiat)
         runCurrent()
 
         assertEquals(listOf(SettledClaim("validEntropy123", collected = true)), settled)
+        assertEquals(
+            TransferEvents.receiveCashLink(State.SUCCESS, localFiat.analytics, error = null),
+            analytics.events.single { it.name == "Receive Cash Link" },
+        )
     }
 
     @Test
@@ -236,6 +261,10 @@ class CashLinkDelegateTest {
         runCurrent()
 
         assertEquals(listOf(SettledClaim("validEntropy123", collected = false)), settled)
+        assertEquals(
+            TransferEvents.receiveCashLink(State.FAILURE, amount = null, error = "already claimed"),
+            analytics.events.single { it.name == "Receive Cash Link" },
+        )
     }
 
     @Test

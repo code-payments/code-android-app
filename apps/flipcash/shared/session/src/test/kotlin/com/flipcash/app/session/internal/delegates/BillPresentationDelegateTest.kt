@@ -1,6 +1,9 @@
 package com.flipcash.app.session.internal.delegates
 
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.State
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.Scannable
@@ -16,6 +19,10 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.network.NetworkConnectivityListener
@@ -44,7 +51,7 @@ class BillPresentationDelegateTest {
 
     private val billController = mockk<BillController>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val analytics = RecordingAnalytics()
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val walletReveal = mockk<WalletRevealCoordinator>(relaxed = true)
@@ -54,6 +61,13 @@ class BillPresentationDelegateTest {
     private val dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher())
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
+
+    private val localFiat = LocalFiat(
+        underlyingTokenAmount = Fiat(quarks = 25_000_000L, currencyCode = CurrencyCode.USD),
+        nativeAmount = Fiat(quarks = 34_000_000L, currencyCode = CurrencyCode.CAD),
+        rate = Rate(fx = 1.36, currency = CurrencyCode.CAD),
+        mint = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),
+    )
 
     private fun createDelegate(stateHolder: SessionStateHolder = SessionStateHolder()): BillPresentationDelegate {
         return BillPresentationDelegate(
@@ -388,4 +402,68 @@ class BillPresentationDelegateTest {
         assertTrue(messages.isNotEmpty(), "Expected an error message in BottomBarManager")
         assertEquals("error_title_CashReturnedToWallet", messages.first().title)
     }
+
+    @Test
+    fun `a given bill tracks its start, then Give Bill with the bill's amount`() = runTest {
+        val onGrabbed = slot<suspend (LocalFiat) -> Unit>()
+        every {
+            billController.awaitGrab(
+                amount = any(),
+                token = any(),
+                owner = any(),
+                verifiedState = any(),
+                nonce = any(),
+                present = any(),
+                onGrabbed = capture(onGrabbed),
+                onTimeout = any(),
+                onError = any(),
+            )
+        } answers {}
+
+        val delegate = createDelegate()
+        delegate.awaitBillGrab(cashBill(), accountCluster)
+        onGrabbed.captured.invoke(localFiat)
+
+        assertEquals(
+            listOf(
+                TransferEvents.giveBillStart(),
+                TransferEvents.giveBill(State.SUCCESS, localFiat.analytics, error = null),
+            ),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `a failed give tracks Give Bill as a failure with the bill's amount`() = runTest {
+        val onError = slot<(Throwable) -> Unit>()
+        every {
+            billController.awaitGrab(
+                amount = any(),
+                token = any(),
+                owner = any(),
+                verifiedState = any(),
+                nonce = any(),
+                present = any(),
+                onGrabbed = any(),
+                onTimeout = any(),
+                onError = capture(onError),
+            )
+        } answers {}
+
+        val delegate = createDelegate()
+        delegate.awaitBillGrab(cashBill(), accountCluster)
+        onError.captured.invoke(RuntimeException("give failed"))
+
+        assertEquals(
+            TransferEvents.giveBill(State.FAILURE, localFiat.analytics, error = "give failed"),
+            analytics.events.last(),
+        )
+    }
+
+    private fun cashBill() = Scannable.CashBill(
+        token = mockk(relaxed = true),
+        amount = localFiat,
+        didReceive = false,
+        kind = Scannable.Payable.Kind.cash,
+    )
 }

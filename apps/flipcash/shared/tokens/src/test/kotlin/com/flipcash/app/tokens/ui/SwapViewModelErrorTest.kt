@@ -1,11 +1,24 @@
 package com.flipcash.app.tokens.ui
 
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.AddMoneyMethod
+import com.flipcash.analytics.Amount
+import com.flipcash.analytics.PropertyValue
+import com.flipcash.analytics.PurchaseMethod
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.WalletProvider
+import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.analytics.events.SwapEvents
+import com.flipcash.analytics.events.WalletEvents
+import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.onramp.CoinbaseOnRampController
+import com.flipcash.app.onramp.DeeplinkError
+import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.services.user.UserManager
@@ -15,6 +28,7 @@ import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Currency
@@ -24,6 +38,7 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.utils.generate
@@ -56,7 +71,9 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.stub
 import org.mockito.kotlin.whenever
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -74,7 +91,7 @@ class SwapViewModelErrorTest {
     private val resources = FakeResourceHelper()
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val feedCoordinator = mockk<ActivityFeedCoordinator>(relaxed = true)
-    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val analytics = RecordingAnalytics()
     private val purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true)
     private val coinbaseOnRampController = mockk<CoinbaseOnRampController>(relaxed = true)
     private val phantomWalletController = mockk<PhantomWalletController>(relaxed = true)
@@ -146,7 +163,9 @@ class SwapViewModelErrorTest {
                 Result.failure(RuntimeException("buy failed"))
         }
 
-        val token = mockk<Token>(relaxed = true)
+        val token = mockk<Token>(relaxed = true) {
+            every { address } returns Mint.usdf
+        }
         val tokenWithBalance = mockk<TokenWithBalance>(relaxed = true) {
             every { this@mockk.token } returns token
         }
@@ -155,10 +174,28 @@ class SwapViewModelErrorTest {
         val vm = createViewModel()
         vm.dispatchEvent(SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Buy(mockk(relaxed = true))))
         vm.dispatchEvent(SwapViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
+        // A straight reserves buy funds itself from the target token; without this the
+        // ViewModel short-circuits before ever calling transactionController.buy.
+        vm.dispatchEvent(SwapViewModel.Event.OnFundingTokenResolved(tokenWithBalance))
         vm.dispatchEvent(SwapViewModel.Event.ProceedWithPurchase(amount))
         advanceUntilIdle()
 
         assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })
+
+        val result = analytics.events.single { it.name == "Token Purchase With Reserves" }
+        assertIs<PropertyValue.Number>(result.properties["Fiat"])
+        // The amount block is the net of the entry and its fee; only its shape is fixed here.
+        val amountKeys = setOf("Fiat", "Currency", "USDC", "Quarks")
+        val expected = SwapEvents.purchase(
+            PurchaseMethod.RESERVES,
+            Mint.usdf.base58(),
+            amount = Amount(fiat = 0.0, currency = "", usdc = 0.0, quarks = 0),
+            error = "buy failed",
+        )
+        assertEquals(
+            expected.copy(properties = expected.properties - amountKeys),
+            result.copy(properties = result.properties - amountKeys),
+        )
     }
 
     @Test
@@ -184,6 +221,22 @@ class SwapViewModelErrorTest {
         advanceUntilIdle()
 
         assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })
+
+        val result = analytics.events.single { it.name == "Token Sell" }
+        assertIs<PropertyValue.Number>(result.properties["Fee"])
+        // The amount and fee are computed off launchpad metadata the relaxed token mock doesn't
+        // model; only their shape is fixed here.
+        val amountKeys = setOf("Fiat", "Currency", "USDC", "Quarks", "Fee")
+        val expected = SwapEvents.sell(
+            mint = Mint.usdf.base58(),
+            amount = Amount(fiat = 0.0, currency = "", usdc = 0.0, quarks = 0),
+            fee = 0.0,
+            error = "sell failed",
+        )
+        assertEquals(
+            expected.copy(properties = expected.properties - amountKeys),
+            result.copy(properties = result.properties - amountKeys),
+        )
     }
 
     @Test
@@ -214,6 +267,152 @@ class SwapViewModelErrorTest {
         advanceUntilIdle()
 
         verify(exactly = 0) { usdcDepositSweep.execute(any()) }
+    }
+
+    // --- Wallet (Phantom) events -----------------------------------------------------------
+
+    @Test
+    fun `connecting phantom successfully tracks Wallet Connect`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        coEvery { phantomWalletController.connectWallet() } returns Result.success(Unit)
+
+        val vm = createViewModel()
+        vm.dispatchEvent(SwapViewModel.Event.StartPhantomCeremony)
+        advanceUntilIdle()
+
+        assertEquals(
+            WalletEvents.connect(OnRampProvider.Phantom.analytics),
+            analytics.events.single(),
+        )
+    }
+
+    @Test
+    fun `user rejecting the phantom connect tracks Wallet Cancel`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        coEvery { phantomWalletController.connectWallet() } returns Result.failure(
+            DeeplinkOnRampError.WalletProvidedError(
+                DeeplinkError.UserRejectedRequest,
+                message = "User cancelled connection",
+            )
+        )
+
+        val vm = createViewModel()
+        vm.dispatchEvent(SwapViewModel.Event.StartPhantomCeremony)
+        advanceUntilIdle()
+
+        assertEquals(
+            WalletEvents.cancel(OnRampProvider.Phantom.analytics),
+            analytics.events.single(),
+        )
+    }
+
+    @Test
+    fun `a failed send during the phantom connect tracks Wallet Transactions Failed`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            coEvery { phantomWalletController.connectWallet() } returns Result.failure(
+                DeeplinkOnRampError.FailedToSendTransaction(code = 7L, message = "boom")
+            )
+
+            val vm = createViewModel()
+            vm.dispatchEvent(SwapViewModel.Event.StartPhantomCeremony)
+            advanceUntilIdle()
+
+            assertEquals(
+                WalletEvents.transactionsFailed(OnRampProvider.Phantom.analytics),
+                analytics.events.single { it.name == "Wallet: Transactions Failed" },
+            )
+        }
+
+    @Test
+    fun `confirming a phantom transaction tracks Wallet Request Amount with the token amount`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            every { exchange.preferredRate } returns Rate.oneToOne
+
+            val verifiedFiat = VerifiedFiat(
+                LocalFiat.fromUsd(usdf = Fiat(12.0, CurrencyCode.USD)),
+                null,
+            )
+            coEvery {
+                verifiedFiatCalculator.compute(any(), any(), any(), any(), any())
+            } returns Result.success(verifiedFiat)
+
+            val token = mockk<Token>(relaxed = true) {
+                every { address } returns Mint.usdf
+            }
+            val tokenWithBalance = mockk<TokenWithBalance>(relaxed = true) {
+                every { this@mockk.token } returns token
+            }
+
+            // Fail the swap after the pre-sign callback fires, rather than succeeding — a
+            // successful WithSwapId result drives an unrelated swap-polling collector that
+            // would need its own mocking and isn't part of what this test is checking.
+            val swapId = SwapId(ByteArray(32) { 0 }.toList())
+            coEvery {
+                phantomWalletController.executeSwap(any(), any(), any(), any())
+            } coAnswers {
+                val onBeforeSign = arg<(suspend (SwapId) -> Unit)?>(3)
+                onBeforeSign?.invoke(swapId)
+                Result.failure(DeeplinkOnRampError.FailedToCreateTransaction(message = "boom"))
+            }
+
+            val vm = createViewModel()
+            vm.dispatchEvent(
+                SwapViewModel.Event.OnPurposeChanged(
+                    SwapPurpose.Buy(Mint.usdf, fundingSource = FundingSource.Phantom)
+                )
+            )
+            vm.dispatchEvent(SwapViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
+            vm.amountDelegate.setAmount(12.0)
+            vm.dispatchEvent(SwapViewModel.Event.ConfirmPhantomTransaction)
+            advanceUntilIdle()
+
+            assertEquals(
+                WalletEvents.requestAmount(
+                    OnRampProvider.Phantom.analytics,
+                    verifiedFiat.localFiat.underlyingTokenAmount.analytics,
+                ),
+                analytics.events.single { it.name == "Wallet: Request Amount" },
+            )
+        }
+
+    @Test
+    fun `a failed Coinbase delivery tracks Add Money as a failure`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { tokenCoordinator.balanceForToken(Mint.usdf) } returns MutableStateFlow(Fiat.Zero)
+        coEvery { coinbaseOnRampController.awaitOrderDelivered("order-3") } returns
+            OrderDeliveryResult.Failed
+
+        val vm = createViewModel()
+        vm.dispatchEvent(
+            SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Buy(Mint.usdf, fundingSource = FundingSource.Coinbase))
+        )
+        vm.dispatchEvent(SwapViewModel.Event.DepositSubmitted(orderId = "order-3"))
+        advanceUntilIdle()
+
+        val result = analytics.events.single { it.name == "Add Money" }
+        // The amount block is the net of the entry and its fee; only its shape is fixed here.
+        assertIs<PropertyValue.Number>(result.properties["Fiat"])
+        val amountKeys = setOf("Fiat", "Currency", "USDC", "Quarks", "Exchange Rate", "Mint")
+        assertEquals(
+            AddMoneyEvents.result(AddMoneyMethod.COINBASE, AnalyticsState.FAILURE, amount = null, error = "Order delivery failed"),
+            result.copy(properties = result.properties - amountKeys),
+        )
+    }
+
+    @Test
+    fun `a deposit outside a USDF buy tracks no Add Money result`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { tokenCoordinator.balanceForToken(Mint.usdf) } returns MutableStateFlow(Fiat.Zero)
+        coEvery { coinbaseOnRampController.awaitOrderDelivered("order-4") } returns
+            OrderDeliveryResult.Failed
+
+        val vm = createViewModel()
+        vm.dispatchEvent(SwapViewModel.Event.DepositSubmitted(orderId = "order-4"))
+        advanceUntilIdle()
+
+        assertTrue(analytics.events.none { it.name == "Add Money" })
     }
 
     // --- Entry-currency conversion on the buy gate ---------------------------------------------

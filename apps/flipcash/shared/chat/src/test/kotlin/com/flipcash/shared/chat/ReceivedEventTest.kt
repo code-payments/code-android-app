@@ -1,6 +1,9 @@
 package com.flipcash.shared.chat
 
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.ChatType as AnalyticsChatType
+import com.flipcash.analytics.events.ChatEvents
+import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
@@ -32,7 +35,6 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.network.NetworkConnectivityListener
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -47,6 +49,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
@@ -61,7 +64,7 @@ class ReceivedEventTest {
 
     private val chatUpdatesChannel = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
 
-    private lateinit var analytics: FlipcashAnalyticsService
+    private lateinit var analytics: RecordingAnalytics
     private lateinit var metadataDataSource: ChatMetadataDataSource
     private lateinit var memberDataSource: ChatMemberDataSource
     private lateinit var messageDataSource: ChatMessageDataSource
@@ -74,7 +77,7 @@ class ReceivedEventTest {
 
     @Before
     fun setUp() {
-        analytics = mockk(relaxed = true)
+        analytics = RecordingAnalytics()
         exchange = mockk(relaxed = true)
         every { exchange.rateToUsd(CurrencyCode.USD) } returns Rate(1.0, CurrencyCode.USD)
         every { exchange.rateToUsd(CurrencyCode.CAD) } returns Rate(0.5, CurrencyCode.USD)
@@ -228,7 +231,10 @@ class ReceivedEventTest {
 
         coordinator.advanceReadPointer(chatId, 3L)
 
-        coVerify(exactly = 3) { analytics.messageReceived(ChatType.TIP_DM) }
+        assertEquals(
+            List(3) { ChatEvents.messageReceived(AnalyticsChatType.TIP) },
+            analytics.events,
+        )
     }
 
     @Test
@@ -241,8 +247,12 @@ class ReceivedEventTest {
 
             coordinator.advanceReadPointer(chatId, 1L)
 
-            coVerify(exactly = 1) { analytics.tipReceived(ChatType.TIP_DM, any(), any()) }
-            coVerify(exactly = 0) { analytics.messageReceived(any()) }
+            val expectedAmount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD).analytics
+                .copy(mint = mint.analytics)
+            assertEquals(
+                listOf(ChatEvents.tipReceived(AnalyticsChatType.TIP, expectedAmount)),
+                analytics.events,
+            )
         }
 
     @Test
@@ -251,8 +261,7 @@ class ReceivedEventTest {
 
         coordinator.advanceReadPointer(chatId, 5L)
 
-        coVerify(exactly = 0) { analytics.messageReceived(any()) }
-        coVerify(exactly = 0) { analytics.tipReceived(any(), any(), any()) }
+        assertEquals(emptyList(), analytics.events)
     }
 
     @Test
@@ -262,7 +271,7 @@ class ReceivedEventTest {
 
             coordinator.advanceReadPointer(chatId, 3L)
 
-            coVerify(exactly = 0) { analytics.messageReceived(any()) }
+            assertEquals(emptyList(), analytics.events)
         }
 
     @Test
@@ -276,6 +285,6 @@ class ReceivedEventTest {
 
             coordinator.advanceReadPointer(chatId, 2L)
 
-            coVerify(exactly = 0) { analytics.messageReceived(any()) }
+            assertEquals(emptyList(), analytics.events)
         }
 }

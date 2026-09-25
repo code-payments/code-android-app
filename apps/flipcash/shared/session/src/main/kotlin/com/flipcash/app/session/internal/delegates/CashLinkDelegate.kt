@@ -1,7 +1,10 @@
 package com.flipcash.app.session.internal.delegates
 
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.State
+import com.flipcash.analytics.events.DeeplinkEvents
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.navigation.DeeplinkType
@@ -49,7 +52,7 @@ class CashLinkDelegate @Inject constructor(
     private val stateHolder: SessionStateHolder,
     private val billController: BillController,
     private val tokenCoordinator: TokenCoordinator,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val resources: ResourceHelper,
     private val userManager: UserManager,
 ) : CashLinkOperations, CashLinkClaims {
@@ -83,9 +86,11 @@ class CashLinkDelegate @Inject constructor(
                 message = "Cash link not provided",
                 type = TraceType.Silent
             )
-            analytics.deeplinkRouted(
-                DeeplinkType.CashLink(),
-                error = IllegalArgumentException("Cash link not provided")
+            analytics.track(
+                DeeplinkEvents.routed(
+                    DeeplinkType.CashLink().analytics,
+                    error = IllegalArgumentException("Cash link not provided").analytics,
+                )
             )
             return
         }
@@ -97,9 +102,11 @@ class CashLinkDelegate @Inject constructor(
                 message = "No owner found",
                 type = TraceType.Silent
             )
-            analytics.deeplinkRouted(
-                DeeplinkType.CashLink(),
-                error = IllegalStateException("No owner found")
+            analytics.track(
+                DeeplinkEvents.routed(
+                    DeeplinkType.CashLink().analytics,
+                    error = IllegalStateException("No owner found").analytics,
+                )
             )
             return
         }
@@ -110,16 +117,18 @@ class CashLinkDelegate @Inject constructor(
                 message = "Cash link empty",
                 type = TraceType.Silent
             )
-            analytics.deeplinkRouted(
-                DeeplinkType.CashLink(),
-                error = IllegalArgumentException("Cash link empty")
+            analytics.track(
+                DeeplinkEvents.routed(
+                    DeeplinkType.CashLink().analytics,
+                    error = IllegalArgumentException("Cash link empty").analytics,
+                )
             )
             return
         }
 
         if (giftCardClaimInProgress.value == null) {
             giftCardClaimInProgress.value = entropy
-            analytics.deeplinkRouted(DeeplinkType.CashLink())
+            analytics.track(DeeplinkEvents.routed(DeeplinkType.CashLink().analytics, error = null))
             claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
         }
     }
@@ -143,7 +152,7 @@ class CashLinkDelegate @Inject constructor(
                 tokenCoordinator.add(token, amount)
                 giftCardClaimInProgress.value = null
                 _settledClaims.tryEmit(SettledClaim(entropy, collected = true))
-                analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
+                analytics.track(TransferEvents.receiveCashLink(State.SUCCESS, amount.analytics, null))
                 val bill = Scannable.Payable.forToken(
                     amount = amount,
                     token = token,
@@ -157,11 +166,8 @@ class CashLinkDelegate @Inject constructor(
                 giftCardClaimInProgress.value = null
                 _settledClaims.tryEmit(SettledClaim(entropy, collected = false))
                 if (cause !is ReceiveGiftTransactorError.UsersGiftCard) {
-                    analytics.transfer(
-                        Analytics.Transfer.ClaimedCashLink,
-                        amount = null,
-                        successful = false,
-                        error = cause
+                    analytics.track(
+                        TransferEvents.receiveCashLink(State.FAILURE, null, cause.analytics)
                     )
                 }
 

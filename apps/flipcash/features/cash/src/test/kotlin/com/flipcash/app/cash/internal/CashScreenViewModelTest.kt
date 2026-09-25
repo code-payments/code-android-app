@@ -1,7 +1,9 @@
 package com.flipcash.app.cash.internal
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import com.flipcash.app.analytics.StubFlipcashAnalytics
+import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.tokens.TokenCoordinator
@@ -51,6 +53,8 @@ class CashScreenViewModelTest {
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
     private val transactionController: TransactionOperations = mockk(relaxed = true)
 
+    private val analytics = RecordingAnalytics()
+
     private lateinit var dispatchers: TestDispatchers
 
     private val updateStateForEvent = CashScreenViewModel.updateStateForEvent
@@ -79,7 +83,7 @@ class CashScreenViewModelTest {
             verifiedFiatCalculator = verifiedFiatCalculator,
             tokenCoordinator = tokenCoordinator,
             transactionController = transactionController,
-            analytics = StubFlipcashAnalytics(),
+            analytics = analytics,
             dispatchers = dispatchers,
         )
     }
@@ -266,4 +270,26 @@ class CashScreenViewModelTest {
             val result = vm.checkSendLimit()
             assertFalse(result, "checkSendLimit should return false when amount is within limit")
         }
+
+    @Test
+    fun `a USDF shortfall tracks Add Money Opened from Give Shortfall`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        val vm = createViewModel()
+        vm.dispatchEvent(CashScreenViewModel.Event.OnTokenSelected(Mint.usdf))
+        vm.dispatchEvent(CashScreenViewModel.Event.AddCashToWallet(Fiat(5.0)))
+        advanceUntilIdle()
+
+        assertEquals(listOf(AddMoneyEvents.opened(AddMoneySource.GIVE_SHORTFALL)), analytics.events)
+    }
+
+    @Test
+    fun `a shortfall in another token tracks nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        val vm = createViewModel()
+        vm.dispatchEvent(CashScreenViewModel.Event.OnTokenSelected(Mint("kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6")))
+        vm.dispatchEvent(CashScreenViewModel.Event.AddCashToWallet(Fiat(5.0)))
+        advanceUntilIdle()
+
+        assertTrue(analytics.events.isEmpty())
+    }
 }

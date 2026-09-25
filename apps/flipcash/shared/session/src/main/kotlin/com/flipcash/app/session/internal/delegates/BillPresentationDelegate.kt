@@ -1,7 +1,9 @@
 package com.flipcash.app.session.internal.delegates
 
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.State
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.bill.PaymentValuation
@@ -59,7 +61,7 @@ class BillPresentationDelegate @Inject constructor(
     private val toastController: SessionToastController,
     private val tokenCoordinator: TokenCoordinator,
     private val walletReveal: WalletRevealCoordinator,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val vibrator: Vibrator,
     private val resources: ResourceHelper,
     private val networkObserver: NetworkConnectivityListener,
@@ -144,7 +146,7 @@ class BillPresentationDelegate @Inject constructor(
     }
 
     internal fun awaitBillGrab(bill: Scannable.Payable, owner: AccountCluster) {
-        analytics.transferStart(Analytics.Transfer.Initiate.GiveBillStart)
+        analytics.track(TransferEvents.giveBillStart())
         billController.awaitGrab(
             amount = bill.amount,
             token = bill.token,
@@ -153,7 +155,7 @@ class BillPresentationDelegate @Inject constructor(
             owner = owner,
             onGrabbed = { amount ->
                 tokenCoordinator.subtract(bill.token, amount)
-                analytics.transfer(Analytics.Transfer.GiveBill, bill.amount)
+                analytics.track(TransferEvents.giveBill(State.SUCCESS, bill.amount.analytics, null))
                 toastController.enqueue(bill.amount, isDeposit = false)
                 dismissBill(Grabbed)
                 vibrator.vibrate()
@@ -163,11 +165,8 @@ class BillPresentationDelegate @Inject constructor(
                 dismissBill(action = PutInWallet)
             },
             onError = {
-                analytics.transfer(
-                    event = Analytics.Transfer.GiveBill,
-                    amount = bill.amount,
-                    successful = false,
-                    error = it
+                analytics.track(
+                    TransferEvents.giveBill(State.FAILURE, bill.amount.analytics, it.analytics)
                 )
                 dismissBill(action = PutInWallet)
                 BottomBarManager.showError(

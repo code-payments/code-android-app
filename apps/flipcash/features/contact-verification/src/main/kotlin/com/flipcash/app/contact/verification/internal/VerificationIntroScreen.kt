@@ -24,7 +24,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
-import com.flipcash.app.analytics.Analytics
+import com.flipcash.analytics.OnrampStep
+import com.flipcash.analytics.events.OnrampEvents
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
@@ -55,7 +56,7 @@ fun VerificationIntroScreen(
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {
-        analytics.onrampVerification(Analytics.OnrampVerificationStep.ShowInfo)
+        analytics.track(OnrampEvents.step(OnrampStep.SHOW_INFO))
     }
 }
 

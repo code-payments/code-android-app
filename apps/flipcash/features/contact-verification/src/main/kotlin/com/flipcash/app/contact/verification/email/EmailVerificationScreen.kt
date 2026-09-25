@@ -8,7 +8,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.flipcash.app.analytics.Analytics
+import com.flipcash.analytics.OnrampStep
+import com.flipcash.analytics.events.OnrampEvents
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.internal.email.EmailEntryScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
@@ -56,7 +57,7 @@ fun EmailVerificationContent(
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {
-        analytics.onrampVerification(Analytics.OnrampVerificationStep.EnterEmail)
+        analytics.track(OnrampEvents.step(OnrampStep.ENTER_EMAIL))
     }
 
     BackHandler {

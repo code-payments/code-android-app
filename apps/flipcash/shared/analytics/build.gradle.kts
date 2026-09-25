@@ -4,19 +4,24 @@ plugins {
 
 android {
     namespace = "${Gradle.flipcashNamespace}.shared.anaylytics"
+    testFixtures {
+        enable = true
+    }
 }
 
 dependencies {
+    testFixturesImplementation(platform(libs.compose.bom))
+    testFixturesImplementation(libs.compose.ui)
+
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.bugsnag)
 
-    implementation(libs.firebase.perf)
-
-    api(project(":libs:analytics"))
+    api(project(":libs:analytics-events"))
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
 

@@ -1,7 +1,7 @@
 package com.flipcash.shared.chat.internal.delegates
 
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.PeopleCounter
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -85,7 +85,7 @@ class EventStreamDelegate @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val userManager: UserManager,
     private val stateHolder: ChatStateHolder,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
     private val exchange: Exchange,
 ) : EventStreamOperations {
 
@@ -137,14 +137,14 @@ class EventStreamDelegate @Inject constructor(
      * Received` is a total, not a non-tip remainder.
      */
     private fun countReceipt(msg: ChatMessage) {
-        analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages)
+        analytics.increment(PeopleCounter.MESSAGES)
 
         val tip = msg.content
             .filterIsInstance<MessageContent.Cash>()
             .firstOrNull { it.action == MessageContent.Cash.Action.TIPPED }
             ?: return
 
-        analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips)
+        analytics.increment(PeopleCounter.TIPS)
 
         // Chat cash arrives in the SENDER's native currency. With no cached rate
         // we count the tip but skip its value: an understated total is
@@ -153,7 +153,7 @@ class EventStreamDelegate @Inject constructor(
             ?.let { tip.amount.convertingTo(it) }
             ?: return
 
-        analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, usd.decimalValue)
+        analytics.increment(PeopleCounter.TIPS_VALUE, usd.decimalValue)
     }
 
     internal fun initialize(scope: CoroutineScope) {

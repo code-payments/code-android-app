@@ -1,7 +1,8 @@
 package com.flipcash.app.funding.internal
 
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.analytics.AddMoneyMethod
+import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
@@ -53,7 +54,7 @@ class InternalPurchaseMethodController @Inject constructor(
     exchange: Exchange,
     private val resources: ResourceHelper,
     private val userManager: UserManager,
-    private val analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalytics,
 ) : PurchaseMethodController {
 
     private val scope = CoroutineScope(SupervisorJob())
@@ -141,13 +142,13 @@ class InternalPurchaseMethodController @Inject constructor(
 
         when (result) {
             PurchaseMethod.CoinbaseOnRamp ->
-                analytics.addMoneyMethodSelected(Analytics.AddMoneyMethod.Coinbase)
+                analytics.track(AddMoneyEvents.methodSelected(AddMoneyMethod.COINBASE))
             PurchaseMethod.PhantomWallet ->
-                analytics.addMoneyMethodSelected(Analytics.AddMoneyMethod.Phantom)
+                analytics.track(AddMoneyEvents.methodSelected(AddMoneyMethod.PHANTOM))
             PurchaseMethod.OtherWallet ->
-                analytics.addMoneyMethodSelected(Analytics.AddMoneyMethod.OtherWallet)
+                analytics.track(AddMoneyEvents.methodSelected(AddMoneyMethod.OTHER_WALLET))
             is PurchaseMethod.CashReserves ->
-                analytics.addMoneyMethodSelected(Analytics.AddMoneyMethod.Reserves)
+                analytics.track(AddMoneyEvents.methodSelected(AddMoneyMethod.RESERVES))
             null -> Unit
         }
 

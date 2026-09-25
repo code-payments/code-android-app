@@ -15,6 +15,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:shared:transaction-history"))
     implementation(project(":apps:flipcash:shared:analytics"))
+    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:funding"))
