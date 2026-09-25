@@ -99,6 +99,7 @@ import com.flipcash.shared.chat.reactions.ReactorsPrefetchCache
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
+import com.getcode.libs.emojis.reactions.EmojiPickerModel
 import com.getcode.libs.emojis.reactions.RecentReactionsStore
 import com.flipcash.shared.chat.canReact
 import com.flipcash.shared.chat.resolveCapabilities
@@ -775,6 +776,23 @@ internal class ChatViewModel @Inject constructor(
     /** [messageId]'s pills, live — the reactors sheet's summary row (decision 4: title + pills). */
     fun reactionPills(messageId: Long): Flow<List<com.flipcash.shared.chat.reactions.ReactionPill>> =
         reactionOverlay.map { it[messageId]?.pills.orEmpty() }.distinctUntilChanged()
+
+    /**
+     * The full picker's sections for [query] (recents row + one section per catalog category, or a
+     * single search-results section — see [EmojiPickerModel.sections]), recomposed each time
+     * [query] changes. Loads the catalog once per call rather than caching it on the view model,
+     * matching how [emojiCatalogLoader] is already used for the quick strip above — the loader
+     * itself caches the parsed file, so this is cheap after the first call.
+     */
+    suspend fun emojiPickerSections(query: String): List<EmojiPickerModel.Section> {
+        val catalog = emojiCatalogLoader.load()
+        val undrawable = catalog.entries
+            .map { it.emoji }
+            .filterNot { EmojiDrawability.isDrawable(it) }
+            .toSet()
+        val recents = recentReactionsStore.rank(undrawable = undrawable)
+        return EmojiPickerModel.sections(catalog = catalog, undrawable = undrawable, recents = recents, query = query)
+    }
 
     /** A reactors-sheet row's resolved identity: the name to show (decision 4's precedence,
      * "You" for the viewer), and the profile to draw an avatar from when one is known. */
