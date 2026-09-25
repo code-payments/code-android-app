@@ -22,6 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -177,7 +180,9 @@ fun ReactionPillRow(
                     pill = pill,
                     height = pillHeight,
                     horizontalPadding = pillPadding,
-                    onClick = { onToggle(pill.emoji) },
+                    // A previewer (canReact == false) can still open the reactors sheet from a
+                    // long-press, but a tap must not toggle a reaction they're not allowed to make.
+                    onClick = if (canReact) ({ onToggle(pill.emoji) }) else null,
                     onLongClick = onPillLongClick,
                 )
             }
@@ -293,6 +298,8 @@ fun QuickReactionStrip(
         entries.forEach { entry ->
             Box(
                 modifier = Modifier
+                    .testTag("quick_reaction_${entry.emoji}")
+                    .semantics { selected = entry.highlighted }
                     .size(32.dp)
                     .let { base ->
                         if (entry.highlighted) {
@@ -309,6 +316,7 @@ fun QuickReactionStrip(
         }
         Box(
             modifier = Modifier
+                .testTag("quick_reaction_plus")
                 .size(32.dp)
                 .background(Color.White.copy(alpha = 0.06f), CircleShape)
                 .combinedClickable(onClick = onOpenPicker, onLongClick = {}),
@@ -324,7 +332,7 @@ private fun ReactionPillChip(
     pill: ReactionPill,
     height: Dp,
     horizontalPadding: Dp,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     onLongClick: () -> Unit,
 ) {
     val fill = if (pill.selfReacted) {
@@ -334,6 +342,8 @@ private fun ReactionPillChip(
     }
     Box(
         modifier = Modifier
+            .testTag("reaction_pill_${pill.emoji}")
+            .semantics { selected = pill.selfReacted }
             .background(color = fill, shape = RoundedCornerShape(percent = 50))
             .let { base ->
                 if (pill.selfReacted) {
@@ -346,7 +356,7 @@ private fun ReactionPillChip(
                     base
                 }
             }
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .combinedClickable(onClick = onClick ?: {}, onLongClick = onLongClick)
             .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center,
     ) {
@@ -363,6 +373,10 @@ private fun MorePillChip(
 ) {
     Box(
         modifier = Modifier
+            // Only the real "more" chip is tagged: the width-estimate slot SubcomposeLayout keeps
+            // composed (to size the collapse ahead of the real decision) would otherwise carry the
+            // same tag into the semantics tree even though it's never placed.
+            .let { base -> if (onClick != null) base.testTag("reaction_pill_more") else base }
             .background(
                 color = Color.White.copy(alpha = 0.06f),
                 shape = RoundedCornerShape(percent = 50),
@@ -379,6 +393,7 @@ private fun MorePillChip(
 private fun PlusChip(size: Dp, onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            .testTag("reaction_pill_plus")
             .background(
                 color = Color.White.copy(alpha = 0.06f),
                 shape = RoundedCornerShape(percent = 50),
