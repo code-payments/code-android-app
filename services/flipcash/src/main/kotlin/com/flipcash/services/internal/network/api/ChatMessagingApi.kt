@@ -323,4 +323,26 @@ internal class ChatMessagingApi @Inject constructor(
             api.getReactionSummaries(request)
         }
     }
+
+    /** [messageIds] must be non-empty and at most 100 — the `MessageIdBatch` proto cap. */
+    suspend fun getReactionSummariesByIds(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageIds: List<Long>,
+    ): RpcMessagingService.GetReactionSummariesResponse {
+        val request = RpcMessagingService.GetReactionSummariesRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setMessageIds(
+                MessagingModel.MessageIdBatch.newBuilder()
+                    .addAllMessageIds(messageIds.map { MessagingModel.MessageId.newBuilder().setValue(it).build() })
+            )
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getReactionSummaries(request)
+        }
+    }
 }

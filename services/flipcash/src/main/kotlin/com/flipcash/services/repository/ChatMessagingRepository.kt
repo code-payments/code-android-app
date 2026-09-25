@@ -100,6 +100,17 @@ interface ChatMessagingRepository {
         queryOptions: QueryOptions,
     ): Result<List<ReactionSummary>>
 
+    /**
+     * Fetches reaction summaries for specific messages. [messageIds] must be non-empty and at
+     * most 100 long — the server rejects a larger batch; callers with more ids chunk and merge
+     * (see [com.flipcash.services.controllers.ChatMessagingController.getReactionSummariesByIds]).
+     */
+    suspend fun getReactionSummariesByIds(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageIds: List<Long>,
+    ): Result<List<ReactionSummary>>
+
     suspend fun advancePointer(
         owner: KeyPair,
         chatId: ChatId,
@@ -123,4 +134,6 @@ data class DeltaUpdate(
 data class ReactorsPage(
     val reactors: List<Reactor>,
     val hasMore: Boolean,
+    /** Pass as `queryOptions.token` on the next [ChatMessagingRepository.getReactors] call. Set only when [hasMore]. */
+    val nextToken: com.flipcash.services.models.PagingToken? = null,
 )

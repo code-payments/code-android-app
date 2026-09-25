@@ -18,7 +18,9 @@ import com.flipcash.services.models.SendMessageError
 import com.flipcash.services.models.GetMessageError
 import com.flipcash.services.models.GetMessagesError
 import com.flipcash.services.models.NotifyIsTypingError
+import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.internal.network.extensions.toPagingToken
 import com.flipcash.services.models.RemoveReactionError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ClientMessageId
@@ -325,6 +327,7 @@ internal class ChatMessagingService @Inject constructor(
                         GetReactorsResult(
                             reactors = response.reactorsList.map { it.toReactor() },
                             hasMore = response.hasMore,
+                            pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
                         )
                     )
                     RpcMessagingService.GetReactorsResponse.Result.DENIED -> Result.failure(GetReactorsError.Denied())
@@ -384,6 +387,30 @@ internal class ChatMessagingService @Inject constructor(
             }
         )
     }
+
+    /** One `MessageIdBatch` call; [messageIds] must be non-empty and at most 100 (server cap). */
+    suspend fun getReactionSummariesByIds(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageIds: List<Long>,
+    ): Result<List<ReactionSummary>> {
+        return runCatching {
+            api.getReactionSummariesByIds(owner, chatId, messageIds)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcMessagingService.GetReactionSummariesResponse.Result.OK ->
+                        Result.success(response.summariesList.map { it.toReactionSummary() })
+                    RpcMessagingService.GetReactionSummariesResponse.Result.DENIED -> Result.failure(GetReactionSummariesError.Denied())
+                    RpcMessagingService.GetReactionSummariesResponse.Result.UNRECOGNIZED -> Result.failure(GetReactionSummariesError.Unrecognized())
+                    else -> Result.failure(GetReactionSummariesError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetReactionSummariesError.Other(cause = it) })
+            }
+        )
+    }
 }
 
 data class GetDeltaResult(
@@ -395,4 +422,5 @@ data class GetDeltaResult(
 data class GetReactorsResult(
     val reactors: List<Reactor>,
     val hasMore: Boolean,
+    val pagingToken: PagingToken? = null,
 )

@@ -109,6 +109,7 @@ class ChatMessagingController @Inject constructor(
         return repository.removeReaction(owner, chatId, messageId, emoji)
     }
 
+    /** [queryOptions]`.limit` (page size) is clamped at [REACTORS_PAGE_SIZE_LIMIT], the server cap. */
     suspend fun getReactors(
         chatId: ChatId,
         messageId: Long,
@@ -116,7 +117,8 @@ class ChatMessagingController @Inject constructor(
         queryOptions: QueryOptions = QueryOptions(),
     ): Result<ReactorsPage> {
         val owner = runCatching { requireOwner() }.getOrElse { return Result.failure(it) }
-        return repository.getReactors(owner, chatId, messageId, emoji, queryOptions)
+        val clamped = queryOptions.copy(limit = queryOptions.limit.coerceAtMost(REACTORS_PAGE_SIZE_LIMIT))
+        return repository.getReactors(owner, chatId, messageId, emoji, clamped)
     }
 
     suspend fun getReactionSummary(
@@ -133,6 +135,32 @@ class ChatMessagingController @Inject constructor(
     ): Result<List<ReactionSummary>> {
         val owner = runCatching { requireOwner() }.getOrElse { return Result.failure(it) }
         return repository.getReactionSummaries(owner, chatId, queryOptions)
+    }
+
+    /**
+     * Fetches reaction summaries for [messageIds], chunking into batches of at most
+     * [MESSAGE_ID_BATCH_LIMIT] (the server's `MessageIdBatch` cap) and merging the results.
+     * Fails fast on the first chunk that fails; earlier chunks already fetched are discarded
+     * with it since a partial summary set isn't safe to seed reaction state from.
+     */
+    suspend fun getReactionSummariesByIds(
+        chatId: ChatId,
+        messageIds: List<Long>,
+    ): Result<List<ReactionSummary>> {
+        if (messageIds.isEmpty()) return Result.success(emptyList())
+        val owner = runCatching { requireOwner() }.getOrElse { return Result.failure(it) }
+        val merged = mutableListOf<ReactionSummary>()
+        for (chunk in messageIds.chunked(MESSAGE_ID_BATCH_LIMIT)) {
+            val result = repository.getReactionSummariesByIds(owner, chatId, chunk)
+            val summaries = result.getOrElse { return Result.failure(it) }
+            merged += summaries
+        }
+        return Result.success(merged)
+    }
+
+    companion object {
+        private const val MESSAGE_ID_BATCH_LIMIT = 100
+        private const val REACTORS_PAGE_SIZE_LIMIT = 100
     }
 
     suspend fun advancePointer(
