@@ -135,14 +135,19 @@ internal class ReceiveGiftCardTransactor(
                 Result.success(Unit)
             }
 
-            return@timedTraceSuspend userAccountResult.map {
-                transactionController.receiveRemotely(
-                    giftCard = giftCard,
-                    amount = amount,
-                    owner = requestingTokenOwner,
-                    mint = token.address
-                )
-            }.fold(
+            // fold rather than map: receiveRemotely returns its own Result, and
+            // mapping would nest it where its failure is never read.
+            return@timedTraceSuspend userAccountResult.fold(
+                onSuccess = {
+                    transactionController.receiveRemotely(
+                        giftCard = giftCard,
+                        amount = amount,
+                        owner = requestingTokenOwner,
+                        mint = token.address
+                    )
+                },
+                onFailure = { Result.failure(it) },
+            ).fold(
                 onSuccess = {
                     onStep("intent")
                     Result.success(token to amount)
