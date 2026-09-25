@@ -5,6 +5,11 @@ import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.GroupEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.chatResult
+import com.flipcash.app.analytics.gateMint
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.blob.ImageUploadPreparer
 import com.flipcash.app.core.data.Loadable
@@ -83,6 +88,7 @@ internal class CreateGroupViewModel @Inject constructor(
     private val imagePreparer: ImageUploadPreparer,
     private val contentReader: ContentReader,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
 ) : BaseViewModel<CreateGroupViewModel.State, CreateGroupViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -380,7 +386,16 @@ internal class CreateGroupViewModel @Inject constructor(
                 rules = state.rules,
             ),
             idempotencyKey = idempotencyKey,
-        ).onSuccess { chat ->
+        ).also { result ->
+            analytics.track(
+                GroupEvents.created(
+                    state = if (result.isSuccess) AnalyticsState.SUCCESS else AnalyticsState.FAILURE,
+                    error = result.exceptionOrNull()?.chatResult,
+                    gateMint = state.rules.gateMint,
+                    hasPicture = picture != null,
+                )
+            )
+        }.onSuccess { chat ->
             // The chat exists, so the key has done its job — a later Create is a second group.
             attempt.clear()
             // The cached local copy is redundant now that the blob is the chat's picture, but the
