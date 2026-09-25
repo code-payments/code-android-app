@@ -26,7 +26,6 @@ import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
-import com.flipcash.app.analytics.chatResult
 import com.flipcash.app.analytics.gateMint
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
@@ -1746,16 +1745,7 @@ internal class ChatViewModel @Inject constructor(
                 // through observeMetadata, which is the same path a join from another device takes —
                 // one source for the gate rather than two that can disagree.
                 chatCoordinator.join(chatId)
-                    .also { result ->
-                        analytics.track(
-                            GroupEvents.joined(
-                                state = result.analyticsState,
-                                error = result.exceptionOrNull()?.chatResult,
-                                memberCount = group?.memberCount?.toInt() ?: 0,
-                                gated = group?.rules?.listener.orEmpty().isNotEmpty(),
-                            )
-                        )
-                    }
+                    .also { analytics.trackJoined(group, it) }
                     .onSuccess {
                         // The gate holds its own confirmation rather than waiting to be replaced:
                         // membership comes back through the roster, which can land on the next frame
@@ -1818,15 +1808,7 @@ internal class ChatViewModel @Inject constructor(
                 // `leave` clears the membership locally before the call, so the gate is back in
                 // place by the time the profile closes — the same single source the join reads.
                 chatCoordinator.leave(chatId)
-                    .also { result ->
-                        analytics.track(
-                            GroupEvents.left(
-                                state = result.analyticsState,
-                                error = result.exceptionOrNull()?.chatResult,
-                                memberCount = memberCount,
-                            )
-                        )
-                    }
+                    .also { analytics.trackLeft(memberCount, it) }
                     .onSuccess { dispatchEvent(Event.LeftChat) }
                     .onFailure {
                         trace("failed to leave chat - ${it.localizedMessage}")
@@ -2540,6 +2522,3 @@ internal class ChatViewModel @Inject constructor(
             }
     }
 }
-
-private val Result<*>.analyticsState: AnalyticsState
-    get() = if (isSuccess) AnalyticsState.SUCCESS else AnalyticsState.FAILURE
