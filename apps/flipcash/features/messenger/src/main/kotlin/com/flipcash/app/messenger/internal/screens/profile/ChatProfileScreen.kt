@@ -147,7 +147,7 @@ internal fun ChatProfileScreen(
                     // navigator, as with Report: the sheet is a top-level route shared with the
                     // chat list, so it opens over the chat rather than inside it.
                     ChatProfileAction.Mute -> chatState.chatId?.let { chatId ->
-                        navigator.push(AppRoute.Messaging.MuteChat(chatId))
+                        navigator.push(AppRoute.Messaging.MuteChat(chatId, chatState.chatType))
                     }
                     // Not flowNavigator: Report is a top-level route rather than a step of
                     // this flow, and LocalCodeNavigator hands a non-FlowStep route up to its

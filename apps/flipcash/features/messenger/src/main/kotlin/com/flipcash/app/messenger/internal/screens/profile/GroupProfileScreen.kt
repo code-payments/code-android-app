@@ -42,6 +42,7 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
@@ -145,7 +146,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     // navigator, as with Report: the sheet is a top-level route shared with the
                     // chat list, so it opens over the chat rather than inside it.
                     GroupProfileAction.Mute -> state.chatId?.let { chatId ->
-                        navigator.push(AppRoute.Messaging.MuteChat(chatId))
+                        navigator.push(AppRoute.Messaging.MuteChat(chatId, ChatType.GROUP))
                     }
                     GroupProfileAction.Leave ->
                         viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat)

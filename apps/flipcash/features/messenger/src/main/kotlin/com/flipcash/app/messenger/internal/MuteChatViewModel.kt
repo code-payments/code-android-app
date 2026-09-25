@@ -2,9 +2,15 @@ package com.flipcash.app.messenger.internal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.MuteDuration
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.ChatEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
+import com.flipcash.app.analytics.chatResult
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.currentChatListFeed
@@ -31,6 +37,7 @@ import javax.inject.Inject
 internal class MuteChatViewModel @Inject constructor(
     private val chatCoordinator: ChatCoordinator,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     /**
@@ -57,18 +64,35 @@ internal class MuteChatViewModel @Inject constructor(
      * Nothing to report on success: `mute` stores the viewer state it answers with, and every
      * surface showing the mute reads that store.
      */
-    fun mute(chatId: ChatId, mute: MuteState) = request(
+    fun mute(chatId: ChatId, chatType: ChatType, option: MuteOption) = request(
         errorTitle = R.string.error_title_failedToMute,
         errorDescription = R.string.error_description_failedToMute,
     ) {
-        chatCoordinator.mute(chatId, mute)
+        chatCoordinator.mute(chatId, option.toMuteState()).also { result ->
+            analytics.track(
+                ChatEvents.muted(
+                    chatType = chatType.analytics,
+                    duration = option.analytics,
+                    state = result.analyticsState,
+                    error = result.exceptionOrNull()?.chatResult,
+                )
+            )
+        }
     }
 
-    fun unmute(chatId: ChatId) = request(
+    fun unmute(chatId: ChatId, chatType: ChatType) = request(
         errorTitle = R.string.error_title_failedToUnmute,
         errorDescription = R.string.error_description_failedToUnmute,
     ) {
-        chatCoordinator.unmute(chatId)
+        chatCoordinator.unmute(chatId).also { result ->
+            analytics.track(
+                ChatEvents.unmuted(
+                    chatType = chatType.analytics,
+                    state = result.analyticsState,
+                    error = result.exceptionOrNull()?.chatResult,
+                )
+            )
+        }
     }
 
     private fun request(
@@ -92,3 +116,14 @@ internal class MuteChatViewModel @Inject constructor(
         }
     }
 }
+
+private val Result<*>.analyticsState: AnalyticsState
+    get() = if (isSuccess) AnalyticsState.SUCCESS else AnalyticsState.FAILURE
+
+private val MuteOption.analytics: MuteDuration
+    get() = when (this) {
+        MuteOption.OneHour -> MuteDuration.ONE_HOUR
+        MuteOption.EightHours -> MuteDuration.EIGHT_HOURS
+        MuteOption.OneWeek -> MuteDuration.ONE_WEEK
+        MuteOption.Forever -> MuteDuration.ALWAYS
+    }

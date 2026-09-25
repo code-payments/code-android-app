@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.ui
 import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.nameOrHandle
@@ -30,6 +31,8 @@ data class ConversationReference(
     val title: String? = null,
     /** Whether this row is a group. Decides where the name and the avatar's authority come from. */
     val isGroup: Boolean = false,
+    /** The chat's type, for what the row hands on — the mute sheet's analytics need a DM's kind. */
+    val chatType: ChatType = if (isGroup) ChatType.GROUP else ChatType.UNKNOWN,
     val lastMessagePreview: String? = null,
     /**
      * Whether the chat has any message at all.

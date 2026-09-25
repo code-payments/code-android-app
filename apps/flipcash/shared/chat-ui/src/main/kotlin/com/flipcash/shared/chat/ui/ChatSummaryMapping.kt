@@ -41,6 +41,7 @@ fun ChatSummary.toConversationReference(
         image = if (isGroup) metadata.picture else other?.userProfile?.profilePicture,
         title = metadata.title,
         isGroup = isGroup,
+        chatType = metadata.type,
         lastMessagePreview = formatPreview(selfId, tokensByMint, resources),
         hasMessages = metadata.lastMessage != null,
         lastActivity = metadata.lastActivity,

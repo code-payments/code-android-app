@@ -146,7 +146,7 @@ fun ChatsScreen() {
                     },
                     // The same sheet the chat and group profiles open, so the list offers exactly
                     // the durations they do, and unmuting is its "Never" row rather than a toggle.
-                    onMute = { chat -> navigator.push(AppRoute.Messaging.MuteChat(chat.chatId)) },
+                    onMute = { chat -> navigator.push(AppRoute.Messaging.MuteChat(chat.chatId, chat.chatType)) },
                     revealGroup = revealGroup,
                 )
             }
