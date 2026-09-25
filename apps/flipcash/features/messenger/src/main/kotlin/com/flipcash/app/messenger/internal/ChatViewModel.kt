@@ -17,6 +17,7 @@ import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteMethod
+import com.flipcash.analytics.GroupInviteSource
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
@@ -493,6 +494,9 @@ internal class ChatViewModel @Inject constructor(
 
         /** The group's profile was pushed from the transcript. */
         data object GroupInfoOpened : Event
+
+        /** A group invite card in the transcript was tapped through to another group. */
+        data object InviteCardFollowed : Event
 
         /** The group profile's "Leave Chat" row, which puts the confirmation up. */
         data object LeaveChat : Event
@@ -1585,7 +1589,7 @@ internal class ChatViewModel @Inject constructor(
 
     /**
      * The group events that are not an RPC's answer: the gate appearing, and the taps on the
-     * invite sheet, the gate's funding button and the group profile. The screens report the taps
+     * invite sheet, an invite card, the gate's funding button and the group profile. The screens report the taps
      * as events so the member count and the gate mint come from the state this holds.
      */
     private fun initGroupAnalytics() {
@@ -1623,6 +1627,10 @@ internal class ChatViewModel @Inject constructor(
                 val group = stateFlow.value.subject as? ChatSubject.Group
                 analytics.track(GroupEvents.gateFundingTapped(event.method, group?.rules.gateMint))
             }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.InviteCardFollowed>()
+            .onEach { analytics.track(GroupEvents.inviteFollowed(GroupInviteSource.CHAT_CARD)) }
             .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.GroupInfoOpened>()
@@ -2375,6 +2383,7 @@ internal class ChatViewModel @Inject constructor(
                 Event.InviteLinkShared,
                 is Event.GateFundingTapped,
                 Event.GroupInfoOpened,
+                Event.InviteCardFollowed,
                 Event.LeaveChat,
                 Event.LeaveConfirmed,
                 Event.LeftChat -> { state -> state }

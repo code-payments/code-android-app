@@ -273,4 +273,15 @@ class ChatGroupAnalyticsTest {
             assertEquals(PropertyValue.Number(4.0), info.properties["Member Count"])
             assertEquals(PropertyValue.Flag(true), info.properties["Is Member"])
         }
+
+    @Test
+    fun `an invite card tapped in the transcript is followed from the chat card`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val vm = createViewModel()
+            vm.dispatchEvent(ChatViewModel.Event.InviteCardFollowed)
+            advanceUntilIdle()
+
+            val event = analytics.events.single { it.name == "Group: Invite Followed" }
+            assertEquals(text("Chat Card"), event.properties["Source"])
+        }
 }

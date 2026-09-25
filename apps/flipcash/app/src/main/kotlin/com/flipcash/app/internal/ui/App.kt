@@ -37,7 +37,9 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
+import com.flipcash.analytics.GroupInviteSource
 import com.flipcash.analytics.events.DeeplinkEvents
+import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.analytics.withoutQueryOrFragment
 import com.flipcash.app.android.BuildConfig
@@ -47,6 +49,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
@@ -120,6 +123,12 @@ internal fun App(
     val userManager = LocalUserManager.current!!
     DeepLinkListener {
         analytics.track(DeeplinkEvents.open(it.data.withoutQueryOrFragment()))
+        // Here rather than where the link is routed: a cold start re-derives its routes on every
+        // auth re-emission, and this listener hears each link once. The scanner and the in-chat
+        // invite card report their own sources.
+        if (router.classify(it) is DeeplinkType.GroupChatInvite) {
+            analytics.track(GroupEvents.inviteFollowed(GroupInviteSource.LINK))
+        }
         deepLink = it
     }
 
