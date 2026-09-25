@@ -764,9 +764,9 @@ internal class ChatViewModel @Inject constructor(
         chatCoordinator.getReactorsPage(chatId, messageId, emoji, token)
     }
 
-    fun reactorsRows(messageId: Long): StateFlow<List<ReactorsListModel.Row>> = reactorsPrefetchCache.rows(messageId)
+    fun reactorsRows(messageId: Long): Flow<List<ReactorsListModel.Row>> = reactorsPrefetchCache.rows(messageId)
 
-    fun reactorsLoading(messageId: Long): StateFlow<Boolean> = reactorsPrefetchCache.loading(messageId)
+    fun reactorsLoading(messageId: Long): Flow<Boolean> = reactorsPrefetchCache.loading(messageId)
 
     fun reactorsHasMore(messageId: Long): Boolean = reactorsPrefetchCache.hasMore(messageId)
 

@@ -1006,6 +1006,9 @@
     <string name="title_clipboardLabelMessage">Message</string>
     <string name="title_reactionNotAdded">Couldn\'t add reaction</string>
     <string name="title_reactionLimitReached">This message has the maximum number of reactions</string>
+    <string name="title_reactionsCount">%1$d Reactions</string>
+    <string name="title_reactorsSheet">Reactions</string>
+    <string name="hint_searchEmoji">Search Emoji</string>
 
     <string name="label_unknownContact">Unknown Contact</string>
     <string name="title_allowFullContactAccess">Allow Full Contact Access</string>
