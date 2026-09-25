@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -51,6 +52,13 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.AnalyticsEvent
+import com.flipcash.analytics.Button
+import com.flipcash.analytics.TokenInfoSource
+import com.flipcash.analytics.events.ButtonEvents
+import com.flipcash.analytics.events.TokenInfoEvents
+import com.flipcash.app.analytics.analytics
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
@@ -104,6 +112,19 @@ fun CurrencyInfoExpansion(
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     LaunchedEffect(mint) {
         viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint))
+    }
+
+    // One `Token Info: Opened From …` per open. The flag is saveable because a pushed action (Give /
+    // Convert / Withdraw) takes the wallet entry, and this overlay with it, out of composition; the
+    // entry's saved state outlives that, so returning doesn't count a second open. Closing the overlay
+    // drops it from composition for good, which clears the flag for the next open.
+    val analytics = rememberAnalytics()
+    var openTracked by rememberSaveable(mint) { mutableStateOf(false) }
+    LaunchedEffect(mint) {
+        if (!openTracked) {
+            openTracked = true
+            analytics.track(cardExpansionOpened(mint, fromDeckCard = controller.sourceBounds != null))
+        }
     }
 
     // The wallet-tap detail is an app-root overlay, not a nav entry — so route its action tiles
@@ -451,6 +472,7 @@ fun CurrencyInfoExpansion(
                     endContent = {
                         if (!state.isCashReserve) {
                             AppBarDefaults.Share(hazeState = hazeState) {
+                                analytics.track(ButtonEvents.tapped(Button.SHARE_TOKEN_INFO))
                                 viewModel.dispatchEvent(TokenInfoViewModel.Event.Share)
                             }
                         }
@@ -460,6 +482,17 @@ fun CurrencyInfoExpansion(
         }
     }
 }
+
+/**
+ * The `Token Info: Opened From …` event for an overlay open. A wallet tap flies the card out of its
+ * deck slot; a `/token` deeplink opens with no source card (CardExpansionController.beginExpanded).
+ * Mirrors iOS WalletScreen.openCard and openCardImmediately.
+ */
+internal fun cardExpansionOpened(mint: Mint, fromDeckCard: Boolean): AnalyticsEvent =
+    TokenInfoEvents.opened(
+        source = if (fromDeckCard) TokenInfoSource.WALLET else TokenInfoSource.DEEPLINK,
+        mint = mint.analytics,
+    )
 
 /** Drag distance at which the pull-to-close reaches full progress. */
 private val PullFullDistance = 260.dp
