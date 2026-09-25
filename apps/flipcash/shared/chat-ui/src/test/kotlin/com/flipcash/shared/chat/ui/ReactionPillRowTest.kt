@@ -84,6 +84,18 @@ class ReactionPillRowTest {
     }
 
     @Test
+    fun `pills and the N more pill are 28dp tall, level with plus`() {
+        val pills = listOf(
+            pill("😀"), pill("😁"), pill("😂"), pill("😃"),
+            pill("😄"), pill("😅"), pill("😆"), pill("😇"),
+        )
+        setRow(pills = pills, width = 90.dp)
+
+        composeTestRule.onNodeWithTag("reaction_pill_😀").assertHeightIsEqualTo(28.dp)
+        composeTestRule.onNodeWithTag("reaction_pill_more").assertHeightIsEqualTo(28.dp)
+    }
+
+    @Test
     fun `tapping a pill toggles that emoji`() {
         val toggled = mutableListOf<String>()
         setRow(pills = listOf(pill("😀"), pill("😂")), onToggle = { toggled += it })

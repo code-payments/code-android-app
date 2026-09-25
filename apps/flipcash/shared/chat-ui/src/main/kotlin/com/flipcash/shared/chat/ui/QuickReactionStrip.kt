@@ -44,6 +44,8 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.flipcash.shared.chat.reactions.ReactionStrip
+import androidx.compose.ui.res.stringResource
+import com.flipcash.core.R
 
 // Sizes from the iOS strip (node 9779:105563).
 private val StripHeight = 55.dp
@@ -143,7 +145,7 @@ fun QuickReactionStrip(
         ) {
             Icon(
                 imageVector = Icons.Outlined.AddReaction,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.action_addReaction),
                 tint = Color.White,
                 modifier = Modifier.size(22.dp),
             )

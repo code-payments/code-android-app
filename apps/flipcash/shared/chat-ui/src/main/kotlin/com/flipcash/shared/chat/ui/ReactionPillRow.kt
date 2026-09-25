@@ -3,11 +3,17 @@ package com.flipcash.shared.chat.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddReaction
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,13 +27,15 @@ import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.getcode.theme.CodeTheme
+import androidx.compose.ui.res.stringResource
+import com.flipcash.core.R
 
 /**
  * The N-more collapse the pill row uses under a bubble (decision 2): pack pills onto up to
@@ -295,10 +303,23 @@ private fun ReactionPillChip(
                 }
             }
             .combinedClickable(onClick = onClick ?: {}, onLongClick = onLongClick)
+            .height(height)
             .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = "${pill.emoji} ${pill.count}", fontSize = 13.sp, textAlign = TextAlign.Center)
+        // iOS's pill: a 15pt emoji and a 13pt medium count in textMain, 4pt apart.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = pill.emoji, fontSize = 15.sp)
+            Text(
+                text = pill.count.toString(),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = CodeTheme.colors.textMain,
+            )
+        }
     }
 }
 
@@ -320,10 +341,16 @@ private fun MorePillChip(
                 shape = RoundedCornerShape(percent = 50),
             )
             .let { base -> onClick?.let { base.combinedClickable(onClick = it, onLongClick = {}) } ?: base }
+            .height(height)
             .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = "$count more", fontSize = 13.sp)
+        Text(
+            text = "$count more",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = CodeTheme.colors.textMain,
+        )
     }
 }
 
@@ -333,13 +360,16 @@ private fun PlusChip(size: Dp, onClick: () -> Unit) {
         modifier = Modifier
             .testTag("reaction_pill_plus")
             .size(size)
-            .background(
-                color = Color.White.copy(alpha = 0.06f),
-                shape = RoundedCornerShape(percent = 50),
-            )
+            .background(color = Color.White.copy(alpha = 0.18f), shape = CircleShape)
             .combinedClickable(onClick = onClick, onLongClick = {}),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = "+", fontSize = 15.sp)
+        // The strip's add-reaction icon, as iOS reuses its strip asset here.
+        Icon(
+            imageVector = Icons.Outlined.AddReaction,
+            contentDescription = stringResource(R.string.action_addReaction),
+            tint = CodeTheme.colors.textMain,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
