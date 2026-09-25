@@ -191,7 +191,11 @@ sealed interface MessageContentSerialized {
     @SerialName("system")
     data class System(val fallbackText: String) : MessageContentSerialized
 
-
+    // Placeholder for MessageContent.Encrypted -- see that type's doc. Nothing to persist
+    // beyond the marker; the content itself is never decoded client-side.
+    @Serializable
+    @SerialName("encrypted")
+    data object Encrypted : MessageContentSerialized
 }
 
 @Serializable

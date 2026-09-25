@@ -171,6 +171,10 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                 .setDeleted(deletedBuilder)
                 .build()
         }
+        // The client never constructs this locally -- it only exists as a decode result for
+        // incoming `Content.encrypted` (see MessageContent.Encrypted). Sending EncryptedContent
+        // needs its own crypto implementation (X25519/HKDF/XChaCha20), tracked separately.
+        is MessageContent.Encrypted -> error("MessageContent.Encrypted cannot be sent; encryption is not implemented")
     }
 }
 

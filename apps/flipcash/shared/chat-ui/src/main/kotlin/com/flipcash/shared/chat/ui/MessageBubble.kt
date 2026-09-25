@@ -112,6 +112,7 @@ fun ContentBubble(
             is MessageContent.Media -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.Reply -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.System -> maxWidth
+            is MessageContent.Encrypted -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
         }
 
         // A split message's citation goes on its first row and its marker on its last, so the
@@ -215,6 +216,18 @@ fun ContentBubble(
                     onQuoteClick = onQuoteClick,
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
                     jumbo = jumbo,
+                    attention = attention,
+                )
+
+                // Not decoded client-side -- see MessageContent.Encrypted. Rendered as a
+                // tombstone-style text bubble, the same treatment as a deleted message.
+                is MessageContent.Encrypted -> TextBubble(
+                    modifier = modifier,
+                    text = stringResource(R.string.label_messageUnsupported),
+                    isFromSelf = item.isFromSelf,
+                    position = position,
+                    maxWidth = bubbleMaxWidth,
+                    isTombstone = true,
                     attention = attention,
                 )
 

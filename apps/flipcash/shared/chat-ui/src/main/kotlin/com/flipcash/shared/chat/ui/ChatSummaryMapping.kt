@@ -147,6 +147,7 @@ private fun MessageContent.previewText(
     // reaches here when every message in the chat is deleted — and then there is nothing
     // to preview.
     is MessageContent.Deleted -> null
+    is MessageContent.Encrypted -> null
 
     // TODO:
     is MessageContent.Media -> null
