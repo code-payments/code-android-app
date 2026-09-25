@@ -279,6 +279,10 @@ private fun FlowGroupInviteSheet() {
     // down rather than having its scene deleted mid-frame.
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
 
+    LaunchedEffect(inviteViewModel, state.chatId) {
+        state.chatId?.let(inviteViewModel::inviteTo)
+    }
+
     LaunchedEffect(inviteViewModel) {
         inviteViewModel.invited.collect { chatId ->
             dismissSheet()

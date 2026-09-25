@@ -27,8 +27,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * The invite sheet's "Recent Chats" (nodes 10330:19387, 10330:19549, 10329:12104): which 1:1 chats
- * are picked, the message to go with the link, and sending both to each.
+ * The invite sheet's "Recent Chats" (nodes 10330:19387, 10330:19549, 10329:12104): which chats,
+ * 1:1 or group, are picked, the message to go with the link, and sending both to each.
  *
  * Scoped to the sheet rather than kept on the conversation's view model: a selection means nothing
  * once the sheet is gone, and the send has to outlive nothing but the sheet, which waits for it.
@@ -41,8 +41,10 @@ internal class GroupInviteViewModel @Inject constructor(
 ) : ViewModel() {
 
     data class State(
-        /** Null until the feed first emits, so an empty list means there are no 1:1 chats. */
+        /** Null until the feed first emits, so an empty list means there are no chats to offer. */
         val recentChats: List<ConversationReference>? = null,
+        /** The group the invites are for, which is left out of its own list. */
+        val groupId: ChatId? = null,
         /** Picked chats in the order they were tapped. The first is where the send lands. */
         val selection: List<ChatId> = emptyList(),
         val message: String = "",
@@ -50,6 +52,10 @@ internal class GroupInviteViewModel @Inject constructor(
     ) {
         /** The message bar only comes up once there is someone to send to (node 10330:19549). */
         val showsComposer: Boolean get() = selection.isNotEmpty()
+
+        /** [recentChats] without the group being invited to: sending a group its own link is a no-op. */
+        val invitable: List<ConversationReference>?
+            get() = recentChats?.filterNot { it.chatId == groupId }
     }
 
     private val _state = MutableStateFlow(State())
@@ -66,16 +72,22 @@ internal class GroupInviteViewModel @Inject constructor(
         // One read, not a subscription: a chat receiving a message while the sheet is up would
         // otherwise jump to the top and move the row out from under the viewer's finger.
         viewModelScope.launch {
-            val summaries = chatCoordinator.feed(ChatType.CONTACT_DM, ChatType.TIP_DM).first()
+            val summaries = chatCoordinator.feed(ChatType.CONTACT_DM, ChatType.TIP_DM, ChatType.GROUP)
+                .first()
             val selfId = userManager.accountId
             val chats = summaries.map { it.toConversationReference(selfId, emptyMap(), resources) }
             _state.update { it.copy(recentChats = chats) }
         }
     }
 
+    /** Names the group the sheet invites to, so it drops out of the list and cannot be picked. */
+    fun inviteTo(groupId: ChatId) {
+        _state.update { it.copy(groupId = groupId, selection = it.selection - groupId) }
+    }
+
     fun toggle(chatId: ChatId) {
         _state.update { state ->
-            if (state.sending) return@update state
+            if (state.sending || chatId == state.groupId) return@update state
             val selection = if (chatId in state.selection) {
                 state.selection - chatId
             } else {

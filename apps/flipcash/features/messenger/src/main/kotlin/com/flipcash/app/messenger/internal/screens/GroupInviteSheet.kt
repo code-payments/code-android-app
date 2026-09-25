@@ -159,7 +159,7 @@ internal fun GroupInviteSheet(
             }
         }
 
-        val recentChats = state.recentChats.orEmpty()
+        val recentChats = state.invitable.orEmpty()
         val hazeState = rememberHazeState()
         val density = LocalDensity.current
         var composerHeight by remember { mutableStateOf(0.dp) }
