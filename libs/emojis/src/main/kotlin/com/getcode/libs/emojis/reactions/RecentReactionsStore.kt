@@ -23,6 +23,9 @@ interface RecentReactionsStore {
 
     /** Returns up to [limit] emoji in rank order, leaving out [undrawable]. */
     suspend fun rank(undrawable: Set<String> = emptySet(), limit: Int = RecentReactions.DEFAULTS.size): List<String>
+
+    /** The raw per-emoji use stats, for a caller (e.g. [com.flipcash.shared.chat.reactions.ReactionStripComposer]) that ranks them itself. */
+    suspend fun stats(): Map<String, RecentReactions.Usage>
 }
 
 @Singleton
@@ -41,15 +44,17 @@ class DataStoreRecentReactionsStore @Inject constructor(
         }
     }
 
-    override suspend fun rank(undrawable: Set<String>, limit: Int): List<String> {
+    override suspend fun rank(undrawable: Set<String>, limit: Int): List<String> =
+        RecentReactions.rank(stats(), undrawable, limit)
+
+    override suspend fun stats(): Map<String, RecentReactions.Usage> {
         val prefs = dataStore.data.first()
-        val stats = prefs.asMap().mapNotNull { (prefsKey, raw) ->
+        return prefs.asMap().mapNotNull { (prefsKey, raw) ->
             val emoji = prefsKey.name.removePrefix(KEY_PREFIX)
             if (emoji == prefsKey.name) return@mapNotNull null // not one of ours
             val usage = decode(raw as? String) ?: return@mapNotNull null
             emoji to usage
         }.toMap()
-        return RecentReactions.rank(stats, undrawable, limit)
     }
 
     private fun key(emoji: String) = stringPreferencesKey("$KEY_PREFIX$emoji")

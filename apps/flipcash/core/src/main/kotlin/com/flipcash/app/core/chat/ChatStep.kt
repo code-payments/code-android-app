@@ -96,4 +96,22 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object EditGroupPicture : ChatStep
+
+    /**
+     * The full emoji picker for a message's reaction, opened from the pill row's "+" or the
+     * quick strip's "+". A plain [Sheet] rather than [WrapContentSheet]: the picker's catalog
+     * needs the screen's height, unlike the short, fixed-content sheets above.
+     */
+    @Parcelize
+    @Serializable
+    data class ReactionPicker(val messageId: Long) : ChatStep, Sheet
+
+    /**
+     * Who reacted, and with what — opened by long-pressing a pill. A plain [Sheet] for the same
+     * reason as [ReactionPicker]: a per-emoji reactor list can run long enough to need the full
+     * sheet height rather than wrapping its content.
+     */
+    @Parcelize
+    @Serializable
+    data class Reactors(val messageId: Long) : ChatStep, Sheet
 }
