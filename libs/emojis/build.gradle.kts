@@ -11,6 +11,10 @@ dependencies {
     implementation(libs.bundles.kotlinx.serialization)
     implementation(libs.kotlinx.datetime)
     implementation(libs.androidx.datastore)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
 }
 
 // Define the task to fetch and generate emoji data

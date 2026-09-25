@@ -26,5 +26,6 @@ dependencies {
     testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
     implementation(project(":services:flipcash"))
     implementation(project(":libs:network:connectivity:public"))
+    implementation(project(":libs:emojis"))
     implementation(libs.androidx.lifecycle.process)
 }
