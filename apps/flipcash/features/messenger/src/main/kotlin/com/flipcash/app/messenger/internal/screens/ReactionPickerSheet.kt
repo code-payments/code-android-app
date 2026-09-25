@@ -10,7 +10,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.selected
@@ -48,6 +51,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -219,7 +223,21 @@ private fun EmojiGrid(
     }
     val selectedCategory = pendingCategory ?: visibleCategory ?: sections.firstOrNull()?.id
 
-    Box(modifier = Modifier.fillMaxSize().navigationBarsPadding()) {
+    // How far the sheet runs below the bottom of the window. Once the sheet can expand it is laid out
+    // taller than the part on screen, so pinning the bar to the sheet's own bottom would push it off
+    // screen; lifting it by this much keeps it hugging the screen at either detent and mid-drag.
+    val windowHeight = LocalWindowInfo.current.containerSize.height
+    var belowWindowPx by remember { mutableIntStateOf(0) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { coordinates ->
+                val bottom = coordinates.positionInWindow().y + coordinates.size.height
+                belowWindowPx = (bottom - windowHeight).roundToInt().coerceAtLeast(0)
+            }
+            .navigationBarsPadding(),
+    ) {
         LazyColumn(
             state = gridState,
             modifier = Modifier
@@ -280,6 +298,7 @@ private fun EmojiGrid(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .offset { IntOffset(0, -belowWindowPx) }
                     .padding(bottom = 4.dp),
             )
         }
