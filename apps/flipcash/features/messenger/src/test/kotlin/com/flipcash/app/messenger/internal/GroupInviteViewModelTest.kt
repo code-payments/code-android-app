@@ -1,6 +1,8 @@
 package com.flipcash.app.messenger.internal
 
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatSummary
@@ -10,6 +12,8 @@ import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
+import kotlin.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -155,6 +159,28 @@ class GroupInviteViewModelTest {
     }
 
     @Test
+    fun `the list offers groups as well as 1-1 chats`() {
+        viewModel()
+        verify { chatCoordinator.feed(ChatType.CONTACT_DM, ChatType.TIP_DM, ChatType.GROUP) }
+    }
+
+    @Test
+    fun `the group being invited to is left out and cannot be picked`() = runTest(scheduler) {
+        val group = ChatId(ByteArray(32) { 9 })
+        every { chatCoordinator.feed(*anyVararg()) } returns flowOf(
+            listOf(summary(alice, ChatType.CONTACT_DM), summary(group, ChatType.GROUP)),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.inviteTo(group)
+        model.toggle(group)
+
+        assertEquals(listOf(alice), model.state.value.invitable?.map { it.chatId })
+        assertEquals(emptyList<ChatId>(), model.state.value.selection)
+    }
+
+    @Test
     fun `nothing is sent with nobody picked`() = runTest(scheduler) {
         viewModel().invite(INVITE_URL)
         advanceUntilIdle()
@@ -165,4 +191,15 @@ class GroupInviteViewModelTest {
     private companion object {
         const val INVITE_URL = "https://app.flipcash.com/chat/6f1c3a9e"
     }
+
+    private fun summary(chatId: ChatId, type: ChatType) = ChatSummary(
+        metadata = ChatMetadata(
+            chatId = chatId,
+            type = type,
+            members = emptyList(),
+            lastMessage = null,
+            lastActivity = Instant.fromEpochSeconds(1000),
+        ),
+        unreadCount = 0,
+    )
 }
