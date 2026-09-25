@@ -3,11 +3,13 @@ package com.flipcash.app.messenger.internal.screens.profile.edit
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.GroupField
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.moderation.moderationDescription
 import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.EditChatError
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ChatCoordinator
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -15,13 +17,13 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The group-title edit behind node 10187:110373's Name row.
@@ -39,6 +41,7 @@ class EditGroupNameViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     private val chatCoordinator: ChatCoordinator,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
 ) : BaseViewModel<EditGroupNameViewModel.State, EditGroupNameViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -139,6 +142,7 @@ class EditGroupNameViewModel @Inject constructor(
                     chatId = chatId,
                     parameters = titleOnly(state.titleFieldState.text),
                 )
+                analytics.trackEdited(GroupField.NAME, result)
 
                 result.onSuccess {
                     dispatchEvent(Event.UpdateProcessingState(success = true))

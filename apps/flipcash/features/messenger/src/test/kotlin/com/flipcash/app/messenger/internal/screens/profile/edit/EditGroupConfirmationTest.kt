@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.screens.profile.edit
 
 import android.net.Uri
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -64,6 +65,7 @@ class EditGroupConfirmationTest {
         dispatchers = TestDispatchers(UnconfinedTestDispatcher(scheduler)),
         chatCoordinator = chatCoordinator,
         resources = resources,
+        analytics = RecordingAnalytics(),
     ).apply {
         dispatchEvent(EditGroupNameViewModel.Event.Initialize(chatId, title = "Dogs"))
     }
@@ -136,6 +138,7 @@ class EditGroupConfirmationTest {
         imagePreparer = mockk(relaxed = true),
         contentReader = mockk(relaxed = true),
         resources = resources,
+        analytics = RecordingAnalytics(),
     ).apply {
         dispatchEvent(
             EditGroupPictureViewModel.Event.Initialize(chatId, picture = null, title = "Dogs")
