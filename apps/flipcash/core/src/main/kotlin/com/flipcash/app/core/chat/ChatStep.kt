@@ -44,16 +44,21 @@ sealed interface ChatStep : FlowStep, Parcelable {
         ChatStep, NavigationRetVal<ChatSendResult>, Sheet, WrapContentSheet
 
     /**
-     * Node 10127:118315 — the two ways to hand out a group's invite link.
+     * Nodes 10329:12104 and 10330:19549 — share or copy a group's invite link, or send it to
+     * recent 1:1 chats.
      *
-     * A [WrapContentSheet] over the conversation rather than a screen of its own: it is two rows,
-     * and inviting is something you do *from* the group, not a place you go. Reached from the empty
-     * transcript's CTA and from the group's profile, which is why it hangs off the chat flow rather
-     * than the create flow that used to end on it.
+     * A sheet over the conversation rather than a screen of its own: inviting is something you do
+     * *from* the group, not a place you go. Reached from the empty transcript's CTA and from the
+     * group's profile, which is why it hangs off the chat flow rather than the create flow that
+     * used to end on it.
+     *
+     * Not a [WrapContentSheet]: the chat list can run past the screen, and a wrap-content body is
+     * measured at its full height and then clipped, taking the message bar under it off the bottom.
+     * A full sheet bounds the body, so the list scrolls and the bar stays on screen.
      */
     @Parcelize
     @Serializable
-    data object InviteToGroup : ChatStep, Sheet, WrapContentSheet
+    data object InviteToGroup : ChatStep, Sheet
 
     @Parcelize
     @Serializable
