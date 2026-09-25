@@ -97,6 +97,8 @@ If Compose is needed, use `flipcash.android.library.compose` instead.
    - Add an `annotatedEntry<AppRoute.Your.Route>` to the `appEntryProvider` in `apps/flipcash/app/src/main/kotlin/com/flipcash/app/internal/ui/navigation/AppScreenContent.kt`
    - If deeplink-reachable: add URL pattern to `AppRouter` in `apps/flipcash/shared/router/`
 
+Done when `./gradlew :<module-path>:compileDebugKotlin` succeeds, and for feature modules also `./gradlew :apps:flipcash:app:compileDebugKotlin`.
+
 ## File Templates
 
 ### Screen (public entry point)
@@ -166,4 +168,4 @@ internal fun <Name>ScreenContent(
 - Use `internal` visibility for everything except the public Screen composable
 - Follow the existing naming conventions exactly (check similar modules if unsure)
 - Hyphenated module names use the hyphenated form in paths and camelCase in packages (e.g., module `currency-selection` → package `currencyselection`)
-- Ask the user what dependencies the module needs if not specified
+- If dependencies aren't specified, add none beyond the convention plugin, and list likely additions in your report

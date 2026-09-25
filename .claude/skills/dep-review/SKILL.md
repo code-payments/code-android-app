@@ -159,14 +159,15 @@ If no code changes are needed, state: "No code changes required — safe to merg
 
 If the verdict is **APPROVE WITH CHANGES**:
 
-1. Show the user each required change with a before/after diff
-2. Ask the user if they want to apply the changes
-3. If confirmed, check out the PR branch and apply the modifications:
+1. Check out the PR branch in a worktree (not the main checkout — `gh pr checkout`
+   there switches your branch) and apply the changes:
    ```bash
-   gh pr checkout <number>
+   git fetch origin <headRefName>
+   git worktree add -b <headRefName> ../dep-review-<number> origin/<headRefName>
    ```
-4. Make the code changes using Edit
-5. Offer to commit with:
+2. Make the code changes using Edit, and show each one as a before/after diff
+3. Run the Recommended Test Plan; done when it passes
+4. Offer to commit with:
    ```
    fix(deps): adapt to <library> <new_version> API changes
    ```
@@ -174,7 +175,6 @@ If the verdict is **APPROVE WITH CHANGES**:
 ## Never
 
 - Auto-merge a PR without user approval
-- Make code changes without showing them first
 - Skip the release notes check — even for patch bumps, behavioral changes happen
 - Dismiss a major version bump as low risk without evidence
 - Push changes to the PR branch without explicit user confirmation

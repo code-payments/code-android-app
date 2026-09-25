@@ -20,7 +20,12 @@ allowed-tools:
 # Triage: daily Bugsnag issue investigation
 
 You are a senior Android engineer performing daily Bugsnag triage for the
-Flipcash Android app. Follow the steps below exactly.
+Flipcash Android app.
+
+Done when `.claude/plans/triage-<error_id>.md` follows the template and names a
+root cause backed by `.kt:NN` evidence, or states your confidence and what
+evidence is missing. The steps below are the usual path; skip any the evidence
+makes unnecessary.
 
 ## Step 1 — Fetch the issue
 
@@ -159,7 +164,8 @@ Collect:
 Using the evidence from Step 4:
 
 1. Read the source files identified in the stack trace.
-2. Follow the call chain — read callers and callees within 2 hops.
+2. Follow the call chain — read callers and callees until the hypothesis is
+   confirmed or ruled out against the logs and breadcrumbs.
 3. Check for known patterns: null-safety violations, lifecycle issues,
    threading bugs, uncaught coroutine exceptions, missing error handling.
 4. Form a hypothesis and verify it against the logs and breadcrumbs.
