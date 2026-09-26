@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -18,6 +20,8 @@ import androidx.compose.material.icons.outlined.AddReaction
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,8 +31,16 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -43,6 +55,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
@@ -58,6 +72,13 @@ private val AddSize = 38.dp
 /** How far the fade reaches ahead of the "+" before the row draws fully. */
 private val FadeLead = 28.dp
 
+/** Gap between one emoji starting to pop in and the next, as in the iOS strip's entrance. */
+private const val ItemStaggerMillis = 18L
+
+/** Springs matched by eye to the iOS entrance, which settles in about 200ms. */
+private val GrowSpring = spring<Float>(dampingRatio = 0.9f, stiffness = 900f)
+private val PopSpring = spring<Float>(dampingRatio = 0.65f, stiffness = 1200f)
+
 /** iOS's pre-glass strip surface. */
 private val StripSurface = Color(0xFF303030)
 
@@ -70,6 +91,11 @@ private val StripSurface = Color(0xFF303030)
  *
  * The capsule grows to fit its entries up to 313dp; past that the emoji scroll under the "+",
  * fading out ahead of it.
+ *
+ * It enters as iOS's does: the capsule widens out of the side it hugs ([growsFromEnd] for the
+ * trailing side), the "+" riding its growing edge, and the emoji pop in one after another from
+ * that side. All of it animates in the draw phase, so the strip's measured size never changes —
+ * inside a popup, a changing size would resize the window every frame.
  */
 @Composable
 fun QuickReactionStrip(
@@ -77,14 +103,41 @@ fun QuickReactionStrip(
     onToggle: (emoji: String) -> Unit,
     onOpenPicker: () -> Unit,
     modifier: Modifier = Modifier,
+    growsFromEnd: Boolean = false,
 ) {
     if (entries.isEmpty()) return
+
+    val grow = remember { Animatable(0f) }
+    val pops = remember(entries.size) { List(entries.size) { Animatable(0f) } }
+    LaunchedEffect(pops) {
+        launch { grow.animateTo(1f, GrowSpring) }
+        val order = if (growsFromEnd) pops.asReversed() else pops
+        order.forEachIndexed { i, pop ->
+            launch {
+                delay(i * ItemStaggerMillis)
+                pop.animateTo(1f, PopSpring)
+            }
+        }
+    }
+    // How far the capsule's growing edge still has to travel, read in the draw phase only.
+    fun remaining(fullWidth: Float, minWidth: Float): Float =
+        (fullWidth - minWidth).coerceAtLeast(0f) * (1f - grow.value).coerceAtLeast(0f)
+
+    val stripWidth = remember { mutableFloatStateOf(0f) }
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     Box(
         modifier = modifier
             .widthIn(max = StripMaxWidth)
             .height(StripHeight)
-            .clip(CircleShape)
+            .onSizeChanged { stripWidth.floatValue = it.width.toFloat() }
+            .graphicsLayer {
+                val minWidth = StripHeight.toPx()
+                shape = RevealCapsule(remaining(size.width, minWidth), growsFromEnd)
+                clip = true
+                // Fully opaque a third of the way through the growth, as the iOS capsule is.
+                alpha = (grow.value * 3f).coerceIn(0f, 1f)
+            }
             .background(StripSurface),
         contentAlignment = Alignment.CenterEnd,
     ) {
@@ -117,9 +170,15 @@ fun QuickReactionStrip(
             horizontalArrangement = Arrangement.spacedBy(ItemSpacing),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            entries.forEach { entry ->
+            entries.forEachIndexed { index, entry ->
                 Box(
                     modifier = Modifier
+                        .graphicsLayer {
+                            val pop = pops[index].value
+                            scaleX = pop
+                            scaleY = pop
+                            alpha = pop.coerceIn(0f, 1f)
+                        }
                         .testTag("quick_reaction_${entry.emoji}")
                         .semantics { selected = entry.highlighted }
                         .size(ItemSize)
@@ -134,6 +193,14 @@ fun QuickReactionStrip(
         }
         Box(
             modifier = Modifier
+                .graphicsLayer {
+                    // Ride the growing edge when that edge is the trailing one; when the capsule
+                    // grows out of the trailing side the "+" is already where it ends up.
+                    if (!growsFromEnd) {
+                        val travel = remaining(stripWidth.floatValue, StripHeight.toPx())
+                        translationX = if (rtl) travel else -travel
+                    }
+                }
                 .padding(end = Inset)
                 .testTag("quick_reaction_plus")
                 .semantics { contentDescription = "More reactions" }
@@ -191,7 +258,29 @@ fun QuickReactionStripPopup(
         popupPositionProvider = provider,
         properties = PopupProperties(focusable = false, clippingEnabled = false),
     ) {
-        QuickReactionStrip(entries = entries, onToggle = onToggle, onOpenPicker = onOpenPicker)
+        QuickReactionStrip(
+            entries = entries,
+            onToggle = onToggle,
+            onOpenPicker = onOpenPicker,
+            growsFromEnd = hugsTrailing,
+        )
+    }
+}
+
+/**
+ * A capsule over the strip's bounds with [remaining] pixels cut off the growing side: the trailing
+ * side normally, the leading one when [fromEnd] (the capsule grows out of the trailing side).
+ */
+private class RevealCapsule(
+    private val remaining: Float,
+    private val fromEnd: Boolean,
+) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val growsRight = fromEnd == (layoutDirection == LayoutDirection.Rtl)
+        val left = if (growsRight) 0f else remaining
+        val right = if (growsRight) size.width - remaining else size.width
+        val radius = CornerRadius(size.height / 2f)
+        return Outline.Rounded(RoundRect(left, 0f, right, size.height, radius))
     }
 }
 
