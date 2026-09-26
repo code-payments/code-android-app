@@ -127,7 +127,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             is ChatAction.ToggleSelection -> {
                 viewModel.dispatchEvent(
-                    ChatViewModel.Event.ToggleMessageSelection(action.bubble)
+                    ChatViewModel.Event.ToggleMessageSelection(
+                        bubble = action.bubble,
+                        quickReactionStrip = viewModel.quickReactionStripFor(action.bubble),
+                    )
                 )
             }
 

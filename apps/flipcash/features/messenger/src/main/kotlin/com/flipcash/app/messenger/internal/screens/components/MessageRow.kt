@@ -44,6 +44,8 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -353,8 +355,14 @@ internal fun MessageRow(
                             // Same width as the bubble above it (decision 2) — matched here
                             // against the same fraction MessageBubble sizes a text/reply/deleted
                             // bubble to, since the row doesn't expose its resolved width outward.
-                            if (!selecting && item.reactionPills.isNotEmpty()) {
-                                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                            // Kept on screen while selecting, as iOS keeps them under its
+                            // backdrop, but inert like every other target on the row.
+                            if (item.reactionPills.isNotEmpty()) {
+                                BoxWithConstraints(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .addIf(selecting) { Modifier.blockPointerInput() },
+                                ) {
                                     ReactionPillRow(
                                         pills = item.reactionPills,
                                         canReact = item.canReact,
@@ -565,4 +573,13 @@ internal fun startsSenderRun(current: ChatListItem.ContentBubble, older: ChatLis
     val author = current.authorId ?: return false
     val olderBubble = older as? ChatListItem.ContentBubble ?: return true
     return olderBubble.authorId != author
+}
+
+/** Swallows every press before the children see it, so their own targets never fire. */
+private fun Modifier.blockPointerInput(): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+        }
+    }
 }

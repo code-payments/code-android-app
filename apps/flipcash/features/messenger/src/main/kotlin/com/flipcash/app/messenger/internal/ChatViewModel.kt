@@ -100,6 +100,7 @@ import com.flipcash.shared.chat.reactions.SelfReaction
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
 import com.getcode.libs.emojis.reactions.EmojiPickerModel
+import com.getcode.libs.emojis.reactions.RecentReactions
 import com.getcode.libs.emojis.reactions.RecentReactionsStore
 import com.flipcash.shared.chat.canReact
 import com.flipcash.shared.chat.resolveCapabilities
@@ -584,7 +585,12 @@ internal class ChatViewModel @Inject constructor(
         data class MessagePolicyChanged(val policy: MessagePolicy) : Event
 
         /** Selects [bubble], or leaves selection mode if it is already the selected one. */
-        data class ToggleMessageSelection(val bubble: ChatListItem.ContentBubble) : Event
+        /** [quickReactionStrip] is built ahead by [ChatViewModel.quickReactionStripFor], so the
+         * strip lands in the same update as the selection; empty leaves it to the strip flow. */
+        data class ToggleMessageSelection(
+            val bubble: ChatListItem.ContentBubble,
+            val quickReactionStrip: List<ReactionStrip.Entry> = emptyList(),
+        ) : Event
         data object ClearMessageSelection : Event
 
         // The message actions carry what they act on rather than reading it back off the selection:
@@ -715,6 +721,9 @@ internal class ChatViewModel @Inject constructor(
         .distinctUntilChanged()
         .flatMapLatest { chatCoordinator.observeChatReactions(it) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    /** Declared before `init`, which starts filling it. See [StripInputs]. */
+    private val stripInputs = MutableStateFlow<StripInputs?>(null)
 
     /**
      * Null for a DM, a map for a group — the distinction the transcript needs, because a DM's
@@ -1839,12 +1848,59 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    /**
+     * What the quick strip is built from, other than the message's own reactions. Kept ready ahead
+     * of a long-press so the selection reducer can build the strip in the same state update that
+     * lifts the bubble; built on demand, the strip trailed the lift by the catalog's glyph check
+     * and a DataStore read. Refreshed at init and after each toggle, which is what moves recents.
+     */
+    private class StripInputs(
+        val recentStats: Map<String, RecentReactions.Usage>,
+        val catalogFill: List<String>,
+        val undrawable: Set<String>,
+    )
+
+    private suspend fun refreshStripInputs(): StripInputs {
+        val catalog = emojiCatalogLoader.load()
+        val fill = catalog.firstCategoryEntries.map { it.emoji }
+        val undrawable = withContext(Dispatchers.Default) {
+            fill.filterNot { EmojiDrawability.isDrawable(it) }.toSet()
+        }
+        return StripInputs(
+            recentStats = recentReactionsStore.stats(),
+            catalogFill = fill,
+            undrawable = undrawable,
+        ).also { stripInputs.value = it }
+    }
+
+    /**
+     * The quick strip for [bubble], from the inputs already in hand, or empty if they have not
+     * loaded yet (the strip flow fills it in then). Called as the bubble is selected, so the strip
+     * enters with the lift instead of a round trip behind it.
+     */
+    fun quickReactionStripFor(bubble: ChatListItem.ContentBubble): List<ReactionStrip.Entry> {
+        if (!bubble.canReact) return emptyList()
+        val inputs = stripInputs.value ?: return emptyList()
+        return composeStrip(inputs, reactionOverlay.value[bubble.messageId]?.selfReactions.orEmpty())
+    }
+
+    private fun composeStrip(inputs: StripInputs, selfReactions: List<SelfReaction>) =
+        ReactionStripComposer.compose(
+            recentStats = inputs.recentStats,
+            selfReactions = selfReactions,
+            catalogFillSource = inputs.catalogFill,
+            undrawable = inputs.undrawable,
+        )
+
     private fun initMessageActionHandlers() {
+        viewModelScope.launch { refreshStripInputs() }
+
         eventFlow.filterIsInstance<Event.ToggleReaction>()
             .onEach { event ->
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 viewModelScope.launch {
                     chatCoordinator.toggleReaction(chatId, event.messageId, event.emoji)
+                    refreshStripInputs()
                 }
             }
             .launchIn(viewModelScope)
@@ -1868,17 +1924,7 @@ internal class ChatViewModel @Inject constructor(
                 val entries = if (selfReactions.isEmpty() && stateFlow.value.selection == null) {
                     emptyList()
                 } else {
-                    val catalog = emojiCatalogLoader.load()
-                    val undrawable = catalog.firstCategoryEntries
-                        .map { it.emoji }
-                        .filterNot { EmojiDrawability.isDrawable(it) }
-                        .toSet()
-                    ReactionStripComposer.compose(
-                        recentStats = recentReactionsStore.stats(),
-                        selfReactions = selfReactions,
-                        catalogFillSource = catalog.firstCategoryEntries.map { it.emoji },
-                        undrawable = undrawable,
-                    )
+                    composeStrip(stripInputs.value ?: refreshStripInputs(), selfReactions)
                 }
                 dispatchEvent(Event.QuickReactionStripComposed(entries))
             }
@@ -2740,6 +2786,7 @@ internal class ChatViewModel @Inject constructor(
                     }
                     state.copy(
                         selection = selected,
+                        quickReactionStrip = if (selected != null) event.quickReactionStrip else emptyList(),
                         confirmingDelete = false,
                     )
                 }
