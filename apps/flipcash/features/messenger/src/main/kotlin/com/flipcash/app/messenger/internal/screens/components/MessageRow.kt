@@ -171,6 +171,27 @@ internal fun MessageRow(
         label = "messageLift",
     )
 
+    // Only the bubble lifts, as iOS lifts only its bubble view out of the cell. Anchored to the
+    // bubble's own edge, as the insertion animation is, so it grows in place instead of sliding
+    // inward.
+    val liftModifier = Modifier.graphicsLayer {
+        scaleX = lift
+        scaleY = lift
+        transformOrigin = if (isOutgoing) TransformOrigin(1f, 0.5f) else TransformOrigin(0f, 0.5f)
+    }
+
+    // The selected message's own pills stay behind the backdrop with the rest of the transcript,
+    // so they take the same dim and blur the other rows do.
+    val pillsBehindBackdrop = selecting && focused
+    val pillDimAlpha by animateFloatAsState(
+        targetValue = if (pillsBehindBackdrop) 0.4f else 1f,
+        label = "pillDim",
+    )
+    val pillDimBlur by animateDpAsState(
+        targetValue = if (pillsBehindBackdrop) 8.dp else 0.dp,
+        label = "pillBlur",
+    )
+
     val swipe = rememberSwipeToReply(
         enabled = bubble != null &&
             !selecting &&
@@ -192,18 +213,7 @@ internal fun MessageRow(
             // Unbounded: the rectangle treatment would clip the blur at the row's own
             // edges and leave a hard seam between neighbouring rows.
             .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
-            .graphicsLayer {
-                alpha = dimAlpha
-                scaleX = lift
-                scaleY = lift
-                // Anchored to the bubble's own edge, as the insertion animation is, so
-                // the lift grows the bubble in place instead of sliding it inward.
-                transformOrigin = if (isOutgoing) {
-                    TransformOrigin(1f, 0.5f)
-                } else {
-                    TransformOrigin(0f, 0.5f)
-                }
-            }
+            .graphicsLayer { alpha = dimAlpha }
             // No row gestures while the backdrop is up: the rows are behind it, and a
             // press there would move the selection out from under the message the bar —
             // or the composer — is already acting on.
@@ -309,7 +319,7 @@ internal fun MessageRow(
                             modifier = Modifier.weight(1f),
                             horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
                         ) {
-                            Box(insertionModifier) {
+                            Box(insertionModifier.then(liftModifier)) {
                                 val stripShown = selecting && focused && item.canReact &&
                                     quickReactionStrip.isNotEmpty()
                                 // The strip lines up with the bubble as drawn, which sits inside
@@ -383,6 +393,8 @@ internal fun MessageRow(
                                 BoxWithConstraints(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .blur(pillDimBlur, BlurredEdgeTreatment.Unbounded)
+                                        .graphicsLayer { alpha = pillDimAlpha }
                                         .addIf(selecting) { Modifier.blockPointerInput() },
                                 ) {
                                     ReactionPillRow(
