@@ -48,6 +48,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -56,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -223,13 +225,18 @@ private fun EmojiGrid(
     // An expandable sheet is laid out at its expanded height and slid down, so its bottom sits off
     // screen until it's fully up. Lifting the bar by that overhang keeps it hugging the screen at
     // either detent and mid-drag; it's read at placement so it moves in the same frame as the sheet.
+    // Collapsing past the half detent would lift it up into the search field, so the lift stops
+    // once the bar reaches the top of the grid, 12dp under the field, and from there the bar ducks
+    // off screen with the sheet.
     val sheetOverhang = LocalSheetOverhang.current
+    var gridHeightPx by remember { mutableIntStateOf(0) }
 
     Box(modifier = Modifier.fillMaxSize().navigationBarsPadding()) {
         LazyColumn(
             state = gridState,
             modifier = Modifier
                 .fillMaxSize()
+                .onSizeChanged { gridHeightPx = it.height }
                 .hazeSource(hazeState),
             contentPadding = PaddingValues(
                 top = 4.dp,
@@ -286,8 +293,13 @@ private fun EmojiGrid(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset { IntOffset(0, -sheetOverhang().roundToInt()) }
-                    .padding(bottom = 4.dp),
+                    .offset {
+                        val maxLift = gridHeightPx -
+                            (CATEGORY_BAR_HEIGHT + CATEGORY_BAR_BOTTOM_GAP).roundToPx()
+                        val lift = sheetOverhang().roundToInt().coerceIn(0, maxLift.coerceAtLeast(0))
+                        IntOffset(0, -lift)
+                    }
+                    .padding(bottom = CATEGORY_BAR_BOTTOM_GAP),
             )
         }
     }
@@ -438,6 +450,7 @@ private fun CategoryBar(
 private fun <T> settleSpring() = spring<T>(dampingRatio = 0.8f, stiffness = 320f)
 
 private val CATEGORY_BAR_HEIGHT = 45.dp
+private val CATEGORY_BAR_BOTTOM_GAP = 4.dp
 private val INDICATOR_HEIGHT = 38.dp
 
 @Composable

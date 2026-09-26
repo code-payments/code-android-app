@@ -4,6 +4,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -71,6 +75,48 @@ class ReactionPillRowTest {
     fun `a message with no reactions draws no row and no plus, matching iOS`() {
         setRow(pills = emptyList(), canReact = true)
 
+        composeTestRule.onNodeWithTag("reaction_pill_plus").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a removed pill stays on screen while it animates out, then goes`() {
+        var pills by mutableStateOf(listOf(pill("😀"), pill("🎉")))
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent {
+            DesignSystem {
+                Box(Modifier.width(400.dp)) {
+                    ReactionPillRow(pills = pills, canReact = true, onToggle = {}, onPillLongClick = {}, onOpenPicker = {})
+                }
+            }
+        }
+        composeTestRule.mainClock.advanceTimeByFrame()
+        composeTestRule.onNodeWithTag("reaction_pill_🎉").assertIsDisplayed()
+
+        pills = listOf(pill("😀"))
+        composeTestRule.mainClock.advanceTimeByFrame()
+        composeTestRule.onNodeWithTag("reaction_pill_🎉").assertExists()
+
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.onNodeWithTag("reaction_pill_🎉").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("reaction_pill_😀").assertIsDisplayed()
+    }
+
+    @Test
+    fun `losing the last pill collapses the row to no height`() {
+        var pills by mutableStateOf(listOf(pill("😀")))
+        composeTestRule.setContent {
+            DesignSystem {
+                Box(Modifier.width(400.dp).testTag("container")) {
+                    ReactionPillRow(pills = pills, canReact = true, onToggle = {}, onPillLongClick = {}, onOpenPicker = {})
+                }
+            }
+        }
+        composeTestRule.onNodeWithTag("container").assertHeightIsEqualTo(32.dp)
+
+        pills = emptyList()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("container").assertHeightIsEqualTo(0.dp)
+        composeTestRule.onNodeWithTag("reaction_pill_😀").assertDoesNotExist()
         composeTestRule.onNodeWithTag("reaction_pill_plus").assertDoesNotExist()
     }
 

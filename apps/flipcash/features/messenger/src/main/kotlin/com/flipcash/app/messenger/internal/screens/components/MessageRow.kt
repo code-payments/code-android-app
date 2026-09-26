@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.paging.compose.LazyPagingItems
-import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.MessagePointer
@@ -389,7 +389,14 @@ internal fun MessageRow(
                             // bubble to, since the row doesn't expose its resolved width outward.
                             // Kept on screen while selecting, as iOS keeps them under its
                             // backdrop, but inert like every other target on the row.
-                            if (item.reactionPills.isNotEmpty()) {
+                            //
+                            // Once a message has pills the row stays composed, so the last one can
+                            // animate out; a message that gets its first reaction while on screen
+                            // has its row animate that pill in rather than just appear.
+                            val pillsAtFirstComposition = remember(item.messageId) { item.reactionPills.isNotEmpty() }
+                            val pillRowComposed = remember(item.messageId) { BooleanArray(1) }
+                            if (item.reactionPills.isNotEmpty()) pillRowComposed[0] = true
+                            if (pillRowComposed[0]) {
                                 BoxWithConstraints(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -413,6 +420,7 @@ internal fun MessageRow(
                                             .align(if (item.isFromSelf) Alignment.TopEnd else Alignment.TopStart)
                                             .width(maxWidth * BUBBLE_ROW_WIDTH_FRACTION),
                                         alignEnd = item.isFromSelf,
+                                        animateInitialPills = !pillsAtFirstComposition,
                                     )
                                 }
                             }

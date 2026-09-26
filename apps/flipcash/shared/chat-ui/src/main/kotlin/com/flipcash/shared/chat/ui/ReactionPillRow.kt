@@ -1,5 +1,18 @@
 package com.flipcash.shared.chat.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.AnimationVector2D
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -16,26 +29,43 @@ import androidx.compose.material.icons.outlined.AddReaction
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.node.LayoutModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.flipcash.core.R
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.getcode.theme.CodeTheme
-import androidx.compose.ui.res.stringResource
-import com.flipcash.core.R
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * The N-more collapse the pill row uses under a bubble (decision 2): pack pills onto up to
@@ -140,6 +170,7 @@ object ReactionPillRowLayout {
     }
 }
 
+
 /**
  * The pill row drawn under a bubble (decision 2): up to two lines of [pills], collapsing into an
  * "N more" pill before the trailing "+" when they don't fit, aligned to [alignEnd] (the sender's
@@ -149,8 +180,14 @@ object ReactionPillRowLayout {
  * select the message — its own `combinedClickable` handles the long-press so it never reaches the
  * bubble's. "N more" expands the row in place — every pill then draws, unbounded lines — and
  * stays expanded for the rest of this composition. "+" (hidden when `canReact` is false) opens
- * the reaction picker. With no [pills] nothing draws: the long-press strip is how a first
- * reaction gets added, as on iOS.
+ * the reaction picker. With no [pills] the row takes no space: the long-press strip is how a
+ * first reaction gets added, as on iOS.
+ *
+ * Changes animate as iOS's `ReactionPillRowView` does: a new pill grows in from 40% on a bouncy
+ * spring, a removed one shrinks to 60% and fades where it stood while the rest slide over, a count
+ * rolls up or down, and the row's height follows. The pills showing when the row first composes
+ * appear without animation, unless [animateInitialPills] says they're new — the caller passes it
+ * for a row that composes because its message just got its first reaction.
  */
 @Composable
 fun ReactionPillRow(
@@ -162,11 +199,14 @@ fun ReactionPillRow(
     modifier: Modifier = Modifier,
     alignEnd: Boolean = false,
     maxLines: Int = 2,
+    animateInitialPills: Boolean = false,
 ) {
-    // iOS draws no row at all until a message has a reaction; "+" only rides along with pills.
-    if (pills.isEmpty()) return
+    var expanded by remember { mutableStateOf(false) }
 
-    var expanded by remember(pills) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val motion = remember { PillRowMotion(if (animateInitialPills) emptyList() else pills, canReact) }
+    val plusTarget = canReact && pills.isNotEmpty()
+    val rendered = remember(pills, plusTarget, motion.exitsFinished) { motion.update(pills, plusTarget) }
 
     val pillHeight = 28.dp
     val pillPadding = 10.dp
@@ -174,40 +214,66 @@ fun ReactionPillRow(
     val plusSize = 28.dp
     val topGap = 4.dp
 
-    SubcomposeLayout(modifier = modifier.padding(top = topGap)) { constraints ->
+    SubcomposeLayout(modifier = modifier.animateHeightUnclipped()) { constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
         val spacingPx = spacingDp.roundToPx()
+        val topGapPx = topGap.roundToPx()
         val containerWidth = constraints.maxWidth
 
         val pillPlaceables = subcompose("pills") {
-            pills.forEach { pill ->
-                ReactionPillChip(
-                    pill = pill,
-                    height = pillHeight,
-                    horizontalPadding = pillPadding,
-                    // A previewer (canReact == false) can still open the reactors sheet from a
-                    // long-press, but a tap must not toggle a reaction they're not allowed to make.
-                    onClick = if (canReact) ({ onToggle(pill.emoji) }) else null,
-                    onLongClick = onPillLongClick,
-                )
+            rendered.pills.forEach { item ->
+                key(item.pill.emoji) {
+                    EnterExit(
+                        entering = item.entering,
+                        exiting = item.exiting,
+                        onExited = { motion.exited(item.pill.emoji) },
+                    ) { motionModifier ->
+                        ReactionPillChip(
+                            pill = item.pill,
+                            height = pillHeight,
+                            horizontalPadding = pillPadding,
+                            // A previewer (canReact == false) can still open the reactors sheet
+                            // from a long-press, but a tap must not toggle a reaction they're not
+                            // allowed to make. A leaving pill takes neither.
+                            onClick = if (canReact && !item.exiting) ({ onToggle(item.pill.emoji) }) else null,
+                            onLongClick = if (item.exiting) ({}) else onPillLongClick,
+                            modifier = motionModifier,
+                        )
+                    }
+                }
             }
         }.map { it.measure(loose) }
 
-        val plusPlaceable = if (canReact) {
-            subcompose("plus") { PlusChip(size = plusSize, onClick = onOpenPicker) }
-                .first().measure(loose)
-        } else null
+        val plusPlaceable = rendered.plus?.let { plus ->
+            subcompose("plus") {
+                EnterExit(
+                    entering = plus.entering,
+                    exiting = plus.exiting,
+                    onExited = { motion.exited(PLUS_KEY) },
+                ) { motionModifier ->
+                    PlusChip(
+                        size = plusSize,
+                        onClick = if (plus.exiting) ({}) else onOpenPicker,
+                        modifier = motionModifier,
+                    )
+                }
+            }.first().measure(loose)
+        }
+
+        // Leaving items keep the spot they held and take no room, so the rest reflow around them.
+        val flowIndices = rendered.pills.indices.filter { !rendered.pills[it].exiting }
+        val flowPlus = plusPlaceable?.takeIf { rendered.plus?.exiting == false }
 
         // Upper-bound estimate: a "more" chip sized for showing every pill, never narrower than
         // the real chip this could resolve to.
         val moreEstimate = subcompose("more-estimate") {
-            MorePillChip(count = pills.size, height = pillHeight, horizontalPadding = pillPadding)
+            MorePillChip(count = flowIndices.size, height = pillHeight, horizontalPadding = pillPadding)
         }.first().measure(loose)
 
         val result = ReactionPillRowLayout.compute(
-            pillWidths = pillPlaceables.map { it.width },
+            pillWidths = flowIndices.map { pillPlaceables[it].width },
             moreWidth = moreEstimate.width,
-            plusWidth = plusPlaceable?.width,
+            plusWidth = flowPlus?.width,
             containerWidth = containerWidth,
             spacing = spacingPx,
             maxLines = maxLines,
@@ -225,14 +291,15 @@ fun ReactionPillRow(
             }.first().measure(loose)
         } else null
 
-        val visible = pillPlaceables.take(result.visibleCount)
-        val items = visible + listOfNotNull(morePlaceable, plusPlaceable)
-
         // Greedy wrap identical to ReactionPillRowLayout.fits, now placing real placeables: first
         // assign each item an (x, line) within its line, tracking each line's total width and
         // height, then place with a per-line offset so an end-aligned row hugs the container's
         // trailing edge rather than its leading one.
-        data class Placement(val item: androidx.compose.ui.layout.Placeable, val x: Int, val line: Int)
+        class Item(val key: String, val placeable: Placeable)
+        class Placement(val item: Item, val x: Int, val line: Int)
+
+        val items = flowIndices.take(result.visibleCount).map { Item(rendered.pills[it].pill.emoji, pillPlaceables[it]) } +
+            listOfNotNull(morePlaceable?.let { Item(MORE_KEY, it) }, flowPlus?.let { Item(PLUS_KEY, it) })
 
         val placements = ArrayList<Placement>(items.size)
         val lineWidths = ArrayList<Int>()
@@ -242,7 +309,7 @@ fun ReactionPillRow(
         var lineHasItem = false
         var lineHeight = 0
         for (item in items) {
-            val needed = item.width + if (lineHasItem) spacingPx else 0
+            val needed = item.placeable.width + if (lineHasItem) spacingPx else 0
             if (lineHasItem && x + needed > containerWidth) {
                 lineWidths.add(x)
                 lineHeights.add(lineHeight)
@@ -253,8 +320,8 @@ fun ReactionPillRow(
             }
             if (lineHasItem) x += spacingPx
             placements.add(Placement(item, x, line))
-            x += item.width
-            lineHeight = maxOf(lineHeight, item.height)
+            x += item.placeable.width
+            lineHeight = maxOf(lineHeight, item.placeable.height)
             lineHasItem = true
         }
         lineWidths.add(x)
@@ -262,14 +329,163 @@ fun ReactionPillRow(
 
         val lineY = IntArray(lineHeights.size)
         for (i in 1 until lineHeights.size) lineY[i] = lineY[i - 1] + lineHeights[i - 1] + spacingPx
-        val totalHeight = lineY.last() + lineHeights.last()
+        // No pills in the flow means no row: not even the gap above it.
+        val totalHeight = if (items.isEmpty()) 0 else topGapPx + lineY.last() + lineHeights.last()
+
+        val leaving = rendered.pills.mapIndexedNotNull { index, item ->
+            if (item.exiting) Item(item.pill.emoji, pillPlaceables[index]) else null
+        } + listOfNotNull(plusPlaceable?.takeIf { rendered.plus?.exiting == true }?.let { Item(PLUS_KEY, it) })
 
         layout(containerWidth, totalHeight) {
+            val placed = HashSet<String>()
             for (placement in placements) {
                 val lineOffset = if (alignEnd) containerWidth - lineWidths[placement.line] else 0
-                placement.item.placeRelative(placement.x + lineOffset, lineY[placement.line])
+                val target = IntOffset(placement.x + lineOffset, topGapPx + lineY[placement.line])
+                placement.item.placeable.placeRelative(motion.slide(placement.item.key, target, scope))
+                placed += placement.item.key
             }
+            for (item in leaving) {
+                val at = motion.lastPosition(item.key) ?: continue
+                item.placeable.placeRelative(at)
+                placed += item.key
+            }
+            motion.placed(placed)
         }
+    }
+}
+
+private const val MORE_KEY = "\u0000more"
+private const val PLUS_KEY = "\u0000plus"
+
+private class RenderedPill(val pill: ReactionPill, val entering: Boolean, val exiting: Boolean)
+private class RenderedPlus(val entering: Boolean, val exiting: Boolean)
+private class RenderedRow(val pills: List<RenderedPill>, val plus: RenderedPlus?)
+
+/**
+ * What the row draws across updates: the current pills plus any still animating out, each at the
+ * index it last held, and where every item was last placed so a leaving one can fade in place and
+ * the rest can slide from where they were. Plain fields, not state — they're written as the row
+ * composes and places, and only [exitsFinished] needs to trigger anything.
+ */
+private class PillRowMotion(initialPills: List<ReactionPill>, canReact: Boolean) {
+    private var shown: List<RenderedPill> = initialPills.map { RenderedPill(it, entering = false, exiting = false) }
+    private var plusShown: Boolean = canReact && initialPills.isNotEmpty()
+    private var plusLeaving: Boolean = false
+    private val finished = HashSet<String>()
+    private var placedLastPass: Set<String> = emptySet()
+    private val offsets = HashMap<String, Animatable<IntOffset, AnimationVector2D>>()
+
+    var exitsFinished by mutableIntStateOf(0)
+        private set
+
+    fun update(pills: List<ReactionPill>, plusTarget: Boolean): RenderedRow {
+        val current = pills.mapTo(HashSet()) { it.emoji }
+        val before = shown.filter { !it.exiting }.mapTo(HashSet()) { it.pill.emoji }
+        val next = pills.mapTo(ArrayList()) { RenderedPill(it, entering = it.emoji !in before, exiting = false) }
+        shown.forEachIndexed { index, old ->
+            val emoji = old.pill.emoji
+            // Only a pill that was actually on screen has somewhere to fade out from; one folded
+            // into "N more" just goes.
+            if (emoji in current || emoji in finished || emoji !in placedLastPass) return@forEachIndexed
+            next.add(index.coerceAtMost(next.size), RenderedPill(old.pill, entering = false, exiting = true))
+        }
+        finished.removeAll(current)
+        shown = next
+
+        val plus = when {
+            plusTarget -> RenderedPlus(entering = !plusShown || plusLeaving, exiting = false)
+                .also { plusShown = true; plusLeaving = false }
+            plusShown && PLUS_KEY !in finished && PLUS_KEY in placedLastPass -> RenderedPlus(entering = false, exiting = true)
+                .also { plusLeaving = true }
+            else -> null.also { plusShown = false; plusLeaving = false; finished.remove(PLUS_KEY) }
+        }
+        return RenderedRow(next, plus)
+    }
+
+    fun exited(key: String) {
+        finished += key
+        offsets.remove(key)
+        exitsFinished++
+    }
+
+    /** Where [key] should draw this frame on its way to [target]; a new key starts there. */
+    fun slide(key: String, target: IntOffset, scope: CoroutineScope): IntOffset {
+        val offset = offsets.getOrPut(key) { Animatable(target, IntOffset.VectorConverter) }
+        if (offset.targetValue != target) scope.launch { offset.animateTo(target, ChatAnimations.reactionReflowOffset) }
+        return offset.value
+    }
+
+    fun lastPosition(key: String): IntOffset? = offsets[key]?.value
+
+    fun placed(keys: Set<String>) {
+        placedLastPass = keys
+        offsets.keys.retainAll(keys)
+    }
+}
+
+/**
+ * Scales and fades [content] in when [entering] (from 40%, overshooting on the arrival spring) and
+ * out when [exiting] (to 60%), calling [onExited] once it's gone. A return mid-exit springs back.
+ */
+@Composable
+private fun EnterExit(
+    entering: Boolean,
+    exiting: Boolean,
+    onExited: () -> Unit,
+    content: @Composable (Modifier) -> Unit,
+) {
+    val progress = remember { Animatable(if (entering) 0f else 1f) }
+    val currentOnExited by rememberUpdatedState(onExited)
+    LaunchedEffect(exiting) {
+        if (exiting) {
+            progress.animateTo(0f, ChatAnimations.reactionExit)
+            currentOnExited()
+        } else {
+            progress.animateTo(1f, ChatAnimations.reactionEnter)
+        }
+    }
+    content(
+        Modifier.graphicsLayer {
+            val p = progress.value
+            val from = if (exiting) ChatAnimations.reactionExitScale else ChatAnimations.reactionEnterScale
+            val scale = from + (1f - from) * p
+            scaleX = scale
+            scaleY = scale
+            alpha = p.coerceIn(0f, 1f)
+        },
+    )
+}
+
+/**
+ * Animates the height this reports on the reflow spring, without the clip `animateContentSize`
+ * adds — a pill overshooting on arrival, or fading out below a shrinking row, draws past the
+ * bounds. The first measure (and the first after lazy-list reuse) takes its height as is.
+ */
+private fun Modifier.animateHeightUnclipped(): Modifier = this then AnimateHeightElement
+
+private data object AnimateHeightElement : ModifierNodeElement<AnimateHeightNode>() {
+    override fun create() = AnimateHeightNode()
+    override fun update(node: AnimateHeightNode) = Unit
+}
+
+private class AnimateHeightNode : Modifier.Node(), LayoutModifierNode {
+    private var height: Animatable<Int, AnimationVector1D>? = null
+
+    override fun onReset() {
+        height = null
+    }
+
+    override fun onDetach() {
+        height = null
+    }
+
+    override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
+        val placeable = measurable.measure(constraints)
+        val target = placeable.height
+        val animated = height ?: Animatable(target, Int.VectorConverter).also { height = it }
+        if (animated.targetValue != target) coroutineScope.launch { animated.animateTo(target, ChatAnimations.reactionReflowHeight) }
+        // The spring overshoots, and a row collapsing to nothing would dip below zero.
+        return layout(placeable.width, animated.value.coerceAtLeast(0)) { placeable.place(0, 0) }
     }
 }
 
@@ -280,24 +496,30 @@ private fun ReactionPillChip(
     horizontalPadding: Dp,
     onClick: (() -> Unit)?,
     onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val fill = if (pill.selfReacted) {
-        Color.White.copy(alpha = 0.12f)
-    } else {
-        Color.White.copy(alpha = 0.06f)
-    }
+    val shape = RoundedCornerShape(percent = 50)
+    val fill by animateColorAsState(
+        targetValue = Color.White.copy(alpha = if (pill.selfReacted) 0.12f else 0.06f),
+        animationSpec = ChatAnimations.reactionChangeColor,
+        label = "pill fill",
+    )
+    val borderWidth by animateDpAsState(
+        targetValue = if (pill.selfReacted) CodeTheme.dimens.thickBorder else 0.dp,
+        animationSpec = ChatAnimations.reactionChangeDp,
+        label = "pill border",
+    )
     Box(
-        modifier = Modifier
+        modifier = modifier
             .testTag("reaction_pill_${pill.emoji}")
             .semantics { selected = pill.selfReacted }
-            .background(color = fill, shape = RoundedCornerShape(percent = 50))
+            // Clipped first so the press ripple stays inside the capsule.
+            .clip(shape)
+            .background(color = fill, shape = shape)
             .let { base ->
-                if (pill.selfReacted) {
-                    base.border(
-                        width = CodeTheme.dimens.thickBorder,
-                        color = Color.White.copy(alpha = 0.24f),
-                        shape = RoundedCornerShape(percent = 50),
-                    )
+                // A zero-width border would draw as a hairline, so none at all until it grows.
+                if (borderWidth > 0.dp) {
+                    base.border(width = borderWidth, color = Color.White.copy(alpha = 0.24f), shape = shape)
                 } else {
                     base
                 }
@@ -313,12 +535,25 @@ private fun ReactionPillChip(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = pill.emoji, fontSize = 15.sp)
-            Text(
-                text = pill.count.toString(),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = CodeTheme.colors.textMain,
-            )
+            // The count rolls to its next value like a counter turning: up for a rise, down for a
+            // fall.
+            AnimatedContent(
+                targetState = pill.count,
+                transitionSpec = {
+                    val direction = if (targetState > initialState) 1 else -1
+                    (slideInVertically(ChatAnimations.reactionChangeOffset) { it * direction } + fadeIn(ChatAnimations.reactionChange))
+                        .togetherWith(slideOutVertically(ChatAnimations.reactionChangeOffset) { -it * direction } + fadeOut(ChatAnimations.reactionChange))
+                        .using(SizeTransform(clip = true) { _, _ -> ChatAnimations.reactionChangeSize })
+                },
+                label = "pill count",
+            ) { count ->
+                Text(
+                    text = count.toString(),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = CodeTheme.colors.textMain,
+                )
+            }
         }
     }
 }
@@ -330,16 +565,15 @@ private fun MorePillChip(
     horizontalPadding: Dp,
     onClick: (() -> Unit)? = null,
 ) {
+    val shape = RoundedCornerShape(percent = 50)
     Box(
         modifier = Modifier
             // Only the real "more" chip is tagged: the width-estimate slot SubcomposeLayout keeps
             // composed (to size the collapse ahead of the real decision) would otherwise carry the
             // same tag into the semantics tree even though it's never placed.
             .let { base -> if (onClick != null) base.testTag("reaction_pill_more") else base }
-            .background(
-                color = Color.White.copy(alpha = 0.06f),
-                shape = RoundedCornerShape(percent = 50),
-            )
+            .clip(shape)
+            .background(color = Color.White.copy(alpha = 0.06f), shape = shape)
             .let { base -> onClick?.let { base.combinedClickable(onClick = it, onLongClick = {}) } ?: base }
             .height(height)
             .padding(horizontal = horizontalPadding),
@@ -355,11 +589,12 @@ private fun MorePillChip(
 }
 
 @Composable
-private fun PlusChip(size: Dp, onClick: () -> Unit) {
+private fun PlusChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .testTag("reaction_pill_plus")
             .size(size)
+            .clip(CircleShape)
             .background(color = Color.White.copy(alpha = 0.18f), shape = CircleShape)
             .combinedClickable(onClick = onClick, onLongClick = {}),
         contentAlignment = Alignment.Center,

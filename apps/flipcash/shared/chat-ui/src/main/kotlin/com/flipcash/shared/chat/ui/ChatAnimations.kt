@@ -1,4 +1,4 @@
-package com.flipcash.app.messenger.internal.screens
+package com.flipcash.shared.chat.ui
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -13,9 +13,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Color
 
 // All chat animation spring specs in one place.
-internal object ChatAnimations {
+object ChatAnimations {
     // Message bubble insertion — scale from 0.95 + opacity.
     // Matches iOS insertionSpring: .spring(duration: 0.23, bounce: 0.27).
     val insertion: SpringSpec<Float> = spring(dampingRatio = 0.73f, stiffness = 746f)
@@ -68,4 +71,22 @@ internal object ChatAnimations {
     // Receipt label exit when a new message is sent — fade out + collapse.
     private val deliveredIntSize: SpringSpec<IntSize> = spring(dampingRatio = 0.88f, stiffness = 250f)
     val receiptExit: ExitTransition = shrinkVertically(deliveredIntSize) + fadeOut(delivered)
+
+    // Reaction pills, from iOS ChatMotion's reaction springs and scales.
+    // A pill arriving — iOS reaction: .spring(duration: 0.32, bounce: 0.35), from 40%.
+    val reactionEnter: SpringSpec<Float> = spring(dampingRatio = 0.65f, stiffness = 386f)
+    const val reactionEnterScale = 0.4f
+    // A pill leaving — iOS reactionExit: .spring(duration: 0.2, bounce: 0), to 60%. Quicker than
+    // its arrival and without overshoot, so it doesn't read as the pill coming back.
+    val reactionExit: SpringSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 987f)
+    const val reactionExitScale = 0.6f
+    // Pills sliding to make room and the row resizing — iOS reactionReflow, which is insertion.
+    val reactionReflowOffset: SpringSpec<IntOffset> = spring(dampingRatio = 0.73f, stiffness = 746f)
+    val reactionReflowHeight: SpringSpec<Int> = spring(dampingRatio = 0.73f, stiffness = 746f)
+    // A count or selected state changing in place — iOS reactionChange: .spring(duration: 0.24, bounce: 0).
+    val reactionChange: SpringSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 685f)
+    val reactionChangeColor: SpringSpec<Color> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 685f)
+    val reactionChangeDp: SpringSpec<Dp> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 685f)
+    val reactionChangeOffset: SpringSpec<IntOffset> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 685f)
+    val reactionChangeSize: SpringSpec<IntSize> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 685f)
 }
