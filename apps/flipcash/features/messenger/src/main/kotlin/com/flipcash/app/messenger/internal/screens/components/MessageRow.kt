@@ -97,6 +97,8 @@ internal fun MessageRow(
     animateInsertion: Boolean,
     showsSenderGutter: Boolean,
     quickReactionStrip: List<ReactionStrip.Entry> = emptyList(),
+    /** Where the top bar ends, from the window's top; the strip stays below it. */
+    topBarBottom: Dp = 0.dp,
     attention: () -> Float = { 0f },
 ) {
     val onAction = LocalChatActionHandler.current
@@ -346,9 +348,13 @@ internal fun MessageRow(
                                             onAction(ChatAction.ClearSelection)
                                             onAction(ChatAction.OpenReactionPicker(item.messageId))
                                         },
-                                        // Clear of the selection bar's actions at the top.
-                                        minTop = WindowInsets.statusBars.asPaddingValues()
-                                            .calculateTopPadding() + SELECTION_BAR_CLEARANCE,
+                                        // Clear of the selection bar, measured rather than
+                                        // assumed: a guess at its height flipped the strip
+                                        // below bubbles that had room above.
+                                        minTop = maxOf(
+                                            topBarBottom,
+                                            WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                                        ) + STRIP_BAR_GAP,
                                     )
                                 }
                             }
@@ -501,7 +507,7 @@ private fun senderNameInset(showsGutter: Boolean): Dp =
 // doesn't expose its resolved width outward, so the pill row underneath it re-derives the same
 // fraction of the shared row width instead.
 private const val BUBBLE_ROW_WIDTH_FRACTION = 0.78f
-private val SELECTION_BAR_CLEARANCE = 72.dp
+private val STRIP_BAR_GAP = 8.dp
 
 private val AFFORDANCE_SIZE = 32.dp
 private val AFFORDANCE_INSET = 20.dp

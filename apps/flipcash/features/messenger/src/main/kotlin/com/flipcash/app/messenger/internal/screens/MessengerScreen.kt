@@ -285,6 +285,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     linkCardResolution = viewModel.linkCardResolution,
                     canViewProfile = state.canViewProfile,
                     onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
+                    topBarBottom = barHeight,
                 )
             }
         }

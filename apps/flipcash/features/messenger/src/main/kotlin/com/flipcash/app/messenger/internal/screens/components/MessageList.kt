@@ -7,14 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -78,6 +80,7 @@ internal fun MessageList(
     linkCardResolution: LinkCardResolution,
     canViewProfile: Boolean,
     onJumpConsumed: () -> Unit = {},
+    topBarBottom: Dp = 0.dp,
 ) {
     val keyboard = rememberKeyboardController()
     val listState = rememberLazyListState()
@@ -359,6 +362,7 @@ internal fun MessageList(
                     focused = focused,
                     animateInsertion = animateInsertion,
                     showsSenderGutter = isGroup,
+                    topBarBottom = topBarBottom,
                     quickReactionStrip = if (focused && bubble?.messageId == state.selection?.messageId) {
                         state.quickReactionStrip
                     } else {
