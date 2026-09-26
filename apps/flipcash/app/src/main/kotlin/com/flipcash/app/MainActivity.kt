@@ -24,6 +24,9 @@ import com.flipcash.app.contacts.LocalContactCoordinator
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.media.LocalMediaUrlResolver
 import com.flipcash.app.core.media.MediaUrlResolver
+import com.flipcash.app.core.scanner.LocalSharedImageChannel
+import com.flipcash.app.core.scanner.SharedImageChannel
+import com.flipcash.app.core.scanner.consumeSharedImage
 import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.core.toast.LocalToastController
 import com.flipcash.app.core.toast.ToastController
@@ -147,6 +150,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var mediaUrlResolver: MediaUrlResolver
 
+    @Inject
+    lateinit var sharedImageChannel: SharedImageChannel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -158,6 +164,7 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch(Dispatchers.Default) { phoneUtils.ensureLoaded() }
 
         applyBetaFlagLaunchOverrides()
+        handleSharedImage(intent)
 
         setContent {
             CompositionLocalProvider(
@@ -183,6 +190,7 @@ class MainActivity : FragmentActivity() {
                 LocalCoinbaseOnRampController provides coinbaseOnRampController,
                 LocalTipCoordinator provides tippingCoordinator,
                 LocalMediaUrlResolver provides mediaUrlResolver,
+                LocalSharedImageChannel provides sharedImageChannel,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {
                 ProvidePermissionChecker(permissionChecker) {
@@ -194,6 +202,30 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    // `singleTask` means a second share into an already-running task arrives here rather than
+    // through a fresh `onCreate`.
+    //
+    // The share is taken before `super`, not after: the deeplink listener runs inside
+    // `super.onNewIntent` and reads `intent.data`, and stripping that is half of what
+    // `handleSharedImage` is for. `setIntent` then stores the stripped intent, which matters
+    // because `intent` is read elsewhere on this activity (`applyBetaFlagLaunchOverrides`,
+    // `handleUncaughtException`, the `LocalUiTesting` provider above).
+    override fun onNewIntent(intent: Intent) {
+        handleSharedImage(intent)
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
+    // The `Uri` a share grants read access to is scoped to the life of the task that received it,
+    // so the read has to happen inside this task — which it does, since the scanner reads it
+    // after navigation in this same task rather than handing it off anywhere else.
+    //
+    // `consumeSharedImage` also strips the intent it reads; see its docs for why that has to
+    // happen before the deeplink listener sees it.
+    private fun handleSharedImage(intent: Intent) {
+        consumeSharedImage(intent)?.let(sharedImageChannel::offer)
     }
 
     /**

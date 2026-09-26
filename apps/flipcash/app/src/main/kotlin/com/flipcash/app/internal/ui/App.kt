@@ -51,6 +51,7 @@ import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.NavBarButton
+import com.flipcash.app.core.scanner.LocalSharedImageChannel
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.featureflags.FeatureFlag
@@ -242,6 +243,7 @@ internal fun App(
                                     }
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current
+                                val sharedImageChannel = LocalSharedImageChannel.current
                                 val currentRoute = codeNavigator.currentRouteKey
                                 val keyboard = rememberKeyboardController()
                                 LaunchedEffect(deepLink, currentRoute) {
@@ -319,6 +321,50 @@ internal fun App(
                                         DeeplinkAction.None -> {}
                                     }
                                     deepLink = null
+                                }
+
+                                // Mirrors the deeplink effect above: `Scanner()` isn't composed
+                                // while another tab is showing, so the navigation to it can't live
+                                // inside the scanner itself.
+                                val pendingSharedImage by sharedImageChannel.pending.collectAsStateWithLifecycle()
+                                LaunchedEffect(pendingSharedImage, currentRoute) {
+                                    if (pendingSharedImage == null) return@LaunchedEffect
+
+                                    val authState = userState.authState
+
+                                    // Cold start, or a session still resolving — hold the image
+                                    // until navigation and auth have both settled rather than
+                                    // deciding on a state that is about to change.
+                                    if (currentRoute is AppRoute.Loading ||
+                                        authState == AuthState.Unknown ||
+                                        authState == AuthState.Authenticating
+                                    ) {
+                                        return@LaunchedEffect
+                                    }
+
+                                    // Already there: `Scanner()` is composed and takes it from
+                                    // here. Returning also keeps this effect, which re-runs on
+                                    // every route change, from navigating a second time.
+                                    if (currentRoute is AppRoute.Tabs.Scanner) {
+                                        return@LaunchedEffect
+                                    }
+
+                                    // Anything short of a ready session on an ordinary route has
+                                    // no Scan tab to reach, and `navigateAll` clears the back
+                                    // stack: routing a user out of onboarding or off the
+                                    // restriction screen strands them with nothing to come back
+                                    // to. A shared image is not worth that, so drop it.
+                                    if (authState != AuthState.Ready ||
+                                        currentRoute is AppRoute.Main.AppRestricted
+                                    ) {
+                                        sharedImageChannel.clear()
+                                        return@LaunchedEffect
+                                    }
+
+                                    // Not cleared here on the success path — `Scanner()` consumes
+                                    // it once composed; clearing here would drop it before the tab
+                                    // composes.
+                                    codeNavigator.navigateAll(listOf(AppRoute.Tabs.Scanner))
                                 }
 
                                 LaunchedEffect(userState.authState) {

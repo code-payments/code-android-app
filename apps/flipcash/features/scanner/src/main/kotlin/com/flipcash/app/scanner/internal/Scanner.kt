@@ -34,6 +34,7 @@ import com.flipcash.app.core.AppRoute.Token.*
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.core.scanner.LocalSharedImageChannel
 import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.router.LocalRouter
@@ -223,6 +224,27 @@ internal fun Scanner() {
             }
         })
         Unit
+    }
+
+    // A share into a running app, or one still pending from a cold start, lands here — after
+    // `onImagePicked` above so it can be referenced. `Scanner()` isn't composed while another tab
+    // is showing, so this is the earliest point a shared image can be picked up; `App.kt` only
+    // gets it as far as navigating to this tab.
+    val sharedImageChannel = LocalSharedImageChannel.current
+    val pendingSharedImage by sharedImageChannel.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingSharedImage, biometricsState) {
+        val uri = pendingSharedImage ?: return@LaunchedEffect
+        // Held rather than dropped while the app lock is up. The other two entry points are
+        // already covered — the camera checks `passed` below, and the gallery button sits under
+        // the blocking overlay — but this one arrives from outside the app, and the overlay draws
+        // over this entry rather than replacing it, so effects underneath still run. Without the
+        // check a share would run its side effects, up to signing and submitting a grab, on a
+        // locked app.
+        if (!biometricsState.passed) return@LaunchedEffect
+        // Cleared before the call, not after: a failed scan must not be retried on every
+        // recomposition, and a rotation mid-scan must not start a second search.
+        sharedImageChannel.clear()
+        onImagePicked(uri)
     }
 
     // Scanning your own tip card resolves to nothing to pay, so send the user to the You tab —
