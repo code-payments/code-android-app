@@ -5,25 +5,25 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -38,19 +38,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntRect
 import androidx.paging.compose.LazyPagingItems
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.shared.chat.MessageCapability
@@ -59,14 +64,13 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
-import com.flipcash.features.messenger.R
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.ui.ContentBubble
 import com.flipcash.shared.chat.ui.QuickReactionStripPopup
 import com.flipcash.shared.chat.ui.ReactionPillRow
+import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.flipcash.shared.chat.ui.rendersBare
 import com.flipcash.shared.common.ui.ContactAvatar
-import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.rememberKeyboardController
@@ -306,7 +310,18 @@ internal fun MessageRow(
                             horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
                         ) {
                             Box(insertionModifier) {
+                                val stripShown = selecting && focused && item.canReact &&
+                                    quickReactionStrip.isNotEmpty()
+                                // The strip lines up with the bubble as drawn, which sits inside
+                                // a full-width layout, so it's measured here rather than taken
+                                // from the popup's anchor.
+                                var bubbleBounds by remember { mutableStateOf<IntRect?>(null) }
                                 ContentBubble(
+                                    modifier = Modifier.addIf(stripShown) {
+                                        Modifier.onGloballyPositioned {
+                                            bubbleBounds = it.boundsInWindow().roundToIntRect()
+                                        }
+                                    },
                                     item = item,
                                     // The bubble's own targets go with the row's: a cash
                                     // bubble behind the backdrop would otherwise open token
@@ -329,9 +344,10 @@ internal fun MessageRow(
                                 // message is the selected one — it replaces the backdrop's own
                                 // reach for a reaction with something faster than opening the
                                 // picker, and disappears the moment selection moves off.
-                                if (selecting && focused && item.canReact && quickReactionStrip.isNotEmpty()) {
+                                if (stripShown) {
                                     QuickReactionStripPopup(
                                         entries = quickReactionStrip,
+                                        bubbleBounds = bubbleBounds,
                                         hugsTrailing = item.isFromSelf,
                                         onToggle = { emoji ->
                                             onAction(

@@ -221,7 +221,8 @@ fun QuickReactionStrip(
 }
 
 /**
- * [QuickReactionStrip] in a popup anchored to the bubble this composable sits in, placed the way
+ * [QuickReactionStrip] in a popup placed against [bubbleBounds], the bubble as drawn in the window
+ * (lift included), falling back to the layout it sits in until that's measured. Placed the way
  * iOS places it: above the bubble with a 16dp gap (below when there's no room under [minTop]),
  * hugging the sender's side, and never within 16dp of the window's edges.
  */
@@ -232,9 +233,12 @@ fun QuickReactionStripPopup(
     onToggle: (emoji: String) -> Unit,
     onOpenPicker: () -> Unit,
     minTop: Dp,
+    bubbleBounds: IntRect? = null,
 ) {
     val density = LocalDensity.current
-    val provider = remember(hugsTrailing, minTop, density) {
+    // Keyed on the bounds so the popup is re-placed as the bubble lifts: the layout it sits in
+    // is the full-width row, whose edges aren't the bubble's.
+    val provider = remember(hugsTrailing, minTop, density, bubbleBounds) {
         object : PopupPositionProvider {
             override fun calculatePosition(
                 anchorBounds: IntRect,
@@ -243,7 +247,7 @@ fun QuickReactionStripPopup(
                 popupContentSize: IntSize,
             ): IntOffset = with(density) {
                 QuickReactionStripPlacement.position(
-                    anchor = anchorBounds,
+                    anchor = bubbleBounds ?: anchorBounds,
                     window = windowSize,
                     strip = popupContentSize,
                     hugsTrailing = hugsTrailing,
