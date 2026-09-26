@@ -11,8 +11,8 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
- * `test-vectors/reactions.json`. The canonical copy lives in the orchestrator repo (#17); this one
- * is synced verbatim. A failure here is either a real regression or a cross-platform decision that
+ * `test-vectors/reactions.json`, read in place through this module's test resources. It is a
+ * verbatim copy of the orchestrator's canonical fixture (#17). A failure here is either a real regression or a cross-platform decision that
  * has to be made in the canonical fixture and re-synced to both platforms — never a local edit.
  *
  * Covers `defaults` and `recents`; `merge`, `order` and `strip` are covered by

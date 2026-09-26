@@ -11,12 +11,13 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
- * `test-vectors/reactions.json`. The canonical copy lives in the orchestrator repo (#17); this one
- * is synced verbatim. A failure here is either a real regression or a cross-platform decision that
+ * `test-vectors/reactions.json`, read in place through this module's test resources. It is a
+ * verbatim copy of the orchestrator's canonical fixture (#17). A failure here is either a real regression or a cross-platform decision that
  * has to be made in the canonical fixture and re-synced to both platforms — never a local edit.
  *
- * Covers the `merge`, `order` and `strip` sections; `defaults`, `recents` and `drawability` are
- * covered by `libs:emojis`'s `RecentReactionsVectorTest`, next to where `RecentReactions` lives.
+ * Covers the `merge`, `order` and `strip` sections; `defaults` and `recents` are covered by
+ * `libs:emojis`'s `RecentReactionsVectorTest`, and `drawability` by its instrumented
+ * `EmojiDrawabilityVectorTest`.
  *
  * `merge` replays each vector's steps against a fresh [ReactionState] — the same state machine as
  * iOS's `FlipcashCore` `ReactionState` and `gen_reactions.py`'s reference `Model` — and checks the
