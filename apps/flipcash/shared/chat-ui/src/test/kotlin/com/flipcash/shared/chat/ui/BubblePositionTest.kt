@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LinkCard
@@ -131,7 +132,7 @@ class BubblePositionTest {
     }
 
     @Test
-    fun `a card row breaks the run around it, as a bare emoji does`() {
+    fun `a card row joins the run around it, as a text bubble does`() {
         val link = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
         val text = "before $link after"
         val carded = bubble(2, secondsIn = 10, senderId = alice.userId, text = text).copy(
@@ -150,12 +151,34 @@ class BubblePositionTest {
 
         assertEquals(
             listOf(
-                BubblePosition.Last,  // newest, grouped under the trailing row
-                BubblePosition.First, // trailing, its run closed above by the card
-                BubblePosition.Solo,  // card, in no run
-                BubblePosition.Last,  // leading, its run closed below by the card
-                BubblePosition.First, // oldest, grouped over the leading row
+                BubblePosition.Last,   // newest
+                BubblePosition.Middle, // trailing text
+                BubblePosition.Middle, // card
+                BubblePosition.Middle, // leading text
+                BubblePosition.First,  // oldest
             ),
+            positionsOf(items),
+        )
+    }
+
+    @Test
+    fun `an invite's card and the note after it read as one run`() {
+        // Two messages: the invite link on its own, which draws as a card and nothing else, then
+        // the note typed with it.
+        val link = "https://app.flipcash.com/chat/6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162"
+        val invite = bubble(1, secondsIn = 0, senderId = alice.userId, text = link).copy(
+            linkCard = LinkCard.GroupInvite(
+                url = link,
+                start = 0,
+                end = link.length,
+                chatId = ChatId(ByteArray(16)),
+                state = LinkCard.GroupInvite.State.Loading,
+            ),
+        ).splitAroundLinkCard().single()
+        val items = listOf(bubble(2, secondsIn = 1, senderId = alice.userId), invite)
+
+        assertEquals(
+            listOf(BubblePosition.Last, BubblePosition.First),
             positionsOf(items),
         )
     }

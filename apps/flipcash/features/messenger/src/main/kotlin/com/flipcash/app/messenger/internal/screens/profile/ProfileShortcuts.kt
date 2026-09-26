@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -103,18 +103,23 @@ internal fun ProfileShortcuts(
     }
 }
 
+/**
+ * One labelled circle: the profile's shortcuts, and the invite sheet's Share and Copy tiles.
+ */
 @Composable
-private fun ProfileShortcut(
+internal fun ProfileShortcut(
     label: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     glyph: @Composable () -> Unit,
 ) {
     // The whole column takes the tap, so the label is as much a target as the circle, but only the
-    // circle shows the ripple.
+    // circle shows the ripple. A minimum rather than a width: the profile's one-word labels sit in
+    // the same slot, and the invite sheet's "Copy Invite Link" widens it instead of ellipsizing.
     val interactionSource = remember { MutableInteractionSource() }
     Column(
-        modifier = Modifier
-            .width(CodeTheme.dimens.staticGrid.x20)
+        modifier = modifier
+            .widthIn(min = CodeTheme.dimens.staticGrid.x20)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
