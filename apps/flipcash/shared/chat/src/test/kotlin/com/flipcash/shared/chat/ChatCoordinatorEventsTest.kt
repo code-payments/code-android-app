@@ -15,7 +15,9 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMutation
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.Emoji
+import com.flipcash.services.models.chat.EmojiReaction
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ReactionUpdate
 import com.flipcash.shared.chat.internal.ChatIdGenerator
 import com.flipcash.shared.chat.internal.ChatStateHolder
@@ -555,6 +557,53 @@ class ChatCoordinatorEventsTest {
                     summary.reactions.singleOrNull()?.let { it.emoji.value == "😀" && it.count == 1L } == true
                 })
             }
+        }
+    }
+
+    /**
+     * A stream update for a message whose reactions are already stored must not tombstone the
+     * stored emoji the update doesn't mention: the write is merged as a full summary, and a
+     * tombstone at the stored version can't be undone by a later summary at that same version.
+     */
+    @Test
+    fun `reaction update keeps the stored emoji it doesn't mention`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            coEvery { messageDataSource.getMessage(chatId, 1L) } returns textMessage(1L).copy(
+                reactions = ReactionSummary(
+                    messageId = 1L,
+                    reactions = listOf(
+                        EmojiReaction(emoji = Emoji("❤️"), count = 1, selfReactor = null, sampleReactors = emptyList(), version = 5),
+                        EmojiReaction(emoji = Emoji("😂"), count = 2, selfReactor = null, sampleReactors = emptyList(), version = 3),
+                    ),
+                ),
+            )
+            triggerCollection()
+
+            chatUpdatesChannel.send(ChatUpdate(
+                chatId = chatId,
+                reactionUpdates = listOf(
+                    ReactionUpdate(
+                        messageId = 1L,
+                        emoji = Emoji("🔥"),
+                        actor = otherId,
+                        action = ReactionUpdate.Action.ADDED,
+                        count = 1,
+                        version = 1,
+                        reactedAt = Instant.fromEpochSeconds(1000),
+                    ),
+                ),
+            ))
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
+
+            coVerify {
+                messageDataSource.mergeReactions(chatId, 1L, match { summary ->
+                    summary.reactions.associate { it.emoji.value to it.count } ==
+                        mapOf("❤️" to 1L, "😂" to 2L, "🔥" to 1L)
+                })
+            }
+            val overlay = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
+            assertEquals(setOf("❤️", "😂", "🔥"), overlay?.map { it.emoji.value }?.toSet())
         }
     }
 

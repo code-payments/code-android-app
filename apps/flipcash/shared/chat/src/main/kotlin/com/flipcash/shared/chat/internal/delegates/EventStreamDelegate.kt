@@ -126,8 +126,31 @@ class EventStreamDelegate @Inject constructor(
      */
     private val reactionStates: MutableMap<ChatId, MutableMap<Long, ReactionState>> = mutableMapOf()
 
-    private fun reactionState(chatId: ChatId, messageId: Long): ReactionState =
-        reactionStates.getOrPut(chatId) { mutableMapOf() }.getOrPut(messageId) { ReactionState() }
+    /**
+     * Gets or creates the message's [ReactionState], seeding a new one from Room. The state is
+     * written back as a full summary, so an unseeded one would tombstone every stored emoji the
+     * stream hasn't mentioned this session, at the stored version, where a later summary at that
+     * same version can't bring it back.
+     */
+    private suspend fun reactionState(chatId: ChatId, messageId: Long): ReactionState {
+        val chatStates = reactionStates.getOrPut(chatId) { mutableMapOf() }
+        return chatStates[messageId] ?: ReactionState().also { fresh ->
+            messageDataSource.getMessage(chatId, messageId)?.reactions?.let { summary ->
+                fresh.applySummary(
+                    summary.reactions.map { reaction ->
+                        ReactionState.SummaryEntry(
+                            emoji = reaction.emoji.value,
+                            count = reaction.count,
+                            selfReacted = reaction.selfReactor != null,
+                            version = reaction.version,
+                            selfReactedAt = reaction.selfReactor?.reactedAt,
+                        )
+                    },
+                )
+            }
+            chatStates[messageId] = fresh
+        }
+    }
 
     // region EventStreamOperations
 
