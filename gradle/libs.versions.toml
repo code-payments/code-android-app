@@ -93,7 +93,7 @@ turbine = "1.2.1"
 robolectric = "4.17"
 slf4j-simple = "2.0.19"
 androidxUiJUnit = "1.11.4"
-mixpanel = "8.11.0"
+mixpanel = "8.11.1"
 
 timber = "5.0.1"
 
