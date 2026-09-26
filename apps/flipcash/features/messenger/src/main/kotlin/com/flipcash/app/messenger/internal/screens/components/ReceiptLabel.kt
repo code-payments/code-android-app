@@ -4,7 +4,7 @@ import android.text.format.DateFormat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.snap
-import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import com.flipcash.shared.chat.ui.ChatAnimations
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut

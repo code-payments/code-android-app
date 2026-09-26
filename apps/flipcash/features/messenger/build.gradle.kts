@@ -18,8 +18,11 @@ dependencies {
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:funding"))
+    implementation(project(":libs:emojis"))
     implementation(project(":apps:flipcash:shared:menu"))
     implementation(project(":apps:flipcash:shared:payments"))
+    // UserProfileDataSource, for the reactors sheet's cached-profile name resolution (decision 4).
+    implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:shared:shareable"))

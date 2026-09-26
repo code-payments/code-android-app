@@ -1,16 +1,36 @@
 plugins {
     alias(libs.plugins.flipcash.android.library)
+    id("com.google.devtools.ksp")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
     namespace = "${Gradle.codeNamespace}.libs.emojis"
 }
 
+// reactions.json is read from the repo's canonical test-vectors/ rather than copied in.
+androidComponents {
+    onVariants { variant ->
+        val vectors = rootProject.file("test-vectors").path
+        variant.hostTests.values.forEach { it.sources.resources?.addStaticSourceDirectory(vectors) }
+        variant.deviceTests.values.forEach { it.sources.assets?.addStaticSourceDirectory(vectors) }
+    }
+}
+
 dependencies {
     implementation(libs.bundles.hilt)
+    ksp(libs.bundles.hilt.compiler)
     implementation(libs.bundles.kotlinx.serialization)
     implementation(libs.kotlinx.datetime)
     implementation(libs.androidx.datastore)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
+
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }
 
 // Define the task to fetch and generate emoji data

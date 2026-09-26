@@ -5,10 +5,13 @@ import androidx.paging.PagingSource
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.converters.EmojiReactionSerialized
 import com.flipcash.app.persistence.converters.MessageContentSerialized
+import com.flipcash.app.persistence.converters.ReactionSummarySerialized
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.entities.MessageStatus
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -24,6 +27,8 @@ import kotlin.test.assertNull
  */
 @RunWith(RobolectricTestRunner::class)
 class ChatMessageDaoTest {
+
+    private val reactionJsonCodec = Json { ignoreUnknownKeys = true }
 
     private lateinit var db: FlipcashDatabase
     private lateinit var dao: ChatMessageDao
@@ -364,6 +369,106 @@ class ChatMessageDaoTest {
 
         assertEquals(MessageStatus.SENT, dao.getMessage(CHAT_HEX, 1)?.status)
     }
+
+    // region Reactions
+
+    private fun reactionsJson(vararg entries: Pair<String, Long>) = reactionJsonCodec.encodeToString(
+        ReactionSummarySerialized(
+            messageId = 1,
+            reactions = entries.map { (emoji, version) ->
+                EmojiReactionSerialized(emoji = emoji, count = version, sampleReactors = emptyList(), version = version)
+            },
+        )
+    )
+
+    private fun versionsByEmoji(json: String?) = json
+        ?.let { reactionJsonCodec.decodeFromString<ReactionSummarySerialized>(it) }
+        ?.reactions
+        ?.associate { it.emoji to it.version }
+        .orEmpty()
+
+    private fun countsByEmoji(json: String?) = json
+        ?.let { reactionJsonCodec.decodeFromString<ReactionSummarySerialized>(it) }
+        ?.reactions
+        ?.associate { it.emoji to it.count }
+        .orEmpty()
+
+    /**
+     * A plain content upsert (edit, delivery-status refresh, server echo) carries no reaction data
+     * of its own. It must not wipe out a reaction a prior `ReactionUpdate` already confirmed.
+     */
+    @Test
+    fun `upsert without reactions keeps the reactions already stored`() = runTest {
+        dao.upsert(text(1, "hi"))
+        dao.mergeReactionsJson(CHAT_HEX, 1, reactionsJson("👍" to 1))
+
+        dao.upsert(text(1, "hi edited"))
+
+        assertEquals(mapOf("👍" to 1L), versionsByEmoji(dao.getReactionsJson(CHAT_HEX, 1)))
+    }
+
+    /** An upsert carrying a newer reaction summary wins over the older one on disk. */
+    @Test
+    fun `upsert with a newer reaction summary replaces the stale one`() = runTest {
+        dao.upsert(text(1, "hi"))
+        dao.mergeReactionsJson(CHAT_HEX, 1, reactionsJson("👍" to 1))
+
+        dao.upsert(text(1, "hi").copy(reactionsJson = reactionsJson("👍" to 2)))
+
+        assertEquals(mapOf("👍" to 2L), versionsByEmoji(dao.getReactionsJson(CHAT_HEX, 1)))
+    }
+
+    /** An upsert carrying a stale reaction summary does not regress the newer one on disk. */
+    @Test
+    fun `upsert with a stale reaction summary is ignored`() = runTest {
+        dao.upsert(text(1, "hi"))
+        dao.mergeReactionsJson(CHAT_HEX, 1, reactionsJson("👍" to 5))
+
+        dao.upsert(text(1, "hi").copy(reactionsJson = reactionsJson("👍" to 2)))
+
+        assertEquals(mapOf("👍" to 5L), versionsByEmoji(dao.getReactionsJson(CHAT_HEX, 1)))
+    }
+
+    @Test
+    fun `updateReactionsJson writes reactions without touching other columns`() = runTest {
+        dao.upsert(text(1, "hi"))
+
+        dao.updateReactionsJson(CHAT_HEX, 1, reactionsJson("❤️" to 1))
+
+        val stored = dao.getMessage(CHAT_HEX, 1)!!
+        assertEquals("hi", (stored.contentJson?.first() as MessageContentSerialized.Text).text)
+        assertEquals(mapOf("❤️" to 1L), versionsByEmoji(stored.reactionsJson))
+    }
+
+    @Test
+    fun `mergeReactionsJson does nothing for a message that isn't stored`() = runTest {
+        dao.mergeReactionsJson(CHAT_HEX, 99, reactionsJson("👍" to 1))
+
+        assertNull(dao.getReactionsJson(CHAT_HEX, 99))
+    }
+
+    /**
+     * A stored emoji the incoming payload omits is treated as emptied on the server (mirrors iOS's
+     * `applySummary`), not left stale: it tombstones to count 0 while keeping its version.
+     */
+    @Test
+    fun `mergeReactionsJson tombstones a stored emoji the incoming payload omits`() = runTest {
+        dao.upsert(text(1, "hi"))
+        dao.mergeReactionsJson(CHAT_HEX, 1, reactionsJson("👍" to 1, "❤️" to 1))
+
+        dao.mergeReactionsJson(CHAT_HEX, 1, reactionsJson("👍" to 2))
+
+        assertEquals(
+            mapOf("👍" to 2L, "❤️" to 1L),
+            versionsByEmoji(dao.getReactionsJson(CHAT_HEX, 1)),
+        )
+        assertEquals(
+            mapOf("👍" to 2L, "❤️" to 0L),
+            countsByEmoji(dao.getReactionsJson(CHAT_HEX, 1)),
+        )
+    }
+
+    // endregion
 
     private companion object {
         const val CHAT_HEX = "aabb"

@@ -345,4 +345,46 @@ class MessageCapabilityTest {
             resolved.readOnly(),
         )
     }
+
+    // canReact — reactions have no window and no report-only carve-out, so the only thing they
+    // share with resolveCapabilities is which messages don't exist as far as an action is
+    // concerned: tombstones, system notices, and unconfirmed sends.
+    @Test
+    fun `own and another participant's text are both reactable`() {
+        assertEquals(true, canReact(text()))
+        assertEquals(true, canReact(text(isFromSelf = false)))
+    }
+
+    @Test
+    fun `own and another participant's cash are both reactable`() {
+        assertEquals(true, canReact(cash()))
+        assertEquals(true, canReact(cash(isFromSelf = false)))
+    }
+
+    @Test
+    fun `an old message stays reactable, unlike edit or delete`() {
+        assertEquals(true, canReact(text(isFromSelf = false)))
+    }
+
+    @Test
+    fun `a tombstone is not reactable`() {
+        val deleted = message(listOf(MessageContent.Deleted(sentAt, selfId)))
+        assertEquals(false, canReact(deleted))
+    }
+
+    @Test
+    fun `a system notice is not reactable`() {
+        val system = message(listOf(MessageContent.System("Anna joined")))
+        assertEquals(false, canReact(system))
+    }
+
+    @Test
+    fun `an unconfirmed send is not reactable`() {
+        assertEquals(false, canReact(text(eventSequence = 0)))
+    }
+
+    @Test
+    fun `empty content is not reactable`() {
+        assertEquals(false, canReact(message(emptyList())))
+    }
 }

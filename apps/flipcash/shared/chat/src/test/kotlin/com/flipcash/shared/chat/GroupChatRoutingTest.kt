@@ -125,6 +125,7 @@ class GroupChatRoutingTest {
                 senderResolver = mockk(relaxed = true),
             ),
             groupFeedDelegate = groupFeedDelegate,
+            reactionsDelegate = mockk(relaxed = true),
             stateHolder = stateHolder,
             draftStore = mockk<ChatDraftStore>(relaxed = true),
             userManager = userManager,

@@ -61,7 +61,7 @@ class ChatMessagingControllerTest {
         count = count,
         selfReactor = null,
         sampleReactors = emptyList(),
-        sequence = 1,
+        version = 1,
     )
 
     // region getMessage
@@ -454,6 +454,77 @@ class ChatMessagingControllerTest {
 
     // endregion
 
+    // region getReactionSummariesByIds
+
+    @Test
+    fun `getReactionSummariesByIds fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+        val result = controller.getReactionSummariesByIds(testChatId, listOf(1L))
+        assertTrue(result.isFailure)
+        assertIs<IllegalStateException>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `getReactionSummariesByIds succeeds without touching the repository when empty`() = runTest {
+        stubOwner()
+
+        val result = controller.getReactionSummariesByIds(testChatId, emptyList())
+
+        assertEquals(emptyList(), result.getOrThrow())
+        assertEquals(emptyList<List<Long>>(), repository.getReactionSummariesByIdsCalls)
+    }
+
+    @Test
+    fun `getReactionSummariesByIds sends ids under 100 as a single chunk`() = runTest {
+        stubOwner()
+        val ids = (1L..5L).toList()
+        repository.getReactionSummariesByIdsResult = { chunk -> Result.success(chunk.map { ReactionSummary(messageId = it, reactions = emptyList()) }) }
+
+        val result = controller.getReactionSummariesByIds(testChatId, ids)
+
+        assertEquals(listOf(ids), repository.getReactionSummariesByIdsCalls)
+        assertEquals(5, result.getOrThrow().size)
+    }
+
+    @Test
+    fun `getReactionSummariesByIds chunks over 100 ids and merges results`() = runTest {
+        stubOwner()
+        val ids = (1L..150L).toList()
+        repository.getReactionSummariesByIdsResult = { chunk -> Result.success(chunk.map { ReactionSummary(messageId = it, reactions = emptyList()) }) }
+
+        val result = controller.getReactionSummariesByIds(testChatId, ids)
+
+        assertEquals(2, repository.getReactionSummariesByIdsCalls.size)
+        assertEquals(100, repository.getReactionSummariesByIdsCalls[0].size)
+        assertEquals(50, repository.getReactionSummariesByIdsCalls[1].size)
+        assertEquals(150, result.getOrThrow().size)
+        assertEquals(ids, result.getOrThrow().map { it.messageId })
+    }
+
+    @Test
+    fun `getReactionSummariesByIds fails fast on the first failing chunk`() = runTest {
+        stubOwner()
+        val ids = (1L..150L).toList()
+        val cause = RuntimeException("boom")
+        var calls = 0
+        repository.getReactionSummariesByIdsResult = { chunk ->
+            calls++
+            if (calls == 1) {
+                Result.success(chunk.map { ReactionSummary(messageId = it, reactions = emptyList()) })
+            } else {
+                Result.failure(cause)
+            }
+        }
+
+        val result = controller.getReactionSummariesByIds(testChatId, ids)
+
+        assertTrue(result.isFailure)
+        assertSame(cause, result.exceptionOrNull())
+        assertEquals(2, repository.getReactionSummariesByIdsCalls.size)
+    }
+
+    // endregion
+
     // region getDelta
 
     @Test
@@ -491,6 +562,8 @@ private class FakeChatMessagingRepository : ChatMessagingRepository {
     var getReactorsResult: Result<ReactorsPage> = Result.failure(RuntimeException("not configured"))
     var getReactionSummaryResult: Result<ReactionSummary> = Result.failure(RuntimeException("not configured"))
     var getReactionSummariesResult: Result<List<ReactionSummary>> = Result.failure(RuntimeException("not configured"))
+    var getReactionSummariesByIdsResult: (List<Long>) -> Result<List<ReactionSummary>> = { Result.failure(RuntimeException("not configured")) }
+    val getReactionSummariesByIdsCalls: MutableList<List<Long>> = mutableListOf()
     var advancePointerResult: Result<Unit> = Result.failure(RuntimeException("not configured"))
     var notifyIsTypingResult: Result<Unit> = Result.failure(RuntimeException("not configured"))
 
@@ -564,6 +637,12 @@ private class FakeChatMessagingRepository : ChatMessagingRepository {
     override suspend fun getReactionSummaries(owner: Ed25519.KeyPair, chatId: ChatId, queryOptions: QueryOptions): Result<List<ReactionSummary>> {
         lastChatId = chatId; lastQueryOptions = queryOptions
         return getReactionSummariesResult
+    }
+
+    override suspend fun getReactionSummariesByIds(owner: Ed25519.KeyPair, chatId: ChatId, messageIds: List<Long>): Result<List<ReactionSummary>> {
+        lastChatId = chatId
+        getReactionSummariesByIdsCalls += messageIds
+        return getReactionSummariesByIdsResult(messageIds)
     }
 
     override suspend fun advancePointer(owner: Ed25519.KeyPair, chatId: ChatId, pointerType: PointerType, messageId: Long): Result<Unit> {

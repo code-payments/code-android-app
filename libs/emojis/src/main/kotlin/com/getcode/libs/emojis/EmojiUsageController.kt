@@ -1,5 +1,6 @@
 package com.getcode.libs.emojis
 
+import com.getcode.libs.emojis.reactions.RecentReactions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -7,8 +8,10 @@ class EmojiUsageController(
     private val queryProvider: EmojiQueryProvider
 ): EmojiUsageTracker {
     private companion object {
-        val DEFAULT_TOP = listOf("👍", "👎", "❤️", "🙌", "😂")
-        private const val MAX_EMOJIS = 5
+        // The reaction strip's six defaults, so the picker's "frequently used" filler and the
+        // strip agree on what an emoji-less history falls back to.
+        val DEFAULT_TOP = RecentReactions.DEFAULTS
+        private val MAX_EMOJIS = RecentReactions.DEFAULTS.size
     }
 
     override suspend fun mostUsedEmojis(includeFiller: Boolean): List<String> {

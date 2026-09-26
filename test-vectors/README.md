@@ -37,6 +37,7 @@ impl must reproduce the fixtures before the native duplicates are deleted.
 | `solana_message.json` | `:services:opencode` → `testDebugUnitTest` (host JVM) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `compact_message.json` | `:services:opencode` → `testDebugUnitTest` (host JVM) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `kikcode.json` + `kikcode_golden.svg` | `:libs:codes:kikcode` → `testAndroidHostTest` (host JVM) — **green** | *same Kotlin source* → `iosSimulatorArm64Test` (Kotlin/Native) — **green** |
+| `reactions.json` | `:libs:emojis` + `:apps:flipcash:shared:chat` → `testDebugUnitTest` (host JVM); `drawability` via `:libs:emojis` androidTest → `connectedAndroidTest`. Read in place, no per-module copy. Canonical in the orchestrator (#17), not regenerated here | `FlipcashCoreVectors` → xcodebuild on iOS Simulator (copy of the orchestrator fixture) |
 
 Why the iOS split: **ed25519** lives in the standalone `CodeCurves` C package → host `swift test`.
 Everything else (**base58**, and later derivation/bonding curve) lives in **FlipcashCore**, whose

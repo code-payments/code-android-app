@@ -6,6 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,6 +25,8 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.StartSendCashOnceReady
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
+import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
+import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
@@ -51,6 +54,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChatFlowScreen(
@@ -115,6 +119,13 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.EditGroupPicture> {
         FlowEditGroupPictureScreen()
+    }
+
+    annotatedEntry<ChatStep.ReactionPicker> { step ->
+        FlowReactionPickerScreen(step.messageId)
+    }
+    annotatedEntry<ChatStep.Reactors> { step ->
+        FlowReactorsScreen(step.messageId)
     }
 }
 
@@ -317,4 +328,64 @@ private fun FlowEditGroupNameScreen() {
 @Composable
 private fun FlowEditGroupPictureScreen() {
     EditGroupPictureScreen(flowSharedViewModel<ChatViewModel>())
+}
+
+/** The full emoji picker for [messageId] — a tap on any emoji toggles it and dismisses. */
+@Composable
+private fun FlowReactionPickerScreen(messageId: Long) {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+
+    ReactionPickerSheet(
+        loadSections = { query -> viewModel.emojiPickerSections(query) },
+        onSelected = { emoji ->
+            viewModel.dispatchEvent(
+                ChatViewModel.Event.ToggleReaction(messageId, emoji, clearsSelection = true)
+            )
+            dismissSheet()
+        },
+        onDismiss = dismissSheet,
+    )
+}
+
+/**
+ * Who reacted to [messageId], and with what. Tapping a row dismisses this sheet first, then opens
+ * the reactor's profile — [ChatViewModel.reactorParticipant] resolves a [ChatParticipant] even for
+ * a reactor absent from `senderProfiles`.
+ */
+@Composable
+private fun FlowReactorsScreen(messageId: Long) {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val navigator = LocalCodeNavigator.current
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val pills by remember(viewModel, messageId) { viewModel.reactionPills(messageId) }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val rows by remember(viewModel, messageId) { viewModel.reactorsRows(messageId) }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val loading by remember(viewModel, messageId) { viewModel.reactorsLoading(messageId) }
+        .collectAsStateWithLifecycle(initialValue = true)
+
+    ReactorsSheet(
+        pills = pills,
+        rows = rows,
+        loading = loading,
+        hasMore = { viewModel.reactorsHasMore(messageId) },
+        resolveDisplay = { userId -> viewModel.reactorDisplay(userId) },
+        onLoadMore = { viewModel.loadMoreReactors(messageId) },
+        onOpenProfile = { userId ->
+            // Dismiss first (decision: profile opens after the sheet closes), then resolve the
+            // participant — a row is only tappable once reactorDisplay has already resolved it, so
+            // this is a re-read of state already on screen rather than a fresh network round trip
+            // in the common case; reactorParticipant only reaches further (member roster, cached
+            // profile store) for a reactor absent from senderProfiles.
+            dismissSheet()
+            coroutineScope.launch {
+                val participant = viewModel.reactorParticipant(userId) ?: return@launch
+                navigator.push(ChatStep.Profile(contact = participant))
+            }
+        },
+        onDismiss = dismissSheet,
+    )
 }

@@ -6,6 +6,14 @@ android {
     namespace = "${Gradle.flipcashNamespace}.shared.chat"
 }
 
+// reactions.json is read from the repo's canonical test-vectors/ rather than copied in.
+androidComponents {
+    onVariants { variant ->
+        val vectors = rootProject.file("test-vectors").path
+        variant.hostTests.values.forEach { it.sources.resources?.addStaticSourceDirectory(vectors) }
+    }
+}
+
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
@@ -26,5 +34,6 @@ dependencies {
     testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
     implementation(project(":services:flipcash"))
     implementation(project(":libs:network:connectivity:public"))
+    implementation(project(":libs:emojis"))
     implementation(libs.androidx.lifecycle.process)
 }

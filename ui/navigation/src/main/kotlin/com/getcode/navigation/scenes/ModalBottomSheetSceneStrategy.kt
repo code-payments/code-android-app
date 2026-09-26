@@ -18,6 +18,7 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,6 +28,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalView
@@ -54,6 +56,7 @@ import com.getcode.navigation.scrim.ScrimOverlay
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.utils.LocalSheetExpansionState
+import com.getcode.ui.utils.LocalSheetOverhang
 import com.getcode.ui.utils.LocalSheetGesturesState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -244,6 +247,13 @@ internal class ModalBottomSheetScene<T : Any> constructor(
 
             val composeScope = rememberCoroutineScope()
 
+            // The sheet's own height only changes on relayout, never mid-drag, so measure it once
+            // and let [LocalSheetOverhang] subtract the live drag offset at placement time.
+            var sheetHeightPx by remember { mutableFloatStateOf(0f) }
+            val sheetOverhang = remember(sheetState) {
+                { (sheetHeightPx - sheetState.offset).coerceAtLeast(0f) }
+            }
+
             val dismiss = { hide: Boolean ->
                 if (hide && sheetState.currentDetent != SheetDetent.Hidden) {
                     composeScope.launch {
@@ -279,6 +289,7 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                     allowDismiss = enabled && !navigator.sheetDragDisabled
                 },
                 LocalSheetExpansionState provides setContentOverflows,
+                LocalSheetOverhang provides sheetOverhang,
                 LocalScrimController provides scrim,
             ) {
                 BackHandler(enabled = effectiveProperties.dismissOnBackPress) {
@@ -333,6 +344,7 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                         Sheet(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .onSizeChanged { sheetHeightPx = it.height.toFloat() }
                                 // Rounded corners read as a card lifted over the screen behind it.
                                 // A fullscreen sheet has no screen behind it to be lifted over, and
                                 // the curves would only carve two notches out of the display's own

@@ -50,7 +50,7 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.balanceRequirement
 import com.flipcash.app.messenger.internal.requiresStaff
 import com.flipcash.shared.chat.models.ChatActionHandler
-import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.features.messenger.R

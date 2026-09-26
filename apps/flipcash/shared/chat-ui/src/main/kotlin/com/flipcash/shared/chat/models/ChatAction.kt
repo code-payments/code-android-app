@@ -84,6 +84,31 @@ sealed interface ChatAction {
      * that boundary — a claim arrives back knowing an entropy and nothing about a transcript.
      */
     data class CashLinkOpened(val entropy: String, val url: String) : ChatAction
+
+    /**
+     * Toggles the viewer's reaction with [emoji] on [messageId] — a tap on a pill, on a quick-strip
+     * entry, or a pick from the full picker all resolve to this one action. [fromStrip] is true
+     * only for the quick strip above a selected bubble, whose tap also exits selection mode.
+     */
+    data class ToggleReaction(
+        val messageId: Long,
+        val emoji: String,
+        val fromStrip: Boolean = false,
+    ) : ChatAction
+
+    /** Opens the full emoji picker for [messageId], from the pill row's or the quick strip's "+". */
+    data class OpenReactionPicker(val messageId: Long) : ChatAction
+
+    /** Opens who-reacted for [messageId], from a long-press on a pill. */
+    data class OpenReactors(val messageId: Long) : ChatAction
+
+    /**
+     * Asks the coordinator to refresh reaction state for [messageIds] — the transcript's own
+     * refresh-on-paging hook (see `ReactionRefreshPlanner`), not a reader gesture. The transcript
+     * decides when and which ids; this only carries the request down to the viewmodel that owns
+     * the coordinator.
+     */
+    data class RefreshReactionIds(val messageIds: List<Long>) : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit

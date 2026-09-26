@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import com.flipcash.app.persistence.converters.mergeReactionsJson
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.entities.MessageStatus
 import kotlinx.coroutines.flow.Flow
@@ -140,6 +141,36 @@ interface ChatMessageDao {
     @Query("SELECT event_sequence FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
     suspend fun getEventSequence(chatIdHex: String, messageId: Long): Long?
 
+    @Query("SELECT reactions_json FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
+    suspend fun getReactionsJson(chatIdHex: String, messageId: Long): String?
+
+    @Query("SELECT EXISTS(SELECT 1 FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId)")
+    suspend fun exists(chatIdHex: String, messageId: Long): Boolean
+
+    /**
+     * Reactions-only write: touches `reactions_json` alone, leaving every other column — content,
+     * status, event_sequence — untouched. A row must already exist; a stream reaction event for a
+     * message not yet stored is dropped by the caller (mirrors iOS's `updateReactions`, which skips
+     * unstored messages rather than writing a bare row).
+     */
+    @Query("UPDATE chat_messages SET reactions_json = :reactionsJson WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
+    suspend fun updateReactionsJson(chatIdHex: String, messageId: Long, reactionsJson: String?)
+
+    /**
+     * Merges [incomingJson] onto the message's stored `reactions_json`, per emoji, keeping
+     * whichever side has the higher `version` (see [mergeReactionsJson]), then writes the result
+     * back. Does nothing if the message isn't stored. This is the reactions-only counterpart of
+     * the merge [upsert] already does for a full-row write — used when a reaction summary arrives
+     * on its own (a stream `ReactionUpdate`, or a batch summary refresh) rather than attached to a
+     * message.
+     */
+    @Transaction
+    suspend fun mergeReactionsJson(chatIdHex: String, messageId: Long, incomingJson: String) {
+        if (!exists(chatIdHex, messageId)) return
+        val stored = getReactionsJson(chatIdHex, messageId)
+        updateReactionsJson(chatIdHex, messageId, mergeReactionsJson(stored, incomingJson))
+    }
+
     @Query("SELECT unread_seq FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
     suspend fun getUnreadSeq(chatIdHex: String, messageId: Long): Long?
 
@@ -161,9 +192,18 @@ interface ChatMessageDao {
         }
 
         val existingPendingId = getPendingClientId(entity.chatIdHex, entity.messageId)
-        val merged = if (existingPendingId != null && entity.pendingClientIdHex == null) {
+        var merged = if (existingPendingId != null && entity.pendingClientIdHex == null) {
             entity.copy(pendingClientIdHex = existingPendingId)
         } else entity
+
+        // Reactions: never let this write clobber a newer confirmed reaction with an older or
+        // absent one. mergeReactionsJson keeps the stored side when entity carries none, and
+        // per-emoji picks whichever side's `version` is higher otherwise.
+        val storedReactionsJson = getReactionsJson(entity.chatIdHex, entity.messageId)
+        merged = merged.copy(
+            reactionsJson = mergeReactionsJson(storedReactionsJson, entity.reactionsJson),
+        )
+
         insert(merged)
     }
 

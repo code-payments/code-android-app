@@ -127,7 +127,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             is ChatAction.ToggleSelection -> {
                 viewModel.dispatchEvent(
-                    ChatViewModel.Event.ToggleMessageSelection(action.bubble)
+                    ChatViewModel.Event.ToggleMessageSelection(
+                        bubble = action.bubble,
+                        quickReactionStrip = viewModel.quickReactionStripFor(action.bubble),
+                    )
                 )
             }
 
@@ -196,6 +199,30 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     keyboard.hideIfVisible { navigator.push(ChatStep.Profile(it)) }
                 }
             }
+
+            is ChatAction.ToggleReaction -> {
+                viewModel.dispatchEvent(
+                    ChatViewModel.Event.ToggleReaction(
+                        messageId = action.messageId,
+                        emoji = action.emoji,
+                        clearsSelection = action.fromStrip,
+                    )
+                )
+            }
+
+            is ChatAction.OpenReactionPicker -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.OpenReactionPicker(action.messageId))
+                navigator.push(ChatStep.ReactionPicker(action.messageId))
+            }
+
+            is ChatAction.OpenReactors -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.OpenReactors(action.messageId))
+                navigator.push(ChatStep.Reactors(action.messageId))
+            }
+
+            is ChatAction.RefreshReactionIds -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.RefreshReactionIds(action.messageIds))
+            }
         }
 
         Unit
@@ -258,6 +285,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     linkCardResolution = viewModel.linkCardResolution,
                     canViewProfile = state.canViewProfile,
                     onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
+                    topBarBottom = barHeight,
                 )
             }
         }

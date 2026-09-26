@@ -369,4 +369,40 @@ class ChatMessageActionReducerTest {
         assertNull(state.jumpTarget)
         assertNull(state.jumpBudget)
     }
+
+    // ToggleReaction — the reducer itself does nothing to the reaction (that's the coordinator's
+    // job, run from initMessageActionHandlers); it only decides whether the tap that fired it also
+    // closes the selection bar, per Event.ToggleReaction.clearsSelection.
+
+    @Test
+    fun `toggling a reaction from the pill row leaves the selection alone`() {
+        val target = bubble(1)
+        val selected = reduce(
+            ChatViewModel.State(messagePolicy = unbounded),
+            ChatViewModel.Event.ToggleMessageSelection(target),
+        )
+
+        val state = reduce(
+            selected,
+            ChatViewModel.Event.ToggleReaction(messageId = 1, emoji = "🔥", clearsSelection = false),
+        )
+
+        assertEquals(target, state.selection)
+    }
+
+    @Test
+    fun `toggling a reaction from the quick strip clears the selection`() {
+        val target = bubble(1)
+        val selected = reduce(
+            ChatViewModel.State(messagePolicy = unbounded),
+            ChatViewModel.Event.ToggleMessageSelection(target),
+        )
+
+        val state = reduce(
+            selected,
+            ChatViewModel.Event.ToggleReaction(messageId = 1, emoji = "🔥", clearsSelection = true),
+        )
+
+        assertNull(state.selection)
+    }
 }

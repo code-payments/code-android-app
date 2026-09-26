@@ -8,6 +8,7 @@ import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ClientMessageId
+import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.persistence.PagingDataSource
@@ -269,6 +270,17 @@ class ChatMessageDataSource @Inject constructor(
             MessageStatus.SENDING,
         )
         return clientMessageId
+    }
+
+    /**
+     * Merges [summary] onto the message's stored `reactions_json`, per emoji keeping whichever
+     * side has the higher `version` (see [ChatMessageDao.mergeReactionsJson]). A no-op if the
+     * message isn't stored yet — a reaction event for a message this device hasn't seen is
+     * dropped rather than written as a bare row.
+     */
+    suspend fun mergeReactions(chatId: ChatId, messageId: Long, summary: ReactionSummary) {
+        val json = mapper.encodeReactions(summary) ?: return
+        db?.chatMessageDao()?.mergeReactionsJson(mapper.chatIdHex(chatId), messageId, json)
     }
 
     fun toChatMessage(entity: ChatMessageEntity): ChatMessage {

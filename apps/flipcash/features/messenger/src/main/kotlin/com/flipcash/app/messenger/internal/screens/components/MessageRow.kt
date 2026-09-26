@@ -5,21 +5,26 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
@@ -33,17 +38,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntRect
 import androidx.paging.compose.LazyPagingItems
-import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import com.flipcash.shared.chat.ui.ChatAnimations
+import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.shared.chat.MessageCapability
@@ -52,11 +64,13 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
-import com.flipcash.features.messenger.R
+import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.ui.ContentBubble
+import com.flipcash.shared.chat.ui.QuickReactionStripPopup
+import com.flipcash.shared.chat.ui.ReactionPillRow
+import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.flipcash.shared.chat.ui.rendersBare
 import com.flipcash.shared.common.ui.ContactAvatar
-import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.rememberKeyboardController
@@ -86,6 +100,9 @@ internal fun MessageRow(
     focused: Boolean,
     animateInsertion: Boolean,
     showsSenderGutter: Boolean,
+    quickReactionStrip: List<ReactionStrip.Entry> = emptyList(),
+    /** Where the top bar ends, from the window's top; the strip stays below it. */
+    topBarBottom: Dp = 0.dp,
     attention: () -> Float = { 0f },
 ) {
     val onAction = LocalChatActionHandler.current
@@ -154,6 +171,27 @@ internal fun MessageRow(
         label = "messageLift",
     )
 
+    // Only the bubble lifts, as iOS lifts only its bubble view out of the cell. Anchored to the
+    // bubble's own edge, as the insertion animation is, so it grows in place instead of sliding
+    // inward.
+    val liftModifier = Modifier.graphicsLayer {
+        scaleX = lift
+        scaleY = lift
+        transformOrigin = if (isOutgoing) TransformOrigin(1f, 0.5f) else TransformOrigin(0f, 0.5f)
+    }
+
+    // The selected message's own pills stay behind the backdrop with the rest of the transcript,
+    // so they take the same dim and blur the other rows do.
+    val pillsBehindBackdrop = selecting && focused
+    val pillDimAlpha by animateFloatAsState(
+        targetValue = if (pillsBehindBackdrop) 0.4f else 1f,
+        label = "pillDim",
+    )
+    val pillDimBlur by animateDpAsState(
+        targetValue = if (pillsBehindBackdrop) 8.dp else 0.dp,
+        label = "pillBlur",
+    )
+
     val swipe = rememberSwipeToReply(
         enabled = bubble != null &&
             !selecting &&
@@ -175,18 +213,7 @@ internal fun MessageRow(
             // Unbounded: the rectangle treatment would clip the blur at the row's own
             // edges and leave a hard seam between neighbouring rows.
             .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
-            .graphicsLayer {
-                alpha = dimAlpha
-                scaleX = lift
-                scaleY = lift
-                // Anchored to the bubble's own edge, as the insertion animation is, so
-                // the lift grows the bubble in place instead of sliding it inward.
-                transformOrigin = if (isOutgoing) {
-                    TransformOrigin(1f, 0.5f)
-                } else {
-                    TransformOrigin(0f, 0.5f)
-                }
-            }
+            .graphicsLayer { alpha = dimAlpha }
             // No row gestures while the backdrop is up: the rows are behind it, and a
             // press there would move the selection out from under the message the bar —
             // or the composer — is already acting on.
@@ -292,8 +319,19 @@ internal fun MessageRow(
                             modifier = Modifier.weight(1f),
                             horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
                         ) {
-                            Box(insertionModifier) {
+                            Box(insertionModifier.then(liftModifier)) {
+                                val stripShown = selecting && focused && item.canReact &&
+                                    quickReactionStrip.isNotEmpty()
+                                // The strip lines up with the bubble as drawn, which sits inside
+                                // a full-width layout, so it's measured here rather than taken
+                                // from the popup's anchor.
+                                var bubbleBounds by remember { mutableStateOf<IntRect?>(null) }
                                 ContentBubble(
+                                    modifier = Modifier.addIf(stripShown) {
+                                        Modifier.onGloballyPositioned {
+                                            bubbleBounds = it.boundsInWindow().roundToIntRect()
+                                        }
+                                    },
                                     item = item,
                                     // The bubble's own targets go with the row's: a cash
                                     // bubble behind the backdrop would otherwise open token
@@ -311,6 +349,80 @@ internal fun MessageRow(
                                     ),
                                     attention = attention,
                                 )
+
+                                // The quick strip lives above the bubble, only while this exact
+                                // message is the selected one — it replaces the backdrop's own
+                                // reach for a reaction with something faster than opening the
+                                // picker, and disappears the moment selection moves off.
+                                if (stripShown) {
+                                    QuickReactionStripPopup(
+                                        entries = quickReactionStrip,
+                                        bubbleBounds = bubbleBounds,
+                                        hugsTrailing = item.isFromSelf,
+                                        onToggle = { emoji ->
+                                            onAction(
+                                                ChatAction.ToggleReaction(
+                                                    messageId = item.messageId,
+                                                    emoji = emoji,
+                                                    fromStrip = true,
+                                                )
+                                            )
+                                        },
+                                        // Leave selection first, as iOS dismisses its context
+                                        // menu, so the strip doesn't float over the picker.
+                                        onOpenPicker = {
+                                            onAction(ChatAction.ClearSelection)
+                                            onAction(ChatAction.OpenReactionPicker(item.messageId))
+                                        },
+                                        // Clear of the selection bar, measured rather than
+                                        // assumed: a guess at its height flipped the strip
+                                        // below bubbles that had room above.
+                                        minTop = maxOf(
+                                            topBarBottom,
+                                            WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                                        ) + STRIP_BAR_GAP,
+                                    )
+                                }
+                            }
+                            // Same width as the bubble above it (decision 2) — matched here
+                            // against the same fraction MessageBubble sizes a text/reply/deleted
+                            // bubble to, since the row doesn't expose its resolved width outward.
+                            // Kept on screen while selecting, as iOS keeps them under its
+                            // backdrop, but inert like every other target on the row.
+                            //
+                            // Once a message has pills the row stays composed, so the last one can
+                            // animate out; a message that gets its first reaction while on screen
+                            // has its row animate that pill in rather than just appear.
+                            val pillsAtFirstComposition = remember(item.messageId) { item.reactionPills.isNotEmpty() }
+                            val pillRowComposed = remember(item.messageId) { BooleanArray(1) }
+                            if (item.reactionPills.isNotEmpty()) pillRowComposed[0] = true
+                            if (pillRowComposed[0]) {
+                                BoxWithConstraints(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .blur(pillDimBlur, BlurredEdgeTreatment.Unbounded)
+                                        .graphicsLayer { alpha = pillDimAlpha }
+                                        .addIf(selecting) { Modifier.blockPointerInput() },
+                                ) {
+                                    ReactionPillRow(
+                                        pills = item.reactionPills,
+                                        canReact = item.canReact,
+                                        onToggle = { emoji ->
+                                            onAction(ChatAction.ToggleReaction(item.messageId, emoji))
+                                        },
+                                        onPillLongClick = {
+                                            onAction(ChatAction.OpenReactors(item.messageId))
+                                        },
+                                        onOpenPicker = {
+                                            onAction(ChatAction.OpenReactionPicker(item.messageId))
+                                        },
+                                        modifier = Modifier
+                                            .align(if (item.isFromSelf) Alignment.TopEnd else Alignment.TopStart)
+                                            .width(maxWidth * BUBBLE_ROW_WIDTH_FRACTION),
+                                        alignEnd = item.isFromSelf,
+                                        animateInitialPills = !pillsAtFirstComposition,
+                                    )
+                                }
                             }
                             val showReceipt =
                                 shouldShowReceiptLabel(index, item, messages, otherReadPointer)
@@ -427,6 +539,12 @@ private fun senderNameInset(showsGutter: Boolean): Dp =
         CodeTheme.dimens.grid.x1
     }
 
+// Matches MessageBubble's own BUBBLE_MAX_WIDTH_FRACTION for a text/reply/deleted bubble — the row
+// doesn't expose its resolved width outward, so the pill row underneath it re-derives the same
+// fraction of the shared row width instead.
+private const val BUBBLE_ROW_WIDTH_FRACTION = 0.78f
+private val STRIP_BAR_GAP = 8.dp
+
 private val AFFORDANCE_SIZE = 32.dp
 private val AFFORDANCE_INSET = 20.dp
 private val AFFORDANCE_ICON_INSET = 8.dp
@@ -497,4 +615,13 @@ internal fun startsSenderRun(current: ChatListItem.ContentBubble, older: ChatLis
     val author = current.authorId ?: return false
     val olderBubble = older as? ChatListItem.ContentBubble ?: return true
     return olderBubble.authorId != author
+}
+
+/** Swallows every press before the children see it, so their own targets never fire. */
+private fun Modifier.blockPointerInput(): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+        }
+    }
 }

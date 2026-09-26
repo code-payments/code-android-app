@@ -15,12 +15,18 @@ import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.repository.ReactorsPage
+import com.flipcash.shared.chat.reactions.ReactionError
+import com.flipcash.shared.chat.reactions.ReactionPill
+import com.flipcash.shared.chat.reactions.SelfReaction
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -81,6 +87,113 @@ interface EventStreamOperations {
 
     /** Emits the current reaction summary for a specific message, or `null` if none. */
     fun observeReactions(chatId: ChatId, messageId: Long): Flow<ReactionSummary?>
+}
+
+/**
+ * One message's reactions as the transcript draws them: pills already in display order, and which
+ * of them the viewer is shown reacting with — the pending tap, if one has not settled yet,
+ * otherwise the confirmed state.
+ */
+data class MessageReactions(
+    val pills: List<ReactionPill>,
+    val selfReactions: List<SelfReaction>,
+) {
+    companion object {
+        /**
+         * Builds [MessageReactions] straight from a persisted [ReactionSummary] — no pending taps,
+         * no in-flight calls. This is the ViewModel's fallback for a message
+         * [ReactionOperations.observeChatReactions] has no live override for: apply this to
+         * [com.flipcash.services.models.chat.ChatMessage.reactions] and let a live override, when
+         * present, win. Goes through [com.flipcash.shared.chat.reactions.ReactionState] so the
+         * count-0-tombstone filtering and pill ordering match the live path exactly.
+         */
+        fun from(summary: ReactionSummary?): MessageReactions {
+            val state = com.flipcash.shared.chat.reactions.ReactionState()
+            summary?.let {
+                state.applySummary(
+                    it.reactions.map { reaction ->
+                        com.flipcash.shared.chat.reactions.ReactionState.SummaryEntry(
+                            emoji = reaction.emoji.value,
+                            count = reaction.count,
+                            selfReacted = reaction.selfReactor != null,
+                            version = reaction.version,
+                            selfReactedAt = reaction.selfReactor?.reactedAt,
+                        )
+                    },
+                )
+            }
+            return MessageReactions(pills = state.pills, selfReactions = state.selfReactions)
+        }
+    }
+}
+
+/**
+ * Reaction taps and lookups for a single message: toggling, refreshing confirmed state from the
+ * server, and paging the "who reacted" sheet.
+ *
+ * Implemented by [com.flipcash.shared.chat.internal.delegates.ReactionsDelegate].
+ */
+interface ReactionOperations {
+    /**
+     * Reactive **live overrides** for reactions in [chatId], keyed by message id — not one entry
+     * per message in the chat. A message appears here once this device has a pending tap, an
+     * in-flight call, or a confirmed overlay for it (an [EventStreamOperations] reaction update, or
+     * an explicit [refreshReactions]); a message whose reactions have only ever been seen via a
+     * paged Room read, or attached to a server-fetched [com.flipcash.services.models.chat.ChatMessage],
+     * is absent from this map even though it may well have reactions.
+     *
+     * The **ViewModel is responsible for completeness**: for a message missing from this map, fall
+     * back to [MessageReactions.from] applied to that message's own
+     * [com.flipcash.services.models.chat.ChatMessage.reactions] (the Room-decoded confirmed
+     * summary), and let an entry here win when both exist. This works because a write to
+     * `reactions_json` (a merge, or a plain message upsert that carries a summary) goes through
+     * Room, and Room invalidates the `chat_messages` `PagingSource` on any write to that table, so
+     * the paged message list already re-emits with the fresh summary — no separate signal needed
+     * for the Room-only case.
+     */
+    fun observeChatReactions(chatId: ChatId): Flow<Map<Long, MessageReactions>>
+
+    /**
+     * Flips the viewer's reaction to [emoji] on [messageId] and sends the resulting add or remove
+     * to the server, coalescing a follow-up tap made before the first call answers into one more
+     * call rather than a queue of them. A tap while a call for the same emoji is already in flight
+     * is recorded and sent once that call answers, without another call now.
+     *
+     * Optimistic: [observeChatReactions] reflects the tap immediately. A successful add records
+     * [emoji] to the recents ranking; a remove does not. A failure rolls the pill back and, unless
+     * the failure is [com.flipcash.shared.chat.reactions.ReactionFailure.MESSAGE_NOT_FOUND] or
+     * [com.flipcash.shared.chat.reactions.ReactionFailure.CANNOT_REACT] (both silent — the message
+     * or the viewer's standing in the chat has moved on since the tap), is also reported on
+     * [reactionErrors].
+     */
+    suspend fun toggleReaction(chatId: ChatId, messageId: Long, emoji: String)
+
+    /** Reaction failures the user should be told about, for a snackbar or similar. */
+    val reactionErrors: SharedFlow<ReactionError>
+
+    /**
+     * Fetches confirmed reaction summaries for [messageIds] from the server and merges them into
+     * both the persisted store and [observeChatReactions] — for a page of messages that just
+     * entered view without one already arriving via the event stream or the initial load.
+     */
+    suspend fun refreshReactions(chatId: ChatId, messageIds: List<Long>): Result<Unit>
+
+    /**
+     * One page of the users who reacted to [messageId] with [emoji], for the "who reacted" sheet.
+     * [limit] defaults to the reactors sheet's own page size (decision 4), not the
+     * general-purpose [com.flipcash.services.models.QueryOptions] default.
+     */
+    suspend fun getReactorsPage(
+        chatId: ChatId,
+        messageId: Long,
+        emoji: String,
+        token: PagingToken? = null,
+        limit: Int = REACTORS_PAGE_SIZE,
+    ): Result<ReactorsPage>
+
+    companion object {
+        const val REACTORS_PAGE_SIZE = 50
+    }
 }
 
 /**
@@ -388,7 +501,8 @@ interface ChatCoordinator :
     EventStreamOperations,
     DmChatResolver,
     MessagingOperations,
-    GroupOperations {
+    GroupOperations,
+    ReactionOperations {
     /** Full observable snapshot of chat state (feed, typing, reactions, active chat). */
     val state: StateFlow<ChatState>
 

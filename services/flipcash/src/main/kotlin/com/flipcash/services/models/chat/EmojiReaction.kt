@@ -5,5 +5,5 @@ data class EmojiReaction(
     val count: Long,
     val selfReactor: Reactor?,
     val sampleReactors: List<Reactor>,
-    val sequence: Long,
+    val version: Long,
 )

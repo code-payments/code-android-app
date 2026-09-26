@@ -118,6 +118,7 @@ class ChatCoordinatorTeardownTest {
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = TestDispatchers(TestCoroutineScheduler()),
             groupFeedDelegate = mockk(relaxed = true),
+            reactionsDelegate = mockk(relaxed = true),
         )
     }
 

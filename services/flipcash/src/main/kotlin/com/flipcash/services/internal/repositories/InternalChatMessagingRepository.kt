@@ -122,7 +122,7 @@ internal class InternalChatMessagingRepository(
         queryOptions: QueryOptions,
     ): Result<ReactorsPage> = service.getReactors(owner, chatId, messageId, emoji, queryOptions)
         .onFailure { ErrorUtils.handleError(it) }
-        .map { ReactorsPage(reactors = it.reactors, hasMore = it.hasMore) }
+        .map { ReactorsPage(reactors = it.reactors, hasMore = it.hasMore, nextToken = it.pagingToken) }
 
     override suspend fun getReactionSummary(
         owner: KeyPair,
@@ -136,6 +136,13 @@ internal class InternalChatMessagingRepository(
         chatId: ChatId,
         queryOptions: QueryOptions,
     ): Result<List<ReactionSummary>> = service.getReactionSummaries(owner, chatId, queryOptions)
+        .onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun getReactionSummariesByIds(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageIds: List<Long>,
+    ): Result<List<ReactionSummary>> = service.getReactionSummariesByIds(owner, chatId, messageIds)
         .onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun advancePointer(

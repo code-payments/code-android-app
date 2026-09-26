@@ -8,6 +8,7 @@ import com.flipcash.analytics.PropertyValue
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
@@ -29,6 +30,8 @@ import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.GroupAccess
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
+import com.getcode.libs.emojis.reactions.RecentReactionsStore
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
@@ -92,6 +95,9 @@ class ChatGroupAnalyticsTest {
     private val linkCardResolver = mockk<LinkCardResolver>(relaxed = true)
     private val cashLinkClaims = mockk<CashLinkClaims>(relaxed = true)
     private val chatDraftStore = mockk<ChatDraftStore>(relaxed = true)
+    private val recentReactionsStore = mockk<RecentReactionsStore>(relaxed = true)
+    private val emojiCatalogLoader = mockk<EmojiCatalogLoader>(relaxed = true)
+    private val userProfileDataSource = mockk<UserProfileDataSource>(relaxed = true)
 
     private val chatId = ChatId(UUID.randomUUID().bytes)
     private val mint = Mint("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaa")
@@ -142,6 +148,10 @@ class ChatGroupAnalyticsTest {
         cashLinkClaims = cashLinkClaims,
         chatCashLinks = mockk(relaxed = true),
         chatDraftStore = chatDraftStore,
+        recentReactionsStore = recentReactionsStore,
+        toastController = mockk(relaxed = true),
+        emojiCatalogLoader = emojiCatalogLoader,
+        userProfileDataSource = userProfileDataSource,
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 
