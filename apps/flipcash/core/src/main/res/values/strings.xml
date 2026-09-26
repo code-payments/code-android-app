@@ -136,7 +136,9 @@
 
     <string name="error_description_failedToCollect">Something went wrong. The cash could not be collected</string>
 
-    <string name="subtitle_appVersionInfoFooter">Version %1$s • Build %2$s%3$s</string>
+    <string name="subtitle_appVersionInfoFooter">Version %1$s • Build %2$s\n%3$s%4$s</string>
+    <!-- A build that carries no commit SHA; see VersionInfo.commitLabel. -->
+    <string name="subtitle_appVersionInfoFooterNoCommit">Version %1$s • Build %2$s%3$s</string>
 
     <string name="title_labsAreEmpty">No Beta Features</string>
     <string name="subtitle_labsAreEmpty">There are no beta features available right now.</string>

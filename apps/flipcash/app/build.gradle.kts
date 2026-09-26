@@ -37,6 +37,14 @@ val bugsnagBuildId: String = providers.exec {
     commandLine("git", "rev-parse", "HEAD")
 }.standardOutput.asText.get().trim()
 
+// Tracked changes only: CI writes google-services.json, local.properties and the signing key
+// into the checkout, all gitignored, so a release build still reads as clean. Reading just the
+// exit code keeps the configuration cache from invalidating on every edit to a dirty tree.
+val gitTreeDirty: Boolean = providers.exec {
+    commandLine("git", "diff", "--quiet", "HEAD")
+    isIgnoreExitValue = true
+}.result.get().exitValue != 0
+
 val contributorsSigningConfig = ContributorsSignatory(rootDir)
 val appNamespace = "${Gradle.flipcashNamespace}.app.android"
 
@@ -61,6 +69,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "VERSION_NAME", "\"${Packaging.Flipcash.versionName}\"")
+        buildConfigField("String", "GIT_SHA", "\"$bugsnagBuildId\"")
+        buildConfigField("Boolean", "GIT_DIRTY", "$gitTreeDirty")
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "MIXPANEL_API_KEY")}\"")
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
 
