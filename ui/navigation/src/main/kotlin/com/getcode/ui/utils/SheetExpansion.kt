@@ -36,3 +36,14 @@ fun AllowSheetExpansionWhenScrollable(scrollState: LazyListState) {
         onDispose { setExpandable(false) }
     }
 }
+
+/**
+ * How far, in px, the host sheet currently runs below the bottom of its container.
+ *
+ * A [com.getcode.navigation.HalfSheet] that can expand is laid out at its expanded height and slid
+ * down, so at the resting detent (and mid-drag) its bottom is off screen. Content that pins
+ * something to the bottom of the screen lifts it by this much. Read it in a placement or draw
+ * lambda, not in composition: it tracks the sheet's drag offset, and reading it there moves with
+ * the sheet in the same frame instead of recomposing every frame.
+ */
+val LocalSheetOverhang = staticCompositionLocalOf<() -> Float> { { 0f } }

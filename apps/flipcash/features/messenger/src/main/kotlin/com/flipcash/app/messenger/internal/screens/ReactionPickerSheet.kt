@@ -10,10 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.selected
@@ -51,7 +48,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -76,6 +72,7 @@ import com.getcode.libs.emojis.reactions.EmojiPickerModel
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.ui.utils.LocalSheetOverhang
 import com.getcode.ui.utils.AllowSheetExpansionWhenScrollable
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
@@ -223,21 +220,12 @@ private fun EmojiGrid(
     }
     val selectedCategory = pendingCategory ?: visibleCategory ?: sections.firstOrNull()?.id
 
-    // How far the sheet runs below the bottom of the window. Once the sheet can expand it is laid out
-    // taller than the part on screen, so pinning the bar to the sheet's own bottom would push it off
-    // screen; lifting it by this much keeps it hugging the screen at either detent and mid-drag.
-    val windowHeight = LocalWindowInfo.current.containerSize.height
-    var belowWindowPx by remember { mutableIntStateOf(0) }
+    // An expandable sheet is laid out at its expanded height and slid down, so its bottom sits off
+    // screen until it's fully up. Lifting the bar by that overhang keeps it hugging the screen at
+    // either detent and mid-drag; it's read at placement so it moves in the same frame as the sheet.
+    val sheetOverhang = LocalSheetOverhang.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .onGloballyPositioned { coordinates ->
-                val bottom = coordinates.positionInWindow().y + coordinates.size.height
-                belowWindowPx = (bottom - windowHeight).roundToInt().coerceAtLeast(0)
-            }
-            .navigationBarsPadding(),
-    ) {
+    Box(modifier = Modifier.fillMaxSize().navigationBarsPadding()) {
         LazyColumn(
             state = gridState,
             modifier = Modifier
@@ -298,7 +286,7 @@ private fun EmojiGrid(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset { IntOffset(0, -belowWindowPx) }
+                    .offset { IntOffset(0, -sheetOverhang().roundToInt()) }
                     .padding(bottom = 4.dp),
             )
         }
