@@ -152,6 +152,10 @@ class ChatGroupCashLinkTest {
         cashLinkClaims = cashLinkClaims,
         chatCashLinks = chatCashLinks,
         chatDraftStore = chatDraftStore,
+        recentReactionsStore = mockk(relaxed = true),
+        emojiCatalogLoader = mockk(relaxed = true),
+        toastController = mockk(relaxed = true),
+        userProfileDataSource = mockk(relaxed = true),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 
