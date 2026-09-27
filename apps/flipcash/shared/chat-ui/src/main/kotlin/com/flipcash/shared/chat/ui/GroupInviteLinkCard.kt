@@ -264,7 +264,7 @@ internal object GroupInviteCardDefaults {
 private const val PREVIEW_URL = "https://app.flipcash.com/chat/6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162"
 
 /** A rendition carrying only a blurhash: enough for the tint and the avatar's placeholder. */
-private fun previewPicture(blurhash: String) = MediaItem(
+internal fun previewPicture(blurhash: String) = MediaItem(
     renditions = listOf(
         MediaItemRendition(
             role = MediaItemRendition.Role.THUMBNAIL,

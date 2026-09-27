@@ -20,6 +20,8 @@ import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.links.ExternalLinkUriHandler
 import com.flipcash.app.core.tokens.TokenInfoEntry
@@ -119,6 +121,29 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                 // Pushed, so Back returns to this chat. The pushed screen gates
                                 // itself: a non-member sees the join or the buy there.
                                 AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(action.chatId))
+                            )
+                        )
+                    }
+                }
+            }
+
+            is ChatAction.OpenUser -> {
+                val counterpart = (state.participant as? ChatParticipant.TipUser)?.userId
+                when {
+                    // Your own card lives on the You tab, where scanning it and its deep link
+                    // already send you. There is no chat with yourself to open.
+                    action.isOwn -> keyboard.hideIfVisible {
+                        navigator.rootNavigator.navigateAll(listOf(AppRoute.Tabs.Menu))
+                    }
+                    // A link to the person this DM is with has nowhere to go.
+                    action.userId == counterpart -> Unit
+                    else -> keyboard.hideIfVisible {
+                        viewModel.dispatchEvent(
+                            ChatViewModel.Event.OpenScreen(
+                                // The DM the tip flow ends at, pushed as the group card pushes
+                                // its chat, so Back returns here. Its own fee sheet handles any
+                                // fee to message them.
+                                AppRoute.Messaging.Chat(ChatIdentifier.ByUser(action.userId, action.profile))
                             )
                         )
                     }

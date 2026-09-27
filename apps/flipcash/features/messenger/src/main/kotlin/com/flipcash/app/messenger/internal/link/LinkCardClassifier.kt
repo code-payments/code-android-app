@@ -27,7 +27,8 @@ import javax.inject.Inject
  * problem should not change where a tapped link goes.
  *
  * **Route.** Whatever survives goes to the real classifier, which holds the reserved-path list
- * that keeps `flipcash.com/download` a plain link. No second path parser is written.
+ * that keeps `flipcash.com/download` a plain link. No second path parser is written. Five routes
+ * become cards: a cash link, a token, a group invite, and a person's link by id or by handle.
  *
  * `/login` and `/verify` are excluded by omission — they carry the account seed and a
  * verification secret, and a card with a tap target in front of either is a phishing aid.
@@ -82,6 +83,24 @@ internal class LinkCardClassifier @Inject constructor(
                 chatId = type.chatId,
                 state = LinkCard.GroupInvite.State.Loading,
             ).takeIf { target.toUri().pathSegments.size == GROUP_INVITE_SEGMENTS }
+            // A person's link, by id: the no-handle `flipcash.com/<uuid>`, or the legacy
+            // `/tip/<uuid>`. Whether anyone owns the id is the lookup's question.
+            is DeeplinkType.Tipcard -> LinkCard.User(
+                url = target,
+                start = link.start,
+                end = link.end,
+                identity = LinkCard.User.Identity.ById(type.userId),
+                state = LinkCard.User.State.Loading,
+            )
+            // By handle. The router has already refused the website's own pages
+            // (`AppRouter.reservedProfilePaths`), which is what keeps `/download` a plain link.
+            is DeeplinkType.TipcardByUsername -> LinkCard.User(
+                url = target,
+                start = link.start,
+                end = link.end,
+                identity = LinkCard.User.Identity.ByUsername(type.username),
+                state = LinkCard.User.State.Loading,
+            )
             else -> null
         }
     }

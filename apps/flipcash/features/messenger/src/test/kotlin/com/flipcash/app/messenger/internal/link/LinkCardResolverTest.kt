@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.opencode.model.financial.Token
@@ -47,6 +48,7 @@ class LinkCardResolverTest {
             giftCard = { Result.failure(IllegalStateException("offline")) },
             tokenMetadata = { Result.failure(IllegalStateException("offline")) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         assertEquals(LinkCard.Cash.State.Unresolved, (resolver.resolve(card) as LinkCard.Cash).state)
     }
@@ -58,6 +60,7 @@ class LinkCardResolverTest {
             giftCard = { Result.success(snapshot()) },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         val state = (resolver.resolve(card) as LinkCard.Cash).state
         assertTrue(state is LinkCard.Cash.State.Resolved)
@@ -75,6 +78,7 @@ class LinkCardResolverTest {
             },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         resolver.resolve(card)
         resolver.resolve(card)
@@ -92,6 +96,7 @@ class LinkCardResolverTest {
             },
             tokenMetadata = { Result.failure(IllegalStateException("offline")) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         resolver.resolve(card)
         resolver.resolve(card)
@@ -107,6 +112,7 @@ class LinkCardResolverTest {
             giftCard = { Result.failure(IllegalStateException("not asked")) },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         val resolved = resolver.resolve(tokenCard) as LinkCard.TokenInfo
         assertTrue(resolved.state is LinkCard.TokenInfo.State.Resolved)
@@ -119,6 +125,7 @@ class LinkCardResolverTest {
             giftCard = { Result.failure(IllegalStateException("not asked")) },
             tokenMetadata = { Result.failure(IllegalStateException("no metadata")) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         val resolved = resolver.resolve(tokenCard) as LinkCard.TokenInfo
         assertEquals(LinkCard.TokenInfo.State.Unresolved, resolved.state)
@@ -143,6 +150,7 @@ class LinkCardResolverTest {
             },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         val before = (resolver.resolve(card) as LinkCard.Cash).state
         assertEquals(LinkCard.Cash.Claim.Claimable, (before as LinkCard.Cash.State.Resolved).claim)
@@ -162,6 +170,7 @@ class LinkCardResolverTest {
             giftCard = { calls++; Result.success(snapshot()) },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         val other = card.copy(entropy = "8mXeQ2vTb4pLzRw9dKcHfA")
         resolver.resolve(card)
@@ -189,6 +198,7 @@ class LinkCardResolverTest {
             },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         val claimed = card.copy(entropy = "8mXeQ2vTb4pLzRw9dKcHfA")
         resolver.resolve(card)
@@ -217,6 +227,7 @@ class LinkCardResolverTest {
             },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         resolver.resolve(card)
 
@@ -233,6 +244,7 @@ class LinkCardResolverTest {
             giftCard = { Result.failure(IllegalStateException("not asked")) },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         resolver.resolve(tokenCard)
 
@@ -250,6 +262,7 @@ class LinkCardResolverTest {
             giftCard = { cashCalls++; Result.success(snapshot()) },
             tokenMetadata = { tokenCalls++; Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         resolver.resolve(card)
         resolver.resolve(tokenCard)
@@ -264,6 +277,7 @@ class LinkCardResolverTest {
             giftCard = { Result.success(snapshot()) },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
 
         assertNull(resolver.peek(card), "nothing has been asked yet")
@@ -283,6 +297,7 @@ class LinkCardResolverTest {
             giftCard = { Result.failure(IllegalStateException("offline")) },
             tokenMetadata = { Result.failure(IllegalStateException("offline")) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         resolver.resolve(card)
 
@@ -298,6 +313,7 @@ class LinkCardResolverTest {
             giftCard = { Result.success(snapshot()) },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         resolver.resolve(card)
         val before = resolver.revision.value
@@ -315,6 +331,7 @@ class LinkCardResolverTest {
             giftCard = { Result.success(snapshot().copy(claim = LinkCard.Cash.Claim.Claimed)) },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         resolver.resolve(card)
         val before = resolver.revision.value
@@ -333,6 +350,7 @@ class LinkCardResolverTest {
             giftCard = { Result.success(snapshot()) },
             tokenMetadata = { Result.success(mock<Token>()) },
             group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         resolver.resolve(card)
         val before = resolver.revision.value
@@ -356,6 +374,7 @@ class LinkCardResolverTest {
             giftCard = { Result.failure(IllegalStateException("unused")) },
             tokenMetadata = { Result.failure(IllegalStateException("unused")) },
             group = { Result.failure(IllegalStateException("not a group")) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         assertEquals(
             LinkCard.GroupInvite.State.Unavailable,
@@ -379,10 +398,65 @@ class LinkCardResolverTest {
             giftCard = { Result.failure(IllegalStateException("unused")) },
             tokenMetadata = { Result.failure(IllegalStateException("unused")) },
             group = { calls++; Result.success(resolved) },
+            user = { Result.failure(IllegalStateException("unused")) },
         )
         assertEquals(resolved, (resolver.resolve(groupCard) as LinkCard.GroupInvite).state)
         assertEquals(resolved, (resolver.peek(groupCard) as LinkCard.GroupInvite).state)
         resolver.resolve(groupCard.copy(chatId = ChatId(ByteArray(16) { it.toByte() })))
+        assertEquals(1, calls)
+    }
+
+    private val userCard = LinkCard.User(
+        url = "https://flipcash.com/satoshi",
+        start = 0,
+        end = 28,
+        identity = LinkCard.User.Identity.ByUsername("satoshi"),
+        state = LinkCard.User.State.Loading,
+    )
+
+    private val resolvedUser = LinkCard.User.State.Resolved(
+        userId = ByteArray(16) { it.toByte() }.toList(),
+        isOwn = false,
+        profile = UserProfile(
+            displayName = "Satoshi",
+            socialAccounts = emptyList(),
+            phoneNumber = null,
+            email = null,
+        ),
+        name = "Satoshi",
+        handle = "@satoshi",
+        joined = "Joined March 2024",
+    )
+
+    @Test
+    fun `a failed person lookup draws not found and is asked again`() = runTest {
+        var calls = 0
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("unused")) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { calls++; Result.failure(IllegalStateException("no account")) },
+        )
+        assertEquals(LinkCard.User.State.NotFound, (resolver.resolve(userCard) as LinkCard.User).state)
+        assertNull(resolver.peek(userCard))
+        resolver.resolve(userCard)
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun `a resolved person is held for the visit`() = runTest {
+        var calls = 0
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("unused")) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { calls++; Result.success(resolvedUser) },
+        )
+        assertEquals(resolvedUser, (resolver.resolve(userCard) as LinkCard.User).state)
+        assertEquals(resolvedUser, (resolver.peek(userCard) as LinkCard.User).state)
+        resolver.resolve(userCard.copy(start = 10, end = 38))
         assertEquals(1, calls)
     }
 }

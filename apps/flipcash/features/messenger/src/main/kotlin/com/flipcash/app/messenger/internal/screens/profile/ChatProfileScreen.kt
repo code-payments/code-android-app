@@ -41,7 +41,8 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.util.DateUtils
+import com.getcode.util.resources.LocalResources
+import com.flipcash.app.messenger.internal.joinedLine
 import com.getcode.view.LoadingSuccessState
 import kotlin.time.Instant
 
@@ -228,10 +229,7 @@ internal fun ProfileHeader(
         joinDate?.let { instant ->
             Text(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
-                text = stringResource(
-                    R.string.subtitle_joinedDate,
-                    DateUtils.getDate(instant.toEpochMilliseconds(), "MMMM yyyy"),
-                ),
+                text = joinedLine(instant, LocalResources.current),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
             )

@@ -5,6 +5,7 @@ import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.isUsernameShaped
 import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
 import dev.theolm.rinku.DeepLink
@@ -45,12 +46,24 @@ class LinkCardClassifierTest {
                 "chat" -> link.pathSegmentsForTest().getOrNull(1)
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?.let { DeeplinkType.GroupChatInvite(ChatId(it.bytes)) }
-                else -> null
+                "tip" -> link.pathSegmentsForTest().getOrNull(1)
+                    ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                    ?.let { DeeplinkType.Tipcard(it.bytes) }
+                else -> link.profileLinkForTest()
             }
         }
 
         override fun dispatch(deepLink: DeepLink) = error("not used in classification tests")
     }
+
+    /**
+     * Vectors answered ahead of the canonical fixture, by name, with the card kind given. The
+     * fixture still records person cards as "not in phase 1"; iOS holds the same exception
+     * (`LinkCardClassifierTests.aheadOfFixture`). Each entry goes when the fixture is updated.
+     */
+    private val aheadOfFixture = mapOf(
+        "tip-card-by-id" to "user",
+    )
 
     private fun fixture(): JSONObject = JSONObject(
         javaClass.classLoader!!
@@ -80,6 +93,11 @@ class LinkCardClassifierTest {
             }
 
             val actual = classifier.firstCard(links)
+
+            aheadOfFixture[name]?.let { kind ->
+                assertEquals(kind, actual?.kindName, "vector `$name` is ahead of the fixture")
+                continue
+            }
 
             val expectedCard = vector.optJSONObject("card")
             if (expectedCard == null) {
@@ -179,6 +197,56 @@ class LinkCardClassifierTest {
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))))
     }
 
+    // Person cards
+
+    private fun cardFor(url: String): LinkCard? =
+        LinkCardClassifier(router).firstCard(listOf(DetectedUrl(0, url.length, url)))
+
+    private val userId = UUID.fromString("2b0b4d1e-9f3e-4c21-9f1a-6d5f7c8e9a0b").bytes
+
+    @Test
+    fun `a handle link becomes a person card`() {
+        val user = cardFor("https://flipcash.com/satoshi") as? LinkCard.User
+
+        assertEquals(LinkCard.User.Identity.ByUsername("satoshi"), user?.identity)
+        assertEquals("@satoshi", user?.linkedHandle)
+        assertEquals(LinkCard.User.State.Loading, user?.state)
+    }
+
+    @Test
+    fun `an id link becomes a person card`() {
+        listOf(
+            "https://flipcash.com/2b0b4d1e-9f3e-4c21-9f1a-6d5f7c8e9a0b",
+            "https://flipcash.com/tip/2b0b4d1e-9f3e-4c21-9f1a-6d5f7c8e9a0b",
+        ).forEach { url ->
+            val user = cardFor(url) as? LinkCard.User
+            assertEquals(LinkCard.User.Identity.ById(userId), user?.identity, url)
+            assertNull(user?.linkedHandle, url)
+        }
+    }
+
+    /** The router reads any single segment as a handle, so only the host gate stops these. */
+    @Test
+    fun `a person shaped link on another host stays a link`() {
+        listOf(
+            "https://discord.gg/x",
+            "https://t.me/satoshi",
+            "https://example.com/2b0b4d1e-9f3e-4c21-9f1a-6d5f7c8e9a0b",
+            "https://example.com/tip/2b0b4d1e-9f3e-4c21-9f1a-6d5f7c8e9a0b",
+        ).forEach { assertNull(cardFor(it), it) }
+    }
+
+    @Test
+    fun `a website page stays a link`() {
+        listOf(
+            "https://flipcash.com/download",
+            "https://flipcash.com/Privacy",
+            "https://flipcash.com/terms",
+            "https://flipcash.com/currencycreator",
+            "https://flipcash.com/api",
+        ).forEach { assertNull(cardFor(it), it) }
+    }
+
     /** A jump wrapper is unwrapped once. One pointing at another jump is malformed, not a card. */
     @Test
     fun `a jump wrapper pointing at another jump is not a card`() {
@@ -190,6 +258,38 @@ class LinkCardClassifierTest {
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, nested.length, nested))))
     }
 }
+
+private val LinkCard.kindName: String
+    get() = when (this) {
+        is LinkCard.Cash -> "cash"
+        is LinkCard.TokenInfo -> "token"
+        is LinkCard.GroupInvite -> "group"
+        is LinkCard.User -> "user"
+    }
+
+/**
+ * `AppRouter`'s bare-host person link. Its reserved list is `internal` to the router module, so a
+ * copy stands in here; `AppRouterTest` holds the real list to the website's pages.
+ */
+private fun DeepLink.profileLinkForTest(): DeeplinkType? {
+    val uri = uriForTest()
+    if (uri.host?.removePrefix("www.") != "flipcash.com") return null
+    val segment = uri.pathSegments.singleOrNull()?.lowercase() ?: return null
+    if (Regex("^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$").matches(segment)) {
+        return DeeplinkType.Tipcard(UUID.fromString(segment).bytes)
+    }
+    return if (segment.isUsernameShaped() && segment !in reservedProfilePathsForTest) {
+        DeeplinkType.TipcardByUsername(segment)
+    } else {
+        null
+    }
+}
+
+private val reservedProfilePathsForTest = setOf(
+    "download", "privacy", "terms", "support", "help", "about", "blog", "legal", "currencycreator",
+    "app", "api", "assets", "fonts", "icons", "js", "v1", "pool", "wallet",
+    "login", "c", "cash", "verify", "token", "chat", "tip",
+)
 
 private fun DeepLink.uriForTest() = android.net.Uri.parse(data)
 

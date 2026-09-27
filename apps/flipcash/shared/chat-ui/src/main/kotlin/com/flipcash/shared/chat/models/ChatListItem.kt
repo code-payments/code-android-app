@@ -199,11 +199,12 @@ enum class MessagePart(val id: String) {
 
 /**
  * The rows this bubble draws, top to bottom: the text before its card, the card, and the text after
- * it, each dropped when it would hold nothing but whitespace. A bubble with no card is one row, as
- * it always was.
+ * it, each dropped when it would hold nothing but whitespace and punctuation. A bubble with no card
+ * is one row, as it always was.
  *
- * The whitespace on either side of the link goes with it -- it was the gap around a word that now
- * has a row of its own. Other links stay in whichever text row they fell in, underlined.
+ * The punctuation touching the link and the whitespace past it go with the link -- they were the
+ * gap and the brackets around a word that now has a row of its own. Punctuation past a space
+ * belongs to the words beside it. Other links stay in whichever text row they fell in, underlined.
  *
  * The reply citation goes on the first row and the "Edited" marker and receipt on the last, so a
  * split message reads as one message stacked in three pieces rather than as three messages.
@@ -218,15 +219,19 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
         return listOf(copy(linkCard = null))
     }
 
+    // Punctuation touching the link first -- the "." ending a sentence, the brackets or quotes
+    // around it -- then the gap.
     var leadingEnd = card.start
+    while (leadingEnd > 0 && text[leadingEnd - 1].isPunctuation()) leadingEnd--
     while (leadingEnd > 0 && text[leadingEnd - 1].isWhitespace()) leadingEnd--
     var trailingStart = card.end
+    while (trailingStart < text.length && text[trailingStart].isPunctuation()) trailingStart++
     while (trailingStart < text.length && text[trailingStart].isWhitespace()) trailingStart++
 
     val parts = listOfNotNull(
-        text.substring(0, leadingEnd).takeIf { it.isNotBlank() }?.let { MessagePart.Leading to it },
+        text.substring(0, leadingEnd).takeIf { it.saysSomething() }?.let { MessagePart.Leading to it },
         MessagePart.Card to null,
-        text.substring(trailingStart).takeIf { it.isNotBlank() }?.let { MessagePart.Trailing to it },
+        text.substring(trailingStart).takeIf { it.saysSomething() }?.let { MessagePart.Trailing to it },
     )
 
     return parts.mapIndexed { index, (part, segment) ->
@@ -239,3 +244,21 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
         )
     }
 }
+
+/**
+ * Unicode punctuation, the general categories iOS's `CharacterSet.punctuationCharacters` covers.
+ * Symbols such as `$` and emoji are not punctuation, so they stay with their words.
+ */
+private fun Char.isPunctuation(): Boolean = when (category) {
+    CharCategory.CONNECTOR_PUNCTUATION,
+    CharCategory.DASH_PUNCTUATION,
+    CharCategory.START_PUNCTUATION,
+    CharCategory.END_PUNCTUATION,
+    CharCategory.INITIAL_QUOTE_PUNCTUATION,
+    CharCategory.FINAL_QUOTE_PUNCTUATION,
+    CharCategory.OTHER_PUNCTUATION -> true
+    else -> false
+}
+
+/** Whether a text row would hold anything but whitespace and stray punctuation. */
+private fun String.saysSomething(): Boolean = any { !it.isWhitespace() && !it.isPunctuation() }
