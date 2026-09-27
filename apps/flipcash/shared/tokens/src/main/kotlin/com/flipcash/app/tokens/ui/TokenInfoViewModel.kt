@@ -72,9 +72,6 @@ class TokenInfoViewModel @Inject constructor(
         /** Bounded per-token recent activity preview (newest first) for the v2 currency-info screen. */
         val transactions: List<TransactionListItem> = emptyList(),
     ) {
-        val canSell: Boolean
-            get() = balance.underlyingTokenAmount.valueNonZero()
-
         /** True when the user holds a displayable balance in some token other than [mint], which could fund a buy of it. */
         val hasFundableBalance: Boolean
             get() = fundableBalanceMints.any { it != mint }
@@ -331,23 +328,8 @@ class TokenInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OnConvert>()
             .onEach {
                 val mint = stateFlow.value.mint ?: return@onEach
-                // Converting spends this currency and lands in another, so it needs both a
-                // balance here and somewhere for it to go.
-                if (!stateFlow.value.canSell || !stateFlow.value.hasFundableBalance) {
-                    BottomBarManager.showInfo(
-                        title = resources.getString(R.string.title_noBalanceYet),
-                        message = resources.getString(R.string.description_noBalanceYetToBuy),
-                        actions = listOf(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_addMoney)
-                            ) {
-                                dispatchEvent(Event.PresentDepositOptions)
-                            },
-                        ),
-                        showCancel = true,
-                    )
-                    return@onEach
-                }
+                // No gate, matching iOS: the tile only shows for a held currency, and the
+                // destination needs no balance of its own.
 
                 // Dollars is the default landing spot; when Dollars *is* the source the swap
                 // view model substitutes the user's largest other holding.
