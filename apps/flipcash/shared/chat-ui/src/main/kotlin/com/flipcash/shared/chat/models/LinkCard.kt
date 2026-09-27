@@ -1,7 +1,10 @@
 package com.flipcash.shared.chat.models
 
+import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.asHandle
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MediaItem
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 
@@ -158,5 +161,70 @@ sealed interface LinkCard {
             val currencyName: String?,
             val staffOnly: Boolean,
         )
+    }
+
+    /**
+     * A person's link: `flipcash.com/<handle>`, `flipcash.com/<uuid>`, or the legacy `/tip/<uuid>`.
+     *
+     * Built from the person's public profile only. Their tip card's colours are not read, and
+     * neither is their DM fee: the card opens the DM, and the DM's own fee sheet asks for it.
+     */
+    data class User(
+        override val url: String,
+        override val start: Int,
+        override val end: Int,
+        val identity: Identity,
+        val state: State,
+    ) : LinkCard {
+
+        /** Who the link names, as the URL spells it. */
+        sealed interface Identity {
+            data class ById(val userId: ID) : Identity
+            data class ByUsername(val username: String) : Identity
+        }
+
+        /**
+         * The `@handle` the link itself names, or null for an id link. What a card with no account
+         * behind it shows as the name, since the link is all it has to go on.
+         */
+        val linkedHandle: String?
+            get() = (identity as? Identity.ByUsername)?.username?.asHandle()
+
+        sealed interface State {
+            /** The lookup is out. Drawn as a shimmer at a typical card's size. */
+            data object Loading : State
+
+            /**
+             * No account to show: the handle is unclaimed, or the lookup failed. Not remembered,
+             * so the next appearance asks again.
+             */
+            data object NotFound : State
+
+            /** The card's contents, already worded for display. */
+            data class Resolved(
+                /** The profile's own id, which a fetched profile always carries. */
+                val userId: ID,
+                /**
+                 * Whether the link is the viewer's own, which sends a tap to their own tip card
+                 * rather than into a chat with themselves.
+                 */
+                val isOwn: Boolean,
+                /**
+                 * The fetched profile, carried whole because opening the DM takes it: the chat's
+                 * header renders from it on the first frame. The card itself reads only the
+                 * fields below and the picture.
+                 */
+                val profile: UserProfile,
+                /** The display name, else the `@handle`; null when the person has neither. */
+                val name: String?,
+                /** "@handle", or null when there is none or it is already [name]. */
+                val handle: String?,
+                /** "Joined March 2024", or null when the server gave no join date. */
+                val joined: String?,
+            ) : State {
+                /** The picture's BlurHash: the avatar's preview and the card's backdrop. */
+                val blurHash: String? get() = profile.profilePicture?.blurhash()
+            }
+        }
     }
 }

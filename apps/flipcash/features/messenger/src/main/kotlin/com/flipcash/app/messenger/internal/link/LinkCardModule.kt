@@ -30,6 +30,7 @@ internal object LinkCardModule {
         giftCard: GiftCardLookup,
         token: TokenLinkLookup,
         group: GroupLinkLookup,
+        user: UserLinkLookup,
     ): LinkCardResolver =
         LinkCardResolver(
             // The resolver's own scope, ended by `ChatViewModel.onCleared`. A query outlives the
@@ -39,5 +40,6 @@ internal object LinkCardModule {
             giftCard = { giftCard(it) },
             tokenMetadata = { token(it) },
             group = { group(it) },
+            user = { user(it) },
         )
 }

@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.models
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
@@ -26,6 +27,14 @@ sealed interface ChatAction {
      * screen gates itself; a card never joins or buys on the reader's behalf.
      */
     data class OpenGroup(val chatId: ChatId) : ChatAction
+
+    /**
+     * Opens the person a link card names: their DM, pushed over this chat so Back returns here, or
+     * the reader's own tip card when [isOwn]. [profile] is carried because the DM's header renders
+     * from it on the first frame. A card never pays the DM's fee on the reader's behalf; the DM's
+     * own fee sheet asks for it.
+     */
+    data class OpenUser(val userId: ID, val profile: UserProfile, val isOwn: Boolean) : ChatAction
     data object ViewProfile : ChatAction
 
     /**

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -560,7 +561,12 @@ private fun BareLinkCard(
         verticalPadding = 0.dp,
         attention = attention,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(BubbleDefaults.surroundInset)) {
+        Column(
+            // A person's card hugs its text, so the column is as wide as the wider of it and a
+            // reply's quote, and the card fills that. Every other card fills the bubble's width.
+            modifier = Modifier.addIf(card is LinkCard.User) { Modifier.width(IntrinsicSize.Max) },
+            verticalArrangement = Arrangement.spacedBy(BubbleDefaults.surroundInset),
+        ) {
             if (quote != null) {
                 ChatQuotePanel(
                     quote = quote,
@@ -571,6 +577,7 @@ private fun BareLinkCard(
             }
             LinkCardView(
                 card = card,
+                modifier = Modifier.addIf(card is LinkCard.User) { Modifier.fillMaxWidth() },
                 // Dropped with the backdrop up, like every other target on the row.
                 onClick = if (interactive) onCardClick else null,
                 // The card takes the press for its own tap, so it has to hand the transcript's
@@ -606,6 +613,11 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
             // Pushed over this chat rather than through the chat deep link, which replaces the
             // stack: Back has to return to the message that held the invite.
             is LinkCard.GroupInvite -> actionHandler(ChatAction.OpenGroup(card.chatId))
+            // Only a resolved card takes a tap. Which screen it opens -- the person's DM, your own
+            // tip card, or nothing for the person already on the other end -- is the chat's call.
+            is LinkCard.User -> (card.state as? LinkCard.User.State.Resolved)?.let {
+                actionHandler(ChatAction.OpenUser(userId = it.userId, profile = it.profile, isOwn = it.isOwn))
+            }
         }
     }
 }
@@ -1054,6 +1066,38 @@ private fun Preview_LinkCard_GroupInviteBesideCash() {
             text = text,
             card = group.copy(start = text.indexOf(group.url), end = text.indexOf(group.url) + group.url.length),
         )
+        PreviewSplitMessage(
+            text = PREVIEW_CASH_LINK,
+            isFromSelf = true,
+            card = previewCard(
+                text = PREVIEW_CASH_LINK,
+                state = LinkCard.Cash.State.Resolved(
+                    amount = "$5.00",
+                    claim = LinkCard.Cash.Claim.Claimable,
+                    token = Token.usdf,
+                ),
+            ),
+        )
+    }
+}
+
+/**
+ * A person's link, trailing punctuation and all, between a group invite and a cash link: the person
+ * card hugs its text where the other two fill the column.
+ */
+@Preview(heightDp = 900)
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_LinkCard_UserBesideGroupAndCash() {
+    val group = previewGroupCard(PreviewGroupResolved)
+    val user = previewUserCard(previewUserResolved())
+    val userText = "say hi to ${user.url}."
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PreviewSplitMessage(
+            text = userText,
+            card = user.copy(start = userText.indexOf(user.url), end = userText.indexOf(user.url) + user.url.length),
+        )
+        PreviewSplitMessage(text = group.url, card = group)
         PreviewSplitMessage(
             text = PREVIEW_CASH_LINK,
             isFromSelf = true,

@@ -93,6 +93,17 @@ internal fun LinkCardView(
     val live = rememberResolvedCard(card)
     val shape = CodeTheme.shapes.medium
 
+    if (live is LinkCard.User) {
+        // Hugs its text like a message rather than filling the row, and takes its own tap.
+        UserLinkCard(
+            card = live,
+            onClick = onClick?.let { click -> { click(live) } },
+            modifier = modifier,
+            onLongClick = onLongClick,
+        )
+        return
+    }
+
     if (live is LinkCard.GroupInvite) {
         // Only the button opens a group, so the card takes no tap of its own. The long press
         // still has to reach the transcript, or pressing the card would select nothing.
@@ -136,7 +147,7 @@ internal fun LinkCardView(
             is LinkCard.Cash -> CashLinkCard(card = live, height = height)
             is LinkCard.TokenInfo -> TokenLinkCard(card = live, height = height)
             // Drawn above; unreachable here.
-            is LinkCard.GroupInvite -> Unit
+            is LinkCard.GroupInvite, is LinkCard.User -> Unit
         }
     }
 }
