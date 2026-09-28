@@ -71,6 +71,19 @@ data class Fiat(
         )
     }
 
+    /**
+     * This value rounded UP (ceiling) to [decimalPlaces], instead of [rounded]'s half-up. Use this
+     * only where understating the value is unsafe — e.g. a converted fee floor, which must never
+     * round down below the fee it stands in for. A value that already lands exactly on
+     * [decimalPlaces] is left unchanged.
+     */
+    fun roundedUp(decimalPlaces: Int = 2): Fiat {
+        return Fiat(
+            fiat = decimalValue.roundTo(decimalPlaces, RoundingMode.UP),
+            currencyCode = currencyCode
+        )
+    }
+
     // Formatting
     fun formatted(
         rule: FormattingRule = FormattingRule.None,
