@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.AppRoute
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -34,7 +35,6 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.asSubject
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.features.messenger.R
-import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
@@ -66,17 +66,22 @@ import kotlin.time.Instant
  * The Message and Send Cash shortcuts follow the same split, the other way round: they show on a
  * group member's profile and not on a tip DM's, where they would only reopen the chat behind it.
  * [profileShortcutRecipient] has the whole rule.
+ *
+ * A tapped `@handle` naming someone other than a tip DM's counterpart opens with
+ * [ProfileOrigin.Mention], which takes the group member's shape: shortcuts, and no Mute, since the
+ * DM's mute is not this person's.
  */
 @Composable
 internal fun ChatProfileScreen(
     viewModel: ChatProfileViewModel,
     chatViewModel: ChatViewModel,
+    origin: ProfileOrigin = ProfileOrigin.Chat,
 ) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
-    val isTipDm = chatState.chatType == ChatType.TIP_DM
+    val showsMute = profileShowsMute(chatState.chatType, origin)
 
     CodeScaffold(
         topBar = {
@@ -91,7 +96,7 @@ internal fun ChatProfileScreen(
             // that asks someone else to look, which sits above the one that ends the conversation.
             // Same shape as the group's profile, where leaving holds the last place.
             items = buildList<MenuItem<ChatProfileAction>> {
-                if (isTipDm) {
+                if (showsMute) {
                     add(MuteDm)
                 }
                 add(ReportUser)
@@ -102,12 +107,13 @@ internal fun ChatProfileScreen(
                     participant = state.participant,
                     chatType = chatState.chatType,
                     selfId = state.selfId,
+                    origin = origin,
                 )
                 ProfileHeader(
                     participant = state.participant,
                     joinDate = state.joinDate,
                     // Only where the mute is this person's chat; see the KDoc above.
-                    viewerState = chatState.viewerState.takeIf { isTipDm },
+                    viewerState = chatState.viewerState.takeIf { showsMute },
                     // Not flowNavigator, for the reason Report isn't: the DM is a top-level route,
                     // so LocalCodeNavigator hands it up and it opens over this chat.
                     shortcuts = recipient?.let { user ->

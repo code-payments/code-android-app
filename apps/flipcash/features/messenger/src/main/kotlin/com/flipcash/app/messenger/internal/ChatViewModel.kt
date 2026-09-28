@@ -101,6 +101,7 @@ import com.flipcash.shared.chat.reactions.ReactionStripComposer
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.flipcash.shared.chat.readOnly
 import com.flipcash.shared.chat.resolveCapabilities
+import com.flipcash.shared.chat.ui.detectMentions
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.shared.chat.withinWindows
@@ -581,6 +582,15 @@ internal class ChatViewModel @Inject constructor(
         data object NavigateToInitPayment : Event
         data object PresentDepositOptions : Event
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
+
+        /** The reader tapped a mention of [username] in the transcript. */
+        data class MentionTapped(val username: String) : Event
+
+        /**
+         * Where a tapped mention resolved to, for the screen to open. Only the destinations that
+         * open something: an unclaimed handle or a failed lookup is a dialog raised here.
+         */
+        data class OpenMention(val destination: MentionDestination) : Event
         data object OnConfirmRequested : Event
 
         /** Confirm the DM-opening fee. The amount comes from the fee, not from the keypad. */
@@ -850,8 +860,13 @@ internal class ChatViewModel @Inject constructor(
                     // which meant a chat painted nothing until every link in the first window had
                     // been round-tripped, and that every link in every mapped message was queried
                     // whether or not the reader ever scrolled to it.
-                    val linkCard = enriched.linkableText()
-                        ?.let { text -> linkCardClassifier.firstCard(detectUrls(text)) }
+                    val linkableText = enriched.linkableText()
+                    val links = linkableText?.let(::detectUrls).orEmpty()
+                    val linkCard = linkCardClassifier.firstCard(links)
+
+                    // Detected over the whole text, beside the links, so a handle inside a link
+                    // stays the link's. Nothing is looked up until one is tapped.
+                    val mentions = linkableText?.let { detectMentions(it, links) }.orEmpty()
 
                     // Noted while the voucher and the message it came on are in the same hand;
                     // see [ClaimReplyTargets]. Skipped for the reader's own messages, which is what
@@ -917,6 +932,7 @@ internal class ChatViewModel @Inject constructor(
                         // after the first page does.
                         senderId = message.senderId?.takeIf { !message.isFromSelf },
                         linkCard = linkCard,
+                        mentions = mentions,
                         // `splitAroundLinkCard` keeps these pills on the last row only.
                         reactionPills = storedReactions.pills,
                         selfReactions = storedReactions.selfReactions,
@@ -1152,6 +1168,7 @@ internal class ChatViewModel @Inject constructor(
         initChatHandlers()
         initLinkCardFreshness()
         initClaimReplies()
+        initMentionHandlers()
         initDraftHandlers()
         initGroupAnalytics()
 
@@ -1244,6 +1261,33 @@ internal class ChatViewModel @Inject constructor(
                     title = resources.getString(R.string.title_joinToCollect),
                     message = resources.getString(R.string.description_joinToCollect),
                 )
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Opens where a tapped `@handle` leads. Looked up through [linkCardResolver], so a handle a
+     * person card or an earlier tap already resolved opens without a round trip.
+     *
+     * An unclaimed handle and a failed lookup get different dialogs: one is an answer, the other
+     * is worth trying again.
+     */
+    private fun initMentionHandlers() {
+        eventFlow.filterIsInstance<Event.MentionTapped>()
+            .onEach { event ->
+                val lookup = linkCardResolver.lookUpUser(LinkCard.User.Identity.ByUsername(event.username))
+                val counterpart = (stateFlow.value.participant as? ChatParticipant.TipUser)?.userId
+                when (val destination = mentionDestination(event.username, lookup, counterpart)) {
+                    is MentionDestination.NoSuchAccount -> BottomBarManager.showInfo(
+                        title = resources.getString(R.string.title_mentionNoSuchAccount),
+                        message = resources.getString(R.string.description_mentionNoSuchAccount, destination.username),
+                    )
+                    MentionDestination.LookupFailed -> BottomBarManager.showError(
+                        title = resources.getString(R.string.title_mentionLookupFailed),
+                        message = resources.getString(R.string.description_mentionLookupFailed),
+                    )
+                    else -> dispatchEvent(Event.OpenMention(destination))
+                }
             }
             .launchIn(viewModelScope)
     }
@@ -2636,6 +2680,8 @@ internal class ChatViewModel @Inject constructor(
                 Event.NavigateToInitPayment -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
+                is Event.MentionTapped -> { state -> state }
+                is Event.OpenMention -> { state -> state }
                 is Event.OnConfirmRequested -> { state -> state }
                 is Event.OnInitPaymentConfirmed -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }

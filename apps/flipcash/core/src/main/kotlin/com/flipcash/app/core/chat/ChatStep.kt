@@ -75,7 +75,10 @@ sealed interface ChatStep : FlowStep, Parcelable {
 
     @Parcelize
     @Serializable
-    data class Profile(val contact: ChatParticipant): ChatStep
+    data class Profile(
+        val contact: ChatParticipant,
+        val origin: ProfileOrigin = ProfileOrigin.Chat,
+    ): ChatStep
 
     /**
      * The group's own profile — the counterpart of [Profile] for a chat that has no counterparty.
@@ -137,4 +140,21 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data class Reactors(val chatId: ChatId, val messageId: Long) : ChatStep, Sheet, HalfSheet
+}
+
+/** What opened a [ChatStep.Profile], which decides the actions it offers. */
+@Serializable
+enum class ProfileOrigin {
+    /**
+     * The chat's own title, or a member's picture or reactor row. The chat decides: a tip DM's
+     * profile is the other person in it, so it offers Mute and not Message.
+     */
+    Chat,
+
+    /**
+     * A tapped `@handle` naming someone other than the DM's counterpart. That person is not who
+     * the chat is with, so Mute would act on the wrong chat and Message and Send Cash have
+     * somewhere new to go. iOS's `UserProfileOrigin.mention`.
+     */
+    Mention,
 }

@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.chat.ProfileOrigin
 // Used by the held-back Send Cash shortcut below.
 // import com.flipcash.app.messenger.internal.screens.components.CondensedSymbolFontSize
 import com.flipcash.features.messenger.R
@@ -34,11 +35,20 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.theme.CodeTheme
 
 /**
+ * Whether the profile offers the chat's Mute row: only for a tip DM's own counterpart, opened the
+ * way the title opens it. A member's profile in a group would mute the whole group from a screen
+ * that names one person, and a mentioned person is not who the DM is with.
+ */
+internal fun profileShowsMute(chatType: ChatType, origin: ProfileOrigin): Boolean =
+    origin == ProfileOrigin.Chat && chatType == ChatType.TIP_DM
+
+/**
  * Who the profile's Message and Send Cash shortcuts would open a DM with, or null to leave them
  * out.
  *
- * - Not from a tip DM: a DM's profile is always the other person in it, so the shortcuts would
- *   only reopen the chat the viewer came from.
+ * - Not from a tip DM's own title: a DM's profile is always the other person in it, so the
+ *   shortcuts would only reopen the chat the viewer came from. A mention of someone else in that
+ *   DM ([ProfileOrigin.Mention]) is not the person the chat is with, so it keeps them.
  * - Not for the viewer's own profile: there is no DM with yourself.
  * - Only for a [ChatParticipant.TipUser]: the DM route is addressed by user id, which a contact
  *   doesn't have. Contact DMs don't reach this screen anyway.
@@ -50,8 +60,9 @@ internal fun profileShortcutRecipient(
     participant: ChatParticipant?,
     chatType: ChatType,
     selfId: ID?,
+    origin: ProfileOrigin = ProfileOrigin.Chat,
 ): ChatParticipant.TipUser? {
-    if (chatType == ChatType.TIP_DM) return null
+    if (origin == ProfileOrigin.Chat && chatType == ChatType.TIP_DM) return null
     val user = participant as? ChatParticipant.TipUser ?: return null
     if (selfId != null && user.userId == selfId) return null
     return user

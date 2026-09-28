@@ -1,12 +1,15 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /** When a profile offers Message and Send Cash. Kept in step with the iOS profile's rule. */
 class ProfileShortcutRecipientTest {
@@ -46,5 +49,24 @@ class ProfileShortcutRecipientTest {
         )
         assertNull(profileShortcutRecipient(contact, ChatType.GROUP, self))
         assertNull(profileShortcutRecipient(null, ChatType.GROUP, self))
+    }
+
+    @Test
+    fun `someone mentioned in a tip DM gets the shortcuts, since the chat is not with them`() {
+        assertEquals(member, profileShortcutRecipient(member, ChatType.TIP_DM, self, ProfileOrigin.Mention))
+    }
+
+    @Test
+    fun `a mention of the viewer still doesn't`() {
+        val me = member.copy(userId = self)
+        assertNull(profileShortcutRecipient(me, ChatType.TIP_DM, self, ProfileOrigin.Mention))
+    }
+
+    @Test
+    fun `only a tip DM's own counterpart offers Mute`() {
+        assertTrue(profileShowsMute(ChatType.TIP_DM, ProfileOrigin.Chat))
+        assertFalse(profileShowsMute(ChatType.TIP_DM, ProfileOrigin.Mention))
+        assertFalse(profileShowsMute(ChatType.GROUP, ProfileOrigin.Chat))
+        assertFalse(profileShowsMute(ChatType.GROUP, ProfileOrigin.Mention))
     }
 }

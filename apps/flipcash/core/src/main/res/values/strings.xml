@@ -185,6 +185,10 @@
     <!-- Shown when a non-member reading a group taps a cash link in it. The link is not opened. -->
     <string name="title_joinToCollect">Join to Collect</string>
     <string name="description_joinToCollect">Join this chat to collect cash sent in it.</string>
+    <string name="title_mentionNoSuchAccount">No Such Account</string>
+    <string name="description_mentionNoSuchAccount">Nobody has claimed @%1$s</string>
+    <string name="title_mentionLookupFailed">Couldn\'t Open Profile</string>
+    <string name="description_mentionLookupFailed">Please check your connection and try again</string>
 
     <string name="title_enterAddress">Enter Solana address</string>
     <!-- v2 app-bar title for the withdrawal destination step; title_enterAddress stays the field placeholder. -->

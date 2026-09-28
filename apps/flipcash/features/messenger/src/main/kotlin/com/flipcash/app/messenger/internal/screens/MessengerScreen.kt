@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,7 @@ import com.flipcash.app.core.links.ExternalLinkUriHandler
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.MentionDestination
 import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
@@ -49,6 +51,7 @@ import com.getcode.ui.theme.ScaffoldBarPlacement
 import com.getcode.ui.utils.rememberKeyboardController
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.flow.filterIsInstance
 
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
@@ -69,6 +72,27 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // height, which the selection and editing modes change.
     var barHeight by remember { mutableStateOf(0.dp) }
     val keyboard = rememberKeyboardController()
+
+    // Here rather than in the action handler because the lookup comes first: the tap only knows a
+    // handle, and where it leads is the view model's to decide once the handle has an answer.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatViewModel.Event.OpenMention>()
+            .collect { (destination) ->
+                keyboard.hideIfVisible {
+                    when (destination) {
+                        // As a person card linking to the viewer does: their card is on the You tab.
+                        MentionDestination.OwnTipCard ->
+                            navigator.rootNavigator.navigateAll(listOf(AppRoute.Tabs.Menu))
+                        is MentionDestination.Profile ->
+                            navigator.push(ChatStep.Profile(destination.participant, destination.origin))
+                        // Raised as dialogs by the view model; they never reach here.
+                        is MentionDestination.NoSuchAccount,
+                        MentionDestination.LookupFailed -> Unit
+                    }
+                }
+            }
+    }
 
     val chatActionHandler = { action: ChatAction ->
         when (action) {
@@ -156,6 +180,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         )
                     }
                 }
+            }
+
+            is ChatAction.OpenMention -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.MentionTapped(action.username))
             }
 
             is ChatAction.ToggleSelection -> {

@@ -4,6 +4,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.SelfReaction
+import com.flipcash.shared.chat.ui.DetectedMention
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -64,6 +65,15 @@ sealed interface ChatListItem {
          * can see both the router and the network; `chat-ui` only draws what it is handed.
          */
         val linkCard: LinkCard? = null,
+        /**
+         * The `@handle`s in the text this row draws, in that text's own offsets. Detected once over
+         * the whole message, beside the links, so a handle inside a link is the link's; then
+         * [splitAroundLinkCard] rebases each into the row it falls in.
+         *
+         * Kept apart from [linkCard] and the underlined links: a mention takes no part in choosing
+         * a card or in where the message splits.
+         */
+        val mentions: List<DetectedMention> = emptyList(),
         /**
          * Who sent this, when that is not implied. Null for the viewer's own messages and for every
          * message in a DM; set only for another member's message in a group.
@@ -247,12 +257,26 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
             part = part,
             partText = segment,
             linkCard = card.takeIf { part == MessagePart.Card },
+            mentions = when (part) {
+                MessagePart.Leading -> mentions.rebased(from = 0, until = leadingEnd)
+                MessagePart.Card -> emptyList()
+                MessagePart.Trailing -> mentions.rebased(from = trailingStart, until = text.length)
+            },
             isFirstRow = index == 0,
             isLastRow = index == parts.lastIndex,
             reactionPills = reactionPills.takeIf { index == parts.lastIndex }.orEmpty(),
         )
     }
 }
+
+/**
+ * The mentions lying wholly inside `[from, until)` of the message, in that row's own offsets.
+ * A mention can only straddle a row's edge if it overlapped the card's link, and those were
+ * dropped at detection.
+ */
+private fun List<DetectedMention>.rebased(from: Int, until: Int): List<DetectedMention> =
+    filter { it.start >= from && it.end <= until }
+        .map { it.copy(start = it.start - from, end = it.end - from) }
 
 /**
  * Unicode punctuation, the general categories iOS's `CharacterSet.punctuationCharacters` covers.
