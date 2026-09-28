@@ -40,7 +40,6 @@ fun ChatNode(
     isMuted: Boolean = false,
     isHost: Boolean = false,
     unreadCount: Int = 0,
-    showMoreUnread: Boolean = unreadCount > 99,
     onClick: () -> Unit,
 ) {
     Row(
@@ -133,7 +132,6 @@ fun ChatNode(
 
                     Badge(
                         count = unreadCount,
-                        showMoreUnread = showMoreUnread,
                         color = CodeTheme.colors.indicator,
                         contentColor = Color.White
                     )

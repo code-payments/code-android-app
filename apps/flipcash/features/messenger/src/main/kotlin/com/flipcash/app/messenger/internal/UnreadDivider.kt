@@ -62,6 +62,3 @@ internal fun PagingData<ChatListItem.ContentBubble>.withSeparators(
     insertSeparators { newer: ChatListItem.ContentBubble?, older: ChatListItem.ContentBubble? ->
         separatorBetween(newer, older, boundary, config)
     }
-
-/** The count the divider shows: past 99 it reads "99+". */
-internal fun unreadCountLabel(count: Int): String = if (count > 99) "99+" else count.toString()

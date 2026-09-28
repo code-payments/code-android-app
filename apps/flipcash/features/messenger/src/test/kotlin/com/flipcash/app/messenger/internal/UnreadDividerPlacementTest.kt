@@ -98,11 +98,4 @@ class UnreadDividerPlacementTest {
             separatorBetween(newer, older, UnreadBoundary.None, SeparatorConfig.DayOnly),
         )
     }
-
-    @Test
-    fun `counts over 99 read 99+`() {
-        assertEquals("1", unreadCountLabel(1))
-        assertEquals("99", unreadCountLabel(99))
-        assertEquals("99+", unreadCountLabel(100))
-    }
 }
