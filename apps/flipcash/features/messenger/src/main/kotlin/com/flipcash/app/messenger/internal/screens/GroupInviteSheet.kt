@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -75,6 +76,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
+import com.getcode.ui.utils.sheetResignmentBehavior
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -86,7 +88,8 @@ import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 
 /**
- * Node 10329:12104 — handing out the link to a group, and sending it straight into 1:1 chats.
+ * Node 10329:12104 — handing out the link to a group, and sending it straight into the
+ * viewer's other chats.
  *
  * The Share and Copy tiles carry the same URL, built once by
  * [com.flipcash.app.core.util.Linkify.groupChatInvite] from the chat's id: there is no invite RPC,
@@ -128,6 +131,7 @@ internal fun GroupInviteSheet(
     )
 
     val hazeState = rememberHazeState()
+    val listState = rememberLazyListState()
     val density = LocalDensity.current
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
     val scrimColor = CodeTheme.colors.surface
@@ -156,7 +160,11 @@ internal fun GroupInviteSheet(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                // Without this, a fling that reaches the top of the list carries on into the
+                // sheet and dismisses it.
+                .sheetResignmentBehavior(listState)
                 .hazeSource(hazeState),
+            state = listState,
             contentPadding = PaddingValues(
                 top = headerHeight,
                 bottom = if (state.showsComposer) {
