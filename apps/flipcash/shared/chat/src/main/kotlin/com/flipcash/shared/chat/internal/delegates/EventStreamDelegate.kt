@@ -21,8 +21,6 @@ import com.flipcash.services.models.chat.ReactionUpdate
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.shared.chat.reactions.ReactionState
-import com.flipcash.services.models.chat.TypingNotification
-import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.GetDeltaError
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.EventSequenceTracker
@@ -66,7 +64,8 @@ import kotlin.time.Duration.Companion.seconds
  * - **Reaction overlays** — merges [ReactionUpdate]s into an in-memory
  *   `Map<ChatId, Map<Long, ReactionSummary>>` with last-writer-wins on
  *   `EmojiReaction.version`.
- * - **Typing indicators** — maintains per-chat `Set<ActiveTypist>` in [ChatStateHolder].
+ * - **Typing indicators** — hands typing notifications to [TypingIndicatorTracker], which
+ *   expires typists locally and maintains per-chat `Set<ActiveTypist>` in [ChatStateHolder].
  * - **Eager balance update** — credits incoming cash messages to [TokenCoordinator]
  *   before the server balance refresh arrives.
  * - **Heartbeat** — periodically checks stream liveness and reconnects if dead.
@@ -120,6 +119,7 @@ class EventStreamDelegate @Inject constructor(
     private var scope: CoroutineScope? = null
     private var eventStreamCollectJob: Job? = null
     private var heartbeatJob: Job? = null
+    private val typingTracker = TypingIndicatorTracker(stateHolder)
 
     /**
      * One [ReactionState] per message touched by a stream update, keyed by chat then message id.
@@ -198,6 +198,7 @@ class EventStreamDelegate @Inject constructor(
 
     internal fun initialize(scope: CoroutineScope) {
         this.scope = scope
+        typingTracker.initialize(scope)
     }
 
     internal fun open() {
@@ -327,6 +328,7 @@ class EventStreamDelegate @Inject constructor(
     internal fun clearAll() {
         sequenceTracker.clearAll()
         reactionStates.clear()
+        typingTracker.clear()
     }
 
     private fun ensureCollector(scope: CoroutineScope) {
@@ -518,15 +520,7 @@ class EventStreamDelegate @Inject constructor(
         // --- Typing indicators ---
 
         if (update.typingNotifications.isNotEmpty()) {
-            stateHolder.update { state ->
-                val currentTypists = state.typingIndicators[chatId]?.toMutableSet() ?: mutableSetOf()
-                for (notification in update.typingNotifications) {
-                    applyTypingNotification(currentTypists, notification)
-                }
-                state.copy(
-                    typingIndicators = state.typingIndicators + (chatId to currentTypists.toSet())
-                )
-            }
+            typingTracker.apply(chatId, update.typingNotifications, selfId = userManager.accountId)
         }
     }
 
@@ -563,22 +557,6 @@ class EventStreamDelegate @Inject constructor(
             performDeltaSync(chatId)
         }
         sequenceTracker.setGapFillJob(chatId, job)
-    }
-
-    private fun applyTypingNotification(
-        typists: MutableSet<ActiveTypist>,
-        notification: TypingNotification,
-    ) {
-        when (notification.state) {
-            TypingState.STARTED_TYPING, TypingState.STILL_TYPING -> {
-                typists.removeAll { it.userId == notification.userId }
-                typists.add(ActiveTypist(userId = notification.userId, since = Clock.System.now()))
-            }
-            TypingState.STOPPED_TYPING, TypingState.TYPING_TIMED_OUT -> {
-                typists.removeAll { it.userId == notification.userId }
-            }
-            TypingState.UNKNOWN -> Unit
-        }
     }
 
     // endregion
