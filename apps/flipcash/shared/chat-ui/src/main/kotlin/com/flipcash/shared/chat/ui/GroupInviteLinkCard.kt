@@ -131,11 +131,11 @@ fun GroupInviteLinkCard(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    start = CodeTheme.dimens.inset,
-                    end = CodeTheme.dimens.inset,
+                    start = GroupInviteCardDefaults.PADDING,
+                    end = GroupInviteCardDefaults.PADDING,
                     // The avatar's centre sits on the band's bottom edge.
                     top = GroupInviteCardDefaults.BAND_HEIGHT - GroupInviteCardDefaults.AVATAR / 2,
-                    bottom = CodeTheme.dimens.inset,
+                    bottom = GroupInviteCardDefaults.PADDING,
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -153,7 +153,7 @@ fun GroupInviteLinkCard(
                 )
 
                 Text(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+                    modifier = Modifier.padding(top = GroupInviteCardDefaults.TITLE_GAP),
                     text = title,
                     style = CodeTheme.typography.textLarge,
                     color = CodeTheme.colors.textMain,
@@ -218,7 +218,7 @@ fun GroupInviteLinkCard(
 private fun RequirementLines(requirement: LinkCard.GroupInvite.Requirement) {
     requirement.amount?.let { amount ->
         Text(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+            modifier = Modifier.padding(top = GroupInviteCardDefaults.REQUIREMENT_GAP),
             text = if (requirement.currencyName != null) {
                 stringResource(R.string.label_chat_balanceRequirement, amount, requirement.currencyName)
             } else {
@@ -231,7 +231,7 @@ private fun RequirementLines(requirement: LinkCard.GroupInvite.Requirement) {
     }
     if (requirement.staffOnly) {
         Text(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+            modifier = Modifier.padding(top = GroupInviteCardDefaults.REQUIREMENT_GAP),
             text = stringResource(R.string.label_chat_staffRequirement),
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
@@ -248,6 +248,15 @@ object GroupInviteCardDefaults {
     internal val STROKE = Color.White.copy(alpha = 0.1f)
 
     internal val BAND_HEIGHT = 46.dp
+
+    /**
+     * iOS's `GroupCardView.Layout`: the card's side and bottom padding, and the gaps above the
+     * title and the requirement. Fixed, not the theme's inset, which widens on larger phones and
+     * made the card taller than iOS's.
+     */
+    internal val PADDING = 12.dp
+    internal val TITLE_GAP = 13.dp
+    internal val REQUIREMENT_GAP = 11.dp
 
     /** Provisional, pending design sign-off. */
     internal const val BAND_OPACITY = 0.28f
