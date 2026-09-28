@@ -13,10 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
-import com.flipcash.app.messenger.internal.unreadCountLabel
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.unreadCountLabel
 import kotlin.time.Clock
 import kotlin.time.Instant
 

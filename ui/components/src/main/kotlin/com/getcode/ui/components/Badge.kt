@@ -43,11 +43,13 @@ private fun Modifier.squareMinSize(): Modifier = layout { measurable, constraint
     }
 }
 
+/** An unread count as a badge or divider shows it: past 99 it reads "99+". */
+fun unreadCountLabel(count: Int): String = if (count > 99) "99+" else count.toString()
+
 @Composable
 fun Badge(
     count: Int,
     modifier: Modifier = Modifier,
-    showMoreUnread: Boolean = count > 100,
     color: Color = CodeTheme.colors.brand,
     contentColor: Color = Color.White,
     textStyle: TextStyle = CodeTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold),
@@ -66,11 +68,7 @@ fun Badge(
         enter = enterTransition,
         exit = exitTransition
     ) {
-        val text = when {
-            count == 0 -> ""
-            showMoreUnread -> "$count+"
-            else -> "$count"
-        }
+        val text = if (count == 0) "" else unreadCountLabel(count)
 
         val scaledTextStyle = if (scale == 1f) textStyle else textStyle.copy(
             fontSize = textStyle.fontSize * scale
