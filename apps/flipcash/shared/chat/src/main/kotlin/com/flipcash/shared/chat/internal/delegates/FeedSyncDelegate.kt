@@ -12,6 +12,7 @@ import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.lastMessagesByChat
 import com.flipcash.app.persistence.sources.mediator.ChatFeedRemoteMediator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
@@ -378,10 +379,9 @@ class FeedSyncDelegate @Inject constructor(
 
                 for (chat in chats) {
                     memberDataSource.upsert(chat.chatId, chat.members)
-                    chat.lastMessage?.let { msg ->
-                        messageDataSource.upsert(chat.chatId, listOf(msg))
-                    }
                 }
+                val previews = chats.lastMessagesByChat()
+                messageDataSource.upsertAll(previews)
 
                 stateHolder.update { it.copy(feedSyncState = FeedSyncState.Synced) }
                 trace(tag = TAG, message = "Feed synced: ${chats.size} chats", type = TraceType.Process)

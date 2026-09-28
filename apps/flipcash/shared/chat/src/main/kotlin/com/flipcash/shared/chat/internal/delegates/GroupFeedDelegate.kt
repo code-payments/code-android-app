@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.internal.delegates
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.lastMessagesByChat
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -226,8 +227,9 @@ class GroupFeedDelegate @Inject constructor(
         metadataDataSource.upsert(chats)
         for (chat in chats) {
             memberDataSource.upsert(chat.chatId, chat.members)
-            chat.lastMessage?.let { messageDataSource.upsert(chat.chatId, listOf(it)) }
         }
+        val previews = chats.lastMessagesByChat()
+        messageDataSource.upsertAll(previews)
     }
 
     private companion object {

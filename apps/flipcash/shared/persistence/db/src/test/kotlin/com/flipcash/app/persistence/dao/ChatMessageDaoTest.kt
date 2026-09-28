@@ -490,6 +490,34 @@ class ChatMessageDaoTest {
 
     // endregion
 
+    @Test
+    fun `upsert of an unchanged row writes nothing`() = runTest {
+        dao.upsert(text(1, "hi"))
+        val before = totalChanges()
+
+        dao.upsert(text(1, "hi"))
+
+        assertEquals(before, totalChanges())
+    }
+
+    @Test
+    fun `upsert of a changed row still writes it`() = runTest {
+        dao.upsert(text(1, "hi"))
+        val before = totalChanges()
+
+        dao.upsert(text(1, "edited"))
+
+        assertEquals(true, totalChanges() > before)
+        assertEquals(listOf(MessageContentSerialized.Text("edited")), dao.getMessage(CHAT_HEX, 1)?.contentJson)
+    }
+
+    /** SQLite's running count of rows written on this connection, triggers included. */
+    private fun totalChanges(): Long =
+        db.openHelper.writableDatabase.query("SELECT total_changes()").use { cursor ->
+            cursor.moveToFirst()
+            cursor.getLong(0)
+        }
+
     private companion object {
         const val CHAT_HEX = "aabb"
         const val OTHER_HEX = "ccdd"
