@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.ui
 
 import com.flipcash.core.R
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.handle
@@ -9,6 +10,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.hexEncodedString
 
 /**
  * Maps a [ChatSummary] to the presentation [ConversationReference] shared by every
@@ -23,11 +25,16 @@ import com.getcode.util.resources.ResourceHelper
  *
  * The handle rides along with the name because a tip DM counterparty need not have a display
  * name; [ConversationReference.name] is what rows should render.
+ *
+ * [senderProfiles] names a group's last sender when the roster does not: the feed carries a
+ * roster subset that is often only the viewer, so without it a group preview is never attributed.
+ * Keyed by user-id hex, as [com.flipcash.shared.chat.ChatCoordinator.observeSenderProfiles] emits.
  */
 fun ChatSummary.toConversationReference(
     selfId: ID?,
     tokensByMint: Map<Mint, Token>,
     resources: ResourceHelper,
+    senderProfiles: Map<String, UserProfile> = emptyMap(),
 ): ConversationReference {
     val isGroup = metadata.type == ChatType.GROUP
     val other = metadata.members.firstOrNull { it.userId != selfId }
@@ -42,7 +49,7 @@ fun ChatSummary.toConversationReference(
         title = metadata.title,
         isGroup = isGroup,
         chatType = metadata.type,
-        lastMessagePreview = formatPreview(selfId, tokensByMint, resources),
+        lastMessagePreview = formatPreview(selfId, tokensByMint, resources, senderProfiles),
         hasMessages = metadata.lastMessage != null,
         lastActivity = metadata.lastActivity,
         unreadCount = unreadCount,
@@ -50,22 +57,42 @@ fun ChatSummary.toConversationReference(
     )
 }
 
+/**
+ * The sender of a group's last message when nothing on the device can name them yet — neither the
+ * roster subset nor [senderProfiles] — so the list can ask for their profile. Null for a DM, for
+ * the viewer's own message, and for a sender already named.
+ */
+fun ChatSummary.unnamedGroupSender(selfId: ID?, senderProfiles: Map<String, UserProfile>): ID? {
+    if (metadata.type != ChatType.GROUP) return null
+    val senderId = metadata.lastMessage?.senderId ?: return null
+    if (senderId == selfId) return null
+    return senderId.takeIf { groupSenderName(senderId, senderProfiles) == null }
+}
+
+private fun ChatSummary.groupSenderName(senderId: ID, senderProfiles: Map<String, UserProfile>): String? {
+    // A blank name counts as missing: a cached member with no profile row maps to an empty one,
+    // which would otherwise read as ": gm".
+    val fromRoster = metadata.members.firstOrNull { it.userId == senderId }
+        ?.userProfile?.displayName?.takeIf { it.isNotBlank() }
+    return fromRoster
+        ?: senderProfiles[senderId.hexEncodedString()]?.displayName?.takeIf { it.isNotBlank() }
+}
+
 private fun ChatSummary.formatPreview(
     selfId: ID?,
     tokensByMint: Map<Mint, Token>,
     resources: ResourceHelper,
+    senderProfiles: Map<String, UserProfile>,
 ): String? {
     val lastMsg = metadata.lastMessage ?: return null
     val isGroup = metadata.type == ChatType.GROUP
     val sentBySelf = lastMsg.senderId != null && lastMsg.senderId == selfId
     // Only a group attributes, and only someone else's message: "You:" already covers the viewer's,
-    // and a DM's counterparty is the row's own name. Null when the roster subset does not have the
-    // sender — the list does not fetch profiles, so an unattributed body is the honest fallback.
-    // A blank name counts as missing: a cached member with no profile row maps to an empty one,
-    // which would otherwise read as ": gm".
+    // and a DM's counterparty is the row's own name. Null when neither the roster subset nor the
+    // resolved profiles have the sender yet — an unattributed body is the honest fallback until
+    // the profile lands.
     val senderName = if (isGroup && !sentBySelf) {
-        metadata.members.firstOrNull { it.userId == lastMsg.senderId }
-            ?.userProfile?.displayName?.takeIf { it.isNotBlank() }
+        lastMsg.senderId?.let { groupSenderName(it, senderProfiles) }
     } else {
         null
     }

@@ -14,6 +14,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.hexEncodedString
 import io.mockk.every
 import io.mockk.mockk
 import kotlin.test.Test
@@ -140,8 +141,14 @@ class ChatSummaryPreviewTest {
         content: List<MessageContent>,
         senderId: ID? = other,
         otherName: String = "Alice",
+        senderProfiles: Map<String, UserProfile> = emptyMap(),
     ) = groupSummary(content, senderId, otherName)
-            .toConversationReference(selfId = self, tokensByMint = emptyMap(), resources = resources)
+            .toConversationReference(
+                selfId = self,
+                tokensByMint = emptyMap(),
+                resources = resources,
+                senderProfiles = senderProfiles,
+            )
 
     @Test
     fun `a group is named by its title`() {
@@ -209,6 +216,67 @@ class ChatSummaryPreviewTest {
         assertEquals(
             "gm",
             groupReference(listOf(MessageContent.Text("gm")), senderId = stranger).lastMessagePreview,
+        )
+    }
+
+    @Test
+    fun `a sender the roster subset omits is named from the resolved profiles`() {
+        // The feed's group roster is often only the viewer, so this is the common case, not an edge.
+        every {
+            resources.getString(R.string.label_chat_preview_senderMessage, "Olive", "gm")
+        } returns "Olive: gm"
+        val stranger: ID = listOf(7)
+
+        assertEquals(
+            "Olive: gm",
+            groupReference(
+                listOf(MessageContent.Text("gm")),
+                senderId = stranger,
+                senderProfiles = mapOf(stranger.hexEncodedString() to profile("Olive")),
+            ).lastMessagePreview,
+        )
+    }
+
+    @Test
+    fun `the roster's name wins over a resolved profile`() {
+        every {
+            resources.getString(R.string.label_chat_preview_senderMessage, "Alice", "gm")
+        } returns "Alice: gm"
+
+        assertEquals(
+            "Alice: gm",
+            groupReference(
+                listOf(MessageContent.Text("gm")),
+                senderProfiles = mapOf(other.hexEncodedString() to profile("Stale Alice")),
+            ).lastMessagePreview,
+        )
+    }
+
+    @Test
+    fun `a group sender nothing can name is the one to ask for`() {
+        val stranger: ID = listOf(7)
+
+        assertEquals(
+            stranger,
+            groupSummary(listOf(MessageContent.Text("gm")), senderId = stranger)
+                .unnamedGroupSender(self, emptyMap()),
+        )
+    }
+
+    @Test
+    fun `a group sender already named is not asked for`() {
+        val stranger: ID = listOf(7)
+        val summary = groupSummary(listOf(MessageContent.Text("gm")), senderId = stranger)
+
+        assertNull(summary.unnamedGroupSender(self, mapOf(stranger.hexEncodedString() to profile("Olive"))))
+        assertNull(groupSummary(listOf(MessageContent.Text("gm")), senderId = other).unnamedGroupSender(self, emptyMap()))
+    }
+
+    @Test
+    fun `the viewer's own message and a DM are never asked for`() {
+        assertNull(groupSummary(listOf(MessageContent.Text("gm")), senderId = self).unnamedGroupSender(self, emptyMap()))
+        assertNull(
+            summary(listOf(MessageContent.Text("gm")), senderId = listOf(7)).unnamedGroupSender(self, emptyMap()),
         )
     }
 
