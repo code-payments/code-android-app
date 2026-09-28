@@ -244,15 +244,14 @@ class ChatViewModelStateTest {
     }
 
     @Test
-    fun `the invite card heads a group only while the viewer is its only member`() {
-        // Messages have no say: a solo group the viewer has posted in still has nobody to talk to.
-        assertTrue(ChatViewModel.State(subject = group(isMember = true)).showsGroupInviteCard)
-        assertFalse(
-            ChatViewModel.State(subject = group(isMember = true, memberCount = 2L)).showsGroupInviteCard,
+    fun `the group header offers an invite in every group the viewer has joined`() {
+        assertTrue(ChatViewModel.State(subject = group(isMember = true)).offersGroupInvite)
+        assertTrue(
+            ChatViewModel.State(subject = group(isMember = true, memberCount = 2L)).offersGroupInvite,
         )
-        assertFalse(ChatViewModel.State(subject = group(isMember = false)).showsGroupInviteCard)
-        assertFalse(ChatViewModel.State(subject = group(isMember = null)).showsGroupInviteCard)
-        assertFalse(ChatViewModel.State(subject = dm).showsGroupInviteCard)
+        assertFalse(ChatViewModel.State(subject = group(isMember = false)).offersGroupInvite)
+        assertFalse(ChatViewModel.State(subject = group(isMember = null)).offersGroupInvite)
+        assertFalse(ChatViewModel.State(subject = dm).offersGroupInvite)
     }
 
     @Test

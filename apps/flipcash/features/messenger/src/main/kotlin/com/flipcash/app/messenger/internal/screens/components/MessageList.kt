@@ -420,14 +420,15 @@ internal fun MessageList(
                     }
                 }
 
-                // Chat start shows contact info container. A group nobody else has joined shows its
-                // invite card there instead (node 10330:19164), whether or not it has messages:
-                // inviting someone is the thing left to do, and it is the same card a DM transcript
-                // renders for the link, with a different CTA and destination.
-                val inviteUrl = state.groupInviteUrl
+                // Chat start shows contact info container. A group shows its invite card there
+                // instead (node 10330:19164): the same card a DM transcript renders for the link,
+                // with a different CTA and destination. "Invite People" rides on it in every group
+                // the viewer has joined; a group they haven't has no invite to share, so its card
+                // has no button.
                 val inviteGroup = state.subject as? ChatSubject.Group
-                if (state.showsGroupInviteCard && inviteUrl != null && inviteGroup != null) {
+                if (inviteGroup != null) {
                     item(key = "group-invite-card") {
+                        val inviteUrl = state.groupInviteUrl
                         val card = remember(inviteGroup, inviteUrl, state.ruleCurrency) {
                             inviteGroup.toGroupInviteCard(
                                 inviteUrl = inviteUrl,
@@ -448,7 +449,8 @@ internal fun MessageList(
                                 GroupInviteLinkCard(
                                     card = card,
                                     minHeight = cardWidth * GroupInviteCardDefaults.ASPECT,
-                                    ctaLabel = stringResource(R.string.action_linkCard_invitePeople),
+                                    ctaLabel = stringResource(R.string.action_linkCard_invitePeople)
+                                        .takeIf { state.offersGroupInvite },
                                     onStart = { onAction(ChatAction.InviteToGroup) }
                                         .takeIf { !selecting },
                                 )
