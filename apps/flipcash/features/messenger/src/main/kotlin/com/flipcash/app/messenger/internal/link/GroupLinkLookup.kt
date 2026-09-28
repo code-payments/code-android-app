@@ -37,7 +37,7 @@ internal class GroupLinkLookup @Inject constructor(
     suspend operator fun invoke(chatId: ChatId): Result<LinkCard.GroupInvite.State.Resolved> =
         runCatching {
             val chat = chatController.getChat(chatId, ViewMode.REDACTED).getOrThrow()
-            require(chat.type == ChatType.GROUP) { "chat $chatId is not a group" }
+            if (chat.type != ChatType.GROUP) throw NotAGroup(chatId)
 
             val balance = chat.rules.balanceRequirement()
             val staffOnly = chat.rules.requiresStaff()
@@ -61,4 +61,6 @@ internal class GroupLinkLookup @Inject constructor(
                 requirement = requirement,
             )
         }
+
+    class NotAGroup(chatId: ChatId) : IllegalStateException("chat $chatId is not a group")
 }

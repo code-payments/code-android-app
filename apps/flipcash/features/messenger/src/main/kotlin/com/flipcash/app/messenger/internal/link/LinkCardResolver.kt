@@ -2,6 +2,8 @@ package com.flipcash.app.messenger.internal.link
 
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.LinkCardResolution
+import com.flipcash.services.models.GetChatError
+import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
@@ -40,7 +42,8 @@ import java.util.concurrent.ConcurrentHashMap
  * returns the card unchanged, in its unresolved state, and drops the query so a later card asks
  * again. The card has no error state by design: a link that has not resolved is one the reader
  * can still open. The exception is a token, group or person link an earlier visit resolved: a
- * failure there keeps the answer in [LinkCardMemory] rather than taking the card back down.
+ * failed request keeps the answer in [LinkCardMemory] rather than taking the card back down. An
+ * answer that the link names nothing ([meansLinkIsGone]) is not a failed request, and clears it.
  */
 internal class LinkCardResolver(
     private val scope: CoroutineScope,
@@ -189,11 +192,16 @@ internal class LinkCardResolver(
         memoized(groupQueries, chatId) {
             group(chatId).fold(
                 onSuccess = { resolved -> resolved.also { memory.putGroup(chatId, it) } },
-                // A failed refresh keeps what an earlier visit found rather than tearing a resolved
-                // card down to Unavailable; the memo is only ever written over by a success.
-                onFailure = {
+                // A failed request keeps what an earlier visit found rather than tearing a resolved
+                // card down to Unavailable. The server saying the group is gone clears it.
+                onFailure = { error ->
                     forget(groupQueries, chatId)
-                    groupAnswers[chatId] ?: LinkCard.GroupInvite.State.Unavailable
+                    if (error.meansLinkIsGone()) {
+                        memory.removeGroup(chatId)
+                        LinkCard.GroupInvite.State.Unavailable
+                    } else {
+                        groupAnswers[chatId] ?: LinkCard.GroupInvite.State.Unavailable
+                    }
                 },
             )
         }
@@ -202,9 +210,14 @@ internal class LinkCardResolver(
         memoized(userQueries, identity) {
             user(identity).fold(
                 onSuccess = { resolved -> resolved.also { memory.putUser(identity, it) } },
-                onFailure = {
+                onFailure = { error ->
                     forget(userQueries, identity)
-                    userAnswers[identity] ?: LinkCard.User.State.NotFound
+                    if (error.meansLinkIsGone()) {
+                        memory.removeUser(identity)
+                        LinkCard.User.State.NotFound
+                    } else {
+                        userAnswers[identity] ?: LinkCard.User.State.NotFound
+                    }
                 },
             )
         }
@@ -223,4 +236,18 @@ internal class LinkCardResolver(
     private suspend fun <K, V> forget(queries: MutableMap<K, Deferred<V>>, key: K) {
         mutex.withLock { queries.remove(key) }
     }
+}
+
+/**
+ * Whether a failed group or person lookup is the server's answer that the link names nothing, as
+ * opposed to a request that did not complete. Only the first may clear a stored card: a deleted
+ * group has to stop drawing as joinable, and a dropped connection must not take a good card down.
+ */
+internal fun Throwable.meansLinkIsGone(): Boolean = when (this) {
+    is GetChatError.NotFound,
+    is GetChatError.Denied,
+    is GroupLinkLookup.NotAGroup,
+    is GetUserProfileError.NotFound,
+    is UserLinkLookup.NoSuchAccount -> true
+    else -> false
 }

@@ -31,21 +31,25 @@ class LinkPreviewDataSource @Inject constructor() {
         get() = FlipcashDatabase.getInstance()
 
     /**
-     * Every stored preview, read once each time a database opens, and empty while none is.
+     * Every stored preview, read once each time a database opens, and empty while none is. Rows
+     * last written before [writtenSince] returns are deleted first rather than loaded, so the
+     * table holds the links the reader still comes across and not every link ever seen.
      *
      * Not a Room observable query: the writes that follow a load come from the same process that
      * holds the answers in memory, so re-reading the table on each of them would only hand back
      * what the reader already has.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun observeAll(): Flow<List<LinkPreviewRecord>> =
+    fun observeAll(writtenSince: () -> Long): Flow<List<LinkPreviewRecord>> =
         FlipcashDatabase.observeInstance().flatMapLatest { instance ->
             if (instance == null) {
                 flowOf(emptyList())
             } else {
                 flow {
+                    val dao = instance.linkPreviewDao()
+                    dao.deleteWrittenBefore(writtenSince())
                     emit(
-                        instance.linkPreviewDao().getAll().map {
+                        dao.getAll().map {
                             LinkPreviewRecord(key = it.key, json = it.json, updatedAt = it.updatedAt)
                         },
                     )

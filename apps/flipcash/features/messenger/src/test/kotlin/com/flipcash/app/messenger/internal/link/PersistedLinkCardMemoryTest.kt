@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.mock
@@ -25,6 +26,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 
 /**
  * What a cold start sees: an answer stored by one [PersistedLinkCardMemory] is what a fresh one
@@ -56,6 +59,7 @@ class PersistedLinkCardMemoryTest {
     private class FakeTable {
         val rows = linkedMapOf<String, LinkPreviewRecord>()
         val writes = mutableListOf<String>()
+        val cutoffs = mutableListOf<Long>()
         val opened = MutableStateFlow<List<LinkPreviewRecord>>(emptyList())
 
         fun reopen() {
@@ -63,7 +67,10 @@ class PersistedLinkCardMemoryTest {
         }
 
         val source: LinkPreviewDataSource = mock {
-            on { observeAll() } doReturn opened
+            on { observeAll(any()) } doAnswer {
+                cutoffs += it.getArgument<() -> Long>(0)()
+                opened
+            }
             onBlocking { upsert(any()) } doSuspendableAnswer {
                 val record = it.getArgument<LinkPreviewRecord>(0)
                 rows[record.key] = record
@@ -76,11 +83,14 @@ class PersistedLinkCardMemoryTest {
         }
     }
 
+    private var clock = 100.days.inWholeMilliseconds
+
     private fun TestScope.memory(table: FakeTable, viewer: List<Byte>? = myId) = PersistedLinkCardMemory(
         store = table.source,
         userManager = mock<UserManager> { on { accountId } doReturn viewer },
         resources = mock<ResourceHelper>(),
         dispatchers = TestDispatcherProvider(StandardTestDispatcher(testScheduler)),
+        now = { clock },
     )
 
     @Test
@@ -140,6 +150,51 @@ class PersistedLinkCardMemoryTest {
         advanceUntilIdle()
 
         assertEquals(1, table.writes.size)
+    }
+
+    @Test
+    fun `an unchanged answer rewrites its row once a day, so a card in use does not expire`() = runTest {
+        val table = FakeTable()
+        val memory = memory(table)
+        advanceUntilIdle()
+        memory.putGroup(chatId, group)
+        advanceUntilIdle()
+
+        clock += 23.hours.inWholeMilliseconds
+        memory.putGroup(chatId, group)
+        advanceUntilIdle()
+        assertEquals(1, table.writes.size)
+
+        clock += 2.hours.inWholeMilliseconds
+        memory.putGroup(chatId, group)
+        advanceUntilIdle()
+        assertEquals(2, table.writes.size)
+        assertEquals(clock, table.rows.values.single().updatedAt)
+    }
+
+    @Test
+    fun `rows not written in 30 days are dropped when the table is read`() = runTest {
+        val table = FakeTable()
+        table.reopen()
+        memory(table)
+        advanceUntilIdle()
+
+        assertEquals(listOf(clock - 30.days.inWholeMilliseconds), table.cutoffs)
+    }
+
+    @Test
+    fun `a group the server no longer has is deleted from disk`() = runTest {
+        val table = FakeTable()
+        val memory = memory(table)
+        advanceUntilIdle()
+        memory.putGroup(chatId, group)
+        advanceUntilIdle()
+
+        memory.removeGroup(chatId)
+        advanceUntilIdle()
+
+        assertNull(memory.groups[chatId])
+        assertTrue(table.rows.isEmpty())
     }
 
     @Test

@@ -45,6 +45,16 @@ class LinkPreviewDaoTest {
     }
 
     @Test
+    fun `rows written before the cutoff are dropped, later ones kept`() = runTest {
+        dao.upsert(LinkPreviewEntity(key = "group:old", json = "{}", updatedAt = 99))
+        dao.upsert(LinkPreviewEntity(key = "group:new", json = "{}", updatedAt = 100))
+
+        dao.deleteWrittenBefore(100)
+
+        assertEquals(listOf("group:new"), dao.getAll().map { it.key })
+    }
+
+    @Test
     fun `a deleted link is gone`() = runTest {
         dao.upsert(LinkPreviewEntity(key = "group:ab", json = "{}", updatedAt = 1))
         dao.delete("group:ab")

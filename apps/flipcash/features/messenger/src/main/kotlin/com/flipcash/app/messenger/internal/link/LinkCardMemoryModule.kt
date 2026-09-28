@@ -1,7 +1,10 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.app.persistence.sources.LinkPreviewDataSource
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.MessageLinkPrefetch
+import com.getcode.util.resources.ResourceHelper
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -24,6 +27,15 @@ internal abstract class LinkCardMemoryModule {
     abstract fun bindMessageLinkPrefetch(impl: MessageLinkPrefetcher): MessageLinkPrefetch
 
     companion object {
+        @Provides
+        @Singleton
+        fun providePersistedLinkCardMemory(
+            store: LinkPreviewDataSource,
+            userManager: UserManager,
+            resources: ResourceHelper,
+            dispatchers: DispatcherProvider,
+        ): PersistedLinkCardMemory = PersistedLinkCardMemory(store, userManager, resources, dispatchers)
+
         @Provides
         @Singleton
         fun provideMessageLinkPrefetcher(

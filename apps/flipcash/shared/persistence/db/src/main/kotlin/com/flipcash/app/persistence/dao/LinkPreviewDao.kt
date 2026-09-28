@@ -18,4 +18,8 @@ interface LinkPreviewDao {
 
     @Query("DELETE FROM link_previews WHERE `key` = :key")
     suspend fun delete(key: String)
+
+    /** Drops every preview last written before [cutoffMillis]. */
+    @Query("DELETE FROM link_previews WHERE updated_at < :cutoffMillis")
+    suspend fun deleteWrittenBefore(cutoffMillis: Long)
 }

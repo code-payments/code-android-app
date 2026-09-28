@@ -47,6 +47,16 @@ internal open class LinkCardMemory {
         _users[identity] = state
     }
 
+    /** Forgets [chatId]'s answer: the server said the group is gone. */
+    open fun removeGroup(chatId: ChatId) {
+        _groups.remove(chatId)
+    }
+
+    /** Forgets [identity]'s answer: the server said there is no such account. */
+    open fun removeUser(identity: LinkCard.User.Identity) {
+        _users.remove(identity)
+    }
+
     /**
      * Suspends until whatever was stored has been read back, so a transcript mapped after it finds
      * every stored answer. Memory alone has nothing to read.

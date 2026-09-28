@@ -19,9 +19,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import javax.inject.Inject
-import javax.inject.Singleton
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 
 /**
  * [LinkCardMemory] that also keeps group and person answers in `link_previews`, so the first visit
@@ -34,28 +34,36 @@ import kotlin.time.Clock
  * The table is per user, like the database it lives in. Each time a database opens it is read
  * whole into memory, replacing whatever the previous user had, and a logout empties both.
  *
+ * A row not written for [MAX_AGE] is dropped when the table is next read, so a link the reader
+ * has stopped coming across does not stay forever. Drawing a card rewrites its row, at most once
+ * per [REWRITE_AFTER] when the answer has not changed, to keep a card still in use from expiring.
+ *
  * A person is stored as their public profile, not as the finished card: whether the link is the
  * viewer's own and how the join date is worded are worked out again on load, so neither a
  * different account nor a different locale reads a stale answer.
  */
 @OptIn(ExperimentalStdlibApi::class)
-@Singleton
-internal class PersistedLinkCardMemory @Inject constructor(
+internal class PersistedLinkCardMemory(
     private val store: LinkPreviewDataSource,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,
+    private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : LinkCardMemory() {
 
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.IO)
     private val loaded = MutableStateFlow(false)
 
+    /** When each stored row was last written, so an unchanged answer rewrites it only when due. */
+    private val writtenAt = ConcurrentHashMap<String, Long>()
+
     init {
         scope.launch {
-            store.observeAll().collect { records ->
+            store.observeAll(writtenSince = { now() - MAX_AGE.inWholeMilliseconds }).collect { records ->
                 loaded.value = false
                 _groups.clear()
                 _users.clear()
+                writtenAt.clear()
                 records.forEach { load(it) }
                 loaded.value = true
                 trace(tag = TAG, message = "Loaded ${records.size} link previews", type = TraceType.Process)
@@ -68,19 +76,41 @@ internal class PersistedLinkCardMemory @Inject constructor(
     }
 
     override fun putGroup(chatId: ChatId, state: LinkCard.GroupInvite.State.Resolved) {
-        if (_groups.put(chatId, state) == state) return
-        write(groupKey(chatId), json.encodeToString(StoredGroup.serializer(), StoredGroup.of(state)))
+        val key = groupKey(chatId)
+        if (_groups.put(chatId, state) == state && !rewriteDue(key)) return
+        write(key, json.encodeToString(StoredGroup.serializer(), StoredGroup.of(state)))
     }
 
     override fun putUser(identity: LinkCard.User.Identity, state: LinkCard.User.State.Resolved) {
-        if (_users.put(identity, state) == state) return
-        write(userKey(identity), json.encodeToString(UserProfile.serializer(), state.profile.publicOnly()))
+        val key = userKey(identity)
+        if (_users.put(identity, state) == state && !rewriteDue(key)) return
+        write(key, json.encodeToString(UserProfile.serializer(), state.profile.publicOnly()))
+    }
+
+    override fun removeGroup(chatId: ChatId) {
+        if (_groups.remove(chatId) != null) delete(groupKey(chatId))
+    }
+
+    override fun removeUser(identity: LinkCard.User.Identity) {
+        if (_users.remove(identity) != null) delete(userKey(identity))
+    }
+
+    private fun rewriteDue(key: String): Boolean =
+        now() - (writtenAt[key] ?: 0L) >= REWRITE_AFTER.inWholeMilliseconds
+
+    private fun delete(key: String) {
+        writtenAt.remove(key)
+        scope.launch {
+            runCatching { store.delete(key) }
+                .onFailure { trace(tag = TAG, message = "Failed to delete $key", error = it) }
+        }
     }
 
     private fun write(key: String, value: String) {
+        writtenAt[key] = now()
         scope.launch {
             runCatching {
-                store.upsert(LinkPreviewRecord(key, value, Clock.System.now().toEpochMilliseconds()))
+                store.upsert(LinkPreviewRecord(key, value, writtenAt[key] ?: now()))
             }.onFailure { trace(tag = TAG, message = "Failed to store $key", error = it) }
         }
     }
@@ -106,7 +136,7 @@ internal class PersistedLinkCardMemory @Inject constructor(
                 else -> error("unknown key")
             }
         }.isSuccess
-        if (!loadedOk) runCatching { store.delete(record.key) }
+        if (loadedOk) writtenAt[record.key] = record.updatedAt else runCatching { store.delete(record.key) }
     }
 
     /** A group card's answer as stored. Mirrors [LinkCard.GroupInvite.State.Resolved]. */
@@ -147,6 +177,8 @@ internal class PersistedLinkCardMemory @Inject constructor(
 
     private companion object {
         const val TAG = "LinkCardMemory"
+        val MAX_AGE = 30.days
+        val REWRITE_AFTER = 1.days
         const val GROUP_PREFIX = "group:"
         const val USER_PREFIX = "user:"
         const val BY_ID = "id:"

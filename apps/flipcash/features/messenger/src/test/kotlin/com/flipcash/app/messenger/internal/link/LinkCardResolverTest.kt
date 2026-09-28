@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.services.models.GetChatError
+import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.models.LinkCard
@@ -455,6 +457,68 @@ class LinkCardResolverTest {
 
         val offline = groupResolver(memory) { Result.failure(IllegalStateException("offline")) }
         assertEquals(earlier, (offline.resolve(groupCard) as LinkCard.GroupInvite).state)
+    }
+
+    @Test
+    fun `a group the server no longer has clears the one an earlier visit resolved`() = runTest {
+        val memory = LinkCardMemory()
+        val earlier = LinkCard.GroupInvite.State.Resolved(
+            title = "Olive Branch",
+            picture = null,
+            memberCount = 5,
+            requirement = null,
+        )
+        groupResolver(memory) { Result.success(earlier) }.resolve(groupCard)
+
+        val deleted = groupResolver(memory) { Result.failure(GetChatError.NotFound()) }
+        assertEquals(
+            LinkCard.GroupInvite.State.Unavailable,
+            (deleted.resolve(groupCard) as LinkCard.GroupInvite).state,
+        )
+        assertNull(memory.groups[groupCard.chatId])
+    }
+
+    @Test
+    fun `an account the server no longer has clears the person an earlier visit resolved`() = runTest {
+        val memory = LinkCardMemory()
+        val identity = LinkCard.User.Identity.ByUsername("satoshi")
+        val card = LinkCard.User(
+            url = "https://app.flipcash.com/u/satoshi",
+            start = 0,
+            end = 34,
+            identity = identity,
+            state = LinkCard.User.State.Loading,
+        )
+        val earlier = userCardState(
+            profile = UserProfile(
+                displayName = "Satoshi",
+                socialAccounts = emptyList(),
+                phoneNumber = null,
+                email = null,
+                userId = List(16) { 1 },
+                username = "satoshi",
+            ),
+            viewerId = null,
+            joined = { "" },
+        )!!
+        memory.putUser(identity, earlier)
+
+        fun resolver(error: Throwable) = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("unused")) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(error) },
+            memory = memory,
+        )
+
+        // A dropped connection keeps the card; the server's not-found takes it down.
+        assertEquals(earlier, (resolver(IllegalStateException("offline")).resolve(card) as LinkCard.User).state)
+        assertEquals(
+            LinkCard.User.State.NotFound,
+            (resolver(GetUserProfileError.NotFound()).resolve(card) as LinkCard.User).state,
+        )
+        assertNull(memory.users[identity])
     }
 
     @Test
