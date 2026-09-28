@@ -62,12 +62,13 @@ class BlockedUserDataSource @Inject constructor(
     /**
      * Writes the blocked user's name + avatar into the shared `user_profiles` table without
      * disturbing any richer profile already cached from a chat (the blocklist only resolves
-     * those two fields). See [com.flipcash.app.persistence.dao.UserProfileDao.upsertNameAndAvatar].
+     * those two fields). A null profile means the fetch failed, so the cached name stays rather
+     * than being blanked. See [com.flipcash.app.persistence.dao.UserProfileDao.upsertNameAndAvatar].
      */
     private suspend fun FlipcashDatabase.writeProfile(resolved: ResolvedBlockedUser) {
         userProfileDao().upsertNameAndAvatar(
             userIdHex = resolved.blocked.userId.hexEncodedString(),
-            displayName = resolved.profile?.displayName.orEmpty(),
+            displayName = resolved.profile?.displayName,
             profilePicture = resolved.profile?.profilePicture,
         )
     }
