@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.models
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.shared.chat.reactions.ReactionPill
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
 
@@ -108,8 +109,8 @@ sealed interface ChatAction {
     /** Opens the full emoji picker for [messageId], from the pill row's or the quick strip's "+". */
     data class OpenReactionPicker(val messageId: Long) : ChatAction
 
-    /** Opens who-reacted for [messageId], from a long-press on a pill. */
-    data class OpenReactors(val messageId: Long) : ChatAction
+    /** Opens who-reacted for [messageId], from a long-press on one of its [pills]. */
+    data class OpenReactors(val messageId: Long, val pills: List<ReactionPill>) : ChatAction
 
     /**
      * Asks the coordinator to refresh reaction state for [messageIds] — the transcript's own

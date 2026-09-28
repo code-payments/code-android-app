@@ -427,7 +427,7 @@ internal fun MessageRow(
                                             onAction(ChatAction.ToggleReaction(item.messageId, emoji))
                                         },
                                         onPillLongClick = {
-                                            onAction(ChatAction.OpenReactors(item.messageId))
+                                            onAction(ChatAction.OpenReactors(item.messageId, item.reactionPills))
                                         },
                                         onOpenPicker = {
                                             onAction(ChatAction.OpenReactionPicker(item.messageId))

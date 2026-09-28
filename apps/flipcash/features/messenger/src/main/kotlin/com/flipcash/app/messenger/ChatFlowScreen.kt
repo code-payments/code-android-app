@@ -2,11 +2,11 @@ package com.flipcash.app.messenger
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -57,7 +57,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 
 @Composable
 fun ChatFlowScreen(
@@ -159,6 +158,12 @@ private fun FlowConversationScreen(
                 hasOpened = true
             }
         }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatViewModel.Event.ShowReactorProfile>()
+            .collect { navigator.push(ChatStep.Profile(contact = it.participant)) }
     }
 
     LaunchedEffect(viewModel) {
@@ -359,9 +364,18 @@ private fun FlowEditGroupPictureScreen() {
 private fun FlowReactionPickerScreen(messageId: Long) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    // OpenReactionPicker opened it; this entry leaving the back stack is what closes it.
+    DisposableEffect(viewModel, messageId) {
+        onDispose { viewModel.dispatchEvent(ChatViewModel.Event.EmojiPickerDismissed(messageId)) }
+    }
+    val picker = state.emojiPicker?.takeIf { it.messageId == messageId }
 
     ReactionPickerSheet(
-        loadSections = { query -> viewModel.emojiPickerSections(query) },
+        query = picker?.query.orEmpty(),
+        sections = picker?.sections.orEmpty(),
+        loaded = picker?.loaded == true,
+        onQueryChanged = { viewModel.dispatchEvent(ChatViewModel.Event.EmojiPickerQueryChanged(it)) },
         onSelected = { emoji ->
             viewModel.dispatchEvent(
                 ChatViewModel.Event.ToggleReaction(messageId, emoji, clearsSelection = true)
@@ -373,50 +387,30 @@ private fun FlowReactionPickerScreen(messageId: Long) {
 }
 
 /**
- * Who reacted to [messageId], and with what. Tapping a row dismisses this sheet first, then opens
- * the reactor's profile — [ChatViewModel.reactorParticipant] resolves a [ChatParticipant] even for
- * a reactor absent from `senderProfiles`.
+ * Who reacted to [messageId], and with what. Tapping a row dismisses this sheet first; the profile
+ * opens from [FlowConversationScreen] once [ChatViewModel.Event.ShowReactorProfile] names the
+ * participant, since this entry is gone by then.
  */
 @Composable
 private fun FlowReactorsScreen(messageId: Long) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
-    val navigator = LocalCodeNavigator.current
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
-    val coroutineScope = rememberCoroutineScope()
-
-    val pills by remember(viewModel, messageId) { viewModel.reactionPills(messageId) }
-        .collectAsStateWithLifecycle(initialValue = emptyList())
-    val rows by remember(viewModel, messageId) { viewModel.reactorsRows(messageId) }
-        .collectAsStateWithLifecycle(initialValue = emptyList())
-    val loading by remember(viewModel, messageId) { viewModel.reactorsLoading(messageId) }
-        .collectAsStateWithLifecycle(initialValue = true)
-
-    // OpenReactors already started the fetch; this catches reactions that change while the sheet
-    // is up. Collected here rather than off `pills` above, whose empty initial value would read as
-    // "every reaction removed". The first emission is a no-op unless the pills moved since the
-    // long-press.
-    LaunchedEffect(viewModel, messageId) {
-        viewModel.reactionPills(messageId).collect { viewModel.syncReactors(messageId, it) }
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    // OpenReactors opened it; this entry leaving the back stack is what closes it.
+    DisposableEffect(viewModel, messageId) {
+        onDispose { viewModel.dispatchEvent(ChatViewModel.Event.ReactorsDismissed(messageId)) }
     }
+    val reactors = state.reactors?.takeIf { it.messageId == messageId }
 
     ReactorsSheet(
-        pills = pills,
-        rows = rows,
-        loading = loading,
-        hasMore = { viewModel.reactorsHasMore(messageId) },
-        resolveDisplay = { userId -> viewModel.reactorDisplay(userId) },
-        onLoadMore = { viewModel.loadMoreReactors(messageId) },
+        pills = reactors?.pills.orEmpty(),
+        rows = reactors?.rows.orEmpty(),
+        loading = reactors?.loading ?: true,
+        hasMore = reactors?.hasMore == true,
+        onLoadMore = { viewModel.dispatchEvent(ChatViewModel.Event.LoadMoreReactors) },
         onOpenProfile = { userId ->
-            // Dismiss first (decision: profile opens after the sheet closes), then resolve the
-            // participant — a row is only tappable once reactorDisplay has already resolved it, so
-            // this is a re-read of state already on screen rather than a fresh network round trip
-            // in the common case; reactorParticipant only reaches further (member roster, cached
-            // profile store) for a reactor absent from senderProfiles.
             dismissSheet()
-            coroutineScope.launch {
-                val participant = viewModel.reactorParticipant(userId) ?: return@launch
-                navigator.push(ChatStep.Profile(contact = participant))
-            }
+            viewModel.dispatchEvent(ChatViewModel.Event.OpenReactorProfile(userId))
         },
         onDismiss = dismissSheet,
     )
