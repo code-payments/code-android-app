@@ -410,6 +410,12 @@ private fun TextBubble(
             color = CodeTheme.colors.textMain,
             textDecoration = TextDecoration.Underline,
         )
+        // The pill is what marks a mention, so its letters stay the body's own. A tappable span
+        // with no style of its own is drawn as a web link, underlined in the platform's colour.
+        val mentionStyle = SpanStyle(
+            color = CodeTheme.colors.textMain,
+            textDecoration = TextDecoration.None,
+        )
         // Read through the latest handler, so a recomposition that hands over a new lambda does
         // not rebuild the body; only whether mentions can be tapped at all is part of its key.
         val currentOnMentionClick by rememberUpdatedState(onMentionClick)
@@ -418,11 +424,12 @@ private fun TextBubble(
         val mentioned = if (isTombstone) {
             null
         } else {
-            remember(bodyString, mentions, linkStyle, mentionsTappable) {
+            remember(bodyString, mentions, linkStyle, mentionStyle, mentionsTappable) {
                 buildMentionedText(
                     text = bodyString,
                     mentions = mentions,
                     linkStyle = linkStyle,
+                    mentionStyle = mentionStyle,
                     onMentionClick = if (mentionsTappable) {
                         { username -> currentOnMentionClick?.invoke(username) }
                     } else {
@@ -497,6 +504,7 @@ private fun TextBubble(
             Text(
                 modifier = Modifier
                     .padding(horizontal = bodyInset)
+                    .widestLine(measurer, laidOut, bodyStyle, inlineContent)
                     .then(
                         if (handles.isEmpty()) {
                             Modifier

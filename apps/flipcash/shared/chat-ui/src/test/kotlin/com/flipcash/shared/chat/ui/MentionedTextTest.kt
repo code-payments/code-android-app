@@ -1,8 +1,10 @@
 package com.flipcash.shared.chat.ui
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.style.TextDecoration
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -15,8 +17,10 @@ import kotlin.test.assertTrue
 @Config(manifest = Config.NONE)
 class MentionedTextTest {
 
+    private val mentionStyle = SpanStyle(color = Color.White, textDecoration = TextDecoration.None)
+
     private fun build(text: String, onClick: ((String) -> Unit)? = {}) =
-        buildMentionedText(text, detectMentions(text, detectUrls(text)), SpanStyle(), onClick)
+        buildMentionedText(text, detectMentions(text, detectUrls(text)), SpanStyle(), mentionStyle, onClick)
 
     @Test
     fun `each handle sits between two spacing placeholders`() {
@@ -37,6 +41,13 @@ class MentionedTextTest {
         assertEquals(3 to 10, link.start to link.end)
         (link.item as LinkAnnotation.Clickable).linkInteractionListener!!.onClick(link.item)
         assertEquals("jeff", tapped)
+    }
+
+    @Test
+    fun `a tappable mention carries its own style, so it is not drawn as a web link`() {
+        val link = build("hi @jeff").text.getLinkAnnotations(0, 10).single()
+
+        assertEquals(mentionStyle, (link.item as LinkAnnotation.Clickable).styles?.style)
     }
 
     @Test

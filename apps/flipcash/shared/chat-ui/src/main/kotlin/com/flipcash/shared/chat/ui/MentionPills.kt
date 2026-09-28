@@ -64,6 +64,7 @@ internal fun buildMentionedText(
     text: String,
     mentions: List<DetectedMention>,
     linkStyle: SpanStyle,
+    mentionStyle: SpanStyle,
     onMentionClick: ((String) -> Unit)?,
 ): MentionedText {
     val ordered = mentions.sortedBy { it.start }
@@ -81,9 +82,14 @@ internal fun buildMentionedText(
             handles += TextRange(handleStart, length)
             appendInlineContent(MENTION_SPACING_SLOT, MENTION_SPACING_STAND_IN)
             // Over the spacing as well as the letters, so the whole pill takes the tap.
-            if (onMentionClick != null) {
+            if (onMentionClick == null) {
+                addStyle(mentionStyle, handleStart, length)
+            } else {
                 addLink(
-                    LinkAnnotation.Clickable(tag = mention.username) { onMentionClick(mention.username) },
+                    LinkAnnotation.Clickable(
+                        tag = mention.username,
+                        styles = TextLinkStyles(style = mentionStyle),
+                    ) { onMentionClick(mention.username) },
                     start = tapStart,
                     end = length,
                 )
