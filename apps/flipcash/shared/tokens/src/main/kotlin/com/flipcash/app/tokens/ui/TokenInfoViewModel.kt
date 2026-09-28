@@ -281,27 +281,29 @@ class TokenInfoViewModel @Inject constructor(
                 dispatchEvent(Event.OnTransactionHistoryEnabled(hasAccount))
             }.launchIn(viewModelScope)
 
+        // Both de-dupes below key on the mint as well as the market cap: the overlay reuses this VM across
+        // opens, and two mints can share a market cap, which would otherwise skip the second mint's chart load.
         eventFlow
             .filterIsInstance<Event.OnBalanceUpdated>()
             .map { _ ->
-                val token = stateFlow.value.token.dataOrNull ?: return@map null
-                token.marketCap()
+                val token = stateFlow.value.token.dataOrNull ?: return@map null to null
+                token.address to token.marketCap()
             }
-            .flatMapLatest { mcap ->
+            .flatMapLatest { (mint, mcap) ->
                 combine(
                     flowOf(mcap),
                     exchange.observePreferredRate(),
                 ) { usdMcap, rate ->
-                    usdMcap?.convertingTo(rate)
+                    mint to usdMcap?.convertingTo(rate)
                 }
-            }.distinctUntilChanged().onEach {
-                dispatchEvent(Event.OnMarketCapChanged(it))
+            }.distinctUntilChanged().onEach { (_, mcap) ->
+                dispatchEvent(Event.OnMarketCapChanged(mcap))
             }
             .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnMarketCapChanged>()
-            .mapNotNull { it.mcap }
+            .mapNotNull { event -> event.mcap?.let { stateFlow.value.mint to it } }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.LoadHistoricalDataForPeriod(stateFlow.value.selectedPeriod)) }
             .launchIn(viewModelScope)
