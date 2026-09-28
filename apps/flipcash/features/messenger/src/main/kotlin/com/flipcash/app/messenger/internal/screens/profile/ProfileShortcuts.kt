@@ -25,6 +25,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 // Used by the held-back Send Cash shortcut below.
 // import com.flipcash.app.messenger.internal.screens.components.CondensedSymbolFontSize
@@ -56,6 +58,16 @@ internal fun profileShortcutRecipient(
     if (selfId != null && user.userId == selfId) return null
     return user
 }
+
+/**
+ * The DM a profile's shortcuts open with [this] person: Message opens it, Send Cash opens it with
+ * a payment already started.
+ */
+internal fun ChatParticipant.TipUser.dmRoute(openSendCash: Boolean = false) =
+    AppRoute.Messaging.Chat(
+        identifier = ChatIdentifier.ByUser(userId, profile),
+        openSendCash = openSendCash,
+    )
 
 /**
  * The Message and Send Cash shortcuts under a profile's identity lines.

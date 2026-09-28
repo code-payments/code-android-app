@@ -1194,6 +1194,9 @@
     <string name="error_description_usernameNotFound">Nobody has claimed \@%1$s</string>
     <string name="error_title_tipCardUnavailable">Couldn\'t Open Tip Card</string>
     <string name="error_description_tipCardUnavailable">Please check your connection and try again</string>
+    <!-- A tapped `flipcash.com/{username}` or `flipcash.com/{uuid}` link whose profile couldn't be fetched. -->
+    <string name="error_title_profileUnavailable">Couldn\'t Open Profile</string>
+    <string name="error_description_profileUnavailable">Please check your connection and try again</string>
 
     <string name="error_title_profilePhotoNotAllowed">This Photo is Not Allowed</string>
     <string name="error_description_profilePhotoNotAllowedFlaggedOther">AI flagged this photo. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>

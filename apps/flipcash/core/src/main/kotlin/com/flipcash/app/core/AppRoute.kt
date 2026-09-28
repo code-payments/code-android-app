@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.reporting.ReportStep
 import com.flipcash.app.core.chat.NewGroupStep
@@ -358,6 +359,20 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         @Parcelize
         data object NewChat : Messaging
+
+        /**
+         * Another person's profile, opened on its own rather than from inside a chat — the
+         * destination of a `flipcash.com/{username}` or `flipcash.com/{uuid}` link.
+         *
+         * A top-level route rather than [ChatStep.Profile]: that step belongs to a conversation
+         * and reads the person off the chat's view model, and a link names a person with no
+         * conversation behind it. Its Message shortcut pushes [Chat] on top of it.
+         *
+         * Not [Menu.UserProfile], which is the viewer's own account.
+         */
+        @Serializable
+        @Parcelize
+        data class Profile(val address: ProfileAddress) : Messaging
 
         /** Node 9442:5825 — starting a chat by typing someone's `@handle`. */
         @Serializable

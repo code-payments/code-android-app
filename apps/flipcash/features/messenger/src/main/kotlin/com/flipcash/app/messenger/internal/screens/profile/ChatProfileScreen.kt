@@ -21,7 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ReportSubject
@@ -253,9 +252,3 @@ internal fun ProfileHeader(
         }
     }
 }
-
-private fun ChatParticipant.TipUser.dmRoute(openSendCash: Boolean = false) =
-    AppRoute.Messaging.Chat(
-        identifier = ChatIdentifier.ByUser(userId, profile),
-        openSendCash = openSendCash,
-    )

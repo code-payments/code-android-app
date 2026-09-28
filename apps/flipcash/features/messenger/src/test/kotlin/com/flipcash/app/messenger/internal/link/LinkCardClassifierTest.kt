@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
@@ -276,10 +277,10 @@ private fun DeepLink.profileLinkForTest(): DeeplinkType? {
     if (uri.host?.removePrefix("www.") != "flipcash.com") return null
     val segment = uri.pathSegments.singleOrNull()?.lowercase() ?: return null
     if (Regex("^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$").matches(segment)) {
-        return DeeplinkType.Tipcard(UUID.fromString(segment).bytes)
+        return DeeplinkType.Profile(ProfileAddress.ById(UUID.fromString(segment).bytes))
     }
     return if (segment.isUsernameShaped() && segment !in reservedProfilePathsForTest) {
-        DeeplinkType.TipcardByUsername(segment)
+        DeeplinkType.Profile(ProfileAddress.ByUsername(segment))
     } else {
         null
     }
