@@ -223,6 +223,48 @@ class TipPaymentDelegateTest {
     }
 
     @Test
+    fun `minimumToOpenDmWith rounds the converted fee up so it can't be undercut`() = runTest {
+        every { userFlags.resolvedFlags } returns usdPresets()
+        every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
+        // 600 INR at 95.95 INR/USD is 6.2533... USD — half-up rounding states it as $6.25, which is
+        // short of the fee (6.25 * 95.95 = 599.69 < 600). Rounding up to $6.26 keeps the stated floor
+        // from ever understating the fee.
+        every { exchange.rateToUsd(CurrencyCode.INR) } returns Rate(fx = 1 / 95.95, currency = CurrencyCode.USD)
+
+        val recipient = recipient(Fiat(600.0, CurrencyCode.INR))
+        val min = buildDelegate().minimumToOpenDmWith(recipient).first { it != null }
+
+        assertEquals(6.26, min!!.toDouble())
+        assertTrue(min.toDouble() * 95.95 >= 600.0)
+    }
+
+    @Test
+    fun `minimumToOpenDmWith rounds another currency's converted fee up too`() = runTest {
+        every { userFlags.resolvedFlags } returns usdPresets()
+        every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
+        // 1500 NGN at 1326 NGN/USD is 1.1312... USD, which rounds up to $1.14 (not the half-up $1.13).
+        every { exchange.rateToUsd(CurrencyCode.NGN) } returns Rate(fx = 1 / 1326.0, currency = CurrencyCode.USD)
+
+        val recipient = recipient(Fiat(1500.0, CurrencyCode.NGN))
+        val min = buildDelegate().minimumToOpenDmWith(recipient).first { it != null }
+
+        assertEquals(1.14, min!!.toDouble())
+    }
+
+    @Test
+    fun `minimumToOpenDmWith does not bump a fee that converts exactly`() = runTest {
+        every { userFlags.resolvedFlags } returns usdPresets()
+        every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
+        // 600 INR at an even 100 INR/USD is exactly $6.00 — rounding up must not bump an exact value.
+        every { exchange.rateToUsd(CurrencyCode.INR) } returns Rate(fx = 1 / 100.0, currency = CurrencyCode.USD)
+
+        val recipient = recipient(Fiat(600.0, CurrencyCode.INR))
+        val min = buildDelegate().minimumToOpenDmWith(recipient).first { it != null }
+
+        assertEquals(6.00, min!!.toDouble())
+    }
+
+    @Test
     fun `minimumTipFor drops to the system minimum once a chat exists`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))

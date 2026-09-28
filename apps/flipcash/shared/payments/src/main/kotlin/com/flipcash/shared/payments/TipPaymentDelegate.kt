@@ -212,12 +212,15 @@ class TipPaymentDelegate @Inject constructor(
     /**
      * This amount in [target], routed through USD — the only rate every currency has. Null when
      * either leg has no rate, which is the caller's cue to fall back rather than mix currencies.
+     *
+     * Rounds up because the result is a fee floor: half-up can state one below the fee, which the
+     * client then accepts and the server denies.
      */
     private fun Fiat.inCurrency(target: CurrencyCode): Fiat? {
         if (currencyCode == target) return this
         val usd = exchange.rateToUsd(currencyCode)?.let { convertingTo(it) } ?: return null
-        if (target == CurrencyCode.USD) return usd.rounded()
-        return exchange.rateFor(target)?.let { usd.convertingTo(it).rounded() }
+        if (target == CurrencyCode.USD) return usd.roundedUp()
+        return exchange.rateFor(target)?.let { usd.convertingTo(it).roundedUp() }
     }
 
     /**
