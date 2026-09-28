@@ -1,23 +1,34 @@
 package com.flipcash.app.messenger.internal.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
@@ -33,18 +44,23 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.media.rememberMediaUrl
 import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
-import com.flipcash.app.messenger.internal.screens.profile.ProfileShortcut
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.messenger.R
@@ -53,14 +69,15 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeSource
@@ -109,72 +126,86 @@ internal fun GroupInviteSheet(
             ?: BlobAccessContext.Owned,
     )
 
-    Column(
+    val hazeState = rememberHazeState()
+    val density = LocalDensity.current
+    val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
+    val scrimColor = CodeTheme.colors.surface
+    var headerHeight by remember { mutableStateOf(0.dp) }
+    var fieldHeight by remember { mutableStateOf(0.dp) }
+    var copied by remember { mutableStateOf(false) }
+
+    // Held above the gesture bar, and dropped once the keyboard is up: the keyboard already lifts
+    // the whole sheet clear of it, so counting both would leave a gap over the keys.
+    val navigationBar = WindowInsets.navigationBars
+        .exclude(WindowInsets.ime)
+        .asPaddingValues()
+        .calculateBottomPadding()
+    // The field sits inside the bottom scrim, which is as tall as the header, so the two edges fade
+    // the same depth. iOS reaches the screen edge; here the gesture bar keeps it higher.
+    val composerBottom = maxOf(headerHeight - fieldHeight, ComposerMinBottom, navigationBar)
+    val recentChats = state.invitable.orEmpty()
+
+    // No pinned header: the title bar and, once a chat is picked, the message field float over the
+    // one list, which scrolls under both and fades out at each edge (node 10330:19387).
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
+            .fillMaxSize()
             .imePadding(),
     ) {
-        AppBarWithTitle(
-            title = stringResource(R.string.title_invitePeople),
-            titleAlignment = Alignment.CenterHorizontally,
-            endContent = { AppBarDefaults.Close(onClick = onDismiss) },
-        )
-
-        if (inviteUrl == null) return@Column
-
-        Row(
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x4),
-            horizontalArrangement = Arrangement.spacedBy(
-                CodeTheme.dimens.staticGrid.x3,
-                Alignment.CenterHorizontally,
+                .fillMaxSize()
+                .hazeSource(hazeState),
+            contentPadding = PaddingValues(
+                top = headerHeight,
+                bottom = if (state.showsComposer) {
+                    maxOf(headerHeight, composerBottom + fieldHeight)
+                } else {
+                    headerHeight
+                },
             ),
         ) {
-            ProfileShortcut(
-                label = stringResource(R.string.action_shareInviteLink),
-                onClick = {
-                    onShare()
-                    scope.launch {
-                        shareController.present(
-                            Shareable.GroupInvite(
-                                url = inviteUrl,
-                                title = group?.groupTitle,
-                                imageUrl = pictureUrl.url,
-                                imageCacheKey = picture
-                                    ?.cacheKeyForSize(SharePreviewImage.TARGET_PX),
-                            )
+            if (inviteUrl != null) {
+                item(key = "links") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = ListInset, vertical = TileRowVertical),
+                        horizontalArrangement = Arrangement.spacedBy(TileGap),
+                    ) {
+                        InviteLinkTile(
+                            modifier = Modifier.weight(1f),
+                            icon = R.drawable.ic_share_os,
+                            label = stringResource(R.string.action_shareInviteLink),
+                            onClick = {
+                                onShare()
+                                scope.launch {
+                                    shareController.present(
+                                        Shareable.GroupInvite(
+                                            url = inviteUrl,
+                                            title = group?.groupTitle,
+                                            imageUrl = pictureUrl.url,
+                                            imageCacheKey = picture
+                                                ?.cacheKeyForSize(SharePreviewImage.TARGET_PX),
+                                        )
+                                    )
+                                }
+                            },
+                        )
+                        InviteLinkTile(
+                            modifier = Modifier.weight(1f),
+                            icon = if (copied) R.drawable.ic_check else R.drawable.ic_copy,
+                            label = stringResource(
+                                if (copied) R.string.action_inviteLinkCopied
+                                else R.string.action_copyInviteLink
+                            ),
+                            onClick = {
+                                onCopy()
+                                copied = true
+                            },
                         )
                     }
-                },
-            ) {
-                ShortcutIcon(R.drawable.ic_share_os)
-            }
-            ProfileShortcut(
-                label = stringResource(R.string.action_copyInviteLink),
-                onClick = onCopy,
-            ) {
-                ShortcutIcon(R.drawable.ic_copy)
-            }
-        }
-
-        val recentChats = state.invitable.orEmpty()
-        val hazeState = rememberHazeState()
-        val density = LocalDensity.current
-        var composerHeight by remember { mutableStateOf(0.dp) }
-
-        // The list runs the rest of the sheet and scrolls under the message bar, which blurs what
-        // passes behind it more the lower it goes (node 10330:19709), rather than stopping above it.
-        Box(modifier = Modifier.weight(1f)) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .hazeSource(hazeState),
-                contentPadding = PaddingValues(
-                    bottom = if (state.showsComposer) composerHeight else 0.dp,
-                ),
-            ) {
+                }
                 if (recentChats.isNotEmpty()) {
                     item(key = "header") { RecentChatsHeader() }
                 }
@@ -187,38 +218,118 @@ internal fun GroupInviteSheet(
                     )
                 }
             }
+        }
 
-            if (state.showsComposer) {
-                InviteComposer(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .onSizeChanged { composerHeight = with(density) { it.height.toDp() } },
-                    hazeState = hazeState,
-                    sending = state.sending,
-                    onMessageChanged = onMessageChanged,
-                    onInvite = onInvite,
-                )
-            }
+        // Always drawn, whether or not the field is up, so the edge stays still while the field
+        // slides through it. A colour scrim like the top one, not a blur.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(headerHeight)
+                .drawBehind {
+                    val scrimHeight = size.height + ScrimTail.toPx()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, scrimColor),
+                            startY = size.height - scrimHeight,
+                            endY = size.height,
+                        ),
+                        topLeft = Offset(0f, size.height - scrimHeight),
+                        size = size.copy(height = scrimHeight),
+                    )
+                },
+        )
+
+        AppBarWithTitle(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                // The Chats list's scrim: the surface colour fading out a little past the bar,
+                // drawn behind it so the tail stays out of the bar's measured height.
+                .drawBehind {
+                    val scrimHeight = size.height + ScrimTail.toPx()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(scrimColor, Color.Transparent),
+                            startY = 0f,
+                            endY = scrimHeight,
+                        ),
+                        size = size.copy(height = scrimHeight),
+                    )
+                }
+                .onSizeChanged { headerHeight = with(density) { it.height.toDp() } },
+            title = stringResource(R.string.title_invitePeople),
+            titleAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(HeaderPadding),
+            endContent = { AppBarDefaults.Close(hazeState = hazeState, onClick = onDismiss) },
+        )
+
+        // Slides rather than fades: a fading blur shows the unblurred list through it for the
+        // length of the fade.
+        AnimatedVisibility(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            visible = inviteUrl != null && state.showsComposer,
+            enter = slideInVertically(ComposerSpring) { with(density) { ComposerTravel.roundToPx() } },
+            exit = slideOutVertically(ComposerSpring) { with(density) { ComposerTravel.roundToPx() } },
+        ) {
+            InviteComposer(
+                modifier = Modifier
+                    .padding(horizontal = ListInset)
+                    .padding(bottom = composerBottom)
+                    .onSizeChanged { fieldHeight = with(density) { it.height.toDp() } },
+                hazeState = hazeState,
+                material = material,
+                sending = state.sending,
+                onMessageChanged = onMessageChanged,
+                onInvite = onInvite,
+            )
         }
     }
 }
 
+/**
+ * Node 10330:19400 — Share or Copy: a glyph over its label, the pair splitting the row. The label
+ * wraps rather than truncates, so the tile grows past its minimum height instead.
+ */
 @Composable
-private fun ShortcutIcon(icon: Int) {
-    Icon(
-        painter = painterResource(icon),
-        contentDescription = null,
-        tint = CodeTheme.colors.textMain,
-        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
-    )
+private fun InviteLinkTile(
+    icon: Int,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .heightIn(min = TileMinHeight)
+            .clip(TileShape)
+            .background(White05)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = TilePaddingHorizontal, vertical = TilePaddingVertical),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(TileIconGap, Alignment.CenterVertically),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = CodeTheme.colors.textMain,
+            modifier = Modifier.size(TileIconSize),
+        )
+        Text(
+            text = label,
+            style = CodeTheme.typography.textSmall,
+            color = White50,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
-/** Node 10330:19568 — the list's label, ruled off from the rows below it. */
+/** Node 10330:19568 — the list's label, an ordinary row that scrolls with the chats. */
 @Composable
 private fun RecentChatsHeader() {
-    Column(modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset)) {
+    Column(modifier = Modifier.padding(horizontal = ListInset)) {
         Text(
-            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
+            modifier = Modifier.padding(vertical = HeaderRowVertical),
             text = stringResource(R.string.label_recentChats),
             style = CodeTheme.typography.textSmall,
             color = White50,
@@ -228,7 +339,7 @@ private fun RecentChatsHeader() {
 }
 
 /**
- * Node 10330:19387 — one 1:1 chat, picked or not. The whole row takes the tap. Its divider starts
+ * Node 10330:19387 — one chat, 1:1 or group, picked or not. The whole row takes the tap. Its divider starts
  * at the name, not the avatar, as in node 10330:19585.
  */
 @Composable
@@ -242,7 +353,7 @@ private fun RecentChatRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = enabled, role = Role.Checkbox, onClick = onClick)
-            .padding(horizontal = CodeTheme.dimens.inset),
+            .padding(horizontal = ListInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(RowGap),
     ) {
@@ -282,16 +393,17 @@ private fun RecentChatRow(
 }
 
 /**
- * Node 10329:11963 — the message to go with the link, and the send. Only drawn once a chat is
- * picked; the field keeps its own text, and the sheet's view model reads it at send time.
+ * Node 10329:11963 — the message to go with the link, and the send. The field keeps its own text,
+ * and the sheet's view model reads it at send time.
  *
- * The chat screen's own composer, so typing here feels like typing in a chat, with an Invite label
- * in place of the send arrow because the link goes out whether or not a message is typed. Behind
- * it, the list blurs in from nothing at the top edge to full at the bottom.
+ * The chat screen's own composer and glass, so typing here feels like typing in a chat, but
+ * without its outline, since the Figma pill has none. An Invite label replaces the send arrow
+ * because the link goes out whether or not a message is typed.
  */
 @Composable
 private fun InviteComposer(
     hazeState: HazeState,
+    material: HazeBlurStyle,
     sending: Boolean,
     onMessageChanged: (String) -> Unit,
     onInvite: () -> Unit,
@@ -301,34 +413,41 @@ private fun InviteComposer(
     LaunchedEffect(message) {
         snapshotFlow { message.text.toString() }.collect(onMessageChanged)
     }
-    val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .hazeBlur(
-                input = HazeInput.Sources(hazeState),
-                style = material.then {
-                    progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
-                },
-            )
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x2),
-    ) {
-        ChatInput(
-            modifier = Modifier.border(
-                CodeTheme.dimens.border,
-                CodeTheme.colors.divider,
-                CodeTheme.shapes.medium,
-            ),
-            enabled = !sending,
-            hint = stringResource(R.string.hint_addAMessage),
-            state = message,
-            submit = ChatInputSubmit.Action(label = stringResource(R.string.action_invite)) {
-                onInvite()
-            },
-        )
-    }
+    ChatInput(
+        modifier = modifier.hazeBlur(HazeInput.Sources(hazeState), material),
+        enabled = !sending,
+        hint = stringResource(R.string.hint_addAMessage),
+        state = message,
+        submit = ChatInputSubmit.Action(
+            label = stringResource(R.string.action_invite),
+            busy = sending,
+            perform = onInvite,
+        ),
+    )
 }
+
+// Node 10330:19387 and its children. Fixed rather than the theme's inset, which narrows on small
+// screens, because the design holds these at 20 at every width.
+private val ListInset = 20.dp
+private val HeaderPadding = 16.dp
+private val HeaderRowVertical = 16.dp
+private val TileRowVertical = 12.dp
+private val TileGap = 10.dp
+private val TileMinHeight = 95.dp
+private val TileShape = RoundedCornerShape(6.dp)
+private val TilePaddingHorizontal = 8.dp
+private val TilePaddingVertical = 16.dp
+private val TileIconSize = 28.dp
+private val TileIconGap = 6.dp
 
 // Node 10330:19572: the gap between avatar and name, which is also where the row's divider starts.
 private val RowGap = 16.dp
+
+private val ComposerMinBottom = 8.dp
+
+/** How far each edge scrim runs past its bar, as on the Chats list. */
+private val ScrimTail = 48.dp
+// Far enough that the field starts fully below the sheet's bottom edge.
+private val ComposerTravel = 120.dp
+// iOS's spring(response: 0.35): stiffness (2π / 0.35)² and its default damping.
+private val ComposerSpring = spring<IntOffset>(dampingRatio = 0.825f, stiffness = 322f)

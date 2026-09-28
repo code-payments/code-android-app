@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,9 +68,14 @@ sealed interface ChatInputSubmit {
 
     /**
      * A named action that does not need the field's text, such as sending a group invite with an
-     * optional message. Shown as [label] whether or not anything is typed.
+     * optional message. Shown as [label] whether or not anything is typed, or as a spinner in the
+     * label's place while [busy], so the button keeps its width as the action runs.
      */
-    data class Action(val label: String, override val perform: () -> Unit) : ChatInputSubmit
+    data class Action(
+        val label: String,
+        val busy: Boolean = false,
+        override val perform: () -> Unit,
+    ) : ChatInputSubmit
 }
 
 @Composable
@@ -164,12 +170,26 @@ fun ChatInput(
                         label = "send glyph",
                     ) { target ->
                         if (target is ChatInputSubmit.Action) {
-                            Text(
-                                modifier = Modifier.padding(horizontal = CodeTheme.dimens.staticGrid.x2),
-                                text = target.label,
-                                style = CodeTheme.typography.textMedium,
-                                color = Color.Black,
-                            )
+                            // Reads the live submit, not the crossfade's captured target: the busy
+                            // flag changes without changing the kind, so no crossfade runs for it.
+                            val busy = (submit as? ChatInputSubmit.Action)?.busy == true
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    modifier = Modifier
+                                        .padding(horizontal = CodeTheme.dimens.staticGrid.x2)
+                                        .graphicsLayer { alpha = if (busy) 0f else 1f },
+                                    text = target.label,
+                                    style = CodeTheme.typography.textMedium,
+                                    color = Color.Black,
+                                )
+                                if (busy) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                                        color = Color.Black,
+                                        strokeWidth = 2.dp,
+                                    )
+                                }
+                            }
                         } else if (target is ChatInputSubmit.ConfirmEdit) {
                             Icon(
                                 modifier = Modifier
@@ -232,6 +252,21 @@ private fun Preview_ChatInput_Action() {
                 modifier = Modifier.padding(15.dp),
                 hint = "Add a message",
                 submit = ChatInputSubmit.Action(label = "Invite") {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_ChatInput_ActionBusy() {
+    DesignSystem {
+        Box(modifier = Modifier.background(Color(0xFF19191A))) {
+            ChatInput(
+                modifier = Modifier.padding(15.dp),
+                hint = "Add a message",
+                enabled = false,
+                submit = ChatInputSubmit.Action(label = "Invite", busy = true) {},
             )
         }
     }
