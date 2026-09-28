@@ -83,9 +83,11 @@ enum class BubblePosition { Solo, First, Middle, Last }
 
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
 
+private const val CASH_CARD_WIDTH_FRACTION = 0.64f
+
 /**
- * The widest a bubble, cash card, or link card grows in a transcript whose rows are inset by
- * [rowInset] on each side.
+ * The widest a bubble or link card grows in a transcript whose rows are inset by [rowInset] on each
+ * side.
  *
  * A fraction of the transcript's full width rather than of the inset row, which is how iOS sizes
  * its bubbles, link cards, and group head card (`ChatViewController.maxBubbleWidthFraction`). Taken
@@ -93,6 +95,18 @@ private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
  */
 fun transcriptBubbleMaxWidth(rowWidth: Dp, rowInset: Dp): Dp =
     (rowWidth + rowInset * 2) * BUBBLE_MAX_WIDTH_FRACTION
+
+/**
+ * The widest a bubble carrying [content] grows in a row [rowWidth] wide, inset by [rowInset] on each
+ * side. A system notice spans the row, and a cash card keeps its own narrower fraction of the inset
+ * row (iOS's `ChatViewController.cashCardWidthFraction` matches it); everything else takes
+ * [transcriptBubbleMaxWidth].
+ */
+fun bubbleMaxWidth(content: MessageContent, rowWidth: Dp, rowInset: Dp): Dp = when (content) {
+    is MessageContent.System -> rowWidth
+    is MessageContent.Cash -> rowWidth * CASH_CARD_WIDTH_FRACTION
+    else -> transcriptBubbleMaxWidth(rowWidth = rowWidth, rowInset = rowInset)
+}
 
 private val EDITED_MARKER_GAP = 6.dp
 
@@ -117,12 +131,11 @@ fun ContentBubble(
     val actionHandler = LocalChatActionHandler.current
     val jumbo = remember(item) { item.rendersBareEmoji() }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        // Every bubble shares one width but a system notice, which spans the row.
-        val bubbleMaxWidth = if (item.content is MessageContent.System) {
-            maxWidth
-        } else {
-            transcriptBubbleMaxWidth(rowWidth = maxWidth, rowInset = CodeTheme.dimens.inset)
-        }
+        val bubbleMaxWidth = bubbleMaxWidth(
+            content = item.content,
+            rowWidth = maxWidth,
+            rowInset = CodeTheme.dimens.inset,
+        )
 
         // A split message's citation goes on its first row and its marker on its last, so the
         // pieces read as one message stacked rather than as three.

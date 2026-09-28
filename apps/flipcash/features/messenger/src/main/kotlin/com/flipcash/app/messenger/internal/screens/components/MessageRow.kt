@@ -68,9 +68,9 @@ import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.ui.ContentBubble
 import com.flipcash.shared.chat.ui.QuickReactionStripPopup
 import com.flipcash.shared.chat.ui.ReactionPillRow
+import com.flipcash.shared.chat.ui.bubbleMaxWidth
 import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.flipcash.shared.chat.ui.rendersBare
-import com.flipcash.shared.chat.ui.transcriptBubbleMaxWidth
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
@@ -435,7 +435,8 @@ internal fun MessageRow(
                                         modifier = Modifier
                                             .align(if (item.isFromSelf) Alignment.TopEnd else Alignment.TopStart)
                                             .width(
-                                                transcriptBubbleMaxWidth(
+                                                bubbleMaxWidth(
+                                                    content = item.content,
                                                     rowWidth = maxWidth,
                                                     rowInset = CodeTheme.dimens.inset,
                                                 ),
