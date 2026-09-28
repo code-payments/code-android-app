@@ -5,6 +5,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatSummary
@@ -12,6 +13,7 @@ import com.flipcash.shared.chat.chatListFeed
 import com.flipcash.shared.chat.currentChatListFeed
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.toConversationReference
+import com.flipcash.shared.chat.ui.unnamedGroupSender
 import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -45,23 +47,40 @@ internal class ChatsViewModel @Inject constructor(
     }
 
     init {
-        fun conversations(summaries: List<ChatSummary>, tokens: List<Token>): List<ConversationReference> {
+        fun conversations(
+            summaries: List<ChatSummary>,
+            tokens: List<Token>,
+            // Null on the first-frame draw, before the table has been read: asking then would
+            // re-fetch every sender already on disk.
+            senderProfiles: Map<String, UserProfile>?,
+        ): List<ConversationReference> {
             val selfId = userManager.accountId
             val tokensByMint = tokens.associateBy { it.address }
-            return summaries.map { it.toConversationReference(selfId, tokensByMint, resources) }
+            return summaries.map { summary ->
+                // The feed's group roster is usually just the viewer, so a group's last sender is
+                // named from the profiles the transcript resolves. Anyone not there yet is asked for
+                // here; SenderResolver collapses repeats, and the row re-emits when the write lands.
+                if (senderProfiles != null) {
+                    summary.unnamedGroupSender(selfId, senderProfiles)?.let(chatCoordinator::requestSenderProfile)
+                }
+                summary.toConversationReference(selfId, tokensByMint, resources, senderProfiles.orEmpty())
+            }
         }
 
         // On a cold launch the feed is usually built before this screen is, so draw it on the first
         // frame rather than waiting for the collector below to get a turn on the main thread.
         chatCoordinator.currentChatListFeed()?.let { summaries ->
             dispatchEvent(
-                Event.ChatsUpdated(Loadable.Loaded(conversations(summaries, tokenCoordinator.cachedTokens())))
+                Event.ChatsUpdated(
+                    Loadable.Loaded(conversations(summaries, tokenCoordinator.cachedTokens(), null))
+                )
             )
         }
 
         combine(
             chatCoordinator.chatListFeed(),
             tokenCoordinator.tokens,
+            chatCoordinator.observeSenderProfiles(),
             ::conversations,
         )
             // Off the main thread: on a cold launch the first mapping lands while the main thread
