@@ -300,22 +300,32 @@ internal fun ProfileHeader(
                 color = CodeTheme.colors.textSecondary,
             )
         }
-        // Last, because it is the only line here that is the viewer's setting rather than a fact
-        // about the person, and the only one that can stop being true while the screen is open.
-        ChatMuteStatusChip(
-            viewerState = viewerState,
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
-            // With the shortcuts below, an empty held line would double the gap above them. This
-            // screen only shows them for a group member, where there's no mute row to change it.
-            reserveSpace = shortcuts == null,
-        )
         // Below everything that describes the person: these act on them, like the rows under the
-        // header, but they're the routine ones, so they sit closest to the name. 15dp here plus
-        // the mute line's 10dp is 25dp, the same as the first row's inset below them.
+        // header, but they're the routine ones, so they sit closest to the name. 25dp, the same as
+        // the first row's inset below them, so they sit centered between the join date and the
+        // list. Nothing between them and the join date, so they sit at one height on every
+        // person's profile, muted or not.
         shortcuts?.let { content ->
-            Box(modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3)) {
+            Box(modifier = Modifier.padding(top = CodeTheme.dimens.grid.x5)) {
                 content()
             }
+        }
+        // Last, because it is the only line here that is the viewer's setting rather than a fact
+        // about the person, and the only one that can stop being true while the screen is open.
+        // Only where there is a mute to show, the DM's own person; there it holds its line so the
+        // rows below don't move on mute or unmute. 16dp matches iOS, set by eye on device.
+        viewerState?.let { state ->
+            ChatMuteStatusChip(
+                viewerState = state,
+                modifier = Modifier.padding(
+                    top = if (shortcuts != null) {
+                        CodeTheme.dimens.staticGrid.x4
+                    } else {
+                        CodeTheme.dimens.grid.x2
+                    },
+                ),
+                reserveSpace = true,
+            )
         }
     }
 }
