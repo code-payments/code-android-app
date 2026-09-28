@@ -330,8 +330,10 @@ interface MessagingOperations {
      * Fetches [chatId] from the server for a chat this device holds no row for, so a conversation
      * reached by invite link or push tap can render before it has ever been synced.
      *
-     * Returns `null` when the row is already stored — [observeMetadata] is answering in that case,
-     * and a second copy would only race it — and when the fetch fails.
+     * Returns [ChatHydration.Stored] without a round trip when the row is already stored —
+     * [observeMetadata] is answering in that case, and a second copy would only race it. A fetch
+     * the server answers NOT_FOUND is [ChatHydration.Absent], told apart from any other failure
+     * because a chat that does not exist has no transcript to load.
      *
      * Deliberately not persisted. `GetChat` returns the chat, not the caller's relationship to it,
      * and the row's membership column has to be written with something, so storing this would
@@ -339,7 +341,7 @@ interface MessagingOperations {
      * feed has not synced yet. The result carries membership as `null` instead, and the join path
      * writes the row once the server has confirmed it.
      */
-    suspend fun hydrateChat(chatId: ChatId): ChatMembership?
+    suspend fun hydrateChat(chatId: ChatId): ChatHydration
 
     /**
      * Every profile this device holds, keyed by user-id hex.
