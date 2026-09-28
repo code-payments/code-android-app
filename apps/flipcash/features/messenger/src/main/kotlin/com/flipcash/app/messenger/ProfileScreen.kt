@@ -61,7 +61,9 @@ fun ProfileScreen(address: ProfileAddress) {
 
     LaunchedEffect(viewModel, state.participant) {
         state.participant?.let {
-            viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(it))
+            viewModel.dispatchEvent(
+                ChatProfileViewModel.Event.OnParticipantSet(it, fromServer = true)
+            )
         }
     }
 
