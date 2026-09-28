@@ -3,22 +3,11 @@ package com.flipcash.app.messenger.internal.screens
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.unit.IntOffset
-import kotlin.math.roundToInt
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -28,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,22 +40,28 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.features.messenger.R
@@ -74,8 +70,8 @@ import com.getcode.libs.emojis.reactions.EmojiPickerModel
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.theme.CodeCircularProgressIndicator
-import com.getcode.ui.utils.LocalSheetOverhang
 import com.getcode.ui.utils.AllowSheetExpansionWhenScrollable
+import com.getcode.ui.utils.LocalSheetOverhang
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -83,8 +79,7 @@ import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 /**
@@ -97,14 +92,16 @@ import kotlinx.coroutines.launch
  */
 @Composable
 internal fun ReactionPickerSheet(
-    loadSections: suspend (query: String) -> List<EmojiPickerModel.Section>,
+    searchState: TextFieldState,
+    sections: List<EmojiPickerModel.Section>,
+    loaded: Boolean,
     onSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val gridState = rememberLazyListState()
     AllowSheetExpansionWhenScrollable(gridState)
 
-    val searchState = remember { TextFieldState() }
+    val query = searchState.text.toString()
 
     Column(modifier = Modifier.fillMaxWidth()) {
         SearchField(
@@ -115,21 +112,8 @@ internal fun ReactionPickerSheet(
                 .padding(top = 16.dp, bottom = 12.dp),
         )
 
-        val query by produceState(initialValue = "") {
-            snapshotFlow { searchState.text.toString() }
-                .distinctUntilChanged()
-                .debounce(150)
-                .collect { value = it }
-        }
-
-        var hasLoadedOnce by remember { mutableStateOf(false) }
-        val sections by produceState(initialValue = emptyList(), query, loadSections) {
-            value = loadSections(query)
-            hasLoadedOnce = true
-        }
-
         when {
-            !hasLoadedOnce -> {
+            !loaded -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CodeCircularProgressIndicator()
                 }

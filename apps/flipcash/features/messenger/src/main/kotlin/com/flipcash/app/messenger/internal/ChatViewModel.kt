@@ -19,8 +19,8 @@ import com.flipcash.analytics.CashLinkChoice
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteMethod
-import com.flipcash.analytics.GroupInviteSource
 import com.flipcash.analytics.GroupInviteSheetSource
+import com.flipcash.analytics.GroupInviteSource
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.analytics.events.ChatEvents
@@ -33,32 +33,32 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
-import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.extensions.setText
+import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.core.tokens.brandedName
 import com.flipcash.app.core.tokens.isReserve
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.messenger.internal.link.CashCardTap
-import com.flipcash.app.persistence.sources.UserProfileDataSource
-import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
+import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.app.session.CashLinkClaims
 import com.flipcash.app.session.ChatCashLinks
 import com.flipcash.app.session.SettledClaim
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DeliveryStatus
@@ -79,7 +79,10 @@ import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.GroupAccess
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.MessagePolicy
+import com.flipcash.shared.chat.MessageReactions
+import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.applying
+import com.flipcash.shared.chat.canReact
 import com.flipcash.shared.chat.chatDraftOf
 import com.flipcash.shared.chat.groupAccess
 import com.flipcash.shared.chat.models.ChatListItem
@@ -88,30 +91,25 @@ import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.ReceiptStatus
-import com.flipcash.shared.chat.models.splitAroundLinkCard
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
-import com.flipcash.shared.chat.readOnly
-import com.flipcash.shared.chat.MessageReactions
+import com.flipcash.shared.chat.models.splitAroundLinkCard
 import com.flipcash.shared.chat.reactions.ReactionError
+import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.reactions.ReactionStripComposer
-import com.flipcash.shared.chat.reactions.ReactorNameResolver
-import com.flipcash.shared.chat.reactions.ReactorsListModel
-import com.flipcash.shared.chat.reactions.ReactorsPrefetchCache
 import com.flipcash.shared.chat.reactions.SelfReaction
-import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
-import com.getcode.libs.emojis.reactions.EmojiDrawability
-import com.getcode.libs.emojis.reactions.EmojiPickerModel
-import com.getcode.libs.emojis.reactions.RecentReactions
-import com.getcode.libs.emojis.reactions.RecentReactionsStore
-import com.flipcash.shared.chat.canReact
+import com.flipcash.shared.chat.readOnly
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
+import com.getcode.libs.emojis.reactions.EmojiDrawability
+import com.getcode.libs.emojis.reactions.RecentReactions
+import com.getcode.libs.emojis.reactions.RecentReactionsStore
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
@@ -141,13 +139,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
@@ -160,6 +158,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformLatest
@@ -354,6 +353,12 @@ internal class ChatViewModel @Inject constructor(
          * to, or before the catalog/recents have loaded for the first selection of this session.
          */
         val quickReactionStrip: List<ReactionStrip.Entry> = emptyList(),
+        /**
+         * What [quickReactionStrip] is built from besides the message's own reactions, or null
+         * before the first load. Held here so the selection reducer can build the strip in the same
+         * update that lifts the bubble.
+         */
+        val quickReactionInputs: QuickReactionInputs? = null,
     ) {
         /**
          * The DM counterparty, or `null` for a group.
@@ -597,12 +602,7 @@ internal class ChatViewModel @Inject constructor(
         data class MessagePolicyChanged(val policy: MessagePolicy) : Event
 
         /** Selects [bubble], or leaves selection mode if it is already the selected one. */
-        /** [quickReactionStrip] is built ahead by [ChatViewModel.quickReactionStripFor], so the
-         * strip lands in the same update as the selection; empty leaves it to the strip flow. */
-        data class ToggleMessageSelection(
-            val bubble: ChatListItem.ContentBubble,
-            val quickReactionStrip: List<ReactionStrip.Entry> = emptyList(),
-        ) : Event
+        data class ToggleMessageSelection(val bubble: ChatListItem.ContentBubble) : Event
         data object ClearMessageSelection : Event
 
         // The message actions carry what they act on rather than reading it back off the selection:
@@ -643,14 +643,14 @@ internal class ChatViewModel @Inject constructor(
             val clearsSelection: Boolean = false,
         ) : Event
 
-        /** Opens the full emoji picker for [messageId], from a pill row's or the strip's "+". */
-        data class OpenReactionPicker(val messageId: Long) : Event
+        /** Internal: the quick strip's catalog and recents (re)loaded. */
+        data class QuickReactionInputsLoaded(val inputs: QuickReactionInputs) : Event
 
-        /** Opens who-reacted for [messageId], from a long-press on a pill. */
-        data class OpenReactors(val messageId: Long) : Event
-
-        /** Internal: the quick strip's entries for the current selection have (re)composed. */
-        data class QuickReactionStripComposed(val entries: List<ReactionStrip.Entry>) : Event
+        /** Internal: the viewer's own reactions on the selected message moved. */
+        data class SelectionReactionsChanged(
+            val messageId: Long,
+            val selfReactions: List<SelfReaction>,
+        ) : Event
 
         /**
          * The transcript's own refresh-on-paging hook has ids it wants reaction state refreshed
@@ -734,9 +734,6 @@ internal class ChatViewModel @Inject constructor(
         .flatMapLatest { chatCoordinator.observeChatReactions(it) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-    /** Declared before `init`, which starts filling it. See [StripInputs]. */
-    private val stripInputs = MutableStateFlow<StripInputs?>(null)
-
     /**
      * Null for a DM, a map for a group — the distinction the transcript needs, because a DM's
      * counterparty is already named in the title bar and attributing each of their bubbles would be
@@ -772,117 +769,16 @@ internal class ChatViewModel @Inject constructor(
             ?.let { ChatParticipant.TipUser(userId, it) }
 
     /**
-     * One [ReactorsListModel] per messageId, started on [Event.OpenReactors] (see
-     * [initMessageActionHandlers]) rather than on the reactors sheet's own composition — loading
-     * has to begin on the pill long-press itself, and the sheet is a fresh Compose tree on every
-     * push. `getReactorsPage` is captured against whatever [ChatId] is current at call time
-     * rather than the chat this view model was built for; a chat never changes under one instance
-     * in practice, but reading [stateFlow] here keeps the cache correct if that ever changes.
+     * What the quick strip is built from, other than the message's own reactions. Held in [State]
+     * ahead of a long-press so the selection reducer can build the strip in the same update that
+     * lifts the bubble; built on demand, the strip trailed the lift by the catalog's glyph check and
+     * a DataStore read. Reloaded at init and after each toggle, which is what moves recents.
      */
-    private val reactorsPrefetchCache = ReactorsPrefetchCache(scope = viewModelScope) { messageId, emoji, token ->
-        val chatId = stateFlow.value.chatId ?: return@ReactorsPrefetchCache Result.failure(
-            IllegalStateException("No active chat to fetch reactors for")
-        )
-        chatCoordinator.getReactorsPage(chatId, messageId, emoji, token)
-    }
-
-    fun reactorsRows(messageId: Long): Flow<List<ReactorsListModel.Row>> = reactorsPrefetchCache.rows(messageId)
-
-    fun reactorsLoading(messageId: Long): Flow<Boolean> = reactorsPrefetchCache.loading(messageId)
-
-    fun reactorsHasMore(messageId: Long): Boolean = reactorsPrefetchCache.hasMore(messageId)
-
-    fun loadMoreReactors(messageId: Long) = reactorsPrefetchCache.loadMoreIfNeeded(messageId)
-
-    /**
-     * Refetches [messageId]'s reactors when [pills] no longer match what the cache fetched for —
-     * called by the open reactors sheet each time its live pills change, so a reaction added or
-     * removed while it's up (or since it was last opened) shows in the rows, not just the title.
-     */
-    fun syncReactors(messageId: Long, pills: List<com.flipcash.shared.chat.reactions.ReactionPill>) =
-        reactorsPrefetchCache.start(messageId, pills)
-
-    /** [messageId]'s pills, live — the reactors sheet's summary row (decision 4: title + pills). */
-    fun reactionPills(messageId: Long): Flow<List<com.flipcash.shared.chat.reactions.ReactionPill>> =
-        reactionOverlay.map { it[messageId]?.pills.orEmpty() }.distinctUntilChanged()
-
-    /**
-     * The full picker's sections for [query] (recents row + one section per catalog category, or a
-     * single search-results section — see [EmojiPickerModel.sections]), recomposed each time
-     * [query] changes. Loads the catalog once per call rather than caching it on the view model,
-     * matching how [emojiCatalogLoader] is already used for the quick strip above — the loader
-     * itself caches the parsed file, so this is cheap after the first call.
-     */
-    suspend fun emojiPickerSections(query: String): List<EmojiPickerModel.Section> {
-        val catalog = emojiCatalogLoader.load()
-        val undrawable = catalog.entries
-            .map { it.emoji }
-            .filterNot { EmojiDrawability.isDrawable(it) }
-            .toSet()
-        val recents = recentReactionsStore.rank(undrawable = undrawable)
-        return EmojiPickerModel.sections(catalog = catalog, undrawable = undrawable, recents = recents, query = query)
-    }
-
-    /** A reactors-sheet row's resolved identity: the name to show (decision 4's precedence,
-     * "You" for the viewer), and the profile to draw an avatar from when one is known. */
-    data class ReactorDisplay(val name: String, val profile: UserProfile?)
-
-    /**
-     * The reactors sheet's display name and avatar source for [userId] (decision 4), re-emitting
-     * as later sources — the member roster, then a server fetch — resolve. Kicks off
-     * [ChatCoordinator.requestSenderProfile] itself when nothing has an answer yet, mirroring
-     * [resolveSenderName]'s fallback for the transcript. The self case shows the viewer's own
-     * picture (so their avatar isn't blank) under the "You" label rather than their own profile
-     * name.
-     */
-    fun reactorDisplay(userId: ID): Flow<ReactorDisplay?> {
-        val chatId = stateFlow.value.chatId
-        val selfLabel = resources.getString(R.string.title_you)
-        val selfUserId = userManager.accountId
-        val members = chatId?.let { chatCoordinator.observeMembers(it) } ?: flowOf(emptyList())
-        var requested = false
-        return combine(
-            userProfileDataSource.observeProfiles(),
-            members,
-            senderProfiles,
-        ) { cachedProfiles, memberList, sentProfiles ->
-            val cached = cachedProfiles[userId.hexEncodedString()]
-            val name = ReactorNameResolver.resolve(
-                userId = userId,
-                selfUserId = selfUserId,
-                selfLabel = selfLabel,
-                cachedProfile = cached,
-                members = memberList,
-                senderProfiles = sentProfiles.orEmpty(),
-            ) ?: return@combine null
-            val profile = if (selfUserId != null && userId == selfUserId) {
-                userManager.profile
-            } else {
-                cached
-                    ?: memberList.firstOrNull { it.userId == userId }?.userProfile
-                    ?: sentProfiles?.get(userId.hexEncodedString())
-            }
-            ReactorDisplay(name = name, profile = profile)
-        }.onEach { display ->
-            if (display == null && !requested) {
-                requested = true
-                chatCoordinator.requestSenderProfile(userId)
-            }
-        }
-    }
-
-    /** [ChatParticipant] for [userId] to open a profile from the reactors sheet, unlike
-     * [memberParticipant] this also covers a reactor absent from [senderProfiles] by falling back
-     * to whatever the cached profile store or member roster already has. */
-    suspend fun reactorParticipant(userId: ID): ChatParticipant.TipUser? {
-        memberParticipant(userId)?.let { return it }
-        val chatId = stateFlow.value.chatId
-        val fromMembers = chatId?.let { id ->
-            chatCoordinator.observeMembers(id).first().firstOrNull { it.userId == userId }?.userProfile
-        }
-        val profile = fromMembers ?: userProfileDataSource.getCachedProfile(userId)
-        return profile?.let { ChatParticipant.TipUser(userId, it) }
-    }
+    data class QuickReactionInputs(
+        val recentStats: Map<String, RecentReactions.Usage>,
+        val catalogFill: List<String>,
+        val undrawable: Set<String>,
+    )
 
     /**
      * How a drawn card reaches the lookup. Provided to the transcript, read by `LinkCardView`.
@@ -963,6 +859,10 @@ internal class ChatViewModel @Inject constructor(
                         }
                     } else null
 
+                    // Stored fallback only — see the reactionOverlay pass below, which fills in a
+                    // live override where one exists.
+                    val storedReactions = MessageReactions.from(message.reactions)
+
                     // A message the viewer sent needs no attribution, and neither does a DM —
                     // `profiles` is null for one. Asking for a profile that is missing is what keeps
                     // a sender from showing as a blank name for the rest of the session; the
@@ -1006,10 +906,9 @@ internal class ChatViewModel @Inject constructor(
                         // after the first page does.
                         senderId = message.senderId?.takeIf { !message.isFromSelf },
                         linkCard = linkCard,
-                        // Stored fallback only — see the reactionOverlay pass below, which fills
-                        // in a live override for whichever row ends up as `isLastRow` once
-                        // `splitAroundLinkCard` has run.
-                        reactionPills = MessageReactions.from(message.reactions).pills,
+                        // `splitAroundLinkCard` keeps these pills on the last row only.
+                        reactionPills = storedReactions.pills,
+                        selfReactions = storedReactions.selfReactions,
                         canReact = canReact(message),
                     )
                         // A carded link takes a row of its own, with the prose either side of it
@@ -1030,10 +929,13 @@ internal class ChatViewModel @Inject constructor(
             combine(pages, reactionOverlay) { data, overlay ->
                 if (overlay.isEmpty()) return@combine data
                 data.map { bubble ->
-                    // Only the row the "Edited" marker also lands on carries the pill row, so a
-                    // split message shows one set of pills, not one per row.
-                    val live = if (bubble.isLastRow) overlay[bubble.messageId] else null
-                    if (live == null) bubble else bubble.copy(reactionPills = live.pills)
+                    val live = overlay[bubble.messageId] ?: return@map bubble
+                    bubble.copy(
+                        // Only the row the "Edited" marker also lands on carries the pill row, so a
+                        // split message shows one set of pills, not one per row.
+                        reactionPills = if (bubble.isLastRow) live.pills else bubble.reactionPills,
+                        selfReactions = live.selfReactions,
+                    )
                 }
             }
         }.cachedIn(viewModelScope)
@@ -1874,101 +1776,48 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    /**
-     * What the quick strip is built from, other than the message's own reactions. Kept ready ahead
-     * of a long-press so the selection reducer can build the strip in the same state update that
-     * lifts the bubble; built on demand, the strip trailed the lift by the catalog's glyph check
-     * and a DataStore read. Refreshed at init and after each toggle, which is what moves recents.
-     */
-    private class StripInputs(
-        val recentStats: Map<String, RecentReactions.Usage>,
-        val catalogFill: List<String>,
-        val undrawable: Set<String>,
-    )
-
-    private suspend fun refreshStripInputs(): StripInputs {
+    private suspend fun loadQuickReactionInputs(): QuickReactionInputs {
         val catalog = emojiCatalogLoader.load()
         val fill = catalog.firstCategoryEntries.map { it.emoji }
         val undrawable = withContext(Dispatchers.Default) {
             fill.filterNot { EmojiDrawability.isDrawable(it) }.toSet()
         }
-        return StripInputs(
+        return QuickReactionInputs(
             recentStats = recentReactionsStore.stats(),
             catalogFill = fill,
             undrawable = undrawable,
-        ).also { stripInputs.value = it }
-    }
-
-    /**
-     * The quick strip for [bubble], from the inputs already in hand, or empty if they have not
-     * loaded yet (the strip flow fills it in then). Called as the bubble is selected, so the strip
-     * enters with the lift instead of a round trip behind it.
-     */
-    fun quickReactionStripFor(bubble: ChatListItem.ContentBubble): List<ReactionStrip.Entry> {
-        if (!bubble.canReact) return emptyList()
-        val inputs = stripInputs.value ?: return emptyList()
-        return composeStrip(inputs, reactionOverlay.value[bubble.messageId]?.selfReactions.orEmpty())
-    }
-
-    private fun composeStrip(inputs: StripInputs, selfReactions: List<SelfReaction>) =
-        ReactionStripComposer.compose(
-            recentStats = inputs.recentStats,
-            selfReactions = selfReactions,
-            catalogFillSource = inputs.catalogFill,
-            undrawable = inputs.undrawable,
         )
+    }
 
     private fun initMessageActionHandlers() {
-        viewModelScope.launch { refreshStripInputs() }
+        viewModelScope.launch { dispatchEvent(Event.QuickReactionInputsLoaded(loadQuickReactionInputs())) }
 
         eventFlow.filterIsInstance<Event.ToggleReaction>()
             .onEach { event ->
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 viewModelScope.launch {
                     chatCoordinator.toggleReaction(chatId, event.messageId, event.emoji)
-                    refreshStripInputs()
+                    // A toggle is what moves recents, so the next strip reflects it.
+                    dispatchEvent(Event.QuickReactionInputsLoaded(loadQuickReactionInputs()))
                 }
             }
             .launchIn(viewModelScope)
 
-        // The quick strip above a selected, reactable bubble — recomposed each time the selection
-        // moves to a different message. Reads the live overlay for self-reactions rather than the
-        // selected bubble's own (possibly stale) snapshot, the same source [mappedMessages] treats
-        // as authoritative.
+        // The selection holds the bubble as it was when pressed; a reaction that lands while it is
+        // up (the viewer's own from another device, or a toggle's reconcile) reaches the strip here.
+        // Reads the live overlay, the same source [mappedMessages] treats as authoritative.
         stateFlow.map { it.selection?.takeIf { bubble -> bubble.canReact }?.messageId }
             .distinctUntilChanged()
             .flatMapLatest { messageId ->
                 if (messageId == null) {
-                    flowOf(emptyList())
+                    emptyFlow()
                 } else {
-                    reactionOverlay.map { overlay ->
-                        overlay[messageId]?.selfReactions.orEmpty()
-                    }.distinctUntilChanged()
+                    reactionOverlay.mapNotNull { overlay -> overlay[messageId]?.selfReactions }
+                        .distinctUntilChanged()
+                        .map { Event.SelectionReactionsChanged(messageId, it) }
                 }
             }
-            .onEach { selfReactions ->
-                val entries = if (selfReactions.isEmpty() && stateFlow.value.selection == null) {
-                    emptyList()
-                } else {
-                    composeStrip(stripInputs.value ?: refreshStripInputs(), selfReactions)
-                }
-                dispatchEvent(Event.QuickReactionStripComposed(entries))
-            }
-            .launchIn(viewModelScope)
-
-        // OpenReactionPicker carries no side effect here — the screen's action handler pushes the
-        // ChatStep, the same as every other transcript-triggered navigation (see MessengerScreen's
-        // chatActionHandler). The reducer above is a no-op for both too; they exist as events at
-        // all so a picker pick can reach ToggleReaction through the same dispatch path everything
-        // else in the transcript uses.
-        //
-        // OpenReactors does have one: it starts the reactors fetch (see reactorsPrefetchCache)
-        // before the navigator pushes ChatStep.Reactors, so loading begins on the long-press
-        // rather than on the sheet's own composition.
-        eventFlow.filterIsInstance<Event.OpenReactors>()
-            .onEach { event ->
-                syncReactors(event.messageId, reactionOverlay.value[event.messageId]?.pills.orEmpty())
-            }
+            .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
 
         // See ReactionRefreshPlanner and MessageList's reaction-refresh effects: the transcript
@@ -2820,14 +2669,10 @@ internal class ChatViewModel @Inject constructor(
                             capabilities = if (state.isOutsideGroup) open.readOnly() else open,
                         )
                     }
-                    state.copy(
-                        selection = selected,
-                        quickReactionStrip = if (selected != null) event.quickReactionStrip else emptyList(),
-                        confirmingDelete = false,
-                    )
+                    state.copy(selection = selected, confirmingDelete = false).withQuickReactionStrip()
                 }
                 Event.ClearMessageSelection -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
+                    state.copy(selection = null, confirmingDelete = false).withQuickReactionStrip()
                 }
                 is Event.CopyMessage -> { state ->
                     state.copy(selection = null, confirmingDelete = false)
@@ -2877,9 +2722,18 @@ internal class ChatViewModel @Inject constructor(
                 is Event.ToggleReaction -> { state ->
                     if (event.clearsSelection) state.copy(selection = null) else state
                 }
-                is Event.OpenReactionPicker -> { state -> state }
-                is Event.OpenReactors -> { state -> state }
-                is Event.QuickReactionStripComposed -> { state -> state.copy(quickReactionStrip = event.entries) }
+                is Event.QuickReactionInputsLoaded -> { state ->
+                    state.copy(quickReactionInputs = event.inputs).withQuickReactionStrip()
+                }
+                is Event.SelectionReactionsChanged -> { state ->
+                    val selection = state.selection
+                    if (selection?.messageId != event.messageId) {
+                        state
+                    } else {
+                        state.copy(selection = selection.copy(selfReactions = event.selfReactions))
+                            .withQuickReactionStrip()
+                    }
+                }
                 is Event.RefreshReactionIds -> { state -> state }
                 // Nothing on screen moves when a voucher is tapped -- the link leaves, the card
                 // keeps saying what it said, and the claim comes back as its own signal.
@@ -2897,4 +2751,24 @@ internal class ChatViewModel @Inject constructor(
                 }
             }
     }
+}
+
+/**
+ * [ChatViewModel.State.quickReactionStrip] rebuilt for the current selection: empty while nothing
+ * is selected, while the selected message can't be reacted to, or before the inputs have loaded.
+ */
+private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
+    val bubble = selection?.takeIf { it.canReact }
+    val inputs = quickReactionInputs
+    val strip = if (bubble == null || inputs == null) {
+        emptyList()
+    } else {
+        ReactionStripComposer.compose(
+            recentStats = inputs.recentStats,
+            selfReactions = bubble.selfReactions,
+            catalogFillSource = inputs.catalogFill,
+            undrawable = inputs.undrawable,
+        )
+    }
+    return copy(quickReactionStrip = strip)
 }

@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.models
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.reactions.ReactionPill
+import com.flipcash.shared.chat.reactions.SelfReaction
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -103,6 +104,12 @@ sealed interface ChatListItem {
          * for a message with no reactions.
          */
         val reactionPills: List<ReactionPill> = emptyList(),
+        /**
+         * The emoji the viewer reacted to this message with, from the same source as
+         * [reactionPills]. Unlike the pills, every row of a split message carries it: the quick
+         * strip is built from it for whichever row was pressed.
+         */
+        val selfReactions: List<SelfReaction> = emptyList(),
         /**
          * Whether the viewer may react to this message — system messages and messages still
          * pending send are excluded. See `com.flipcash.shared.chat.canReact`.

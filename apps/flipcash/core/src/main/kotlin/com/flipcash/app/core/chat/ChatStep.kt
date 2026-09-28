@@ -136,5 +136,5 @@ sealed interface ChatStep : FlowStep, Parcelable {
      */
     @Parcelize
     @Serializable
-    data class Reactors(val messageId: Long) : ChatStep, Sheet, HalfSheet
+    data class Reactors(val chatId: ChatId, val messageId: Long) : ChatStep, Sheet, HalfSheet
 }

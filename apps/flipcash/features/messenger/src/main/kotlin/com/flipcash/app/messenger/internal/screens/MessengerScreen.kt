@@ -151,12 +151,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.ToggleSelection -> {
-                viewModel.dispatchEvent(
-                    ChatViewModel.Event.ToggleMessageSelection(
-                        bubble = action.bubble,
-                        quickReactionStrip = viewModel.quickReactionStripFor(action.bubble),
-                    )
-                )
+                viewModel.dispatchEvent(ChatViewModel.Event.ToggleMessageSelection(action.bubble))
             }
 
             ChatAction.ClearSelection -> {
@@ -236,13 +231,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.OpenReactionPicker -> {
-                viewModel.dispatchEvent(ChatViewModel.Event.OpenReactionPicker(action.messageId))
                 navigator.push(ChatStep.ReactionPicker(action.messageId))
             }
 
             is ChatAction.OpenReactors -> {
-                viewModel.dispatchEvent(ChatViewModel.Event.OpenReactors(action.messageId))
-                navigator.push(ChatStep.Reactors(action.messageId))
+                val chatId = state.chatId
+                if (chatId != null) navigator.push(ChatStep.Reactors(chatId, action.messageId))
             }
 
             is ChatAction.RefreshReactionIds -> {

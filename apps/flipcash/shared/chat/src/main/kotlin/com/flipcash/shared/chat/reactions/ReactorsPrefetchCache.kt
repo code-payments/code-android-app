@@ -15,15 +15,10 @@ import kotlinx.coroutines.launch
  * Owns one [ReactorsListModel] per messageId, keyed so the reactors sheet and whatever started the
  * fetch read the same rows/loading state rather than each building their own.
  *
- * Loading has to start on the pill long-press (decision: `OpenReactors` fires the fetch), not on
- * the reactors sheet's first composition — the sheet is a fresh Compose tree on every push, and a
- * fetch gated on its `LaunchedEffect` would race the same tap that opened it. [start] is called
- * from `ChatViewModel`'s `OpenReactors` handler, one step before the navigator pushes
- * `ChatStep.Reactors`; [rows]/[loading] are backed by one shared `StateFlow` each (keyed by
- * messageId), rather than a per-messageId flow instance created inside [start] — a composition that
- * calls [rows] *before* [start] has run still sees the update once it does, because it collects a
- * `.map` over the same always-live backing flow rather than a separate object [start] would
- * otherwise swap in.
+ * [rows]/[loading] are backed by one shared `StateFlow` each (keyed by messageId), rather than a
+ * per-messageId flow instance created inside [start] — a collector that calls [rows] *before*
+ * [start] has run still sees the update once it does, because it collects a `.map` over the same
+ * always-live backing flow rather than a separate object [start] would otherwise swap in.
  */
 class ReactorsPrefetchCache(
     private val scope: CoroutineScope,
@@ -53,7 +48,7 @@ class ReactorsPrefetchCache(
      * Starts the first round of pages for [messageId]'s [pills] unless the cache already holds a
      * fetch for exactly these pills. An empty [pills] list (nothing reacted, or the last reaction
      * was just removed) drops whatever was cached instead of fetching. No-ops for an unchanged
-     * emoji → count set — a second `OpenReactors` for the same
+     * emoji → count set — a second [start] for the same
      * reactions re-opens the existing fetch/rows rather than starting over. A changed set (someone
      * reacted, un-reacted, or used a new emoji) refetches from the first page: the pages already
      * held can't be patched, since the pills say how many reacted but not who. The previous rows

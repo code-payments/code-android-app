@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,12 +52,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.reactions.ReactionPill
-import com.flipcash.shared.chat.reactions.ReactorsListModel
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.opencode.model.core.ID
 import com.getcode.theme.CodeTheme
@@ -64,26 +62,18 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.AllowSheetExpansionWhenScrollable
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * Who reacted, and with what (decision 4): one row per person, every emoji they used, no filters.
  * Opens unscrolled with nothing focused — there is no search here, unlike the picker.
- *
- * @param resolveDisplay per-row identity, re-subscribed for the row's lifetime in composition —
- *   see [ChatViewModel.reactorDisplay] for the source precedence and its live re-resolution as a
- *   member roster or a server fetch lands.
- * @param hasMore read live rather than passed as a snapshot: the last row's visibility effect below
- *   asks it fresh each time it fires.
  */
 @Composable
 internal fun ReactorsSheet(
     pills: List<ReactionPill>,
-    rows: List<ReactorsListModel.Row>,
+    rows: List<ReactorsViewModel.ReactorRow>,
     loading: Boolean,
-    hasMore: () -> Boolean,
-    resolveDisplay: (ID) -> Flow<ChatViewModel.ReactorDisplay?>,
+    hasMore: Boolean,
     onLoadMore: () -> Unit,
     onOpenProfile: (ID) -> Unit,
     onDismiss: () -> Unit,
@@ -136,9 +126,8 @@ internal fun ReactorsSheet(
             } else {
                 items(rows, key = { it.userId.joinToString(",") }) { row ->
                     ReactorRow(
-                        userId = row.userId,
                         emojis = row.emojis,
-                        resolveDisplay = resolveDisplay,
+                        display = row.display,
                         onClick = { onOpenProfile(row.userId) },
                     )
                 }
@@ -150,16 +139,18 @@ internal fun ReactorsSheet(
 @Composable
 private fun LoadMoreOnLastRowVisible(
     listState: LazyListState,
-    rows: List<ReactorsListModel.Row>,
-    hasMore: () -> Boolean,
+    rows: List<ReactorsViewModel.ReactorRow>,
+    hasMore: Boolean,
     onLoadMore: () -> Unit,
 ) {
+    // Read inside the effect rather than keyed on: a page landing changes rows, which restarts it.
+    val currentHasMore by rememberUpdatedState(hasMore)
     LaunchedEffect(listState, rows) {
         if (rows.isEmpty()) return@LaunchedEffect
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .distinctUntilChanged()
             .collect { lastVisibleIndex ->
-                if (lastVisibleIndex != null && lastVisibleIndex >= rows.lastIndex && hasMore()) {
+                if (lastVisibleIndex != null && lastVisibleIndex >= rows.lastIndex && currentHasMore) {
                     onLoadMore()
                 }
             }
@@ -204,14 +195,10 @@ private fun SummaryPillRow(pills: List<ReactionPill>) {
  */
 @Composable
 private fun ReactorRow(
-    userId: ID,
     emojis: List<String>,
-    resolveDisplay: (ID) -> Flow<ChatViewModel.ReactorDisplay?>,
+    display: ReactorsViewModel.ReactorDisplay?,
     onClick: () -> Unit,
 ) {
-    val displayFlow = remember(userId, resolveDisplay) { resolveDisplay(userId) }
-    val display by displayFlow.collectAsStateWithLifecycle(initialValue = null)
-
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         // The person keeps priority over the emoji, which always get at least MinEmojiWidth.
         val personMaxWidth = (maxWidth - RowLeadingInset - MinEmojiWidth).coerceAtLeast(0.dp)

@@ -29,9 +29,7 @@ class ReactorsPrefetchCacheTest {
             Result.success(ReactorsPage(reactors = emptyList(), hasMore = false))
         }
 
-        // OpenReactors calls start() synchronously, one step before the navigator pushes the sheet
-        // (see ChatViewModel's OpenReactors handler) — so by the time a sheet would compose and
-        // read rows(), the fetch is already in flight.
+        // start() alone puts the fetch in flight, before anything reads rows().
         cache.start(messageId = 1L, pills = listOf(pill("👍"), pill("🔥")))
         advanceUntilIdle()
 
@@ -61,8 +59,7 @@ class ReactorsPrefetchCacheTest {
             Result.success(ReactorsPage(reactors = listOf(reactor(alice, reactedAt)), hasMore = false))
         }
 
-        // The sheet's own composition can read rows()/loading() before ChatViewModel's OpenReactors
-        // handler has run start() — both derive from the same backing StateFlow, so a flow obtained
+        // A collector can read rows()/loading() before start() has run — both derive from the same backing StateFlow, so a flow obtained
         // now still reflects the fetch once it lands, rather than being a stale placeholder.
         val rowsFlow = cache.rows(1L)
 
