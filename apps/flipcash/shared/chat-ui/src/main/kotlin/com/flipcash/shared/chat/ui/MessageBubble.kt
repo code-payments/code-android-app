@@ -82,6 +82,18 @@ import com.getcode.ui.core.addIf
 enum class BubblePosition { Solo, First, Middle, Last }
 
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
+
+/**
+ * How wide a link card is drawn in a transcript whose rows are inset by [rowInset] on each side.
+ *
+ * The same fraction as a text bubble, but of the transcript's full width rather than of the inset
+ * row, which is how iOS sizes its link cards and its group's head card
+ * (`ChatViewController.maxBubbleWidthFraction`). Taken of the inset row, the cards came out about
+ * 30dp narrower than iOS's on the same screen.
+ */
+fun transcriptCardWidth(rowWidth: Dp, rowInset: Dp): Dp =
+    (rowWidth + rowInset * 2) * BUBBLE_MAX_WIDTH_FRACTION
+
 private val EDITED_MARKER_GAP = 6.dp
 private const val CASH_BUBBLE_MAX_WIDTH_FRACTION = 0.64f
 
@@ -106,7 +118,10 @@ fun ContentBubble(
     val actionHandler = LocalChatActionHandler.current
     val jumbo = remember(item) { item.rendersBareEmoji() }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val bubbleMaxWidth = when (item.content) {
+        val isCardRow = item.linkCard != null && item.part == MessagePart.Card
+        val bubbleMaxWidth = if (isCardRow) {
+            transcriptCardWidth(rowWidth = maxWidth, rowInset = CodeTheme.dimens.inset)
+        } else when (item.content) {
             is MessageContent.Text -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.Cash -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.Deleted -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION

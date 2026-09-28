@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.LazyListState
@@ -60,6 +61,7 @@ import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
 import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.shared.chat.ui.GroupInviteCardDefaults
 import com.flipcash.shared.chat.ui.GroupInviteLinkCard
+import com.flipcash.shared.chat.ui.transcriptCardWidth
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.util.vibration.LocalVibrator
@@ -71,9 +73,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withTimeoutOrNull
-
-// The empty group's invite card, as a share of the row: 290 of 402 in node 10330:19164.
-private const val GROUP_INVITE_CARD_WIDTH = 0.72f
 
 @Composable
 internal fun MessageList(
@@ -435,14 +434,20 @@ internal fun MessageList(
                                 currencyName = state.ruleCurrency?.nameInRequirement,
                             )
                         }
-                        Box(
+                        BoxWithConstraints(
                             modifier = Modifier.fillParentMaxWidth(),
                             contentAlignment = Alignment.Center,
                         ) {
-                            BoxWithConstraints(Modifier.fillMaxWidth(GROUP_INVITE_CARD_WIDTH)) {
+                            // The width a link card gets in a DM transcript, so this reads as the
+                            // same card sent there (iOS sizes both the same way).
+                            val cardWidth = transcriptCardWidth(
+                                rowWidth = maxWidth,
+                                rowInset = CodeTheme.dimens.inset,
+                            )
+                            Box(Modifier.width(cardWidth)) {
                                 GroupInviteLinkCard(
                                     card = card,
-                                    minHeight = maxWidth * GroupInviteCardDefaults.ASPECT,
+                                    minHeight = cardWidth * GroupInviteCardDefaults.ASPECT,
                                     ctaLabel = stringResource(R.string.action_linkCard_invitePeople),
                                     onStart = { onAction(ChatAction.InviteToGroup) }
                                         .takeIf { !selecting },
