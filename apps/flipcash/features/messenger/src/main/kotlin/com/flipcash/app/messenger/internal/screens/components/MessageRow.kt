@@ -269,7 +269,9 @@ internal fun MessageRow(
                 // name line. It carries the gutter's width as a leading inset to stay on the
                 // edge it sat on when the column held it.
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    if (sender != null && runStart) {
+                    // A profile can arrive with no display name; drawing it would leave an empty
+                    // line above the run. The avatar below still marks whose run it is.
+                    if (sender != null && runStart && sender.displayName.isNotBlank()) {
                         Text(
                             modifier = Modifier.padding(
                                 start = senderNameInset(showsSenderGutter && !item.isFromSelf),
