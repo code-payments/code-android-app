@@ -794,6 +794,14 @@ internal class ChatViewModel @Inject constructor(
 
     fun loadMoreReactors(messageId: Long) = reactorsPrefetchCache.loadMoreIfNeeded(messageId)
 
+    /**
+     * Refetches [messageId]'s reactors when [pills] no longer match what the cache fetched for —
+     * called by the open reactors sheet each time its live pills change, so a reaction added or
+     * removed while it's up (or since it was last opened) shows in the rows, not just the title.
+     */
+    fun syncReactors(messageId: Long, pills: List<com.flipcash.shared.chat.reactions.ReactionPill>) =
+        reactorsPrefetchCache.start(messageId, pills)
+
     /** [messageId]'s pills, live — the reactors sheet's summary row (decision 4: title + pills). */
     fun reactionPills(messageId: Long): Flow<List<com.flipcash.shared.chat.reactions.ReactionPill>> =
         reactionOverlay.map { it[messageId]?.pills.orEmpty() }.distinctUntilChanged()
@@ -1959,8 +1967,7 @@ internal class ChatViewModel @Inject constructor(
         // rather than on the sheet's own composition.
         eventFlow.filterIsInstance<Event.OpenReactors>()
             .onEach { event ->
-                val emojis = reactionOverlay.value[event.messageId]?.pills?.map { it.emoji }.orEmpty()
-                reactorsPrefetchCache.start(event.messageId, emojis)
+                syncReactors(event.messageId, reactionOverlay.value[event.messageId]?.pills.orEmpty())
             }
             .launchIn(viewModelScope)
 
