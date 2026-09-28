@@ -33,9 +33,10 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
 }
 
-// Define the task to fetch and generate emoji data
+// Define the task to fetch and generate emoji data. KSP reads src/main/kotlin too, so it
+// has to wait for the generated sources as well as the Kotlin compile.
 afterEvaluate {
-    tasks.matching { it.name.matches(Regex("compile.*Kotlin")) }.configureEach {
+    tasks.matching { it.name.matches(Regex("(compile|ksp).*Kotlin")) }.configureEach {
         dependsOn("generateEmojiList")
     }
 }
