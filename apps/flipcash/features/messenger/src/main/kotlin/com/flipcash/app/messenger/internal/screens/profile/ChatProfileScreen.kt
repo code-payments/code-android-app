@@ -62,7 +62,7 @@ import kotlin.time.Instant
  * never reach this screen ([com.flipcash.app.messenger.internal.ChatSubject.Contact] answers
  * `canViewProfile` false).
  *
- * The Message and Send Cash shortcuts follow the same split, the other way round: they show on a
+ * The Message, Send Cash and Share shortcuts follow the same split, the other way round: they show on a
  * group member's profile and not on a tip DM's, where they would only reopen the chat behind it.
  * [profileShortcutRecipient] has the whole rule.
  */
@@ -76,6 +76,7 @@ internal fun ChatProfileScreen(
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
     val isTipDm = chatState.chatType == ChatType.TIP_DM
+    val share = rememberProfileShare()
 
     CodeScaffold(
         topBar = {
@@ -115,6 +116,7 @@ internal fun ChatProfileScreen(
                                 cashSymbol = chatState.cashSymbol,
                                 onMessage = { navigator.push(user.dmRoute()) },
                                 onSendCash = { navigator.push(user.dmRoute(openSendCash = true)) },
+                                onShare = { share(user) },
                             )
                         }
                     },

@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,10 +31,13 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 // Used by the held-back Send Cash shortcut below.
 // import com.flipcash.app.messenger.internal.screens.components.CondensedSymbolFontSize
+import com.flipcash.app.shareable.LocalShareController
+import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.opencode.model.core.ID
 import com.getcode.theme.CodeTheme
+import kotlinx.coroutines.launch
 
 /**
  * Who the profile's Message and Send Cash shortcuts would open a DM with, or null to leave them
@@ -70,6 +74,29 @@ internal fun ChatParticipant.TipUser.dmRoute(openSendCash: Boolean = false) =
     )
 
 /**
+ * What a profile's Share shortcut does: hands the person's `flipcash.com` link to the Sharesheet,
+ * in the handle form when they have one, as the You tab shares your own.
+ */
+@Composable
+internal fun rememberProfileShare(): (ChatParticipant.TipUser) -> Unit {
+    val shareController = LocalShareController.current
+    val scope = rememberCoroutineScope()
+    return remember(shareController, scope) {
+        { user ->
+            scope.launch {
+                shareController.present(
+                    Shareable.TipCard(
+                        userId = user.userId,
+                        title = user.profile.displayName,
+                        username = user.profile.username,
+                    )
+                )
+            }
+        }
+    }
+}
+
+/**
  * The Message and Send Cash shortcuts under a profile's identity lines, and Share when [onShare] is
  * set.
  *
@@ -83,7 +110,7 @@ internal fun ProfileShortcuts(
     onMessage: () -> Unit,
     onSendCash: () -> Unit,
     modifier: Modifier = Modifier,
-    // Null leaves Share out. The chat profile has none: the person is already in a conversation.
+    // Null leaves Share out.
     onShare: (() -> Unit)? = null,
 ) {
     Row(
