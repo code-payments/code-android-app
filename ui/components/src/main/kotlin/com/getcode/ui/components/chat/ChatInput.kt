@@ -78,6 +78,11 @@ sealed interface ChatInputSubmit {
     ) : ChatInputSubmit
 }
 
+object ChatInputDefaults {
+    /** The field's own fill. A caller that draws its own glass behind the field passes transparent. */
+    val ContainerColor = Color(0xAD1E1E1E)
+}
+
 @Composable
 fun ChatInput(
     modifier: Modifier = Modifier,
@@ -85,6 +90,7 @@ fun ChatInput(
     hint: String = "",
     state: TextFieldState = rememberTextFieldState(),
     focusRequester: FocusRequester = remember { FocusRequester() },
+    containerColor: Color = ChatInputDefaults.ContainerColor,
     submit: ChatInputSubmit,
 ) {
     val shape = CodeTheme.shapes.medium
@@ -131,7 +137,7 @@ fun ChatInput(
                 bottom = CodeTheme.dimens.staticGrid.x2,
             ),
             colors = inputColors(
-                backgroundColor = Color(0xAD1E1E1E),
+                backgroundColor = containerColor,
                 borderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent,
             ),

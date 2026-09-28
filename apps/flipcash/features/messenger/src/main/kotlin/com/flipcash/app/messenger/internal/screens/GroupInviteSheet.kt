@@ -78,6 +78,7 @@ import com.getcode.ui.components.chat.ChatInputSubmit
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeSource
@@ -273,17 +274,22 @@ internal fun GroupInviteSheet(
             enter = slideInVertically(ComposerSpring) { with(density) { ComposerTravel.roundToPx() } },
             exit = slideOutVertically(ComposerSpring) { with(density) { ComposerTravel.roundToPx() } },
         ) {
-            InviteComposer(
+            // Inset in a wrapper: ChatInput clips to its pill before applying its modifier, so
+            // padding passed to it would round the padded box while the glass drew square inside.
+            Box(
                 modifier = Modifier
                     .padding(horizontal = ListInset)
-                    .padding(bottom = composerBottom)
-                    .onSizeChanged { fieldHeight = with(density) { it.height.toDp() } },
-                hazeState = hazeState,
-                material = material,
-                sending = state.sending,
-                onMessageChanged = onMessageChanged,
-                onInvite = onInvite,
-            )
+                    .padding(bottom = composerBottom),
+            ) {
+                InviteComposer(
+                    modifier = Modifier
+                        .onSizeChanged { fieldHeight = with(density) { it.height.toDp() } },
+                    hazeState = hazeState,
+                    sending = state.sending,
+                    onMessageChanged = onMessageChanged,
+                    onInvite = onInvite,
+                )
+            }
         }
     }
 }
@@ -403,18 +409,27 @@ private fun RecentChatRow(
 @Composable
 private fun InviteComposer(
     hazeState: HazeState,
-    material: HazeBlurStyle,
     sending: Boolean,
     onMessageChanged: (String) -> Unit,
     onInvite: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // One fill, node 10329:11963's 46% #1E1E1E, over a blur of the rows beneath. ChatInput's own
+    // fill is dropped because stacking it on the tint made the pill opaque and hid its edges.
+    // The HazeBlurStyle builder is not a @Composable scope, so the theme read is hoisted above it.
+    val backdrop = CodeTheme.colors.surface
+    val glass = HazeBlurStyle {
+        blurRadius(ComposerBlurRadius)
+        backgroundColor(backdrop)
+        colorEffects(listOf(HazeColorEffect.tint(ComposerFill)))
+    }
     val message = rememberTextFieldState()
     LaunchedEffect(message) {
         snapshotFlow { message.text.toString() }.collect(onMessageChanged)
     }
     ChatInput(
-        modifier = modifier.hazeBlur(HazeInput.Sources(hazeState), material),
+        modifier = modifier.hazeBlur(HazeInput.Sources(hazeState), glass),
+        containerColor = Color.Transparent,
         enabled = !sending,
         hint = stringResource(R.string.hint_addAMessage),
         state = message,
@@ -429,6 +444,8 @@ private fun InviteComposer(
 // Node 10330:19387 and its children. Fixed rather than the theme's inset, which narrows on small
 // screens, because the design holds these at 20 at every width.
 private val ListInset = 20.dp
+private val ComposerFill = Color(0x751E1E1E)
+private val ComposerBlurRadius = 24.dp
 private val HeaderPadding = 16.dp
 private val HeaderRowVertical = 16.dp
 private val TileRowVertical = 12.dp
