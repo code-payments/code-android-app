@@ -1,6 +1,7 @@
 package com.flipcash.app.tokens.internal.components.marketcap
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,7 +46,6 @@ import com.getcode.ui.components.charts.LineTrend
 import com.getcode.ui.components.charts.TrendType
 import com.getcode.ui.components.charts.yValues
 import com.getcode.util.vibration.LocalVibrator
-import androidx.compose.ui.graphics.Brush
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.compose.cartesian.data.lineModel
@@ -231,9 +231,15 @@ private fun MarketCapChartContent(
     animateOpen: Boolean = true,
     onPointHighlighted: (CartesianMarker.Target?) -> Unit
 ) {
-    val trendColor = trend.color
-    val trendPressedColor = trend.pressedColor
-    val trendAlpha = if (trend is LineTrend.Up) 0.10f else 0.25f
+    // Fade the trend colors over the same 300 ms as the curve morph. The fills and the indicator read
+    // these states while drawing, so the chart itself isn't rebuilt on each frame.
+    val trendColor = animateColorAsState(trend.color, tween(durationMillis = 300), label = "trendColor")
+    val trendPressedColor = animateColorAsState(trend.pressedColor, tween(durationMillis = 300), label = "trendPressedColor")
+    val trendAlpha = animateFloatAsState(
+        if (trend is LineTrend.Up) 0.10f else 0.25f,
+        tween(durationMillis = 300),
+        label = "trendAlpha",
+    )
 
     val indicatorSize = INDICATOR_SIZE
     val strokeSize = STROKE_SIZE
@@ -276,38 +282,32 @@ private fun MarketCapChartContent(
 
 
 
-    val activeMarker = rememberChartMarker(strokeFill = trendColor)
+    val activeMarker = rememberChartMarker(strokeFill = { trendColor.value })
     val persistentMarker = rememberChartMarker()
 
     val chart = rememberCartesianChart(
         rememberLineCartesianLayer(
             lineProvider = LineCartesianLayer.LineProvider.series(
                 LineCartesianLayer.rememberLine(
-                    fill = remember(trend) {
+                    fill = remember {
                         LineCartesianLayer.LineFill.double(
-                            leftFill = Fill(trendColor),
-                            rightFill = Fill(trendPressedColor),
+                            leftColor = { trendColor.value },
+                            rightColor = { trendPressedColor.value },
                             splitX = {
                                 splitState.canvasX - with(density) { indicatorSize.toPx() / 4 }
                             }
                         )
                     },
-                    stroke = remember(trend) {
+                    stroke = remember {
                         LineCartesianLayer.LineStroke.Continuous(
                             thickness = strokeSize,
                             cap = StrokeCap.Round
                         )
                     },
-                    areaFill = remember(trend) {
-                        LineCartesianLayer.AreaFill.single(
-                            Fill(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        trendColor.copy(alpha = trendAlpha),
-                                        trendColor.copy(alpha = 0f),
-                                    )
-                                )
-                            )
+                    areaFill = remember {
+                        VerticalGradientAreaFill(
+                            color = { trendColor.value },
+                            topAlpha = { trendAlpha.value },
                         )
                     },
                     interpolator = LineCartesianLayer.Interpolator.cubic(curvature = 0.25f),
@@ -344,10 +344,9 @@ private fun MarketCapChartContent(
 
 @Composable
 private fun rememberChartMarker(
-    strokeFill: Color? = null,
+    strokeFill: (() -> Color)? = null,
 ): CartesianMarker {
     val markerFill = CodeTheme.colors.background
-    val outerFill: Color = strokeFill?.copy(0.20f) ?: Color.Transparent
 
     return rememberDefaultCartesianMarker(
         label = rememberTextComponent(
@@ -356,15 +355,17 @@ private fun rememberChartMarker(
         valueFormatter = remember {
             DefaultCartesianMarker.ValueFormatter.default(colorCode = false)
         },
-        indicator = remember(strokeFill) {
-            { color ->
-                outerFillShapeComponent(
-                    outerFill = Fill(outerFill),
-                    margins = Insets(6.dp),
-                    innerFill = Fill(markerFill),
-                    strokeFill = Fill(strokeFill ?: color),
-                    strokeThickness = 2.dp,
-                )
+        indicator = remember(strokeFill, markerFill) {
+            { pointColor ->
+                ColorProviderComponent(color = { strokeFill?.invoke() ?: pointColor }) { stroke ->
+                    outerFillShapeComponent(
+                        outerFill = Fill(if (strokeFill != null) stroke.copy(0.20f) else Color.Transparent),
+                        margins = Insets(6.dp),
+                        innerFill = Fill(markerFill),
+                        strokeFill = Fill(stroke),
+                        strokeThickness = 2.dp,
+                    )
+                }
             }
         },
         indicatorSize = INDICATOR_SIZE,
