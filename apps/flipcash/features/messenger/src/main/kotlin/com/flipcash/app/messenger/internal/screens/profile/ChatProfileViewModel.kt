@@ -18,6 +18,7 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -50,7 +51,14 @@ internal class ChatProfileViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnParticipantSet(val participant: ChatParticipant) : Event
+        /**
+         * [fromServer] says the participant's profile was just fetched, as a link's lookup does, so
+         * its join date is current and there is no need to fetch it again.
+         */
+        data class OnParticipantSet(
+            val participant: ChatParticipant,
+            val fromServer: Boolean = false,
+        ) : Event
         data class JoinDateLoaded(val joinDate: Instant?) : Event
         data object BlockUser : Event
         data class BlockConfirmed(val participant: ChatParticipant.TipUser) : Event
@@ -61,14 +69,17 @@ internal class ChatProfileViewModel @Inject constructor(
     init {
         eventFlow
             .filterIsInstance<Event.OnParticipantSet>()
-            .map { it.participant }
-            .filterIsInstance<ChatParticipant.TipUser>()
+            .filter { it.participant is ChatParticipant.TipUser }
             .distinctUntilChanged()
-            .onEach { (userId, profile) ->
+            .onEach { event ->
+                val (userId, profile) = event.participant as ChatParticipant.TipUser
                 // The cached member profile doesn't carry a join date, so resolve it from the
                 // server profile, falling back to whatever the participant already had.
-                val joinDate = profiles.getProfileForUser(userId).getOrNull()?.joinedAt
-                    ?: profile.joinedAt
+                val joinDate = if (event.fromServer) {
+                    profile.joinedAt
+                } else {
+                    profiles.getProfileForUser(userId).getOrNull()?.joinedAt ?: profile.joinedAt
+                }
                 dispatchEvent(Event.JoinDateLoaded(joinDate))
             }
             .launchIn(viewModelScope)

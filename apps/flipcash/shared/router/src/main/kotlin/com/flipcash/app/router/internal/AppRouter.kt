@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.core.net.toUri
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.models.chat.ChatId
@@ -39,7 +40,7 @@ internal class AppRouter(
 ) : Router {
 
     /**
-     * How the signed-in account can be addressed, for matching a tip card link against itself.
+     * How the signed-in account can be addressed, for matching a tip card or profile link against itself.
      * Both nullable and read together: see [TipCardOwner.isSelf] for why the id and the handle
      * cannot be sourced from one profile.
      */
@@ -60,7 +61,7 @@ internal class AppRouter(
         const val JUMP_HOST = "jump.flipcash.com"
 
         /**
-         * The bare host, which serves the website *and* every user's tip card link — by handle
+         * The bare host, which serves the website *and* every user's profile link — by handle
          * (`flipcash.com/sally_streamer`) or by account id (`flipcash.com/{uuid}`). Distinct from
          * the `app.` / `send.` hosts, whose whole path space belongs to the app.
          */
@@ -142,7 +143,28 @@ internal class AppRouter(
 
             is DeeplinkType.Tipcard -> tipCard(TipCardOwner.ById(type.userId))
 
-            is DeeplinkType.TipcardByUsername -> tipCard(TipCardOwner.ByUsername(type.username))
+            is DeeplinkType.Profile -> profile(type.address)
+        }
+    }
+
+    /**
+     * Where a person's `flipcash.com` link goes: their profile, over the Chats tab, so its
+     * Message shortcut opens the DM from the tab that holds it — the same stack a tip chat link
+     * lands on.
+     *
+     * Your own goes where your own tip card link does, and for the same reason: there's no DM
+     * with yourself, and the You tab is the surface that shows you. A handle can only be matched
+     * once this account's profile has arrived, so a cold-started self-link by handle gets past
+     * this check and is caught by the screen instead, against the id the lookup returns.
+     */
+    private fun profile(address: ProfileAddress): DeeplinkAction {
+        val self = currentUserProvider()
+        return if (address.isSelf(self.id, self.username)) {
+            DeeplinkAction.Navigate(listOf(AppRoute.Tabs.Menu))
+        } else {
+            DeeplinkAction.Navigate(
+                listOf(AppRoute.Tabs.Chats, AppRoute.Messaging.Profile(address))
+            )
         }
     }
 
@@ -317,7 +339,7 @@ private fun DeepLink.isTipChat(): Boolean =
 private fun DeepLink.isTipCard(): Boolean =  tip.contains(pathSegments.getOrNull(0))
 
 /**
- * A tip card link on the bare host: one path segment naming its owner, either as a handle
+ * A person's link on the bare host: one path segment naming them, either as a handle
  * (`flipcash.com/sally_streamer`) or as an account id (`flipcash.com/{uuid}`).
  *
  * A handle has to clear two more conditions than the id does — the server's charset, and not being
@@ -339,11 +361,12 @@ private fun DeepLink.handleProfileLink(): DeeplinkType? {
     // Lowercased, not just matched case-insensitively: handles are lowercase on the wire and a
     // UUID is written lowercase, and this string is what the lookup is keyed by.
     val segment = pathSegments.singleOrNull()?.lowercase() ?: return null
-    return if (segment.isUuidShaped()) {
-        DeeplinkType.Tipcard(UUID.fromString(segment).bytes)
+    val address = if (segment.isUuidShaped()) {
+        ProfileAddress.ById(UUID.fromString(segment).bytes)
     } else {
-        DeeplinkType.TipcardByUsername(segment)
+        ProfileAddress.ByUsername(segment)
     }
+    return DeeplinkType.Profile(address)
 }
 
 /**

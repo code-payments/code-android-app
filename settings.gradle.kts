@@ -270,7 +270,6 @@ include(
     ":vendor:kik:scanner",
     ":vendor:tipkit:tipkit",
     ":vendor:tipkit:tipkit-m2",
-    ":vendor:opencv:sdk",
 )
 
 // ---- Cross-module aggregation wiring (single source of truth) ----

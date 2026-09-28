@@ -4,7 +4,7 @@ import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.messenger.internal.link.UserLinkLookup
 import com.flipcash.app.messenger.internal.screens.profile.profileShortcutRecipient
-import com.flipcash.app.messenger.internal.screens.profile.profileShowsMute
+import com.flipcash.app.messenger.internal.screens.profile.profileChat
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
@@ -12,7 +12,7 @@ import com.flipcash.shared.chat.models.LinkCard
 import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 /** Where a tapped `@handle` lands once its lookup answers. Ports iOS's `MentionDestinationTests`. */
 class MentionDestinationTest {
@@ -83,7 +83,8 @@ class MentionDestinationTest {
     @Test
     fun `a mention offers chat actions but not mute`() {
         val other = ChatParticipant.TipUser(otherId, profile(otherId))
-        assertEquals(other, profileShortcutRecipient(other, ChatType.TIP_DM, selfId, ProfileOrigin.Mention))
-        assertFalse(profileShowsMute(ChatType.TIP_DM, ProfileOrigin.Mention))
+        val chat = profileChat(ProfileOrigin.Mention, chatId = null, ChatType.TIP_DM, viewerState = null)
+        assertNull(chat)
+        assertEquals(other, profileShortcutRecipient(other, chat?.chatType, selfId))
     }
 }

@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.link
 
 import android.net.Uri
 import androidx.core.net.toUri
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.links.FIRST_PARTY_HOSTS
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
@@ -83,8 +84,8 @@ internal class LinkCardClassifier @Inject constructor(
                 chatId = type.chatId,
                 state = LinkCard.GroupInvite.State.Loading,
             ).takeIf { target.toUri().pathSegments.size == GROUP_INVITE_SEGMENTS }
-            // A person's link, by id: the no-handle `flipcash.com/<uuid>`, or the legacy
-            // `/tip/<uuid>`. Whether anyone owns the id is the lookup's question.
+            // A person's link by id, the legacy `/tip/<uuid>`. Whether anyone owns the id is the
+            // lookup's question.
             is DeeplinkType.Tipcard -> LinkCard.User(
                 url = target,
                 start = link.start,
@@ -92,13 +93,17 @@ internal class LinkCardClassifier @Inject constructor(
                 identity = LinkCard.User.Identity.ById(type.userId),
                 state = LinkCard.User.State.Loading,
             )
-            // By handle. The router has already refused the website's own pages
+            // A person's link on the bare host: by handle, or by id for the no-handle
+            // `flipcash.com/<uuid>`. The router has already refused the website's own pages
             // (`AppRouter.reservedProfilePaths`), which is what keeps `/download` a plain link.
-            is DeeplinkType.TipcardByUsername -> LinkCard.User(
+            is DeeplinkType.Profile -> LinkCard.User(
                 url = target,
                 start = link.start,
                 end = link.end,
-                identity = LinkCard.User.Identity.ByUsername(type.username),
+                identity = when (val address = type.address) {
+                    is ProfileAddress.ById -> LinkCard.User.Identity.ById(address.userId)
+                    is ProfileAddress.ByUsername -> LinkCard.User.Identity.ByUsername(address.username)
+                },
                 state = LinkCard.User.State.Loading,
             )
             else -> null

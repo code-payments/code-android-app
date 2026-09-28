@@ -3,6 +3,7 @@ package com.flipcash.app.router.internal
 import android.util.Base64
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.util.Linkify
@@ -495,26 +496,26 @@ class AppRouterTest {
 
     // endregion
 
-    // region classify + dispatch — tip card links on the bare host
+    // region classify + dispatch — profile links on the bare host
 
     @Test
     fun `classify recognizes a vanity profile link`() {
         val type = router.classify(DeepLink(Linkify.tipcard(TipCardOwner.ByUsername("sally_streamer"))))
-        assertIs<DeeplinkType.TipcardByUsername>(type)
-        assertEquals("sally_streamer", type.username)
+        assertIs<DeeplinkType.Profile>(type)
+        assertEquals(ProfileAddress.ByUsername("sally_streamer"), type.address)
     }
 
     @Test
     fun `classify lowercases a vanity profile link`() {
         val type = router.classify(DeepLink("https://flipcash.com/Sally_Streamer"))
-        assertIs<DeeplinkType.TipcardByUsername>(type)
-        assertEquals("sally_streamer", type.username)
+        assertIs<DeeplinkType.Profile>(type)
+        assertEquals(ProfileAddress.ByUsername("sally_streamer"), type.address)
     }
 
     @Test
     fun `classify recognizes a vanity profile link on the www host`() {
         val type = router.classify(DeepLink("https://www.flipcash.com/sally_streamer"))
-        assertIs<DeeplinkType.TipcardByUsername>(type)
+        assertIs<DeeplinkType.Profile>(type)
     }
 
     @Test
@@ -552,45 +553,67 @@ class AppRouterTest {
     }
 
     @Test
-    fun `classify recognizes a tip card link addressed by account id`() {
+    fun `classify recognizes a profile link addressed by account id`() {
         val userId = "11111111-2222-3333-4444-555555555555"
         val type = router.classify(DeepLink("https://flipcash.com/$userId"))
-        assertIs<DeeplinkType.Tipcard>(type)
-        assertEquals(UUID.fromString(userId).bytes, type.userId)
+        assertIs<DeeplinkType.Profile>(type)
+        assertEquals(ProfileAddress.ById(UUID.fromString(userId).bytes), type.address)
     }
 
     @Test
     fun `classify recognizes an id link written by Linkify`() {
         val userId = UUID.fromString("11111111-2222-3333-4444-555555555555").bytes
         val type = router.classify(DeepLink(Linkify.tipcard(TipCardOwner.ById(userId))))
-        assertIs<DeeplinkType.Tipcard>(type)
-        assertEquals(userId, type.userId)
+        assertIs<DeeplinkType.Profile>(type)
+        assertEquals(ProfileAddress.ById(userId), type.address)
     }
 
     // A link is typed, printed, or auto-capitalised in any case; the id it resolves to is the same.
     @Test
     fun `classify recognizes an id link in mixed case`() {
         val type = router.classify(DeepLink("https://flipcash.com/AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"))
-        assertIs<DeeplinkType.Tipcard>(type)
-        assertEquals(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").bytes, type.userId)
+        assertIs<DeeplinkType.Profile>(type)
+        assertEquals(
+            ProfileAddress.ById(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").bytes),
+            type.address,
+        )
     }
 
     @Test
     fun `classify recognizes an id link on the www host`() {
         val type = router.classify(DeepLink("https://www.flipcash.com/11111111-2222-3333-4444-555555555555"))
-        assertIs<DeeplinkType.Tipcard>(type)
+        assertIs<DeeplinkType.Profile>(type)
     }
 
     @Test
-    fun `dispatch presents the tip card for another user's id link`() {
+    fun `dispatch opens the profile over the Chats tab for another user's id link`() {
         loggedIn()
         currentUserId = UUID.fromString("22222222-2222-2222-2222-222222222222").bytes
 
         val userId = "11111111-1111-1111-1111-111111111111"
         val action = router.dispatch(DeepLink("https://flipcash.com/$userId"))
 
-        assertIs<DeeplinkAction.PresentTipCard>(action)
-        assertEquals(TipCardOwner.ById(UUID.fromString(userId).bytes), action.owner)
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(
+            listOf(
+                AppRoute.Tabs.Chats,
+                AppRoute.Messaging.Profile(ProfileAddress.ById(UUID.fromString(userId).bytes)),
+            ),
+            action.routes,
+        )
+    }
+
+    // Unknown until this account's profile arrives; the screen catches a self-link by id then.
+    @Test
+    fun `dispatch opens the profile for an id link when the current user id is unknown`() {
+        loggedIn()
+        currentUserId = null
+
+        val userId = "11111111-1111-1111-1111-111111111111"
+        val action = router.dispatch(DeepLink("https://flipcash.com/$userId"))
+
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertIs<AppRoute.Messaging.Profile>(action.routes.last())
     }
 
     @Test
@@ -633,16 +656,31 @@ class AppRouterTest {
     }
 
     @Test
-    fun `dispatch presents the tip card for a vanity profile link`() {
+    fun `dispatch opens the profile over the Chats tab for a vanity profile link`() {
         loggedIn()
+        currentUsername = "someone_else"
         val action = router.dispatch(DeepLink(Linkify.tipcard(TipCardOwner.ByUsername("sally_streamer"))))
-        assertIs<DeeplinkAction.PresentTipCard>(action)
-        assertEquals(TipCardOwner.ByUsername("sally_streamer"), action.owner)
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(
+            listOf(
+                AppRoute.Tabs.Chats,
+                AppRoute.Messaging.Profile(ProfileAddress.ByUsername("sally_streamer")),
+            ),
+            action.routes,
+        )
     }
 
-    // Your own handle diverts to the You tab here rather than after resolution: the session
-    // announces a self-tip through a replay-less event only the scanner collects, so a link
-    // opened onto any other tab would drop it silently.
+    // The only entry that still presents the card by link: a profile link no longer does.
+    @Test
+    fun `dispatch still presents the tip card for a legacy tip path`() {
+        loggedIn()
+        val userId = "11111111-1111-1111-1111-111111111111"
+        val action = router.dispatch(DeepLink("https://app.flipcash.com/tip/$userId"))
+        assertIs<DeeplinkAction.PresentTipCard>(action)
+    }
+
+    // Your own handle diverts to the You tab, as your own tip card link does: there is no DM with
+    // yourself, and the You tab is the surface that shows you.
     @Test
     fun `dispatch routes your own vanity profile link to the You tab`() {
         loggedIn()

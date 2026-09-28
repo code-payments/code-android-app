@@ -1279,12 +1279,12 @@ internal class ChatViewModel @Inject constructor(
                 val counterpart = (stateFlow.value.participant as? ChatParticipant.TipUser)?.userId
                 when (val destination = mentionDestination(event.username, lookup, counterpart)) {
                     is MentionDestination.NoSuchAccount -> BottomBarManager.showInfo(
-                        title = resources.getString(R.string.title_mentionNoSuchAccount),
-                        message = resources.getString(R.string.description_mentionNoSuchAccount, destination.username),
+                        title = resources.getString(R.string.error_title_usernameNotFound),
+                        message = resources.getString(R.string.error_description_usernameNotFound, destination.username),
                     )
                     MentionDestination.LookupFailed -> BottomBarManager.showError(
-                        title = resources.getString(R.string.title_mentionLookupFailed),
-                        message = resources.getString(R.string.description_mentionLookupFailed),
+                        title = resources.getString(R.string.error_title_profileUnavailable),
+                        message = resources.getString(R.string.error_description_profileUnavailable),
                     )
                     else -> dispatchEvent(Event.OpenMention(destination))
                 }

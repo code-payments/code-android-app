@@ -370,6 +370,7 @@ private fun FlowReactionPickerScreen(messageId: Long) {
     ReactionPickerSheet(
         searchState = state.searchFieldState,
         sections = state.sections,
+        tones = state.tones,
         loaded = state.loaded,
         onSelected = { emoji ->
             chatViewModel.dispatchEvent(

@@ -185,10 +185,6 @@
     <!-- Shown when a non-member reading a group taps a cash link in it. The link is not opened. -->
     <string name="title_joinToCollect">Join to Collect</string>
     <string name="description_joinToCollect">Join this chat to collect cash sent in it.</string>
-    <string name="title_mentionNoSuchAccount">No Such Account</string>
-    <string name="description_mentionNoSuchAccount">Nobody has claimed @%1$s</string>
-    <string name="title_mentionLookupFailed">Couldn\'t Open Profile</string>
-    <string name="description_mentionLookupFailed">Please check your connection and try again</string>
 
     <string name="title_enterAddress">Enter Solana address</string>
     <!-- v2 app-bar title for the withdrawal destination step; title_enterAddress stays the field placeholder. -->
@@ -1016,6 +1012,7 @@
     <string name="title_reactorsSheet">Reactions</string>
     <string name="hint_searchEmoji">Search</string>
     <string name="action_clearEmojiSearch">Clear search</string>
+    <string name="action_chooseSkinTone">Choose skin tone</string>
     <string name="action_addReaction">Add reaction</string>
 
     <string name="label_unknownContact">Unknown Contact</string>
@@ -1198,6 +1195,9 @@
     <string name="error_description_usernameNotFound">Nobody has claimed \@%1$s</string>
     <string name="error_title_tipCardUnavailable">Couldn\'t Open Tip Card</string>
     <string name="error_description_tipCardUnavailable">Please check your connection and try again</string>
+    <!-- A tapped `flipcash.com/{username}` or `flipcash.com/{uuid}` link whose profile couldn't be fetched. -->
+    <string name="error_title_profileUnavailable">Couldn\'t Open Profile</string>
+    <string name="error_description_profileUnavailable">Please check your connection and try again</string>
 
     <string name="error_title_profilePhotoNotAllowed">This Photo is Not Allowed</string>
     <string name="error_description_profilePhotoNotAllowedFlaggedOther">AI flagged this photo. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
@@ -1244,6 +1244,7 @@
     <!-- The profile's two shortcuts into the DM with this person. "Send Cash" beside it is
          action_sendCash. -->
     <string name="action_message">Message</string>
+    <string name="action_shareProfile">Share</string>
 
     <string name="error_title_failedToBlock">Something Went Wrong</string>
     <string name="error_description_failedToBlock">We were unable to block the user. Please try again</string>

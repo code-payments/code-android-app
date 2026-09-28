@@ -32,6 +32,7 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.links.ExternalLinkUriHandler
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
@@ -172,10 +173,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     else -> keyboard.hideIfVisible {
                         viewModel.dispatchEvent(
                             ChatViewModel.Event.OpenScreen(
-                                // The DM the tip flow ends at, pushed as the group card pushes
-                                // its chat, so Back returns here. Its own fee sheet handles any
-                                // fee to message them.
-                                AppRoute.Messaging.Chat(ChatIdentifier.ByUser(action.userId, action.profile))
+                                // The profile their flipcash.com link opens, pushed as the group
+                                // card pushes its chat, so Back returns here. Its Message shortcut
+                                // goes on to the DM.
+                                AppRoute.Messaging.Profile(ProfileAddress.ById(action.userId))
                             )
                         )
                     }

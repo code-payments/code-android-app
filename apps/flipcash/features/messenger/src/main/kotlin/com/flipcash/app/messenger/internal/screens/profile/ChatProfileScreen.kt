@@ -21,7 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ProfileOrigin
@@ -35,6 +34,8 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.asSubject
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
@@ -65,11 +66,11 @@ import kotlin.time.Instant
  *
  * The Message and Send Cash shortcuts follow the same split, the other way round: they show on a
  * group member's profile and not on a tip DM's, where they would only reopen the chat behind it.
- * [profileShortcutRecipient] has the whole rule.
+ * [profileShortcutRecipient] has the whole rule. Share shows on every person's profile.
  *
  * A tapped `@handle` naming someone other than a tip DM's counterpart opens with
- * [ProfileOrigin.Mention], which takes the group member's shape: shortcuts, and no Mute, since the
- * DM's mute is not this person's.
+ * [ProfileOrigin.Mention]. That person is not who the chat is with, so the screen leaves the chat
+ * out, as a `flipcash.com` link's profile does: no Mute, and Message shows.
  */
 @Composable
 internal fun ChatProfileScreen(
@@ -78,14 +79,68 @@ internal fun ChatProfileScreen(
     origin: ProfileOrigin = ProfileOrigin.Chat,
 ) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
+
+    PersonProfileScreen(
+        viewModel = viewModel,
+        chat = profileChat(
+            origin = origin,
+            chatId = chatState.chatId,
+            chatType = chatState.chatType,
+            viewerState = chatState.viewerState,
+        ),
+        cashSymbol = chatState.cashSymbol,
+        onBack = { flowNavigator.back() },
+    )
+}
+
+/**
+ * The chat behind a profile opened from inside it, or null for a mention, whose person the chat is
+ * not with.
+ */
+internal fun profileChat(
+    origin: ProfileOrigin,
+    chatId: ChatId?,
+    chatType: ChatType,
+    viewerState: ViewerState?,
+): ProfileChat? = when (origin) {
+    ProfileOrigin.Chat -> ProfileChat(chatId, chatType, viewerState)
+    ProfileOrigin.Mention -> null
+}
+
+/**
+ * The conversation a person's profile was opened from, for the parts of the screen that act on the
+ * chat rather than the person: the mute row and the muted chip.
+ */
+internal data class ProfileChat(
+    val chatId: ChatId?,
+    val chatType: ChatType,
+    val viewerState: ViewerState?,
+)
+
+/**
+ * A person's profile, from a chat or from a link: the header, the shortcuts under it, and the
+ * Mute, Report and Block rows.
+ *
+ * [chat] is null when no conversation is behind the screen, as for a `flipcash.com` link. That
+ * leaves out the mute row and chip, which belong to a chat, and keeps Message, which a tip DM's
+ * profile hides. See [ChatProfileScreen] for the rules.
+ */
+@Composable
+internal fun PersonProfileScreen(
+    viewModel: ChatProfileViewModel,
+    chat: ProfileChat?,
+    cashSymbol: String,
+    onBack: () -> Unit,
+) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
-    val showsMute = profileShowsMute(chatState.chatType, origin)
+    val isTipDm = chat?.chatType == ChatType.TIP_DM
+    val share = rememberProfileShare()
 
     CodeScaffold(
         topBar = {
-            AppBarWithTitle(onBackIconClicked = { flowNavigator.back() })
+            AppBarWithTitle(onBackIconClicked = onBack)
         },
     ) { innerPadding ->
         MenuList(
@@ -96,32 +151,37 @@ internal fun ChatProfileScreen(
             // that asks someone else to look, which sits above the one that ends the conversation.
             // Same shape as the group's profile, where leaving holds the last place.
             items = buildList<MenuItem<ChatProfileAction>> {
-                if (showsMute) {
+                if (isTipDm) {
                     add(MuteDm)
                 }
                 add(ReportUser)
                 add(BlockUser)
             },
             header = {
+                val person = state.participant as? ChatParticipant.TipUser
                 val recipient = profileShortcutRecipient(
                     participant = state.participant,
-                    chatType = chatState.chatType,
+                    chatType = chat?.chatType,
                     selfId = state.selfId,
-                    origin = origin,
                 )
                 ProfileHeader(
                     participant = state.participant,
                     joinDate = state.joinDate,
                     // Only where the mute is this person's chat; see the KDoc above.
-                    viewerState = chatState.viewerState.takeIf { showsMute },
+                    viewerState = chat?.viewerState?.takeIf { isTipDm },
                     // Not flowNavigator, for the reason Report isn't: the DM is a top-level route,
                     // so LocalCodeNavigator hands it up and it opens over this chat.
-                    shortcuts = recipient?.let { user ->
+                    // Share for anyone with a link; Message only where profileShortcutRecipient
+                    // allows it.
+                    shortcuts = person?.let { user ->
                         {
                             ProfileShortcuts(
-                                cashSymbol = chatState.cashSymbol,
-                                onMessage = { navigator.push(user.dmRoute()) },
-                                onSendCash = { navigator.push(user.dmRoute(openSendCash = true)) },
+                                cashSymbol = cashSymbol,
+                                onMessage = recipient?.let { { navigator.push(it.dmRoute()) } },
+                                onSendCash = {
+                                    recipient?.let { navigator.push(it.dmRoute(openSendCash = true)) }
+                                },
+                                onShare = { share(user) },
                             )
                         }
                     },
@@ -137,7 +197,7 @@ internal fun ChatProfileScreen(
                             // None under the shortcuts: the first row's own 25dp inset is the
                             // gap, and ProfileHeader matches it above them so they sit centered
                             // between the join date and the list.
-                            bottom = if (recipient != null) {
+                            bottom = if (person != null) {
                                 0.dp
                             } else {
                                 CodeTheme.dimens.grid.x8
@@ -153,8 +213,8 @@ internal fun ChatProfileScreen(
                     // navigates either way rather than acting on one of them here. The outer
                     // navigator, as with Report: the sheet is a top-level route shared with the
                     // chat list, so it opens over the chat rather than inside it.
-                    ChatProfileAction.Mute -> chatState.chatId?.let { chatId ->
-                        navigator.push(AppRoute.Messaging.MuteChat(chatId, chatState.chatType))
+                    ChatProfileAction.Mute -> chat?.chatId?.let { chatId ->
+                        navigator.push(AppRoute.Messaging.MuteChat(chatId, chat.chatType))
                     }
                     // Not flowNavigator: Report is a top-level route rather than a step of
                     // this flow, and LocalCodeNavigator hands a non-FlowStep route up to its
@@ -259,9 +319,3 @@ internal fun ProfileHeader(
         }
     }
 }
-
-private fun ChatParticipant.TipUser.dmRoute(openSendCash: Boolean = false) =
-    AppRoute.Messaging.Chat(
-        identifier = ChatIdentifier.ByUser(userId, profile),
-        openSendCash = openSendCash,
-    )
