@@ -65,7 +65,7 @@ import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.shared.chat.ui.GroupInviteCardDefaults
 import com.flipcash.shared.chat.ui.GroupInviteLinkCard
 import com.flipcash.shared.chat.ui.QuickReactionStripPlacement
-import com.flipcash.shared.chat.ui.transcriptCardWidth
+import com.flipcash.shared.chat.ui.transcriptBubbleMaxWidth
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.util.vibration.LocalVibrator
@@ -478,7 +478,7 @@ internal fun MessageList(
                         ) {
                             // The width a link card gets in a DM transcript, so this reads as the
                             // same card sent there (iOS sizes both the same way).
-                            val cardWidth = transcriptCardWidth(
+                            val cardWidth = transcriptBubbleMaxWidth(
                                 rowWidth = maxWidth,
                                 rowInset = CodeTheme.dimens.inset,
                             )

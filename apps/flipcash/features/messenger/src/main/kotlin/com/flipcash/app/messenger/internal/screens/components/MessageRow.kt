@@ -70,6 +70,7 @@ import com.flipcash.shared.chat.ui.QuickReactionStripPopup
 import com.flipcash.shared.chat.ui.ReactionPillRow
 import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.flipcash.shared.chat.ui.rendersBare
+import com.flipcash.shared.chat.ui.transcriptBubbleMaxWidth
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
@@ -399,9 +400,9 @@ internal fun MessageRow(
                                     )
                                 }
                             }
-                            // Same width as the bubble above it (decision 2) — matched here
-                            // against the same fraction MessageBubble sizes a text/reply/deleted
-                            // bubble to, since the row doesn't expose its resolved width outward.
+                            // Same width as the bubble above it (decision 2) — sized by the same
+                            // rule MessageBubble caps a text/reply/deleted bubble with, since the
+                            // row doesn't expose its resolved width outward.
                             // Kept on screen while selecting, as iOS keeps them under its
                             // backdrop, but inert like every other target on the row.
                             //
@@ -433,7 +434,12 @@ internal fun MessageRow(
                                         },
                                         modifier = Modifier
                                             .align(if (item.isFromSelf) Alignment.TopEnd else Alignment.TopStart)
-                                            .width(maxWidth * BUBBLE_ROW_WIDTH_FRACTION),
+                                            .width(
+                                                transcriptBubbleMaxWidth(
+                                                    rowWidth = maxWidth,
+                                                    rowInset = CodeTheme.dimens.inset,
+                                                ),
+                                            ),
                                         alignEnd = item.isFromSelf,
                                         animateInitialPills = !pillsAtFirstComposition,
                                     )
@@ -554,10 +560,6 @@ private fun senderNameInset(showsGutter: Boolean): Dp =
         CodeTheme.dimens.grid.x1
     }
 
-// Matches MessageBubble's own BUBBLE_MAX_WIDTH_FRACTION for a text/reply/deleted bubble — the row
-// doesn't expose its resolved width outward, so the pill row underneath it re-derives the same
-// fraction of the shared row width instead.
-private const val BUBBLE_ROW_WIDTH_FRACTION = 0.78f
 private val STRIP_BAR_GAP = 8.dp
 
 private val AFFORDANCE_SIZE = 32.dp
