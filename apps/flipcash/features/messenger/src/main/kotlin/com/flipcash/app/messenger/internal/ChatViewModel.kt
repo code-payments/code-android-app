@@ -74,6 +74,7 @@ import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftStore
+import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.GroupAccess
 import com.flipcash.shared.chat.MessageCapability
@@ -1367,8 +1368,12 @@ internal class ChatViewModel @Inject constructor(
      * and the roster stream all only ever carry chats the viewer is already in — so without the
      * hydration the screen has no title, no info card and no gate, and nothing that would later
      * supply them. A chat the device already holds costs no round trip: [ChatCoordinator.hydrateChat]
-     * answers null for it and the Room observation stays the only source, so opening a synced chat
-     * behaves exactly as it did.
+     * answers [ChatHydration.Stored] for it and the Room observation stays the only source, so
+     * opening a synced chat behaves exactly as it did.
+     *
+     * A chat the server has no record of is left unloaded. A DM opened on its derived id before
+     * anyone has written in it — from a scanned tip card or a profile — has no messages, and asking
+     * for them comes back DENIED. The first tip loads the chat once it exists.
      *
      * The transcript is fetched only for a viewer the gate lets through. A withheld group is drawn
      * as a placeholder rather than fetched, so asking for its messages would pull the very ones the
@@ -1379,17 +1384,19 @@ internal class ChatViewModel @Inject constructor(
      * decides it has not arrived yet.
      */
     private suspend fun openTranscript(chatId: ChatId) {
-        val hydrated = chatCoordinator.hydrateChat(chatId) ?: run {
-            chatCoordinator.loadMessages(chatId)
-            return
+        when (val hydration = chatCoordinator.hydrateChat(chatId)) {
+            ChatHydration.Stored,
+            ChatHydration.Unavailable -> chatCoordinator.loadMessages(chatId)
+            ChatHydration.Absent -> Unit
+            is ChatHydration.Fetched -> {
+                val membership = hydration.membership
+                if (membership.metadata.type == ChatType.GROUP) {
+                    dispatchEvent(Event.OnGroupResolved(membership))
+                } else {
+                    chatCoordinator.loadMessages(chatId)
+                }
+            }
         }
-
-        if (hydrated.metadata.type != ChatType.GROUP) {
-            chatCoordinator.loadMessages(chatId)
-            return
-        }
-
-        dispatchEvent(Event.OnGroupResolved(hydrated))
     }
 
     private fun initChatHandlers() {

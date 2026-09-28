@@ -196,6 +196,11 @@ class ErrorsTest {
         assertEquals("Not found", GetChatError.NotFound().message)
     }
 
+    @Test
+    fun `GetChatError NotFound is not reported`() {
+        assertIs<UnreportedError>(GetChatError.NotFound())
+    }
+
     // -- GetDmChatFeedError --
 
     @Test

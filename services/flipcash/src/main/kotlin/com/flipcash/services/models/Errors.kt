@@ -345,7 +345,12 @@ sealed class GetChatError(
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
     class Denied : GetChatError("Denied")
-    class NotFound : GetChatError("Not found")
+
+    /**
+     * The server has no such chat. Every caller handles it — a DM opened before anyone has written
+     * in it, a deleted group behind a link card — so it is not reported.
+     */
+    class NotFound : GetChatError("Not found"), UnreportedError
     class Unrecognized : GetChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : GetChatError(message = cause?.message, cause = cause), NotifiableError
 }

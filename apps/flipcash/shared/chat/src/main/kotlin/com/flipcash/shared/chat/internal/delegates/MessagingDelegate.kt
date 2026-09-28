@@ -29,7 +29,9 @@ import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.DeleteMessageError
 import com.flipcash.services.models.EditMessageError
+import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.UserProfile
+import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.internal.SenderResolver
 import com.flipcash.shared.chat.ChatMembership
@@ -127,13 +129,14 @@ class MessagingDelegate @Inject constructor(
         notificationManager.cancel(chatId.hashCode())
     }
 
-    override suspend fun hydrateChat(chatId: ChatId): ChatMembership? {
-        if (metadataDataSource.exists(chatId)) return null
-        val metadata = chatController.getChat(chatId).getOrElse {
+    override suspend fun hydrateChat(chatId: ChatId): ChatHydration {
+        if (metadataDataSource.exists(chatId)) return ChatHydration.Stored
+        val metadata = chatController.getChat(chatId).getOrElse { cause ->
+            if (cause is GetChatError.NotFound) return ChatHydration.Absent
             trace(tag = TAG, message = "Hydrate failed for $chatId", type = TraceType.Error)
-            return null
+            return ChatHydration.Unavailable
         }
-        return ChatMembership(metadata = metadata, isMember = null)
+        return ChatHydration.Fetched(ChatMembership(metadata = metadata, isMember = null))
     }
 
     override fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>> {

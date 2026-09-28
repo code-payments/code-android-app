@@ -7,6 +7,7 @@ import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.controllers.ChatController
+import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
@@ -22,6 +23,7 @@ import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.time.Instant
 
@@ -134,10 +136,10 @@ class MessagingMetadataObservationTest {
                 chatController = chatController,
             )
 
-            val hydrated = subject.hydrateChat(chatId)
+            val hydrated = assertIs<ChatHydration.Fetched>(subject.hydrateChat(chatId)).membership
 
-            assertEquals(4L, hydrated?.metadata?.rosterSummary?.memberCount)
-            assertNull(hydrated?.isMember)
+            assertEquals(4L, hydrated.metadata.rosterSummary?.memberCount)
+            assertNull(hydrated.isMember)
             coVerify(exactly = 0) { metadataDataSource.upsert(any<ChatMetadata>()) }
             coVerify(exactly = 0) { metadataDataSource.upsert(any<List<ChatMetadata>>()) }
             coVerify(exactly = 0) {
@@ -164,8 +166,54 @@ class MessagingMetadataObservationTest {
                 chatController = chatController,
             )
 
-            assertNull(subject.hydrateChat(chatId))
+            assertEquals(ChatHydration.Stored, subject.hydrateChat(chatId))
             coVerify(exactly = 0) { chatController.getChat(any()) }
+        }
+
+    /**
+     * A DM opened on its derived id before anyone has written in it does not exist on the server
+     * yet. That answer is kept apart from a failed fetch, because the screen skips the transcript
+     * fetch for it: the server answers GetMessages on a chat it has never heard of with DENIED.
+     */
+    @Test
+    fun `hydrateChat reports a chat the server has no record of as absent`() =
+        runTest(dispatchers.dispatcher) {
+            val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true) {
+                coEvery { exists(chatId) } returns false
+            }
+            val chatController = mockk<ChatController>(relaxed = true) {
+                coEvery { getChat(chatId) } returns Result.failure(GetChatError.NotFound())
+            }
+
+            val subject = delegate(
+                metadataDataSource = metadataDataSource,
+                memberDataSource = mockk(relaxed = true),
+                messageDataSource = mockk(relaxed = true),
+                chatController = chatController,
+            )
+
+            assertEquals(ChatHydration.Absent, subject.hydrateChat(chatId))
+        }
+
+    /** Any other failure says nothing about whether the chat exists. */
+    @Test
+    fun `hydrateChat reports any other failure as unavailable`() =
+        runTest(dispatchers.dispatcher) {
+            val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true) {
+                coEvery { exists(chatId) } returns false
+            }
+            val chatController = mockk<ChatController>(relaxed = true) {
+                coEvery { getChat(chatId) } returns Result.failure(GetChatError.Other())
+            }
+
+            val subject = delegate(
+                metadataDataSource = metadataDataSource,
+                memberDataSource = mockk(relaxed = true),
+                messageDataSource = mockk(relaxed = true),
+                chatController = chatController,
+            )
+
+            assertEquals(ChatHydration.Unavailable, subject.hydrateChat(chatId))
         }
 
     private fun delegate(
