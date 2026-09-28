@@ -198,7 +198,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 // and going straight to the system share picker would bury it. The sheet reads the
                 // url off the same state the CTA that got here is gated on.
                 viewModel.dispatchEvent(ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT))
-                keyboard.hideIfVisible { navigator.push(ChatStep.InviteToGroup) }
+                keyboard.hideIfVisible { navigator.openGroupInvite() }
             }
 
             is ChatAction.ViewProfile -> {

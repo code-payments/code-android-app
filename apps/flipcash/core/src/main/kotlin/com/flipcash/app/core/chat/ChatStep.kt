@@ -1,6 +1,7 @@
 package com.flipcash.app.core.chat
 
 import android.os.Parcelable
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.navigation.HalfSheet
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.WrapContentSheet
@@ -12,6 +13,18 @@ import kotlinx.serialization.Serializable
 @Parcelize
 @Serializable
 data object ChatSendResult : Parcelable
+
+/**
+ * The chat the invite sheet sends the viewer to once its invites are out: the first one picked.
+ *
+ * Returned rather than navigated to from the sheet, because the sheet's own navigation raced its
+ * dismissal and was dropped when the conversation's event collector was not on screen (the sheet
+ * opened from the group's profile). The screen that opened the sheet is still composed when the
+ * result arrives, so it navigates.
+ */
+@Parcelize
+@Serializable
+data class GroupInviteResult(val chatId: ChatId) : Parcelable
 
 @Serializable
 sealed interface ChatStep : FlowStep, Parcelable {
@@ -58,7 +71,7 @@ sealed interface ChatStep : FlowStep, Parcelable {
      */
     @Parcelize
     @Serializable
-    data object InviteToGroup : ChatStep, Sheet
+    data object InviteToGroup : ChatStep, NavigationRetVal<GroupInviteResult>, Sheet
 
     @Parcelize
     @Serializable

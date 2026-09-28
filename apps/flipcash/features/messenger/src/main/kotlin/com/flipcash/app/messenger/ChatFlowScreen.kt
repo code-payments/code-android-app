@@ -20,6 +20,7 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.GroupInviteResult
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -283,16 +284,14 @@ private fun FlowGroupInviteSheet() {
         state.chatId?.let(inviteViewModel::inviteTo)
     }
 
+    // Returned to whichever screen opened the sheet (see openGroupInvite), which navigates. The
+    // keyboard goes first: the message field has it up, and leaving with it still open drags the
+    // screen behind out from under it.
+    val keyboard = rememberKeyboardController()
+    val resultBack = resultBackNavigator<GroupInviteResult>(exit = dismissSheet)
     LaunchedEffect(inviteViewModel) {
         inviteViewModel.invited.collect { chatId ->
-            dismissSheet()
-            // Pushed through the conversation underneath, the same way a tapped invite card opens
-            // its group, so Back returns to the group the invites went out from.
-            viewModel.dispatchEvent(
-                ChatViewModel.Event.OpenScreen(
-                    AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId))
-                )
-            )
+            keyboard.hideIfVisible { resultBack.returnValue(GroupInviteResult(chatId)) }
         }
     }
 

@@ -58,6 +58,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.GroupInviteResult
 import com.flipcash.app.core.media.rememberMediaUrl
 import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.messenger.internal.ChatSubject
@@ -69,6 +73,9 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.common.ui.ContactAvatar
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.results.NavResultOrCanceled
+import com.getcode.navigation.results.navigateForResult
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
@@ -86,6 +93,22 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
+
+/**
+ * Opens the invite sheet over the current step and, once its invites are out, the chat picked
+ * first.
+ *
+ * The sheet returns that chat rather than navigating itself. It is opened from the transcript and
+ * from the group's profile, and only the screen that opened it is sure to be composed when the
+ * sends finish, so that screen does the navigating.
+ */
+internal fun CodeNavigator.openGroupInvite() {
+    navigateForResult<GroupInviteResult>(ChatStep.InviteToGroup) { result ->
+        if (result is NavResultOrCanceled.ReturnValue) {
+            navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
+        }
+    }
+}
 
 /**
  * Node 10329:12104 — handing out the link to a group, and sending it straight into the

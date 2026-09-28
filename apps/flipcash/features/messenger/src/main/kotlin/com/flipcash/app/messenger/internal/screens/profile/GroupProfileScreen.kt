@@ -35,6 +35,7 @@ import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.messenger.internal.screens.openGroupInvite
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.MenuList
@@ -145,7 +146,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         viewModel.dispatchEvent(
                             ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE)
                         )
-                        flowNavigator.navigateTo(ChatStep.InviteToGroup)
+                        navigator.openGroupInvite()
                     }
                     // Both muting and unmuting go through the picker, which is why this row
                     // navigates either way rather than acting on one of them here. The outer
