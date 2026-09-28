@@ -265,6 +265,39 @@ class TipPaymentDelegateTest {
     }
 
     @Test
+    fun `minimumToOpenDmWith raises a fee below the regional minimum to the minimum`() = runTest {
+        every { userFlags.resolvedFlags } returns usdPresets()
+        every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
+
+        val recipient = recipient(Fiat(0.5, CurrencyCode.USD))
+        val delegate = buildDelegate()
+        // The fee floor emits before the presets resolve; judge it once they have.
+        delegate.minTipAmount.first { it != null }
+        val min = delegate.minimumToOpenDmWith(recipient).first { it != null }
+
+        assertEquals(1.0, min!!.toDouble())
+        assertEquals(CurrencyCode.USD, min.currencyCode)
+    }
+
+    @Test
+    fun `minimumToOpenDmWith judges a fee against the USD fallback minimum`() = runTest {
+        // Only a USD row exists, so an NGN sender's regional minimum is the $1 fallback.
+        every { userFlags.resolvedFlags } returns usdPresets()
+        every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1320.0, currency = CurrencyCode.NGN))
+        // 1000 NGN at 1320 NGN/USD is about $0.76, under the $1 minimum.
+        every { exchange.rateToUsd(CurrencyCode.NGN) } returns Rate(fx = 1 / 1320.0, currency = CurrencyCode.USD)
+
+        val recipient = recipient(Fiat(1000.0, CurrencyCode.NGN))
+        val delegate = buildDelegate()
+        // The fee floor emits before the presets resolve; judge it once they have.
+        delegate.minTipAmount.first { it != null }
+        val min = delegate.minimumToOpenDmWith(recipient).first { it != null }
+
+        assertEquals(1.0, min!!.toDouble())
+        assertEquals(CurrencyCode.USD, min.currencyCode)
+    }
+
+    @Test
     fun `minimumTipFor drops to the system minimum once a chat exists`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))

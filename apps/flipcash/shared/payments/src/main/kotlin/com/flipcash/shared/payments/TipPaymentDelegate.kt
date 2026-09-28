@@ -137,11 +137,15 @@ class TipPaymentDelegate @Inject constructor(
      *
      * The fee is stored in whatever currency the recipient set it in, so it is converted through USD
      * to the currency the sender is entering in. A missing rate for either side falls back to the
-     * preset rather than stating a floor in a currency the entry isn't using.
+     * preset rather than stating a floor in a currency the entry isn't using. A fee below the preset
+     * also falls back to it, since every tip carries the regional minimum and the server would deny
+     * the fee for it.
      */
     fun minimumToOpenDmWith(recipient: UserProfile?): Flow<Fiat?> =
         combine(minTipAmount, exchange.observePreferredRate()) { preset, rate ->
-            recipient?.minDmChatInitFee?.inCurrency(rate.currency) ?: preset
+            val fee = recipient?.minDmChatInitFee
+            val stated = fee?.inCurrency(rate.currency) ?: return@combine preset
+            if (preset != null && fee.isBelow(preset, stated)) preset else stated
         }
 
     /**
@@ -221,6 +225,18 @@ class TipPaymentDelegate @Inject constructor(
         val usd = exchange.rateToUsd(currencyCode)?.let { convertingTo(it) } ?: return null
         if (target == CurrencyCode.USD) return usd.roundedUp()
         return exchange.rateFor(target)?.let { usd.convertingTo(it).roundedUp() }
+    }
+
+    /**
+     * Whether this fee, [stated] in the entry currency, falls short of the regional [minimum]. The
+     * minimum is in the entry currency or is the USD fallback row; a fee that can't be priced in USD
+     * keeps its own floor and the server remains the authority.
+     */
+    private fun Fiat.isBelow(minimum: Fiat, stated: Fiat): Boolean = when (minimum.currencyCode) {
+        stated.currencyCode -> stated < minimum
+        currencyCode -> this < minimum
+        CurrencyCode.USD -> exchange.rateToUsd(currencyCode)?.let { convertingTo(it).rounded() < minimum } ?: false
+        else -> false
     }
 
     /**
