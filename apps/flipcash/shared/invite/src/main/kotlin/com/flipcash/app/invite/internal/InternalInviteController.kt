@@ -13,10 +13,14 @@ import com.flipcash.app.invite.InviteController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.shared.invite.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 internal class InternalInviteController(
@@ -24,13 +28,22 @@ internal class InternalInviteController(
     private val context: Context,
     private val resources: ResourceHelper,
     private val shareController: ShareSheetController,
+    dispatchers: DispatcherProvider,
 ) : InviteController {
 
-    private val _channels = MutableStateFlow(resolveChannels())
+    // Hilt constructs this on the main thread when MainActivity is injected, and loading
+    // other apps' labels and icons reads their APKs, which ANRs on slow devices.
+    private val scope = CoroutineScope(SupervisorJob() + dispatchers.IO)
+
+    private val _channels = MutableStateFlow<List<InviteChannel>>(emptyList())
     override val channels: StateFlow<List<InviteChannel>> = _channels
 
+    init {
+        refresh()
+    }
+
     override fun refresh() {
-        _channels.value = resolveChannels()
+        scope.launch { _channels.value = resolveChannels() }
     }
 
     private fun resolveChannels(): List<InviteChannel> = buildList {
