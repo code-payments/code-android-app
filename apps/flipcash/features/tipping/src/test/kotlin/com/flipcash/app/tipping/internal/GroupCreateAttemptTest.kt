@@ -58,7 +58,7 @@ class GroupCreateAttemptTest {
     }
 
     /**
-     * Switching between All Currencies and a token changes what the server will enforce, so a key
+     * Switching between Total Balance and a token changes what the server will enforce, so a key
      * minted for one must not return the chat created for the other.
      */
     @Test

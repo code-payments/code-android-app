@@ -409,7 +409,7 @@ private fun MintRow(state: CreateGroupViewModel.State, onClick: () -> Unit) {
         // A picked token whose balance has since left the list has no name to show, so the row
         // falls back to the sheet's own title rather than rendering a blank, tappable line.
         val name = if (allCurrencies) {
-            stringResource(R.string.title_allCurrencies)
+            stringResource(R.string.title_totalBalance)
         } else {
             state.currencyName
         }

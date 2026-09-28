@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
  * What the form decides before it calls `StartChat` — nodes 10127:118014 through 10127:118237.
  *
  * Two of those decisions are contractual rather than cosmetic. The rules the draft describes must be
- * a single *listener* minimum balance, naming either no mint (All Currencies — every holding added
+ * a single *listener* minimum balance, naming either no mint (Total Balance — every holding added
  * up) or exactly one; and the creator has to satisfy the rule they are setting, measured by the same
  * predicate that will gate everyone else, or the server answers `RULES_NOT_SATISFIED` on a group
  * they just made.

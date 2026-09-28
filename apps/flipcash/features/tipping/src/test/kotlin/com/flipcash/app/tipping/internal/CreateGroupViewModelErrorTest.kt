@@ -179,7 +179,7 @@ class CreateGroupViewModelErrorTest {
         }
 
     /**
-     * An All Currencies rule names no token, so the refusal cannot say which one to get more of —
+     * A Total Balance rule names no token, so the refusal cannot say which one to get more of —
      * "You Need More " with nothing after it is what the shared title would read.
      */
     @Test

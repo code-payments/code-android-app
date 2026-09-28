@@ -52,7 +52,7 @@ import com.getcode.ui.theme.CodeScaffold
 
 /**
  * Node 10127:118100 — which currency the group's balance requirement is denominated in, with the
- * All Currencies card over the token list (node 10370:997).
+ * Total Balance card over the token list (node 10370:997).
  *
  * The list comes from [SelectTokenViewModel] but the *selection* does not: that view model's own
  * selected mint is the wallet's global one, and choosing a currency for a group being drafted must
@@ -153,7 +153,7 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
 }
 
 /**
- * The All Currencies card — node 10370:997 selected, 10372:1015 with a token picked instead, and
+ * The Total Balance card — node 10370:997 selected, 10372:1015 with a token picked instead, and
  * 10372:1126 when the total falls short.
  *
  * The subtitle reports the total against the amount whichever currency is selected, so a creator
@@ -191,7 +191,7 @@ private fun AllCurrenciesCard(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.title_allCurrencies),
+                text = stringResource(R.string.title_totalBalance),
                 style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = CodeTheme.colors.textMain,
             )
@@ -199,14 +199,14 @@ private fun AllCurrenciesCard(
             val totalText = total.formatted()
             Text(
                 text = when {
-                    amount == null -> stringResource(R.string.subtitle_allCurrenciesTotal, totalText)
+                    amount == null -> stringResource(R.string.subtitle_totalBalance, totalText)
                     satisfied == false -> stringResource(
-                        R.string.subtitle_allCurrenciesNeeds,
+                        R.string.subtitle_totalBalanceNeeds,
                         totalText,
                         amount.formatted(rule = Fiat.FormattingRule.Truncated),
                     )
                     else -> stringResource(
-                        R.string.subtitle_allCurrenciesMeets,
+                        R.string.subtitle_totalBalanceMeets,
                         totalText,
                         amount.formatted(rule = Fiat.FormattingRule.Truncated),
                     )
