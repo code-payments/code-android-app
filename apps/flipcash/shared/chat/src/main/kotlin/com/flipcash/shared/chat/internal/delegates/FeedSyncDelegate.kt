@@ -32,6 +32,7 @@ import com.flipcash.shared.chat.internal.isRenderable
 import com.flipcash.shared.chat.internal.selfReadPointer
 import com.flipcash.shared.chat.internal.unreadCount
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.MessageLinkPrefetch
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -75,6 +76,7 @@ class FeedSyncDelegate @Inject constructor(
     private val stateHolder: ChatStateHolder,
     private val userManager: UserManager,
     private val messagingController: ChatMessagingController,
+    private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
 ) : FeedOperations {
 
     companion object {
@@ -381,6 +383,8 @@ class FeedSyncDelegate @Inject constructor(
                     memberDataSource.upsert(chat.chatId, chat.members)
                 }
                 val previews = chats.lastMessagesByChat()
+                // Not waited on: a preview is one message per chat, and the feed is not held for it.
+                linkPrefetch.prefetch(previews.values.flatten())
                 messageDataSource.upsertAll(previews)
 
                 stateHolder.update { it.copy(feedSyncState = FeedSyncState.Synced) }

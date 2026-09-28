@@ -13,6 +13,7 @@ import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupOperations
+import com.flipcash.shared.chat.MessageLinkPrefetch
 import com.flipcash.shared.chat.internal.RosterStateHolder
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -49,6 +50,7 @@ class GroupFeedDelegate @Inject constructor(
     private val messageDataSource: ChatMessageDataSource,
     private val rosterStateHolder: RosterStateHolder,
     private val userManager: UserManager,
+    private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
 ) : GroupOperations {
 
     sealed interface Event {
@@ -229,6 +231,8 @@ class GroupFeedDelegate @Inject constructor(
             memberDataSource.upsert(chat.chatId, chat.members)
         }
         val previews = chats.lastMessagesByChat()
+        // Not waited on: a preview is one message per chat, and the feed is not held for it.
+        linkPrefetch.prefetch(previews.values.flatten())
         messageDataSource.upsertAll(previews)
     }
 

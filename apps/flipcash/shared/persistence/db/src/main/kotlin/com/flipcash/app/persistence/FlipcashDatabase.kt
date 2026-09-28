@@ -25,6 +25,7 @@ import com.flipcash.app.persistence.dao.ChatMessageDao
 import com.flipcash.app.persistence.dao.ChatMetadataDao
 import com.flipcash.app.persistence.dao.ContactDao
 import com.flipcash.app.persistence.dao.CurrencyCreatorDraftDao
+import com.flipcash.app.persistence.dao.LinkPreviewDao
 import com.flipcash.app.persistence.dao.MessageDao
 import com.flipcash.app.persistence.dao.TokenDao
 import com.flipcash.app.persistence.dao.UserProfileDao
@@ -36,6 +37,7 @@ import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.entities.ContactMappingEntity
 import com.flipcash.app.persistence.entities.ContactSyncStateEntity
 import com.flipcash.app.persistence.entities.CurrencyCreatorDraftEntity
+import com.flipcash.app.persistence.entities.LinkPreviewEntity
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.app.persistence.entities.SocialLinkEntity
 import com.flipcash.app.persistence.entities.TokenEntity
@@ -61,6 +63,7 @@ import com.getcode.utils.subByteArray
         ChatDraftEntity::class,
         BlockedUserEntity::class,
         UserProfileEntity::class,
+        LinkPreviewEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
@@ -106,8 +109,9 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 35, to = 36), // chat_draft table
         AutoMigration(from = 36, to = 37, spec = FlipcashDatabase.Migration36To37::class),
         AutoMigration(from = 37, to = 38), // chat_metadata.creator_hex (nullable), use_e2ee (default 0)
+        AutoMigration(from = 38, to = 39), // link_previews table
     ],
-    version = 38,
+    version = 39,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -122,6 +126,7 @@ abstract class FlipcashDatabase : RoomDatabase() {
     abstract fun chatDraftDao(): ChatDraftDao
     abstract fun blockedUserDao(): BlockedUserDao
     abstract fun userProfileDao(): UserProfileDao
+    abstract fun linkPreviewDao(): LinkPreviewDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
