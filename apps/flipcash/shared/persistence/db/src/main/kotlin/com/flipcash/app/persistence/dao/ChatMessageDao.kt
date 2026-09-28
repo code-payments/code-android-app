@@ -168,7 +168,21 @@ interface ChatMessageDao {
     suspend fun mergeReactionsJson(chatIdHex: String, messageId: Long, incomingJson: String) {
         if (!exists(chatIdHex, messageId)) return
         val stored = getReactionsJson(chatIdHex, messageId)
-        updateReactionsJson(chatIdHex, messageId, mergeReactionsJson(stored, incomingJson))
+        val merged = mergeReactionsJson(stored, incomingJson)
+        // An unchanged row is not written: Room invalidates the table on any UPDATE, and each
+        // invalidation re-pages the open transcript.
+        if (merged != stored) updateReactionsJson(chatIdHex, messageId, merged)
+    }
+
+    /**
+     * [mergeReactionsJson] for several messages of one chat in a single transaction, so a batch
+     * summary refresh invalidates the table once rather than once per message.
+     */
+    @Transaction
+    suspend fun mergeReactionsJson(chatIdHex: String, incomingByMessageId: Map<Long, String>) {
+        for ((messageId, incomingJson) in incomingByMessageId) {
+            mergeReactionsJson(chatIdHex, messageId, incomingJson)
+        }
     }
 
     @Query("SELECT unread_seq FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")

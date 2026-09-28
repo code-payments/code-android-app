@@ -283,6 +283,15 @@ class ChatMessageDataSource @Inject constructor(
         db?.chatMessageDao()?.mergeReactionsJson(mapper.chatIdHex(chatId), messageId, json)
     }
 
+    /** [mergeReactions] for several messages of [chatId], written in one transaction. */
+    suspend fun mergeReactions(chatId: ChatId, summaries: List<ReactionSummary>) {
+        val jsonByMessageId = summaries.mapNotNull { summary ->
+            mapper.encodeReactions(summary)?.let { summary.messageId to it }
+        }.toMap()
+        if (jsonByMessageId.isEmpty()) return
+        db?.chatMessageDao()?.mergeReactionsJson(mapper.chatIdHex(chatId), jsonByMessageId)
+    }
+
     fun toChatMessage(entity: ChatMessageEntity): ChatMessage {
         val message = mapper.toMessage(entity)
         val selfId = userManager.accountId

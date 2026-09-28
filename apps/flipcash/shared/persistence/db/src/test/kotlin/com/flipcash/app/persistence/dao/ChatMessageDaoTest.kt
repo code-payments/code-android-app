@@ -452,6 +452,26 @@ class ChatMessageDaoTest {
      * `applySummary`), not left stale: it tombstones to count 0 while keeping its version.
      */
     @Test
+    fun `batch mergeReactionsJson merges every stored message and skips unstored ones`() = runTest {
+        dao.upsert(text(1, "one"))
+        dao.upsert(text(2, "two"))
+        dao.mergeReactionsJson(CHAT_HEX, 1, reactionsJson("👍" to 1))
+
+        dao.mergeReactionsJson(
+            CHAT_HEX,
+            mapOf(
+                1L to reactionsJson("👍" to 2),
+                2L to reactionsJson("❤️" to 1),
+                99L to reactionsJson("🔥" to 1),
+            ),
+        )
+
+        assertEquals(mapOf("👍" to 2L), versionsByEmoji(dao.getReactionsJson(CHAT_HEX, 1)))
+        assertEquals(mapOf("❤️" to 1L), versionsByEmoji(dao.getReactionsJson(CHAT_HEX, 2)))
+        assertEquals(false, dao.exists(CHAT_HEX, 99))
+    }
+
+    @Test
     fun `mergeReactionsJson tombstones a stored emoji the incoming payload omits`() = runTest {
         dao.upsert(text(1, "hi"))
         dao.mergeReactionsJson(CHAT_HEX, 1, reactionsJson("👍" to 1, "❤️" to 1))

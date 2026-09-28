@@ -98,11 +98,14 @@ class ReactionsDelegate @Inject constructor(
     override suspend fun refreshReactions(chatId: ChatId, messageIds: List<Long>): Result<Unit> {
         val summaries = messagingController.getReactionSummariesByIds(chatId, messageIds)
             .getOrElse { return Result.failure(it) }
-        for (summary in summaries) {
+        // Persisted and published as one batch: a write and an overlay update per message would
+        // re-page and re-map the open transcript once per message in the window.
+        val confirmed = summaries.map { summary ->
             val state = snapshot(chatId, summary.messageId)
             state.applySummary(summary.reactions.map { it.toSummaryEntry() })
-            persist(chatId, summary.messageId, state)
+            state.confirmedSummary(summary.messageId)
         }
+        persist(chatId, confirmed)
         localVersion.update { it + 1 }
         return Result.success(Unit)
     }
@@ -203,16 +206,32 @@ class ReactionsDelegate @Inject constructor(
 
     /** Persists [state]'s confirmed side and mirrors it into [ChatStateHolder.state]'s overlay. */
     private suspend fun persist(chatId: ChatId, messageId: Long, state: ReactionState) {
-        val selfId = userManager.accountId
-        val summary = ReactionSummary(
-            messageId = messageId,
-            reactions = state.summaryEntries.map { it.toEmojiReaction(selfId) },
-        )
+        val summary = state.confirmedSummary(messageId)
         messageDataSource.mergeReactions(chatId, messageId, summary)
+        publish(chatId, listOf(summary))
+    }
+
+    /** [persist] for a batch: one Room transaction and one overlay update for all of [summaries]. */
+    private suspend fun persist(chatId: ChatId, summaries: List<ReactionSummary>) {
+        if (summaries.isEmpty()) return
+        messageDataSource.mergeReactions(chatId, summaries)
+        publish(chatId, summaries)
+    }
+
+    private fun publish(chatId: ChatId, summaries: List<ReactionSummary>) {
         stateHolder.update { current ->
-            val chatOverlays = (current.reactionOverlays[chatId] ?: emptyMap()) + (messageId to summary)
+            val chatOverlays = (current.reactionOverlays[chatId] ?: emptyMap()) +
+                summaries.associateBy { it.messageId }
             current.copy(reactionOverlays = current.reactionOverlays + (chatId to chatOverlays))
         }
+    }
+
+    private fun ReactionState.confirmedSummary(messageId: Long): ReactionSummary {
+        val selfId = userManager.accountId
+        return ReactionSummary(
+            messageId = messageId,
+            reactions = summaryEntries.map { it.toEmojiReaction(selfId) },
+        )
     }
 
     private fun EmojiReaction.toSummaryEntry(): ReactionState.SummaryEntry = ReactionState.SummaryEntry(

@@ -158,7 +158,7 @@ class ReactionsDelegateTest {
         val result = delegate.refreshReactions(chatId, listOf(1L))
 
         assertTrue(result.isSuccess)
-        coVerify { messageDataSource.mergeReactions(chatId, 1L, any()) }
+        coVerify(exactly = 1) { messageDataSource.mergeReactions(chatId, match<List<ReactionSummary>> { it.map(ReactionSummary::messageId) == listOf(1L) }) }
         val overlay = stateHolder.current.reactionOverlays[chatId]?.get(1L)
         assertEquals(3, overlay?.reactions?.first()?.count)
     }
