@@ -81,7 +81,16 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnMintProvided(val mint: Mint, val shortFall: Fiat? = null) : Event
+        /**
+         * @param resetChartPeriod start the chart back at [Period.All]. The card-expand overlay reuses one VM
+         * across opens and sets this on each open; the pushed screen gets a fresh VM per entry and leaves it
+         * off, so returning to it from a pushed screen keeps the period the user picked.
+         */
+        data class OnMintProvided(
+            val mint: Mint,
+            val shortFall: Fiat? = null,
+            val resetChartPeriod: Boolean = false,
+        ) : Event
         data class OnTokenChanged(val token: Loadable<Token>, val shortFall: Fiat? = null) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
         data class LoadHistoricalDataForPeriod(val period: Period, val evict: Boolean = false) : Event
@@ -215,8 +224,10 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnMarketCapPeriodSelected>()
+            // No distinctUntilChanged: OnMintProvided resets the period to All in state, so a stream-level
+            // filter would swallow re-picking the period chosen on the previous open. The tab row skips
+            // taps on the already-selected period instead.
             .map { it.period }
-            .distinctUntilChanged()
             .onEach { dispatchEvent(Event.LoadHistoricalDataForPeriod(it)) }
             .launchIn(viewModelScope)
 
@@ -369,7 +380,18 @@ class TokenInfoViewModel @Inject constructor(
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnMintProvided -> { state -> state.copy(mint = event.mint) }
+                // Chart data is keyed only by period, so a different mint drops the previous mint's data.
+                is Event.OnMintProvided -> { state ->
+                    state.copy(
+                        mint = event.mint,
+                        selectedPeriod = if (event.resetChartPeriod) Period.All else state.selectedPeriod,
+                        historicalMarketCapData = if (event.mint == state.mint) {
+                            state.historicalMarketCapData
+                        } else {
+                            emptyMap()
+                        },
+                    )
+                }
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }

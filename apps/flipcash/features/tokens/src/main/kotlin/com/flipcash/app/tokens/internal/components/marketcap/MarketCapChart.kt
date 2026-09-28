@@ -202,7 +202,7 @@ private fun MarketCapChart(
                             shape = CodeTheme.shapes.extraSmall
                         )
                         .clip(CodeTheme.shapes.extraSmall)
-                        .clickable { onPeriodSelected(period) }
+                        .clickable { if (!isSelected) onPeriodSelected(period) }
                         .padding(
                             vertical = CodeTheme.dimens.grid.x2
                         ),
@@ -332,9 +332,11 @@ private fun MarketCapChartContent(
         modifier = modifier,
         chart = chart,
         modelProducer = producer,
-        // New UI (card-expand overlay) opens with its own transition, so the chart's draw-in animation
-        // is suppressed there — it just appears with the rest of the detail instead of sweeping up.
-        animationSpec = if (animateOpen) tween(durationMillis = 300) else null,
+        // Period changes always animate between curves. Only the draw-in on first model is optional: the
+        // card-expand overlay opens with its own transition, so there the chart appears with the rest of
+        // the detail instead of sweeping up.
+        animationSpec = tween(durationMillis = 300),
+        initialAnimationSpec = if (animateOpen) tween(durationMillis = 300) else null,
         scrollState = rememberVicoScrollState(scrollEnabled = false),
         placeholder = placeholder
     )
