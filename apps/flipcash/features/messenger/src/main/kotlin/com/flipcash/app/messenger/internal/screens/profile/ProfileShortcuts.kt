@@ -70,7 +70,8 @@ internal fun ChatParticipant.TipUser.dmRoute(openSendCash: Boolean = false) =
     )
 
 /**
- * The Message and Send Cash shortcuts under a profile's identity lines.
+ * The Message and Send Cash shortcuts under a profile's identity lines, and Share when [onShare] is
+ * set.
  *
  * Two fixed-width columns, so the pair stays centered and the circles stay the same distance apart
  * whatever the labels say. The Send Cash glyph is [cashSymbol] rather than an icon, so it names the
@@ -82,6 +83,8 @@ internal fun ProfileShortcuts(
     onMessage: () -> Unit,
     onSendCash: () -> Unit,
     modifier: Modifier = Modifier,
+    // Null leaves Share out. The chat profile has none: the person is already in a conversation.
+    onShare: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier,
@@ -112,6 +115,19 @@ internal fun ProfileShortcuts(
         //         softWrap = false,
         //     )
         // }
+        if (onShare != null) {
+            ProfileShortcut(
+                label = stringResource(R.string.action_shareProfile),
+                onClick = onShare,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_share_os),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textMain,
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                )
+            }
+        }
     }
 }
 

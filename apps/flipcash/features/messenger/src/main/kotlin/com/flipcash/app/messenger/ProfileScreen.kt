@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -19,16 +20,19 @@ import com.flipcash.app.messenger.internal.screens.profile.ProfileHeader
 import com.flipcash.app.messenger.internal.screens.profile.ProfileShortcuts
 import com.flipcash.app.messenger.internal.screens.profile.ProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.dmRoute
+import com.flipcash.app.shareable.LocalShareController
+import com.flipcash.app.shareable.Shareable
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 /**
  * Another person's profile behind `AppRoute.Messaging.Profile`: the header a chat profile shows,
- * with the Message shortcut under it, for someone the viewer reached by link rather than from a
+ * with the Message and Share shortcuts under it, for someone the viewer reached by link rather than from a
  * conversation.
  *
  * No rows below the header. Report, block and mute act on a person the viewer has a chat with,
@@ -38,6 +42,8 @@ import kotlinx.coroutines.flow.filter
 fun ProfileScreen(address: ProfileAddress) {
     val viewModel = hiltViewModel<ProfileViewModel>()
     val navigator = LocalCodeNavigator.current
+    val shareController = LocalShareController.current
+    val scope = rememberCoroutineScope()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel, address) {
@@ -87,6 +93,19 @@ fun ProfileScreen(address: ProfileAddress) {
                         cashSymbol = state.cashSymbol,
                         onMessage = { navigator.push(participant.dmRoute()) },
                         onSendCash = { navigator.push(participant.dmRoute(openSendCash = true)) },
+                        onShare = {
+                            scope.launch {
+                                // The link this screen opens from, in the handle form when they
+                                // have one, as the You tab shares your own.
+                                shareController.present(
+                                    Shareable.TipCard(
+                                        userId = participant.userId,
+                                        title = participant.profile.displayName,
+                                        username = participant.profile.username,
+                                    )
+                                )
+                            }
+                        },
                     )
                 },
                 modifier = Modifier
