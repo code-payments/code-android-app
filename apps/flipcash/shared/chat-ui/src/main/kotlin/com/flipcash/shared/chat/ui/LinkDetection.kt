@@ -26,14 +26,67 @@ fun detectUrls(text: String): List<DetectedUrl> = buildList {
         val match = matcher.group() ?: continue
         if (!authorityIsAscii(match)) continue
         if (!endsOnAsciiBoundary(text, matcher.end())) continue
+        val url = match.dropTrailingPunctuation(openedBy = text.getOrNull(matcher.start() - 1))
         add(
             DetectedUrl(
                 start = matcher.start(),
-                end = matcher.end(),
-                url = if (match.startsWith("http")) match else "https://$match",
+                end = matcher.start() + url.length,
+                url = withLowercaseScheme(url),
             ),
         )
     }
+}
+
+/**
+ * [this] without the punctuation that ends the sentence around it, the way iOS's `NSDataDetector`
+ * reads a link.
+ *
+ * `Patterns.WEB_URL` lets a path end in `.`, `,`, `!`, `)` or a quote, so the full stop in
+ * `see flipcash.com/someone.` became part of the link. A closing bracket stays when the link
+ * opened it, as in `wiki/Foo_(bar)`.
+ *
+ * `?`, `:`, `'` and `]` stay, because `NSDataDetector` keeps them: `download?!` is `download?`
+ * on iOS. Dropping more here would underline a different span on each platform. The one exception
+ * iOS makes is a `'` closing a quote that [openedBy] opened.
+ */
+private fun String.dropTrailingPunctuation(openedBy: Char?): String {
+    var end = length
+    while (end > 0) {
+        val closer = this[end - 1]
+        val opener = BRACKETS[closer]
+        val drop = when {
+            closer in TRAILING_PUNCTUATION -> true
+            closer == '\'' -> openedBy == '\'' && end == length
+            opener != null -> {
+                val kept = take(end)
+                kept.count { it == opener } < kept.count { it == closer }
+            }
+            else -> false
+        }
+        if (!drop) break
+        end--
+    }
+    return substring(0, end)
+}
+
+private const val TRAILING_PUNCTUATION = ".,;!\""
+private val BRACKETS = mapOf(')' to '(', '}' to '{')
+
+/**
+ * [match] with its scheme written lowercase, or with `https://` in front when it has none.
+ *
+ * `Patterns.WEB_URL` matches a scheme in any case, so `HTTPS://flipcash.com/x` is a link. Checking
+ * for a lowercase `http` prefix instead put a second scheme in front of it
+ * (`https://HTTPS://flipcash.com/x`), which parses with `HTTPS` as the host: no card, and a tap
+ * that opened nothing. The scheme is lowercased rather than just recognised because an intent's
+ * scheme is matched case-sensitively, so `HTTPS:` would reach neither the app's own link filters
+ * nor the browser. The rest of the URL is left as written; the host and path are the router's to
+ * compare.
+ */
+private fun withLowercaseScheme(match: String): String {
+    val schemeEnd = match.indexOf("://")
+    if (schemeEnd <= 0) return "https://$match"
+    return match.substring(0, schemeEnd).lowercase() + match.substring(schemeEnd)
 }
 
 /**
