@@ -243,11 +243,18 @@ internal fun MessageList(
         // rememberSaveable so it survives the screen being torn down and rebuilt when the
         // amount-entry step is pushed over the conversation — otherwise the content gate
         // re-arms on pop-back and the list re-settles (visible reflow).
+        // The combined `refresh` alone is not enough: with the RemoteMediator it reports NotLoading
+        // as soon as the mediator is done, while Room's `source.refresh` is still Loading and the
+        // list is still empty. Waiting on that alone paints the header by itself for a few hundred
+        // milliseconds before the messages land.
         var refreshSettled by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(Unit) {
-            snapshotFlow { messages.loadState.refresh }
-                .dropWhile { it !is LoadState.Loading }
-                .first { it !is LoadState.Loading }
+            snapshotFlow {
+                val states = messages.loadState
+                states.refresh is LoadState.Loading || states.source.refresh is LoadState.Loading
+            }
+                .dropWhile { loading -> !loading }
+                .first { loading -> !loading }
             refreshSettled = true
         }
 

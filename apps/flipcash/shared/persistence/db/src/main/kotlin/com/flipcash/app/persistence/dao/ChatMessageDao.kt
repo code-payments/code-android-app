@@ -168,7 +168,21 @@ interface ChatMessageDao {
     suspend fun mergeReactionsJson(chatIdHex: String, messageId: Long, incomingJson: String) {
         if (!exists(chatIdHex, messageId)) return
         val stored = getReactionsJson(chatIdHex, messageId)
-        updateReactionsJson(chatIdHex, messageId, mergeReactionsJson(stored, incomingJson))
+        val merged = mergeReactionsJson(stored, incomingJson)
+        // An unchanged row is not written: Room invalidates the table on any UPDATE, and each
+        // invalidation re-pages the open transcript.
+        if (merged != stored) updateReactionsJson(chatIdHex, messageId, merged)
+    }
+
+    /**
+     * [mergeReactionsJson] for several messages of one chat in a single transaction, so a batch
+     * summary refresh invalidates the table once rather than once per message.
+     */
+    @Transaction
+    suspend fun mergeReactionsJson(chatIdHex: String, incomingByMessageId: Map<Long, String>) {
+        for ((messageId, incomingJson) in incomingByMessageId) {
+            mergeReactionsJson(chatIdHex, messageId, incomingJson)
+        }
     }
 
     @Query("SELECT unread_seq FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
@@ -186,12 +200,12 @@ interface ChatMessageDao {
         //
         // Passthrough when eventSequence == 0: a legacy row or an optimistic one the server has
         // not echoed yet. The server cannot send 0 — messaging.v1 constrains event_sequence to >= 1.
-        if (entity.eventSequence > 0) {
-            val stored = getEventSequence(entity.chatIdHex, entity.messageId)
-            if (stored != null && stored > entity.eventSequence) return
+        val stored = getMessage(entity.chatIdHex, entity.messageId)
+        if (entity.eventSequence > 0 && stored != null && stored.eventSequence > entity.eventSequence) {
+            return
         }
 
-        val existingPendingId = getPendingClientId(entity.chatIdHex, entity.messageId)
+        val existingPendingId = stored?.pendingClientIdHex
         var merged = if (existingPendingId != null && entity.pendingClientIdHex == null) {
             entity.copy(pendingClientIdHex = existingPendingId)
         } else entity
@@ -199,10 +213,13 @@ interface ChatMessageDao {
         // Reactions: never let this write clobber a newer confirmed reaction with an older or
         // absent one. mergeReactionsJson keeps the stored side when entity carries none, and
         // per-emoji picks whichever side's `version` is higher otherwise.
-        val storedReactionsJson = getReactionsJson(entity.chatIdHex, entity.messageId)
         merged = merged.copy(
-            reactionsJson = mergeReactionsJson(storedReactionsJson, entity.reactionsJson),
+            reactionsJson = mergeReactionsJson(stored?.reactionsJson, entity.reactionsJson),
         )
+
+        // An unchanged row is not written: Room invalidates the table on any write, and each
+        // invalidation re-pages the open transcript. A feed sync re-sends every chat's preview.
+        if (merged == stored) return
 
         insert(merged)
     }

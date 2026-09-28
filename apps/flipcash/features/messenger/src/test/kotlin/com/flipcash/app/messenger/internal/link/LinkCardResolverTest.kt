@@ -1,10 +1,13 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.services.models.GetChatError
+import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.mockito.kotlin.mock
 import kotlin.test.Test
@@ -404,6 +407,141 @@ class LinkCardResolverTest {
         assertEquals(resolved, (resolver.peek(groupCard) as LinkCard.GroupInvite).state)
         resolver.resolve(groupCard.copy(chatId = ChatId(ByteArray(16) { it.toByte() })))
         assertEquals(1, calls)
+    }
+
+    private fun TestScope.groupResolver(
+        memory: LinkCardMemory,
+        group: suspend (ChatId) -> Result<LinkCard.GroupInvite.State.Resolved>,
+    ) = LinkCardResolver(
+        scope = backgroundScope,
+        giftCard = { Result.failure(IllegalStateException("unused")) },
+        tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+        group = group,
+        user = { Result.failure(IllegalStateException("unused")) },
+        memory = memory,
+    )
+
+    @Test
+    fun `a group resolved on an earlier visit paints resolved on the next one`() = runTest {
+        val memory = LinkCardMemory()
+        val earlier = LinkCard.GroupInvite.State.Resolved(
+            title = "Olive Branch",
+            picture = null,
+            memberCount = 5,
+            requirement = null,
+        )
+        groupResolver(memory) { Result.success(earlier) }.resolve(groupCard)
+
+        var calls = 0
+        val later = earlier.copy(memberCount = 6)
+        val nextVisit = groupResolver(memory) { calls++; Result.success(later) }
+
+        // The first frame of the next visit, before anything is asked.
+        assertEquals(earlier, (nextVisit.peek(groupCard) as LinkCard.GroupInvite).state)
+        // The visit still asks once, and its answer replaces the remembered one.
+        assertEquals(later, (nextVisit.resolve(groupCard) as LinkCard.GroupInvite).state)
+        assertEquals(1, calls)
+        assertEquals(later, memory.groups[groupCard.chatId])
+    }
+
+    @Test
+    fun `a failed refresh keeps the group an earlier visit resolved`() = runTest {
+        val memory = LinkCardMemory()
+        val earlier = LinkCard.GroupInvite.State.Resolved(
+            title = "Olive Branch",
+            picture = null,
+            memberCount = 5,
+            requirement = null,
+        )
+        groupResolver(memory) { Result.success(earlier) }.resolve(groupCard)
+
+        val offline = groupResolver(memory) { Result.failure(IllegalStateException("offline")) }
+        assertEquals(earlier, (offline.resolve(groupCard) as LinkCard.GroupInvite).state)
+    }
+
+    @Test
+    fun `a group the server no longer has clears the one an earlier visit resolved`() = runTest {
+        val memory = LinkCardMemory()
+        val earlier = LinkCard.GroupInvite.State.Resolved(
+            title = "Olive Branch",
+            picture = null,
+            memberCount = 5,
+            requirement = null,
+        )
+        groupResolver(memory) { Result.success(earlier) }.resolve(groupCard)
+
+        val deleted = groupResolver(memory) { Result.failure(GetChatError.NotFound()) }
+        assertEquals(
+            LinkCard.GroupInvite.State.Unavailable,
+            (deleted.resolve(groupCard) as LinkCard.GroupInvite).state,
+        )
+        assertNull(memory.groups[groupCard.chatId])
+    }
+
+    @Test
+    fun `an account the server no longer has clears the person an earlier visit resolved`() = runTest {
+        val memory = LinkCardMemory()
+        val identity = LinkCard.User.Identity.ByUsername("satoshi")
+        val card = LinkCard.User(
+            url = "https://app.flipcash.com/u/satoshi",
+            start = 0,
+            end = 34,
+            identity = identity,
+            state = LinkCard.User.State.Loading,
+        )
+        val earlier = userCardState(
+            profile = UserProfile(
+                displayName = "Satoshi",
+                socialAccounts = emptyList(),
+                phoneNumber = null,
+                email = null,
+                userId = List(16) { 1 },
+                username = "satoshi",
+            ),
+            viewerId = null,
+            joined = { "" },
+        )!!
+        memory.putUser(identity, earlier)
+
+        fun resolver(error: Throwable) = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("unused")) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(error) },
+            memory = memory,
+        )
+
+        // A dropped connection keeps the card; the server's not-found takes it down.
+        assertEquals(earlier, (resolver(IllegalStateException("offline")).resolve(card) as LinkCard.User).state)
+        assertEquals(
+            LinkCard.User.State.NotFound,
+            (resolver(GetUserProfileError.NotFound()).resolve(card) as LinkCard.User).state,
+        )
+        assertNull(memory.users[identity])
+    }
+
+    @Test
+    fun `cash answers are not carried to the next visit`() = runTest {
+        val memory = LinkCardMemory()
+        LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.success(snapshot()) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
+            memory = memory,
+        ).resolve(card)
+
+        val nextVisit = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.success(snapshot()) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
+            memory = memory,
+        )
+        assertNull(nextVisit.peek(card))
     }
 
     private val userCard = LinkCard.User(

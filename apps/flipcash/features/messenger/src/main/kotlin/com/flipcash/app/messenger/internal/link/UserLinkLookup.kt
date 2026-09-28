@@ -19,9 +19,9 @@ import javax.inject.Inject
  * that would act on a link by scrolling past it.
  *
  * An unclaimed handle does not fail: the server answers with an empty profile. With no id in it
- * there is no account to show, so that is a failure here, the same as a transport error. Either
- * way the card draws its not-found state, and the resolver forgets the answer so a later
- * appearance asks again.
+ * there is no account to show, so that fails here with [NoSuchAccount], which the resolver treats
+ * like the server's not-found: the card draws its not-found state and a stored answer is cleared.
+ * A transport error also draws not-found on a card that never resolved, but keeps a stored one.
  */
 internal class UserLinkLookup @Inject constructor(
     private val profiles: ProfileController,

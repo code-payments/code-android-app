@@ -8,6 +8,7 @@ import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.lastMessagesByChat
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
@@ -139,8 +140,8 @@ class ChatFeedRemoteMediator(
             metadataDataSource.upsert(chats)
             for (chat in chats) {
                 memberDataSource.upsert(chat.chatId, chat.members)
-                chat.lastMessage?.let { messageDataSource.upsert(chat.chatId, listOf(it)) }
             }
+            messageDataSource.upsertAll(chats.lastMessagesByChat())
         }
     }
 

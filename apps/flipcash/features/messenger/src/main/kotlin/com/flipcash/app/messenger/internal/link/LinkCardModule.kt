@@ -23,6 +23,10 @@ internal object LinkCardModule {
      * this device about — is caught by re-asking about claimable cards while the screen is
      * foregrounded. This scope is the backstop under both: the cache dies with the screen, so
      * re-entering the chat asks again regardless.
+     *
+     * Token, group and person answers are the exception: they are held in [LinkCardMemory], which
+     * is process-wide, so re-entering a chat paints those cards resolved at once. The resolver's
+     * queries stay per visit, so re-entering still asks again and writes over them.
      */
     @Provides
     @ViewModelScoped
@@ -31,6 +35,7 @@ internal object LinkCardModule {
         token: TokenLinkLookup,
         group: GroupLinkLookup,
         user: UserLinkLookup,
+        memory: LinkCardMemory,
     ): LinkCardResolver =
         LinkCardResolver(
             // The resolver's own scope, ended by `ChatViewModel.onCleared`. A query outlives the
@@ -41,5 +46,6 @@ internal object LinkCardModule {
             tokenMetadata = { token(it) },
             group = { group(it) },
             user = { user(it) },
+            memory = memory,
         )
 }

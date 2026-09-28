@@ -2,6 +2,8 @@ package com.flipcash.app.messenger.internal.link
 
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.LinkCardResolution
+import com.flipcash.services.models.GetChatError
+import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
@@ -39,7 +41,9 @@ import java.util.concurrent.ConcurrentHashMap
  * Failure of any kind — offline, timeout, malformed entropy, an unknown mint, a kill switch —
  * returns the card unchanged, in its unresolved state, and drops the query so a later card asks
  * again. The card has no error state by design: a link that has not resolved is one the reader
- * can still open.
+ * can still open. The exception is a token, group or person link an earlier visit resolved: a
+ * failed request keeps the answer in [LinkCardMemory] rather than taking the card back down. An
+ * answer that the link names nothing ([meansLinkIsGone]) is not a failed request, and clears it.
  */
 internal class LinkCardResolver(
     private val scope: CoroutineScope,
@@ -47,6 +51,7 @@ internal class LinkCardResolver(
     private val tokenMetadata: suspend (mint: Mint) -> Result<Token>,
     private val group: suspend (chatId: ChatId) -> Result<LinkCard.GroupInvite.State.Resolved>,
     private val user: suspend (identity: LinkCard.User.Identity) -> Result<LinkCard.User.State.Resolved>,
+    private val memory: LinkCardMemory = LinkCardMemory(),
 ) : LinkCardResolution {
 
     data class Snapshot(
@@ -79,11 +84,15 @@ internal class LinkCardResolver(
      *
      * Only successes are written. A failure is forgotten rather than remembered, so there is
      * nothing here to stop the next card asking again.
+     *
+     * Only cash is held per visit. Token, group and person answers live in [memory], which outlasts
+     * the screen so a card seen on an earlier visit paints resolved on this one's first frame; the
+     * query maps above are still per visit, so each visit asks once and writes over what it found.
      */
     private val cashAnswers = ConcurrentHashMap<String, LinkCard.Cash.State.Resolved>()
-    private val tokenAnswers = ConcurrentHashMap<Mint, LinkCard.TokenInfo.State.Resolved>()
-    private val groupAnswers = ConcurrentHashMap<ChatId, LinkCard.GroupInvite.State.Resolved>()
-    private val userAnswers = ConcurrentHashMap<LinkCard.User.Identity, LinkCard.User.State.Resolved>()
+    private val tokenAnswers get() = memory.tokens
+    private val groupAnswers get() = memory.groups
+    private val userAnswers get() = memory.users
 
     private val _revision = MutableStateFlow(0)
     override val revision: StateFlow<Int> = _revision.asStateFlow()
@@ -170,25 +179,46 @@ internal class LinkCardResolver(
             tokenMetadata(mint).fold(
                 onSuccess = {
                     LinkCard.TokenInfo.State.Resolved(token = it)
-                        .also { resolved -> tokenAnswers[mint] = resolved }
+                        .also { resolved -> memory.putToken(mint, resolved) }
                 },
-                onFailure = { forget(tokenQueries, mint); LinkCard.TokenInfo.State.Unresolved },
+                onFailure = {
+                    forget(tokenQueries, mint)
+                    tokenAnswers[mint] ?: LinkCard.TokenInfo.State.Unresolved
+                },
             )
         }
 
     private suspend fun groupState(chatId: ChatId): LinkCard.GroupInvite.State =
         memoized(groupQueries, chatId) {
             group(chatId).fold(
-                onSuccess = { resolved -> resolved.also { groupAnswers[chatId] = it } },
-                onFailure = { forget(groupQueries, chatId); LinkCard.GroupInvite.State.Unavailable },
+                onSuccess = { resolved -> resolved.also { memory.putGroup(chatId, it) } },
+                // A failed request keeps what an earlier visit found rather than tearing a resolved
+                // card down to Unavailable. The server saying the group is gone clears it.
+                onFailure = { error ->
+                    forget(groupQueries, chatId)
+                    if (error.meansLinkIsGone()) {
+                        memory.removeGroup(chatId)
+                        LinkCard.GroupInvite.State.Unavailable
+                    } else {
+                        groupAnswers[chatId] ?: LinkCard.GroupInvite.State.Unavailable
+                    }
+                },
             )
         }
 
     private suspend fun userState(identity: LinkCard.User.Identity): LinkCard.User.State =
         memoized(userQueries, identity) {
             user(identity).fold(
-                onSuccess = { resolved -> resolved.also { userAnswers[identity] = it } },
-                onFailure = { forget(userQueries, identity); LinkCard.User.State.NotFound },
+                onSuccess = { resolved -> resolved.also { memory.putUser(identity, it) } },
+                onFailure = { error ->
+                    forget(userQueries, identity)
+                    if (error.meansLinkIsGone()) {
+                        memory.removeUser(identity)
+                        LinkCard.User.State.NotFound
+                    } else {
+                        userAnswers[identity] ?: LinkCard.User.State.NotFound
+                    }
+                },
             )
         }
 
@@ -206,4 +236,18 @@ internal class LinkCardResolver(
     private suspend fun <K, V> forget(queries: MutableMap<K, Deferred<V>>, key: K) {
         mutex.withLock { queries.remove(key) }
     }
+}
+
+/**
+ * Whether a failed group or person lookup is the server's answer that the link names nothing, as
+ * opposed to a request that did not complete. Only the first may clear a stored card: a deleted
+ * group has to stop drawing as joinable, and a dropped connection must not take a good card down.
+ */
+internal fun Throwable.meansLinkIsGone(): Boolean = when (this) {
+    is GetChatError.NotFound,
+    is GetChatError.Denied,
+    is GroupLinkLookup.NotAGroup,
+    is GetUserProfileError.NotFound,
+    is UserLinkLookup.NoSuchAccount -> true
+    else -> false
 }

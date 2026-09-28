@@ -1,12 +1,14 @@
 package com.flipcash.app.persistence.sources
 
 import androidx.paging.PagingSource
+import androidx.room.withTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.dao.ChatMessageDao
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.app.persistence.entities.MessageStatus
@@ -219,6 +221,19 @@ class ChatMessageDataSource @Inject constructor(
         }
     }
 
+    /**
+     * [upsert] for several chats in one transaction. Room invalidates `chat_messages` as a whole,
+     * so a feed sync writing each chat's preview separately re-pages the open transcript once per
+     * chat in the feed.
+     */
+    suspend fun upsertAll(messagesByChat: Map<ChatId, List<ChatMessage>>) {
+        val database = db ?: return
+        if (messagesByChat.isEmpty()) return
+        database.withTransaction {
+            for ((chatId, messages) in messagesByChat) upsert(chatId, messages)
+        }
+    }
+
     suspend fun insertPending(
         chatId: ChatId,
         content: List<MessageContent>,
@@ -283,6 +298,15 @@ class ChatMessageDataSource @Inject constructor(
         db?.chatMessageDao()?.mergeReactionsJson(mapper.chatIdHex(chatId), messageId, json)
     }
 
+    /** [mergeReactions] for several messages of [chatId], written in one transaction. */
+    suspend fun mergeReactions(chatId: ChatId, summaries: List<ReactionSummary>) {
+        val jsonByMessageId = summaries.mapNotNull { summary ->
+            mapper.encodeReactions(summary)?.let { summary.messageId to it }
+        }.toMap()
+        if (jsonByMessageId.isEmpty()) return
+        db?.chatMessageDao()?.mergeReactionsJson(mapper.chatIdHex(chatId), jsonByMessageId)
+    }
+
     fun toChatMessage(entity: ChatMessageEntity): ChatMessage {
         val message = mapper.toMessage(entity)
         val selfId = userManager.accountId
@@ -295,3 +319,7 @@ class ChatMessageDataSource @Inject constructor(
             LoadResult.Error(Exception("Database not initialized"))
     }
 }
+
+/** Each chat's last message, keyed by chat — the previews a feed page carries for [ChatMessageDataSource.upsertAll]. */
+fun List<ChatMetadata>.lastMessagesByChat(): Map<ChatId, List<ChatMessage>> =
+    mapNotNull { chat -> chat.lastMessage?.let { chat.chatId to listOf(it) } }.toMap()

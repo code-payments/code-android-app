@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.internal.delegates
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.lastMessagesByChat
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -12,6 +13,7 @@ import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupOperations
+import com.flipcash.shared.chat.MessageLinkPrefetch
 import com.flipcash.shared.chat.internal.RosterStateHolder
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -48,6 +50,7 @@ class GroupFeedDelegate @Inject constructor(
     private val messageDataSource: ChatMessageDataSource,
     private val rosterStateHolder: RosterStateHolder,
     private val userManager: UserManager,
+    private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
 ) : GroupOperations {
 
     sealed interface Event {
@@ -226,8 +229,11 @@ class GroupFeedDelegate @Inject constructor(
         metadataDataSource.upsert(chats)
         for (chat in chats) {
             memberDataSource.upsert(chat.chatId, chat.members)
-            chat.lastMessage?.let { messageDataSource.upsert(chat.chatId, listOf(it)) }
         }
+        val previews = chats.lastMessagesByChat()
+        // Not waited on: a preview is one message per chat, and the feed is not held for it.
+        linkPrefetch.prefetch(previews.values.flatten())
+        messageDataSource.upsertAll(previews)
     }
 
     private companion object {

@@ -29,6 +29,7 @@ import com.flipcash.shared.chat.EventSequenceTracker
 import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.MessageLinkPrefetch
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
@@ -91,6 +92,7 @@ class EventStreamDelegate @Inject constructor(
     private val stateHolder: ChatStateHolder,
     private val analytics: FlipcashAnalytics,
     private val exchange: Exchange,
+    private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
 ) : EventStreamOperations {
 
     companion object {
@@ -288,6 +290,7 @@ class EventStreamDelegate @Inject constructor(
             result
                 .onSuccess { delta ->
                     if (delta.messages.isNotEmpty()) {
+                        linkPrefetch.prefetch(delta.messages, MessageLinkPrefetch.LIVE_WAIT)
                         messageDataSource.upsert(chatId, delta.messages)
                         val latest = delta.messages.maxByOrNull { it.messageId }
                         latest?.let { msg ->
@@ -354,6 +357,8 @@ class EventStreamDelegate @Inject constructor(
 
         val lastMsg = if (resolvedMessages.isNotEmpty()) {
             trace(tag = TAG, message = "Upserting ${resolvedMessages.size} messages for $chatId", type = TraceType.Process)
+            // Waited on so a link card lands already sized; see [MessageLinkPrefetch].
+            linkPrefetch.prefetch(resolvedMessages, MessageLinkPrefetch.LIVE_WAIT)
             messageDataSource.upsert(chatId, resolvedMessages)
             resolvedMessages.maxByOrNull { it.messageId }
         } else null

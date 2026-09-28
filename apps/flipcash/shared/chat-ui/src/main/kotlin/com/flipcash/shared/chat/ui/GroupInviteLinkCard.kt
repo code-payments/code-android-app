@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
@@ -85,15 +86,44 @@ fun GroupInviteLinkCard(
 
     if (state is LinkCard.GroupInvite.State.Loading) {
         // Nothing about a group is known before the lookup -- not even whether it is one -- so the
-        // loading card is a plain shimmer at the floor, and the row grows when the content lands.
+        // loading card is a plain shimmer. It is as tall as a resolved card with no requirement,
+        // not the floor: the transcript is anchored at the bottom, so every dp the row grows when
+        // the content lands moves everything above it, and the floor left a resolved card's
+        // avatar, title and count to arrive as a jump. Only a requirement line can still grow it.
         Box(
             modifier = modifier
                 .fillMaxWidth()
-                .height(minHeight)
+                .heightIn(min = minHeight)
+                .height(IntrinsicSize.Min)
                 .clip(shape)
                 .background(CodeTheme.colors.surfaceVariant)
                 .shimmer(shape),
-        )
+        ) {
+            Column(
+                modifier = Modifier
+                    .alpha(0f)
+                    .padding(
+                        top = GroupInviteCardDefaults.BAND_HEIGHT - GroupInviteCardDefaults.AVATAR / 2,
+                        bottom = GroupInviteCardDefaults.PADDING,
+                    ),
+            ) {
+                Spacer(Modifier.height(GroupInviteCardDefaults.AVATAR))
+                Text(
+                    modifier = Modifier.padding(top = GroupInviteCardDefaults.TITLE_GAP),
+                    text = "",
+                    style = CodeTheme.typography.textLarge,
+                )
+                Text(
+                    modifier = Modifier.padding(top = GroupInviteCardDefaults.MEMBER_COUNT_GAP),
+                    text = "",
+                    style = CodeTheme.typography.textSmall,
+                )
+                if (ctaLabel != null) {
+                    Spacer(Modifier.height(GroupInviteCardDefaults.BUTTON_GAP))
+                    Spacer(Modifier.height(GroupInviteCardDefaults.BUTTON_HEIGHT))
+                }
+            }
+        }
         return
     }
 

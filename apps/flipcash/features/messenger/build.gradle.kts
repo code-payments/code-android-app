@@ -38,6 +38,8 @@ dependencies {
     // ProcessLifecycleOwner, for re-asking about a claimable card on every foreground edge.
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.bundles.haze)
+    // Stored link previews (PersistedLinkCardMemory) are JSON.
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.mockito.kotlin)
