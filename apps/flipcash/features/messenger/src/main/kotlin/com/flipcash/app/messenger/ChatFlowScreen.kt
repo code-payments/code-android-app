@@ -28,6 +28,7 @@ import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.messenger.internal.StartSendCashOnceReady
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
+import com.flipcash.app.messenger.internal.screens.EmojiPickerViewModel
 import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
@@ -359,25 +360,23 @@ private fun FlowEditGroupPictureScreen() {
     EditGroupPictureScreen(flowSharedViewModel<ChatViewModel>())
 }
 
-/** The full emoji picker for [messageId] — a tap on any emoji toggles it and dismisses. */
+/**
+ * The full emoji picker for [messageId] — a tap on any emoji toggles it and dismisses. The search
+ * lives in the entry's own [EmojiPickerViewModel]; only the toggle goes to the chat.
+ */
 @Composable
 private fun FlowReactionPickerScreen(messageId: Long) {
-    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val chatViewModel = flowSharedViewModel<ChatViewModel>()
+    val viewModel = hiltViewModel<EmojiPickerViewModel>()
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    // OpenReactionPicker opened it; this entry leaving the back stack is what closes it.
-    DisposableEffect(viewModel, messageId) {
-        onDispose { viewModel.dispatchEvent(ChatViewModel.Event.EmojiPickerDismissed(messageId)) }
-    }
-    val picker = state.emojiPicker?.takeIf { it.messageId == messageId }
 
     ReactionPickerSheet(
-        query = picker?.query.orEmpty(),
-        sections = picker?.sections.orEmpty(),
-        loaded = picker?.loaded == true,
-        onQueryChanged = { viewModel.dispatchEvent(ChatViewModel.Event.EmojiPickerQueryChanged(it)) },
+        searchState = state.searchFieldState,
+        sections = state.sections,
+        loaded = state.loaded,
         onSelected = { emoji ->
-            viewModel.dispatchEvent(
+            chatViewModel.dispatchEvent(
                 ChatViewModel.Event.ToggleReaction(messageId, emoji, clearsSelection = true)
             )
             dismissSheet()

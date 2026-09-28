@@ -231,7 +231,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.OpenReactionPicker -> {
-                viewModel.dispatchEvent(ChatViewModel.Event.OpenReactionPicker(action.messageId))
                 navigator.push(ChatStep.ReactionPicker(action.messageId))
             }
 

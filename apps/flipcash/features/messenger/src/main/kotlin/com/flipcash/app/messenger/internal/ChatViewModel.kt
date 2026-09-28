@@ -111,7 +111,6 @@ import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
-import com.getcode.libs.emojis.reactions.EmojiPickerModel
 import com.getcode.libs.emojis.reactions.RecentReactions
 import com.getcode.libs.emojis.reactions.RecentReactionsStore
 import com.getcode.manager.BottomBarAction
@@ -160,7 +159,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
@@ -365,7 +363,6 @@ internal class ChatViewModel @Inject constructor(
          */
         val quickReactionInputs: QuickReactionInputs? = null,
         /** The full emoji picker, while it's open. */
-        val emojiPicker: EmojiPickerState? = null,
         /** The reactors sheet, while it's open. */
         val reactors: ReactorsSheetState? = null,
     ) {
@@ -652,22 +649,6 @@ internal class ChatViewModel @Inject constructor(
             val clearsSelection: Boolean = false,
         ) : Event
 
-        /** Opens the full emoji picker for [messageId], from a pill row's or the strip's "+". */
-        data class OpenReactionPicker(val messageId: Long) : Event
-
-        /** The picker's search text changed, already debounced by the sheet. */
-        data class EmojiPickerQueryChanged(val query: String) : Event
-
-        /** Internal: [sections] for [query] finished loading for the open picker. */
-        data class EmojiPickerSectionsLoaded(
-            val messageId: Long,
-            val query: String,
-            val sections: List<EmojiPickerModel.Section>,
-        ) : Event
-
-        /** The picker for [messageId] left the screen. */
-        data class EmojiPickerDismissed(val messageId: Long) : Event
-
         /**
          * Opens who-reacted for [messageId], from a long-press on a pill. [pills] are the ones the
          * reader pressed, so the sheet has a title before the live overlay is read.
@@ -836,22 +817,6 @@ internal class ChatViewModel @Inject constructor(
     }
 
     /**
-     * The full picker's sections for [query] (recents row + one section per catalog category, or a
-     * single search-results section — see [EmojiPickerModel.sections]). Loads the catalog on each
-     * call rather than caching it on the view model; the loader itself caches the parsed file, so
-     * this is cheap after the first call.
-     */
-    private suspend fun emojiPickerSections(query: String): List<EmojiPickerModel.Section> {
-        val catalog = emojiCatalogLoader.load()
-        val undrawable = catalog.entries
-            .map { it.emoji }
-            .filterNot { EmojiDrawability.isDrawable(it) }
-            .toSet()
-        val recents = recentReactionsStore.rank(undrawable = undrawable)
-        return EmojiPickerModel.sections(catalog = catalog, undrawable = undrawable, recents = recents, query = query)
-    }
-
-    /**
      * What the quick strip is built from, other than the message's own reactions. Held in [State]
      * ahead of a long-press so the selection reducer can build the strip in the same update that
      * lifts the bubble; built on demand, the strip trailed the lift by the catalog's glyph check and
@@ -885,17 +850,6 @@ internal class ChatViewModel @Inject constructor(
         val loading: Boolean = true,
         /** Whether any of the message's emojis still has an unfetched page. */
         val hasMore: Boolean = false,
-    )
-
-    /** The full emoji picker for [messageId], while it's open. */
-    data class EmojiPickerState(
-        val messageId: Long,
-        /** The search text the sheet last reported, already debounced. */
-        val query: String = "",
-        /** The sections for [query]; stale for a moment while a new query's load is in flight. */
-        val sections: List<EmojiPickerModel.Section> = emptyList(),
-        /** False until the first load lands, which is what the sheet's spinner waits on. */
-        val loaded: Boolean = false,
     )
 
     /**
@@ -2034,17 +1988,6 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
 
-        // The picker's sections follow its query. mapLatest drops a load the reader has already
-        // typed past.
-        stateFlow.map { state -> state.emojiPicker?.let { it.messageId to it.query } }
-            .distinctUntilChanged()
-            .filterNotNull()
-            .mapLatest { (messageId, query) ->
-                Event.EmojiPickerSectionsLoaded(messageId, query, emojiPickerSections(query))
-            }
-            .onEach { dispatchEvent(it) }
-            .launchIn(viewModelScope)
-
         initReactorsSheet()
 
         eventFlow.filterIsInstance<Event.LoadMoreReactors>()
@@ -2962,24 +2905,6 @@ internal class ChatViewModel @Inject constructor(
                 // when the tap came from the quick strip.
                 is Event.ToggleReaction -> { state ->
                     if (event.clearsSelection) state.copy(selection = null) else state
-                }
-                is Event.OpenReactionPicker -> { state ->
-                    state.copy(emojiPicker = EmojiPickerState(messageId = event.messageId))
-                }
-                is Event.EmojiPickerQueryChanged -> { state ->
-                    state.copy(emojiPicker = state.emojiPicker?.copy(query = event.query))
-                }
-                is Event.EmojiPickerSectionsLoaded -> { state ->
-                    val picker = state.emojiPicker
-                    // A load for a query already typed past, or a picker since closed, is dropped.
-                    if (picker?.messageId != event.messageId || picker.query != event.query) {
-                        state
-                    } else {
-                        state.copy(emojiPicker = picker.copy(sections = event.sections, loaded = true))
-                    }
-                }
-                is Event.EmojiPickerDismissed -> { state ->
-                    if (state.emojiPicker?.messageId == event.messageId) state.copy(emojiPicker = null) else state
                 }
                 is Event.OpenReactors -> { state ->
                     state.copy(reactors = ReactorsSheetState(messageId = event.messageId, pills = event.pills))

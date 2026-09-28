@@ -6,7 +6,6 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.reactions.SelfReaction
-import com.getcode.libs.emojis.reactions.EmojiPickerModel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -15,9 +14,9 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
- * The quick strip, the emoji picker and the reactors sheet are plain state: the strip is built in
- * the same update that selects the bubble, and each sheet is opened by its own event and closed by
- * its dismissal, dropping results that arrive for a sheet or query no longer showing.
+ * The quick strip and the reactors sheet are plain state: the strip is built in the same update
+ * that selects the bubble, and the sheet is opened by its own event and closed by its dismissal,
+ * dropping results that arrive for a sheet no longer showing.
  */
 class ChatReactionsReducerTest {
 
@@ -122,20 +121,6 @@ class ChatReactionsReducerTest {
         val state = reduce(selected, ChatViewModel.Event.SelectionReactionsChanged(2, listOf(squid)))
 
         assertEquals(selected, state)
-    }
-
-    @Test
-    fun `picker sections for a query already typed past are dropped`() {
-        val opened = reduce(ChatViewModel.State(), ChatViewModel.Event.OpenReactionPicker(1))
-        val typed = reduce(opened, ChatViewModel.Event.EmojiPickerQueryChanged("cat"))
-        val sections = listOf(EmojiPickerModel.Section(id = "s", title = "S", entries = emptyList()))
-
-        val stale = reduce(typed, ChatViewModel.Event.EmojiPickerSectionsLoaded(1, "", sections))
-        val current = reduce(typed, ChatViewModel.Event.EmojiPickerSectionsLoaded(1, "cat", sections))
-
-        assertEquals(false, stale.emojiPicker?.loaded)
-        assertEquals(sections, current.emojiPicker?.sections)
-        assertEquals(true, current.emojiPicker?.loaded)
     }
 
     @Test

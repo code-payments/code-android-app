@@ -42,9 +42,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,8 +80,6 @@ import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 /**
@@ -96,17 +92,16 @@ import kotlinx.coroutines.launch
  */
 @Composable
 internal fun ReactionPickerSheet(
-    query: String,
+    searchState: TextFieldState,
     sections: List<EmojiPickerModel.Section>,
     loaded: Boolean,
-    onQueryChanged: (String) -> Unit,
     onSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val gridState = rememberLazyListState()
     AllowSheetExpansionWhenScrollable(gridState)
 
-    val searchState = remember { TextFieldState() }
+    val query = searchState.text.toString()
 
     Column(modifier = Modifier.fillMaxWidth()) {
         SearchField(
@@ -116,14 +111,6 @@ internal fun ReactionPickerSheet(
                 .padding(horizontal = 16.dp)
                 .padding(top = 16.dp, bottom = 12.dp),
         )
-
-        val currentOnQueryChanged by rememberUpdatedState(onQueryChanged)
-        LaunchedEffect(searchState) {
-            snapshotFlow { searchState.text.toString() }
-                .distinctUntilChanged()
-                .debounce(150)
-                .collect { currentOnQueryChanged(it) }
-        }
 
         when {
             !loaded -> {
