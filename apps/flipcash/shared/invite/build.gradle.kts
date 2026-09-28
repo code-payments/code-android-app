@@ -8,4 +8,9 @@ android {
 
 dependencies {
     implementation(project(":apps:flipcash:shared:shareable"))
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(testFixtures(project(":libs:coroutines")))
 }

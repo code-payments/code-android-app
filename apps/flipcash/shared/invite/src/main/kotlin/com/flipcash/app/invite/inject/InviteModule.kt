@@ -4,6 +4,7 @@ import android.content.Context
 import com.flipcash.app.invite.InviteController
 import com.flipcash.app.invite.internal.InternalInviteController
 import com.flipcash.app.shareable.ShareSheetController
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.util.resources.ResourceHelper
 import dagger.Module
 import dagger.Provides
@@ -22,9 +23,11 @@ object InviteModule {
         @ApplicationContext context: Context,
         resources: ResourceHelper,
         shareController: ShareSheetController,
+        dispatchers: DispatcherProvider,
     ): InviteController = InternalInviteController(
         context = context,
         resources = resources,
         shareController = shareController,
+        dispatchers = dispatchers,
     )
 }
