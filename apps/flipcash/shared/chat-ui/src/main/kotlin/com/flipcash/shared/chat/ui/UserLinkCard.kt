@@ -67,6 +67,7 @@ internal fun UserLinkCard(
     modifier: Modifier = Modifier,
     shape: Shape = GroupInviteCardDefaults.SHAPE,
     onLongClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
 ) {
     val state = card.state
 
@@ -97,11 +98,20 @@ internal fun UserLinkCard(
             .border(CodeTheme.dimens.border, GroupInviteCardDefaults.STROKE, shape)
             .then(
                 when {
-                    tap != null -> Modifier.combinedClickable(onLongClick = onLongClick, onClick = tap)
-                    // Nothing to open, but a long press still has to reach the transcript.
-                    onLongClick != null -> Modifier.pointerInput(onLongClick) {
-                        detectTapGestures(onLongPress = { onLongClick() })
-                    }
+                    tap != null -> Modifier.combinedClickable(
+                        onLongClick = onLongClick,
+                        onDoubleClick = onDoubleClick,
+                        onClick = tap,
+                    )
+                    // Nothing to open, but a long press and a double tap still have to reach the
+                    // transcript.
+                    onLongClick != null || onDoubleClick != null ->
+                        Modifier.pointerInput(onLongClick, onDoubleClick) {
+                            detectTapGestures(
+                                onLongPress = { onLongClick?.invoke() },
+                                onDoubleTap = onDoubleClick?.let { double -> { double() } },
+                            )
+                        }
                     else -> Modifier
                 },
             )

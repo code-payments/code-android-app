@@ -87,8 +87,8 @@ private val WrapContent = SheetDetent("wrap-content") { containerHeight, sheetHe
  *
  * The sheet always fills this detent, so its content is measured against it and does not need to
  * restate the fraction. [Expanded] joins the detent list only once the content reports that it
- * overruns this one, so a sheet with nothing below the fold can't be dragged up into dead space —
- * see [com.getcode.ui.utils.LocalSheetExpansionState].
+ * overruns this one, so a sheet with nothing below the fold can't be dragged up into dead space, and
+ * stays in it from then on — see [com.getcode.ui.utils.LocalSheetExpansionState].
  */
 private val Half = SheetDetent("half") { containerHeight, _ ->
     containerHeight * 0.5f
@@ -182,8 +182,13 @@ internal class ModalBottomSheetScene<T : Any> constructor(
             var contentOverflows by remember { mutableStateOf(false) }
             // Kept stable: this backs a static local, so a fresh lambda each pass would
             // needlessly invalidate the whole sheet subtree.
+            //
+            // Latched: once the content overruns [restingDetent], the sheet keeps [Expanded]. A list
+            // that overflows at Half but fits at Expanded stops reporting overflow the moment the
+            // sheet grows to hold it, and withdrawing the detent then drops the sheet back to Half,
+            // where the list overflows again -- the sheet never stays expanded.
             val setContentOverflows = remember { { overflows: Boolean ->
-                contentOverflows = overflows
+                if (overflows) contentOverflows = true
             } }
 
             val sheetState = rememberBottomSheetState(

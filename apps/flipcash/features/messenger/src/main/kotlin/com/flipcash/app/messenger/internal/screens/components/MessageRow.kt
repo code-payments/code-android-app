@@ -163,6 +163,16 @@ internal fun MessageRow(
             onAction(ChatAction.ToggleSelection(target))
         }
     }
+    // A double tap presents the strip alone, as iMessage's tapback does. Hoisted like select: a
+    // bubble with a tap target of its own -- a cash bubble, a link card, a quote -- reports it too,
+    // and holds its single tap for the double-tap timeout to tell the two apart. A button inside a
+    // card is not given it, so it stays instant.
+    val presentStrip = bubble?.takeIf { it.canReact }?.let { target ->
+        {
+            vibrator.tick()
+            onAction(ChatAction.PresentReactionStrip(target))
+        }
+    }
 
     val dimAlpha by animateFloatAsState(
         targetValue = if (focused) 1f else 0.4f,
@@ -241,6 +251,7 @@ internal fun MessageRow(
                     interactionSource = interactionSource,
                     indication = null,
                     onLongClick = select,
+                    onDoubleClick = presentStrip,
                     // Only reachable with the backdrop down, so the tap has nothing to
                     // dismiss but the keyboard.
                     onClick = { keyboard.hide() },
@@ -357,6 +368,7 @@ internal fun MessageRow(
                                     // so the row's long-press never reaches it. Handing it the
                                     // same gesture is what makes a cash bubble selectable.
                                     onLongClick = select,
+                                    onDoubleClick = presentStrip,
                                     position = bubblePositionOf(
                                         index,
                                         item,
@@ -561,7 +573,8 @@ private fun senderNameInset(showsGutter: Boolean): Dp =
         CodeTheme.dimens.grid.x1
     }
 
-private val STRIP_BAR_GAP = 8.dp
+/** Between the top bar and the highest the quick strip goes. */
+internal val STRIP_BAR_GAP = 8.dp
 
 private val AFFORDANCE_SIZE = 32.dp
 private val AFFORDANCE_INSET = 20.dp

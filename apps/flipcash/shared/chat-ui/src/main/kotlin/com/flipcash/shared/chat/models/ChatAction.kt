@@ -68,6 +68,12 @@ sealed interface ChatAction {
      */
     data class ToggleSelection(val bubble: ChatListItem.ContentBubble) : ChatAction
 
+    /**
+     * Presents only the quick reaction strip over [bubble], as a double tap does: the lift and
+     * backdrop a long-press gives, with no selection bar or actions. Dismissed like a selection.
+     */
+    data class PresentReactionStrip(val bubble: ChatListItem.ContentBubble) : ChatAction
+
     /** Leaves selection mode without acting on anything. */
     data object ClearSelection : ChatAction
 

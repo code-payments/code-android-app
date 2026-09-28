@@ -1,6 +1,8 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +42,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -149,16 +154,38 @@ internal fun MessageList(
         // The backdrop, read once for everything it covers: the rows, the bubbles' own targets,
         // and the contact card at the start of history all stop taking taps together.
         val selecting = state.selection != null || state.editing != null
+        // The items past the oldest message (its date, the info or invite card) are not rows, so
+        // they take the rows' backdrop dim and blur here; nothing among them can be the focus.
+        val trailingDimAlpha by animateFloatAsState(
+            targetValue = if (selecting) 0.4f else 1f,
+            label = "trailingDim",
+        )
+        val trailingDimBlur by animateDpAsState(
+            targetValue = if (selecting) 8.dp else 0.dp,
+            label = "trailingBlur",
+        )
+        val behindBackdrop = Modifier
+            .blur(trailingDimBlur, BlurredEdgeTreatment.Unbounded)
+            .graphicsLayer { alpha = trailingDimAlpha }
 
         // A message can be long-pressed while it is running under the top bar, which the fade
         // there makes easy to do — and the bar then swaps to the actions for it, so the row the
         // backdrop leaves sharp sits behind the buttons acting on it. Bring it down level with the
         // bar's lower edge before that happens. Selecting and then editing is one focus, not two,
         // so the key doesn't change across that step and the row isn't scrolled twice.
+        //
+        // A message that takes reactions comes down further, far enough for the quick strip to sit
+        // above it: the strip is always above, and there's always room to make, since the info card
+        // at the start of history sits over the oldest message.
         val focusedMessageId = state.editing?.messageId ?: state.selection?.messageId
+        val stripRoom = with(LocalDensity.current) {
+            (QuickReactionStripPlacement.StripHeight + QuickReactionStripPlacement.Gap + STRIP_BAR_GAP)
+                .roundToPx()
+        }
         LaunchedEffect(focusedMessageId) {
             if (focusedMessageId == null) return@LaunchedEffect
-            val buried = -listState.layoutInfo.headroomAbove(messages, focusedMessageId)
+            val room = if (state.editing == null && state.selection?.canReact == true) stripRoom else 0
+            val buried = room - listState.layoutInfo.headroomAbove(messages, focusedMessageId)
             if (buried > 0) listState.animateScrollBy(buried.toFloat())
         }
 
@@ -430,7 +457,9 @@ internal fun MessageList(
                 // rather than fetched.
                 if (messages.itemCount == 0 && state.obscuresTranscript) {
                     item(key = "gated-transcript-placeholder") {
-                        GatedTranscriptPlaceholder(modifier = Modifier.fillParentMaxWidth())
+                        GatedTranscriptPlaceholder(
+                            modifier = Modifier.fillParentMaxWidth().then(behindBackdrop),
+                        )
                     }
                 }
 
@@ -449,7 +478,9 @@ internal fun MessageList(
                     if (oldestTimestamp != null) {
                         item(key = "trailing-date-${oldestTimestamp.epochSeconds}") {
                             Box(
-                                modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2),
+                                modifier = Modifier
+                                    .padding(bottom = CodeTheme.dimens.grid.x2)
+                                    .then(behindBackdrop),
                             ) {
                                 DateSeparatorRow(oldestTimestamp)
                             }
@@ -473,7 +504,7 @@ internal fun MessageList(
                             )
                         }
                         BoxWithConstraints(
-                            modifier = Modifier.fillParentMaxWidth(),
+                            modifier = Modifier.fillParentMaxWidth().then(behindBackdrop),
                             contentAlignment = Alignment.Center,
                         ) {
                             // The width a link card gets in a DM transcript, so this reads as the
@@ -498,7 +529,8 @@ internal fun MessageList(
                     item {
                         Box(
                             modifier = Modifier
-                                .fillParentMaxWidth(),
+                                .fillParentMaxWidth()
+                                .then(behindBackdrop),
                             contentAlignment = Alignment.Center,
                         ) {
                             ChatInfoCard(

@@ -126,6 +126,7 @@ fun ContentBubble(
     modifier: Modifier = Modifier,
     interactive: Boolean = true,
     onLongClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
     attention: () -> Float = { 0f },
 ) {
     val actionHandler = LocalChatActionHandler.current
@@ -163,6 +164,7 @@ fun ContentBubble(
                     onQuoteClick = onQuoteClick,
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
                     onLongClick = onLongClick?.takeIf { interactive },
+                    onDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
                     attention = attention,
                 )
@@ -219,6 +221,7 @@ fun ContentBubble(
                     // Gated with the tap, and for the same reason: behind the backdrop the bar is
                     // already acting on a message, and the row drops its own gestures there too.
                     onLongClick = onLongClick?.takeIf { interactive },
+                    onDoubleClick = onDoubleClick?.takeIf { interactive },
                     attention = attention,
                 )
 
@@ -237,6 +240,7 @@ fun ContentBubble(
                     // should dismiss the backdrop, not jump the transcript out from under it.
                     onQuoteClick = onQuoteClick,
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
+                    onQuoteDoubleClick = onDoubleClick?.takeIf { interactive },
                     jumbo = jumbo,
                     attention = attention,
                 )
@@ -354,6 +358,7 @@ private fun TextBubble(
     quote: ChatQuote? = null,
     onQuoteClick: (() -> Unit)? = null,
     onQuoteLongClick: (() -> Unit)? = null,
+    onQuoteDoubleClick: (() -> Unit)? = null,
     jumbo: Boolean = false,
     attention: () -> Float = { 0f },
 ) {
@@ -468,6 +473,7 @@ private fun TextBubble(
                         quote = quote,
                         onClick = onQuoteClick,
                         onLongClick = onQuoteLongClick,
+                        onDoubleClick = onQuoteDoubleClick,
                         // Tagged because the citation repeats the quoted message's own text, so a
                         // UI test matching on that text cannot tell the two apart.
                         modifier = Modifier.testTag(REPLY_QUOTE_TAG),
@@ -567,7 +573,9 @@ private fun BareLinkCard(
     quote: ChatQuote? = null,
     onQuoteClick: (() -> Unit)? = null,
     onQuoteLongClick: (() -> Unit)? = null,
+    onQuoteDoubleClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
     interactive: Boolean = true,
     attention: () -> Float = { 0f },
 ) {
@@ -600,6 +608,7 @@ private fun BareLinkCard(
                     quote = quote,
                     onClick = onQuoteClick,
                     onLongClick = onQuoteLongClick,
+                    onDoubleClick = onDoubleClick,
                     modifier = Modifier.testTag(REPLY_QUOTE_TAG),
                 )
             }
@@ -612,6 +621,7 @@ private fun BareLinkCard(
                 // The card takes the press for its own tap, so it has to hand the transcript's
                 // selection gesture back or a long press on it would select nothing.
                 onLongClick = onLongClick,
+                onDoubleClick = onDoubleClick,
             )
         }
     }
@@ -662,6 +672,7 @@ private fun CashBubble(
     action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     attention: () -> Float = { 0f },
 ) {
@@ -672,6 +683,7 @@ private fun CashBubble(
         maxWidth = maxWidth,
         onClick = onClick,
         onLongClick = onLongClick,
+        onDoubleClick = onDoubleClick,
         modifier = modifier,
         attention = attention,
     ) {
@@ -801,6 +813,7 @@ private fun Bubble(
     minWidth: Dp = 0.dp,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
     horizontalPadding: Dp = BubbleDefaults.paddingHorizontal,
     verticalPadding: Dp = BubbleDefaults.paddingVertical,
     bare: Boolean = false,
@@ -840,8 +853,11 @@ private fun Bubble(
             .addIf(onClick != null || onLongClick != null) {
                 // combinedClickable rather than two modifiers: a bubble that takes the tap takes
                 // the long press with it, so both gestures are reported from the same target.
+                // A double tap here waits out the timeout before a single tap acts: that delay is
+                // the price of the tapback on a bubble whose tap already opens something.
                 Modifier.clip(shape).combinedClickable(
                     onLongClick = onLongClick,
+                    onDoubleClick = onDoubleClick,
                     onClick = { onClick?.invoke() },
                 )
             }
