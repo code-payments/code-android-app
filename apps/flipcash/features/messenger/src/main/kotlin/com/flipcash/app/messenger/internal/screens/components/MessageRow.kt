@@ -83,10 +83,10 @@ import com.getcode.util.vibration.LocalVibrator
  * The row owns what is a function of itself — its insertion animation, its gestures, its spacing to
  * the row below — and takes the rest as flags, because they are decided across the whole list:
  * [selecting] is true for every row while the backdrop is up, [focused] for the single row it leaves
- * sharp, [attention] carries the flash the list points at a jumped-to message, and
- * [animateInsertion] is granted once per message and never again, and [showsSenderGutter] says
- * whether incoming rows reserve the avatar column — true for a group, where every message is
- * attributed, and false for a DM, where none is.
+ * sharp, [raised] for the one row of it that was pressed, [attention] carries the flash the list
+ * points at a jumped-to message, and [animateInsertion] is granted once per message and never
+ * again, and [showsSenderGutter] says whether incoming rows reserve the avatar column — true for a
+ * group, where every message is attributed, and false for a DM, where none is.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -98,6 +98,12 @@ internal fun MessageRow(
     otherReadPointer: MessagePointer?,
     selecting: Boolean,
     focused: Boolean,
+    /**
+     * Whether this row lifts while its message is selected. Only the pressed row does, as iOS lifts
+     * only the bubble that was held: a message split around its card is focused whole, and lifting
+     * every row from its own centre pushed the text and the card into each other.
+     */
+    raised: Boolean,
     animateInsertion: Boolean,
     showsSenderGutter: Boolean,
     /** The quick strip, for the one row that shows it; empty on every other row. */
@@ -171,7 +177,7 @@ internal fun MessageRow(
     val pressed by interactionSource.collectIsPressedAsState()
     val lift by animateFloatAsState(
         targetValue = when {
-            selecting && focused -> 1.04f
+            selecting && raised -> 1.04f
             pressed && bubble?.isSelectable == true -> 0.97f
             else -> 1f
         },

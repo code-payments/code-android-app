@@ -388,6 +388,8 @@ internal fun MessageList(
                     otherReadPointer = otherReadPointer,
                     selecting = selecting,
                     focused = focused,
+                    // The pressed row is also the only one that lifts, as iOS lifts only the held bubble.
+                    raised = hostsStrip,
                     animateInsertion = animateInsertion,
                     showsSenderGutter = isGroup,
                     topBarBottom = topBarBottom,

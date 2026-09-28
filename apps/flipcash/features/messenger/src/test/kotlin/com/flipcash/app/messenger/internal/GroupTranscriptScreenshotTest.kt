@@ -248,6 +248,7 @@ class GroupTranscriptScreenshotTest {
                     otherReadPointer = null,
                     selecting = false,
                     focused = true,
+                    raised = false,
                     animateInsertion = false,
                     showsSenderGutter = true,
                 )
