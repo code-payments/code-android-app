@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.reactions
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.repository.ReactorsPage
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -30,6 +31,10 @@ class ReactorsPrefetchCache(
 ) {
 
     private val models = mutableMapOf<Long, ReactorsListModel>()
+
+    /** The emoji → count each model was started for, so a changed reaction set refetches. */
+    private val signatures = mutableMapOf<Long, Map<String, Long>>()
+    private val jobs = mutableMapOf<Long, Job>()
     private val allRows = MutableStateFlow<Map<Long, List<ReactorsListModel.Row>>>(emptyMap())
     private val allLoading = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
 
@@ -45,14 +50,27 @@ class ReactorsPrefetchCache(
     fun hasMore(messageId: Long): Boolean = models[messageId]?.hasMore ?: false
 
     /**
-     * Starts the first round of pages for [messageId]'s [emojis] if nothing has started yet.
-     * No-ops for an empty [emojis] list (nothing reacted, so nothing to fetch) and for a messageId
-     * already in the cache — a second `OpenReactors` for the same message re-opens the existing
-     * fetch/rows rather than starting over.
+     * Starts the first round of pages for [messageId]'s [pills] unless the cache already holds a
+     * fetch for exactly these pills. An empty [pills] list (nothing reacted, or the last reaction
+     * was just removed) drops whatever was cached instead of fetching. No-ops for an unchanged
+     * emoji → count set — a second `OpenReactors` for the same
+     * reactions re-opens the existing fetch/rows rather than starting over. A changed set (someone
+     * reacted, un-reacted, or used a new emoji) refetches from the first page: the pages already
+     * held can't be patched, since the pills say how many reacted but not who. The previous rows
+     * stay published until the new round lands, so an open sheet doesn't flash placeholders.
      */
-    fun start(messageId: Long, emojis: List<String>) {
-        if (emojis.isEmpty() || models.containsKey(messageId)) return
-        models[messageId] = ReactorsListModel(emojis) { emoji, token -> fetchPage(messageId, emoji, token) }
+    fun start(messageId: Long, pills: List<ReactionPill>) {
+        if (pills.isEmpty()) {
+            clear(messageId)
+            return
+        }
+        val signature = pills.associate { it.emoji to it.count }
+        if (signatures[messageId] == signature) return
+        signatures[messageId] = signature
+        jobs.remove(messageId)?.cancel()
+        models[messageId] = ReactorsListModel(pills.map { it.emoji }) { emoji, token ->
+            fetchPage(messageId, emoji, token)
+        }
         loadMore(messageId)
     }
 
@@ -64,10 +82,12 @@ class ReactorsPrefetchCache(
     }
 
     private fun loadMore(messageId: Long) {
+        val model = models.getValue(messageId)
         allLoading.update { it + (messageId to true) }
-        scope.launch {
-            val model = models.getValue(messageId)
+        jobs[messageId] = scope.launch {
             model.loadMoreIfNeeded()
+            // A start() for newer pills replaced this model while the round was in flight.
+            if (models[messageId] !== model) return@launch
             allRows.update { it + (messageId to model.rows) }
             allLoading.update { it + (messageId to false) }
         }
@@ -76,6 +96,8 @@ class ReactorsPrefetchCache(
     /** Drops [messageId]'s cached fetch/rows — for a message that leaves the transcript (deleted, etc). */
     fun clear(messageId: Long) {
         models.remove(messageId)
+        signatures.remove(messageId)
+        jobs.remove(messageId)?.cancel()
         allRows.update { it - messageId }
         allLoading.update { it - messageId }
     }

@@ -391,6 +391,14 @@ private fun FlowReactorsScreen(messageId: Long) {
     val loading by remember(viewModel, messageId) { viewModel.reactorsLoading(messageId) }
         .collectAsStateWithLifecycle(initialValue = true)
 
+    // OpenReactors already started the fetch; this catches reactions that change while the sheet
+    // is up. Collected here rather than off `pills` above, whose empty initial value would read as
+    // "every reaction removed". The first emission is a no-op unless the pills moved since the
+    // long-press.
+    LaunchedEffect(viewModel, messageId) {
+        viewModel.reactionPills(messageId).collect { viewModel.syncReactors(messageId, it) }
+    }
+
     ReactorsSheet(
         pills = pills,
         rows = rows,
