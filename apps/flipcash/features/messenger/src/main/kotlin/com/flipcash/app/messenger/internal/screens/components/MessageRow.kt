@@ -100,7 +100,15 @@ internal fun MessageRow(
     focused: Boolean,
     animateInsertion: Boolean,
     showsSenderGutter: Boolean,
+    /** The quick strip, for the one row that shows it; empty on every other row. */
     quickReactionStrip: List<ReactionStrip.Entry> = emptyList(),
+    /**
+     * What the strip lines up with, in window coordinates: every measured row of the message, so a
+     * message split around its card gets one strip over the whole of it.
+     */
+    stripAnchor: IntRect? = null,
+    /** Receives this row's bubble bounds in the window while its message is selected. */
+    onBubbleBounds: ((IntRect) -> Unit)? = null,
     /** Where the top bar ends, from the window's top; the strip stays below it. */
     topBarBottom: Dp = 0.dp,
     attention: () -> Float = { 0f },
@@ -322,14 +330,13 @@ internal fun MessageRow(
                             Box(insertionModifier.then(liftModifier)) {
                                 val stripShown = selecting && focused && item.canReact &&
                                     quickReactionStrip.isNotEmpty()
-                                // The strip lines up with the bubble as drawn, which sits inside
-                                // a full-width layout, so it's measured here rather than taken
-                                // from the popup's anchor.
-                                var bubbleBounds by remember { mutableStateOf<IntRect?>(null) }
                                 ContentBubble(
-                                    modifier = Modifier.addIf(stripShown) {
+                                    // The strip lines up with the bubble as drawn, which sits
+                                    // inside a full-width layout, so it's measured here rather than
+                                    // taken from the popup's anchor.
+                                    modifier = Modifier.addIf(onBubbleBounds != null) {
                                         Modifier.onGloballyPositioned {
-                                            bubbleBounds = it.boundsInWindow().roundToIntRect()
+                                            onBubbleBounds?.invoke(it.boundsInWindow().roundToIntRect())
                                         }
                                     },
                                     item = item,
@@ -350,14 +357,14 @@ internal fun MessageRow(
                                     attention = attention,
                                 )
 
-                                // The quick strip lives above the bubble, only while this exact
-                                // message is the selected one — it replaces the backdrop's own
-                                // reach for a reaction with something faster than opening the
-                                // picker, and disappears the moment selection moves off.
+                                // The quick strip lives above the message, only while it is the
+                                // selected one — it replaces the backdrop's own reach for a
+                                // reaction with something faster than opening the picker, and
+                                // disappears the moment selection moves off.
                                 if (stripShown) {
                                     QuickReactionStripPopup(
                                         entries = quickReactionStrip,
-                                        bubbleBounds = bubbleBounds,
+                                        bubbleBounds = stripAnchor,
                                         hugsTrailing = item.isFromSelf,
                                         onToggle = { emoji ->
                                             onAction(

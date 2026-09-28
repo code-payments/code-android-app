@@ -19,10 +19,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -36,6 +38,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -61,6 +64,7 @@ import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
 import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.shared.chat.ui.GroupInviteCardDefaults
 import com.flipcash.shared.chat.ui.GroupInviteLinkCard
+import com.flipcash.shared.chat.ui.QuickReactionStripPlacement
 import com.flipcash.shared.chat.ui.transcriptCardWidth
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberKeyboardController
@@ -296,6 +300,12 @@ internal fun MessageList(
                 }
         }
 
+        // The window bounds of each row of the selected message, by row key, so the quick strip
+        // can sit over all of them. Emptied with every new selection.
+        val selectedRowBounds = remember(state.selection?.messageKey) {
+            mutableStateMapOf<Any, IntRect>()
+        }
+
         LazyColumn(
             // NB: no sheetResignmentBehavior, unlike every other scrolling list in the app. The
             // conversation is a full-screen destination, not a sheet, so there is no dismiss drag
@@ -358,6 +368,18 @@ internal fun MessageList(
                     else -> true
                 }
 
+                // Every row of a message split around its card is focused, but only the pressed
+                // one hosts the quick strip — one strip per message, as iOS gives one per context
+                // menu — and it spans the rows the others measure.
+                val inSelection = focused && bubble != null &&
+                    bubble.messageKey == state.selection?.messageKey
+                if (inSelection) {
+                    DisposableEffect(selectedRowBounds, item.itemKey) {
+                        onDispose { selectedRowBounds.remove(item.itemKey) }
+                    }
+                }
+                val hostsStrip = inSelection && item.itemKey == state.selection?.itemKey
+
                 MessageRow(
                     index = index,
                     item = item,
@@ -369,10 +391,16 @@ internal fun MessageList(
                     animateInsertion = animateInsertion,
                     showsSenderGutter = isGroup,
                     topBarBottom = topBarBottom,
-                    quickReactionStrip = if (focused && bubble?.messageId == state.selection?.messageId) {
-                        state.quickReactionStrip
+                    quickReactionStrip = if (hostsStrip) state.quickReactionStrip else emptyList(),
+                    stripAnchor = if (hostsStrip) {
+                        QuickReactionStripPlacement.messageBounds(selectedRowBounds.values)
                     } else {
-                        emptyList()
+                        null
+                    },
+                    onBubbleBounds = if (inSelection) {
+                        { bounds -> selectedRowBounds[item.itemKey] = bounds }
+                    } else {
+                        null
                     },
                     attention = if (bubble != null && bubble.messageId == attentionId) {
                         readAttention

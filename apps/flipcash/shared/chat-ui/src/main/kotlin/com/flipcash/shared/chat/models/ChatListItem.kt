@@ -206,8 +206,9 @@ enum class MessagePart(val id: String) {
  * gap and the brackets around a word that now has a row of its own. Punctuation past a space
  * belongs to the words beside it. Other links stay in whichever text row they fell in, underlined.
  *
- * The reply citation goes on the first row and the "Edited" marker and receipt on the last, so a
- * split message reads as one message stacked in three pieces rather than as three messages.
+ * The reply citation goes on the first row and the "Edited" marker, receipt and reaction pills on
+ * the last, so a split message reads as one message stacked in three pieces rather than as three
+ * messages.
  *
  * A card whose span does not fit the text is dropped rather than split, and the message renders as
  * text with its links underlined.
@@ -241,6 +242,7 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
             linkCard = card.takeIf { part == MessagePart.Card },
             isFirstRow = index == 0,
             isLastRow = index == parts.lastIndex,
+            reactionPills = reactionPills.takeIf { index == parts.lastIndex }.orEmpty(),
         )
     }
 }
