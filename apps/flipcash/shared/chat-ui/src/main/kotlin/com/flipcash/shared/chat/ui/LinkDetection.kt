@@ -30,10 +30,27 @@ fun detectUrls(text: String): List<DetectedUrl> = buildList {
             DetectedUrl(
                 start = matcher.start(),
                 end = matcher.end(),
-                url = if (match.startsWith("http")) match else "https://$match",
+                url = withLowercaseScheme(match),
             ),
         )
     }
+}
+
+/**
+ * [match] with its scheme written lowercase, or with `https://` in front when it has none.
+ *
+ * `Patterns.WEB_URL` matches a scheme in any case, so `HTTPS://flipcash.com/x` is a link. Checking
+ * for a lowercase `http` prefix instead put a second scheme in front of it
+ * (`https://HTTPS://flipcash.com/x`), which parses with `HTTPS` as the host: no card, and a tap
+ * that opened nothing. The scheme is lowercased rather than just recognised because an intent's
+ * scheme is matched case-sensitively, so `HTTPS:` would reach neither the app's own link filters
+ * nor the browser. The rest of the URL is left as written; the host and path are the router's to
+ * compare.
+ */
+private fun withLowercaseScheme(match: String): String {
+    val schemeEnd = match.indexOf("://")
+    if (schemeEnd <= 0) return "https://$match"
+    return match.substring(0, schemeEnd).lowercase() + match.substring(schemeEnd)
 }
 
 /**
