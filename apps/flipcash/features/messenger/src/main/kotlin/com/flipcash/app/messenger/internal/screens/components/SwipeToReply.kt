@@ -139,7 +139,7 @@ internal fun rememberSwipeToReply(
  * where the bubble is aligned to the far side.
  *
  * [width] is that one avatar column's width, reused as the outgoing strip so both read the same. It
- * cannot eat into an outgoing bubble: a bubble stops at 0.78 of the row, which leaves far more than
+ * cannot eat into an outgoing bubble: a bubble stops at 0.78 of the transcript, which leaves more than
  * this to its leading side at every width the app runs at. The one content that fills the row is a
  * system notice, and those carry no capabilities at all, so no drag on one was ever going to reply.
  */

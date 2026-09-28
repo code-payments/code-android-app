@@ -83,19 +83,32 @@ enum class BubblePosition { Solo, First, Middle, Last }
 
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
 
+private const val CASH_CARD_WIDTH_FRACTION = 0.64f
+
 /**
- * How wide a link card is drawn in a transcript whose rows are inset by [rowInset] on each side.
+ * The widest a bubble or link card grows in a transcript whose rows are inset by [rowInset] on each
+ * side.
  *
- * The same fraction as a text bubble, but of the transcript's full width rather than of the inset
- * row, which is how iOS sizes its link cards and its group's head card
- * (`ChatViewController.maxBubbleWidthFraction`). Taken of the inset row, the cards came out about
- * 30dp narrower than iOS's on the same screen.
+ * A fraction of the transcript's full width rather than of the inset row, which is how iOS sizes
+ * its bubbles, link cards, and group head card (`ChatViewController.maxBubbleWidthFraction`). Taken
+ * of the inset row, they came out about 30dp narrower than iOS's on the same screen.
  */
-fun transcriptCardWidth(rowWidth: Dp, rowInset: Dp): Dp =
+fun transcriptBubbleMaxWidth(rowWidth: Dp, rowInset: Dp): Dp =
     (rowWidth + rowInset * 2) * BUBBLE_MAX_WIDTH_FRACTION
 
+/**
+ * The widest a bubble carrying [content] grows in a row [rowWidth] wide, inset by [rowInset] on each
+ * side. A system notice spans the row, and a cash card keeps its own narrower fraction of the inset
+ * row (iOS's `ChatViewController.cashCardWidthFraction` matches it); everything else takes
+ * [transcriptBubbleMaxWidth].
+ */
+fun bubbleMaxWidth(content: MessageContent, rowWidth: Dp, rowInset: Dp): Dp = when (content) {
+    is MessageContent.System -> rowWidth
+    is MessageContent.Cash -> rowWidth * CASH_CARD_WIDTH_FRACTION
+    else -> transcriptBubbleMaxWidth(rowWidth = rowWidth, rowInset = rowInset)
+}
+
 private val EDITED_MARKER_GAP = 6.dp
-private const val CASH_BUBBLE_MAX_WIDTH_FRACTION = 0.64f
 
 /**
  * @param onLongClick what a long-press on this bubble reports, or `null` where the row behind it
@@ -118,18 +131,11 @@ fun ContentBubble(
     val actionHandler = LocalChatActionHandler.current
     val jumbo = remember(item) { item.rendersBareEmoji() }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val isCardRow = item.linkCard != null && item.part == MessagePart.Card
-        val bubbleMaxWidth = if (isCardRow) {
-            transcriptCardWidth(rowWidth = maxWidth, rowInset = CodeTheme.dimens.inset)
-        } else when (item.content) {
-            is MessageContent.Text -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
-            is MessageContent.Cash -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
-            is MessageContent.Deleted -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
-            is MessageContent.Media -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
-            is MessageContent.Reply -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
-            is MessageContent.System -> maxWidth
-            is MessageContent.Encrypted -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
-        }
+        val bubbleMaxWidth = bubbleMaxWidth(
+            content = item.content,
+            rowWidth = maxWidth,
+            rowInset = CodeTheme.dimens.inset,
+        )
 
         // A split message's citation goes on its first row and its marker on its last, so the
         // pieces read as one message stacked rather than as three.
