@@ -41,7 +41,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Who the profile's Message and Send Cash shortcuts would open a DM with, or null to leave them
- * out.
+ * out. Share doesn't follow this rule: every person's profile has it.
  *
  * - Not from a tip DM: a DM's profile is always the other person in it, so the shortcuts would
  *   only reopen the chat the viewer came from.
@@ -98,8 +98,8 @@ internal fun rememberProfileShare(): (ChatParticipant.TipUser) -> Unit {
 }
 
 /**
- * The Message and Send Cash shortcuts under a profile's identity lines, and Share when [onShare] is
- * set.
+ * The Message, Send Cash and Share shortcuts under a profile's identity lines. A null callback
+ * leaves its shortcut out.
  *
  * Two fixed-width columns, so the pair stays centered and the circles stay the same distance apart
  * whatever the labels say. The Send Cash glyph is [cashSymbol] rather than an icon, so it names the
@@ -108,26 +108,27 @@ internal fun rememberProfileShare(): (ChatParticipant.TipUser) -> Unit {
 @Composable
 internal fun ProfileShortcuts(
     cashSymbol: String,
-    onMessage: () -> Unit,
+    onMessage: (() -> Unit)?,
     onSendCash: () -> Unit,
     modifier: Modifier = Modifier,
-    // Null leaves Share out.
     onShare: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3),
     ) {
-        ProfileShortcut(
-            label = stringResource(R.string.action_message),
-            onClick = onMessage,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_chat_bubble),
-                contentDescription = null,
-                tint = CodeTheme.colors.textMain,
-                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
-            )
+        if (onMessage != null) {
+            ProfileShortcut(
+                label = stringResource(R.string.action_message),
+                onClick = onMessage,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_chat_bubble),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textMain,
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                )
+            }
         }
         // Send Cash is held back for now. The route flag and the chat's once-ready dispatch behind
         // it stay wired, so bringing it back is uncommenting this.

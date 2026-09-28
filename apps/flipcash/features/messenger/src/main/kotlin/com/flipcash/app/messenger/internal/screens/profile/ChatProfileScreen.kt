@@ -63,9 +63,9 @@ import kotlin.time.Instant
  * never reach this screen ([com.flipcash.app.messenger.internal.ChatSubject.Contact] answers
  * `canViewProfile` false).
  *
- * The Message, Send Cash and Share shortcuts follow the same split, the other way round: they show on a
+ * The Message and Send Cash shortcuts follow the same split, the other way round: they show on a
  * group member's profile and not on a tip DM's, where they would only reopen the chat behind it.
- * [profileShortcutRecipient] has the whole rule.
+ * [profileShortcutRecipient] has the whole rule. Share shows on every person's profile.
  */
 @Composable
 internal fun ChatProfileScreen(
@@ -102,8 +102,8 @@ internal data class ProfileChat(
  * Mute, Report and Block rows.
  *
  * [chat] is null when no conversation is behind the screen, as for a `flipcash.com` link. That
- * leaves out the mute row and chip, which belong to a chat, and keeps the shortcuts, which a tip
- * DM's profile hides. See [ChatProfileScreen] for the rules.
+ * leaves out the mute row and chip, which belong to a chat, and keeps Message, which a tip DM's
+ * profile hides. See [ChatProfileScreen] for the rules.
  */
 @Composable
 internal fun PersonProfileScreen(
@@ -137,6 +137,7 @@ internal fun PersonProfileScreen(
                 add(BlockUser)
             },
             header = {
+                val person = state.participant as? ChatParticipant.TipUser
                 val recipient = profileShortcutRecipient(
                     participant = state.participant,
                     chatType = chat?.chatType,
@@ -149,12 +150,16 @@ internal fun PersonProfileScreen(
                     viewerState = chat?.viewerState?.takeIf { isTipDm },
                     // Not flowNavigator, for the reason Report isn't: the DM is a top-level route,
                     // so LocalCodeNavigator hands it up and it opens over this chat.
-                    shortcuts = recipient?.let { user ->
+                    // Share for anyone with a link; Message only where profileShortcutRecipient
+                    // allows it.
+                    shortcuts = person?.let { user ->
                         {
                             ProfileShortcuts(
                                 cashSymbol = cashSymbol,
-                                onMessage = { navigator.push(user.dmRoute()) },
-                                onSendCash = { navigator.push(user.dmRoute(openSendCash = true)) },
+                                onMessage = recipient?.let { { navigator.push(it.dmRoute()) } },
+                                onSendCash = {
+                                    recipient?.let { navigator.push(it.dmRoute(openSendCash = true)) }
+                                },
                                 onShare = { share(user) },
                             )
                         }
@@ -171,7 +176,7 @@ internal fun PersonProfileScreen(
                             // None under the shortcuts: the first row's own 25dp inset is the
                             // gap, and ProfileHeader matches it above them so they sit centered
                             // between the join date and the list.
-                            bottom = if (recipient != null) {
+                            bottom = if (person != null) {
                                 0.dp
                             } else {
                                 CodeTheme.dimens.grid.x8
