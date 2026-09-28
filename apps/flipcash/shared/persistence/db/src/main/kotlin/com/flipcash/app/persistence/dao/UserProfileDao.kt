@@ -27,8 +27,10 @@ interface UserProfileDao {
      * Uses `INSERT OR REPLACE` with correlated sub-selects (rather than `ON CONFLICT DO
      * UPDATE`) so it works on the minSdk-29 SQLite build, which predates UPSERT. The
      * sub-selects read the current row before the replace, preserving every column the
-     * blocklist doesn't know about; the avatar keeps its existing value when [profilePicture]
-     * is null via COALESCE.
+     * blocklist doesn't know about. The name and avatar keep their existing values when
+     * [displayName] or [profilePicture] is null, via COALESCE: null means the caller has no
+     * profile to write (a failed fetch), whereas an empty name is one the user really has. A
+     * null name with nothing cached stores an empty one, since the column is NOT NULL.
      */
     @Query(
         """
@@ -38,7 +40,7 @@ interface UserProfileDao {
             profile_picture_json, username, pending_migration_json
         ) VALUES (
             :userIdHex,
-            :displayName,
+            COALESCE(:displayName, (SELECT display_name FROM user_profiles WHERE user_id_hex = :userIdHex), ''),
             (SELECT phone_value FROM user_profiles WHERE user_id_hex = :userIdHex),
             (SELECT phone_verified FROM user_profiles WHERE user_id_hex = :userIdHex),
             (SELECT email_value FROM user_profiles WHERE user_id_hex = :userIdHex),
@@ -50,7 +52,7 @@ interface UserProfileDao {
         )
         """
     )
-    suspend fun upsertNameAndAvatar(userIdHex: String, displayName: String, profilePicture: MediaItem?)
+    suspend fun upsertNameAndAvatar(userIdHex: String, displayName: String?, profilePicture: MediaItem?)
 
     /** The cached profile for [userIdHex], or null if none is cached. */
     @Query("SELECT * FROM user_profiles WHERE user_id_hex = :userIdHex LIMIT 1")

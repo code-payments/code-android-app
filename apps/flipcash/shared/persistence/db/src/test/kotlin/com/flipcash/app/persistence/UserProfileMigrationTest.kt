@@ -201,6 +201,37 @@ class UserProfileDaoTest {
     }
 
     @Test
+    fun `partial write with no name keeps the cached name`() = runBlocking {
+        val dao = db.userProfileDao()
+        dao.upsertFull(listOf(fullProfile("u1")))
+
+        // The blocklist writes no name when the profile fetch failed; that is not a rename.
+        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = null, profilePicture = null)
+
+        assertEquals("Alice", dao.getByUserId("u1")?.displayName)
+    }
+
+    @Test
+    fun `partial write with no name and nothing cached stores an empty name`() = runBlocking {
+        val dao = db.userProfileDao()
+
+        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = null, profilePicture = null)
+
+        assertEquals("", dao.getByUserId("u1")?.displayName)
+    }
+
+    @Test
+    fun `partial write with an empty name replaces the cached name`() = runBlocking {
+        val dao = db.userProfileDao()
+        dao.upsertFull(listOf(fullProfile("u1")))
+
+        // A fetched profile with no name is the user's own choice, not a failed lookup.
+        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = "", profilePicture = null)
+
+        assertEquals("", dao.getByUserId("u1")?.displayName)
+    }
+
+    @Test
     fun `chat member relation joins the shared normalized profile`() = runBlocking {
         db.userProfileDao().upsertFull(listOf(fullProfile("u1")))
         db.chatMemberDao().upsert(ChatMemberEntity(chatIdHex = "chatA", userIdHex = "u1", pointersJson = null))
