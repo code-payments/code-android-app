@@ -112,6 +112,22 @@ internal class LinkCardResolver(
     }
 
     /**
+     * The person [identity] names, for a tapped `@handle`: the same lookup and the same stored
+     * answers a person card for `flipcash.com/<handle>` uses, so a handle a card or an earlier tap
+     * already resolved opens without a round trip.
+     *
+     * Unlike [resolve], the failure comes back whole. A card draws an unclaimed handle and a
+     * dropped connection alike, but a tap has to tell the reader which one happened. A stored
+     * answer does not outlive the server saying the handle names nobody.
+     */
+    suspend fun lookUpUser(identity: LinkCard.User.Identity): Result<LinkCard.User.State.Resolved> {
+        userAnswers[identity]?.let { return Result.success(it) }
+        return user(identity)
+            .onSuccess { memory.putUser(identity, it) }
+            .onFailure { if (it.meansLinkIsGone()) memory.removeUser(identity) }
+    }
+
+    /**
      * Drops what is held about [entropy] and tells the cards on screen to ask again.
      *
      * Claim state is the one thing a card draws that moves while the reader is looking at it, and

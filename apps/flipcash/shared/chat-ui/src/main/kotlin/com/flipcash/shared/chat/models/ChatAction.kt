@@ -35,6 +35,12 @@ sealed interface ChatAction {
      * own fee sheet asks for it.
      */
     data class OpenUser(val userId: ID, val profile: UserProfile, val isOwn: Boolean) : ChatAction
+
+    /**
+     * Opens whoever a tapped `@handle` names. Only the handle travels: nothing is looked up until
+     * the tap, and the handler decides where it leads once it has.
+     */
+    data class OpenMention(val username: String) : ChatAction
     data object ViewProfile : ChatAction
 
     /**

@@ -19,6 +19,7 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.chat.GroupInviteResult
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatSubject
@@ -110,7 +111,7 @@ private fun chatEntryProvider(
     }
 
     annotatedEntry<ChatStep.Profile> { step ->
-        FlowChatProfileScreen(step.contact)
+        FlowChatProfileScreen(step.contact, step.origin)
     }
     annotatedEntry<ChatStep.GroupProfile> {
         FlowGroupProfileScreen()
@@ -310,7 +311,7 @@ private fun FlowGroupInviteSheet() {
 }
 
 @Composable
-private fun FlowChatProfileScreen(participant: ChatParticipant) {
+private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileOrigin) {
     val viewModel = flowSharedViewModel<ChatProfileViewModel>()
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
 
@@ -318,7 +319,7 @@ private fun FlowChatProfileScreen(participant: ChatParticipant) {
         viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant))
     }
 
-    ChatProfileScreen(viewModel, flowSharedViewModel<ChatViewModel>())
+    ChatProfileScreen(viewModel, flowSharedViewModel<ChatViewModel>(), origin)
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow

@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
@@ -46,5 +47,25 @@ class ProfileShortcutRecipientTest {
         )
         assertNull(profileShortcutRecipient(contact, ChatType.GROUP, self))
         assertNull(profileShortcutRecipient(null, ChatType.GROUP, self))
+    }
+
+    @Test
+    fun `someone mentioned in a tip DM gets the shortcuts and no Mute, since the chat is not with them`() {
+        val chat = profileChat(ProfileOrigin.Mention, chatId = null, ChatType.TIP_DM, viewerState = null)
+        assertNull(chat)
+        assertEquals(member, profileShortcutRecipient(member, chat?.chatType, self))
+    }
+
+    @Test
+    fun `a mention of the viewer still doesn't`() {
+        val me = member.copy(userId = self)
+        assertNull(profileShortcutRecipient(me, chatType = null, self))
+    }
+
+    @Test
+    fun `a profile opened from the chat keeps it, so a tip DM's counterpart offers Mute`() {
+        val chat = profileChat(ProfileOrigin.Chat, chatId = null, ChatType.TIP_DM, viewerState = null)
+        assertEquals(ChatType.TIP_DM, chat?.chatType)
+        assertNull(profileShortcutRecipient(member, chat?.chatType, self))
     }
 }

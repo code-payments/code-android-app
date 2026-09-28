@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.AppRoute
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -66,18 +67,24 @@ import kotlin.time.Instant
  * The Message and Send Cash shortcuts follow the same split, the other way round: they show on a
  * group member's profile and not on a tip DM's, where they would only reopen the chat behind it.
  * [profileShortcutRecipient] has the whole rule. Share shows on every person's profile.
+ *
+ * A tapped `@handle` naming someone other than a tip DM's counterpart opens with
+ * [ProfileOrigin.Mention]. That person is not who the chat is with, so the screen leaves the chat
+ * out, as a `flipcash.com` link's profile does: no Mute, and Message shows.
  */
 @Composable
 internal fun ChatProfileScreen(
     viewModel: ChatProfileViewModel,
     chatViewModel: ChatViewModel,
+    origin: ProfileOrigin = ProfileOrigin.Chat,
 ) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
 
     PersonProfileScreen(
         viewModel = viewModel,
-        chat = ProfileChat(
+        chat = profileChat(
+            origin = origin,
             chatId = chatState.chatId,
             chatType = chatState.chatType,
             viewerState = chatState.viewerState,
@@ -85,6 +92,20 @@ internal fun ChatProfileScreen(
         cashSymbol = chatState.cashSymbol,
         onBack = { flowNavigator.back() },
     )
+}
+
+/**
+ * The chat behind a profile opened from inside it, or null for a mention, whose person the chat is
+ * not with.
+ */
+internal fun profileChat(
+    origin: ProfileOrigin,
+    chatId: ChatId?,
+    chatType: ChatType,
+    viewerState: ViewerState?,
+): ProfileChat? = when (origin) {
+    ProfileOrigin.Chat -> ProfileChat(chatId, chatType, viewerState)
+    ProfileOrigin.Mention -> null
 }
 
 /**

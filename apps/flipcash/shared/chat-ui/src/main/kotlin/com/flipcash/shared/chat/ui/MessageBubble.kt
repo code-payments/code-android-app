@@ -27,10 +27,14 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -44,6 +48,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -141,6 +146,12 @@ fun ContentBubble(
         // A split message's citation goes on its first row and its marker on its last, so the
         // pieces read as one message stacked rather than as three.
         val quote = item.quote?.takeIf { item.isFirstRow }
+        // Dropped behind the backdrop, as the cash bubble's tap is: there a tap dismisses it.
+        val onMentionClick: ((String) -> Unit)? = if (interactive) {
+            { username -> actionHandler(ChatAction.OpenMention(username)) }
+        } else {
+            null
+        }
         val onQuoteClick = quote?.takeIf { interactive }?.let { cited ->
             { actionHandler(ChatAction.JumpToMessage(cited.messageId)) }
         }
@@ -175,6 +186,8 @@ fun ContentBubble(
                 is MessageContent.Text -> TextBubble(
                     modifier = modifier,
                     text = item.partText ?: content.text,
+                    mentions = item.mentions,
+                    onMentionClick = onMentionClick,
                     isFromSelf = item.isFromSelf,
                     position = position,
                     maxWidth = bubbleMaxWidth,
@@ -231,6 +244,8 @@ fun ContentBubble(
                 is MessageContent.Reply -> TextBubble(
                     modifier = modifier,
                     text = item.partText ?: content.linkableText().orEmpty(),
+                    mentions = item.mentions,
+                    onMentionClick = onMentionClick,
                     isFromSelf = item.isFromSelf,
                     position = position,
                     maxWidth = bubbleMaxWidth,
@@ -355,6 +370,8 @@ private fun TextBubble(
     modifier: Modifier = Modifier,
     isEdited: Boolean = false,
     isTombstone: Boolean = false,
+    mentions: List<DetectedMention> = emptyList(),
+    onMentionClick: ((String) -> Unit)? = null,
     quote: ChatQuote? = null,
     onQuoteClick: (() -> Unit)? = null,
     onQuoteLongClick: (() -> Unit)? = null,
@@ -393,12 +410,36 @@ private fun TextBubble(
             color = CodeTheme.colors.textMain,
             textDecoration = TextDecoration.Underline,
         )
+        // The pill is what marks a mention, so its letters stay the body's own. A tappable span
+        // with no style of its own is drawn as a web link, underlined in the platform's colour.
+        val mentionStyle = SpanStyle(
+            color = CodeTheme.colors.textMain,
+            textDecoration = TextDecoration.None,
+        )
+        // Read through the latest handler, so a recomposition that hands over a new lambda does
+        // not rebuild the body; only whether mentions can be tapped at all is part of its key.
+        val currentOnMentionClick by rememberUpdatedState(onMentionClick)
+        val mentionsTappable = onMentionClick != null
         // A tombstone carries no link and nothing worth selecting; it is a notice, not a message.
-        val body = if (isTombstone) {
-            AnnotatedString(bodyString)
+        val mentioned = if (isTombstone) {
+            null
         } else {
-            rememberRichText(text = bodyString, annotators = listOf(UrlAnnotator(linkStyle)))
+            remember(bodyString, mentions, linkStyle, mentionStyle, mentionsTappable) {
+                buildMentionedText(
+                    text = bodyString,
+                    mentions = mentions,
+                    linkStyle = linkStyle,
+                    mentionStyle = mentionStyle,
+                    onMentionClick = if (mentionsTappable) {
+                        { username -> currentOnMentionClick?.invoke(username) }
+                    } else {
+                        null
+                    },
+                )
+            }
         }
+        val body = mentioned?.text ?: AnnotatedString(bodyString)
+        val handles = mentioned?.handles.orEmpty()
         val bodyStyle = CodeTheme.typography.textMedium.copy(
             fontWeight = FontWeight.Medium,
             fontStyle = if (isTombstone) FontStyle.Italic else FontStyle.Normal,
@@ -434,19 +475,25 @@ private fun TextBubble(
         } else {
             body
         }
-        val inlineContent = if (isEdited) {
-            mapOf(
-                EDITED_MARKER_SLOT to InlineTextContent(
-                    Placeholder(
-                        width = reservation,
-                        height = 1.sp,
-                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextBottom,
-                    ),
-                ) { },
-            )
-        } else {
-            emptyMap()
+        val inlineContent = buildMap {
+            if (isEdited) {
+                put(
+                    EDITED_MARKER_SLOT,
+                    InlineTextContent(
+                        Placeholder(
+                            width = reservation,
+                            height = 1.sp,
+                            placeholderVerticalAlign = PlaceholderVerticalAlign.TextBottom,
+                        ),
+                    ) { },
+                )
+            }
+            if (handles.isNotEmpty()) {
+                val (slot, spacing) = mentionSpacingContent(density)
+                put(slot, spacing)
+            }
         }
+        var bodyLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
 
         // No SelectionContainer: long-press is the transcript's selection gesture, and a text
         // selection handle inside the bubble would consume it before the row ever sees it. Copying
@@ -455,11 +502,21 @@ private fun TextBubble(
         // reply reads as one message rather than as a quote with a message under it.
         val bodyText = @Composable {
             Text(
-                modifier = Modifier.padding(horizontal = bodyInset),
+                modifier = Modifier
+                    .padding(horizontal = bodyInset)
+                    .widestLine(measurer, laidOut, bodyStyle, inlineContent)
+                    .then(
+                        if (handles.isEmpty()) {
+                            Modifier
+                        } else {
+                            Modifier.drawBehind { bodyLayout?.let { drawMentionPills(it, handles) } }
+                        }
+                    ),
                 text = laidOut,
                 inlineContent = inlineContent,
                 style = bodyStyle,
                 color = bodyColor,
+                onTextLayout = { bodyLayout = it },
             )
         }
 

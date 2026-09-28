@@ -2,6 +2,8 @@ package com.flipcash.shared.chat.models
 
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.reactions.ReactionPill
+import com.flipcash.shared.chat.ui.DetectedMention
+import com.flipcash.shared.chat.ui.detectMentions
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -35,6 +37,8 @@ class SplitAroundLinkCardTest {
                 state = LinkCard.Cash.State.Unresolved,
             ),
             reactionPills = reactionPills,
+            // The link carries no `@`, so detecting without it excludes nothing here.
+            mentions = detectMentions(text, emptyList()),
         ).splitAroundLinkCard()
 
     @Test
@@ -166,5 +170,24 @@ class SplitAroundLinkCardTest {
 
         assertNull(row.part)
         assertEquals("1-0", row.itemKey)
+    }
+
+    @Test
+    fun `a mention after the card is rebased into the trailing row`() {
+        val rows = split("here $link from @jeff")
+
+        assertEquals(listOf(MessagePart.Leading, MessagePart.Card, MessagePart.Trailing), rows.map { it.part })
+        assertEquals(emptyList(), rows[0].mentions)
+        assertEquals(emptyList(), rows[1].mentions)
+        assertEquals("from @jeff", rows[2].partText)
+        assertEquals(listOf(DetectedMention(start = 5, end = 10, username = "jeff")), rows[2].mentions)
+    }
+
+    @Test
+    fun `a mention before the card keeps its offsets in the leading row`() {
+        val rows = split("hi @jeff $link")
+
+        assertEquals(listOf(DetectedMention(start = 3, end = 8, username = "jeff")), rows[0].mentions)
+        assertEquals(emptyList(), rows[1].mentions)
     }
 }
