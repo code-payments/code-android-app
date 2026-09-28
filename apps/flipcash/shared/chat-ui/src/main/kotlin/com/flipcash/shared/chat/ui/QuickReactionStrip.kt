@@ -63,6 +63,12 @@ import kotlinx.coroutines.launch
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 // Sizes from the iOS strip (node 9779:105563).
 private val StripHeight = QuickReactionStripPlacement.StripHeight
@@ -73,10 +79,18 @@ private val Inset = 8.dp
 private val AddSize = ItemSize
 
 /**
- * How far each edge fade reaches: in from the leading edge while the row can scroll back, and up to
- * the "+" while it can scroll on. Either side draws solid when there's nothing more that way.
+ * How far the leading fade reaches in from the strip's edge while the row can scroll back, and how
+ * much scroll either fade takes to grow in. Either side draws solid when there's nothing more that
+ * way.
  */
 private val EdgeFade = 20.dp
+
+/**
+ * The trailing fade, while the row can scroll on: from the middle of the "+" to where its circle is
+ * last as tall as an emoji. Past that the circle curves in, and an emoji still showing there would
+ * poke out above and below it, so everything from there to the strip's end is hidden.
+ */
+private val TrailingFade = 14.dp
 
 /** Gap between one emoji starting to pop in and the next, as in the iOS strip's entrance. */
 private const val ItemStaggerMillis = 18L
@@ -88,6 +102,13 @@ private val PopSpring = spring<Float>(dampingRatio = 0.65f, stiffness = 1200f)
 /** iOS's pre-glass strip surface. */
 private val StripSurface = Color(0xFF303030)
 
+/** The "+"'s frost over the emoji passing under it: a blur tinted back toward the strip. */
+private val PlusGlass = HazeBlurStyle {
+    blurRadius(12.dp)
+    backgroundColor(StripSurface)
+    colorEffects(listOf(HazeColorEffect.tint(StripSurface.copy(alpha = 0.6f))))
+}
+
 /**
  * The strip a long-press on a reactable, selected bubble shows beside it: up to the 12 entries
  * [ReactionStripComposer][com.flipcash.shared.chat.reactions.ReactionStripComposer] composed,
@@ -95,9 +116,10 @@ private val StripSurface = Color(0xFF303030)
  * A tap on an entry both toggles the reaction and clears the selection — [onToggle] is the one
  * signal for both.
  *
- * The capsule grows to fit its entries up to 313dp; past that the emoji scroll under the "+". Each
- * end fades only while there's more to scroll that way, growing in over the first [EdgeFade] of
- * travel so the fade doesn't snap on at the first pixel.
+ * The capsule grows to fit its entries up to 313dp; past that the emoji scroll under the "+", which
+ * frosts them with a blur of what passes beneath it. Each end of the strip fades only while there's
+ * more to scroll that way, growing in over the first [EdgeFade] of travel so the fade doesn't snap on
+ * at the first pixel.
  *
  * It enters as iOS's does: the capsule widens out of the side it hugs ([growsFromEnd] for the
  * trailing side), the "+" riding its growing edge, and the emoji pop in one after another from
@@ -150,17 +172,20 @@ fun QuickReactionStrip(
     ) {
         val density = LocalDensity.current
         val scroll = rememberScrollState()
+        val haze = rememberHazeState()
         Row(
             modifier = Modifier
                 .fillMaxHeight()
+                .hazeSource(haze)
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                 .drawWithContent {
                     drawContent()
                     val fade = EdgeFade.toPx()
                     val stops = edgeFadeStops(
                         width = size.width,
-                        fade = fade,
-                        plusStart = size.width - Inset.toPx() - AddSize.toPx(),
+                        leadingFade = fade,
+                        trailingFade = TrailingFade.toPx(),
+                        trailingInset = (Inset + AddSize / 2 - TrailingFade).toPx(),
                         leading = if (scroll.canScrollBackward) (scroll.value / fade).coerceIn(0f, 1f) else 0f,
                         trailing = if (scroll.canScrollForward) {
                             ((scroll.maxValue - scroll.value) / fade).coerceIn(0f, 1f)
@@ -200,7 +225,12 @@ fun QuickReactionStrip(
                         .size(ItemSize)
                         .clip(CircleShape)
                         .background(if (entry.highlighted) Color.White.copy(alpha = 0.18f) else Color.Transparent)
-                        .combinedClickable(onClick = { onToggle(entry.emoji) }, onLongClick = {}),
+                        // A long-press does nothing here, so it plays no haptic either.
+                        .combinedClickable(
+                            onClick = { onToggle(entry.emoji) },
+                            onLongClick = {},
+                            hapticFeedbackEnabled = false,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     // The line box trimmed to the glyph, so the circle centers the emoji rather than
@@ -224,8 +254,11 @@ fun QuickReactionStrip(
                 .semantics { contentDescription = "More reactions" }
                 .size(AddSize)
                 .clip(CircleShape)
+                // The emoji scroll on under the "+" and show through it frosted, rather than being
+                // cut off at its edge.
+                .hazeBlur(HazeInput.Sources(haze), PlusGlass)
                 .background(Color.White.copy(alpha = 0.18f))
-                .combinedClickable(onClick = onOpenPicker, onLongClick = {}),
+                .combinedClickable(onClick = onOpenPicker, onLongClick = {}, hapticFeedbackEnabled = false),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -309,22 +342,23 @@ private class RevealCapsule(
 /**
  * The mask [QuickReactionStrip] draws over its scrolling row, as (fraction of [width], alpha) stops
  * left to right, or empty when neither end fades. [leading] and [trailing] are each end's strength,
- * 0 to 1. The leading fade runs [fade] in from the edge; the trailing one runs [fade] up to
- * [plusStart], and everything past it is hidden under the "+" to the same strength. Mirrored for
+ * 0 to 1. The leading fade runs [leadingFade] in from its edge. The trailing one runs [trailingFade]
+ * and ends [trailingInset] short of the edge, which stays hidden to the same strength. Mirrored for
  * [rtl], where the leading edge is the right one.
  */
 internal fun edgeFadeStops(
     width: Float,
-    fade: Float,
-    plusStart: Float,
+    leadingFade: Float,
+    trailingFade: Float,
+    trailingInset: Float,
     leading: Float,
     trailing: Float,
     rtl: Boolean,
 ): List<Pair<Float, Float>> {
     if (width <= 0f || (leading <= 0f && trailing <= 0f)) return emptyList()
-    val clear = (plusStart / width).coerceIn(0f, 1f)
-    val solidFrom = (fade / width).coerceIn(0f, clear)
-    val solidUntil = ((plusStart - fade) / width).coerceIn(solidFrom, clear)
+    val solidFrom = (leadingFade / width).coerceIn(0f, 1f)
+    val clear = (1f - trailingInset / width).coerceIn(solidFrom, 1f)
+    val solidUntil = (clear - trailingFade / width).coerceIn(solidFrom, clear)
     val stops = listOf(
         0f to 1f - leading,
         solidFrom to 1f,

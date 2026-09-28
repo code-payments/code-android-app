@@ -122,30 +122,31 @@ class QuickReactionStripTest {
     fun `no fade at either end with nowhere to scroll`() {
         assertEquals(
             emptyList(),
-            edgeFadeStops(width = 300f, fade = 20f, plusStart = 250f, leading = 0f, trailing = 0f, rtl = false),
+            edgeFadeStops(width = 300f, leadingFade = 20f, trailingFade = 14f, trailingInset = 14f, leading = 0f, trailing = 0f, rtl = false),
         )
     }
 
     @Test
-    fun `the trailing fade ends at the plus and hides what is under it`() {
+    fun `the trailing fade ends inside the plus and hides everything past it`() {
+        val clear = 1f - 14f / 300
         assertEquals(
-            listOf(0f to 1f, 20f / 300 to 1f, 230f / 300 to 1f, 250f / 300 to 0f, 1f to 0f),
-            edgeFadeStops(width = 300f, fade = 20f, plusStart = 250f, leading = 0f, trailing = 1f, rtl = false),
+            listOf(0f to 1f, 20f / 300 to 1f, clear - 14f / 300 to 1f, clear to 0f, 1f to 0f),
+            edgeFadeStops(width = 300f, leadingFade = 20f, trailingFade = 14f, trailingInset = 14f, leading = 0f, trailing = 1f, rtl = false),
         )
     }
 
     @Test
     fun `the leading fade grows in with the scroll`() {
         assertEquals(
-            listOf(0f to 0.5f, 20f / 300 to 1f, 230f / 300 to 1f, 250f / 300 to 1f, 1f to 1f),
-            edgeFadeStops(width = 300f, fade = 20f, plusStart = 250f, leading = 0.5f, trailing = 0f, rtl = false),
+            listOf(0f to 0.5f, 20f / 300 to 1f, (1f - 14f / 300) - 14f / 300 to 1f, 1f - 14f / 300 to 1f, 1f to 1f),
+            edgeFadeStops(width = 300f, leadingFade = 20f, trailingFade = 14f, trailingInset = 14f, leading = 0.5f, trailing = 0f, rtl = false),
         )
     }
 
     @Test
     fun `both fades mirror in RTL`() {
-        val ltr = edgeFadeStops(width = 300f, fade = 20f, plusStart = 250f, leading = 1f, trailing = 1f, rtl = false)
-        val rtl = edgeFadeStops(width = 300f, fade = 20f, plusStart = 250f, leading = 1f, trailing = 1f, rtl = true)
+        val ltr = edgeFadeStops(width = 300f, leadingFade = 20f, trailingFade = 14f, trailingInset = 14f, leading = 1f, trailing = 1f, rtl = false)
+        val rtl = edgeFadeStops(width = 300f, leadingFade = 20f, trailingFade = 14f, trailingInset = 14f, leading = 1f, trailing = 1f, rtl = true)
 
         assertEquals(ltr.reversed().map { (at, alpha) -> (1f - at) to alpha }, rtl)
         // The leading edge is the right one, and it fades.

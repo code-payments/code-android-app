@@ -574,7 +574,7 @@ private fun MorePillChip(
             .let { base -> if (onClick != null) base.testTag("reaction_pill_more") else base }
             .clip(shape)
             .background(color = Color.White.copy(alpha = 0.06f), shape = shape)
-            .let { base -> onClick?.let { base.combinedClickable(onClick = it, onLongClick = {}) } ?: base }
+            .let { base -> onClick?.let { base.combinedClickable(onClick = it, onLongClick = {}, hapticFeedbackEnabled = false) } ?: base }
             .height(height)
             .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center,
@@ -596,7 +596,7 @@ private fun PlusChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifie
             .size(size)
             .clip(CircleShape)
             .background(color = Color.White.copy(alpha = 0.18f), shape = CircleShape)
-            .combinedClickable(onClick = onClick, onLongClick = {}),
+            .combinedClickable(onClick = onClick, onLongClick = {}, hapticFeedbackEnabled = false),
         contentAlignment = Alignment.Center,
     ) {
         // The strip's add-reaction icon, as iOS reuses its strip asset here.
