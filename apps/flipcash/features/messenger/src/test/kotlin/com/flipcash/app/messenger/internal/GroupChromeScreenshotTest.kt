@@ -20,6 +20,8 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
@@ -120,6 +122,39 @@ class GroupChromeScreenshotTest {
         repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
 
         capture("group_top_bar.png")
+    }
+
+    /** A title too long for the bar, muted so the bell has to keep its place beside it. */
+    @Test
+    fun rendersLongGroupTitleBar() {
+        val navigator = mockk<CodeNavigator>(relaxed = true)
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            FlipcashPreview(showBackground = true) {
+                Column(
+                    modifier = Modifier.width(360.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    listOf(memberedGroup, memberedGroup.copy(groupTitle = LONG_GROUP_TITLE))
+                        .forEach { group ->
+                            ChatTopBar(
+                                navigator = navigator,
+                                state = ChatViewModel.State(
+                                    subject = group,
+                                    chatType = ChatType.GROUP,
+                                    viewerState = ViewerState(mute = MuteState.Forever, version = 1L),
+                                ),
+                                onBarHeightChange = {},
+                                chatActionHandler = {},
+                                dispatch = {},
+                            )
+                        }
+                }
+            }
+        }
+        repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
+
+        capture("group_top_bar_long_title.png")
     }
 
     @Test
@@ -350,5 +385,9 @@ class GroupChromeScreenshotTest {
         }
         if (right < left || bottom < top) return this
         return Bitmap.createBitmap(this, left, top, right - left + 1, bottom - top + 1)
+    }
+
+    private companion object {
+        const val LONG_GROUP_TITLE = "The Extraordinarily Long Name Of A Group That Keeps Going"
     }
 }
