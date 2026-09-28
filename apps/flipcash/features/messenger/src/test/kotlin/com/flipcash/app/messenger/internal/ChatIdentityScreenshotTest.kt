@@ -20,6 +20,8 @@ import com.flipcash.app.messenger.internal.screens.profile.ProfileShortcuts
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.core.CodeNavigator
 import io.mockk.mockk
 import org.junit.Rule
@@ -133,6 +135,43 @@ class ChatIdentityScreenshotTest {
         repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
 
         capture("chat_top_bar_identity.png")
+    }
+
+    /** A DM name too long for the bar, muted so the bell has to keep its place beside it. */
+    @Test
+    fun rendersLongNameTopBar() {
+        val navigator = mockk<CodeNavigator>(relaxed = true)
+        val longNamedTipUser = namedTipUser.copy(
+            profile = namedTipUser.profile.copy(
+                displayName = "Grace Brewster Murray Hopper, Rear Admiral",
+            ),
+        )
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            FlipcashPreview(showBackground = true) {
+                Column(
+                    modifier = Modifier.width(360.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    listOf(namedTipUser, longNamedTipUser).forEach { participant ->
+                        ChatTopBar(
+                            navigator = navigator,
+                            state = ChatViewModel.State(
+                                subject = ChatSubject.TipUser(participant),
+                                chatType = ChatType.TIP_DM,
+                                viewerState = ViewerState(mute = MuteState.Forever, version = 1L),
+                            ),
+                            onBarHeightChange = {},
+                            chatActionHandler = {},
+                            dispatch = {},
+                        )
+                    }
+                }
+            }
+        }
+        repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
+
+        capture("chat_top_bar_long_name.png")
     }
 
     @Test

@@ -2,11 +2,14 @@ package com.flipcash.app.messenger.internal
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.onNodeWithText
@@ -19,6 +22,8 @@ import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.core.CodeNavigator
 import io.mockk.mockk
 import io.mockk.verify
@@ -27,6 +32,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import kotlin.test.assertEquals
 
 /**
@@ -36,6 +42,8 @@ import kotlin.test.assertEquals
  * these hold in place: the row still announces itself as a button and still acts on a tap.
  */
 @RunWith(RobolectricTestRunner::class)
+// Native graphics so text measures at its real width; legacy mode lays a long title out on one line.
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w400dp-h800dp-xhdpi")
 class ConversationTitleBarTest {
 
@@ -53,12 +61,22 @@ class ConversationTitleBarTest {
 
     private val navigator = mockk<CodeNavigator>(relaxed = true)
 
-    private fun show(onAction: (ChatAction) -> Unit = {}) {
+    private val longTitle = "The Extraordinarily Long Name Of A Group That Keeps Going"
+
+    private fun show(
+        subject: ChatSubject = group,
+        viewerState: ViewerState? = null,
+        onAction: (ChatAction) -> Unit = {},
+    ) {
         composeTestRule.setContent {
             FlipcashPreview {
                 ChatTopBar(
                     navigator = navigator,
-                    state = ChatViewModel.State(chatType = ChatType.GROUP, subject = group),
+                    state = ChatViewModel.State(
+                        chatType = ChatType.GROUP,
+                        subject = subject,
+                        viewerState = viewerState,
+                    ),
                     onBarHeightChange = {},
                     chatActionHandler = onAction,
                     dispatch = {},
@@ -121,5 +139,26 @@ class ConversationTitleBarTest {
         composeTestRule.onRoot().performTouchInput { click(Offset(35.dp.toPx(), 33.dp.toPx())) }
 
         verify(exactly = 1) { navigator.pop() }
+    }
+
+    /**
+     * The bar is a fixed 56dp, so a title that wraps has its extra lines clipped by it. Muted, so the
+     * bell takes its share of the row too.
+     */
+    @Test
+    fun `a long title stays on one line`() {
+        show(
+            subject = group.copy(groupTitle = longTitle),
+            viewerState = ViewerState(mute = MuteState.Forever, version = 1L),
+        )
+
+        assertEquals(1, composeTestRule.textLayout(longTitle).lineCount)
+    }
+
+    private fun AndroidComposeTestRule<*, *>.textLayout(text: String): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        onNodeWithText(text, useUnmergedTree = true).fetchSemanticsNode()
+            .config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return results.single()
     }
 }

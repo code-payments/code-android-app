@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -217,6 +218,8 @@ private fun ConversationTitleBar(
                             text = state.subject?.title.orEmpty(),
                             style = CodeTheme.typography.textMedium,
                             color = CodeTheme.colors.textMain,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
 
                         // Beside the name, not at the bar's edge: what is muted is this chat, and
@@ -237,6 +240,8 @@ private fun ConversationTitleBar(
                             ),
                             style = CodeTheme.typography.textSmall,
                             color = CodeTheme.colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
