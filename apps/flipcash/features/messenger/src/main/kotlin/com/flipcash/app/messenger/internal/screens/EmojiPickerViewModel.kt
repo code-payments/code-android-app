@@ -25,15 +25,24 @@ import kotlinx.coroutines.flow.onEach
  * it opens. Choosing an emoji is a chat action and stays on `ChatViewModel.Event.ToggleReaction`.
  */
 @HiltViewModel
-class EmojiPickerViewModel @Inject constructor(
+class EmojiPickerViewModel internal constructor(
     dispatchers: DispatcherProvider,
     private val emojiCatalogLoader: EmojiCatalogLoader,
     private val recentReactionsStore: RecentReactionsStore,
+    // A seam for tests: Robolectric's Paint reports no emoji glyphs, which would empty every section.
+    private val glyphProbe: EmojiDrawability.GlyphProbe,
 ) : BaseViewModel<EmojiPickerViewModel.State, EmojiPickerViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
+    @Inject
+    constructor(
+        dispatchers: DispatcherProvider,
+        emojiCatalogLoader: EmojiCatalogLoader,
+        recentReactionsStore: RecentReactionsStore,
+    ) : this(dispatchers, emojiCatalogLoader, recentReactionsStore, EmojiDrawability.PaintGlyphProbe)
+
     data class State(
         val searchFieldState: TextFieldState = TextFieldState(),
         /** The sections for the search text; stale for a moment while a new search's load is in flight. */
@@ -67,7 +76,7 @@ class EmojiPickerViewModel @Inject constructor(
         val catalog = emojiCatalogLoader.load()
         val undrawable = catalog.entries
             .map { it.emoji }
-            .filterNot { EmojiDrawability.isDrawable(it) }
+            .filterNot { EmojiDrawability.isDrawable(it, glyphProbe) }
             .toSet()
         val recents = recentReactionsStore.rank(undrawable = undrawable)
         return EmojiPickerModel.sections(catalog = catalog, undrawable = undrawable, recents = recents, query = query)
