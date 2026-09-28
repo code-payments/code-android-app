@@ -467,6 +467,16 @@ internal class ChatViewModel @Inject constructor(
             get() = (subject as? ChatSubject.Group)
                 ?.takeIf { it.isMember == true }
                 ?.let { Linkify.groupChatInvite(it.chatId) }
+
+        /**
+         * Whether the group's invite card heads the transcript in place of its info card: a group
+         * the viewer has joined that nobody else has (node 10330:19164). Decided by who is in the
+         * chat, not by whether it has messages, so posting into a solo group keeps the card. Once
+         * someone joins, the invite moves to the group's profile, as on iOS.
+         */
+        val showsGroupInviteCard: Boolean
+            get() = groupInviteUrl != null &&
+                (subject as? ChatSubject.Group)?.memberCount?.let { it <= 1 } == true
     }
 
     /**

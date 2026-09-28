@@ -43,11 +43,15 @@ class ChatViewModelStateTest {
 
     private val gatedRules = ChatRules(listener = listOf(unmet), speaker = emptyList())
 
-    private fun group(isMember: Boolean?, rules: ChatRules? = gatedRules) = ChatSubject.Group(
+    private fun group(
+        isMember: Boolean?,
+        rules: ChatRules? = gatedRules,
+        memberCount: Long = 1L,
+    ) = ChatSubject.Group(
         chatId = groupChatId,
         groupTitle = "Ballers",
         picture = null,
-        memberCount = 1L,
+        memberCount = memberCount,
         rules = rules,
         isMember = isMember,
     )
@@ -237,6 +241,18 @@ class ChatViewModelStateTest {
         assertNull(ChatViewModel.State(subject = group(isMember = false)).groupInviteUrl)
         assertNull(ChatViewModel.State(subject = dm).groupInviteUrl)
         assertNull(ChatViewModel.State().groupInviteUrl)
+    }
+
+    @Test
+    fun `the invite card heads a group only while the viewer is its only member`() {
+        // Messages have no say: a solo group the viewer has posted in still has nobody to talk to.
+        assertTrue(ChatViewModel.State(subject = group(isMember = true)).showsGroupInviteCard)
+        assertFalse(
+            ChatViewModel.State(subject = group(isMember = true, memberCount = 2L)).showsGroupInviteCard,
+        )
+        assertFalse(ChatViewModel.State(subject = group(isMember = false)).showsGroupInviteCard)
+        assertFalse(ChatViewModel.State(subject = group(isMember = null)).showsGroupInviteCard)
+        assertFalse(ChatViewModel.State(subject = dm).showsGroupInviteCard)
     }
 
     @Test

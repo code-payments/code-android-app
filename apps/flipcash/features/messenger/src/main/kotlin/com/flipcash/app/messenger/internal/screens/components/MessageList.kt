@@ -421,13 +421,13 @@ internal fun MessageList(
                     }
                 }
 
-                // Chat start shows contact info container. An empty group the viewer can invite to
-                // shows its invite card there instead (node 10330:19164): inviting someone is the
-                // only thing to do with an empty group, and it is the same card a DM transcript
+                // Chat start shows contact info container. A group nobody else has joined shows its
+                // invite card there instead (node 10330:19164), whether or not it has messages:
+                // inviting someone is the thing left to do, and it is the same card a DM transcript
                 // renders for the link, with a different CTA and destination.
                 val inviteUrl = state.groupInviteUrl
                 val inviteGroup = state.subject as? ChatSubject.Group
-                if (messages.itemCount == 0 && inviteUrl != null && inviteGroup != null) {
+                if (state.showsGroupInviteCard && inviteUrl != null && inviteGroup != null) {
                     item(key = "group-invite-card") {
                         val card = remember(inviteGroup, inviteUrl, state.ruleCurrency) {
                             inviteGroup.toGroupInviteCard(
