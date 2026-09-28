@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.models
 
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.reactions.ReactionPill
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -14,7 +15,11 @@ class SplitAroundLinkCardTest {
 
     private val link = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
 
-    private fun split(text: String, content: MessageContent = MessageContent.Text(text)) =
+    private fun split(
+        text: String,
+        content: MessageContent = MessageContent.Text(text),
+        reactionPills: List<ReactionPill> = emptyList(),
+    ) =
         ChatListItem.ContentBubble(
             messageId = 42,
             contentIndex = 0,
@@ -29,6 +34,7 @@ class SplitAroundLinkCardTest {
                 entropy = "KNi8pQr1n5hRU65vKJGge3",
                 state = LinkCard.Cash.State.Unresolved,
             ),
+            reactionPills = reactionPills,
         ).splitAroundLinkCard()
 
     @Test
@@ -58,6 +64,15 @@ class SplitAroundLinkCardTest {
 
         assertEquals(listOf(text, text, text), rows.map { it.plainText })
         assertEquals(1, rows.map { it.messageKey }.distinct().size)
+    }
+
+    @Test
+    fun `text and a link carry the reaction pills on the last row only`() {
+        val pills = listOf(ReactionPill(emoji = "👍", count = 2, selfReacted = true, pending = false))
+        val rows = split("Join my group $link", reactionPills = pills)
+
+        assertEquals(listOf(MessagePart.Leading, MessagePart.Card), rows.map { it.part })
+        assertEquals(listOf(emptyList(), pills), rows.map { it.reactionPills })
     }
 
     @Test

@@ -309,4 +309,18 @@ object QuickReactionStripPlacement {
         val y = if (above >= minTop) above else anchor.bottom + gap
         return IntOffset(x, y.coerceIn(minTop, maxOf(minTop, window.height - strip.height)))
     }
+
+    /**
+     * The anchor for a message drawn as several rows -- one split around its link card -- so the
+     * strip sits above the top row, or below the bottom one, rather than between two of them.
+     * `null` until a row has been measured.
+     */
+    fun messageBounds(rows: Collection<IntRect>): IntRect? = rows.reduceOrNull { union, row ->
+        IntRect(
+            left = minOf(union.left, row.left),
+            top = minOf(union.top, row.top),
+            right = maxOf(union.right, row.right),
+            bottom = maxOf(union.bottom, row.bottom),
+        )
+    }
 }

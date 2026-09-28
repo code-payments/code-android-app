@@ -66,4 +66,32 @@ class QuickReactionStripPlacementTest {
             place(IntRect(left = 120, top = 350, right = 500, bottom = 600), hugsTrailing = false),
         )
     }
+
+    @Test
+    fun `a message split around its card is one anchor spanning its rows`() {
+        // "Join my group <link>": a text bubble over a wider card, both outgoing.
+        val text = IntRect(left = 700, top = 1000, right = 960, bottom = 1100)
+        val card = IntRect(left = 400, top = 1120, right = 960, bottom = 1600)
+
+        val anchor = QuickReactionStripPlacement.messageBounds(listOf(card, text))
+
+        assertEquals(IntRect(left = 400, top = 1000, right = 960, bottom = 1600), anchor)
+        // Above the text row, not between the text and the card.
+        assertEquals(IntOffset(960 - 600, 1000 - 40 - 100), place(anchor!!, hugsTrailing = true))
+    }
+
+    @Test
+    fun `a split message with no room above puts the strip below its last row`() {
+        val text = IntRect(left = 120, top = 320, right = 400, bottom = 420)
+        val card = IntRect(left = 120, top = 440, right = 680, bottom = 900)
+
+        val anchor = QuickReactionStripPlacement.messageBounds(listOf(text, card))!!
+
+        assertEquals(IntOffset(120, 900 + 40), place(anchor, hugsTrailing = false))
+    }
+
+    @Test
+    fun `no rows measured yet is no anchor`() {
+        assertEquals(null, QuickReactionStripPlacement.messageBounds(emptyList()))
+    }
 }
