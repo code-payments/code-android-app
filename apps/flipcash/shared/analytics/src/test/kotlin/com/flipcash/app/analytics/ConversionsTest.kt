@@ -2,6 +2,7 @@ package com.flipcash.app.analytics
 
 import com.flipcash.analytics.Amount
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.MuteChatError
@@ -77,14 +78,14 @@ class ConversionsTest {
             DeeplinkType.TipChat(identifier = ChatIdentifier.ByChatId(chatId)),
             DeeplinkType.GroupChatInvite(chatId = chatId),
             DeeplinkType.Tipcard(userId = id),
-            DeeplinkType.TipcardByUsername(username = "someone"),
+            DeeplinkType.Profile(ProfileAddress.ByUsername("someone")),
             DeeplinkType.EmailVerification(email = "a@b.c", code = "123"),
         )
 
         assertEquals(
             listOf(
                 "Login", "CashLink", "TokenInfo", "TipChat",
-                "GroupChatInvite", "Tipcard", "TipcardByUsername", "EmailVerification",
+                "GroupChatInvite", "Tipcard", "Profile", "EmailVerification",
             ),
             types.map { it.analytics },
         )

@@ -37,6 +37,7 @@ import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
 import com.flipcash.app.messenger.MuteChatScreen
+import com.flipcash.app.messenger.ProfileScreen
 import com.flipcash.app.messenger.ReportFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
@@ -116,6 +117,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Chat> { key ->
         ChatFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
+    annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address) }
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
     annotatedEntry<AppRoute.Messaging.FindByUsername> { FindByUsernameScreen() }
     annotatedEntry<AppRoute.Messaging.NewGroup> { key ->

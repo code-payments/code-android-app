@@ -1,6 +1,7 @@
 package com.flipcash.app.core.navigation
 
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.solana.keys.Mint
 import kotlin.test.Test
@@ -22,7 +23,7 @@ class DeeplinkScanPolicyTest {
         assertTrue(DeeplinkType.TokenInfo(MINT).isScannable)
         assertTrue(DeeplinkType.TipChat(ChatIdentifier.ByChatId(CHAT_ID)).isScannable)
         assertTrue(DeeplinkType.Tipcard(USER_ID).isScannable)
-        assertTrue(DeeplinkType.TipcardByUsername(USERNAME).isScannable)
+        assertTrue(DeeplinkType.Profile(ProfileAddress.ByUsername(USERNAME)).isScannable)
         assertTrue(DeeplinkType.GroupChatInvite(CHAT_ID).isScannable)
     }
 

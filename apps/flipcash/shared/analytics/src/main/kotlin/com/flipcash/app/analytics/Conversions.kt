@@ -123,7 +123,7 @@ val DeeplinkType.analytics: String
         is DeeplinkType.TipChat -> "TipChat"
         is DeeplinkType.GroupChatInvite -> "GroupChatInvite"
         is DeeplinkType.Tipcard -> "Tipcard"
-        is DeeplinkType.TipcardByUsername -> "TipcardByUsername"
+        is DeeplinkType.Profile -> "Profile"
         is DeeplinkType.EmailVerification -> "EmailVerification"
     }
 

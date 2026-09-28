@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,17 +26,22 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 // Used by the held-back Send Cash shortcut below.
 // import com.flipcash.app.messenger.internal.screens.components.CondensedSymbolFontSize
+import com.flipcash.app.shareable.LocalShareController
+import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.opencode.model.core.ID
 import com.getcode.theme.CodeTheme
+import kotlinx.coroutines.launch
 
 /**
  * Who the profile's Message and Send Cash shortcuts would open a DM with, or null to leave them
- * out.
+ * out. Share doesn't follow this rule: every person's profile has it.
  *
  * - Not from a tip DM: a DM's profile is always the other person in it, so the shortcuts would
  *   only reopen the chat the viewer came from.
@@ -48,7 +54,8 @@ import com.getcode.theme.CodeTheme
  */
 internal fun profileShortcutRecipient(
     participant: ChatParticipant?,
-    chatType: ChatType,
+    // Null when no chat is behind the profile, as for one a link opened.
+    chatType: ChatType?,
     selfId: ID?,
 ): ChatParticipant.TipUser? {
     if (chatType == ChatType.TIP_DM) return null
@@ -58,7 +65,41 @@ internal fun profileShortcutRecipient(
 }
 
 /**
- * The Message and Send Cash shortcuts under a profile's identity lines.
+ * The DM a profile's shortcuts open with [this] person: Message opens it, Send Cash opens it with
+ * a payment already started.
+ */
+internal fun ChatParticipant.TipUser.dmRoute(openSendCash: Boolean = false) =
+    AppRoute.Messaging.Chat(
+        identifier = ChatIdentifier.ByUser(userId, profile),
+        openSendCash = openSendCash,
+    )
+
+/**
+ * What a profile's Share shortcut does: hands the person's `flipcash.com` link to the Sharesheet,
+ * in the handle form when they have one, as the You tab shares your own.
+ */
+@Composable
+internal fun rememberProfileShare(): (ChatParticipant.TipUser) -> Unit {
+    val shareController = LocalShareController.current
+    val scope = rememberCoroutineScope()
+    return remember(shareController, scope) {
+        { user ->
+            scope.launch {
+                shareController.present(
+                    Shareable.TipCard(
+                        userId = user.userId,
+                        title = user.profile.displayName,
+                        username = user.profile.username,
+                    )
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The Message, Send Cash and Share shortcuts under a profile's identity lines. A null callback
+ * leaves its shortcut out.
  *
  * Two fixed-width columns, so the pair stays centered and the circles stay the same distance apart
  * whatever the labels say. The Send Cash glyph is [cashSymbol] rather than an icon, so it names the
@@ -67,24 +108,27 @@ internal fun profileShortcutRecipient(
 @Composable
 internal fun ProfileShortcuts(
     cashSymbol: String,
-    onMessage: () -> Unit,
+    onMessage: (() -> Unit)?,
     onSendCash: () -> Unit,
     modifier: Modifier = Modifier,
+    onShare: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3),
     ) {
-        ProfileShortcut(
-            label = stringResource(R.string.action_message),
-            onClick = onMessage,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_chat_bubble),
-                contentDescription = null,
-                tint = CodeTheme.colors.textMain,
-                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
-            )
+        if (onMessage != null) {
+            ProfileShortcut(
+                label = stringResource(R.string.action_message),
+                onClick = onMessage,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_chat_bubble),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textMain,
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                )
+            }
         }
         // Send Cash is held back for now. The route flag and the chat's once-ready dispatch behind
         // it stay wired, so bringing it back is uncommenting this.
@@ -100,6 +144,19 @@ internal fun ProfileShortcuts(
         //         softWrap = false,
         //     )
         // }
+        if (onShare != null) {
+            ProfileShortcut(
+                label = stringResource(R.string.action_shareProfile),
+                onClick = onShare,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_share_os),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textMain,
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                )
+            }
+        }
     }
 }
 

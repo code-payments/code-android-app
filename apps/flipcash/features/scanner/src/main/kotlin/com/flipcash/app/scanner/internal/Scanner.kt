@@ -145,11 +145,11 @@ internal fun Scanner() {
             is DeeplinkType.Tipcard -> {
                 session.resolveTipCard(TipCardOwner.ById(deeplink.userId))
             }
-            // A printed or on-screen `flipcash.com/{username}` is the
-            // same card as a scanned `flipcash.com/{id}`, addressed by
-            // handle.
-            is DeeplinkType.TipcardByUsername -> {
-                session.resolveTipCard(TipCardOwner.ByUsername(deeplink.username))
+            // A printed or on-screen `flipcash.com/{username}` (or
+            // `/{id}`) is the owner's tip card. A tapped one opens their
+            // profile instead; a scanned one is there to be paid.
+            is DeeplinkType.Profile -> {
+                session.resolveTipCard(deeplink.address.tipCardOwner)
             }
         }
     }

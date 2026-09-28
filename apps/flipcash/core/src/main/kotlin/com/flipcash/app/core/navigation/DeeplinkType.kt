@@ -3,6 +3,7 @@ package com.flipcash.app.core.navigation
 import android.net.Uri
 import android.os.Parcelable
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
@@ -32,17 +33,20 @@ sealed interface DeeplinkType: Parcelable {
     @Serializable data class GroupChatInvite(val chatId: ChatId): DeeplinkType, Navigatable
 
     /**
-     * A tip card addressed by account id — `flipcash.com/{uuid}`, or the older
-     * `app.flipcash.com/tip/{uuid}` that links already shared still carry.
+     * A tip card addressed by account id — the older `app.flipcash.com/tip/{uuid}` that links
+     * already shared still carry.
      */
     @Serializable data class Tipcard(val userId: ID): DeeplinkType
 
     /**
-     * A `flipcash.com/{username}` link — the same destination as [Tipcard], addressed by the
-     * owner's public handle. The id it resolves to is the server's to supply, so it stays a
-     * username all the way to the session.
+     * A person's link on the bare host — `flipcash.com/{username}`, or `flipcash.com/{uuid}` for
+     * an account with no handle. Tapped, it opens their profile; scanned, it is still their tip
+     * card, since a printed code is there to be paid.
+     *
+     * The handle stays unresolved all the way to the screen: the id it names is the server's to
+     * supply.
      */
-    @Serializable data class TipcardByUsername(val username: String): DeeplinkType
+    @Serializable data class Profile(val address: ProfileAddress): DeeplinkType
 
     @Serializable
     data class EmailVerification(
@@ -68,7 +72,7 @@ sealed interface DeeplinkType: Parcelable {
             is TokenInfo,
             is TipChat,
             is Tipcard,
-            is TipcardByUsername,
+            is Profile,
             is GroupChatInvite,
             -> true
 
