@@ -401,8 +401,8 @@ internal fun MessageRow(
                                 }
                             }
                             // Same width as the bubble above it (decision 2) — sized by the same
-                            // rule MessageBubble caps a text/reply/deleted bubble with, since the
-                            // row doesn't expose its resolved width outward.
+                            // rule MessageBubble caps every bubble with, since the row doesn't
+                            // expose its resolved width outward.
                             // Kept on screen while selecting, as iOS keeps them under its
                             // backdrop, but inert like every other target on the row.
                             //

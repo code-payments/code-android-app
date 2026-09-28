@@ -84,8 +84,8 @@ enum class BubblePosition { Solo, First, Middle, Last }
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
 
 /**
- * The widest a text bubble or link card grows in a transcript whose rows are inset by [rowInset]
- * on each side.
+ * The widest a bubble, cash card, or link card grows in a transcript whose rows are inset by
+ * [rowInset] on each side.
  *
  * A fraction of the transcript's full width rather than of the inset row, which is how iOS sizes
  * its bubbles, link cards, and group head card (`ChatViewController.maxBubbleWidthFraction`). Taken
@@ -95,7 +95,6 @@ fun transcriptBubbleMaxWidth(rowWidth: Dp, rowInset: Dp): Dp =
     (rowWidth + rowInset * 2) * BUBBLE_MAX_WIDTH_FRACTION
 
 private val EDITED_MARKER_GAP = 6.dp
-private const val CASH_BUBBLE_MAX_WIDTH_FRACTION = 0.64f
 
 /**
  * @param onLongClick what a long-press on this bubble reports, or `null` where the row behind it
@@ -118,18 +117,11 @@ fun ContentBubble(
     val actionHandler = LocalChatActionHandler.current
     val jumbo = remember(item) { item.rendersBareEmoji() }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val isCardRow = item.linkCard != null && item.part == MessagePart.Card
-        val fullWidth = transcriptBubbleMaxWidth(rowWidth = maxWidth, rowInset = CodeTheme.dimens.inset)
-        val bubbleMaxWidth = if (isCardRow) {
-            fullWidth
-        } else when (item.content) {
-            is MessageContent.Text -> fullWidth
-            is MessageContent.Cash -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
-            is MessageContent.Deleted -> fullWidth
-            is MessageContent.Media -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
-            is MessageContent.Reply -> fullWidth
-            is MessageContent.System -> maxWidth
-            is MessageContent.Encrypted -> fullWidth
+        // Every bubble shares one width but a system notice, which spans the row.
+        val bubbleMaxWidth = if (item.content is MessageContent.System) {
+            maxWidth
+        } else {
+            transcriptBubbleMaxWidth(rowWidth = maxWidth, rowInset = CodeTheme.dimens.inset)
         }
 
         // A split message's citation goes on its first row and its marker on its last, so the
