@@ -10,6 +10,7 @@ import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.EmojiReaction
@@ -383,10 +384,21 @@ class EventStreamDelegate @Inject constructor(
             when (metaUpdate) {
                 is MetadataUpdate.FullRefresh -> {
                     metadataDataSource.upsert(metaUpdate.metadata)
-                    memberDataSource.replaceMembers(
-                        metaUpdate.metadata.chatId,
-                        metaUpdate.metadata.members,
-                    )
+                    // A group's members here are a page of its roster, so replacing would drop
+                    // members the device holds from roster changes and message loads — and with
+                    // them the names its previews and transcript show. Merge, as
+                    // RosterStateHolder.refetch does; departures come through MemberLeft.
+                    if (metaUpdate.metadata.type == ChatType.GROUP) {
+                        memberDataSource.upsert(
+                            metaUpdate.metadata.chatId,
+                            metaUpdate.metadata.members,
+                        )
+                    } else {
+                        memberDataSource.replaceMembers(
+                            metaUpdate.metadata.chatId,
+                            metaUpdate.metadata.members,
+                        )
+                    }
                     metaUpdate.metadata.lastMessage?.let { msg ->
                         messageDataSource.upsert(metaUpdate.metadata.chatId, listOf(msg))
                     }

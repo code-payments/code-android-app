@@ -12,7 +12,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.unit.dp
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
@@ -103,6 +108,34 @@ class GroupTranscriptScreenshotTest {
         repeat(20) { composeRule.mainClock.advanceTimeByFrame() }
 
         capture("group_transcript.png")
+    }
+
+    /**
+     * A member whose profile has no display name still gets their face in the gutter, but no name
+     * line: an empty one would leave a blank gap above the run.
+     */
+    @Test
+    fun omitsNameLineForBlankDisplayName() {
+        val nameless = SenderIdentity(userId = listOf<Byte>(3), displayName = "", picture = null)
+        val items = listOf(
+            bubble(3, "Not even close", noah, secondsIn = 20),
+            bubble(2, "Who's in for Saturday?", nameless, secondsIn = 10),
+            ChatListItem.DateSeparator(start),
+        )
+
+        composeRule.setContent {
+            FlipcashThemeWrapper().Wrap {
+                Transcript(flowOf(PagingData.from(items)).collectAsLazyPagingItems())
+            }
+        }
+        repeat(20) { composeRule.mainClock.advanceTimeByFrame() }
+
+        composeRule.onAllNodesWithText("Noah Parker").assertCountEquals(1)
+        composeRule.onAllNodes(
+            SemanticsMatcher("has blank text") { node ->
+                node.config.getOrNull(SemanticsProperties.Text).orEmpty().any { it.isBlank() }
+            },
+        ).assertCountEquals(0)
     }
 
     /**
