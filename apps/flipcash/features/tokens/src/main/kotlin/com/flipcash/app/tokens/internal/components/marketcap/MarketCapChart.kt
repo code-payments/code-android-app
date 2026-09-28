@@ -107,6 +107,11 @@ internal fun MarketCapChart(
     // tick. `windowedData` folds the live current value into its last point, so keying on it re-ran the
     // transaction as the market cap settled async, snapping the line's end point repeatedly (the "jitter"
     // at the end of the open). Keying on the stable inputs renders the line once, settled.
+    // The trend colors the line, so it must follow the model Vico draws, not the data we just received.
+    // Vico builds the new model off the main thread and starts the morph when `runTransaction` returns;
+    // deriving the trend from `windowedData` recolored the old line for the whole gap.
+    var trend by remember { mutableStateOf(trendType.determineTrend(windowedData.yValues)) }
+
     LaunchedEffect(historicalData, dataPeriod) {
         val window = windowedData
         if (window.isNotEmpty()) {
@@ -118,12 +123,7 @@ internal fun MarketCapChart(
                     )
                 }
             }
-        }
-    }
-
-    val trend by remember(windowedData) {
-        derivedStateOf {
-            trendType.determineTrend(windowedData.yValues)
+            trend = trendType.determineTrend(window.yValues)
         }
     }
 
