@@ -104,7 +104,7 @@ kotlincrypto-macs = "0.8.0"
 event-bus = "0.1.0"
 bignum = "0.3.10"
 
-bugsnag = "6.27.0"
+bugsnag = "6.27.1"
 bugsnag-gradle-plugin = "1.2.0"
 rinku = "1.6.0"
 compose-unstyled = "2.9.2"
