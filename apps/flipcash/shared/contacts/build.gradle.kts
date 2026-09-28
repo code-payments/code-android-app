@@ -17,7 +17,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:persistence:db"))
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:phone"))
-    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":libs:encryption:keys"))
     implementation(project(":libs:network:connectivity:public"))
     implementation(libs.androidx.datastore)

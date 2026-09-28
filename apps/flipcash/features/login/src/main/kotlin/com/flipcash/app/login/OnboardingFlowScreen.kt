@@ -33,8 +33,6 @@ import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.navigation.homeRoute
 import com.flipcash.app.core.navigation.launchRoute
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.core.onboarding.OnboardingResult
 import com.flipcash.app.core.onboarding.OnboardingStep
 import com.flipcash.app.login.internal.LoginAccessKeyViewModel
@@ -109,10 +107,7 @@ import kotlin.time.Duration.Companion.milliseconds
  *    Same as (1) but initialStack resumes at the AccessKey, Purchase, or Name step.
  * ```
  *
- * ¹ Contact permission is shown only when [FeatureFlag.ContactPickerMode] is off. When
- *   ContactPickerMode is on, contacts are accessed via the system picker at call site
- *   (no READ_CONTACTS needed). Already-granted permissions are auto-skipped via
- *   [PermissionsPhaseFlowHost].
+ * ¹ Already-granted permissions are auto-skipped via [PermissionsPhaseFlowHost].
  * ² Display-name entry is shown only when no display name is set. It reuses the
  *   UpdateUserProfile subflow, whose `target` replaces the stack with the permissions phase.
  * ³ A new account (1, and 4 when it resumes account creation) lands on the Wallet tab, so a new
@@ -159,21 +154,18 @@ private fun PermissionsPhaseFlowHost(
     val notificationConfig = PermissionConfigs.notifications()
     val analytics = rememberAnalytics()
 
-    val featureFlags = LocalFeatureFlags.current
     val userManager = LocalUserManager.current
-    val contactPickerMode by featureFlags.observe(FeatureFlag.ContactPickerMode).collectAsStateWithLifecycle()
 
     val home = onboardingLandingRoute(route)
 
     val permissionsSteps = buildList {
-        if (!route.skipContacts && !contactPickerMode) add(OnboardingStep.ContactPermission)
+        if (!route.skipContacts) add(OnboardingStep.ContactPermission)
         add(OnboardingStep.NotificationPermission)
     }
 
-    // Compute resumeAt once per steps-list identity. This recomputes when the flag loads
-    // (steps changes) but NOT when permissions are granted mid-flow, preventing a stale
-    // recomposition from triggering a spurious BackedOutOfRoot exit.
-    val resumeAt = remember(permissionsSteps.map { it::class }, contactPickerMode) {
+    // Compute resumeAt once per steps-list identity, NOT when permissions are granted mid-flow,
+    // preventing a stale recomposition from triggering a spurious BackedOutOfRoot exit.
+    val resumeAt = remember(permissionsSteps.map { it::class }) {
         val contactsGranted = checker.isGranted(contactConfig.permission)
         val notificationsGranted = !notificationConfig.requiresRuntimeRequest ||
             checker.isGranted(notificationConfig.permission)

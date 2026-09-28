@@ -1,6 +1,5 @@
 package com.flipcash.app.featureflags
 
-import android.os.Build
 import com.flipcash.app.featureflags.model.BackgroundResetTimeout
 import com.flipcash.app.ksp.annotations.FeatureFlagMarker
 
@@ -81,26 +80,8 @@ sealed interface FeatureFlag<T: Any> {
     }
 
     @FeatureFlagMarker
-    data object ContactPickerMode : FeatureFlag<Boolean> {
-        override val key: String = "contact_picker_mode"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-        override val visible: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN
-        override val persistLogOut: Boolean = true
-    }
-
-    @FeatureFlagMarker
     data object ShowNetworkState: FeatureFlag<Boolean> {
         override val key: String = "show_network_state_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-        override val visible: Boolean = true
-        override val persistLogOut: Boolean = false
-    }
-
-    @FeatureFlagMarker
-    data object FrostedTipCard: FeatureFlag<Boolean> {
-        override val key: String = "frosted_tip_card_enabled"
         override val default: Boolean = false
         override val launched: Boolean = false
         override val visible: Boolean = true
@@ -125,9 +106,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.CoinbaseOnRampSandbox -> "Coinbase Onramp Sandbox"
         FeatureFlag.BillTextures -> "Bill Textures"
         FeatureFlag.BackgroundReset -> "Background Reset"
-        FeatureFlag.ContactPickerMode -> "Contact Picker Mode"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
-        FeatureFlag.FrostedTipCard -> "Frosted Tip Card"
     }
 
 val FeatureFlag<*>.message: String
@@ -137,7 +116,5 @@ val FeatureFlag<*>.message: String
         FeatureFlag.CoinbaseOnRampSandbox -> "When enabled, Coinbase onramp purchases will use the sandbox environment for testing"
         FeatureFlag.BillTextures -> "When enabled, you'll gain the ability to select textures for bills during currency creation"
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
-        FeatureFlag.ContactPickerMode -> "When enabled, contacts will be accessed via the system contact picker instead of requesting full READ_CONTACTS permission"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
-        FeatureFlag.FrostedTipCard -> "When enabled, the tip card in the scanner renders as frosted glass over a blurred snapshot of the camera instead of a solid card"
     }
