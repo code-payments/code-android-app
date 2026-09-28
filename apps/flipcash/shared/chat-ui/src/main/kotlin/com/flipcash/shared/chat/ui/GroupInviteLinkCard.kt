@@ -66,15 +66,17 @@ import com.getcode.ui.theme.CodeButton
  * a fallback title; an untitled group is named generically.
  *
  * Drawn in two places that want different things from the button, so [ctaLabel] and [onStart] come
- * from the caller: a DM transcript's link card says "View" and opens the group, and the group's own
- * empty state says "Invite People" and opens the invite sheet. [shape] is the transcript bubble's
- * outline there, and the card's own radius where it stands alone.
+ * from the caller: a DM transcript's link card says "View" and opens the group, and the head of the
+ * group's own transcript says "Invite People" to a member and opens the invite sheet. A null
+ * [ctaLabel] leaves the button out, as it is for someone who hasn't joined, and the card is as tall
+ * as its content. [shape] is the transcript bubble's outline in a transcript, and the card's own
+ * radius where it stands alone.
  */
 @Composable
 fun GroupInviteLinkCard(
     card: LinkCard.GroupInvite,
     minHeight: Dp,
-    ctaLabel: String,
+    ctaLabel: String?,
     onStart: (() -> Unit)?,
     modifier: Modifier = Modifier,
     shape: CornerBasedShape = GroupInviteCardDefaults.SHAPE,
@@ -175,13 +177,15 @@ fun GroupInviteLinkCard(
             }
             // Unavailable draws nothing between the band and the button: there is no group to name.
 
+            if (resolved != null && ctaLabel == null) return@Column
+
             // The least gap, then whatever the floor leaves over, so the button sits at the bottom
             // of a card taller than its content. Two spacers because a weight's height is exact: a
             // minimum on the weighted one would be clamped to nothing when the content is taller.
             Spacer(Modifier.height(GroupInviteCardDefaults.BUTTON_GAP))
             Spacer(Modifier.weight(1f))
 
-            if (resolved != null) {
+            if (resolved != null && ctaLabel != null) {
                 CodeButton(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -193,7 +197,7 @@ fun GroupInviteLinkCard(
                     enabled = onStart != null,
                     onClick = { onStart?.invoke() },
                 )
-            } else {
+            } else if (resolved == null) {
                 CodeButton(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -321,12 +325,12 @@ internal val PreviewGroupResolved = LinkCard.GroupInvite.State.Resolved(
 )
 
 @Composable
-private fun PreviewCard(state: LinkCard.GroupInvite.State) {
+private fun PreviewCard(state: LinkCard.GroupInvite.State, ctaLabel: String? = "View") {
     Box(Modifier.width(280.dp).padding(8.dp)) {
         GroupInviteLinkCard(
             card = previewGroupCard(state),
-            minHeight = 280.dp * 224f / 328f,
-            ctaLabel = "View",
+            minHeight = if (ctaLabel != null) 280.dp * 224f / 328f else 0.dp,
+            ctaLabel = ctaLabel,
             onStart = {},
         )
     }
@@ -337,6 +341,13 @@ private fun PreviewCard(state: LinkCard.GroupInvite.State) {
 @Composable
 private fun Preview_GroupInvite_Resolved() {
     PreviewCard(PreviewGroupResolved)
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_GroupInvite_NoButton() {
+    PreviewCard(PreviewGroupResolved, ctaLabel = null)
 }
 
 /** No picture: the avatar's initials on its gradient, and the band tinted from that gradient. */

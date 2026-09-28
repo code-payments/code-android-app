@@ -159,12 +159,14 @@ internal data class RuleCurrency(
 }
 
 /**
- * The card an empty group shows in place of its info card: the same [LinkCard.GroupInvite] a
- * transcript renders for an invite link, built from what this subject already knows rather than
- * from a lookup, since a member looking at the empty group already has the chat's own record.
+ * The card that heads a group's transcript in place of its info card: the same
+ * [LinkCard.GroupInvite] a transcript renders for an invite link, built from what this subject
+ * already knows rather than from a lookup, since the screen already has the chat's own record.
+ * [inviteUrl] is null for a viewer who hasn't joined; the header never opens it, so the card only
+ * needs it as the link it stands for.
  */
 internal fun ChatSubject.Group.toGroupInviteCard(
-    inviteUrl: String,
+    inviteUrl: String?,
     currencyName: String?,
 ): LinkCard.GroupInvite {
     val balance = rules.balanceRequirement()
@@ -179,9 +181,9 @@ internal fun ChatSubject.Group.toGroupInviteCard(
         null
     }
     return LinkCard.GroupInvite(
-        url = inviteUrl,
+        url = inviteUrl.orEmpty(),
         start = 0,
-        end = inviteUrl.length,
+        end = inviteUrl.orEmpty().length,
         chatId = chatId,
         state = LinkCard.GroupInvite.State.Resolved(
             title = groupTitle?.takeIf { it.isNotBlank() },
