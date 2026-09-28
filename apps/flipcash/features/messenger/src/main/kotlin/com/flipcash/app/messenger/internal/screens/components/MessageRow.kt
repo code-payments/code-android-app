@@ -252,6 +252,9 @@ internal fun MessageRow(
                     indication = null,
                     onLongClick = select,
                     onDoubleClick = presentStrip,
+                    // select plays the tick; the platform's own long-press haptic on top of
+                    // it is felt as a second buzz.
+                    hapticFeedbackEnabled = false,
                     // Only reachable with the backdrop down, so the tap has nothing to
                     // dismiss but the keyboard.
                     onClick = { keyboard.hide() },

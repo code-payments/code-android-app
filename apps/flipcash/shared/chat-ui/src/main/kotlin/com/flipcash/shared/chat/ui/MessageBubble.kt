@@ -859,6 +859,8 @@ private fun Bubble(
                     onLongClick = onLongClick,
                     onDoubleClick = onDoubleClick,
                     onClick = { onClick?.invoke() },
+                    // The row's select plays the tick; a second, platform haptic doubles it.
+                    hapticFeedbackEnabled = false,
                 )
             }
             .padding(

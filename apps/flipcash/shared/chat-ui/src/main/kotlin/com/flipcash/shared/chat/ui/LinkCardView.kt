@@ -162,6 +162,8 @@ internal fun LinkCardView(
                         onLongClick = onLongClick,
                         onDoubleClick = onDoubleClick,
                         onClick = { onClick?.invoke(live) },
+                        // The row's select plays the tick; a second, platform haptic doubles it.
+                        hapticFeedbackEnabled = false,
                     )
             },
     ) {

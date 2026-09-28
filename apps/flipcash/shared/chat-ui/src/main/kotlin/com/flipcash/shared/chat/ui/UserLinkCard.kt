@@ -102,6 +102,8 @@ internal fun UserLinkCard(
                         onLongClick = onLongClick,
                         onDoubleClick = onDoubleClick,
                         onClick = tap,
+                        // The row's select plays the tick; a second, platform haptic doubles it.
+                        hapticFeedbackEnabled = false,
                     )
                     // Nothing to open, but a long press and a double tap still have to reach the
                     // transcript.
