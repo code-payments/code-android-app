@@ -81,7 +81,16 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnMintProvided(val mint: Mint, val shortFall: Fiat? = null) : Event
+        /**
+         * @param resetChartPeriod start the chart back at [Period.All]. The card-expand overlay reuses one VM
+         * across opens and sets this on each open; the pushed screen gets a fresh VM per entry and leaves it
+         * off, so returning to it from a pushed screen keeps the period the user picked.
+         */
+        data class OnMintProvided(
+            val mint: Mint,
+            val shortFall: Fiat? = null,
+            val resetChartPeriod: Boolean = false,
+        ) : Event
         data class OnTokenChanged(val token: Loadable<Token>, val shortFall: Fiat? = null) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
         data class LoadHistoricalDataForPeriod(val period: Period, val evict: Boolean = false) : Event
@@ -215,8 +224,10 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnMarketCapPeriodSelected>()
+            // No distinctUntilChanged: OnMintProvided resets the period to All in state, so a stream-level
+            // filter would swallow re-picking the period chosen on the previous open. The tab row skips
+            // taps on the already-selected period instead.
             .map { it.period }
-            .distinctUntilChanged()
             .onEach { dispatchEvent(Event.LoadHistoricalDataForPeriod(it)) }
             .launchIn(viewModelScope)
 
@@ -270,27 +281,29 @@ class TokenInfoViewModel @Inject constructor(
                 dispatchEvent(Event.OnTransactionHistoryEnabled(hasAccount))
             }.launchIn(viewModelScope)
 
+        // Both de-dupes below key on the mint as well as the market cap: the overlay reuses this VM across
+        // opens, and two mints can share a market cap, which would otherwise skip the second mint's chart load.
         eventFlow
             .filterIsInstance<Event.OnBalanceUpdated>()
             .map { _ ->
-                val token = stateFlow.value.token.dataOrNull ?: return@map null
-                token.marketCap()
+                val token = stateFlow.value.token.dataOrNull ?: return@map null to null
+                token.address to token.marketCap()
             }
-            .flatMapLatest { mcap ->
+            .flatMapLatest { (mint, mcap) ->
                 combine(
                     flowOf(mcap),
                     exchange.observePreferredRate(),
                 ) { usdMcap, rate ->
-                    usdMcap?.convertingTo(rate)
+                    mint to usdMcap?.convertingTo(rate)
                 }
-            }.distinctUntilChanged().onEach {
-                dispatchEvent(Event.OnMarketCapChanged(it))
+            }.distinctUntilChanged().onEach { (_, mcap) ->
+                dispatchEvent(Event.OnMarketCapChanged(mcap))
             }
             .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnMarketCapChanged>()
-            .mapNotNull { it.mcap }
+            .mapNotNull { event -> event.mcap?.let { stateFlow.value.mint to it } }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.LoadHistoricalDataForPeriod(stateFlow.value.selectedPeriod)) }
             .launchIn(viewModelScope)
@@ -369,7 +382,18 @@ class TokenInfoViewModel @Inject constructor(
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnMintProvided -> { state -> state.copy(mint = event.mint) }
+                // Chart data is keyed only by period, so a different mint drops the previous mint's data.
+                is Event.OnMintProvided -> { state ->
+                    state.copy(
+                        mint = event.mint,
+                        selectedPeriod = if (event.resetChartPeriod) Period.All else state.selectedPeriod,
+                        historicalMarketCapData = if (event.mint == state.mint) {
+                            state.historicalMarketCapData
+                        } else {
+                            emptyMap()
+                        },
+                    )
+                }
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }

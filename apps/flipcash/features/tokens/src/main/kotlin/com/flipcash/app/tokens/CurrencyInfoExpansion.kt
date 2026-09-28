@@ -111,7 +111,7 @@ fun CurrencyInfoExpansion(
     val viewModel = hiltViewModel<TokenInfoViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     LaunchedEffect(mint) {
-        viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint))
+        viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint, resetChartPeriod = true))
     }
 
     // One `Token Info: Opened From …` per open. The flag is saveable because a pushed action (Give /
