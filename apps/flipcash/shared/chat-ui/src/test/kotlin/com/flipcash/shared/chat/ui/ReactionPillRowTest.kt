@@ -8,6 +8,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -83,9 +89,11 @@ class ReactionPillRowTest {
         var pills by mutableStateOf(listOf(pill("😀"), pill("🎉")))
         composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
-            DesignSystem {
-                Box(Modifier.width(400.dp)) {
-                    ReactionPillRow(pills = pills, canReact = true, onToggle = {}, onPillLongClick = {}, onOpenPicker = {})
+            CompositionLocalProvider(LocalPillRowClock provides { composeTestRule.mainClock.currentTime }) {
+                DesignSystem {
+                    Box(Modifier.width(400.dp)) {
+                        ReactionPillRow(pills = pills, canReact = true, onToggle = {}, onPillLongClick = {}, onOpenPicker = {})
+                    }
                 }
             }
         }
@@ -94,6 +102,10 @@ class ReactionPillRowTest {
 
         pills = listOf(pill("😀"))
         composeTestRule.mainClock.advanceTimeByFrame()
+        composeTestRule.onNodeWithTag("reaction_pill_🎉").assertExists()
+
+        // It leaves on the next beat, a second after the row appeared, then fades.
+        composeTestRule.mainClock.advanceTimeBy(1_000)
         composeTestRule.onNodeWithTag("reaction_pill_🎉").assertExists()
 
         composeTestRule.mainClock.advanceTimeBy(1_000)
@@ -105,15 +117,19 @@ class ReactionPillRowTest {
     fun `losing the last pill collapses the row to no height`() {
         var pills by mutableStateOf(listOf(pill("😀")))
         composeTestRule.setContent {
-            DesignSystem {
-                Box(Modifier.width(400.dp).testTag("container")) {
-                    ReactionPillRow(pills = pills, canReact = true, onToggle = {}, onPillLongClick = {}, onOpenPicker = {})
+            CompositionLocalProvider(LocalPillRowClock provides { composeTestRule.mainClock.currentTime }) {
+                DesignSystem {
+                    Box(Modifier.width(400.dp).testTag("container")) {
+                        ReactionPillRow(pills = pills, canReact = true, onToggle = {}, onPillLongClick = {}, onOpenPicker = {})
+                    }
                 }
             }
         }
         composeTestRule.onNodeWithTag("container").assertHeightIsEqualTo(32.dp)
 
         pills = emptyList()
+        // The emptied pill leaves on the beat.
+        composeTestRule.mainClock.advanceTimeBy(2_000)
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("container").assertHeightIsEqualTo(0.dp)
         composeTestRule.onNodeWithTag("reaction_pill_😀").assertDoesNotExist()
@@ -245,5 +261,105 @@ class ReactionPillRowTest {
             composeTestRule.onNodeWithTag("reaction_pill_more").assertDoesNotExist()
             composeTestRule.onNodeWithTag("reaction_pill_😇").assertIsDisplayed()
         }
+    }
+
+    /** A row on the compose test clock, so its beats follow `mainClock`. */
+    private fun setSettlingRow(pills: () -> List<ReactionPill>, onToggle: (String) -> Unit = {}) {
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent {
+            CompositionLocalProvider(LocalPillRowClock provides { composeTestRule.mainClock.currentTime }) {
+                DesignSystem {
+                    Box(Modifier.width(400.dp)) {
+                        ReactionPillRow(
+                            pills = pills(),
+                            canReact = true,
+                            onToggle = onToggle,
+                            onPillLongClick = {},
+                            onOpenPicker = {},
+                            modifier = Modifier.testTag("row"),
+                        )
+                    }
+                }
+            }
+        }
+        composeTestRule.mainClock.advanceTimeByFrame()
+    }
+
+    private fun widthOf(tag: String) = composeTestRule.onNodeWithTag(tag).getBoundsInRoot().let { it.right - it.left }
+
+    @Test
+    fun `a count crossing 99 keeps the pill's width until the beat, then widens on it`() {
+        var pills by mutableStateOf(listOf(pill("😀", count = 99)))
+        setSettlingRow({ pills })
+        val before = widthOf("reaction_pill_😀")
+
+        pills = listOf(pill("😀", count = 100))
+        Snapshot.sendApplyNotifications()
+        composeTestRule.mainClock.advanceTimeBy(500)
+        composeTestRule.onNodeWithText("99").assertExists()
+        assertEquals(before, widthOf("reaction_pill_😀"))
+
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.onNodeWithText("100").assertExists()
+        assertTrue(widthOf("reaction_pill_😀") > before, "the pill widens on the beat")
+    }
+
+    @Test
+    fun `a count that fits its reserved room shows at once without changing the width`() {
+        var pills by mutableStateOf(listOf(pill("😀", count = 5)))
+        setSettlingRow({ pills })
+        val before = widthOf("reaction_pill_😀")
+
+        pills = listOf(pill("😀", count = 42))
+        Snapshot.sendApplyNotifications()
+        composeTestRule.mainClock.advanceTimeBy(100)
+        composeTestRule.onNodeWithText("42").assertExists()
+        assertEquals(before, widthOf("reaction_pill_😀"))
+    }
+
+    @Test
+    fun `selecting a pill does not change its width`() {
+        var pills by mutableStateOf(listOf(pill("😀", count = 3)))
+        setSettlingRow({ pills })
+        val before = widthOf("reaction_pill_😀")
+
+        pills = listOf(pill("😀", count = 3, selfReacted = true))
+        Snapshot.sendApplyNotifications()
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        assertEquals(before, widthOf("reaction_pill_😀"))
+    }
+
+    @Test
+    fun `positions change on the beat, and a tap right after a swap lands on the pill that was there`() {
+        var pills by mutableStateOf(listOf(pill("😂", count = 5), pill("🔥", count = 4)))
+        val toggled = mutableListOf<String>()
+        setSettlingRow({ pills }, onToggle = { toggled += it })
+        val rowLeft = composeTestRule.onNodeWithTag("row").getBoundsInRoot()
+        val firstSlot = composeTestRule.onNodeWithTag("reaction_pill_😂").getBoundsInRoot()
+        val slotCenter = Offset(
+            x = ((firstSlot.left + firstSlot.right) / 2 - rowLeft.left).value,
+            y = ((firstSlot.top + firstSlot.bottom) / 2 - rowLeft.top).value,
+        )
+
+        pills = listOf(pill("😂", count = 5), pill("🔥", count = 6))
+        Snapshot.sendApplyNotifications()
+        composeTestRule.mainClock.advanceTimeBy(500)
+        assertTrue(
+            composeTestRule.onNodeWithTag("reaction_pill_😂").getBoundsInRoot().left <
+                composeTestRule.onNodeWithTag("reaction_pill_🔥").getBoundsInRoot().left,
+            "nothing moves before the beat",
+        )
+
+        // The beat swaps them; a tap 100 ms later on the first slot still gets 😂.
+        composeTestRule.mainClock.advanceTimeBy(600)
+        composeTestRule.onNodeWithTag("row").performTouchInput { click(slotCenter * density) }
+        composeTestRule.mainClock.advanceTimeByFrame()
+        assertEquals(listOf("😂"), toggled)
+
+        // Past the grace, the same spot is 🔥.
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.onNodeWithTag("row").performTouchInput { click(slotCenter * density) }
+        composeTestRule.mainClock.advanceTimeByFrame()
+        assertEquals(listOf("😂", "🔥"), toggled)
     }
 }

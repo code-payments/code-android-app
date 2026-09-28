@@ -15,7 +15,7 @@ import kotlin.time.Instant
  * verbatim copy of the orchestrator's canonical fixture (#17). A failure here is either a real regression or a cross-platform decision that
  * has to be made in the canonical fixture and re-synced to both platforms — never a local edit.
  *
- * Covers the `merge`, `order` and `strip` sections; `defaults` and `recents` are covered by
+ * Covers the `merge`, `order`, `settle` and `strip` sections; `defaults` and `recents` are covered by
  * `libs:emojis`'s `RecentReactionsVectorTest`, and `drawability` by its instrumented
  * `EmojiDrawabilityVectorTest`.
  *
@@ -137,6 +137,55 @@ class ReactionVectorsTest {
     }
 
     @Test
+    fun `settle defaults match the reactions fixture`() {
+        val defaults = json().getJSONObject("settleDefaults")
+        assertEquals(configOf(defaults), ReactionSettler.Config())
+        assertEquals(defaults.getLong("hitGraceMs"), ReactionSettler.HIT_GRACE_MS)
+    }
+
+    @Test
+    fun `settle vectors match the reactions fixture`() {
+        val vectors = section("settle")
+        assertTrue(vectors.length() > 0, "reactions.json loaded no settle vectors")
+
+        for (i in 0 until vectors.length()) {
+            val vector = vectors.getJSONObject(i)
+            val name = vector.getString("name")
+            val note = vector.getString("note")
+            val config = configOf(vector.getJSONObject("config"))
+
+            var now = 0L
+            var settler: ReactionSettler? = null
+            val steps = vector.getJSONArray("steps")
+            for (s in 0 until steps.length()) {
+                val step = steps.getJSONObject(s)
+                now = step.getLong("at")
+                val where = "vector `$name` step $s at ${now}ms: $note"
+                when (val op = step.getString("op")) {
+                    "start" -> {
+                        settler = ReactionSettler(settlePills(step.getJSONObject("pills")), clock = { now }, config = config)
+                        assertEquals(strings(step.getJSONArray("expect")), settler.shown.map { it.pill.emoji }, where)
+                    }
+
+                    "pills" -> settler!!.update(settlePills(step.getJSONObject("pills")))
+                    "touch" -> settler!!.touch()
+                    "settle" -> {
+                        settler!!.settle()
+                        assertEquals(strings(step.getJSONArray("expect")), settler.shown.map { it.pill.emoji }, where)
+                    }
+
+                    "hit" -> {
+                        val expected = if (step.isNull("expect")) null else step.getString("expect")
+                        assertEquals(expected, settler!!.hit(step.getInt("index")), where)
+                    }
+
+                    else -> error("unknown op `$op`")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `strip vectors match the reactions fixture`() {
         val vectors = section("strip")
         assertTrue(vectors.length() > 0, "reactions.json loaded no strip vectors")
@@ -210,11 +259,38 @@ class ReactionVectorsTest {
         else -> error("unknown result `$result`")
     }
 
-    private fun section(name: String): JSONArray {
+    private fun configOf(json: JSONObject) = ReactionSettler.Config(
+        settleMs = json.getLong("settleMs"),
+        maxSwaps = json.getInt("maxSwaps"),
+        countMargin = json.getLong("countMargin"),
+        flapCooldownMs = json.getLong("flapCooldownMs"),
+        holdAfterTouchMs = json.getLong("holdAfterTouchMs"),
+        maxHoldMs = json.getLong("maxHoldMs"),
+        hitGraceMs = json.getLong("hitGraceMs"),
+    )
+
+    /** A settle step's pills, keyed by emoji, in the fixture's (unsorted) order. */
+    private fun settlePills(json: JSONObject): List<ReactionPill> = json.keys().asSequence().map { emoji ->
+        val p = json.getJSONObject(emoji)
+        val boostTotal = p.getLong("boostTotal")
+        ReactionPill(
+            emoji = emoji,
+            count = p.getLong("count"),
+            selfReacted = false,
+            pending = false,
+            boost = if (boostTotal != 0L) ReactionBoost(boostTotal) else null,
+        )
+    }.toList()
+
+    private fun strings(json: JSONArray): List<String> = (0 until json.length()).map { json.getString(it) }
+
+    private fun section(name: String): JSONArray = json().getJSONArray(name)
+
+    private fun json(): JSONObject {
         val json = javaClass.classLoader!!
             .getResourceAsStream("reactions.json")!!
             .bufferedReader().use { it.readText() }
-        return JSONObject(json).getJSONArray(name)
+        return JSONObject(json)
     }
 
     private companion object {
