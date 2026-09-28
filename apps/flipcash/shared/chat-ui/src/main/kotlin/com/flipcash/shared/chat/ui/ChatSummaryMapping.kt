@@ -61,8 +61,11 @@ private fun ChatSummary.formatPreview(
     // Only a group attributes, and only someone else's message: "You:" already covers the viewer's,
     // and a DM's counterparty is the row's own name. Null when the roster subset does not have the
     // sender — the list does not fetch profiles, so an unattributed body is the honest fallback.
+    // A blank name counts as missing: a cached member with no profile row maps to an empty one,
+    // which would otherwise read as ": gm".
     val senderName = if (isGroup && !sentBySelf) {
-        metadata.members.firstOrNull { it.userId == lastMsg.senderId }?.userProfile?.displayName
+        metadata.members.firstOrNull { it.userId == lastMsg.senderId }
+            ?.userProfile?.displayName?.takeIf { it.isNotBlank() }
     } else {
         null
     }

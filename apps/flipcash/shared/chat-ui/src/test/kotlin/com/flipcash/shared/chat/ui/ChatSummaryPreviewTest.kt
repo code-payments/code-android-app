@@ -114,13 +114,14 @@ class ChatSummaryPreviewTest {
     private fun groupSummary(
         content: List<MessageContent>,
         senderId: ID?,
+        otherName: String = "Alice",
     ) = ChatSummary(
         metadata = ChatMetadata(
             chatId = ChatId(byteArrayOf(9)),
             type = ChatType.GROUP,
             members = listOf(
                 ChatMember(userId = self, userProfile = profile("Me"), pointers = emptyList()),
-                ChatMember(userId = other, userProfile = profile("Alice"), pointers = emptyList()),
+                ChatMember(userId = other, userProfile = profile(otherName), pointers = emptyList()),
             ),
             lastMessage = ChatMessage(
                 messageId = 42,
@@ -135,8 +136,11 @@ class ChatSummaryPreviewTest {
         unreadCount = 0,
     )
 
-    private fun groupReference(content: List<MessageContent>, senderId: ID? = other) =
-        groupSummary(content, senderId)
+    private fun groupReference(
+        content: List<MessageContent>,
+        senderId: ID? = other,
+        otherName: String = "Alice",
+    ) = groupSummary(content, senderId, otherName)
             .toConversationReference(selfId = self, tokensByMint = emptyMap(), resources = resources)
 
     @Test
@@ -206,6 +210,26 @@ class ChatSummaryPreviewTest {
             "gm",
             groupReference(listOf(MessageContent.Text("gm")), senderId = stranger).lastMessagePreview,
         )
+    }
+
+    @Test
+    fun `a member cached without a profile is not prefixed with an empty name`() {
+        // A member row with no profile row maps to UserProfile.Empty, whose name is "".
+        assertEquals(
+            "gm",
+            groupReference(listOf(MessageContent.Text("gm")), otherName = "").lastMessagePreview,
+        )
+    }
+
+    @Test
+    fun `group cash from a member cached without a profile previews as the amount alone`() {
+        val cash = MessageContent.Cash(
+            intentId = listOf(3),
+            amount = 25.toFiat(),
+            mint = Mint.usdf,
+        )
+
+        assertEquals("$25.00", groupReference(listOf(cash), otherName = " ").lastMessagePreview)
     }
 
     @Test
