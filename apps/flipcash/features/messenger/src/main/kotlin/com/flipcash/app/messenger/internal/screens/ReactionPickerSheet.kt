@@ -4,6 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
@@ -25,6 +27,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -34,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -46,6 +51,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
@@ -59,11 +67,19 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
+import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.features.messenger.R
 import com.getcode.libs.emojis.reactions.EmojiCatalogEntry
 import com.getcode.libs.emojis.reactions.EmojiPickerModel
@@ -84,16 +100,19 @@ import kotlinx.coroutines.launch
 
 /**
  * The full emoji picker (decision 5: opens as `ChatStep.ReactionPicker`, a [com.getcode.ui.navigation.HalfSheet]).
- * A search capsule (not auto-focused — iOS's picker doesn't auto-focus its search field either),
- * then every catalog category in a fixed 7-column grid behind a floating glass category bar, all
- * through one scrollable list so [AllowSheetExpansionWhenScrollable] sees a single scroll container.
- * Mirrors iOS `EmojiPickerSheet` (node 9768:1402, category bar node 9768:1624). There is no title —
- * iOS's picker doesn't have one either.
+ * A glass search capsule floating over the grid (not auto-focused — iOS's picker doesn't auto-focus
+ * its search field either), then every catalog category in a fixed 7-column grid behind a floating
+ * glass category bar, all through one scrollable list so [AllowSheetExpansionWhenScrollable] sees a
+ * single scroll container. Mirrors iOS `EmojiPickerSheet` (node 9768:1402, category bar node
+ * 9768:1624). There is no title — iOS's picker doesn't have one either.
+ *
+ * The grid shows base emoji only. Long-pressing one with skin tones ([tones]) offers them.
  */
 @Composable
 internal fun ReactionPickerSheet(
     searchState: TextFieldState,
     sections: List<EmojiPickerModel.Section>,
+    tones: Map<String, List<String>>,
     loaded: Boolean,
     onSelected: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -102,25 +121,25 @@ internal fun ReactionPickerSheet(
     AllowSheetExpansionWhenScrollable(gridState)
 
     val query = searchState.text.toString()
+    val hazeState = rememberHazeState()
+    val glass = rememberLiquidGlass()
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        SearchField(
-            state = searchState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(top = 16.dp, bottom = 12.dp),
-        )
-
+    Box(modifier = Modifier.fillMaxWidth()) {
         when {
             !loaded -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(top = SEARCH_FIELD_INSET),
+                    contentAlignment = Alignment.Center,
+                ) {
                     CodeCircularProgressIndicator()
                 }
             }
 
             sections.isEmpty() && query.isNotBlank() -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(top = SEARCH_FIELD_INSET),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Text(
                         text = stringResource(R.string.title_noSearchResults, query),
                         style = CodeTheme.typography.textMedium,
@@ -134,11 +153,42 @@ internal fun ReactionPickerSheet(
             else -> {
                 EmojiGrid(
                     sections = sections,
+                    tones = tones,
                     query = query,
                     gridState = gridState,
+                    hazeState = hazeState,
+                    glass = glass,
                     onSelected = onSelected,
                 )
             }
+        }
+
+        // Over the grid rather than above it, so the emoji scroll up under the glass.
+        SearchField(
+            state = searchState,
+            hazeState = hazeState,
+            glass = glass,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(top = SEARCH_FIELD_TOP),
+        )
+    }
+}
+
+/**
+ * The glass both floating capsules are frosted with: a Haze blur of the grid beneath — Android's
+ * analogue of iOS's `.glassEffect` (see [com.flipcash.app.core.ui.NavigationBar] for the same
+ * pattern).
+ */
+@Composable
+private fun rememberLiquidGlass(): HazeBlurStyle {
+    val backdrop = CodeTheme.colors.background
+    return remember(backdrop) {
+        HazeBlurStyle {
+            blurRadius(32.dp)
+            backgroundColor(backdrop)
+            colorEffects(listOf(HazeColorEffect.tint(backdrop.copy(alpha = 0.72f))))
         }
     }
 }
@@ -156,8 +206,11 @@ private sealed interface GridRow {
 @Composable
 private fun EmojiGrid(
     sections: List<EmojiPickerModel.Section>,
+    tones: Map<String, List<String>>,
     query: String,
     gridState: LazyListState,
+    hazeState: HazeState,
+    glass: HazeBlurStyle,
     onSelected: (String) -> Unit,
 ) {
     // A LazyColumn of hand-chunked rows rather than LazyVerticalGrid: AllowSheetExpansionWhenScrollable
@@ -185,8 +238,17 @@ private fun EmojiGrid(
     }
 
     val showBar = query.isBlank() && sections.size > 1
-    val hazeState = rememberHazeState()
     val scope = rememberCoroutineScope()
+
+    // Sized in dp rather than sp: the grid is a fixed 7 columns, so a larger font scale would only
+    // crowd the cells, and one shared style keeps each cell from resolving its own.
+    val density = LocalDensity.current
+    val emojiStyle = remember(density) { TextStyle(fontSize = with(density) { EMOJI_SIZE.toSp() }) }
+
+    // The emoji whose tone choice is open, if any.
+    var toneTarget by remember { mutableStateOf<String?>(null) }
+    val showTones = remember { { emoji: String -> toneTarget = emoji } }
+    val hideTones = remember { { toneTarget = null } }
 
     // A category chosen from the bar whose section the grid is still scrolling to — the indicator
     // holds on it so it doesn't pass through every category the grid scrolls over on the way
@@ -221,18 +283,23 @@ private fun EmojiGrid(
             modifier = Modifier
                 .fillMaxSize()
                 .onSizeChanged { gridHeightPx = it.height }
+                .fadeUnderSearchField(CodeTheme.colors.surface)
                 .hazeSource(hazeState),
             contentPadding = PaddingValues(
-                top = 4.dp,
+                top = SEARCH_FIELD_INSET,
                 bottom = if (showBar) CATEGORY_BAR_HEIGHT + 24.dp else 16.dp,
             ),
         ) {
-            items(rows, key = { row ->
-                when (row) {
-                    is GridRow.Header -> "header-${row.sectionId}"
-                    is GridRow.Emojis -> "row-${row.sectionId}-${row.entries.first().emoji}"
-                }
-            }) { row ->
+            items(
+                rows,
+                key = { row ->
+                    when (row) {
+                        is GridRow.Header -> "header-${row.sectionId}"
+                        is GridRow.Emojis -> "row-${row.sectionId}-${row.entries.first().emoji}"
+                    }
+                },
+                contentType = { row -> if (row is GridRow.Header) HEADER_CONTENT else ROW_CONTENT },
+            ) { row ->
                 when (row) {
                     is GridRow.Header -> {
                         Text(
@@ -254,7 +321,15 @@ private fun EmojiGrid(
                                 .padding(bottom = 12.dp),
                         ) {
                             for (entry in row.entries) {
-                                EmojiCell(entry = entry, onSelected = onSelected)
+                                EmojiCell(
+                                    entry = entry,
+                                    tones = tones[entry.emoji],
+                                    showingTones = toneTarget == entry.emoji,
+                                    style = emojiStyle,
+                                    onSelected = onSelected,
+                                    onShowTones = showTones,
+                                    onHideTones = hideTones,
+                                )
                             }
                             repeat(COLUMNS - row.entries.size) {
                                 Box(modifier = Modifier.weight(1f))
@@ -270,6 +345,7 @@ private fun EmojiGrid(
                 sections = sections,
                 selected = selectedCategory,
                 hazeState = hazeState,
+                glass = glass,
                 onSelect = { id ->
                     pendingCategory = id
                     val index = sectionStartIndex[id] ?: return@CategoryBar
@@ -289,24 +365,132 @@ private fun EmojiGrid(
     }
 }
 
+/**
+ * One grid cell. `combinedClickable` with no interaction source is a plain modifier node that
+ * creates its source only once pressed; the composed `unboundedClickable` it replaces remembered a
+ * source and a ripple in each of the ~50 cells on screen, on every row the fling brought in.
+ */
 @Composable
-private fun RowScope.EmojiCell(entry: EmojiCatalogEntry, onSelected: (String) -> Unit) {
+private fun RowScope.EmojiCell(
+    entry: EmojiCatalogEntry,
+    tones: List<String>?,
+    showingTones: Boolean,
+    style: TextStyle,
+    onSelected: (String) -> Unit,
+    onShowTones: (String) -> Unit,
+    onHideTones: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .weight(1f)
             .heightIn(min = 41.dp)
-            .unboundedClickable { onSelected(entry.emoji) }
+            .combinedClickable(
+                interactionSource = null,
+                indication = CellRipple,
+                onLongClickLabel = if (tones != null) stringResource(R.string.action_chooseSkinTone) else null,
+                onLongClick = if (tones != null) {
+                    { onShowTones(entry.emoji) }
+                } else {
+                    null
+                },
+                onClick = { onSelected(entry.emoji) },
+            )
             .semantics { contentDescription = entry.name },
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = entry.emoji, fontSize = 34.sp)
+        BasicText(text = entry.emoji, style = style)
+        if (showingTones && tones != null) {
+            TonePicker(
+                tones = tones,
+                style = style,
+                onSelected = { tone ->
+                    onHideTones()
+                    onSelected(tone)
+                },
+                onDismiss = onHideTones,
+            )
+        }
     }
 }
 
+private val CellRipple = ripple(bounded = false, radius = 24.dp)
+
+/**
+ * The skin tones a long-press offers, in a popup above the pressed cell (below it when there's no
+ * room above): the base, then each tone. Five tones fit one row with the base; the 25 of a
+ * two-person emoji go in rows of five under it.
+ */
+@Composable
+private fun TonePicker(
+    tones: List<String>,
+    style: TextStyle,
+    onSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val density = LocalDensity.current
+    val provider = remember(density) {
+        TonePickerPosition(
+            gap = with(density) { 8.dp.roundToPx() },
+            margin = with(density) { 8.dp.roundToPx() },
+        )
+    }
+    val rows = remember(tones) {
+        if (tones.size <= TONE_ROW + 1) listOf(tones) else listOf(tones.take(1)) + tones.drop(1).chunked(TONE_ROW)
+    }
+    Popup(
+        popupPositionProvider = provider,
+        onDismissRequest = onDismiss,
+        properties = PopupProperties(focusable = true),
+    ) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(22.dp))
+                .background(ToneSurface)
+                .padding(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            for (row in rows) {
+                Row {
+                    for (tone in row) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable { onSelected(tone) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(text = tone, style = style)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Centred over the anchor, [gap] above it (below when it won't fit), never within [margin] of the window's edges. */
+private class TonePickerPosition(private val gap: Int, private val margin: Int) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val x = (anchorBounds.center.x - popupContentSize.width / 2)
+            .coerceIn(margin, (windowSize.width - popupContentSize.width - margin).coerceAtLeast(margin))
+        val above = anchorBounds.top - gap - popupContentSize.height
+        val y = if (above >= margin) above else anchorBounds.bottom + gap
+        return IntOffset(x, y)
+    }
+}
+
+/** The quick reaction strip's surface, so the two long-press popups match. */
+private val ToneSurface = Color(0xFF303030)
+private const val TONE_ROW = 5
+
 /**
  * The floating jump bar to each category, a glass capsule over the grid (node 9768:1624), frosted
- * with a Haze blur of the grid scrolling beneath it — Android's analogue of iOS's `.glassEffect`
- * (see [com.flipcash.app.core.ui.NavigationBar] for the same pattern). The selected category sits on
+ * with [rememberLiquidGlass] like the search field. The selected category sits on
  * its own capsule indicator, which springs between slots. As on iOS, the indicator can be pressed and
  * dragged across the bar; [onSelect] fires only once it's let go over a category, so a plain tap is
  * the same gesture with no travel.
@@ -316,15 +500,10 @@ private fun CategoryBar(
     sections: List<EmojiPickerModel.Section>,
     selected: String?,
     hazeState: HazeState,
+    glass: HazeBlurStyle,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val backdrop = CodeTheme.colors.background
-    val liquidGlass = HazeBlurStyle {
-        blurRadius(32.dp)
-        backgroundColor(backdrop)
-        colorEffects(listOf(HazeColorEffect.tint(backdrop.copy(alpha = 0.72f))))
-    }
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
     val selectedIndex = sections.indexOfFirst { it.id == selected }.coerceAtLeast(0)
@@ -338,7 +517,7 @@ private fun CategoryBar(
             .padding(horizontal = 30.dp)
             .height(CATEGORY_BAR_HEIGHT)
             .clip(CircleShape)
-            .hazeBlur(HazeInput.Sources(hazeState), liquidGlass),
+            .hazeBlur(HazeInput.Sources(hazeState), glass),
     ) {
         BoxWithConstraints(
             modifier = Modifier
@@ -437,12 +616,62 @@ private val CATEGORY_BAR_HEIGHT = 45.dp
 private val CATEGORY_BAR_BOTTOM_GAP = 4.dp
 private val INDICATOR_HEIGHT = 38.dp
 
+private val SEARCH_FIELD_TOP = 16.dp
+private val SEARCH_FIELD_HEIGHT = 44.dp
+
+/** Where the grid's first row starts: under the floating search field, with a 12dp gap. */
+private val SEARCH_FIELD_INSET = SEARCH_FIELD_TOP + SEARCH_FIELD_HEIGHT + 12.dp
+
+/** How far the grid takes to fade in. It ends where the first row rests, so nothing is dimmed at rest. */
+private val FADE_LENGTH = 32.dp
+
+private val EMOJI_SIZE = 34.dp
+
+private const val HEADER_CONTENT = "header"
+private const val ROW_CONTENT = "row"
+
+/**
+ * Fades the grid out towards the top, so an emoji scrolling up dissolves as it passes under the
+ * search field instead of being cut by the capsule's bottom edge — Android's stand-in for iOS's soft
+ * scroll edge. Clear at [SEARCH_FIELD_INSET], where the first row rests, [surface] at full strength
+ * [FADE_LENGTH] above it and everything above that, eased with [ChatTopEdge]'s ramp.
+ *
+ * A scrim in the sheet's own colour rather than a `DstIn` alpha mask: the sheet is an opaque
+ * [surface], so the two look the same, but the mask needs an offscreen layer the size of the whole
+ * grid, re-rendered on every scrolled frame, where the scrim draws one strip.
+ *
+ * Applied outside [hazeSource], so the field's blur still samples the emoji at full strength.
+ */
+private fun Modifier.fadeUnderSearchField(surface: Color): Modifier = drawWithCache {
+    val end = SEARCH_FIELD_INSET.toPx()
+    val start = end - FADE_LENGTH.toPx()
+    val stops = Array(ChatTopEdge.RampSamples.size) { index ->
+        val t = ChatTopEdge.RampSamples[index]
+        ((start + t * (end - start)) / end) to surface.copy(alpha = 1f - ChatTopEdge.eased(t))
+    }
+    val scrim = Brush.verticalGradient(colorStops = stops, startY = 0f, endY = end)
+    onDrawWithContent {
+        drawContent()
+        drawRect(brush = scrim, size = Size(size.width, end))
+    }
+}
+
+/**
+ * The search capsule, frosted with the same glass as the category bar. The dark fill over the blur
+ * is the field's look at rest, when nothing is under it yet.
+ */
 @Composable
-private fun SearchField(state: TextFieldState, modifier: Modifier = Modifier) {
+private fun SearchField(
+    state: TextFieldState,
+    hazeState: HazeState,
+    glass: HazeBlurStyle,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier
-            .height(44.dp)
+            .height(SEARCH_FIELD_HEIGHT)
             .clip(CircleShape)
+            .hazeBlur(HazeInput.Sources(hazeState), glass)
             .background(Color.Black.copy(alpha = 0.26f))
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

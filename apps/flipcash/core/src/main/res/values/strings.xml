@@ -1012,6 +1012,7 @@
     <string name="title_reactorsSheet">Reactions</string>
     <string name="hint_searchEmoji">Search</string>
     <string name="action_clearEmojiSearch">Clear search</string>
+    <string name="action_chooseSkinTone">Choose skin tone</string>
     <string name="action_addReaction">Add reaction</string>
 
     <string name="label_unknownContact">Unknown Contact</string>
