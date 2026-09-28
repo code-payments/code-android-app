@@ -47,6 +47,7 @@ fun ChatQuotePanel(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
 ) {
     val accent = quote.accent ?: CodeTheme.colors.tertiary
     val name = quote.nameAccent ?: accent
@@ -64,7 +65,10 @@ fun ChatQuotePanel(
             .addIf(onClick != null || onLongClick != null) {
                 Modifier.combinedClickable(
                     onLongClick = onLongClick,
+                    onDoubleClick = onDoubleClick,
                     onClick = { onClick?.invoke() },
+                    // The row's select plays the tick; a second, platform haptic doubles it.
+                    hapticFeedbackEnabled = false,
                 )
             }
             .height(IntrinsicSize.Min),

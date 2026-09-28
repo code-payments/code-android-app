@@ -51,7 +51,10 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
@@ -60,17 +63,34 @@ import kotlinx.coroutines.launch
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 // Sizes from the iOS strip (node 9779:105563).
-private val StripHeight = 55.dp
+private val StripHeight = QuickReactionStripPlacement.StripHeight
 private val StripMaxWidth = 313.dp
 private val ItemSize = 40.dp
 private val ItemSpacing = 4.dp
 private val Inset = 8.dp
-private val AddSize = 38.dp
+private val AddSize = ItemSize
 
-/** How far the fade reaches ahead of the "+" before the row draws fully. */
-private val FadeLead = 28.dp
+/**
+ * How far the leading fade reaches in from the strip's edge while the row can scroll back, and how
+ * much scroll either fade takes to grow in. Either side draws solid when there's nothing more that
+ * way.
+ */
+private val EdgeFade = 20.dp
+
+/**
+ * The trailing fade, while the row can scroll on: from the middle of the "+" to where its circle is
+ * last as tall as an emoji. Past that the circle curves in, and an emoji still showing there would
+ * poke out above and below it, so everything from there to the strip's end is hidden.
+ */
+private val TrailingFade = 14.dp
 
 /** Gap between one emoji starting to pop in and the next, as in the iOS strip's entrance. */
 private const val ItemStaggerMillis = 18L
@@ -82,6 +102,13 @@ private val PopSpring = spring<Float>(dampingRatio = 0.65f, stiffness = 1200f)
 /** iOS's pre-glass strip surface. */
 private val StripSurface = Color(0xFF303030)
 
+/** The "+"'s frost over the emoji passing under it: a blur tinted back toward the strip. */
+private val PlusGlass = HazeBlurStyle {
+    blurRadius(12.dp)
+    backgroundColor(StripSurface)
+    colorEffects(listOf(HazeColorEffect.tint(StripSurface.copy(alpha = 0.6f))))
+}
+
 /**
  * The strip a long-press on a reactable, selected bubble shows beside it: up to the 12 entries
  * [ReactionStripComposer][com.flipcash.shared.chat.reactions.ReactionStripComposer] composed,
@@ -89,8 +116,10 @@ private val StripSurface = Color(0xFF303030)
  * A tap on an entry both toggles the reaction and clears the selection — [onToggle] is the one
  * signal for both.
  *
- * The capsule grows to fit its entries up to 313dp; past that the emoji scroll under the "+",
- * fading out ahead of it.
+ * The capsule grows to fit its entries up to 313dp; past that the emoji scroll under the "+", which
+ * frosts them with a blur of what passes beneath it. Each end of the strip fades only while there's
+ * more to scroll that way, growing in over the first [EdgeFade] of travel so the fade doesn't snap on
+ * at the first pixel.
  *
  * It enters as iOS's does: the capsule widens out of the side it hugs ([growsFromEnd] for the
  * trailing side), the "+" riding its growing edge, and the emoji pop in one after another from
@@ -142,31 +171,43 @@ fun QuickReactionStrip(
         contentAlignment = Alignment.CenterEnd,
     ) {
         val density = LocalDensity.current
+        val scroll = rememberScrollState()
+        val haze = rememberHazeState()
         Row(
             modifier = Modifier
                 .fillMaxHeight()
+                .hazeSource(haze)
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                 .drawWithContent {
                     drawContent()
-                    val width = size.width
-                    val inset = Inset.toPx()
-                    val solidUntil = width - inset - AddSize.toPx() - FadeLead.toPx()
-                    val clearFrom = width - inset - AddSize.toPx() / 2
-                    drawRect(
-                        brush = Brush.horizontalGradient(
-                            0f to Color.Transparent,
-                            (inset / width) to Color.Black,
-                            (solidUntil / width).coerceAtLeast(inset / width) to Color.Black,
-                            (clearFrom / width) to Color.Transparent,
-                            1f to Color.Transparent,
-                        ),
-                        blendMode = BlendMode.DstIn,
+                    val fade = EdgeFade.toPx()
+                    val stops = edgeFadeStops(
+                        width = size.width,
+                        leadingFade = fade,
+                        trailingFade = TrailingFade.toPx(),
+                        trailingInset = (Inset + AddSize / 2 - TrailingFade).toPx(),
+                        leading = if (scroll.canScrollBackward) (scroll.value / fade).coerceIn(0f, 1f) else 0f,
+                        trailing = if (scroll.canScrollForward) {
+                            ((scroll.maxValue - scroll.value) / fade).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        },
+                        rtl = layoutDirection == LayoutDirection.Rtl,
                     )
+                    if (stops.isNotEmpty()) {
+                        drawRect(
+                            brush = Brush.horizontalGradient(
+                                *stops.map { (at, alpha) -> at to Color.Black.copy(alpha = alpha) }
+                                    .toTypedArray(),
+                            ),
+                            blendMode = BlendMode.DstIn,
+                        )
+                    }
                 }
                 .testTag("quick_reaction_scroll")
-                .horizontalScroll(rememberScrollState())
-                // Room to bring the last emoji out from under the "+" and its fade.
-                .padding(start = Inset, end = Inset + AddSize + FadeLead),
+                .horizontalScroll(scroll)
+                // Room to bring the last emoji out from under the "+", one spacing short of it.
+                .padding(start = Inset, end = Inset + AddSize + ItemSpacing),
             horizontalArrangement = Arrangement.spacedBy(ItemSpacing),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -184,10 +225,17 @@ fun QuickReactionStrip(
                         .size(ItemSize)
                         .clip(CircleShape)
                         .background(if (entry.highlighted) Color.White.copy(alpha = 0.18f) else Color.Transparent)
-                        .combinedClickable(onClick = { onToggle(entry.emoji) }, onLongClick = {}),
+                        // A long-press does nothing here, so it plays no haptic either.
+                        .combinedClickable(
+                            onClick = { onToggle(entry.emoji) },
+                            onLongClick = {},
+                            hapticFeedbackEnabled = false,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(text = entry.emoji, fontSize = with(density) { 28.dp.toSp() })
+                    // The line box trimmed to the glyph, so the circle centers the emoji rather than
+                    // the font's ascent and descent around it.
+                    Text(text = entry.emoji, style = with(density) { emojiStyle(28.dp.toSp()) })
                 }
             }
         }
@@ -206,8 +254,11 @@ fun QuickReactionStrip(
                 .semantics { contentDescription = "More reactions" }
                 .size(AddSize)
                 .clip(CircleShape)
+                // The emoji scroll on under the "+" and show through it frosted, rather than being
+                // cut off at its edge.
+                .hazeBlur(HazeInput.Sources(haze), PlusGlass)
                 .background(Color.White.copy(alpha = 0.18f))
-                .combinedClickable(onClick = onOpenPicker, onLongClick = {}),
+                .combinedClickable(onClick = onOpenPicker, onLongClick = {}, hapticFeedbackEnabled = false),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -222,9 +273,9 @@ fun QuickReactionStrip(
 
 /**
  * [QuickReactionStrip] in a popup placed against [bubbleBounds], the bubble as drawn in the window
- * (lift included), falling back to the layout it sits in until that's measured. Placed the way
- * iOS places it: above the bubble with a 16dp gap (below when there's no room under [minTop]),
- * hugging the sender's side, and never within 16dp of the window's edges.
+ * (lift included), falling back to the layout it sits in until that's measured. Placed above the
+ * bubble with a 16dp gap, hugging the sender's side, and never within 16dp of the window's edges.
+ * The transcript scrolls the bubble down to make that room — see [QuickReactionStripPlacement].
  */
 @Composable
 fun QuickReactionStripPopup(
@@ -252,7 +303,7 @@ fun QuickReactionStripPopup(
                     strip = popupContentSize,
                     hugsTrailing = hugsTrailing,
                     margin = 16.dp.roundToPx(),
-                    gap = 16.dp.roundToPx(),
+                    gap = QuickReactionStripPlacement.Gap.roundToPx(),
                     minTop = minTop.roundToPx(),
                 )
             }
@@ -288,8 +339,61 @@ private class RevealCapsule(
     }
 }
 
+/**
+ * The mask [QuickReactionStrip] draws over its scrolling row, as (fraction of [width], alpha) stops
+ * left to right, or empty when neither end fades. [leading] and [trailing] are each end's strength,
+ * 0 to 1. The leading fade runs [leadingFade] in from its edge. The trailing one runs [trailingFade]
+ * and ends [trailingInset] short of the edge, which stays hidden to the same strength. Mirrored for
+ * [rtl], where the leading edge is the right one.
+ */
+internal fun edgeFadeStops(
+    width: Float,
+    leadingFade: Float,
+    trailingFade: Float,
+    trailingInset: Float,
+    leading: Float,
+    trailing: Float,
+    rtl: Boolean,
+): List<Pair<Float, Float>> {
+    if (width <= 0f || (leading <= 0f && trailing <= 0f)) return emptyList()
+    val solidFrom = (leadingFade / width).coerceIn(0f, 1f)
+    val clear = (1f - trailingInset / width).coerceIn(solidFrom, 1f)
+    val solidUntil = (clear - trailingFade / width).coerceIn(solidFrom, clear)
+    val stops = listOf(
+        0f to 1f - leading,
+        solidFrom to 1f,
+        solidUntil to 1f,
+        clear to 1f - trailing,
+        1f to 1f - trailing,
+    )
+    return if (rtl) stops.reversed().map { (at, alpha) -> (1f - at) to alpha } else stops
+}
+
+/** An emoji's text style with the line box trimmed to [size], which centers the glyph in its box. */
+private fun emojiStyle(size: TextUnit) = TextStyle(
+    fontSize = size,
+    lineHeight = size,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.Both,
+    ),
+    platformStyle = PlatformTextStyle(includeFontPadding = false),
+)
+
 /** Where [QuickReactionStripPopup] puts the strip, in window pixels. */
 object QuickReactionStripPlacement {
+    /** The strip's height, which the transcript makes room for above a bubble it lifts. */
+    val StripHeight = 55.dp
+
+    /** Between the strip and the bubble under it. */
+    val Gap = 16.dp
+
+    /**
+     * Above the bubble, [gap] clear of it. A bubble that sits too high for that is scrolled down by
+     * the transcript, and until it gets there the strip waits at [minTop] rather than flipping
+     * below and back. Only a bubble too tall to leave room for the strip on screen at all gets the
+     * strip under it.
+     */
     fun position(
         anchor: IntRect,
         window: IntSize,
@@ -306,13 +410,15 @@ object QuickReactionStripPlacement {
         }
         val x = hugged.coerceIn(margin, maxOf(margin, window.width - margin - strip.width))
         val above = anchor.top - gap - strip.height
-        val y = if (above >= minTop) above else anchor.bottom + gap
+        val tooTall = anchor.height > window.height - minTop - gap - strip.height
+        val y = if (tooTall && above < minTop) anchor.bottom + gap else above
         return IntOffset(x, y.coerceIn(minTop, maxOf(minTop, window.height - strip.height)))
     }
 
     /**
      * The anchor for a message drawn as several rows -- one split around its link card -- so the
-     * strip sits above the top row, or below the bottom one, rather than between two of them.
+     * strip sits above the top row, or below the bottom one of a message too tall for that, rather
+     * than between two of them.
      * `null` until a row has been measured.
      */
     fun messageBounds(rows: Collection<IntRect>): IntRect? = rows.reduceOrNull { union, row ->

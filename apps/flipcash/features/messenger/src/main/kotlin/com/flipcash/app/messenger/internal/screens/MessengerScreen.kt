@@ -1,6 +1,10 @@
 package com.flipcash.app.messenger.internal.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
@@ -10,6 +14,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
@@ -154,6 +162,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.ToggleMessageSelection(action.bubble))
             }
 
+            is ChatAction.PresentReactionStrip -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.PresentReactionStrip(action.bubble))
+            }
+
             ChatAction.ClearSelection -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
             }
@@ -273,12 +285,43 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             )
         },
         bottomBar = {
-            UserControlBottomBar(
-                state = state,
-                hazeState = hazeState,
-                onAction = chatActionHandler,
-                dispatch = viewModel::dispatchEvent,
+            // Behind the backdrop with the transcript while a message is raised, dimmed and blurred
+            // as its rows are, and a tap on it dismisses the selection as a tap on them does. An
+            // edit raises a message too, but it is the composer doing the editing, so it stays sharp.
+            val behindBackdrop = state.selection != null && state.editing == null
+            val dimAlpha by animateFloatAsState(
+                targetValue = if (behindBackdrop) 0.4f else 1f,
+                label = "composerDim",
             )
+            val dimBlur by animateDpAsState(
+                targetValue = if (behindBackdrop) 8.dp else 0.dp,
+                label = "composerBlur",
+            )
+            Box {
+                Box(
+                    modifier = Modifier
+                        .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
+                        .graphicsLayer { alpha = dimAlpha },
+                ) {
+                    UserControlBottomBar(
+                        state = state,
+                        hazeState = hazeState,
+                        onAction = chatActionHandler,
+                        dispatch = viewModel::dispatchEvent,
+                    )
+                }
+                if (behindBackdrop) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .pointerInput(Unit) {
+                                detectTapGestures {
+                                    viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
+                                }
+                            },
+                    )
+                }
+            }
         },
     ) { overlapPadding ->
         // The transcript and the info card go behind a blur together, because they are one surface

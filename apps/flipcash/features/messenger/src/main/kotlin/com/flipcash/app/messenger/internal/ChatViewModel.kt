@@ -281,6 +281,11 @@ internal class ChatViewModel @Inject constructor(
          * its actions disabled.
          */
         val selection: ChatListItem.ContentBubble? = null,
+        /**
+         * Whether [selection] was made by a double tap, which presents only the quick reaction strip:
+         * the lift and backdrop without the selection bar. Only meaningful while [selection] is set.
+         */
+        val reactionStripOnly: Boolean = false,
         /** The message the composer is editing, or `null` when it is composing a new one. */
         val editing: EditingMessage? = null,
         /**
@@ -603,6 +608,12 @@ internal class ChatViewModel @Inject constructor(
 
         /** Selects [bubble], or leaves selection mode if it is already the selected one. */
         data class ToggleMessageSelection(val bubble: ChatListItem.ContentBubble) : Event
+
+        /**
+         * Selects [bubble] for the quick reaction strip alone, as a double tap does; nothing when it
+         * can't take a reaction once narrowed to what is open now.
+         */
+        data class PresentReactionStrip(val bubble: ChatListItem.ContentBubble) : Event
         data object ClearMessageSelection : Event
 
         // The message actions carry what they act on rather than reading it back off the selection:
@@ -2657,19 +2668,25 @@ internal class ChatViewModel @Inject constructor(
                     // By message rather than by row: a message split around its card is one
                     // selection whichever of its rows was pressed.
                     val alreadySelected = state.selection?.messageKey == event.bubble.messageKey
-                    // The transcript resolved this bubble when it was mapped, which may have been
-                    // well inside a window that has since closed. Narrow it again here so the bar
-                    // offers what is open now rather than what was open when the row was built.
-                    // The same goes for membership: a viewer who has left since keeps only what a
-                    // reader outside the group may do.
-                    val selected = event.bubble.takeUnless { alreadySelected }?.let { bubble ->
-                        val open = bubble.capabilities
-                            .withinWindows(bubble.timestamp, state.messagePolicy)
-                        bubble.copy(
-                            capabilities = if (state.isOutsideGroup) open.readOnly() else open,
-                        )
+                    // Narrowed again so the bar offers what is open now, not when the row was built.
+                    val selected = event.bubble.takeUnless { alreadySelected }?.narrowedFor(state)
+                    state.copy(
+                        selection = selected,
+                        reactionStripOnly = false,
+                        confirmingDelete = false,
+                    ).withQuickReactionStrip()
+                }
+                is Event.PresentReactionStrip -> { state ->
+                    val selected = event.bubble.narrowedFor(state).takeIf { it.canReact }
+                    if (selected == null) {
+                        state
+                    } else {
+                        state.copy(
+                            selection = selected,
+                            reactionStripOnly = true,
+                            confirmingDelete = false,
+                        ).withQuickReactionStrip()
                     }
-                    state.copy(selection = selected, confirmingDelete = false).withQuickReactionStrip()
                 }
                 Event.ClearMessageSelection -> { state ->
                     state.copy(selection = null, confirmingDelete = false).withQuickReactionStrip()
@@ -2751,6 +2768,17 @@ internal class ChatViewModel @Inject constructor(
                 }
             }
     }
+}
+
+/**
+ * This bubble with its capabilities narrowed to what is open now. The transcript resolved it when it
+ * was mapped, which may have been well inside a window that has since closed, so a selection offers
+ * what is open at the moment it is made. The same goes for membership: a viewer who has left since
+ * keeps only what a reader outside the group may do.
+ */
+private fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): ChatListItem.ContentBubble {
+    val open = capabilities.withinWindows(timestamp, state.messagePolicy)
+    return copy(capabilities = if (state.isOutsideGroup) open.readOnly() else open)
 }
 
 /**

@@ -7,6 +7,7 @@ import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.reactions.SelfReaction
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -113,5 +114,40 @@ class ChatReactionsReducerTest {
         val state = reduce(selected, ChatViewModel.Event.SelectionReactionsChanged(2, listOf(squid)))
 
         assertEquals(selected, state)
+    }
+
+    @Test
+    fun `a double tap selects the bubble for the strip alone`() {
+        val state = reduce(
+            ChatViewModel.State(messagePolicy = unbounded, quickReactionInputs = inputs),
+            ChatViewModel.Event.PresentReactionStrip(bubble(1)),
+        )
+
+        assertEquals(1L, state.selection?.messageId)
+        assertTrue(state.reactionStripOnly)
+        assertTrue(state.quickReactionStrip.isNotEmpty())
+    }
+
+    @Test
+    fun `a double tap on a message that can't be reacted to does nothing`() {
+        val before = ChatViewModel.State(messagePolicy = unbounded, quickReactionInputs = inputs)
+
+        val state = reduce(before, ChatViewModel.Event.PresentReactionStrip(bubble(1, canReact = false)))
+
+        assertEquals(before, state)
+    }
+
+    @Test
+    fun `a long-press after a double tap brings the selection bar back`() {
+        val stripOnly = reduce(
+            ChatViewModel.State(messagePolicy = unbounded, quickReactionInputs = inputs),
+            ChatViewModel.Event.PresentReactionStrip(bubble(1)),
+        )
+        val cleared = reduce(stripOnly, ChatViewModel.Event.ClearMessageSelection)
+
+        val selected = reduce(cleared, ChatViewModel.Event.ToggleMessageSelection(bubble(1)))
+
+        assertEquals(1L, selected.selection?.messageId)
+        assertFalse(selected.reactionStripOnly)
     }
 }

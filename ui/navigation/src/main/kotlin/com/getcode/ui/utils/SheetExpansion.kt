@@ -13,15 +13,19 @@ import androidx.compose.runtime.staticCompositionLocalOf
  *
  * A [com.getcode.navigation.HalfSheet] rests at half the screen, so content that fits in that half
  * is already showing everything it has; dragging up would only reveal empty space. The host
- * therefore withholds the expanded detent until content reports `true` here.
+ * therefore withholds the expanded detent until content reports `true` here, and keeps it from then
+ * on: content that fits once the sheet has grown reports `false`, and dropping the detent at that
+ * point would send the sheet back to the half where the content overflows again.
  */
 val LocalSheetExpansionState = staticCompositionLocalOf<(Boolean) -> Unit> { { } }
 
 /**
  * Reports the host sheet as expandable for as long as [scrollState] has content out of view.
  *
- * A list that can't scroll at the resting detent has nothing to gain from expanding. The report is
- * reset when the content leaves composition so the next sheet starts from its own measurement.
+ * A list that can't scroll at the resting detent has nothing to gain from expanding. Only a `true`
+ * report changes anything: the host keeps the expanded detent for the rest of the sheet's life once
+ * it has been offered, so the `false` this sends when the list fits, or leaves composition, is
+ * ignored.
  */
 @Composable
 fun AllowSheetExpansionWhenScrollable(scrollState: LazyListState) {

@@ -90,7 +90,8 @@ internal fun ChatTopBar(
         // would offer the profile and leave back as the only way out.
         val mode: TopBarMode = when {
             state.editing != null -> TopBarMode.Editing
-            state.selection != null -> TopBarMode.Selecting(state.selection)
+            // A double tap presents the strip alone, over the ordinary title bar.
+            state.selection != null && !state.reactionStripOnly -> TopBarMode.Selecting(state.selection)
             else -> TopBarMode.Conversation
         }
         AnimatedContent(

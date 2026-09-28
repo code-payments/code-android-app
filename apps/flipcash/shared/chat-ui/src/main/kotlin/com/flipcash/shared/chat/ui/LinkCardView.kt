@@ -100,6 +100,7 @@ internal fun LinkCardView(
     onClick: ((LinkCard) -> Unit)?,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
 ) {
     val live = rememberResolvedCard(card)
 
@@ -111,6 +112,7 @@ internal fun LinkCardView(
             modifier = modifier.semantics { linkCardShape = shape },
             shape = shape,
             onLongClick = onLongClick,
+            onDoubleClick = onDoubleClick,
         )
         return
     }
@@ -122,9 +124,12 @@ internal fun LinkCardView(
             modifier = modifier
                 .fillMaxWidth()
                 .semantics { linkCardShape = shape }
-                .addIf(onLongClick != null) {
-                    Modifier.pointerInput(onLongClick) {
-                        detectTapGestures(onLongPress = { onLongClick?.invoke() })
+                .addIf(onLongClick != null || onDoubleClick != null) {
+                    Modifier.pointerInput(onLongClick, onDoubleClick) {
+                        detectTapGestures(
+                            onLongPress = { onLongClick?.invoke() },
+                            onDoubleTap = onDoubleClick?.let { double -> { double() } },
+                        )
                     }
                 },
         ) {
@@ -155,7 +160,10 @@ internal fun LinkCardView(
                     .clip(shape)
                     .combinedClickable(
                         onLongClick = onLongClick,
+                        onDoubleClick = onDoubleClick,
                         onClick = { onClick?.invoke(live) },
+                        // The row's select plays the tick; a second, platform haptic doubles it.
+                        hapticFeedbackEnabled = false,
                     )
             },
     ) {

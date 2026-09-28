@@ -6,7 +6,7 @@ import androidx.compose.ui.unit.IntSize
 import org.junit.Test
 import kotlin.test.assertEquals
 
-/** [QuickReactionStripPlacement]: iOS's strip placement, beside the long-pressed bubble. */
+/** [QuickReactionStripPlacement]: the strip above the lifted bubble, hugging the sender's side. */
 class QuickReactionStripPlacementTest {
 
     private val window = IntSize(1000, 2000)
@@ -60,10 +60,29 @@ class QuickReactionStripPlacementTest {
     }
 
     @Test
-    fun `goes below the bubble when there is no room above`() {
+    fun `stays above a bubble that has no room yet, held at the top`() {
+        // The transcript scrolls the bubble down to make room; until then the strip waits at minTop
+        // rather than flipping below and back.
         assertEquals(
-            IntOffset(120, 600 + 40),
+            IntOffset(120, 300),
             place(IntRect(left = 120, top = 350, right = 500, bottom = 600), hugsTrailing = false),
+        )
+    }
+
+    @Test
+    fun `goes below a bubble too tall to leave room for it above`() {
+        // 2000 - 300 (minTop) - 40 (gap) - 100 (strip) = 1560 is the tallest bubble it can sit over.
+        assertEquals(
+            IntOffset(120, 1700 + 40),
+            place(IntRect(left = 120, top = 100, right = 500, bottom = 1700), hugsTrailing = false),
+        )
+    }
+
+    @Test
+    fun `a bubble exactly as tall as the room left keeps the strip above`() {
+        assertEquals(
+            IntOffset(120, 300),
+            place(IntRect(left = 120, top = 440, right = 500, bottom = 2000), hugsTrailing = false),
         )
     }
 
@@ -81,13 +100,13 @@ class QuickReactionStripPlacementTest {
     }
 
     @Test
-    fun `a split message with no room above puts the strip below its last row`() {
-        val text = IntRect(left = 120, top = 320, right = 400, bottom = 420)
-        val card = IntRect(left = 120, top = 440, right = 680, bottom = 900)
+    fun `a split message too tall for the strip above puts it below its last row`() {
+        val text = IntRect(left = 120, top = 200, right = 400, bottom = 300)
+        val card = IntRect(left = 120, top = 320, right = 680, bottom = 1800)
 
         val anchor = QuickReactionStripPlacement.messageBounds(listOf(text, card))!!
 
-        assertEquals(IntOffset(120, 900 + 40), place(anchor, hugsTrailing = false))
+        assertEquals(IntOffset(120, 1800 + 40), place(anchor, hugsTrailing = false))
     }
 
     @Test
