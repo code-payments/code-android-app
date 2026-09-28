@@ -54,7 +54,8 @@ import kotlinx.coroutines.launch
  */
 internal fun profileShortcutRecipient(
     participant: ChatParticipant?,
-    chatType: ChatType,
+    // Null when no chat is behind the profile, as for one a link opened.
+    chatType: ChatType?,
     selfId: ID?,
 ): ChatParticipant.TipUser? {
     if (chatType == ChatType.TIP_DM) return null

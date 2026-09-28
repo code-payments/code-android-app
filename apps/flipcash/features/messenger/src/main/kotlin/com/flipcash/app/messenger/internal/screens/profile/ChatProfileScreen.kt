@@ -33,6 +33,7 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.asSubject
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -72,15 +73,53 @@ internal fun ChatProfileScreen(
     chatViewModel: ChatViewModel,
 ) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
+
+    PersonProfileScreen(
+        viewModel = viewModel,
+        chat = ProfileChat(
+            chatId = chatState.chatId,
+            chatType = chatState.chatType,
+            viewerState = chatState.viewerState,
+        ),
+        cashSymbol = chatState.cashSymbol,
+        onBack = { flowNavigator.back() },
+    )
+}
+
+/**
+ * The conversation a person's profile was opened from, for the parts of the screen that act on the
+ * chat rather than the person: the mute row and the muted chip.
+ */
+internal data class ProfileChat(
+    val chatId: ChatId?,
+    val chatType: ChatType,
+    val viewerState: ViewerState?,
+)
+
+/**
+ * A person's profile, from a chat or from a link: the header, the shortcuts under it, and the
+ * Mute, Report and Block rows.
+ *
+ * [chat] is null when no conversation is behind the screen, as for a `flipcash.com` link. That
+ * leaves out the mute row and chip, which belong to a chat, and keeps the shortcuts, which a tip
+ * DM's profile hides. See [ChatProfileScreen] for the rules.
+ */
+@Composable
+internal fun PersonProfileScreen(
+    viewModel: ChatProfileViewModel,
+    chat: ProfileChat?,
+    cashSymbol: String,
+    onBack: () -> Unit,
+) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
-    val isTipDm = chatState.chatType == ChatType.TIP_DM
+    val isTipDm = chat?.chatType == ChatType.TIP_DM
     val share = rememberProfileShare()
 
     CodeScaffold(
         topBar = {
-            AppBarWithTitle(onBackIconClicked = { flowNavigator.back() })
+            AppBarWithTitle(onBackIconClicked = onBack)
         },
     ) { innerPadding ->
         MenuList(
@@ -100,20 +139,20 @@ internal fun ChatProfileScreen(
             header = {
                 val recipient = profileShortcutRecipient(
                     participant = state.participant,
-                    chatType = chatState.chatType,
+                    chatType = chat?.chatType,
                     selfId = state.selfId,
                 )
                 ProfileHeader(
                     participant = state.participant,
                     joinDate = state.joinDate,
                     // Only where the mute is this person's chat; see the KDoc above.
-                    viewerState = chatState.viewerState.takeIf { isTipDm },
+                    viewerState = chat?.viewerState?.takeIf { isTipDm },
                     // Not flowNavigator, for the reason Report isn't: the DM is a top-level route,
                     // so LocalCodeNavigator hands it up and it opens over this chat.
                     shortcuts = recipient?.let { user ->
                         {
                             ProfileShortcuts(
-                                cashSymbol = chatState.cashSymbol,
+                                cashSymbol = cashSymbol,
                                 onMessage = { navigator.push(user.dmRoute()) },
                                 onSendCash = { navigator.push(user.dmRoute(openSendCash = true)) },
                                 onShare = { share(user) },
@@ -148,8 +187,8 @@ internal fun ChatProfileScreen(
                     // navigates either way rather than acting on one of them here. The outer
                     // navigator, as with Report: the sheet is a top-level route shared with the
                     // chat list, so it opens over the chat rather than inside it.
-                    ChatProfileAction.Mute -> chatState.chatId?.let { chatId ->
-                        navigator.push(AppRoute.Messaging.MuteChat(chatId, chatState.chatType))
+                    ChatProfileAction.Mute -> chat?.chatId?.let { chatId ->
+                        navigator.push(AppRoute.Messaging.MuteChat(chatId, chat.chatType))
                     }
                     // Not flowNavigator: Report is a top-level route rather than a step of
                     // this flow, and LocalCodeNavigator hands a non-FlowStep route up to its

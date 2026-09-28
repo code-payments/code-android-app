@@ -2,7 +2,6 @@ package com.flipcash.app.messenger
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -15,39 +14,38 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.extensions.navigateAll
-import com.flipcash.app.messenger.internal.screens.profile.ProfileHeader
-import com.flipcash.app.messenger.internal.screens.profile.ProfileShortcuts
+import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
+import com.flipcash.app.messenger.internal.screens.profile.PersonProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ProfileViewModel
-import com.flipcash.app.messenger.internal.screens.profile.dmRoute
-import com.flipcash.app.messenger.internal.screens.profile.rememberProfileShare
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
 
 /**
- * Another person's profile behind `AppRoute.Messaging.Profile`: the header a chat profile shows,
- * with the Message and Share shortcuts under it, for someone the viewer reached by link rather than from a
- * conversation.
+ * Another person's profile behind `AppRoute.Messaging.Profile`, for someone the viewer reached by
+ * link rather than from a conversation.
  *
- * No rows below the header. Report, block and mute act on a person the viewer has a chat with,
- * and they are one tap away in the DM that Message opens.
+ * The same screen a chat's profile shows, with no chat behind it: [ProfileViewModel] turns the
+ * link's address into a person, then [ChatProfileViewModel] takes over as it does in a chat, which
+ * is what runs Block. With no chat there is no Mute row.
  */
 @Composable
 fun ProfileScreen(address: ProfileAddress) {
-    val viewModel = hiltViewModel<ProfileViewModel>()
+    val lookup = hiltViewModel<ProfileViewModel>()
+    val viewModel = hiltViewModel<ChatProfileViewModel>()
     val navigator = LocalCodeNavigator.current
-    val share = rememberProfileShare()
-    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val state by lookup.stateFlow.collectAsStateWithLifecycle()
 
-    LaunchedEffect(viewModel, address) {
-        viewModel.dispatchEvent(ProfileViewModel.Event.Load(address))
+    LaunchedEffect(lookup, address) {
+        lookup.dispatchEvent(ProfileViewModel.Event.Load(address))
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
+    LaunchedEffect(lookup) {
+        lookup.eventFlow
             .filter {
                 it is ProfileViewModel.Event.Unavailable || it is ProfileViewModel.Event.OwnProfile
             }
@@ -61,13 +59,26 @@ fun ProfileScreen(address: ProfileAddress) {
             }
     }
 
-    CodeScaffold(
-        topBar = {
-            AppBarWithTitle(onBackIconClicked = { navigator.pop() })
-        },
-    ) { innerPadding ->
-        val participant = state.participant
-        if (participant == null) {
+    LaunchedEffect(viewModel, state.participant) {
+        state.participant?.let {
+            viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(it))
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        // No chat to leave, as a DM's profile does after a block: back to wherever the link was
+        // opened from.
+        viewModel.eventFlow
+            .filterIsInstance<ChatProfileViewModel.Event.BlockSuccessful>()
+            .collect { navigator.pop() }
+    }
+
+    if (state.participant == null) {
+        CodeScaffold(
+            topBar = {
+                AppBarWithTitle(onBackIconClicked = { navigator.pop() })
+            },
+        ) { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -80,24 +91,13 @@ fun ProfileScreen(address: ProfileAddress) {
                     modifier = Modifier.size(CodeTheme.dimens.staticGrid.x8),
                 )
             }
-        } else {
-            ProfileHeader(
-                participant = participant,
-                joinDate = participant.profile.joinedAt,
-                shortcuts = {
-                    ProfileShortcuts(
-                        cashSymbol = state.cashSymbol,
-                        onMessage = { navigator.push(participant.dmRoute()) },
-                        onSendCash = { navigator.push(participant.dmRoute(openSendCash = true)) },
-                        onShare = { share(participant) },
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(innerPadding)
-                    // The chat profile's top inset, so the two read as the same screen.
-                    .padding(top = CodeTheme.dimens.grid.x7),
-            )
         }
+    } else {
+        PersonProfileScreen(
+            viewModel = viewModel,
+            chat = null,
+            cashSymbol = state.cashSymbol,
+            onBack = { navigator.pop() },
+        )
     }
 }
