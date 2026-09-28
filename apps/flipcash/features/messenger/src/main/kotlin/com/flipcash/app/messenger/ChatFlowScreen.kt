@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -19,9 +20,11 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.GroupInviteResult
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.messenger.internal.StartSendCashOnceReady
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
@@ -271,15 +274,36 @@ private fun FlowInitPaymentScreen() {
 private fun FlowGroupInviteSheet() {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val inviteViewModel = hiltViewModel<GroupInviteViewModel>()
+    val inviteState by inviteViewModel.state.collectAsStateWithLifecycle()
     // Same dismissal rule as the other sheets in this flow: exit through the sheet so it animates
     // down rather than having its scene deleted mid-frame.
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
 
+    LaunchedEffect(inviteViewModel, state.chatId) {
+        state.chatId?.let(inviteViewModel::inviteTo)
+    }
+
+    // Returned to whichever screen opened the sheet (see openGroupInvite), which navigates. The
+    // keyboard goes first: the message field has it up, and leaving with it still open drags the
+    // screen behind out from under it.
+    val keyboard = rememberKeyboardController()
+    val resultBack = resultBackNavigator<GroupInviteResult>(exit = dismissSheet)
+    LaunchedEffect(inviteViewModel) {
+        inviteViewModel.invited.collect { chatId ->
+            keyboard.hideIfVisible { resultBack.returnValue(GroupInviteResult(chatId)) }
+        }
+    }
+
     GroupInviteSheet(
         inviteUrl = state.groupInviteUrl,
         group = state.subject as? ChatSubject.Group,
+        state = inviteState,
         onShare = { viewModel.dispatchEvent(ChatViewModel.Event.InviteLinkShared) },
         onCopy = { viewModel.dispatchEvent(ChatViewModel.Event.CopyInviteLink) },
+        onToggle = inviteViewModel::toggle,
+        onMessageChanged = inviteViewModel::onMessageChanged,
+        onInvite = { state.groupInviteUrl?.let(inviteViewModel::invite) },
         onDismiss = dismissSheet,
     )
 }

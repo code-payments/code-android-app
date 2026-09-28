@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -83,10 +84,11 @@ fun TokenCard(
     displayName: String = token.name,
     appreciationText: String? = null,
     height: Dp = 224.dp,
+    // A chat's link card passes its bubble's outline, so the bill corners like the run around it.
+    shape: Shape = CodeTheme.shapes.medium,
     onClick: (() -> Unit)? = null,
 ) {
     val isUsdf = token.address == Mint.usdf
-    val shape = CodeTheme.shapes.medium
     val brush = remember(token.billCustomizations, isUsdf) {
         if (isUsdf) UsdfBrush else billCardBrush(token.billCustomizations)
     }

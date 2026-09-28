@@ -82,6 +82,18 @@ import com.getcode.ui.core.addIf
 enum class BubblePosition { Solo, First, Middle, Last }
 
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
+
+/**
+ * How wide a link card is drawn in a transcript whose rows are inset by [rowInset] on each side.
+ *
+ * The same fraction as a text bubble, but of the transcript's full width rather than of the inset
+ * row, which is how iOS sizes its link cards and its group's head card
+ * (`ChatViewController.maxBubbleWidthFraction`). Taken of the inset row, the cards came out about
+ * 30dp narrower than iOS's on the same screen.
+ */
+fun transcriptCardWidth(rowWidth: Dp, rowInset: Dp): Dp =
+    (rowWidth + rowInset * 2) * BUBBLE_MAX_WIDTH_FRACTION
+
 private val EDITED_MARKER_GAP = 6.dp
 private const val CASH_BUBBLE_MAX_WIDTH_FRACTION = 0.64f
 
@@ -106,7 +118,10 @@ fun ContentBubble(
     val actionHandler = LocalChatActionHandler.current
     val jumbo = remember(item) { item.rendersBareEmoji() }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val bubbleMaxWidth = when (item.content) {
+        val isCardRow = item.linkCard != null && item.part == MessagePart.Card
+        val bubbleMaxWidth = if (isCardRow) {
+            transcriptCardWidth(rowWidth = maxWidth, rowInset = CodeTheme.dimens.inset)
+        } else when (item.content) {
             is MessageContent.Text -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.Cash -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.Deleted -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
@@ -270,7 +285,8 @@ fun ChatListItem.ContentBubble.rendersBareEmoji(): Boolean {
 
 /**
  * Whether this row draws with no bubble behind it: a bare emoji, or the card row of a split
- * message. Either one breaks the bubble run and moves the "Edited" marker to the line under it.
+ * message. Either one moves the "Edited" marker to the line under it; only the emoji breaks the
+ * bubble run (see [groupsWith]).
  */
 fun ChatListItem.ContentBubble.rendersBare(): Boolean =
     part == MessagePart.Card || rendersBareEmoji()
@@ -522,9 +538,13 @@ internal const val JUMBO_EMOJI_TAG = "bubble_jumbo_emoji"
 /**
  * The card row of a split message, with no bubble behind it.
  *
- * Everything the bubble would have contributed is already the card's: the fill, the rounded corners
- * and the tap. What is not the card's is the flash a jump leaves on the message it landed on, which
- * belongs to the transcript rather than to the bubble -- so this goes through [Bubble] as the jumbo
+ * Everything the bubble would have contributed is already the card's: the fill, the corners and the
+ * tap. The corners are still the bubble's -- [bubbleShape] at this row's [position] -- handed to the
+ * card so its frame, its pieces and its border all follow them, and it squares off against its
+ * neighbours in a run the way a text bubble does.
+ *
+ * What is not the card's is the flash a jump leaves on the message it landed on, which belongs to
+ * the transcript rather than to the bubble -- so this goes through [Bubble] as the jumbo
  * emoji does, with `bare` dropping the fill and the horizontal inset and leaving the flash, the
  * width ceiling and the corner clip where every other bubble already gets them.
  *
@@ -546,11 +566,13 @@ private fun BareLinkCard(
     attention: () -> Float = { 0f },
 ) {
     val onCardClick = rememberLinkCardClick()
+    val shape = bubbleShape(position, isFromSelf)
     Bubble(
         isFromSelf = isFromSelf,
         position = position,
         maxWidth = maxWidth,
         modifier = modifier,
+        shape = shape,
         bare = true,
         // The card runs to the full width the bubble would have had, and to the full height. Its
         // own inset is inside its frame, so padding here would be a second one -- and with no fill
@@ -578,6 +600,7 @@ private fun BareLinkCard(
             LinkCardView(
                 card = card,
                 modifier = Modifier.addIf(card is LinkCard.User) { Modifier.fillMaxWidth() },
+                shape = shape,
                 // Dropped with the backdrop up, like every other target on the row.
                 onClick = if (interactive) onCardClick else null,
                 // The card takes the press for its own tap, so it has to hand the transcript's
@@ -775,6 +798,7 @@ private fun Bubble(
     horizontalPadding: Dp = BubbleDefaults.paddingHorizontal,
     verticalPadding: Dp = BubbleDefaults.paddingVertical,
     bare: Boolean = false,
+    shape: Shape = bubbleShape(position, isFromSelf),
     attention: () -> Float = { 0f },
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -783,7 +807,6 @@ private fun Bubble(
     } else {
         CodeTheme.colors.chat.incomingBubble
     }
-    val shape = bubbleShape(position, isFromSelf)
     Box(
         modifier = modifier
             .widthIn(min = minWidth, max = maxWidth)
@@ -826,7 +849,7 @@ private fun Bubble(
 }
 
 @Composable
-fun bubbleShape(position: BubblePosition, isFromSelf: Boolean): Shape {
+fun bubbleShape(position: BubblePosition, isFromSelf: Boolean): RoundedCornerShape {
     val l = BubbleDefaults.cornerLarge
     val s = BubbleDefaults.cornerSmall
 
@@ -874,10 +897,14 @@ private data class BubbleCorners(
 /**
  * Whether [item] tucks into the same run as the bubble [other] next to it.
  *
- * A bare emoji or a card row breaks the run on both sides. It draws no bubble, so there is no edge for its
+ * A bare emoji breaks the run on both sides. It draws no bubble, so there is no edge for its
  * neighbour to square itself against, and a squared corner facing open space reads as half a bubble
- * with the other half missing. Either side being bare is enough, so the message under an emoji
+ * with the other half missing. Either side being an emoji is enough, so the message under one
  * closes its top corners the same way the message above it closes its bottom ones.
+ *
+ * A card row does not break it. The card is drawn in the bubble's outline (see [BareLinkCard]), so
+ * it has the edge an emoji lacks, and an invite -- a card and then the note sent with it -- reads
+ * as one run rather than two unrelated messages.
  */
 private fun groupsWith(
     item: ChatListItem.ContentBubble,
@@ -886,8 +913,8 @@ private fun groupsWith(
 ): Boolean = other != null &&
         item.isSameAuthorAs(other) &&
         config.isGrouped(item.timestamp, other.timestamp) &&
-        !item.rendersBare() &&
-        !other.rendersBare()
+        !item.rendersBareEmoji() &&
+        !other.rendersBareEmoji()
 
 fun bubblePositionOf(
     index: Int,

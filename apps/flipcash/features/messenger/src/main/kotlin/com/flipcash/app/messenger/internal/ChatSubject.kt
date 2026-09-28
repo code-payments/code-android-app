@@ -5,6 +5,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.shared.chat.models.LinkCard
 
 /**
  * What the messenger screen is a conversation *with*.
@@ -155,4 +156,38 @@ internal data class RuleCurrency(
     /** The token to name in the requirement line, or `null` to state the amount alone. */
     val nameInRequirement: String?
         get() = name.takeUnless { isReserve }
+}
+
+/**
+ * The card an empty group shows in place of its info card: the same [LinkCard.GroupInvite] a
+ * transcript renders for an invite link, built from what this subject already knows rather than
+ * from a lookup, since a member looking at the empty group already has the chat's own record.
+ */
+internal fun ChatSubject.Group.toGroupInviteCard(
+    inviteUrl: String,
+    currencyName: String?,
+): LinkCard.GroupInvite {
+    val balance = rules.balanceRequirement()
+    val staffOnly = rules.requiresStaff()
+    val requirement = if (balance != null || staffOnly) {
+        LinkCard.GroupInvite.Requirement(
+            amount = balance?.amount?.formatted(),
+            currencyName = currencyName,
+            staffOnly = staffOnly,
+        )
+    } else {
+        null
+    }
+    return LinkCard.GroupInvite(
+        url = inviteUrl,
+        start = 0,
+        end = inviteUrl.length,
+        chatId = chatId,
+        state = LinkCard.GroupInvite.State.Resolved(
+            title = groupTitle?.takeIf { it.isNotBlank() },
+            picture = picture,
+            memberCount = memberCount,
+            requirement = requirement,
+        ),
+    )
 }

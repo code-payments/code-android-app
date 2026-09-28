@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,15 +64,21 @@ import com.getcode.ui.theme.CodeButton
  *
  * Nothing from the roster reaches here, so there are no member avatars and no member names, even as
  * a fallback title; an untitled group is named generically.
+ *
+ * Drawn in two places that want different things from the button, so [ctaLabel] and [onStart] come
+ * from the caller: a DM transcript's link card says "View" and opens the group, and the group's own
+ * empty state says "Invite People" and opens the invite sheet. [shape] is the transcript bubble's
+ * outline there, and the card's own radius where it stands alone.
  */
 @Composable
-internal fun GroupInviteLinkCard(
+fun GroupInviteLinkCard(
     card: LinkCard.GroupInvite,
     minHeight: Dp,
+    ctaLabel: String,
     onStart: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    shape: CornerBasedShape = GroupInviteCardDefaults.SHAPE,
 ) {
-    val shape = GroupInviteCardDefaults.SHAPE
     val state = card.state
 
     if (state is LinkCard.GroupInvite.State.Loading) {
@@ -124,11 +131,11 @@ internal fun GroupInviteLinkCard(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    start = CodeTheme.dimens.inset,
-                    end = CodeTheme.dimens.inset,
+                    start = GroupInviteCardDefaults.PADDING,
+                    end = GroupInviteCardDefaults.PADDING,
                     // The avatar's centre sits on the band's bottom edge.
                     top = GroupInviteCardDefaults.BAND_HEIGHT - GroupInviteCardDefaults.AVATAR / 2,
-                    bottom = CodeTheme.dimens.inset,
+                    bottom = GroupInviteCardDefaults.PADDING,
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -146,7 +153,7 @@ internal fun GroupInviteLinkCard(
                 )
 
                 Text(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+                    modifier = Modifier.padding(top = GroupInviteCardDefaults.TITLE_GAP),
                     text = title,
                     style = CodeTheme.typography.textLarge,
                     color = CodeTheme.colors.textMain,
@@ -179,7 +186,7 @@ internal fun GroupInviteLinkCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(GroupInviteCardDefaults.BUTTON_HEIGHT),
-                    text = stringResource(R.string.action_linkCard_startChatting),
+                    text = ctaLabel,
                     buttonState = ButtonState.Filled,
                     overrideContentPadding = true,
                     contentPadding = GroupInviteCardDefaults.NO_PADDING,
@@ -211,7 +218,7 @@ internal fun GroupInviteLinkCard(
 private fun RequirementLines(requirement: LinkCard.GroupInvite.Requirement) {
     requirement.amount?.let { amount ->
         Text(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+            modifier = Modifier.padding(top = GroupInviteCardDefaults.REQUIREMENT_GAP),
             text = if (requirement.currencyName != null) {
                 stringResource(R.string.label_chat_balanceRequirement, amount, requirement.currencyName)
             } else {
@@ -224,7 +231,7 @@ private fun RequirementLines(requirement: LinkCard.GroupInvite.Requirement) {
     }
     if (requirement.staffOnly) {
         Text(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+            modifier = Modifier.padding(top = GroupInviteCardDefaults.REQUIREMENT_GAP),
             text = stringResource(R.string.label_chat_staffRequirement),
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
@@ -233,30 +240,45 @@ private fun RequirementLines(requirement: LinkCard.GroupInvite.Requirement) {
     }
 }
 
-internal object GroupInviteCardDefaults {
+object GroupInviteCardDefaults {
     /** The group header card's radius. */
     val SHAPE = RoundedCornerShape(12.dp)
 
     /** The group header card's stroke: white at 10%. Also the avatar's ring. */
-    val STROKE = Color.White.copy(alpha = 0.1f)
+    internal val STROKE = Color.White.copy(alpha = 0.1f)
 
-    val BAND_HEIGHT = 46.dp
+    internal val BAND_HEIGHT = 46.dp
+
+    /**
+     * iOS's `GroupCardView.Layout`: the card's side and bottom padding, and the gaps above the
+     * title and the requirement. Fixed, not the theme's inset, which widens on larger phones and
+     * made the card taller than iOS's.
+     */
+    internal val PADDING = 12.dp
+    internal val TITLE_GAP = 13.dp
+    internal val REQUIREMENT_GAP = 11.dp
 
     /** Provisional, pending design sign-off. */
-    const val BAND_OPACITY = 0.28f
+    internal const val BAND_OPACITY = 0.28f
 
-    val AVATAR = 64.dp
+    internal val AVATAR = 64.dp
 
     /** Title to member count. */
-    val MEMBER_COUNT_GAP = 2.dp
+    internal val MEMBER_COUNT_GAP = 2.dp
 
     /** The least gap between the text and the button. */
-    val BUTTON_GAP = 16.dp
+    internal val BUTTON_GAP = 16.dp
 
     /** iOS's compact button height. Android has no compact style, so the standard one is sized. */
-    val BUTTON_HEIGHT = 44.dp
+    internal val BUTTON_HEIGHT = 44.dp
 
-    val NO_PADDING = PaddingValues(0.dp)
+    internal val NO_PADDING = PaddingValues(0.dp)
+
+    /**
+     * 224dp of card across 328dp of usable width, the wallet deck's proportions. The transcript
+     * measures an invite card at this; the group's empty state uses it so the two agree.
+     */
+    const val ASPECT = 224f / 328f
 }
 
 // region Previews
@@ -304,6 +326,7 @@ private fun PreviewCard(state: LinkCard.GroupInvite.State) {
         GroupInviteLinkCard(
             card = previewGroupCard(state),
             minHeight = 280.dp * 224f / 328f,
+            ctaLabel = "View",
             onStart = {},
         )
     }
