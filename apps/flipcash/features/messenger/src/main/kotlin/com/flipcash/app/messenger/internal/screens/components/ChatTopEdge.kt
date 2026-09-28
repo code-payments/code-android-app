@@ -93,10 +93,10 @@ internal object ChatTopEdge {
      * strength one pixel, already dropping the next — and those corners are what the eye picks out
      * as the edges of a band, however long the ramp between them is. This leaves and arrives flat.
      */
-    private fun eased(t: Float): Float = t * t * (3f - 2f * t)
+    fun eased(t: Float): Float = t * t * (3f - 2f * t)
 
     /** Fractions along a ramp at which to sample [eased], enough for the steps not to show. */
-    private val RampSamples = floatArrayOf(0f, 0.15f, 0.3f, 0.45f, 0.6f, 0.75f, 0.9f, 1f)
+    val RampSamples = floatArrayOf(0f, 0.15f, 0.3f, 0.45f, 0.6f, 0.75f, 0.9f, 1f)
 
     /**
      * Draws the fade behind the bar: opaque to [containerColor] behind the status bar, then a

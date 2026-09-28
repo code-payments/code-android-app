@@ -36,6 +36,10 @@ object EmojiPickerModel {
      * [undrawable] is filtered out of every section, including the Frequently Used row — a recent
      * pick this OS build can no longer render is worth dropping silently rather than showing a tofu
      * box for.
+     *
+     * Category and search sections show only base emoji; a skin-tone variant is reached by
+     * long-pressing its base (see [toneOptions]). The Frequently Used row is the exception: a tone
+     * the user picked is the one they reach for, so it stays as picked.
      */
     fun sections(
         catalog: EmojiCatalog,
@@ -44,11 +48,12 @@ object EmojiPickerModel {
         query: String,
     ): List<Section> {
         val drawable = catalog.entries.filter { it.emoji !in undrawable }
+        val bases = drawable.filterNot { it.skinTone }
         val trimmedQuery = query.trim()
 
         if (trimmedQuery.isNotEmpty()) {
             val needle = trimmedQuery.lowercase()
-            val matches = drawable.filter { entry ->
+            val matches = bases.filter { entry ->
                 entry.name.lowercase().contains(needle) ||
                     entry.keywords.any { it.lowercase().contains(needle) }
             }
@@ -68,10 +73,28 @@ object EmojiPickerModel {
             }
         }
         for (category in catalog.categories) {
-            val entries = drawable.filter { it.category == category }
+            val entries = bases.filter { it.category == category }
             if (entries.isEmpty()) continue
             sections += Section(id = category, title = category, entries = entries)
         }
         return sections
+    }
+
+    /**
+     * What a long-press on an emoji offers: the base first, then each skin-tone variant this device
+     * can draw, in catalog order. Keyed by the base and by every variant, so a tone in the
+     * Frequently Used row opens the same choice as its base. An emoji with no drawable variant has
+     * no entry.
+     */
+    fun toneOptions(catalog: EmojiCatalog, undrawable: Set<String>): Map<String, List<String>> {
+        val options = HashMap<String, List<String>>()
+        for ((base, variants) in catalog.skinToneVariants) {
+            if (base in undrawable) continue
+            val tones = variants.map { it.emoji }.filterNot { it in undrawable }
+            if (tones.isEmpty()) continue
+            val choice = listOf(base) + tones
+            for (emoji in choice) options[emoji] = choice
+        }
+        return options
     }
 }

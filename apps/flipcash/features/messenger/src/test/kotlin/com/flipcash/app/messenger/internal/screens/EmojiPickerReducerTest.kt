@@ -23,9 +23,9 @@ class EmojiPickerReducerTest {
 
     @Test
     fun `loaded sections replace the ones showing and keep the search field`() {
-        val first = reduce(EmojiPickerViewModel.State(), EmojiPickerViewModel.Event.SectionsLoaded(sections("all")))
+        val first = reduce(EmojiPickerViewModel.State(), EmojiPickerViewModel.Event.SectionsLoaded(sections("all"), tones = emptyMap()))
 
-        val second = reduce(first, EmojiPickerViewModel.Event.SectionsLoaded(sections("search")))
+        val second = reduce(first, EmojiPickerViewModel.Event.SectionsLoaded(sections("search"), tones = emptyMap()))
 
         assertEquals(sections("search"), second.sections)
         assertEquals(true, second.loaded)

@@ -28,10 +28,48 @@ data class EmojiCatalog(
         entries.groupBy { it.category }
     }
 
+    /**
+     * Each base emoji that has skin-tone variants, mapped to those variants in catalog order.
+     *
+     * The catalog lists variants inline (2,030 of its 3,944 entries) and says only that an entry is
+     * one, not which emoji it varies. Most are the base with tone modifiers added, so stripping the
+     * modifiers (and the U+FE0F presentation selector some bases carry and their variants drop)
+     * finds the base. The rest are two-person sequences whose base is a different code point, like
+     * 🫱🏻‍🫲🏼 for 🤝, and those name their base before the colon ("handshake: light skin tone, …").
+     * The name is only the fallback: "person: medium skin tone, beard" would otherwise group under
+     * 🧑 rather than 🧔.
+     */
+    val skinToneVariants: Map<String, List<EmojiCatalogEntry>> by lazy {
+        val bases = entries.filterNot { it.skinTone }
+        val byCodePoints = bases.associateBy { it.emoji.withoutToneOrPresentation() }
+        val byName = bases.associateBy { it.name }
+        val variants = LinkedHashMap<String, MutableList<EmojiCatalogEntry>>()
+        for (entry in entries) {
+            if (!entry.skinTone) continue
+            val base = byCodePoints[entry.emoji.withoutToneOrPresentation()]
+                ?: byName[entry.name.substringBefore(':')]
+                ?: continue
+            variants.getOrPut(base.emoji) { mutableListOf() } += entry
+        }
+        variants
+    }
+
     /** The first category's entries, the app-layer strip's fill source (decision 1). */
     val firstCategoryEntries: List<EmojiCatalogEntry>
         get() = categories.firstOrNull()?.let { byCategory[it] }.orEmpty()
 }
+
+private fun String.withoutToneOrPresentation(): String = buildString {
+    var i = 0
+    while (i < this@withoutToneOrPresentation.length) {
+        val codePoint = this@withoutToneOrPresentation.codePointAt(i)
+        if (codePoint !in SKIN_TONE_MODIFIERS && codePoint != VARIATION_SELECTOR_16) appendCodePoint(codePoint)
+        i += Character.charCount(codePoint)
+    }
+}
+
+private val SKIN_TONE_MODIFIERS = 0x1F3FB..0x1F3FF
+private const val VARIATION_SELECTOR_16 = 0xFE0F
 
 @Serializable
 private data class EmojiCatalogFile(
