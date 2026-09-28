@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.ui
 
+import android.os.SystemClock
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
@@ -16,12 +17,16 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,14 +40,18 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
@@ -50,22 +59,30 @@ import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.core.R
 import com.flipcash.shared.chat.reactions.ReactionPill
+import com.flipcash.shared.chat.reactions.ReactionSettler
 import com.getcode.theme.CodeTheme
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The N-more collapse the pill row uses under a bubble (decision 2): pack pills onto up to
@@ -188,6 +205,11 @@ object ReactionPillRowLayout {
  * rolls up or down, and the row's height follows. The pills showing when the row first composes
  * appear without animation, unless [animateInitialPills] says they're new — the caller passes it
  * for a row that composes because its message just got its first reaction.
+ *
+ * While the row is on screen a [ReactionSettler] decides what it shows: counts change live, but
+ * positions, joins, leaves and pill widths change on a once-a-second beat, a touch holds the row
+ * still, and for [ReactionSettler.HIT_GRACE_MS] after a beat changes the layout a tap lands on
+ * whatever was under it before. A row coming on screen shows [pills] in their sorted order.
  */
 @Composable
 fun ReactionPillRow(
@@ -203,10 +225,62 @@ fun ReactionPillRow(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    val clock = LocalPillRowClock.current
+    val settler = remember { ReactionSettler(pills, clock) }
+    var beat by remember { mutableIntStateOf(0) }
+    val settled = remember(pills, beat) {
+        settler.update(pills)
+        settler.shown
+    }
+    LaunchedEffect(settler, pills) {
+        while (settler.needsBeat) {
+            delay((settler.nextBeatAt - clock()).coerceAtLeast(0))
+            if (settler.settle()) beat++
+        }
+    }
+    val shown = settled.map { it.pill }
+    val countDigits = settled.associate { it.pill.emoji to it.countDigits }
+    val grace = remember { TapGrace(clock) }
+    val layoutBeat = beat
+
     val scope = rememberCoroutineScope()
-    val motion = remember { PillRowMotion(if (animateInitialPills) emptyList() else pills, canReact) }
-    val plusTarget = canReact && pills.isNotEmpty()
-    val rendered = remember(pills, plusTarget, motion.exitsFinished) { motion.update(pills, plusTarget) }
+    val motion = remember { PillRowMotion(if (animateInitialPills) emptyList() else shown, canReact) }
+    val plusTarget = canReact && shown.isNotEmpty()
+    val rendered = remember(shown, plusTarget, motion.exitsFinished) { motion.update(shown, plusTarget) }
+
+    val currentCanReact by rememberUpdatedState(canReact)
+    val currentOnToggle by rememberUpdatedState(onToggle)
+    val currentOnPillLongClick by rememberUpdatedState(onPillLongClick)
+    val currentOnOpenPicker by rememberUpdatedState(onOpenPicker)
+    // Watches every touch on the row before the pills see it: each one holds the beat, and one
+    // that lands during the tap grace on something the beat moved goes to what was there before.
+    val touches = Modifier.pointerInput(settler, grace) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            settler.touch()
+            val target = grace.redirect(down.position) ?: return@awaitEachGesture
+            down.consume()
+            val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                waitForUpOrCancellation(PointerEventPass.Initial)
+            }
+            if (up == null) {
+                // A long-press, or a cancel: only a pill has anything to do on a long-press.
+                if (target.key != null && target.key != PLUS_KEY && target.key != MORE_KEY) currentOnPillLongClick()
+                do {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    event.changes.forEach { it.consume() }
+                } while (event.changes.any { it.pressed })
+                return@awaitEachGesture
+            }
+            up.consume()
+            when (target.key) {
+                null -> Unit
+                PLUS_KEY -> if (currentCanReact) currentOnOpenPicker()
+                MORE_KEY -> expanded = true
+                else -> if (currentCanReact) currentOnToggle(target.key)
+            }
+        }
+    }
 
     val pillHeight = 28.dp
     val pillPadding = 10.dp
@@ -214,7 +288,7 @@ fun ReactionPillRow(
     val plusSize = 28.dp
     val topGap = 4.dp
 
-    SubcomposeLayout(modifier = modifier.animateHeightUnclipped()) { constraints ->
+    SubcomposeLayout(modifier = modifier.animateHeightUnclipped().then(touches)) { constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
         val spacingPx = spacingDp.roundToPx()
         val topGapPx = topGap.roundToPx()
@@ -230,6 +304,7 @@ fun ReactionPillRow(
                     ) { motionModifier ->
                         ReactionPillChip(
                             pill = item.pill,
+                            countDigits = countDigits[item.pill.emoji] ?: ReactionSettler.MIN_COUNT_DIGITS,
                             height = pillHeight,
                             horizontalPadding = pillPadding,
                             // A previewer (canReact == false) can still open the reactors sheet
@@ -336,12 +411,28 @@ fun ReactionPillRow(
             if (item.exiting) Item(item.pill.emoji, pillPlaceables[index]) else null
         } + listOfNotNull(plusPlaceable?.takeIf { rendered.plus?.exiting == true }?.let { Item(PLUS_KEY, it) })
 
+        val targets = placements.map { placement ->
+            val lineOffset = if (alignEnd) containerWidth - lineWidths[placement.line] else 0
+            IntOffset(placement.x + lineOffset, topGapPx + lineY[placement.line])
+        }
+        grace.laidOut(
+            placements.mapIndexed { index, placement ->
+                val at = targets[index]
+                // placeRelative mirrors in RTL, so the hit rects mirror with it.
+                val x = if (layoutDirection == LayoutDirection.Rtl) {
+                    containerWidth - at.x - placement.item.placeable.width
+                } else {
+                    at.x
+                }
+                placement.item.key to IntRect(x, at.y, x + placement.item.placeable.width, at.y + placement.item.placeable.height)
+            },
+            beat = layoutBeat,
+        )
+
         layout(containerWidth, totalHeight) {
             val placed = HashSet<String>()
-            for (placement in placements) {
-                val lineOffset = if (alignEnd) containerWidth - lineWidths[placement.line] else 0
-                val target = IntOffset(placement.x + lineOffset, topGapPx + lineY[placement.line])
-                placement.item.placeable.placeRelative(motion.slide(placement.item.key, target, scope))
+            placements.forEachIndexed { index, placement ->
+                placement.item.placeable.placeRelative(motion.slide(placement.item.key, targets[index], scope))
                 placed += placement.item.key
             }
             for (item in leaving) {
@@ -356,6 +447,48 @@ fun ReactionPillRow(
 
 private const val MORE_KEY = "\u0000more"
 private const val PLUS_KEY = "\u0000plus"
+
+/** The row's clock, in monotonic milliseconds; tests swap it for the compose test clock. */
+internal val LocalPillRowClock = staticCompositionLocalOf<() -> Long> { { SystemClock.uptimeMillis() } }
+
+/**
+ * The tap grace: for [ReactionSettler.HIT_GRACE_MS] after a beat changes where anything sits (a
+ * move, a resize, a pill joining into the "+" slot, one leaving), a tap resolves against the
+ * layout that was on screen before, since a thumb already on its way down aimed at that.
+ */
+private class TapGrace(private val clock: () -> Long) {
+    /** Where a tap should go instead: [key] is a pill's emoji, [PLUS_KEY], [MORE_KEY], or null for empty space. */
+    class Redirect(val key: String?)
+
+    private var current: List<Pair<String, IntRect>> = emptyList()
+    private var currentBeat: Int = 0
+    private var previous: List<Pair<String, IntRect>> = emptyList()
+    private var previousUntil: Long? = null
+
+    /** Records a layout pass's hit rects; a change a beat made opens the grace. */
+    fun laidOut(rects: List<Pair<String, IntRect>>, beat: Int) {
+        if (rects == current) return
+        if (beat != currentBeat && current.isNotEmpty()) {
+            previous = current
+            previousUntil = clock() + ReactionSettler.HIT_GRACE_MS
+        }
+        current = rects
+        currentBeat = beat
+    }
+
+    /** The redirect for a touch-down at [position], or null when it lands where it would anyway. */
+    fun redirect(position: Offset): Redirect? {
+        val until = previousUntil ?: return null
+        if (clock() >= until) return null
+        val before = keyAt(previous, position)
+        return if (before != keyAt(current, position)) Redirect(before) else null
+    }
+
+    private fun keyAt(rects: List<Pair<String, IntRect>>, position: Offset): String? =
+        rects.firstOrNull { (_, rect) ->
+            position.x >= rect.left && position.x < rect.right && position.y >= rect.top && position.y < rect.bottom
+        }?.first
+}
 
 private class RenderedPill(val pill: ReactionPill, val entering: Boolean, val exiting: Boolean)
 private class RenderedPlus(val entering: Boolean, val exiting: Boolean)
@@ -492,6 +625,7 @@ private class AnimateHeightNode : Modifier.Node(), LayoutModifierNode {
 @Composable
 private fun ReactionPillChip(
     pill: ReactionPill,
+    countDigits: Int,
     height: Dp,
     horizontalPadding: Dp,
     onClick: (() -> Unit)?,
@@ -535,6 +669,14 @@ private fun ReactionPillChip(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = pill.emoji, fontSize = 15.sp)
+            // Room for [countDigits] tabular digits, the settler's reservation, so the pill's width
+            // changes only on a beat and never with the count inside it.
+            val countStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum")
+            val measurer = rememberTextMeasurer()
+            val density = LocalDensity.current
+            val countWidth = remember(countDigits, measurer, density) {
+                with(density) { measurer.measure("0".repeat(countDigits), countStyle).size.width.toDp() }
+            }
             // The count rolls to its next value like a counter turning: up for a rise, down for a
             // fall.
             AnimatedContent(
@@ -546,11 +688,12 @@ private fun ReactionPillChip(
                         .using(SizeTransform(clip = true) { _, _ -> ChatAnimations.reactionChangeSize })
                 },
                 label = "pill count",
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.widthIn(min = countWidth),
             ) { count ->
                 Text(
                     text = count.toString(),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
+                    style = countStyle,
                     color = CodeTheme.colors.textMain,
                 )
             }
