@@ -159,16 +159,16 @@ class GroupInviteViewModelTest {
     }
 
     @Test
-    fun `the list offers groups as well as 1-1 chats`() {
+    fun `the list offers the chats the Chats list shows`() {
         viewModel()
-        verify { chatCoordinator.feed(ChatType.CONTACT_DM, ChatType.TIP_DM, ChatType.GROUP) }
+        verify { chatCoordinator.feed(ChatType.TIP_DM, ChatType.GROUP) }
     }
 
     @Test
     fun `the group being invited to is left out and cannot be picked`() = runTest(scheduler) {
         val group = ChatId(ByteArray(32) { 9 })
         every { chatCoordinator.feed(*anyVararg()) } returns flowOf(
-            listOf(summary(alice, ChatType.CONTACT_DM), summary(group, ChatType.GROUP)),
+            listOf(summary(alice, ChatType.TIP_DM), summary(group, ChatType.GROUP)),
         )
         val model = viewModel()
         advanceUntilIdle()

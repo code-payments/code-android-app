@@ -3,9 +3,9 @@ package com.flipcash.app.messenger.internal
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.chatListFeed
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.toConversationReference
 import com.getcode.util.resources.ResourceHelper
@@ -69,11 +69,12 @@ internal class GroupInviteViewModel @Inject constructor(
     val invited: Flow<ChatId> = _invited.receiveAsFlow()
 
     init {
+        // The Chats list's own set of chats. Contact DMs have their own inbox, and taking them too
+        // listed a person twice when they had both kinds of DM, plus nameless contact rows.
         // One read, not a subscription: a chat receiving a message while the sheet is up would
         // otherwise jump to the top and move the row out from under the viewer's finger.
         viewModelScope.launch {
-            val summaries = chatCoordinator.feed(ChatType.CONTACT_DM, ChatType.TIP_DM, ChatType.GROUP)
-                .first()
+            val summaries = chatCoordinator.chatListFeed().first()
             val selfId = userManager.accountId
             val chats = summaries.map { it.toConversationReference(selfId, emptyMap(), resources) }
             _state.update { it.copy(recentChats = chats) }
