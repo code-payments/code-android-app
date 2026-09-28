@@ -2,7 +2,6 @@ package com.flipcash.app.messenger
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +30,7 @@ import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.flipcash.app.messenger.internal.screens.EmojiPickerViewModel
 import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsSheet
+import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
@@ -40,6 +40,7 @@ import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupNameScr
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupPictureScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupScreen
 import com.getcode.navigation.annotatedEntry
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -128,7 +129,7 @@ private fun chatEntryProvider(
         FlowReactionPickerScreen(step.messageId)
     }
     annotatedEntry<ChatStep.Reactors> { step ->
-        FlowReactorsScreen(step.messageId)
+        FlowReactorsScreen(step.chatId, step.messageId)
     }
 }
 
@@ -159,12 +160,6 @@ private fun FlowConversationScreen(
                 hasOpened = true
             }
         }
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<ChatViewModel.Event.ShowReactorProfile>()
-            .collect { navigator.push(ChatStep.Profile(contact = it.participant)) }
     }
 
     LaunchedEffect(viewModel) {
@@ -386,30 +381,29 @@ private fun FlowReactionPickerScreen(messageId: Long) {
 }
 
 /**
- * Who reacted to [messageId], and with what. Tapping a row dismisses this sheet first; the profile
- * opens from [FlowConversationScreen] once [ChatViewModel.Event.ShowReactorProfile] names the
- * participant, since this entry is gone by then.
+ * Who reacted to [messageId], and with what, from the entry's own [ReactorsViewModel]. Tapping a
+ * named row dismisses this sheet, then opens that person's profile on the chat.
  */
 @Composable
-private fun FlowReactorsScreen(messageId: Long) {
-    val viewModel = flowSharedViewModel<ChatViewModel>()
+private fun FlowReactorsScreen(chatId: ChatId, messageId: Long) {
+    val viewModel = hiltViewModel<ReactorsViewModel>()
+    val navigator = LocalCodeNavigator.current
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    // OpenReactors opened it; this entry leaving the back stack is what closes it.
-    DisposableEffect(viewModel, messageId) {
-        onDispose { viewModel.dispatchEvent(ChatViewModel.Event.ReactorsDismissed(messageId)) }
+    LaunchedEffect(viewModel, chatId, messageId) {
+        viewModel.dispatchEvent(ReactorsViewModel.Event.Open(chatId, messageId))
     }
-    val reactors = state.reactors?.takeIf { it.messageId == messageId }
 
     ReactorsSheet(
-        pills = reactors?.pills.orEmpty(),
-        rows = reactors?.rows.orEmpty(),
-        loading = reactors?.loading ?: true,
-        hasMore = reactors?.hasMore == true,
-        onLoadMore = { viewModel.dispatchEvent(ChatViewModel.Event.LoadMoreReactors) },
+        pills = state.pills,
+        rows = state.rows,
+        loading = state.loading,
+        hasMore = state.hasMore,
+        onLoadMore = { viewModel.dispatchEvent(ReactorsViewModel.Event.LoadMore) },
         onOpenProfile = { userId ->
+            val profile = state.rows.firstOrNull { it.userId == userId }?.display?.profile
             dismissSheet()
-            viewModel.dispatchEvent(ChatViewModel.Event.OpenReactorProfile(userId))
+            if (profile != null) navigator.push(ChatStep.Profile(contact = ChatParticipant.TipUser(userId, profile)))
         },
         onDismiss = dismissSheet,
     )

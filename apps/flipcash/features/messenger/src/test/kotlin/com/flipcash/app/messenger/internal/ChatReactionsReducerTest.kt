@@ -3,20 +3,15 @@ package com.flipcash.app.messenger.internal
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.MessagePolicy
 import com.flipcash.shared.chat.models.ChatListItem
-import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.reactions.SelfReaction
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
- * The quick strip and the reactors sheet are plain state: the strip is built in the same update
- * that selects the bubble, and the sheet is opened by its own event and closed by its dismissal,
- * dropping results that arrive for a sheet no longer showing.
+ * The quick strip is plain state, built in the same update that selects the bubble.
  */
 class ChatReactionsReducerTest {
 
@@ -46,9 +41,6 @@ class ChatReactionsReducerTest {
         state: ChatViewModel.State,
         event: ChatViewModel.Event,
     ): ChatViewModel.State = ChatViewModel.updateStateForEvent(event)(state)
-
-    private fun pill(emoji: String, count: Long) =
-        ReactionPill(emoji = emoji, count = count, selfReacted = false, pending = false)
 
     @Test
     fun `selecting a bubble builds the strip in the same update, highlighting the viewer's reactions`() {
@@ -121,45 +113,5 @@ class ChatReactionsReducerTest {
         val state = reduce(selected, ChatViewModel.Event.SelectionReactionsChanged(2, listOf(squid)))
 
         assertEquals(selected, state)
-    }
-
-    @Test
-    fun `opening the reactors sheet seeds its pills from the ones pressed`() {
-        val pills = listOf(pill("👍", 3), pill("🔥", 1))
-
-        val state = reduce(ChatViewModel.State(), ChatViewModel.Event.OpenReactors(1, pills))
-
-        val reactors = assertNotNull(state.reactors)
-        assertEquals(pills, reactors.pills)
-        assertTrue(reactors.loading)
-    }
-
-    @Test
-    fun `reactors updates for another message are dropped`() {
-        val opened = reduce(ChatViewModel.State(), ChatViewModel.Event.OpenReactors(1, emptyList()))
-
-        val state = reduce(
-            opened,
-            ChatViewModel.Event.ReactorsUpdated(
-                messageId = 2,
-                pills = listOf(pill("👍", 1)),
-                rows = emptyList(),
-                loading = false,
-                hasMore = false,
-            ),
-        )
-
-        assertEquals(opened, state)
-    }
-
-    @Test
-    fun `a late dismissal of an earlier reactors sheet leaves the open one`() {
-        val opened = reduce(ChatViewModel.State(), ChatViewModel.Event.OpenReactors(2, emptyList()))
-
-        val stale = reduce(opened, ChatViewModel.Event.ReactorsDismissed(1))
-        val closed = reduce(opened, ChatViewModel.Event.ReactorsDismissed(2))
-
-        assertNotNull(stale.reactors)
-        assertNull(closed.reactors)
     }
 }

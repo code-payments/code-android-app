@@ -98,9 +98,6 @@ import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.reactions.ReactionStripComposer
-import com.flipcash.shared.chat.reactions.ReactorNameResolver
-import com.flipcash.shared.chat.reactions.ReactorsListModel
-import com.flipcash.shared.chat.reactions.ReactorsPrefetchCache
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.flipcash.shared.chat.readOnly
 import com.flipcash.shared.chat.resolveCapabilities
@@ -362,9 +359,6 @@ internal class ChatViewModel @Inject constructor(
          * update that lifts the bubble.
          */
         val quickReactionInputs: QuickReactionInputs? = null,
-        /** The full emoji picker, while it's open. */
-        /** The reactors sheet, while it's open. */
-        val reactors: ReactorsSheetState? = null,
     ) {
         /**
          * The DM counterparty, or `null` for a group.
@@ -649,33 +643,6 @@ internal class ChatViewModel @Inject constructor(
             val clearsSelection: Boolean = false,
         ) : Event
 
-        /**
-         * Opens who-reacted for [messageId], from a long-press on a pill. [pills] are the ones the
-         * reader pressed, so the sheet has a title before the live overlay is read.
-         */
-        data class OpenReactors(val messageId: Long, val pills: List<ReactionPill>) : Event
-
-        /** Internal: the open reactors sheet's pills, rows or paging moved. */
-        data class ReactorsUpdated(
-            val messageId: Long,
-            val pills: List<ReactionPill>,
-            val rows: List<ReactorRow>,
-            val loading: Boolean,
-            val hasMore: Boolean,
-        ) : Event
-
-        /** The reactors sheet scrolled its last row into view. */
-        data object LoadMoreReactors : Event
-
-        /** A reactors-sheet row was tapped. */
-        data class OpenReactorProfile(val userId: ID) : Event
-
-        /** Internal: [participant] is who [OpenReactorProfile] named; the screen pushes the profile. */
-        data class ShowReactorProfile(val participant: ChatParticipant.TipUser) : Event
-
-        /** The reactors sheet for [messageId] left the screen. */
-        data class ReactorsDismissed(val messageId: Long) : Event
-
         /** Internal: the quick strip's catalog and recents (re)loaded. */
         data class QuickReactionInputsLoaded(val inputs: QuickReactionInputs) : Event
 
@@ -802,21 +769,6 @@ internal class ChatViewModel @Inject constructor(
             ?.let { ChatParticipant.TipUser(userId, it) }
 
     /**
-     * One [ReactorsListModel] per messageId, started when [State.reactors] names a message (see
-     * [initReactorsSheet]) rather than on the reactors sheet's own composition — loading has to
-     * begin on the pill long-press itself, and the sheet is a fresh Compose tree on every push.
-     * `getReactorsPage` is captured against whatever [ChatId] is current at call time rather than
-     * the chat this view model was built for; a chat never changes under one instance in practice,
-     * but reading [stateFlow] here keeps the cache correct if that ever changes.
-     */
-    private val reactorsPrefetchCache = ReactorsPrefetchCache(scope = viewModelScope) { messageId, emoji, token ->
-        val chatId = stateFlow.value.chatId ?: return@ReactorsPrefetchCache Result.failure(
-            IllegalStateException("No active chat to fetch reactors for")
-        )
-        chatCoordinator.getReactorsPage(chatId, messageId, emoji, token)
-    }
-
-    /**
      * What the quick strip is built from, other than the message's own reactions. Held in [State]
      * ahead of a long-press so the selection reducer can build the strip in the same update that
      * lifts the bubble; built on demand, the strip trailed the lift by the catalog's glyph check and
@@ -827,126 +779,6 @@ internal class ChatViewModel @Inject constructor(
         val catalogFill: List<String>,
         val undrawable: Set<String>,
     )
-
-    /** A reactors-sheet row's resolved identity: the name to show (decision 4's precedence,
-     * "You" for the viewer), and the profile to draw an avatar from when one is known. */
-    data class ReactorDisplay(val name: String, val profile: UserProfile?)
-
-    /** One person in the reactors sheet: every emoji they used, and who they are once resolved. */
-    data class ReactorRow(
-        val userId: ID,
-        val emojis: List<String>,
-        /** Null until a source names them; the row draws a placeholder and isn't tappable. */
-        val display: ReactorDisplay?,
-    )
-
-    /** The reactors sheet for [messageId], while it's open. */
-    data class ReactorsSheetState(
-        val messageId: Long,
-        /** [messageId]'s pills, live — the sheet's title total and summary row (decision 4). */
-        val pills: List<ReactionPill> = emptyList(),
-        val rows: List<ReactorRow> = emptyList(),
-        /** True from the open until the first round lands, and while any later page is in flight. */
-        val loading: Boolean = true,
-        /** Whether any of the message's emojis still has an unfetched page. */
-        val hasMore: Boolean = false,
-    )
-
-    /**
-     * [userId]'s name and avatar source for the reactors sheet (decision 4), from what the cached
-     * profile store, the member roster and the transcript's sender profiles hold right now, or null
-     * when none of them names this person. The viewer shows as "You" over their own picture, so
-     * their avatar isn't blank, rather than under their own profile name.
-     */
-    private fun reactorDisplay(
-        userId: ID,
-        cachedProfiles: Map<String, UserProfile>,
-        members: List<ChatMember>,
-        sentProfiles: Map<String, UserProfile>?,
-    ): ReactorDisplay? {
-        val selfUserId = userManager.accountId
-        val cached = cachedProfiles[userId.hexEncodedString()]
-        val name = ReactorNameResolver.resolve(
-            userId = userId,
-            selfUserId = selfUserId,
-            selfLabel = resources.getString(R.string.title_you),
-            cachedProfile = cached,
-            members = members,
-            senderProfiles = sentProfiles.orEmpty(),
-        ) ?: return null
-        val profile = if (selfUserId != null && userId == selfUserId) {
-            userManager.profile
-        } else {
-            cached
-                ?: members.firstOrNull { it.userId == userId }?.userProfile
-                ?: sentProfiles?.get(userId.hexEncodedString())
-        }
-        return ReactorDisplay(name = name, profile = profile)
-    }
-
-    /** [ChatParticipant] for [userId] to open a profile from the reactors sheet, unlike
-     * [memberParticipant] this also covers a reactor absent from [senderProfiles] by falling back
-     * to whatever the cached profile store or member roster already has. */
-    private suspend fun reactorParticipant(userId: ID): ChatParticipant.TipUser? {
-        memberParticipant(userId)?.let { return it }
-        val chatId = stateFlow.value.chatId
-        val fromMembers = chatId?.let { id ->
-            chatCoordinator.observeMembers(id).first().firstOrNull { it.userId == userId }?.userProfile
-        }
-        val profile = fromMembers ?: userProfileDataSource.getCachedProfile(userId)
-        return profile?.let { ChatParticipant.TipUser(userId, it) }
-    }
-
-    /**
-     * Drives [State.reactors] while the sheet is open. The pills are the overlay's, live, so a
-     * reaction added or removed under the open sheet changes them; each change goes to
-     * [reactorsPrefetchCache], which refetches the rows only when a count moved. The fetch starts
-     * on [Event.OpenReactors] itself, before the navigator pushes the sheet, so loading begins on
-     * the long-press rather than on the sheet's own composition.
-     *
-     * A reactor none of the sources names yet is asked for once, the same fallback
-     * [resolveSenderName] uses for the transcript; the row fills in when the profile lands.
-     */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun initReactorsSheet() {
-        stateFlow.map { it.reactors?.messageId }
-            .distinctUntilChanged()
-            .flatMapLatest { messageId ->
-                val opened = stateFlow.value.reactors
-                if (messageId == null || opened == null) return@flatMapLatest emptyFlow()
-                val pills = reactionOverlay.map { it[messageId]?.pills ?: opened.pills }
-                    .distinctUntilChanged()
-                    .onEach { reactorsPrefetchCache.start(messageId, it) }
-                val members = stateFlow.mapNotNull { it.chatId }
-                    .distinctUntilChanged()
-                    .flatMapLatest { chatCoordinator.observeMembers(it) }
-                    .onStart { emit(emptyList()) }
-                val requested = mutableSetOf<ID>()
-                combine(
-                    pills,
-                    reactorsPrefetchCache.rows(messageId),
-                    reactorsPrefetchCache.loading(messageId),
-                    combine(userProfileDataSource.observeProfiles(), members, senderProfiles, ::Triple),
-                ) { currentPills, rows, loading, (cachedProfiles, memberList, sentProfiles) ->
-                    val resolved = rows.map { row ->
-                        val display = reactorDisplay(row.userId, cachedProfiles, memberList, sentProfiles)
-                        if (display == null && requested.add(row.userId)) {
-                            chatCoordinator.requestSenderProfile(row.userId)
-                        }
-                        ReactorRow(userId = row.userId, emojis = row.emojis, display = display)
-                    }
-                    Event.ReactorsUpdated(
-                        messageId = messageId,
-                        pills = currentPills,
-                        rows = resolved,
-                        loading = loading,
-                        hasMore = reactorsPrefetchCache.hasMore(messageId),
-                    )
-                }
-            }
-            .onEach { dispatchEvent(it) }
-            .launchIn(viewModelScope)
-    }
 
     /**
      * How a drawn card reaches the lookup. Provided to the transcript, read by `LinkCardView`.
@@ -1988,22 +1820,6 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
 
-        initReactorsSheet()
-
-        eventFlow.filterIsInstance<Event.LoadMoreReactors>()
-            .onEach {
-                val messageId = stateFlow.value.reactors?.messageId ?: return@onEach
-                reactorsPrefetchCache.loadMoreIfNeeded(messageId)
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow.filterIsInstance<Event.OpenReactorProfile>()
-            .onEach { event ->
-                val participant = reactorParticipant(event.userId) ?: return@onEach
-                dispatchEvent(Event.ShowReactorProfile(participant))
-            }
-            .launchIn(viewModelScope)
-
         // See ReactionRefreshPlanner and MessageList's reaction-refresh effects: the transcript
         // computes which ids need a refresh (the newest window on open/resume, Room-sourced pages
         // as they page in) and hands the batch down here — this just forwards it to the
@@ -2905,30 +2721,6 @@ internal class ChatViewModel @Inject constructor(
                 // when the tap came from the quick strip.
                 is Event.ToggleReaction -> { state ->
                     if (event.clearsSelection) state.copy(selection = null) else state
-                }
-                is Event.OpenReactors -> { state ->
-                    state.copy(reactors = ReactorsSheetState(messageId = event.messageId, pills = event.pills))
-                }
-                is Event.ReactorsUpdated -> { state ->
-                    val reactors = state.reactors
-                    if (reactors?.messageId != event.messageId) {
-                        state
-                    } else {
-                        state.copy(
-                            reactors = reactors.copy(
-                                pills = event.pills,
-                                rows = event.rows,
-                                loading = event.loading,
-                                hasMore = event.hasMore,
-                            )
-                        )
-                    }
-                }
-                Event.LoadMoreReactors -> { state -> state }
-                is Event.OpenReactorProfile -> { state -> state }
-                is Event.ShowReactorProfile -> { state -> state }
-                is Event.ReactorsDismissed -> { state ->
-                    if (state.reactors?.messageId == event.messageId) state.copy(reactors = null) else state
                 }
                 is Event.QuickReactionInputsLoaded -> { state ->
                     state.copy(quickReactionInputs = event.inputs).withQuickReactionStrip()

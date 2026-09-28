@@ -235,8 +235,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.OpenReactors -> {
-                viewModel.dispatchEvent(ChatViewModel.Event.OpenReactors(action.messageId, action.pills))
-                navigator.push(ChatStep.Reactors(action.messageId))
+                val chatId = state.chatId
+                if (chatId != null) navigator.push(ChatStep.Reactors(chatId, action.messageId))
             }
 
             is ChatAction.RefreshReactionIds -> {

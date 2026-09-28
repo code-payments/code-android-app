@@ -52,7 +52,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.reactions.ReactionPill
@@ -72,7 +71,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 @Composable
 internal fun ReactorsSheet(
     pills: List<ReactionPill>,
-    rows: List<ChatViewModel.ReactorRow>,
+    rows: List<ReactorsViewModel.ReactorRow>,
     loading: Boolean,
     hasMore: Boolean,
     onLoadMore: () -> Unit,
@@ -140,7 +139,7 @@ internal fun ReactorsSheet(
 @Composable
 private fun LoadMoreOnLastRowVisible(
     listState: LazyListState,
-    rows: List<ChatViewModel.ReactorRow>,
+    rows: List<ReactorsViewModel.ReactorRow>,
     hasMore: Boolean,
     onLoadMore: () -> Unit,
 ) {
@@ -197,7 +196,7 @@ private fun SummaryPillRow(pills: List<ReactionPill>) {
 @Composable
 private fun ReactorRow(
     emojis: List<String>,
-    display: ChatViewModel.ReactorDisplay?,
+    display: ReactorsViewModel.ReactorDisplay?,
     onClick: () -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
