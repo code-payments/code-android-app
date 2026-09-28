@@ -18,8 +18,6 @@ buildscript {
     }
 
     dependencies {
-        // plugins that lack standard plugin markers
-        classpath("com.ahasbini.tools:android-opencv-gradle-plugin:0.1.3-dev")
         // needed at configuration time by :libs:emojis build script
         classpath(libs.kotlinx.serialization.json)
     }
