@@ -34,24 +34,47 @@ internal fun effectiveReceiptStatus(
  * At group boundaries, labels are suppressed when the nearest self-group
  * below already shows the same status (avoids duplicate "Read" labels).
  */
-/** The nearest bubble below [index], stepping over the viewer's own tombstones. */
+/**
+ * The nearest bubble below [index], stepping over the viewer's own tombstones and the send that is
+ * still settling ([settlingKey]): neither has taken the receipt yet, so the line stays above them.
+ */
 private fun receiptNeighbourBelow(
     index: Int,
-    messages: LazyPagingItems<ChatListItem>,
+    peek: (Int) -> ChatListItem?,
+    settlingKey: Any?,
 ): ChatListItem.ContentBubble? {
     for (i in (index - 1) downTo 0) {
-        val bubble = messages.peek(i) as? ChatListItem.ContentBubble ?: return null
+        val bubble = peek(i) as? ChatListItem.ContentBubble ?: return null
         if (bubble.isFromSelf && bubble.content is MessageContent.Deleted) continue
+        if (bubble.isSettling(settlingKey)) continue
         return bubble
     }
     return null
 }
+
+private fun ChatListItem.ContentBubble.isSettling(settlingKey: Any?): Boolean =
+    settlingKey != null && messageKey == settlingKey
 
 internal fun shouldShowReceiptLabel(
     index: Int,
     item: ChatListItem.ContentBubble,
     messages: LazyPagingItems<ChatListItem>,
     otherReadPointer: MessagePointer?,
+    settlingKey: Any? = null,
+): Boolean = shouldShowReceiptLabel(index, item, messages::peek, otherReadPointer, settlingKey)
+
+/**
+ * [settlingKey] is the viewer's newest send while it settles: from the moment it is sent until it
+ * is confirmed and the settle floor has passed. It shows no line of its own in that time, and the
+ * line above it stays put, so the receipt moves down in one step when the hold releases rather
+ * than dropping at confirmation and reappearing a beat later.
+ */
+internal fun shouldShowReceiptLabel(
+    index: Int,
+    item: ChatListItem.ContentBubble,
+    peek: (Int) -> ChatListItem?,
+    otherReadPointer: MessagePointer?,
+    settlingKey: Any? = null,
 ): Boolean {
     if (!item.carriesReceipt) return false
     // A split message's receipt goes under its last row only. The rows above share its status, so
@@ -59,11 +82,12 @@ internal fun shouldShowReceiptLabel(
     if (!item.isLastRow) return false
     val status = effectiveReceiptStatus(item, otherReadPointer) ?: return false
     if (status == ReceiptStatus.FAILED) return true
+    if (item.isSettling(settlingKey)) return false
     if (status != ReceiptStatus.SENT && status != ReceiptStatus.READ) return false
 
     // index - 1 is the item below (newer) in reverseLayout. A tombstone still belongs to the self
     // group for bubble shaping, so it is stepped over here rather than treated as a group boundary.
-    val belowBubble = receiptNeighbourBelow(index, messages)
+    val belowBubble = receiptNeighbourBelow(index, peek, settlingKey)
 
     // Within a self-group: show at intra-group status boundaries only
     if (belowBubble != null && belowBubble.isFromSelf) {
@@ -74,8 +98,7 @@ internal fun shouldShowReceiptLabel(
     var selfGroups = 0
     var prevWasSelf = false
     for (i in 0 until index) {
-        val peek = messages.peek(i) ?: break
-        val bubble = peek as? ChatListItem.ContentBubble
+        val bubble = (peek(i) ?: break) as? ChatListItem.ContentBubble
         val isSelf = bubble != null && bubble.isFromSelf
         if (isSelf && !prevWasSelf) selfGroups++
         prevWasSelf = isSelf
@@ -88,8 +111,8 @@ internal fun shouldShowReceiptLabel(
 
     // For group 2: show only if status differs from the nearest self-group below
     for (i in (index - 1) downTo 0) {
-        val peek = messages.peek(i) ?: break
-        val bubble = peek as? ChatListItem.ContentBubble ?: continue
+        val bubble = (peek(i) ?: break) as? ChatListItem.ContentBubble ?: continue
+        if (bubble.isSettling(settlingKey)) continue
         if (bubble.carriesReceipt) return effectiveReceiptStatus(bubble, otherReadPointer) != status
     }
     return true

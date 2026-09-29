@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.screens.components
 import android.text.format.DateFormat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.snap
 import com.flipcash.shared.chat.ui.ChatAnimations
 import androidx.compose.animation.expandVertically
@@ -20,11 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -43,10 +40,6 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
-
-private val DELIVERED_DELAY = 700.milliseconds
 
 @Composable
 internal fun ReceiptLabel(
@@ -56,23 +49,10 @@ internal fun ReceiptLabel(
     animateEntrance: Boolean = false,
     onRetryFailed: (() -> Unit)? = null,
 ) {
-    // iOS: "Delivered" hides instantly on send, then appears after 700ms with
-    // scale(0.95)+opacity spring (duration: 0.4, bounce: 0.12).
-    // "Read" swaps in immediately (no delay).
-    //
-    // animateEntrance: true only when the message is still SENDING at composition
-    // time, so the label animates in on the SENDING→SENT transition. When opening
-    // a chat or scrolling an already-delivered/read message into view, we skip
-    // the enter animation entirely.
-    var deliveredVisible by remember { mutableStateOf(!animateEntrance) }
-    LaunchedEffect(status) {
-        if (animateEntrance && status == ReceiptStatus.SENT) {
-            delay(DELIVERED_DELAY)
-            deliveredVisible = true
-        } else {
-            deliveredVisible = true
-        }
-    }
+    // animateEntrance: true only for a line arriving on the viewer's own send, which it does once
+    // the send has settled (see rememberSettlingSend) -- the same beat the line above leaves on.
+    // Opening a chat or scrolling a delivered/read message into view skips the entrance.
+    val deliveredVisible = remember { MutableTransitionState(!animateEntrance).apply { targetState = true } }
 
     val deliveredSpec = ChatAnimations.delivered
 
@@ -83,7 +63,7 @@ internal fun ReceiptLabel(
         ),
     ) {
         AnimatedVisibility(
-            visible = deliveredVisible,
+            visibleState = deliveredVisible,
             // Expand + opacity, no scale: iOS un-hides the label and cross-fades its text in,
             // letting the cell self-size. The line itself never scales.
             enter = if (animateEntrance) {

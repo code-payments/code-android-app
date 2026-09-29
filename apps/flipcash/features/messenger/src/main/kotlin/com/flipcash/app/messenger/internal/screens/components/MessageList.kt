@@ -65,6 +65,7 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.LocalLinkCardResolution
+import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
 import com.flipcash.shared.chat.ui.ChatAnimations
@@ -84,6 +85,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun MessageList(
@@ -152,6 +154,7 @@ internal fun MessageList(
         // Keys that have already played their insertion animation — persists
         // across item disposal so scrolling away and back doesn't replay.
         val animatedKeys = remember { mutableSetOf<Any>() }
+        val settlingKey = rememberSettlingSend(messages)
 
         // The backdrop, read once for everything it covers: the rows, the bubbles' own targets,
         // and the contact card at the start of history all stop taking taps together.
@@ -426,6 +429,7 @@ internal fun MessageList(
                     messages = messages,
                     separatorConfig = separatorConfig,
                     otherReadPointer = otherReadPointer,
+                    settlingKey = settlingKey,
                     selecting = selecting,
                     focused = focused,
                     // The pressed row is also the only one that lifts, as iOS lifts only the held bubble.
@@ -643,6 +647,36 @@ internal fun MessageList(
             }
         }
     } // CompositionLocalProvider
+}
+
+/** How long a send holds the receipt above it, at least; iOS's settle floor. */
+private val ReceiptSettleFloor = 700.milliseconds
+
+/**
+ * The viewer's newest send while it settles, or null. A send settles from the moment it lands at
+ * the bottom of the transcript until it is confirmed and [ReceiptSettleFloor] has passed, whichever
+ * is later; until then the receipt stays on the row above (see [shouldShowReceiptLabel]). A send
+ * that fails, or that a reply lands under, releases once the floor has passed.
+ */
+@Composable
+private fun rememberSettlingSend(messages: LazyPagingItems<ChatListItem>): Any? {
+    val newest = if (messages.itemCount > 0) messages.peek(0) as? ChatListItem.ContentBubble else null
+    val currentNewest by rememberUpdatedState(newest)
+    var sendKey by remember { mutableStateOf<Any?>(null) }
+    if (newest != null && newest.isFromSelf && newest.receiptStatus == ReceiptStatus.SENDING) {
+        sendKey = newest.messageKey
+    }
+    var settling by remember { mutableStateOf<Any?>(null) }
+    LaunchedEffect(sendKey) {
+        val key = sendKey ?: return@LaunchedEffect
+        settling = key
+        delay(ReceiptSettleFloor)
+        snapshotFlow { currentNewest }.first { row ->
+            row?.messageKey != key || row.receiptStatus != ReceiptStatus.SENDING
+        }
+        settling = null
+    }
+    return settling
 }
 
 /**

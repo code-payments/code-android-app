@@ -97,6 +97,8 @@ internal fun MessageRow(
     messages: LazyPagingItems<ChatListItem>,
     separatorConfig: SeparatorConfig,
     otherReadPointer: MessagePointer?,
+    /** The viewer's newest send while it settles; see [shouldShowReceiptLabel]. */
+    settlingKey: Any? = null,
     selecting: Boolean,
     focused: Boolean,
     /**
@@ -463,7 +465,7 @@ internal fun MessageRow(
                                 }
                             }
                             val showReceipt =
-                                shouldShowReceiptLabel(index, item, messages, otherReadPointer)
+                                shouldShowReceiptLabel(index, item, messages, otherReadPointer, settlingKey)
                             // An emoji-only message, or a card row, has no bubble, so its "Edited"
                             // marker has nowhere to sit inside the message and comes out here
                             // instead — on the same line as the receipt, and ahead of it, so the two
