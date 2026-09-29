@@ -110,8 +110,9 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 36, to = 37, spec = FlipcashDatabase.Migration36To37::class),
         AutoMigration(from = 37, to = 38), // chat_metadata.creator_hex (nullable), use_e2ee (default 0)
         AutoMigration(from = 38, to = 39), // link_previews table
+        AutoMigration(from = 39, to = 40, spec = FlipcashDatabase.Migration39To40::class),
     ],
-    version = 39,
+    version = 40,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -275,6 +276,23 @@ abstract class FlipcashDatabase : RoomDatabase() {
 
         companion object {
             const val REARM_VIEWER_STATE = "UPDATE chat_metadata SET viewer_state_version = 0"
+        }
+    }
+
+    /**
+     * Adds `chat_messages.ciphertext_json` and `encryption_state`. A row stored before this version
+     * with encrypted content was never opened, so it's marked for opening with its ciphertext
+     * copied across, the same as a row whose key fetch failed.
+     */
+    class Migration39To40 : AutoMigrationSpec {
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL(MARK_ENCRYPTED_FOR_OPENING)
+        }
+
+        companion object {
+            const val MARK_ENCRYPTED_FOR_OPENING =
+                "UPDATE chat_messages SET encryption_state = 'KEY_PENDING', ciphertext_json = content_json " +
+                    "WHERE content_json LIKE '[{\"type\":\"encrypted\"%'"
         }
     }
 

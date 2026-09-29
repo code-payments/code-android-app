@@ -136,6 +136,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 }
             }
 
+            ChatAction.OpenEncryptionInfo -> keyboard.hideIfVisible {
+                navigator.push(AppRoute.Messaging.E2eeDmInfo)
+            }
+
             ChatAction.AddCash -> {
                 // The gate is the only place in the transcript that offers it.
                 viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.ADD_CASH))

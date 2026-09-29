@@ -16,6 +16,7 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(testFixtures(project(":services:flipcash")))
 
     implementation(libs.bundles.kotlinx.serialization)
 

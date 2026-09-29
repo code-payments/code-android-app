@@ -104,6 +104,8 @@ import com.flipcash.shared.chat.reactions.ReactionStripComposer
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.flipcash.shared.chat.readOnly
 import com.flipcash.shared.chat.resolveCapabilities
+import com.flipcash.shared.chat.ui.UndecryptableHint
+import com.flipcash.shared.chat.ui.undecryptableHint
 import com.flipcash.shared.chat.ui.detectMentions
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
@@ -722,6 +724,13 @@ internal class ChatViewModel @Inject constructor(
         // cache: an edit or delete awaiting the server re-runs the mapping without re-fetching.
         .cachedIn(viewModelScope)
 
+    /** Where the Encrypted marker goes: read from the transcript, never from `use_e2ee`. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val oldestEncryptedId = stateFlow.mapNotNull { it.chatId }
+        .distinctUntilChanged()
+        .flatMapLatest { chatCoordinator.observeOldestEncryptedMessageId(it) }
+        .distinctUntilChanged()
+
     /** Edits and deletes the server has not answered yet, composed over the stored transcript. */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val pendingMutations = stateFlow.mapNotNull { it.chatId }
@@ -952,6 +961,14 @@ internal class ChatViewModel @Inject constructor(
                         reactionPills = storedReactions.pills,
                         selfReactions = storedReactions.selfReactions,
                         canReact = canReact(message),
+                        undecryptableHint = undecryptableHint(
+                            encryption = message.encryption,
+                            isFromSelf = message.isFromSelf,
+                            // Only a DM is encrypted, so the sender of an incoming one is the
+                            // participant.
+                            senderName = stateFlow.value.participant?.name
+                                ?: resources.getString(R.string.title_unnamedUser),
+                        ) ?: UndecryptableHint.UpdateApp,
                     )
                         // A carded link takes a row of its own, with the prose either side of it
                         // on rows above and below. Reversed because the list is: this page runs
@@ -998,7 +1015,10 @@ internal class ChatViewModel @Inject constructor(
                 .filterNot { it is UnreadBoundary.Resolving }
                 .distinctUntilChanged(),
             stateFlow.map { it.separatorConfig }.distinctUntilChanged(),
-        ) { paging, boundary, config -> paging.withSeparators(boundary, config) }
+            oldestEncryptedId,
+        ) { paging, boundary, config, oldestEncrypted ->
+            paging.withSeparators(boundary, config, oldestEncrypted)
+        }
 
     /**
      * The citation shown for [this] message.

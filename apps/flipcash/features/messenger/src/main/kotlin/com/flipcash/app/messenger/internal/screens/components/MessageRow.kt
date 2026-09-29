@@ -290,6 +290,13 @@ internal fun MessageRow(
                 UnreadDividerRow(count = item.count, date = item.date)
             }
 
+            is ChatListItem.EncryptedMarker -> Box(insertionModifier) {
+                EncryptedMarkerRow(
+                    above = item.above,
+                    onClick = { onAction(ChatAction.OpenEncryptionInfo) },
+                )
+            }
+
             is ChatListItem.ContentBubble -> {
                 val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
                 // Bound to a local: `sender` is a property of another module's public API, so

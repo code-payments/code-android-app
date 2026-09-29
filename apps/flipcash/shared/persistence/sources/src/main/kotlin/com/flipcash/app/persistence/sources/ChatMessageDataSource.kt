@@ -6,6 +6,7 @@ import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.dao.ChatMessageDao
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
+import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
@@ -39,6 +40,7 @@ data class PendingMessage(
 class ChatMessageDataSource @Inject constructor(
     private val mapper: ChatEntityMapper,
     private val userManager: UserManager,
+    private val opener: IncomingMessageOpener,
 ) : PagingDataSource<Long, ChatMessage, List<ChatMessage>, Int, ChatMessageEntity> {
 
     private val db: FlipcashDatabase?
@@ -196,6 +198,70 @@ class ChatMessageDataSource @Inject constructor(
 
     suspend fun upsert(chatId: ChatId, messages: List<ChatMessage>) {
         val hex = mapper.chatIdHex(chatId)
+        val opened = openEncrypted(chatId, hex, messages)
+        write(hex, opened)
+        // A write that got a key is the next chance to open what an earlier one couldn't.
+        if (opened.none { it.encryption == MessageEncryption.KeyPending }) {
+            reopenKeyPending(chatId)
+        }
+    }
+
+    /**
+     * Opens the messages in [chatId] stored [MessageEncryption.KeyPending]: those whose key fetch
+     * failed, or that arrived before the other member of the DM was stored. Cheap when there are
+     * none. Called on each write to the chat, when the chat is opened, and on a push for it.
+     */
+    suspend fun reopenKeyPending(chatId: ChatId) {
+        val dao = db?.chatMessageDao() ?: return
+        val hex = mapper.chatIdHex(chatId)
+        if (!dao.hasKeyPending(hex)) return
+        val selfId = userManager.accountId
+        val peerId = peerOf(hex, selfId)
+        val reopened = dao.getKeyPending(hex).map { entity ->
+            opener.reopen(chatId, selfId, peerId, mapper.toMessage(entity))
+        }
+        if (reopened.all { it.encryption == MessageEncryption.KeyPending }) return
+        dao.upsert(reopened.map { mapper.toEntity(hex, it) })
+    }
+
+    /** [reopenKeyPending] for every chat that has a message waiting. */
+    suspend fun reopenAllKeyPending() {
+        val dao = db?.chatMessageDao() ?: return
+        for (hex in dao.chatsWithKeyPending()) reopenKeyPending(mapper.chatIdFromHex(hex))
+    }
+
+    /**
+     * The id of the oldest end-to-end encrypted message in [chatId] the transcript shows, opened
+     * or not; the Encrypted marker sits above it.
+     */
+    fun observeOldestEncryptedMessageId(chatId: ChatId): Flow<Long?> =
+        db?.chatMessageDao()?.observeOldestEncrypted(mapper.chatIdHex(chatId)) ?: flowOf(null)
+
+    private suspend fun openEncrypted(chatId: ChatId, hex: String, messages: List<ChatMessage>): List<ChatMessage> {
+        if (messages.none { it.encryption == null && it.content.singleOrNull() is MessageContent.Encrypted }) {
+            return messages
+        }
+        val dao = db?.chatMessageDao() ?: return messages
+        val selfId = userManager.accountId
+        return opener.open(
+            chatId = chatId,
+            selfId = selfId,
+            peerId = peerOf(hex, selfId),
+            messages = messages,
+            stored = { messageId -> dao.getMessage(hex, messageId)?.let(mapper::toMessage) },
+        )
+    }
+
+    /** The DM member who isn't the viewer, when the chat's members are stored. */
+    private suspend fun peerOf(chatIdHex: String, selfId: ID?): ID? {
+        val selfHex = selfId?.hexEncodedString() ?: return null
+        return db?.chatMemberDao()?.getMembersForChat(chatIdHex)
+            ?.map { it.member.userIdHex }
+            ?.singleOrNull { it != selfHex }
+            ?.let(mapper::userIdFromHex)
+    }
+
+    private suspend fun write(hex: String, messages: List<ChatMessage>) {
         val entities = messages.map { mapper.toEntity(hex, it) }
         val selfId = userManager.accountId
         val selfHex = selfId?.hexEncodedString()
@@ -229,8 +295,15 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun upsertAll(messagesByChat: Map<ChatId, List<ChatMessage>>) {
         val database = db ?: return
         if (messagesByChat.isEmpty()) return
+        // Opened before the transaction: opening can fetch a key over the network.
+        val opened = messagesByChat.mapValues { (chatId, messages) ->
+            openEncrypted(chatId, mapper.chatIdHex(chatId), messages)
+        }
         database.withTransaction {
-            for ((chatId, messages) in messagesByChat) upsert(chatId, messages)
+            for ((chatId, messages) in opened) write(mapper.chatIdHex(chatId), messages)
+        }
+        for ((chatId, messages) in opened) {
+            if (messages.none { it.encryption == MessageEncryption.KeyPending }) reopenKeyPending(chatId)
         }
     }
 

@@ -154,6 +154,10 @@ class RealChatCoordinator @Inject constructor(
         // answers delays the sync rather than cancelling it.
         withTimeoutOrNull(FEED_READ_WAIT) { stateHolder.state.first { it.feed != null } }
         syncFeeds()
+        // Encrypted messages a previous session couldn't open, and any stored before this version
+        // could open them at all. A chat's own writes retry it too; this reaches the chats that
+        // don't get one.
+        scope.launch { messagingDelegate.openKeyPending() }
         eventStreamDelegate.open()
         eventStreamDelegate.startHeartbeat { syncFeeds() }
     }

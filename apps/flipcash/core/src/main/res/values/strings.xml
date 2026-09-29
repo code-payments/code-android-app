@@ -984,6 +984,7 @@
     <string name="hint_messageUndecryptable_askToResend">Ask %1$s to send it again</string>
     <string name="hint_messageUndecryptable_tryAgain">Try sending it again</string>
 
+    <string name="label_e2eeMarker">Encrypted</string>
     <string name="label_e2eeFooter_dm">Messages are end-to-end encrypted</string>
     <string name="label_e2eeFooter_group">Group chats aren\'t end-to-end encrypted</string>
     <string name="action_learnMore">Learn More</string>

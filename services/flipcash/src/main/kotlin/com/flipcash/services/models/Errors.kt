@@ -469,8 +469,9 @@ sealed class SendMessageError(
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
     class Denied : SendMessageError("Denied")
-    // Sender attempted to send EncryptedContent to a chat that doesn't allow it (non-DM).
-    // The client never constructs EncryptedContent today, so this is defensive.
+    // Sender sent EncryptedContent to a chat that doesn't allow it (non-DM). E2eePolicy only
+    // encrypts in a DM, so this means the chat's type changed under us; the send fails and can
+    // be retried.
     class EncryptionNotAllowed : SendMessageError("Encryption not allowed")
     class Unrecognized : SendMessageError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : SendMessageError(message = cause?.message, cause = cause), NotifiableError
@@ -533,8 +534,8 @@ sealed class EditMessageError(
     class MessageNotFound : EditMessageError("Message not found")
     class CannotEdit : EditMessageError("Cannot edit")
     class Conflict : EditMessageError("Conflict")
-    // Editor attempted to send EncryptedContent to a chat that doesn't allow it (non-DM).
-    // The client never constructs EncryptedContent today, so this is defensive.
+    // Editor sent EncryptedContent to a chat that doesn't allow it (non-DM). See
+    // SendMessageError.EncryptionNotAllowed.
     class EncryptionNotAllowed : EditMessageError("Encryption not allowed")
     class Unrecognized : EditMessageError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : EditMessageError(message = cause?.message, cause = cause), NotifiableError

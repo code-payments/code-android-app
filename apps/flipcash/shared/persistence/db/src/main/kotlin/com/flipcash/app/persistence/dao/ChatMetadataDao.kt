@@ -86,7 +86,8 @@ interface ChatMetadataDao {
             "title = :title, " +
             "picture_json = :pictureJson, " +
             "rules_json = :rulesJson, " +
-            "is_member = :isMember " +
+            "is_member = :isMember, " +
+            "use_e2ee = :useE2ee " +
             "WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun updateServerOwnedFields(
@@ -99,6 +100,7 @@ interface ChatMetadataDao {
         pictureJson: MediaItem?,
         rulesJson: ChatRulesSerialized?,
         isMember: Boolean,
+        useE2ee: Boolean,
     )
 
     /**
@@ -198,6 +200,7 @@ interface ChatMetadataDao {
             pictureJson = entity.pictureJson,
             rulesJson = entity.rulesJson,
             isMember = entity.isMember,
+            useE2ee = entity.useE2ee,
         )
         updateRosterIfNewer(
             chatIdHex = entity.chatIdHex,

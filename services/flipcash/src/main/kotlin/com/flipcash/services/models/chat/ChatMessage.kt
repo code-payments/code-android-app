@@ -1,5 +1,6 @@
 package com.flipcash.services.models.chat
 
+import com.flipcash.services.chat.MessageEncryption
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -18,4 +19,7 @@ data class ChatMessage(
     // Set when this copy was redacted for the viewer: it exists, but its content is a
     // placeholder. See messaging.v1.Message.redacted.
     val redacted: Boolean = false,
+    // Null for a plaintext message. For an end-to-end encrypted one, whether it was opened on this
+    // device; [content] holds the plaintext only when it was.
+    val encryption: MessageEncryption? = null,
 )

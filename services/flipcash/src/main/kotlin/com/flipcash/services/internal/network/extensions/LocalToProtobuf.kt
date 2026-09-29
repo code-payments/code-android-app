@@ -171,12 +171,7 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                 .setDeleted(deletedBuilder)
                 .build()
         }
-        // The client never constructs this locally from scratch -- it only exists as a decode
-        // result for incoming `Content.encrypted` (see MessageContent.Encrypted). An edit that
-        // rewrites the text of a message envelope containing this (e.g. a reply body) re-sends
-        // the untouched fields verbatim, so this is a faithful round-trip of the original wire
-        // bytes, not new encryption. Encrypting new content needs its own crypto implementation
-        // (X25519/HKDF/XChaCha20), tracked separately.
+        // Sealed by ChatContentCrypto, or relayed verbatim when an edit rewrites around it.
         is MessageContent.Encrypted -> MessagingModel.Content.newBuilder()
             .setEncrypted(
                 MessagingModel.EncryptedContent.newBuilder()

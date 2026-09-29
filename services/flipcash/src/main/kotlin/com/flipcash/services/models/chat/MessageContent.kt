@@ -33,11 +33,9 @@ sealed interface MessageContent {
         val deletedTs: Instant,
         val deletedBy: ID?,
     ) : MessageContent
-    // Placeholder for `messaging.v1.Content.encrypted` (DMs only). Crypto (X25519/HKDF/
-    // XChaCha20) is a cross-platform parity hotspot and needs its own decision; until then this
-    // renders as an unsupported message rather than being decoded. The raw fields are kept
-    // verbatim (not decrypted) so the ciphertext survives persistence and can be faithfully
-    // re-encoded, rather than being lost the moment it is stored locally.
+    // `messaging.v1.Content.encrypted` (DMs only), as it travels on the wire. Decrypted by
+    // ChatContentCrypto on the way into storage; a message that opened carries its plaintext in
+    // ChatMessage.content instead, and this only remains on one that didn't.
     data class Encrypted(
         val scheme: Int,
         val nonce: ByteArray,

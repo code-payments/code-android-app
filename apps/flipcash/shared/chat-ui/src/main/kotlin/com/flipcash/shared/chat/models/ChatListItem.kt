@@ -5,6 +5,7 @@ import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.flipcash.shared.chat.ui.DetectedMention
+import com.flipcash.shared.chat.ui.UndecryptableHint
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -30,6 +31,26 @@ sealed interface ChatListItem {
         override val itemKey: Any = "unread-divider"
         override val itemContentType: Any = "unread-divider"
     }
+
+    /**
+     * "Encrypted", above the oldest message in the transcript that arrived end-to-end encrypted
+     * (node 10416:1404). Placed from the transcript, not from the chat's flag, so it can't claim
+     * encryption that isn't happening.
+     *
+     * The list takes one item per gap, so [above] is the [DateSeparator] or [UnreadDivider] the
+     * marker displaced from that gap, drawn above it. At the head of the transcript it is the oldest
+     * message's date, which the list would otherwise draw as a trailing header.
+     *
+     * At most one per transcript, so its key is fixed.
+     */
+    data class EncryptedMarker(val above: ChatListItem? = null) : ChatListItem {
+        override val itemKey: Any = "encrypted-marker"
+        override val itemContentType: Any = "encrypted-marker"
+    }
+
+    /** Whether this is the unread divider, alone or drawn above the Encrypted marker. */
+    val holdsUnreadDivider: Boolean
+        get() = this is UnreadDivider || (this is EncryptedMarker && above is UnreadDivider)
 
     data class ContentBubble(
         val messageId: Long,
@@ -125,6 +146,11 @@ sealed interface ChatListItem {
          * pending send are excluded. See `com.flipcash.shared.chat.canReact`.
          */
         val canReact: Boolean = false,
+        /**
+         * The line under the bubble when [content] is ciphertext that didn't open. See
+         * [undecryptableHint][com.flipcash.shared.chat.ui.undecryptableHint].
+         */
+        val undecryptableHint: UndecryptableHint = UndecryptableHint.UpdateApp,
     ) : ChatListItem {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the

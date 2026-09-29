@@ -135,7 +135,7 @@ class ChatGroupCashLinkTest {
 
     private fun createViewModel(): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
-        e2eePolicy = E2eePolicy(null),
+        e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
         contactPaymentDelegate = contactPaymentDelegate,
         tipPaymentDelegate = tipPaymentDelegate,

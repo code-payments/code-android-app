@@ -5,6 +5,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.getcode.chatcipher.ChatEncryptionPolicy
 import org.junit.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -12,9 +13,9 @@ import kotlin.time.Instant
 
 class E2eePolicyTest {
 
-    private val flipcash = List(32) { 1.toByte() }
-    private val friend = List(32) { 2.toByte() }
-    private val policy = E2eePolicy(flipcashAccountId = flipcash)
+    private val flipcash = ChatEncryptionPolicy.FLIPCASH_USER_ID.toList()
+    private val friend = List(16) { 2.toByte() }
+    private val policy = E2eePolicy()
 
     private fun member(id: List<Byte>) =
         ChatMember(userId = id, userProfile = UserProfile.Empty, pointers = emptyList())
@@ -52,11 +53,5 @@ class E2eePolicyTest {
     @Test
     fun `a chat with the flipcash account is never encrypted`() {
         assertFalse(policy.shouldEncrypt(chat(ChatType.TIP_DM, useE2ee = true, with = flipcash)))
-    }
-
-    @Test
-    fun `the exemption is a no-op until the flipcash id is set`() {
-        val unset = E2eePolicy(flipcashAccountId = null)
-        assertTrue(unset.shouldEncrypt(chat(ChatType.TIP_DM, useE2ee = true, with = flipcash)))
     }
 }

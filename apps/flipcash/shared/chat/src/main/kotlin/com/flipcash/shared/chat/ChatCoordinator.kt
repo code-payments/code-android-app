@@ -361,6 +361,12 @@ interface MessagingOperations {
     /** Observes the other member's read pointer in [chatId] (for read receipts). */
     fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?>
 
+    /**
+     * The id of the oldest stored message in [chatId] that arrived end-to-end encrypted, or `null`
+     * when none did. The transcript's Encrypted marker sits above it.
+     */
+    fun observeOldestEncryptedMessageId(chatId: ChatId): Flow<Long?>
+
     /** Fetches the full message history for [chatId] from the server and persists locally. */
     suspend fun loadMessages(chatId: ChatId)
 
@@ -372,6 +378,16 @@ interface MessagingOperations {
      * on the same transcript.
      */
     suspend fun applyPushedMessage(chatId: ChatId, message: ChatMessage)
+
+    /**
+     * The plaintext of an end-to-end encrypted message a push is for, opened on this device, for
+     * the notification to show in place of the server's body. The push carries [message], or only
+     * [messageId], in which case the message is read from storage or fetched with `GetMessage`.
+     *
+     * `null` when the message isn't encrypted, isn't text, or can't be opened or fetched: the
+     * notification keeps the server's body. Nothing is stored; the push's sync work does that.
+     */
+    suspend fun openPushedMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): String?
 
     /**
      * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].

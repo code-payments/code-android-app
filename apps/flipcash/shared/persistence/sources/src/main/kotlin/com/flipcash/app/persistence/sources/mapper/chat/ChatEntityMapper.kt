@@ -13,10 +13,13 @@ import com.flipcash.app.persistence.entities.ChatMemberEntity
 import com.flipcash.app.persistence.entities.ChatMemberWithProfile
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
+import com.flipcash.app.persistence.entities.EncryptionState
 import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.app.persistence.entities.UserProfileEntity
 import com.flipcash.app.persistence.entities.toSerialized
 import com.flipcash.app.persistence.sources.mapper.toDomain
+import com.flipcash.services.chat.MessageEncryption
+import com.flipcash.services.chat.UndecryptableReason
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
@@ -179,6 +182,8 @@ class ChatEntityMapper @Inject constructor() {
             lastEditedTsEpochMs = message.lastEditedTs?.toEpochMilliseconds(),
             reactionsJson = encodeReactions(message.reactions),
             isDeleted = message.content.any { it is MessageContent.Deleted },
+            ciphertextJson = message.ciphertext()?.let { listOf(it.toSerialized()) },
+            encryptionState = message.encryption?.toState(),
         )
     }
 
@@ -198,6 +203,7 @@ class ChatEntityMapper @Inject constructor() {
                 MessageStatus.FAILED -> DeliveryStatus.FAILED
             },
             pendingClientIdHex = entity.pendingClientIdHex,
+            encryption = entity.toEncryption(),
         )
     }
 
@@ -320,6 +326,8 @@ class ChatEntityMapper @Inject constructor() {
 
     fun userIdHex(userId: ID): String = userId.hexEncodedString()
 
+    fun userIdFromHex(hex: String): ID = hex.hexToId()
+
     private fun String.hexToByteArray(): ByteArray {
         val len = length
         val data = ByteArray(len / 2)
@@ -332,6 +340,35 @@ class ChatEntityMapper @Inject constructor() {
     }
 
     private fun String.hexToId(): List<Byte> = hexToByteArray().toList()
+
+    /** The ciphertext the message arrived as; its content is the ciphertext unless it was opened. */
+    private fun ChatMessage.ciphertext(): MessageContent.Encrypted? = when (val encryption = encryption) {
+        null -> null
+        is MessageEncryption.Decrypted -> encryption.sealed
+        else -> content.singleOrNull() as? MessageContent.Encrypted
+    }
+
+    private fun MessageEncryption.toState(): EncryptionState = when (this) {
+        is MessageEncryption.Decrypted -> EncryptionState.DECRYPTED
+        MessageEncryption.KeyPending -> EncryptionState.KEY_PENDING
+        is MessageEncryption.Undecryptable -> when (reason) {
+            UndecryptableReason.Unsupported -> EncryptionState.UNSUPPORTED
+            UndecryptableReason.Authentication -> EncryptionState.AUTH_FAILED
+        }
+    }
+
+    private fun ChatMessageEntity.toEncryption(): MessageEncryption? = when (encryptionState) {
+        null -> null
+        EncryptionState.DECRYPTED -> {
+            val sealed = ciphertextJson?.singleOrNull()?.toDomain() as? MessageContent.Encrypted
+            // A decrypted row without its ciphertext can't have come from this client; read it as
+            // plaintext rather than drop it.
+            sealed?.let(MessageEncryption::Decrypted)
+        }
+        EncryptionState.KEY_PENDING -> MessageEncryption.KeyPending
+        EncryptionState.UNSUPPORTED -> MessageEncryption.Undecryptable(UndecryptableReason.Unsupported)
+        EncryptionState.AUTH_FAILED -> MessageEncryption.Undecryptable(UndecryptableReason.Authentication)
+    }
 
     // endregion
 }

@@ -11,6 +11,24 @@ enum class MessageStatus {
     FAILED,
 }
 
+/** How an end-to-end encrypted row stands on this device. Null on a row sent in plaintext. */
+enum class EncryptionState {
+    /** [ChatMessageEntity.contentJson] is the plaintext. */
+    DECRYPTED,
+
+    /**
+     * A key fetch failed, so the row hasn't been opened yet. Hidden from the transcript and the
+     * chat list until it is.
+     */
+    KEY_PENDING,
+
+    /** An unknown scheme, or a plaintext type this client doesn't render. */
+    UNSUPPORTED,
+
+    /** The ciphertext failed authentication. */
+    AUTH_FAILED,
+}
+
 /**
  * The transcript reads this table one page at a time, ordered newest-first within a chat, and the
  * composite primary key `(chat_id_hex, message_id)` does not serve that order. Without the index
@@ -47,4 +65,11 @@ data class ChatMessageEntity(
      * someone sends a message whose text happens to contain it.
      */
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    /**
+     * The message as it arrived, when it arrived end-to-end encrypted: one serialized
+     * `Encrypted`. Kept beside the plaintext in [contentJson] so a later copy of the same message
+     * is recognised without opening it again.
+     */
+    @ColumnInfo(name = "ciphertext_json") val ciphertextJson: List<MessageContentSerialized>? = null,
+    @ColumnInfo(name = "encryption_state") val encryptionState: EncryptionState? = null,
 )

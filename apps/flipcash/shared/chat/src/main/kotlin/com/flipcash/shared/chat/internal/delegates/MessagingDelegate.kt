@@ -14,6 +14,8 @@ import com.flipcash.app.analytics.analytics
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.IncomingMessageOpener
+import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.app.persistence.sources.mediator.ChatMessageRemoteMediator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
@@ -21,6 +23,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MuteState
@@ -39,6 +42,7 @@ import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.PendingMutation
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.internal.ChatStateHolder
+import com.flipcash.shared.chat.internal.OutgoingEncryption
 import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.MessageLinkPrefetch
@@ -71,6 +75,9 @@ import kotlin.time.Clock
  * 3. [confirmPending][ChatMessageDataSource.confirmPending] replaces the placeholder,
  *    or [failPending][ChatMessageDataSource.failPending] marks it as failed.
  *
+ * In an end-to-end encrypted DM the placeholder is still the plaintext; [OutgoingEncryption]
+ * seals only what goes on the wire, and its echo stores the reply with that plaintext.
+ *
  * @see com.flipcash.shared.chat.internal.RealChatCoordinator
  */
 @Singleton
@@ -86,6 +93,9 @@ class MessagingDelegate @Inject constructor(
     private val analytics: FlipcashAnalytics,
     private val senderResolver: SenderResolver,
     private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
+    private val outgoing: OutgoingEncryption = OutgoingEncryption.None,
+    /** Opens encrypted pushes; without it, every push keeps the server's body. */
+    private val incoming: IncomingMessageOpener? = null,
 ) : MessagingOperations {
 
     /**
@@ -229,6 +239,9 @@ class MessagingDelegate @Inject constructor(
 
     override fun requestSenderProfile(userId: ID) = senderResolver.request(userId)
 
+    override fun observeOldestEncryptedMessageId(chatId: ChatId): Flow<Long?> =
+        messageDataSource.observeOldestEncryptedMessageId(chatId)
+
     override fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?> {
         val selfId = userManager.accountId
         return memberDataSource.observeMembers(chatId)
@@ -277,6 +290,37 @@ class MessagingDelegate @Inject constructor(
         }
     }
 
+    override suspend fun openPushedMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): String? {
+        val opener = incoming ?: return null
+        val selfId = userManager.accountId ?: return null
+        val candidate = message
+            ?: messageId?.let { id ->
+                messageDataSource.getMessage(chatId, id)
+                    ?: messagingController.getMessage(chatId, id).getOrNull()
+            }
+            ?: return null
+
+        val opened = when (candidate.encryption) {
+            is MessageEncryption.Decrypted -> candidate
+            null -> {
+                if (candidate.content.singleOrNull() !is MessageContent.Encrypted) return null
+                // Only the viewer's own message needs the other member; anyone else's is theirs.
+                val peerId = if (candidate.senderId == selfId) getOtherMember(chatId)?.userId else null
+                opener.open(chatId, selfId, peerId, listOf(candidate), stored = { null }).single()
+            }
+            else -> return null
+        }
+        if (opened.encryption !is MessageEncryption.Decrypted) return null
+        return opened.content.singleOrNull()?.pushText()
+    }
+
+    /** Text and replies with text are what DMs encrypt; anything else keeps the server's body. */
+    private fun MessageContent.pushText(): String? = when (this) {
+        is MessageContent.Text -> text
+        is MessageContent.Reply -> (content.singleOrNull() as? MessageContent.Text)?.text
+        else -> null
+    }
+
     override suspend fun sendMessage(
         chatId: ChatId,
         content: String,
@@ -301,23 +345,35 @@ class MessagingDelegate @Inject constructor(
             senderId = senderId,
         )
 
-        return messagingController.sendMessage(chatId, payload, clientMessageId)
-            .onSuccess { serverMessage ->
-                messageDataSource.confirmPending(chatId, clientMessageId, serverMessage)
-                advanceReadPointer(chatId, serverMessage.messageId)
-
-                metadataDataSource.updateLastMessageId(chatId, serverMessage.messageId)
-                metadataDataSource.updateLastActivity(chatId, serverMessage.timestamp.toEpochMilliseconds())
-            }
-            .onFailure {
-                messageDataSource.failPending(chatId, clientMessageId)
-            }
+        return send(chatId, payload, clientMessageId)
     }
 
     override suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage> {
         val clientMessageId = messageDataSource.retryPending(chatId, pendingClientIdHex)
 
-        return messagingController.sendMessage(chatId, content, clientMessageId)
+        // Sealed afresh: the pending row holds plaintext, and the chat may have started or stopped
+        // encrypting since the first attempt.
+        return send(chatId, content, clientMessageId)
+    }
+
+    /**
+     * Seals [payload] if the chat encrypts, sends it, and settles the pending row. A failure to
+     * seal fails the row like a failed request, so it can be retried; so does the server refusing
+     * the ciphertext with `EncryptionNotAllowed`.
+     */
+    private suspend fun send(
+        chatId: ChatId,
+        payload: List<MessageContent>,
+        clientMessageId: ClientMessageId,
+    ): Result<ChatMessage> {
+        val prepared = outgoing.prepare(chatId, payload).getOrElse { cause ->
+            trace(tag = TAG, message = "Couldn't prepare send in $chatId", type = TraceType.Error, error = cause)
+            messageDataSource.failPending(chatId, clientMessageId)
+            return Result.failure(cause)
+        }
+
+        return messagingController.sendMessage(chatId, prepared.wire, clientMessageId)
+            .map(prepared::echo)
             .onSuccess { serverMessage ->
                 messageDataSource.confirmPending(chatId, clientMessageId, serverMessage)
                 advanceReadPointer(chatId, serverMessage.messageId)
@@ -356,7 +412,14 @@ class MessagingDelegate @Inject constructor(
             ),
         )
 
-        return messagingController.editMessage(chatId, messageId, content, expectedSequence)
+        val prepared = outgoing.prepare(chatId, content, wasEncrypted = stored.encryption != null)
+            .getOrElse { cause ->
+                clearMutation(chatId, messageId)
+                return Result.failure(cause)
+            }
+
+        return messagingController.editMessage(chatId, messageId, prepared.wire, expectedSequence)
+            .map(prepared::echo)
             .reconcile(chatId, messageId) { it is EditMessageError.Conflict }
     }
 
@@ -556,6 +619,11 @@ class MessagingDelegate @Inject constructor(
      */
     internal suspend fun recoverInterruptedSends() {
         messageDataSource.failInterruptedSends()
+    }
+
+    /** Opens the encrypted messages still waiting on a key, in every chat. */
+    internal suspend fun openKeyPending() {
+        messageDataSource.reopenAllKeyPending()
     }
 
     internal suspend fun clear() {
