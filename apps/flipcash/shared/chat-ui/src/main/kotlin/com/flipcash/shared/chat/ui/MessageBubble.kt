@@ -260,16 +260,12 @@ fun ContentBubble(
                     attention = attention,
                 )
 
-                // Not decoded client-side -- see MessageContent.Encrypted. Rendered as a
-                // tombstone-style text bubble, the same treatment as a deleted message.
-                is MessageContent.Encrypted -> TextBubble(
+                // Not decoded client-side -- see MessageContent.Encrypted. Only the update hint
+                // is produced until decryption exists, since the one message this client can't
+                // open is one a newer client can.
+                is MessageContent.Encrypted -> UndecryptableBubble(
                     modifier = modifier,
-                    text = stringResource(R.string.label_messageUnsupported),
-                    isFromSelf = item.isFromSelf,
-                    position = position,
-                    maxWidth = bubbleMaxWidth,
-                    isTombstone = true,
-                    attention = attention,
+                    hint = UndecryptableHint.UpdateApp,
                 )
 
                 // TODO
