@@ -260,12 +260,11 @@ fun ContentBubble(
                     attention = attention,
                 )
 
-                // Not decoded client-side -- see MessageContent.Encrypted. Only the update hint
-                // is produced until decryption exists, since the one message this client can't
-                // open is one a newer client can.
+                // Ciphertext reaches a bubble only when it didn't open; an opened message carries
+                // its plaintext content instead.
                 is MessageContent.Encrypted -> UndecryptableBubble(
                     modifier = modifier,
-                    hint = UndecryptableHint.UpdateApp,
+                    hint = item.undecryptableHint,
                 )
 
                 // TODO

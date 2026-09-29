@@ -9,7 +9,9 @@ import com.flipcash.app.persistence.converters.EmojiReactionSerialized
 import com.flipcash.app.persistence.converters.MessageContentSerialized
 import com.flipcash.app.persistence.converters.ReactionSummarySerialized
 import com.flipcash.app.persistence.entities.ChatMessageEntity
+import com.flipcash.app.persistence.entities.EncryptionState
 import com.flipcash.app.persistence.entities.MessageStatus
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.After
@@ -512,6 +514,70 @@ class ChatMessageDaoTest {
     }
 
     /** SQLite's running count of rows written on this connection, triggers included. */
+    // region end-to-end encryption
+
+    private val cipherJson = listOf(MessageContentSerialized.Encrypted(scheme = 1, nonce = "AA", ciphertext = "BB"))
+
+    private fun encrypted(messageId: Long, state: EncryptionState) = ChatMessageEntity(
+        chatIdHex = CHAT_HEX,
+        messageId = messageId,
+        senderIdHex = SENDER_HEX,
+        contentJson = if (state == EncryptionState.DECRYPTED) listOf(MessageContentSerialized.Text("hi")) else cipherJson,
+        timestampEpochMs = messageId * 1_000,
+        unreadSeq = messageId,
+        ciphertextJson = cipherJson,
+        encryptionState = state,
+    )
+
+    @Test
+    fun `a message waiting on its key is hidden from the preview`() = runTest {
+        dao.upsert(listOf(text(1, "plain"), encrypted(2, EncryptionState.KEY_PENDING)))
+
+        assertEquals(1L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        assertEquals(listOf(1L), dao.getLatestVisibleForAllChats().map { it.messageId })
+    }
+
+    @Test
+    fun `waiting messages are listed for reopening`() = runTest {
+        dao.upsert(listOf(text(1, "plain"), encrypted(2, EncryptionState.KEY_PENDING)))
+
+        assertEquals(true, dao.hasKeyPending(CHAT_HEX))
+        assertEquals(listOf(2L), dao.getKeyPending(CHAT_HEX).map { it.messageId })
+        assertEquals(listOf(CHAT_HEX), dao.chatsWithKeyPending())
+    }
+
+    @Test
+    fun `the oldest encrypted message skips plaintext and waiting rows`() = runTest {
+        dao.upsert(
+            listOf(
+                text(1, "plain"),
+                encrypted(2, EncryptionState.KEY_PENDING),
+                encrypted(3, EncryptionState.AUTH_FAILED),
+                encrypted(4, EncryptionState.DECRYPTED),
+            )
+        )
+
+        assertEquals(3L, dao.observeOldestEncrypted(CHAT_HEX).first())
+    }
+
+    @Test
+    fun `confirming an encrypted send keeps its plaintext and gains the ciphertext`() = runTest {
+        dao.upsert(pending("hello"))
+
+        dao.confirmPendingMessage(
+            CHAT_HEX,
+            CLIENT_HEX,
+            text(7, "hello").copy(ciphertextJson = cipherJson, encryptionState = EncryptionState.DECRYPTED),
+        )
+
+        val stored = dao.getMessage(CHAT_HEX, 7)!!
+        assertEquals(listOf<MessageContentSerialized>(MessageContentSerialized.Text("hello")), stored.contentJson)
+        assertEquals(cipherJson, stored.ciphertextJson)
+        assertEquals(EncryptionState.DECRYPTED, stored.encryptionState)
+    }
+
+    // endregion
+
     private fun totalChanges(): Long =
         db.openHelper.writableDatabase.query("SELECT total_changes()").use { cursor ->
             cursor.moveToFirst()

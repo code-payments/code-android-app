@@ -10,7 +10,11 @@ import com.flipcash.services.models.chat.MessageContent
  * [Decrypted], the raw [MessageContent.Encrypted] otherwise.
  */
 sealed interface MessageEncryption {
-    data object Decrypted : MessageEncryption
+    /**
+     * Opened on this device, or sent from it. [sealed] is the ciphertext as it went over the wire,
+     * kept so a later copy of the same message can be recognised without opening it again.
+     */
+    data class Decrypted(val sealed: MessageContent.Encrypted) : MessageEncryption
 
     /**
      * The chat key could not be derived because a key fetch failed. Not a decrypt failure: the

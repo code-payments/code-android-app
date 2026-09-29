@@ -57,10 +57,12 @@ data class Outgoing(
 
     /** The server's copy of this message as it should be stored: with the plaintext it was sent from. */
     fun echo(serverMessage: ChatMessage): ChatMessage =
-        if (isSealed) {
-            serverMessage.copy(content = plaintext, encryption = MessageEncryption.Decrypted)
-        } else {
-            serverMessage
+        when (val sealed = wire.singleOrNull()) {
+            is MessageContent.Encrypted if isSealed -> serverMessage.copy(
+                content = plaintext,
+                encryption = MessageEncryption.Decrypted(sealed),
+            )
+            else -> serverMessage
         }
 }
 

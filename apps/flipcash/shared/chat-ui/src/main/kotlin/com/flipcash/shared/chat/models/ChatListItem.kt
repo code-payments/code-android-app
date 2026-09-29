@@ -5,6 +5,7 @@ import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.flipcash.shared.chat.ui.DetectedMention
+import com.flipcash.shared.chat.ui.UndecryptableHint
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -125,6 +126,11 @@ sealed interface ChatListItem {
          * pending send are excluded. See `com.flipcash.shared.chat.canReact`.
          */
         val canReact: Boolean = false,
+        /**
+         * The line under the bubble when [content] is ciphertext that didn't open. See
+         * [undecryptableHint][com.flipcash.shared.chat.ui.undecryptableHint].
+         */
+        val undecryptableHint: UndecryptableHint = UndecryptableHint.UpdateApp,
     ) : ChatListItem {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the

@@ -104,6 +104,8 @@ import com.flipcash.shared.chat.reactions.ReactionStripComposer
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.flipcash.shared.chat.readOnly
 import com.flipcash.shared.chat.resolveCapabilities
+import com.flipcash.shared.chat.ui.UndecryptableHint
+import com.flipcash.shared.chat.ui.undecryptableHint
 import com.flipcash.shared.chat.ui.detectMentions
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
@@ -952,6 +954,14 @@ internal class ChatViewModel @Inject constructor(
                         reactionPills = storedReactions.pills,
                         selfReactions = storedReactions.selfReactions,
                         canReact = canReact(message),
+                        undecryptableHint = undecryptableHint(
+                            encryption = message.encryption,
+                            isFromSelf = message.isFromSelf,
+                            // Only a DM is encrypted, so the sender of an incoming one is the
+                            // participant.
+                            senderName = stateFlow.value.participant?.name
+                                ?: resources.getString(R.string.title_unnamedUser),
+                        ) ?: UndecryptableHint.UpdateApp,
                     )
                         // A carded link takes a row of its own, with the prose either side of it
                         // on rows above and below. Reversed because the list is: this page runs

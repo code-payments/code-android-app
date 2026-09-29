@@ -8,13 +8,14 @@ import androidx.room.Query
 import androidx.room.Transaction
 import com.flipcash.app.persistence.converters.mergeReactionsJson
 import com.flipcash.app.persistence.entities.ChatMessageEntity
+import com.flipcash.app.persistence.entities.EncryptionState
 import com.flipcash.app.persistence.entities.MessageStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ChatMessageDao {
 
-    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms ASC, message_id ASC")
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') ORDER BY timestamp_epoch_ms ASC, message_id ASC")
     fun observeMessages(chatIdHex: String): Flow<List<ChatMessageEntity>>
 
     /**
@@ -22,7 +23,7 @@ interface ChatMessageDao {
      * sent in a burst, or stamped from one server clock read, share a millisecond. A paged read
      * re-queries per page, so an unstable order there duplicates or skips a row across the seam.
      */
-    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC, message_id DESC")
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') ORDER BY timestamp_epoch_ms DESC, message_id DESC")
     fun observeMessagesPaged(chatIdHex: String): PagingSource<Int, ChatMessageEntity>
 
     /**
@@ -44,7 +45,7 @@ interface ChatMessageDao {
      * the newest id including tombstones, or a delete would regress the read pointer and leave the
      * chat unread forever.
      */
-    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
     suspend fun getLatestVisible(chatIdHex: String): ChatMessageEntity?
 
     /**
@@ -58,6 +59,7 @@ interface ChatMessageDao {
         "SELECT * FROM chat_messages WHERE rowid IN (" +
             "SELECT (SELECT m.rowid FROM chat_messages m " +
             "WHERE m.chat_id_hex = c.chat_id_hex AND m.is_deleted = 0 " +
+            "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
             "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
             "FROM (SELECT DISTINCT chat_id_hex FROM chat_messages) c)"
     )
@@ -128,6 +130,28 @@ interface ChatMessageDao {
      */
     @Query("SELECT COUNT(*) FROM chat_messages WHERE chat_id_hex = :chatIdHex AND timestamp_epoch_ms > :timestampEpochMs")
     suspend fun countNewerThan(chatIdHex: String, timestampEpochMs: Long): Int
+
+    /** Rows in [chatIdHex] still waiting on a key to be opened; see [EncryptionState.KEY_PENDING]. */
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND encryption_state = 'KEY_PENDING'")
+    suspend fun getKeyPending(chatIdHex: String): List<ChatMessageEntity>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM chat_messages WHERE chat_id_hex = :chatIdHex AND encryption_state = 'KEY_PENDING')")
+    suspend fun hasKeyPending(chatIdHex: String): Boolean
+
+    @Query("SELECT DISTINCT chat_id_hex FROM chat_messages WHERE encryption_state = 'KEY_PENDING'")
+    suspend fun chatsWithKeyPending(): List<String>
+
+    /**
+     * The oldest message in [chatIdHex] that arrived end-to-end encrypted and is shown, opened or
+     * not. The transcript's Encrypted marker sits above it. Ordered as the transcript is.
+     */
+    @Query(
+        "SELECT message_id FROM chat_messages " +
+            "WHERE chat_id_hex = :chatIdHex AND encryption_state IS NOT NULL " +
+            "AND encryption_state != 'KEY_PENDING' " +
+            "ORDER BY timestamp_epoch_ms ASC, message_id ASC LIMIT 1"
+    )
+    fun observeOldestEncrypted(chatIdHex: String): Flow<Long?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: ChatMessageEntity)
@@ -292,6 +316,18 @@ interface ChatMessageDao {
             newUnreadSeq = serverMessage.unreadSeq,
             newEventSequence = serverMessage.eventSequence,
         )
+        // An encrypted send went out as ciphertext; the row keeps its plaintext and gains the
+        // ciphertext beside it. Written as a row rather than in the UPDATE above, since Room would
+        // expand a list parameter into an IN clause.
+        if (serverMessage.encryptionState != null) {
+            val confirmed = getByClientId(chatIdHex, clientIdHex) ?: return
+            insert(
+                confirmed.copy(
+                    ciphertextJson = serverMessage.ciphertextJson,
+                    encryptionState = serverMessage.encryptionState,
+                )
+            )
+        }
     }
 
     @Transaction

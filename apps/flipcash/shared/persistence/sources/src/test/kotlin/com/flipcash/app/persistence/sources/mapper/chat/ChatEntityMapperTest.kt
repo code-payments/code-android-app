@@ -18,7 +18,11 @@ import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.flipcash.app.persistence.entities.EncryptionState
+import com.flipcash.services.chat.MessageEncryption
+import com.flipcash.services.chat.UndecryptableReason
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import kotlin.time.Instant
 
@@ -425,6 +429,55 @@ class ChatEntityMapperTest {
             )
         },
     )
+
+    // endregion
+
+    // region encrypted messages
+
+    private val sealed = MessageContent.Encrypted(scheme = 1, nonce = ByteArray(24) { 3 }, ciphertext = byteArrayOf(9, 8, 7))
+
+    private fun encryptedMessage(content: MessageContent, encryption: MessageEncryption?) = ChatMessage(
+        messageId = 5,
+        senderId = List(16) { 2 },
+        content = listOf(content),
+        timestamp = Instant.fromEpochSeconds(1_000),
+        unreadSeq = 0,
+        encryption = encryption,
+    )
+
+    @Test
+    fun `an opened message stores its plaintext with the ciphertext beside it`() {
+        val message = encryptedMessage(MessageContent.Text("hi"), MessageEncryption.Decrypted(sealed))
+
+        val entity = mapper.toEntity(CHAT_HEX, message)
+
+        assertEquals(EncryptionState.DECRYPTED, entity.encryptionState)
+        assertEquals(message, mapper.toMessage(entity))
+    }
+
+    @Test
+    fun `each unopened state round-trips with its ciphertext as content`() {
+        listOf(
+            MessageEncryption.KeyPending,
+            MessageEncryption.Undecryptable(UndecryptableReason.Unsupported),
+            MessageEncryption.Undecryptable(UndecryptableReason.Authentication),
+        ).forEach { encryption ->
+            val message = encryptedMessage(sealed, encryption)
+
+            val entity = mapper.toEntity(CHAT_HEX, message)
+
+            assertEquals(1, entity.ciphertextJson?.size)
+            assertEquals(message, mapper.toMessage(entity))
+        }
+    }
+
+    @Test
+    fun `a plaintext message has no encryption columns`() {
+        val entity = mapper.toEntity(CHAT_HEX, encryptedMessage(MessageContent.Text("plain"), null))
+
+        assertNull(entity.ciphertextJson)
+        assertNull(entity.encryptionState)
+    }
 
     // endregion
 

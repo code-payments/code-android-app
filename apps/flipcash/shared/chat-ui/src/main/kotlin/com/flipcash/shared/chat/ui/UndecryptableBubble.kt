@@ -25,13 +25,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.app.theme.FlipcashThemeWrapper
+import com.flipcash.services.chat.MessageEncryption
+import com.flipcash.services.chat.UndecryptableReason
 import com.getcode.theme.CodeTheme
 
 /**
- * What the line under an [UndecryptableBubble] tells the reader to do about it.
- *
- * Only [UpdateApp] is produced today: the one message this client can't open is one a newer client
- * could. The other two are for once decryption exists and a failed one is the sender's to fix.
+ * What the line under an [UndecryptableBubble] tells the reader to do about it. Picked by
+ * [undecryptableHint] from why the message didn't open.
  */
 sealed interface UndecryptableHint {
     /** A newer version of the app can read it. */
@@ -43,6 +43,33 @@ sealed interface UndecryptableHint {
     /** It failed to authenticate; the viewer sent it and can send it again. */
     data object TrySendingAgain : UndecryptableHint
 }
+
+/**
+ * The hint for a message that arrived encrypted and didn't open, from [encryption]:
+ * - an unknown scheme or content type, or no recorded outcome, is one a newer client can read;
+ * - a failed authentication is the sender's to fix, so the viewer is asked to resend their own
+ *   and to ask [senderName], by first name, to resend theirs.
+ *
+ * [senderName] is the whole name; its first word is used. Null for an opened message.
+ */
+fun undecryptableHint(
+    encryption: MessageEncryption?,
+    isFromSelf: Boolean,
+    senderName: String,
+): UndecryptableHint? = when (encryption) {
+    is MessageEncryption.Decrypted, MessageEncryption.KeyPending -> null
+    is MessageEncryption.Undecryptable -> when (encryption.reason) {
+        UndecryptableReason.Unsupported -> UndecryptableHint.UpdateApp
+        UndecryptableReason.Authentication -> if (isFromSelf) {
+            UndecryptableHint.TrySendingAgain
+        } else {
+            UndecryptableHint.AskToResend(senderName.firstName())
+        }
+    }
+    null -> UndecryptableHint.UpdateApp
+}
+
+private fun String.firstName(): String = trim().substringBefore(' ')
 
 @Composable
 private fun UndecryptableHint.text(): String = when (this) {

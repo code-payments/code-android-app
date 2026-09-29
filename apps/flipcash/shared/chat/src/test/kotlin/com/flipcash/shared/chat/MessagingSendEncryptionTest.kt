@@ -161,7 +161,7 @@ class MessagingSendEncryptionTest {
         val stored = slot<ChatMessage>()
         coVerify { messages.confirmPending(chatId, clientMessageId, capture(stored)) }
         assertEquals(listOf(MessageContent.Text("hello")), stored.captured.content)
-        assertEquals(MessageEncryption.Decrypted, stored.captured.encryption)
+        assertEquals(MessageEncryption.Decrypted(wires.single().single() as MessageContent.Encrypted), stored.captured.encryption)
     }
 
     @Test
@@ -287,7 +287,7 @@ class MessagingSendEncryptionTest {
     fun `an encrypted message stays encrypted when edited after the chat stops encrypting`() = runTest {
         storedChat(chat(useE2ee = false))
         val original = serverCopy(listOf(MessageContent.Text("before")))
-            .copy(encryption = MessageEncryption.Decrypted)
+            .copy(encryption = MessageEncryption.Decrypted(MessageContent.Encrypted(1, ByteArray(24), ByteArray(8))))
         val wires = answerEdits(original)
 
         delegate.editMessage(chatId, original.messageId, "after").getOrThrow()
@@ -296,7 +296,7 @@ class MessagingSendEncryptionTest {
         val stored = slot<List<ChatMessage>>()
         coVerify { messages.upsert(chatId, capture(stored)) }
         assertEquals(listOf(MessageContent.Text("after")), stored.captured.single().content)
-        assertEquals(MessageEncryption.Decrypted, stored.captured.single().encryption)
+        assertEquals(MessageEncryption.Decrypted(wires.single().single() as MessageContent.Encrypted), stored.captured.single().encryption)
     }
 
     @Test

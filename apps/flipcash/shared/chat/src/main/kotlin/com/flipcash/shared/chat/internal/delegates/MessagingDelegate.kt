@@ -583,6 +583,11 @@ class MessagingDelegate @Inject constructor(
         messageDataSource.failInterruptedSends()
     }
 
+    /** Opens the encrypted messages still waiting on a key, in every chat. */
+    internal suspend fun openKeyPending() {
+        messageDataSource.reopenAllKeyPending()
+    }
+
     internal suspend fun clear() {
         pendingMutations.value = emptyMap()
         metadataDataSource.clear()
