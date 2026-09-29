@@ -430,6 +430,9 @@ private fun YouHeader(
             cardWidth = YouCardWidth,
             enabled = enabled,
             onClaim = onClaim,
+            profileTutorial = profileTutorial,
+            onSetProfilePicture = onSetProfilePicture,
+            onSetMinimumTip = onSetMinimumTip,
         )
         is TipCardState.Claimed -> ClaimedTipCard(
             card = tipCardState.card,
@@ -448,6 +451,7 @@ private fun YouHeader(
             usernameMinimumBalance = usernameMinimumBalance,
             onClaimUsername = onClaimUsername,
             profileTutorial = profileTutorial,
+            onSetDisplayName = onClaim,
             onSetProfilePicture = onSetProfilePicture,
             onSetMinimumTip = onSetMinimumTip,
         )
@@ -484,6 +488,7 @@ private fun ClaimedTipCard(
     usernameMinimumBalance: String,
     onClaimUsername: () -> Unit,
     profileTutorial: List<TutorialItem.Profile>?,
+    onSetDisplayName: () -> Unit,
     onSetProfilePicture: () -> Unit,
     onSetMinimumTip: () -> Unit,
 ) {
@@ -564,17 +569,12 @@ private fun ClaimedTipCard(
                 // link row. Null while the profile is unresolved so it never draws against a
                 // guess.
                 if (profileTutorial != null) {
-                    NewUserTutorial(
-                        modifier = Modifier.fillMaxWidth(),
-                        title = stringResource(R.string.title_finishYourProfile),
+                    ProfileTutorial(
                         items = profileTutorial,
-                    ) { item ->
-                        when (item) {
-                            is TutorialItem.ProfilePicture -> onSetProfilePicture()
-                            is TutorialItem.MinimumTip -> onSetMinimumTip()
-                        }
-                    }
-
+                        onSetDisplayName = onSetDisplayName,
+                        onSetProfilePicture = onSetProfilePicture,
+                        onSetMinimumTip = onSetMinimumTip,
+                    )
 
                     // Node 9641:17048 separates the checklist from the link row. The column
                     // already spaces siblings by 10dp; the rest of the 20dp gap on each side is
@@ -648,6 +648,9 @@ private fun UnclaimedTipCardPrompt(
     cardWidth: Dp,
     enabled: Boolean,
     onClaim: () -> Unit,
+    profileTutorial: List<TutorialItem.Profile>?,
+    onSetProfilePicture: () -> Unit,
+    onSetMinimumTip: () -> Unit,
     blurEnabled: Boolean = HazeBlurDefaults.isBlurEnabledByDefault(),
 ) {
     val shape = RoundedCornerShape(cardWidth * TipCardCornerFraction)
@@ -760,7 +763,44 @@ private fun UnclaimedTipCardPrompt(
             }
         }
 
+        // No link row or Share / Download to sit above here, so the checklist goes straight under
+        // the stand-in, with the display-name step first.
+        if (profileTutorial != null) {
+            ProfileTutorial(
+                modifier = Modifier
+                    .padding(top = CodeTheme.dimens.grid.x6)
+                    .padding(horizontal = CodeTheme.dimens.grid.x5),
+                items = profileTutorial,
+                // The same destination as "Start Receiving Tips": the name is what claims the card.
+                onSetDisplayName = onClaim,
+                onSetProfilePicture = onSetProfilePicture,
+                onSetMinimumTip = onSetMinimumTip,
+            )
+        }
+
         Spacer(Modifier.height(UnclaimedRowsGap))
+    }
+}
+
+/** The "Finish Your Profile" checklist, drawn under whichever card the tab is showing. */
+@Composable
+private fun ProfileTutorial(
+    items: List<TutorialItem.Profile>,
+    onSetDisplayName: () -> Unit,
+    onSetProfilePicture: () -> Unit,
+    onSetMinimumTip: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    NewUserTutorial(
+        modifier = modifier.fillMaxWidth(),
+        title = stringResource(R.string.title_finishYourProfile),
+        items = items,
+    ) { item ->
+        when (item) {
+            is TutorialItem.DisplayName -> onSetDisplayName()
+            is TutorialItem.ProfilePicture -> onSetProfilePicture()
+            is TutorialItem.MinimumTip -> onSetMinimumTip()
+        }
     }
 }
 
@@ -978,6 +1018,10 @@ private fun Preview_UnclaimedTipCardPrompt() {
         cardWidth = YouCardWidth,
         enabled = true,
         onClaim = {},
+        // What a nameless account sees: the display-name step first, nothing done yet.
+        profileTutorial = profileTutorialItems(UserProfile.Empty),
+        onSetProfilePicture = {},
+        onSetMinimumTip = {},
     )
 }
 
@@ -995,6 +1039,9 @@ private fun Preview_UnclaimedTipCardPrompt_NoBlur() {
         cardWidth = YouCardWidth,
         enabled = true,
         onClaim = {},
+        profileTutorial = null,
+        onSetProfilePicture = {},
+        onSetMinimumTip = {},
         blurEnabled = false,
     )
 }

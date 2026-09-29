@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,6 +74,19 @@ sealed interface TutorialItem {
             @Composable get() = stringResource(R.string.subtitle_scanTipCard)
         override val icon: Painter
             @Composable get() = painterResource(R.drawable.ic_nav_tipcard)
+    }
+
+    /**
+     * Accounts created before onboarding asked for a name have none, and chat shows them as
+     * "Flipcash User" until they set one.
+     */
+    class DisplayName(override val isCompleted: Boolean) : Profile {
+        override val title: String
+            @Composable get() = stringResource(R.string.title_addDisplayName)
+        override val description: String
+            @Composable get() = stringResource(R.string.subtitle_addDisplayName)
+        override val icon: Painter
+            @Composable get() = rememberVectorPainter(Icons.Outlined.Edit)
     }
 
     class ProfilePicture(override val isCompleted: Boolean) : Profile {
@@ -204,6 +218,7 @@ private fun PreviewFinishProfileEmpty() {
     NewUserTutorial(
         title = stringResource(R.string.title_finishYourProfile),
         items = listOf(
+            TutorialItem.DisplayName(isCompleted = false),
             TutorialItem.ProfilePicture(isCompleted = false),
             TutorialItem.MinimumTip(),
         ),
@@ -218,6 +233,7 @@ private fun PreviewFinishProfilePhotoSet() {
     NewUserTutorial(
         title = stringResource(R.string.title_finishYourProfile),
         items = listOf(
+            TutorialItem.DisplayName(isCompleted = true),
             TutorialItem.ProfilePicture(isCompleted = true),
             TutorialItem.MinimumTip(),
         ),
