@@ -18,6 +18,7 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.models.UserProfile
 import com.flipcash.app.persistence.sources.UserProfileDataSource
+import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
@@ -122,6 +123,7 @@ class ChatSendFailureAnalyticsTest {
 
     private fun createViewModel(): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
+        e2eePolicy = E2eePolicy(null),
         contactCoordinator = contactCoordinator,
         contactPaymentDelegate = contactPaymentDelegate,
         tipPaymentDelegate = tipPaymentDelegate,

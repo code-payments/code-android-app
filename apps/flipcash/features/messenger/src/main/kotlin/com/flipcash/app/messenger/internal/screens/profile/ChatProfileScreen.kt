@@ -88,6 +88,7 @@ internal fun ChatProfileScreen(
             chatId = chatState.chatId,
             chatType = chatState.chatType,
             viewerState = chatState.viewerState,
+            isEncrypted = chatState.isEncrypted,
         ),
         cashSymbol = chatState.cashSymbol,
         onBack = { flowNavigator.back() },
@@ -103,8 +104,9 @@ internal fun profileChat(
     chatId: ChatId?,
     chatType: ChatType,
     viewerState: ViewerState?,
+    isEncrypted: Boolean = false,
 ): ProfileChat? = when (origin) {
-    ProfileOrigin.Chat -> ProfileChat(chatId, chatType, viewerState)
+    ProfileOrigin.Chat -> ProfileChat(chatId, chatType, viewerState, isEncrypted)
     ProfileOrigin.Mention -> null
 }
 
@@ -116,6 +118,8 @@ internal data class ProfileChat(
     val chatId: ChatId?,
     val chatType: ChatType,
     val viewerState: ViewerState?,
+    /** [com.flipcash.services.chat.E2eePolicy]'s answer for this chat; the footer follows it. */
+    val isEncrypted: Boolean = false,
 )
 
 /**
@@ -141,6 +145,14 @@ internal fun PersonProfileScreen(
     CodeScaffold(
         topBar = {
             AppBarWithTitle(onBackIconClicked = onBack)
+        },
+        bottomBar = {
+            if (chat?.isEncrypted == true) {
+                E2eeFooter(
+                    isEncrypted = true,
+                    onLearnMore = { navigator.push(AppRoute.Messaging.E2eeDmInfo) },
+                )
+            }
         },
     ) { innerPadding ->
         MenuList(

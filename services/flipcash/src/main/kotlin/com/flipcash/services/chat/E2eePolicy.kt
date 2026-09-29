@@ -3,6 +3,7 @@ package com.flipcash.services.chat
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.opencode.model.core.ID
+import javax.inject.Inject
 
 /**
  * The @flipcash account's user id. Chats with it stay plaintext, because the backend sends its
@@ -23,7 +24,10 @@ val FLIPCASH_ACCOUNT_ID: ID? = null
  *
  * @param flipcashAccountId the @flipcash account to exempt; injectable for tests.
  */
-class E2eePolicy(private val flipcashAccountId: ID? = FLIPCASH_ACCOUNT_ID) {
+class E2eePolicy(private val flipcashAccountId: ID?) {
+
+    @Inject
+    constructor() : this(FLIPCASH_ACCOUNT_ID)
 
     fun shouldEncrypt(chat: ChatMetadata): Boolean {
         val isDm = chat.type == ChatType.CONTACT_DM || chat.type == ChatType.TIP_DM
