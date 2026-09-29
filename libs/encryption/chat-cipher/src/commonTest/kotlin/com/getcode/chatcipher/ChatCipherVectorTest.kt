@@ -27,8 +27,8 @@ class ChatCipherVectorTest {
         for (v in vectors) {
             val pair = Ed25519Kmp.createKeyPair(v.hex("edSeed"))
             assertContentEquals(v.hex("edPublicKey"), pair.publicKey, v.name())
-            assertContentEquals(v.hex("x25519PrivateKey"), ChatCipher.ownToX25519(pair), v.name())
-            assertContentEquals(v.hex("x25519PublicKey"), ChatCipher.peerToX25519(pair.publicKey), v.name())
+            assertContentEquals(v.hex("x25519PrivateKey"), DefaultChatCipher.ownToX25519(pair), v.name())
+            assertContentEquals(v.hex("x25519PublicKey"), DefaultChatCipher.peerToX25519(pair.publicKey), v.name())
         }
     }
 
@@ -40,9 +40,9 @@ class ChatCipherVectorTest {
             val a = pair(v["memberA"]!!.jsonObject)
             val b = pair(v["memberB"]!!.jsonObject)
             val chatId = v.hex("chatId")
-            assertContentEquals(v.hex("chatKey"), ChatCipher.chatKey(a, b.publicKey, chatId), "${v.name()} A->B")
-            assertContentEquals(v.hex("chatKey"), ChatCipher.chatKey(b, a.publicKey, chatId), "${v.name()} B->A")
-            val ss = ChatCipher.sharedSecret(ChatCipher.ownToX25519(a), ChatCipher.peerToX25519(b.publicKey))
+            assertContentEquals(v.hex("chatKey"), DefaultChatCipher.chatKey(a, b.publicKey, chatId), "${v.name()} A->B")
+            assertContentEquals(v.hex("chatKey"), DefaultChatCipher.chatKey(b, a.publicKey, chatId), "${v.name()} B->A")
+            val ss = DefaultChatCipher.sharedSecret(DefaultChatCipher.ownToX25519(a), DefaultChatCipher.peerToX25519(b.publicKey))
             assertContentEquals(v.hex("sharedSecret"), ss, v.name())
         }
     }
@@ -53,12 +53,12 @@ class ChatCipherVectorTest {
         assertTrue(vectors.size >= 7)
         for (v in vectors) {
             val key = v.hex("chatKey")
-            val payload = ChatCipher.encrypt(
+            val payload = DefaultChatCipher.encrypt(
                 v.hex("content"), key, v.hex("senderPublicKey"), v.hex("recipientPublicKey"),
                 v.hex("chatId"), v.hex("nonce"),
             )
             assertContentEquals(v.hex("ciphertext"), payload.ciphertext, v.name())
-            val plain = ChatCipher.decrypt(
+            val plain = DefaultChatCipher.decrypt(
                 v.payload(), key, v.hex("senderPublicKey"), v.hex("recipientPublicKey"), v.hex("chatId"),
             )
             assertContentEquals(v.hex("content"), plain, v.name())
@@ -71,12 +71,12 @@ class ChatCipherVectorTest {
         assertTrue(vectors.isNotEmpty())
         for (v in vectors) {
             val key = v.hex("chatKey")
-            val blob = ChatCipher.encryptBlob(
+            val blob = DefaultChatCipher.encryptBlob(
                 v.hex("image"), key, v.hex("senderPublicKey"), v.hex("recipientPublicKey"),
                 v.hex("chatId"), v.hex("blobId"), v.hex("nonce"),
             )
             assertContentEquals(v.hex("blob"), blob, v.name())
-            val plain = ChatCipher.decryptBlob(
+            val plain = DefaultChatCipher.decryptBlob(
                 v.hex("blob"), key, v.hex("senderPublicKey"), v.hex("recipientPublicKey"),
                 v.hex("chatId"), v.hex("blobId"),
             )
@@ -88,10 +88,10 @@ class ChatCipherVectorTest {
     fun randomNonces_roundTripAndDiffer() {
         val v = list("messages").first()
         val args = arrayOf(v.hex("chatKey"), v.hex("senderPublicKey"), v.hex("recipientPublicKey"), v.hex("chatId"))
-        val a = ChatCipher.encrypt(v.hex("content"), args[0], args[1], args[2], args[3])
-        val b = ChatCipher.encrypt(v.hex("content"), args[0], args[1], args[2], args[3])
+        val a = DefaultChatCipher.encrypt(v.hex("content"), args[0], args[1], args[2], args[3])
+        val b = DefaultChatCipher.encrypt(v.hex("content"), args[0], args[1], args[2], args[3])
         assertTrue(!a.nonce.contentEquals(b.nonce))
-        assertContentEquals(v.hex("content"), ChatCipher.decrypt(a, args[0], args[1], args[2], args[3]))
+        assertContentEquals(v.hex("content"), DefaultChatCipher.decrypt(a, args[0], args[1], args[2], args[3]))
     }
 
     @Test
@@ -100,7 +100,7 @@ class ChatCipherVectorTest {
         assertTrue(vectors.size >= 4)
         for (v in vectors) {
             val own = Ed25519Kmp.createKeyPair(v.hex("ownSeed"))
-            assertFailsWith<ChatCipherException>(v.name()) { ChatCipher.chatKey(own, v.hex("edPublicKey"), v.hex("chatId")) }
+            assertFailsWith<ChatCipherException>(v.name()) { DefaultChatCipher.chatKey(own, v.hex("edPublicKey"), v.hex("chatId")) }
         }
     }
 
@@ -108,7 +108,7 @@ class ChatCipherVectorTest {
     fun rejects_zeroSharedSecret() {
         for (v in rejects("zeroSharedSecret")) {
             assertFailsWith<ChatCipherException>(v.name()) {
-                ChatCipher.sharedSecret(v.hex("x25519PrivateKey"), v.hex("peerX25519PublicKey"))
+                DefaultChatCipher.sharedSecret(v.hex("x25519PrivateKey"), v.hex("peerX25519PublicKey"))
             }
         }
     }
@@ -120,7 +120,7 @@ class ChatCipherVectorTest {
             assertTrue(vectors.isNotEmpty())
             for (v in vectors) {
                 assertFailsWith<ChatCipherException>("$key/${v.name()}") {
-                    ChatCipher.decrypt(
+                    DefaultChatCipher.decrypt(
                         v.payload(), v.hex("chatKey"), v.hex("senderPublicKey"), v.hex("recipientPublicKey"),
                         v.hex("chatId"),
                     )
@@ -135,7 +135,7 @@ class ChatCipherVectorTest {
         assertTrue(vectors.isNotEmpty())
         for (v in vectors) {
             assertFailsWith<ChatCipherException>(v.name()) {
-                ChatCipher.decryptBlob(
+                DefaultChatCipher.decryptBlob(
                     v.hex("blob"), v.hex("chatKey"), v.hex("senderPublicKey"), v.hex("recipientPublicKey"),
                     v.hex("chatId"), v.hex("blobId"),
                 )
@@ -146,11 +146,11 @@ class ChatCipherVectorTest {
     @Test
     fun policy_shouldEncrypt() {
         val policy = root["policy"]!!.jsonObject
-        assertContentEquals(policy.hex("flipcashUserId"), ChatCipher.FLIPCASH_USER_ID)
+        assertContentEquals(policy.hex("flipcashUserId"), ChatEncryptionPolicy.FLIPCASH_USER_ID)
         val vectors = policy["cases"]!!.jsonArray.map { it.jsonObject }
         assertTrue(vectors.size >= 4)
         for (v in vectors) {
-            val actual = ChatCipher.shouldEncrypt(
+            val actual = ChatEncryptionPolicy.shouldEncrypt(
                 isDirectMessage = v.bool("isDirectMessage"),
                 useE2ee = v.bool("useE2ee"),
                 peerUserId = v.hex("peerUserId"),
@@ -161,8 +161,8 @@ class ChatCipherVectorTest {
 
     @Test
     fun flipcashUserId_isACopy() {
-        ChatCipher.FLIPCASH_USER_ID[0] = 0
-        assertTrue(!ChatCipher.shouldEncrypt(true, true, root["policy"]!!.jsonObject.hex("flipcashUserId")))
+        ChatEncryptionPolicy.FLIPCASH_USER_ID[0] = 0
+        assertTrue(!ChatEncryptionPolicy.shouldEncrypt(true, true, root["policy"]!!.jsonObject.hex("flipcashUserId")))
     }
 
     private fun pair(o: JsonObject) = Ed25519Kmp.createKeyPair(o.hex("edSeed")).also {
