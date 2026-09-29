@@ -56,7 +56,7 @@ internal fun EncryptedMarkerRow(
                 modifier = Modifier.size(12.dp),
                 imageVector = Icons.Filled.Lock,
                 contentDescription = null,
-                tint = CodeTheme.colors.textMain,
+                tint = CodeTheme.colors.textSecondary,
             )
             Text(
                 text = stringResource(R.string.label_e2eeMarker),
@@ -64,13 +64,13 @@ internal fun EncryptedMarkerRow(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                 ),
-                color = CodeTheme.colors.textMain,
+                color = CodeTheme.colors.textSecondary,
             )
             Icon(
                 modifier = Modifier.size(14.dp),
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = CodeTheme.colors.textMain,
+                tint = CodeTheme.colors.textSecondary,
             )
         }
     }
