@@ -53,6 +53,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
@@ -183,6 +184,7 @@ data class TypingConstraints(
 @HiltViewModel
 internal class ChatViewModel @Inject constructor(
     private val chatCoordinator: ChatCoordinator,
+    private val e2eePolicy: E2eePolicy,
     private val contactCoordinator: ContactCoordinator,
     private val contactPaymentDelegate: ContactPaymentDelegate,
     private val tipPaymentDelegate: TipPaymentDelegate,
@@ -241,6 +243,8 @@ internal class ChatViewModel @Inject constructor(
         // bottom bar read it to render the correct (condensed vs expanded) presentation immediately
         // instead of flashing the expanded white pill while a tip profile loads.
         val chatType: ChatType = ChatType.UNKNOWN,
+        /** Whether [E2eePolicy] says this chat's messages are end-to-end encrypted. */
+        val isEncrypted: Boolean = false,
         val chatInputState: TextFieldState = TextFieldState(),
         val typists: Set<ActiveTypist> = emptySet(),
         /** What the typing indicator draws ahead of its dots. See [typingAvatars]. */
@@ -560,6 +564,8 @@ internal class ChatViewModel @Inject constructor(
 
         /** This chat's viewer state moved, from the stream or from the viewer's own request. */
         data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
+
+        data class OnEncryptionResolved(val isEncrypted: Boolean) : Event
 
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data class OnChatInitFeeUpdated(val formatted: String?) : Event
@@ -1544,6 +1550,16 @@ internal class ChatViewModel @Inject constructor(
             .map { it?.metadata?.viewerState }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnViewerStateResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // The profile footer's claim. Decided by the policy from the chat's metadata, so the
+        // screen never reads the server's flag itself.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeMetadata(it) }
+            .map { it?.metadata?.let(e2eePolicy::shouldEncrypt) ?: false }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnEncryptionResolved(it)) }
             .launchIn(viewModelScope)
 
         // Observed rather than read once: the rule can change under an open screen, and a buy
@@ -2650,6 +2666,8 @@ internal class ChatViewModel @Inject constructor(
                         )
                     )
                 }
+                is Event.OnEncryptionResolved -> { state -> state.copy(isEncrypted = event.isEncrypted) }
+
                 is Event.OnViewerStateResolved -> { state ->
                     state.copy(viewerState = event.viewerState)
                 }

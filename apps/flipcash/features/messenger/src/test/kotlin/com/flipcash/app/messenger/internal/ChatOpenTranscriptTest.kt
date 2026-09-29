@@ -6,6 +6,7 @@ import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.libs.coroutines.TestDispatcherProvider
+import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -81,6 +82,7 @@ class ChatOpenTranscriptTest {
 
     private fun createViewModel(): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
+        e2eePolicy = E2eePolicy(null),
         contactCoordinator = mockk(relaxed = true),
         contactPaymentDelegate = mockk(relaxed = true),
         tipPaymentDelegate = tipPaymentDelegate,

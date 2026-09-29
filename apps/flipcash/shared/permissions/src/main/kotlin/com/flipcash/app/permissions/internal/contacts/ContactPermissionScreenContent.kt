@@ -27,6 +27,7 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.shared.permissions.R
 import com.flipcash.app.analytics.LocalAnalytics
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.BulletRow
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.permissions.ProvideTestPermissions
 import com.getcode.util.permissions.rememberContactPermission

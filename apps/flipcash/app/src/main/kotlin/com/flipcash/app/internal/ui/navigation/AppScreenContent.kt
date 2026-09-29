@@ -36,6 +36,7 @@ import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
+import com.flipcash.app.messenger.E2eeLearnMoreScreen
 import com.flipcash.app.messenger.MuteChatScreen
 import com.flipcash.app.messenger.ProfileScreen
 import com.flipcash.app.messenger.ReportFlowScreen
@@ -127,6 +128,8 @@ fun appEntryProvider(
         ReportFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
     annotatedEntry<AppRoute.Messaging.MuteChat> { key -> MuteChatScreen(key.chatId, key.chatType) }
+    annotatedEntry<AppRoute.Messaging.E2eeDmInfo> { E2eeLearnMoreScreen(forGroup = false) }
+    annotatedEntry<AppRoute.Messaging.E2eeGroupInfo> { E2eeLearnMoreScreen(forGroup = true) }
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info>(testTag = "token_info_screen") { key ->

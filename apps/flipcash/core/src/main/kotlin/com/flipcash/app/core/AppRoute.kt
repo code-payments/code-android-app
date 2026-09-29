@@ -436,6 +436,25 @@ sealed interface AppRoute : NavKey, Parcelable {
             Messaging,
             com.getcode.navigation.Sheet,
             com.getcode.navigation.WrapContentSheet
+
+        /**
+         * What end-to-end encryption covers in a DM, opened from the DM profile's footer. A
+         * [com.getcode.navigation.WrapContentSheet], for the reason [MuteChat] is one.
+         */
+        @Serializable
+        @Parcelize
+        data object E2eeDmInfo :
+            Messaging,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.WrapContentSheet
+
+        /** The group counterpart of [E2eeDmInfo], opened from Group Info's footer. */
+        @Serializable
+        @Parcelize
+        data object E2eeGroupInfo :
+            Messaging,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.WrapContentSheet
     }
 
     @Serializable

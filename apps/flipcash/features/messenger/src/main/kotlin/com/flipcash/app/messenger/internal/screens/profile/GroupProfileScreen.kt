@@ -103,6 +103,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 },
             )
         },
+        bottomBar = {
+            E2eeFooter(
+                isEncrypted = false,
+                onLearnMore = { navigator.push(AppRoute.Messaging.E2eeGroupInfo) },
+            )
+        },
     ) { innerPadding ->
         MenuList(
             modifier = Modifier
