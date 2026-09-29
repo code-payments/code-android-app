@@ -27,6 +27,10 @@ object ChatAnimations {
     // How far below its slot a newly appended row starts, as a share of its own height. It rides
     // up into place rather than fading in over the row above. iOS insertionRise.
     const val insertionRise = 0.35f
+    // The transcript riding up to make room for a new row. The same stiffness as [insertion] so the
+    // rows and the new message move together, but without the bounce: the list can't scroll past
+    // its newest message, so an overshoot would be clipped and the swing back would leave it short.
+    val insertionPush: SpringSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 542f)
 
     // Rows resizing in place (a receipt moving on, a reaction): glides to the new layout and never
     // bounces. Matches iOS reflow: .spring(duration: 0.35, bounce: 0).

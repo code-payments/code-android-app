@@ -567,6 +567,11 @@ internal fun MessageList(
                 .filterNotNull()
                 .distinctUntilChanged()
                 .collectLatest {
+                    // The list holds its position by key, so a message arriving at index 0 leaves
+                    // the one that was newest (now index 1) where it sat. Sitting at offset 0 means
+                    // the transcript was resting on the newest message.
+                    val atBottom = listState.firstVisibleItemIndex == 1 &&
+                        listState.firstVisibleItemScrollOffset == 0
                     // Always scroll for own messages; only near-bottom for incoming
                     val nearBottom = listState.firstVisibleItemIndex <= 5
                     val newest = messages.peek(0) as? ChatListItem.ContentBubble
@@ -583,6 +588,25 @@ internal fun MessageList(
                             if (room > 0) listState.animateScrollBy(-room.toFloat())
                         }
                         return@collectLatest
+                    }
+                    // Resting on the newest message, the arrival pushes the transcript up as iOS
+                    // does: every row rides up by the new row's height on the insertion spring,
+                    // while the new row rises into its slot. Placement animations can't do this —
+                    // the move is a scroll, and a jump in scroll position resets them.
+                    if (atBottom && (newest?.isFromSelf == true || nearBottom)) {
+                        val height = listState.measuredHeight(0)
+                        if (height != null) {
+                            // Negative is toward index 0.
+                            listState.animateScrollBy(-height.toFloat(), ChatAnimations.insertionPush)
+                            // The row above can resize under the scroll (its receipt moving on), so
+                            // settle exactly on the newest message rather than a few pixels short.
+                            if (listState.firstVisibleItemIndex != 0 ||
+                                listState.firstVisibleItemScrollOffset != 0
+                            ) {
+                                listState.requestScrollToItem(0, 0)
+                            }
+                            return@collectLatest
+                        }
                     }
                     when {
                         // Own message: anchor the new bubble during the next measure pass
