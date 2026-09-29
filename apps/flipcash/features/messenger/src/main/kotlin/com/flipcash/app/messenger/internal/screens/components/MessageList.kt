@@ -78,6 +78,7 @@ import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -567,6 +568,11 @@ internal fun MessageList(
                 .filterNotNull()
                 .distinctUntilChanged()
                 .collectLatest {
+                    // The paged snapshot changes before the list lays it out, so wait for the next
+                    // layout pass; until then the scroll position describes the old list.
+                    withTimeoutOrNull(NextLayoutTimeoutMs) {
+                        snapshotFlow { listState.layoutInfo }.drop(1).first()
+                    }
                     // The list holds its position by key, so a message arriving at index 0 leaves
                     // the one that was newest (now index 1) where it sat. Sitting at offset 0 means
                     // the transcript was resting on the newest message.
@@ -796,6 +802,9 @@ private fun LazyListLayoutInfo.centeringBand(): IntRange =
 /** Handed to every row that is not the one a jump just landed on. */
 private val NoAttention: () -> Float = { 0f }
 
+// A guard on waiting for the list to lay out a newly arrived row: the scroll goes ahead without the
+// pass rather than waiting on one that doesn't come.
+private const val NextLayoutTimeoutMs = 250L
 private const val JUMP_PAGE_SIZE = 50
 private const val MAX_JUMP_ITEMS = 5_000
 private const val JUMP_STEP_TIMEOUT_MS = 2_000L
