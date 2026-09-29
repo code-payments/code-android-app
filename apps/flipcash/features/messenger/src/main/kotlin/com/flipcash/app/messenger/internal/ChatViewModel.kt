@@ -1327,6 +1327,8 @@ internal class ChatViewModel @Inject constructor(
      */
     private fun thankForClaim(claim: SettledClaim) {
         val messageId = claimReplyTargets.settled(claim) ?: return
+        // After settled(), so the target is still consumed while the reply is off.
+        if (!CLAIM_THANKS_ENABLED) return
         val chatId = stateFlow.value.chatId ?: return
 
         // Decided on the collector, sent off it. The claim is consumed before this returns, so the
@@ -2560,6 +2562,12 @@ internal class ChatViewModel @Inject constructor(
          * queries at all — see [refreshLinkCards].
          */
         private val CLAIM_REFRESH_INTERVAL = 15.seconds
+
+        /**
+         * Whether a collected claim is answered with [thankForClaim]'s reply. Off for now; the
+         * tap and claim bookkeeping still runs, so turning this back on is the only change needed.
+         */
+        private const val CLAIM_THANKS_ENABLED = false
 
         /** Long enough to coalesce a burst of typing, short enough to survive a fast exit. */
         private val DRAFT_WRITE_DEBOUNCE = 300.milliseconds
