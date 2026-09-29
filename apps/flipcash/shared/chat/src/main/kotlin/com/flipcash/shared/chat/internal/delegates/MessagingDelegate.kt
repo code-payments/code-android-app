@@ -14,6 +14,8 @@ import com.flipcash.app.analytics.analytics
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.IncomingMessageOpener
+import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.app.persistence.sources.mediator.ChatMessageRemoteMediator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
@@ -92,6 +94,8 @@ class MessagingDelegate @Inject constructor(
     private val senderResolver: SenderResolver,
     private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
     private val outgoing: OutgoingEncryption = OutgoingEncryption.None,
+    /** Opens encrypted pushes; without it, every push keeps the server's body. */
+    private val incoming: IncomingMessageOpener? = null,
 ) : MessagingOperations {
 
     /**
@@ -284,6 +288,37 @@ class MessagingDelegate @Inject constructor(
             metadataDataSource.updateLastMessageId(chatId, message.messageId)
             metadataDataSource.updateLastActivity(chatId, message.timestamp.toEpochMilliseconds())
         }
+    }
+
+    override suspend fun openPushedMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): String? {
+        val opener = incoming ?: return null
+        val selfId = userManager.accountId ?: return null
+        val candidate = message
+            ?: messageId?.let { id ->
+                messageDataSource.getMessage(chatId, id)
+                    ?: messagingController.getMessage(chatId, id).getOrNull()
+            }
+            ?: return null
+
+        val opened = when (candidate.encryption) {
+            is MessageEncryption.Decrypted -> candidate
+            null -> {
+                if (candidate.content.singleOrNull() !is MessageContent.Encrypted) return null
+                // Only the viewer's own message needs the other member; anyone else's is theirs.
+                val peerId = if (candidate.senderId == selfId) getOtherMember(chatId)?.userId else null
+                opener.open(chatId, selfId, peerId, listOf(candidate), stored = { null }).single()
+            }
+            else -> return null
+        }
+        if (opened.encryption !is MessageEncryption.Decrypted) return null
+        return opened.content.singleOrNull()?.pushText()
+    }
+
+    /** Text and replies with text are what DMs encrypt; anything else keeps the server's body. */
+    private fun MessageContent.pushText(): String? = when (this) {
+        is MessageContent.Text -> text
+        is MessageContent.Reply -> (content.singleOrNull() as? MessageContent.Text)?.text
+        else -> null
     }
 
     override suspend fun sendMessage(

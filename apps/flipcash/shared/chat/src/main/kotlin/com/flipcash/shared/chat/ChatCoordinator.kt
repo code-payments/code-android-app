@@ -380,6 +380,16 @@ interface MessagingOperations {
     suspend fun applyPushedMessage(chatId: ChatId, message: ChatMessage)
 
     /**
+     * The plaintext of an end-to-end encrypted message a push is for, opened on this device, for
+     * the notification to show in place of the server's body. The push carries [message], or only
+     * [messageId], in which case the message is read from storage or fetched with `GetMessage`.
+     *
+     * `null` when the message isn't encrypted, isn't text, or can't be opened or fetched: the
+     * notification keeps the server's body. Nothing is stored; the push's sync work does that.
+     */
+    suspend fun openPushedMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): String?
+
+    /**
      * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].
      *
      * [replyToMessageId] cites a message in the same chat, which wraps the body in

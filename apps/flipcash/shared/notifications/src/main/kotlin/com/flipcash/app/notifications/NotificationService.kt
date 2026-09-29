@@ -53,6 +53,7 @@ import com.getcode.utils.trace
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -404,7 +405,10 @@ class NotificationService : FirebaseMessagingService(),
             ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
             ?: NotificationCompat.MessagingStyle(selfPerson)
 
-        style.addMessage(planMessageBody(body, senderNames), System.currentTimeMillis(), senderPerson)
+        // The server can't read an end-to-end encrypted DM, so its body is a stand-in. The opened
+        // text is the message itself, with no sender prefix to strip.
+        val opened = if (!styling.isGroupConversation) openPushedMessage(chatId, metadata) else null
+        style.addMessage(opened ?: planMessageBody(body, senderNames), System.currentTimeMillis(), senderPerson)
 
         // After the extract above, not before: a re-post rebuilds the style from the notification
         // already on screen, which carries the old flag and title back with it.
@@ -419,6 +423,19 @@ class NotificationService : FirebaseMessagingService(),
             .addAction(buildMarkAsReadAction(chatId))
 
         return notificationId
+    }
+
+    /** The pushed DM message's plaintext, or `null` to keep the server's body on any failure. */
+    private suspend fun openPushedMessage(chatId: ChatId, metadata: PushChatMetadata?): String? {
+        if (metadata == null || (metadata.message == null && metadata.messageId == null)) return null
+        return try {
+            chatCoordinator.openPushedMessage(chatId, metadata.message, metadata.messageId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            trace(tag = "NotificationService", message = "Couldn't open a pushed message", error = e)
+            null
+        }
     }
 
     /** Who a chat push is attributed to: their id (for blob access) and their profile. */

@@ -50,9 +50,9 @@ data class  PushChatMetadata(
     // notification for it.
     val muted: Boolean = false,
     // Set when the server sent only the message's id (push/v1 ChatMetadata.message_ref, the
-    // `message_id` arm -- used for long messages instead of inlining `message`). Not yet
-    // fetched: see the TODO at ProtobufToLocal.asPayload(). [message] stays null in that case,
-    // and callers already fall back to their existing no-message sync path.
+    // `message_id` arm -- used for long messages instead of inlining `message`). [message] stays
+    // null in that case: the sync path loads the chat, and the notification fetches the one
+    // message to open it when the DM is end-to-end encrypted.
     val messageId: Long? = null,
 )
 

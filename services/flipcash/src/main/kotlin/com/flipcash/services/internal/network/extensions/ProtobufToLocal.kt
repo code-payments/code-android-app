@@ -117,10 +117,9 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
             sendingUserId = if (chatMetadata.hasSendingUserId()) chatMetadata.sendingUserId.toId() else null,
             chatType = chatMetadata.type.toChatType(),
             message = if (chatMetadata.hasMessage()) chatMetadata.message.toChatMessage() else null,
-            // TODO(push/v1 ChatMetadata.message_ref): a long message now arrives as
-            // `message_id` only (fetch via Messaging.GetMessage(chatId, messageId)). Carried
-            // here for a future fetch; today the message-less case still falls back to
-            // PushHandlingPlanner's existing LoadMessages sync, so nothing is dropped.
+            // push/v1 ChatMetadata.message_ref: a long message arrives as `message_id` only. The
+            // notification fetches it with GetMessage to open an encrypted DM; storing it is left
+            // to PushHandlingPlanner's LoadMessages sync.
             messageId = if (chatMetadata.hasMessageId()) chatMetadata.messageId.value else null,
             muted = chatMetadata.muted,
         )
