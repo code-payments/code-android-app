@@ -194,10 +194,7 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
             deletedTs = Instant.fromEpochSeconds(deleted.deletedTs.seconds, deleted.deletedTs.nanos),
             deletedBy = if (deleted.hasDeletedBy()) deleted.deletedBy.toId() else null,
         )
-        // Not decoded: E2EE crypto (X25519/HKDF/XChaCha20) is a cross-platform parity hotspot
-        // that needs its own decision. Rendered as unsupported rather than dropped, but the raw
-        // fields are kept verbatim so the message can round-trip through storage and be
-        // faithfully re-encoded (e.g. on edit) without losing the ciphertext.
+        // Kept as ciphertext here; ChatContentCrypto opens it before it's stored.
         MessagingModel.Content.TypeCase.ENCRYPTED -> MessageContent.Encrypted(
             scheme = encrypted.schemeValue,
             nonce = encrypted.nonce.toByteArray(),

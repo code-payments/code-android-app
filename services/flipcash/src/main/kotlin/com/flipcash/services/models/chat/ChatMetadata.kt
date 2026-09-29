@@ -26,6 +26,6 @@ data class ChatMetadata(
     // Group creator; null for DMs and for group chats reconstructed without a server round trip.
     val creator: ID? = null,
     // Transitional E2EE flag (DMs only): true means clients should send new content as
-    // EncryptedContent. Ignored behaviourally for now -- see chat/v1 model.proto.
+    // EncryptedContent. Read only by E2eePolicy -- see chat/v1 model.proto.
     val useE2ee: Boolean = false,
 )
