@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.ComparableTimeMark
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 import kotlin.time.TimeSource
@@ -36,6 +37,7 @@ internal class TypingIndicatorTracker(
     private val stateHolder: ChatStateHolder,
     private val timeSource: TimeSource.WithComparableMarks = TimeSource.Monotonic,
     private val expiry: Duration = INCOMING_EXPIRY,
+    private val stoppedLinger: Duration = STOPPED_LINGER,
     private val now: () -> Instant = { Clock.System.now() },
 ) {
 
@@ -45,6 +47,12 @@ internal class TypingIndicatorTracker(
         // Both clients send STILL every 3s while typing, so this rides out a couple of lost ones.
         // Same value as iOS's `incomingExpiry`.
         val INCOMING_EXPIRY = 10.seconds
+
+        // The sender's composer empties on submit, which sends STOPPED before the message itself
+        // goes out, so STOPPED routinely lands first. Holding the dots through that gap lets the
+        // message take them away ([messageArrived]); a STOPPED with nothing behind it (the draft
+        // was deleted) just leaves this much later. iOS's `defaultStoppedLinger`.
+        val STOPPED_LINGER = 800.milliseconds
     }
 
     private class Typist(val since: Instant, val deadline: ComparableTimeMark)
@@ -69,10 +77,24 @@ internal class TypingIndicatorTracker(
                     val since = chat[notification.userId]?.since ?: now()
                     chat[notification.userId] = Typist(since, timeSource.markNow() + expiry)
                 }
-                TypingState.STOPPED_TYPING, TypingState.TYPING_TIMED_OUT -> remove(chatId, notification.userId)
+                TypingState.STOPPED_TYPING, TypingState.TYPING_TIMED_OUT -> {
+                    // Lingers rather than leaving at once; someone not typing is never added back.
+                    val chat = typists[chatId] ?: continue
+                    val typist = chat[notification.userId] ?: continue
+                    chat[notification.userId] = Typist(typist.since, timeSource.markNow() + stoppedLinger)
+                }
                 TypingState.UNKNOWN -> Unit
             }
         }
+        publish()
+        scheduleExpiry()
+    }
+
+    /** Takes [senderIds] out of [chatId]'s typists as their messages arrive, ending any linger. */
+    fun messageArrived(chatId: ChatId, senderIds: Collection<ID>) = synchronized(lock) {
+        val chat = typists[chatId] ?: return@synchronized
+        if (senderIds.none { it in chat }) return@synchronized
+        senderIds.forEach { remove(chatId, it) }
         publish()
         scheduleExpiry()
     }

@@ -69,11 +69,11 @@ object Flipcash2ColorSpec {
 
     val chatColors = ChatColors(
         incomingBubble = Bubble(
-            background = Color.White.copy(alpha = 0.02f),
+            background = Color.White.copy(alpha = 0.05f),
             border = Color.White.copy(alpha = 0.03f),
         ),
         outgoingBubble = Bubble(
-            background = Color.White.copy(alpha = 0.08f),
+            background = Color.White.copy(alpha = 0.10f),
             border = Color.White.copy(alpha = 0.03f),
         ),
         typingIndicator = TypingIndicator(

@@ -36,15 +36,16 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -64,6 +65,7 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.LocalLinkCardResolution
+import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
 import com.flipcash.shared.chat.ui.ChatAnimations
@@ -77,11 +79,13 @@ import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun MessageList(
@@ -150,6 +154,7 @@ internal fun MessageList(
         // Keys that have already played their insertion animation — persists
         // across item disposal so scrolling away and back doesn't replay.
         val animatedKeys = remember { mutableSetOf<Any>() }
+        val settlingKey = rememberSettlingSend(messages)
 
         // The backdrop, read once for everything it covers: the rows, the bubbles' own targets,
         // and the contact card at the start of history all stop taking taps together.
@@ -258,7 +263,11 @@ internal fun MessageList(
         // shortening the list from below — whether the keyboard came up for the edit or because the
         // composer was tapped with the selection bar still showing. See FocusPin.
         val imeInsets = WindowInsets.ime
-        val listBottomPad = CodeTheme.dimens.grid.x2 + contentPadding.calculateBottomPadding()
+        // With the keyboard up the newest message sits a little closer to the composer, which no
+        // longer rests into the navigation bar's inset. Follows the keyboard the same way the
+        // composer does (see ChatBottomBar), so the two move together.
+        val raisedDrop = lerp(0.dp, CodeTheme.dimens.grid.x2, keyboardOpenFraction())
+        val listBottomPad = CodeTheme.dimens.grid.x2 + contentPadding.calculateBottomPadding() - raisedDrop
         val listBottomPadPx = with(LocalDensity.current) { listBottomPad.roundToPx() }
         val focusPin = rememberFocusPin(listState, messages, focusedMessageId, imeInsets, listBottomPadPx)
         // Read live from the auto-scroll effect below, which outlives the composition it launched in.
@@ -420,6 +429,7 @@ internal fun MessageList(
                     messages = messages,
                     separatorConfig = separatorConfig,
                     otherReadPointer = otherReadPointer,
+                    settlingKey = settlingKey,
                     selecting = selecting,
                     focused = focused,
                     // The pressed row is also the only one that lifts, as iOS lifts only the held bubble.
@@ -562,6 +572,16 @@ internal fun MessageList(
                 .filterNotNull()
                 .distinctUntilChanged()
                 .collectLatest {
+                    // The paged snapshot changes before the list lays it out, so wait for the next
+                    // layout pass; until then the scroll position describes the old list.
+                    withTimeoutOrNull(NextLayoutTimeoutMs) {
+                        snapshotFlow { listState.layoutInfo }.drop(1).first()
+                    }
+                    // The list holds its position by key, so a message arriving at index 0 leaves
+                    // the one that was newest (now index 1) where it sat. Sitting at offset 0 means
+                    // the transcript was resting on the newest message.
+                    val atBottom = listState.firstVisibleItemIndex == 1 &&
+                        listState.firstVisibleItemScrollOffset == 0
                     // Always scroll for own messages; only near-bottom for incoming
                     val nearBottom = listState.firstVisibleItemIndex <= 5
                     val newest = messages.peek(0) as? ChatListItem.ContentBubble
@@ -578,6 +598,25 @@ internal fun MessageList(
                             if (room > 0) listState.animateScrollBy(-room.toFloat())
                         }
                         return@collectLatest
+                    }
+                    // Resting on the newest message, the arrival pushes the transcript up as iOS
+                    // does: every row rides up by the new row's height on the insertion spring,
+                    // while the new row rises into its slot. Placement animations can't do this —
+                    // the move is a scroll, and a jump in scroll position resets them.
+                    if (atBottom && (newest?.isFromSelf == true || nearBottom)) {
+                        val height = listState.measuredHeight(0)
+                        if (height != null) {
+                            // Negative is toward index 0.
+                            listState.animateScrollBy(-height.toFloat(), ChatAnimations.insertionPush)
+                            // The row above can resize under the scroll (its receipt moving on), so
+                            // settle exactly on the newest message rather than a few pixels short.
+                            if (listState.firstVisibleItemIndex != 0 ||
+                                listState.firstVisibleItemScrollOffset != 0
+                            ) {
+                                listState.requestScrollToItem(0, 0)
+                            }
+                            return@collectLatest
+                        }
                     }
                     when {
                         // Own message: anchor the new bubble during the next measure pass
@@ -608,6 +647,36 @@ internal fun MessageList(
             }
         }
     } // CompositionLocalProvider
+}
+
+/** How long a send holds the receipt above it, at least; iOS's settle floor. */
+private val ReceiptSettleFloor = 700.milliseconds
+
+/**
+ * The viewer's newest send while it settles, or null. A send settles from the moment it lands at
+ * the bottom of the transcript until it is confirmed and [ReceiptSettleFloor] has passed, whichever
+ * is later; until then the receipt stays on the row above (see [shouldShowReceiptLabel]). A send
+ * that fails, or that a reply lands under, releases once the floor has passed.
+ */
+@Composable
+private fun rememberSettlingSend(messages: LazyPagingItems<ChatListItem>): Any? {
+    val newest = if (messages.itemCount > 0) messages.peek(0) as? ChatListItem.ContentBubble else null
+    val currentNewest by rememberUpdatedState(newest)
+    var sendKey by remember { mutableStateOf<Any?>(null) }
+    if (newest != null && newest.isFromSelf && newest.receiptStatus == ReceiptStatus.SENDING) {
+        sendKey = newest.messageKey
+    }
+    var settling by remember { mutableStateOf<Any?>(null) }
+    LaunchedEffect(sendKey) {
+        val key = sendKey ?: return@LaunchedEffect
+        settling = key
+        delay(ReceiptSettleFloor)
+        snapshotFlow { currentNewest }.first { row ->
+            row?.messageKey != key || row.receiptStatus != ReceiptStatus.SENDING
+        }
+        settling = null
+    }
+    return settling
 }
 
 /**
@@ -767,6 +836,9 @@ private fun LazyListLayoutInfo.centeringBand(): IntRange =
 /** Handed to every row that is not the one a jump just landed on. */
 private val NoAttention: () -> Float = { 0f }
 
+// A guard on waiting for the list to lay out a newly arrived row: the scroll goes ahead without the
+// pass rather than waiting on one that doesn't come.
+private const val NextLayoutTimeoutMs = 250L
 private const val JUMP_PAGE_SIZE = 50
 private const val MAX_JUMP_ITEMS = 5_000
 private const val JUMP_STEP_TIMEOUT_MS = 2_000L

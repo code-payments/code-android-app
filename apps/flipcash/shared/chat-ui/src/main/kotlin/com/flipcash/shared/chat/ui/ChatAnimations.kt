@@ -9,6 +9,7 @@ import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.ui.Alignment
@@ -19,9 +20,28 @@ import androidx.compose.ui.graphics.Color
 
 // All chat animation spring specs in one place.
 object ChatAnimations {
-    // Message bubble insertion — scale from 0.95 + opacity.
-    // Matches iOS insertionSpring: .spring(duration: 0.23, bounce: 0.27).
-    val insertion: SpringSpec<Float> = spring(dampingRatio = 0.73f, stiffness = 746f)
+    // Message bubble insertion — scale from [insertionScale] about the bottom corner on the sender's
+    // side, plus opacity and [insertionRise].
+    // Matches iOS insertion: .spring(duration: 0.27, bounce: 0.15).
+    val insertion: SpringSpec<Float> = spring(dampingRatio = 0.85f, stiffness = 542f)
+    const val insertionScale = 0.9f
+    // How far below its slot a newly appended row starts, as a share of its own height. It rides
+    // up into place rather than fading in over the row above. iOS insertionRise.
+    const val insertionRise = 0.35f
+    // The transcript riding up to make room for a new row. The same stiffness as [insertion] so the
+    // rows and the new message move together, but without the bounce: the list can't scroll past
+    // its newest message, so an overshoot would be clipped and the swing back would leave it short.
+    val insertionPush: SpringSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 542f)
+
+    // Rows resizing in place (a receipt moving on, a reaction): glides to the new layout and never
+    // bounces. Matches iOS reflow: .spring(duration: 0.35, bounce: 0).
+    private const val ReflowStiffness = 322f
+    private val reflowIntSize: SpringSpec<IntSize> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
+    private val reflowFloat: SpringSpec<Float> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
+    val reflowDp: SpringSpec<Dp> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
 
     // Typing indicator entry/exit — scale from 0.95 + opacity.
     val typingIndicator: SpringSpec<Float> = spring(dampingRatio = 0.73f, stiffness = Spring.StiffnessHigh)
@@ -68,9 +88,12 @@ object ChatAnimations {
     const val attentionHoldMs = 250L
     val attentionFade: TweenSpec<Float> = tween(durationMillis = 750, easing = LinearEasing)
 
-    // Receipt label exit when a new message is sent — fade out + collapse.
-    private val deliveredIntSize: SpringSpec<IntSize> = spring(dampingRatio = 0.88f, stiffness = 250f)
-    val receiptExit: ExitTransition = shrinkVertically(deliveredIntSize) + fadeOut(delivered)
+    // Receipt label exit when a new message is sent — the row closes the gap on [reflow] while the
+    // line fades out fast enough to be gone before the bubble below reaches it. iOS
+    // receiptExitFade: 0.08 s.
+    val receiptExit: ExitTransition = shrinkVertically(reflowIntSize) + fadeOut(tween(durationMillis = 80))
+    // Its arrival on the row below, on the same spring, so one row grows as the other shrinks.
+    val receiptEnter: EnterTransition = expandVertically(reflowIntSize) + fadeIn(reflowFloat)
 
     // Reaction pills, from iOS ChatMotion's reaction springs and scales.
     // A pill arriving — iOS reaction: .spring(duration: 0.32, bounce: 0.35), from 40%.
@@ -80,9 +103,11 @@ object ChatAnimations {
     // its arrival and without overshoot, so it doesn't read as the pill coming back.
     val reactionExit: SpringSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 987f)
     const val reactionExitScale = 0.6f
-    // Pills sliding to make room and the row resizing — iOS reactionReflow, which is insertion.
-    val reactionReflowOffset: SpringSpec<IntOffset> = spring(dampingRatio = 0.73f, stiffness = 746f)
-    val reactionReflowHeight: SpringSpec<Int> = spring(dampingRatio = 0.73f, stiffness = 746f)
+    // Pills sliding to make room and the row resizing — iOS reactionReflow, which is reflow.
+    val reactionReflowOffset: SpringSpec<IntOffset> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
+    val reactionReflowHeight: SpringSpec<Int> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
     // A count or selected state changing in place — iOS reactionChange: .spring(duration: 0.24, bounce: 0).
     val reactionChange: SpringSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 685f)
     val reactionChangeColor: SpringSpec<Color> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 685f)

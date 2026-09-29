@@ -58,10 +58,8 @@ internal fun RowScope.SendCashButton(
     hazeMaterial: HazeBlurStyle,
     onClick: () -> Unit,
 ) {
-    // Tip chats use the minimized (dark, symbol-only) button. The normal send flow keeps the
-    // expanded "Send $" presentation and only collapses to the symbol once the user starts typing.
-    // chatType resolves from the fast local contact lookup, so a tip DM condenses immediately rather
-    // than waiting on the server profile.
+    // Beside a composer the button is always the condensed (dark, symbol-only) "$". It used to expand
+    // to a white "Send $" whenever the composer was empty, which flashed as text came and went.
     val isTipChat = state.chatType == ChatType.TIP_DM
     val canType = state.typingConstraints.enabled
 
@@ -69,11 +67,9 @@ internal fun RowScope.SendCashButton(
     // is the entire bar. Condensing it there would leave a full-width transparent "$"; what the
     // chat actually needs is its one call to action, so it stays white and says what it does.
     val isCallToAction = isTipChat && !canType
-    // A group is condensed like a tip chat: the group is not one counterparty to "Send $" to, and
-    // the expanded pill would take the row from a composer that is always open there.
+    // A group is condensed too: the group is not one counterparty to "Send $" to.
     val isGroupChat = state.chatType == ChatType.GROUP
-    val isTyping = !isCallToAction &&
-        (isTipChat || isGroupChat || state.chatInputState.text.isNotEmpty())
+    val isTyping = !isCallToAction && (canType || isGroupChat)
 
     // Colors ease slowly and independently of the width/label so the fill change reads as one calm
     // transition instead of snapping with the resize — but NOT on the first settle. A tip chat opens

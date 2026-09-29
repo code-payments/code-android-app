@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -97,6 +98,8 @@ internal fun MessageRow(
     messages: LazyPagingItems<ChatListItem>,
     separatorConfig: SeparatorConfig,
     otherReadPointer: MessagePointer?,
+    /** The viewer's newest send while it settles; see [shouldShowReceiptLabel]. */
+    settlingKey: Any? = null,
     selecting: Boolean,
     focused: Boolean,
     /**
@@ -123,32 +126,46 @@ internal fun MessageRow(
     val onAction = LocalChatActionHandler.current
     val vibrator = LocalVibrator.current
     val keyboard = rememberKeyboardController()
-    val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig)
+    // A status line sits between its bubble and the next, so it ends the bubble run there: the
+    // two keep their round corners and the normal gap until the line moves on (iOS #908).
+    fun carriesReceipt(at: Int): Boolean {
+        val bubble = messages.peek(at) as? ChatListItem.ContentBubble ?: return false
+        return shouldShowReceiptLabel(at, bubble, messages, otherReadPointer, settlingKey)
+    }
+    val showReceipt = item is ChatListItem.ContentBubble && carriesReceipt(index)
+    val receiptAbove = index + 1 < messages.itemCount && carriesReceipt(index + 1)
+    // Animated so the gap closes with the line leaving it, instead of snapping a frame ahead of it.
+    val bottomSpacing by animateDpAsState(
+        targetValue = bottomSpacingFor(index, item, messages, separatorConfig, showReceipt),
+        animationSpec = ChatAnimations.reflowDp,
+        label = "rowGap",
+    )
 
     val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
 
-    // Message insertion animation — scale from 0.95 + opacity with edge anchor.
+    // Message insertion: the row starts a little below its slot, faded and scaled down about its
+    // bottom corner on the sender's side, and rides up into place — pushed in from below rather
+    // than fading in on top of the row above.
     var appeared by remember(item.itemKey) { mutableStateOf(!animateInsertion) }
     LaunchedEffect(Unit) { if (!appeared) appeared = true }
-    val insertionAlpha by animateFloatAsState(
+    val insertionProgress by animateFloatAsState(
         targetValue = if (appeared) 1f else 0f,
         animationSpec = ChatAnimations.insertion,
-        label = "insertAlpha",
-    )
-    val insertionScale by animateFloatAsState(
-        targetValue = if (appeared) 1f else 0.95f,
-        animationSpec = ChatAnimations.insertion,
-        label = "insertScale",
+        label = "insertProgress",
     )
 
     val insertionModifier = Modifier.graphicsLayer {
-        alpha = insertionAlpha
-        scaleX = insertionScale
-        scaleY = insertionScale
+        val remaining = 1f - insertionProgress
+        alpha = insertionProgress.coerceIn(0f, 1f)
+        val scale = 1f - (1f - ChatAnimations.insertionScale) * remaining
+        scaleX = scale
+        scaleY = scale
+        // As on iOS, the rise covers the row and the gap below it.
+        translationY = (size.height + bottomSpacing.toPx()) * ChatAnimations.insertionRise * remaining
         transformOrigin = if (isOutgoing) {
-            TransformOrigin(1f, 0.5f) // anchor trailing
+            TransformOrigin(1f, 1f) // bottom trailing
         } else {
-            TransformOrigin(0f, 0.5f) // anchor leading
+            TransformOrigin(0f, 1f) // bottom leading
         }
     }
 
@@ -275,15 +292,6 @@ internal fun MessageRow(
 
             is ChatListItem.ContentBubble -> {
                 val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
-                // Track whether this item was ever seen as SENDING so we
-                // can animate the receipt label entrance on the
-                // SENDING→SENT transition. This remember persists across
-                // recompositions of the same item (keyed by LazyColumn),
-                // surviving the status change that gates the label.
-                var wasSending by remember { mutableStateOf(false) }
-                if (item.receiptStatus == ReceiptStatus.SENDING) {
-                    wasSending = true
-                }
                 // Bound to a local: `sender` is a property of another module's public API, so
                 // Kotlin will not smart-cast it to non-null inside the branches below.
                 val sender = item.sender
@@ -376,7 +384,9 @@ internal fun MessageRow(
                                         index,
                                         item,
                                         messages,
-                                        separatorConfig
+                                        separatorConfig,
+                                        receiptAbove = receiptAbove,
+                                        receiptBelow = showReceipt,
                                     ),
                                     attention = attention,
                                 )
@@ -461,8 +471,6 @@ internal fun MessageRow(
                                     )
                                 }
                             }
-                            val showReceipt =
-                                shouldShowReceiptLabel(index, item, messages, otherReadPointer)
                             // An emoji-only message, or a card row, has no bubble, so its "Edited"
                             // marker has nowhere to sit inside the message and comes out here
                             // instead — on the same line as the receipt, and ahead of it, so the two
@@ -483,14 +491,17 @@ internal fun MessageRow(
                                 }
                                 AnimatedVisibility(
                                     visible = showReceipt && effectiveStatus != null,
-                                    enter = EnterTransition.None,
+                                    // Only a line arriving on a row already on screen animates: a row
+                                    // composed with its line (opening the chat, scrolling back) starts
+                                    // visible. It grows on the same spring the line above shrinks on,
+                                    // so the two rows trade height and the transcript holds still.
+                                    enter = ChatAnimations.receiptEnter,
                                     exit = ChatAnimations.receiptExit,
                                 ) {
                                     if (effectiveStatus != null) {
                                         ReceiptLabel(
                                             status = effectiveStatus,
                                             readPointer = otherReadPointer,
-                                            animateEntrance = wasSending,
                                             onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
                                                 { onAction(ChatAction.RetryMessage(item)) }
                                             } else null,
@@ -540,10 +551,10 @@ private fun SwipeToReplyAffordance(
                 val fraction = progress()
                 translationX = pullBackPx()
                 alpha = fraction
-                // Never from nothing: the circle is already most of its size when it starts to
-                // show, so it reads as arriving rather than as inflating.
-                scaleX = 0.6f + 0.4f * fraction
-                scaleY = 0.6f + 0.4f * fraction
+                // Grows from about a third of its size to full as the drag reaches the threshold,
+                // matching iOS ChatSwipeToReply.arrowStartScale.
+                scaleX = 0.35f + 0.65f * fraction
+                scaleY = 0.35f + 0.65f * fraction
             }
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.12f)),
@@ -590,9 +601,10 @@ private fun bottomSpacingFor(
     item: ChatListItem,
     messages: LazyPagingItems<ChatListItem>,
     config: SeparatorConfig,
+    carriesReceipt: Boolean,
 ): Dp {
     // index-1 is the item below (newer) in reverseLayout
-    val gap = rowGapBelow(item, if (index > 0) messages.peek(index - 1) else null, config)
+    val gap = rowGapBelow(item, if (index > 0) messages.peek(index - 1) else null, config, carriesReceipt)
     return when (gap) {
         RowGap.Tight -> CodeTheme.dimens.grid.x1
         RowGap.Normal -> CodeTheme.dimens.grid.x2
@@ -615,7 +627,12 @@ internal enum class RowGap { Tight, Normal, Wide }
  * Pure so it can be tested without a `PagingData`, like [startsSenderRun]: the peek belongs to the
  * caller.
  */
-internal fun rowGapBelow(item: ChatListItem, below: ChatListItem?, config: SeparatorConfig): RowGap {
+internal fun rowGapBelow(
+    item: ChatListItem,
+    below: ChatListItem?,
+    config: SeparatorConfig,
+    carriesReceipt: Boolean = false,
+): RowGap {
     below ?: return RowGap.Tight
 
     // Separator or unread divider adjacent → normal gap
@@ -627,6 +644,8 @@ internal fun rowGapBelow(item: ChatListItem, below: ChatListItem?, config: Separ
         !item.isSameAuthorAs(below) -> RowGap.Wide
         // Same sender, outside grouping window → normal
         !config.isGrouped(item.timestamp, below.timestamp) -> RowGap.Normal
+        // A status line under [item] ends the run, so the pair takes the normal gap
+        carriesReceipt -> RowGap.Normal
         // Same sender, close together → tight
         else -> RowGap.Tight
     }

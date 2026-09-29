@@ -1,11 +1,12 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -17,10 +18,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imeAnimationSource
+import androidx.compose.foundation.layout.imeAnimationTarget
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
@@ -39,26 +47,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.balanceRequirement
 import com.flipcash.app.messenger.internal.requiresStaff
+import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.ui.ChatAnimations
-import com.flipcash.services.models.chat.ChatType
-import com.flipcash.services.models.chat.BlobAccessContext
-import com.flipcash.features.messenger.R
-import com.getcode.theme.CodeTheme
 import com.flipcash.shared.chat.ui.ComposerReplyStrip
+import com.flipcash.shared.common.ui.ContactAvatar
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
-import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
@@ -67,6 +79,27 @@ import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
+
+/** The ramp's shape: clear for most of its height, then a late rise into the background. */
+private val ComposerFadeCurve = CubicBezierEasing(0.42f, 0.18f, 0.17f, 1.04f)
+
+/** Short of opaque, so a bubble behind the bar's bottom edge still shows faintly. */
+private const val ComposerFadeEndAlpha = 0.9f
+
+private const val ComposerFadeSamples = 32
+
+/** Sampled once: the curve has no gradient-stop equivalent, so it is laid down as stops. */
+private val ComposerFadeStops: List<Pair<Float, Float>> = (0..ComposerFadeSamples).map { i ->
+    val t = i / ComposerFadeSamples.toFloat()
+    t to (ComposerFadeEndAlpha * ComposerFadeCurve.transform(t)).coerceIn(0f, 1f)
+}
+
+/** The dissolve from the transcript into [color] behind the composer, from [startY] to [endY]. */
+private fun composerFade(color: Color, startY: Float, endY: Float): Brush = Brush.verticalGradient(
+    colorStops = ComposerFadeStops.map { (t, alpha) -> t to color.copy(alpha = alpha) }.toTypedArray(),
+    startY = startY,
+    endY = endY,
+)
 
 @Composable
 internal fun UserControlBottomBar(
@@ -154,20 +187,51 @@ internal fun UserControlBottomBar(
                 }
             }
         }
+        // Compact at rest: with the keyboard down the composer sits narrower and a little lower, into
+        // the navigation bar's inset, and opens out to the normal margins as the keyboard comes up.
+        // Only once there is a composer; the full-width Send Cash button keeps its width.
+        //
+        // Tracks how far open the keyboard is rather than springing on a keyboard up/down flag, so
+        // the bar changes size in step with the keyboard's own motion: not ahead of it (a flag that
+        // flips as the hide starts), and not after it (one that waits for the hide to finish). The
+        // composer appearing at all (typingConstraints resolving a frame after the bar is revealed)
+        // doesn't move anything, since nothing here animates on its own.
+        val keyboardOpen = keyboardOpenFraction()
+        val hasComposer = state.typingConstraints.enabled
+        val compactInset = CodeTheme.dimens.grid.x6.coerceAtLeast(CodeTheme.dimens.inset)
+        val sideInset = if (hasComposer) lerp(compactInset, CodeTheme.dimens.inset, keyboardOpen) else CodeTheme.dimens.inset
+        val restingDrop = if (hasComposer) lerp(CodeTheme.dimens.grid.x2, 0.dp, keyboardOpen) else 0.dp
+        // The part of the navigation bar's inset the keyboard isn't covering, so the bar only sinks
+        // into it once the keyboard has cleared it.
+        val restingRoom = WindowInsets.navigationBars.exclude(WindowInsets.ime)
         Box {
+            // The transcript runs under the bar and dissolves into the background here, from the
+            // bar's top edge to the bottom of the screen (or the keyboard's top edge). The bar has no
+            // surface of its own and floats over it.
+            val fadeColor = CodeTheme.colors.background
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(buttonHeight)
                     .align(Alignment.BottomCenter)
                     .drawWithGradient(
-                        color = CodeTheme.colors.background,
+                        brush = { startY, endY -> composerFade(fadeColor, startY, endY) },
                         startY = { 0f },
                     ),
             )
             AnimatedContent(
                 modifier = Modifier
                     .measured { buttonHeight = it.height }
+                    // Reports itself shorter by the drop and lets the controls run past its bottom
+                    // edge, so the bar sits that far into the navigation bar's inset and the
+                    // transcript's bottom padding (measured from this height) follows it down.
+                    .layout { measurable, constraints ->
+                        val drop = restingDrop.roundToPx().coerceAtMost(restingRoom.getBottom(this))
+                        val placeable = measurable.measure(constraints)
+                        layout(placeable.width, (placeable.height - drop).coerceAtLeast(0)) {
+                            placeable.place(0, 0)
+                        }
+                    }
                     .padding(vertical = CodeTheme.dimens.grid.x3)
                     .navigationBarsPadding()
                     // typingConstraints.enabled starts false and only resolves a frame or two after
@@ -231,8 +295,8 @@ internal fun UserControlBottomBar(
                                 hazeState = hazeState,
                                 modifier = Modifier
                                     // Inset to the composer row's own margins, so the card's edges
-                                    // line up with the field it sits above.
-                                    .padding(horizontal = CodeTheme.dimens.inset)
+                                    // line up with the field it sits above, and narrows with it.
+                                    .padding(horizontal = sideInset)
                                     .padding(bottom = CodeTheme.dimens.grid.x2)
                                     .testTag("composer_reply_strip"),
                             )
@@ -241,7 +305,7 @@ internal fun UserControlBottomBar(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset),
+                            .padding(horizontal = sideInset),
                         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                         verticalAlignment = Alignment.Bottom,
                     ) {
@@ -375,4 +439,21 @@ private fun DeactivatedChatBottomBar() {
             textAlign = TextAlign.Center,
         )
     }
+}
+
+/**
+ * How far open the keyboard is, from 0 (down) to 1 (fully up), following its show and hide
+ * animations frame by frame.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun keyboardOpenFraction(): Float {
+    val density = LocalDensity.current
+    val now = WindowInsets.ime.getBottom(density)
+    val full = maxOf(
+        WindowInsets.imeAnimationSource.getBottom(density),
+        WindowInsets.imeAnimationTarget.getBottom(density),
+        now,
+    )
+    return if (full <= 0) 0f else now.toFloat() / full
 }

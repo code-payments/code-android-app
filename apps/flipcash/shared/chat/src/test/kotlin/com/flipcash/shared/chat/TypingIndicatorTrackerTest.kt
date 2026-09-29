@@ -108,17 +108,39 @@ class TypingIndicatorTrackerTest {
     }
 
     @Test
-    fun `STOPPED and TIMED_OUT remove the typist`() = runTest {
+    fun `STOPPED and TIMED_OUT keep the typist for the linger, then drop them`() = runTest {
         val h = harness()
         h.send(chat, alice, TypingState.STARTED_TYPING)
         h.send(chat, bob, TypingState.STARTED_TYPING)
         runCurrent()
 
         h.send(chat, alice, TypingState.STOPPED_TYPING)
-        assertEquals(listOf(bob), h.typists(chat).map { it.userId })
-
         h.send(chat, bob, TypingState.TYPING_TIMED_OUT)
+        advance(799.milliseconds)
+        assertEquals(listOf(alice, bob), h.typists(chat).map { it.userId })
+
+        advance(1.milliseconds)
         assertTrue(chat !in h.stateHolder.current.typingIndicators)
+    }
+
+    @Test
+    fun `a STOPPED for someone not typing adds nobody`() = runTest {
+        val h = harness()
+        h.send(chat, alice, TypingState.STOPPED_TYPING)
+        runCurrent()
+        assertTrue(chat !in h.stateHolder.current.typingIndicators)
+    }
+
+    @Test
+    fun `the typist's message ends the linger at once`() = runTest {
+        val h = harness()
+        h.send(chat, alice, TypingState.STARTED_TYPING)
+        h.send(chat, bob, TypingState.STARTED_TYPING)
+        h.send(chat, alice, TypingState.STOPPED_TYPING)
+        advance(100.milliseconds)
+
+        h.tracker.messageArrived(chat, listOf(alice))
+        assertEquals(listOf(bob), h.typists(chat).map { it.userId })
     }
 
     @Test
