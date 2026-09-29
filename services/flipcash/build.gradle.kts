@@ -21,6 +21,10 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    testFixtures {
+        enable = true
+    }
 }
 
 dependencies {
@@ -28,7 +32,9 @@ dependencies {
     api(project(":libs:network:jwt"))
     api(project(":services:opencode"))
     implementation(project(":ui:resources"))
-    implementation(project(":libs:encryption:chat-cipher"))
+    // `api`: ChatContentCrypto and ChatKeySource name ChatCipher and its KeyPair.
+    api(project(":libs:encryption:chat-cipher"))
+    testFixturesImplementation(project(":libs:encryption:chat-cipher"))
 
     implementation(libs.javax.inject)
 

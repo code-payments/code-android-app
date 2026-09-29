@@ -21,6 +21,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MuteState
@@ -39,6 +40,7 @@ import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.PendingMutation
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.internal.ChatStateHolder
+import com.flipcash.shared.chat.internal.OutgoingEncryption
 import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.MessageLinkPrefetch
@@ -71,6 +73,9 @@ import kotlin.time.Clock
  * 3. [confirmPending][ChatMessageDataSource.confirmPending] replaces the placeholder,
  *    or [failPending][ChatMessageDataSource.failPending] marks it as failed.
  *
+ * In an end-to-end encrypted DM the placeholder is still the plaintext; [OutgoingEncryption]
+ * seals only what goes on the wire, and its echo stores the reply with that plaintext.
+ *
  * @see com.flipcash.shared.chat.internal.RealChatCoordinator
  */
 @Singleton
@@ -86,6 +91,7 @@ class MessagingDelegate @Inject constructor(
     private val analytics: FlipcashAnalytics,
     private val senderResolver: SenderResolver,
     private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
+    private val outgoing: OutgoingEncryption = OutgoingEncryption.None,
 ) : MessagingOperations {
 
     /**
@@ -301,23 +307,35 @@ class MessagingDelegate @Inject constructor(
             senderId = senderId,
         )
 
-        return messagingController.sendMessage(chatId, payload, clientMessageId)
-            .onSuccess { serverMessage ->
-                messageDataSource.confirmPending(chatId, clientMessageId, serverMessage)
-                advanceReadPointer(chatId, serverMessage.messageId)
-
-                metadataDataSource.updateLastMessageId(chatId, serverMessage.messageId)
-                metadataDataSource.updateLastActivity(chatId, serverMessage.timestamp.toEpochMilliseconds())
-            }
-            .onFailure {
-                messageDataSource.failPending(chatId, clientMessageId)
-            }
+        return send(chatId, payload, clientMessageId)
     }
 
     override suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage> {
         val clientMessageId = messageDataSource.retryPending(chatId, pendingClientIdHex)
 
-        return messagingController.sendMessage(chatId, content, clientMessageId)
+        // Sealed afresh: the pending row holds plaintext, and the chat may have started or stopped
+        // encrypting since the first attempt.
+        return send(chatId, content, clientMessageId)
+    }
+
+    /**
+     * Seals [payload] if the chat encrypts, sends it, and settles the pending row. A failure to
+     * seal fails the row like a failed request, so it can be retried; so does the server refusing
+     * the ciphertext with `EncryptionNotAllowed`.
+     */
+    private suspend fun send(
+        chatId: ChatId,
+        payload: List<MessageContent>,
+        clientMessageId: ClientMessageId,
+    ): Result<ChatMessage> {
+        val prepared = outgoing.prepare(chatId, payload).getOrElse { cause ->
+            trace(tag = TAG, message = "Couldn't prepare send in $chatId", type = TraceType.Error, error = cause)
+            messageDataSource.failPending(chatId, clientMessageId)
+            return Result.failure(cause)
+        }
+
+        return messagingController.sendMessage(chatId, prepared.wire, clientMessageId)
+            .map(prepared::echo)
             .onSuccess { serverMessage ->
                 messageDataSource.confirmPending(chatId, clientMessageId, serverMessage)
                 advanceReadPointer(chatId, serverMessage.messageId)
@@ -356,7 +374,14 @@ class MessagingDelegate @Inject constructor(
             ),
         )
 
-        return messagingController.editMessage(chatId, messageId, content, expectedSequence)
+        val prepared = outgoing.prepare(chatId, content, wasEncrypted = stored.encryption != null)
+            .getOrElse { cause ->
+                clearMutation(chatId, messageId)
+                return Result.failure(cause)
+            }
+
+        return messagingController.editMessage(chatId, messageId, prepared.wire, expectedSequence)
+            .map(prepared::echo)
             .reconcile(chatId, messageId) { it is EditMessageError.Conflict }
     }
 
