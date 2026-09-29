@@ -235,6 +235,9 @@ class MessagingDelegate @Inject constructor(
 
     override fun requestSenderProfile(userId: ID) = senderResolver.request(userId)
 
+    override fun observeOldestEncryptedMessageId(chatId: ChatId): Flow<Long?> =
+        messageDataSource.observeOldestEncryptedMessageId(chatId)
+
     override fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?> {
         val selfId = userManager.accountId
         return memberDataSource.observeMembers(chatId)

@@ -361,6 +361,12 @@ interface MessagingOperations {
     /** Observes the other member's read pointer in [chatId] (for read receipts). */
     fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?>
 
+    /**
+     * The id of the oldest stored message in [chatId] that arrived end-to-end encrypted, or `null`
+     * when none did. The transcript's Encrypted marker sits above it.
+     */
+    fun observeOldestEncryptedMessageId(chatId: ChatId): Flow<Long?>
+
     /** Fetches the full message history for [chatId] from the server and persists locally. */
     suspend fun loadMessages(chatId: ChatId)
 

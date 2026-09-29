@@ -32,6 +32,26 @@ sealed interface ChatListItem {
         override val itemContentType: Any = "unread-divider"
     }
 
+    /**
+     * "Encrypted", above the oldest message in the transcript that arrived end-to-end encrypted
+     * (node 10416:1404). Placed from the transcript, not from the chat's flag, so it can't claim
+     * encryption that isn't happening.
+     *
+     * The list takes one item per gap, so [above] is the [DateSeparator] or [UnreadDivider] the
+     * marker displaced from that gap, drawn above it. At the head of the transcript it is the oldest
+     * message's date, which the list would otherwise draw as a trailing header.
+     *
+     * At most one per transcript, so its key is fixed.
+     */
+    data class EncryptedMarker(val above: ChatListItem? = null) : ChatListItem {
+        override val itemKey: Any = "encrypted-marker"
+        override val itemContentType: Any = "encrypted-marker"
+    }
+
+    /** Whether this is the unread divider, alone or drawn above the Encrypted marker. */
+    val holdsUnreadDivider: Boolean
+        get() = this is UnreadDivider || (this is EncryptedMarker && above is UnreadDivider)
+
     data class ContentBubble(
         val messageId: Long,
         val contentIndex: Int,

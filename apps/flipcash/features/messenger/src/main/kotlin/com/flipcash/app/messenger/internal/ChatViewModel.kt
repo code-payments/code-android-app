@@ -724,6 +724,13 @@ internal class ChatViewModel @Inject constructor(
         // cache: an edit or delete awaiting the server re-runs the mapping without re-fetching.
         .cachedIn(viewModelScope)
 
+    /** Where the Encrypted marker goes: read from the transcript, never from `use_e2ee`. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val oldestEncryptedId = stateFlow.mapNotNull { it.chatId }
+        .distinctUntilChanged()
+        .flatMapLatest { chatCoordinator.observeOldestEncryptedMessageId(it) }
+        .distinctUntilChanged()
+
     /** Edits and deletes the server has not answered yet, composed over the stored transcript. */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val pendingMutations = stateFlow.mapNotNull { it.chatId }
@@ -1008,7 +1015,10 @@ internal class ChatViewModel @Inject constructor(
                 .filterNot { it is UnreadBoundary.Resolving }
                 .distinctUntilChanged(),
             stateFlow.map { it.separatorConfig }.distinctUntilChanged(),
-        ) { paging, boundary, config -> paging.withSeparators(boundary, config) }
+            oldestEncryptedId,
+        ) { paging, boundary, config, oldestEncrypted ->
+            paging.withSeparators(boundary, config, oldestEncrypted)
+        }
 
     /**
      * The citation shown for [this] message.

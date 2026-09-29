@@ -22,6 +22,9 @@ sealed interface ChatAction {
      */
     data object AddCash : ChatAction
 
+    /** Opens the DM encryption explainer, from the transcript's Encrypted marker. */
+    data object OpenEncryptionInfo : ChatAction
+
     /**
      * Opens the group a link card names, pushed over this chat so Back returns here. The pushed
      * screen gates itself; a card never joins or buys on the reader's behalf.

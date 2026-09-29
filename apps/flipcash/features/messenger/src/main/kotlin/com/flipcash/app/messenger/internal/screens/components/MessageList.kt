@@ -483,6 +483,7 @@ internal fun MessageList(
                         is ChatListItem.ContentBubble -> oldest.timestamp
                         is ChatListItem.DateSeparator -> null // already a separator
                         is ChatListItem.UnreadDivider -> null // carries the oldest message's date
+                        is ChatListItem.EncryptedMarker -> null // carries it too, as `above`
                         null -> null
                     }
                     if (oldestTimestamp != null) {
@@ -738,7 +739,7 @@ private suspend fun LazyPagingItems<ChatListItem>.walkUntil(budget: Int, find: (
 
 /** The presented index of the unread divider, or `null` while it is still unloaded. */
 private fun unreadDividerIndex(messages: LazyPagingItems<ChatListItem>): Int? =
-    (0 until messages.itemCount).firstOrNull { messages.peek(it) is ChatListItem.UnreadDivider }
+    (0 until messages.itemCount).firstOrNull { messages.peek(it)?.holdsUnreadDivider == true }
 
 /**
  * Whether the unread divider is laid out whole below the top bar. A divider under the bar's fade
@@ -748,7 +749,7 @@ private fun LazyListLayoutInfo.showsUnreadDivider(messages: LazyPagingItems<Chat
     val band = centeringBand()
     return visibleItemsInfo.any { info ->
         info.index < messages.itemCount &&
-            messages.peek(info.index) is ChatListItem.UnreadDivider &&
+            messages.peek(info.index)?.holdsUnreadDivider == true &&
             info.offset >= band.first && info.offset + info.size <= band.last
     }
 }
