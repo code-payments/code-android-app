@@ -91,6 +91,11 @@ internal data class TypingDotsFrame(val size: Size)
 internal data class TypingRowFrame(
     /** Who the dots show, oldest first. Empty once nobody is typing. */
     val typists: List<ID>,
+    /**
+     * Who the dots showed last, the same as [typists] until nobody is typing. The dots close under
+     * these, so their gap doesn't change while they go.
+     */
+    val lastTypists: List<ID>,
     /** The newest row opening from under the dots, until it has. */
     val grow: TypingGrow?,
     /** The dots were handed to a message this frame and leave with no exit of their own. */
@@ -114,7 +119,10 @@ internal class TypingRowModel {
     /** Typing sessions whose message has landed in the transcript. The dots drop them at once. */
     private val landed = mutableSetOf<Session>()
     private var shown: Set<ID> = emptySet()
+    private var lastShown: List<ID> = emptyList()
     private var grow: TypingGrow? = null
+    private var handOffPending = false
+    private var anchorPending = false
     private val grown = mutableSetOf<Any>()
 
     /** The dots row's height at full presence, gap above included, as last measured. */
@@ -123,21 +131,48 @@ internal class TypingRowModel {
     var dotsSize: Size = Size.Zero
 
     /**
-     * Folds [typing] and the paged snapshot into the frame. [dotsHeightPx] is how tall the dots
-     * stand under the newest row right now, and [resting] says whether the transcript sits on its
-     * newest row. [gapPx] is the gap the transcript puts between two rows; the newest row's own gap
-     * below it is [newestGapPx].
+     * Folds [typing] and the paged snapshot into the frame, running [arrive] (a call to [arrive]
+     * with the list's measurements) first in case this composition is the first to see a message.
      */
-    fun update(
+    fun update(typing: Set<ActiveTypist>, arrive: () -> Unit): TypingRowFrame {
+        arrive()
+        val handedOff = handOffPending
+        handOffPending = false
+        val anchor = takeAnchor()
+
+        landed.retainAll(typing.map { it.session() }.toSet())
+        val next = typing
+            .filterNot { it.session() in landed }
+            .sortedWith(compareBy({ it.since }, { it.userId.toString() }))
+            .map { it.userId }
+        shown = next.toSet()
+        if (next.isNotEmpty()) lastShown = next
+        return TypingRowFrame(
+            typists = next,
+            lastTypists = lastShown,
+            grow = growFor(newestKey),
+            handedOff = handedOff,
+            anchorNewest = anchor,
+        )
+    }
+
+    /**
+     * Decides, once per newest message, whether it opens from under the dots and whether it takes
+     * them over. Idempotent, and called both from [update] and from the arrival's own row: the lazy
+     * list can lay a new page out before the composition that runs [update] sees it, and by then it
+     * has moved its scroll position on. The row composes inside that
+     * layout, while the list still describes the old one.
+     *
+     * [dotsHeightPx] is how tall the dots stand under the newest row right now, and [resting] says
+     * whether the transcript sits on the row that was newest before the arrival, which is now at
+     * the index given.
+     */
+    fun arrive(
         typing: Set<ActiveTypist>,
         messages: LazyPagingItems<ChatListItem>,
         dotsHeightPx: () -> Int,
-        resting: () -> Boolean,
-        gapPx: (item: ChatListItem, below: ChatListItem) -> Int,
-        newestGapPx: Int,
-    ): TypingRowFrame {
-        var handedOff = false
-        var anchor = false
+        resting: (previousKey: Any, previousIndex: Int) -> Boolean,
+    ) {
         val newest = if (messages.itemCount > 0) messages.peek(0) else null
         val newestBubble = newest as? ChatListItem.ContentBubble
         if (newestBubble != null && newestBubble.itemKey != newestKey) {
@@ -165,37 +200,29 @@ internal class TypingRowModel {
                 // Only while resting on the dots: scrolled up, the arrival lands off screen and
                 // nothing on screen should move for it.
                 val under = dotsHeightPx()
-                if (under > 0 && resting()) {
-                    // The row above now keeps the gap it has against the arrival rather than the
-                    // newest row's; whatever that adds comes out of where the arrival starts, so
-                    // the row above stays exactly where it stood over the dots.
-                    val gapAbove = messages.peek(1)?.let { gapPx(it, newestBubble) } ?: newestGapPx
+                if (under > 0 && resting(previous, previousIndex)) {
+                    // Exactly the dots' height, so nothing above moves on the frame it lands. The
+                    // gap between the row above and the arrival eases to its new size on the row's
+                    // own reflow spring, riding along with the grow.
                     grow = TypingGrow(
                         key = newestBubble.itemKey,
-                        fromPx = (under + newestGapPx - gapAbove).coerceAtLeast(0),
+                        fromPx = under,
                         handoff = if (takes) TypingDotsFrame(dotsSize) else null,
                     )
-                    anchor = true
+                    anchorPending = true
                 }
-                handedOff = takes
+                handOffPending = takes
             }
         } else if (newestBubble == null) {
             newestKey = null
         }
-
-        landed.retainAll(typing.map { it.session() }.toSet())
-        val next = typing
-            .filterNot { it.session() in landed }
-            .sortedWith(compareBy({ it.since }, { it.userId.toString() }))
-            .map { it.userId }
-        shown = next.toSet()
-        return TypingRowFrame(
-            typists = next,
-            grow = grow?.takeIf { it.key !in grown && it.key == newestKey },
-            handedOff = handedOff,
-            anchorNewest = anchor,
-        )
     }
+
+    /** The grow [key]'s row plays, if [arrive] opened one for it that hasn't played yet. */
+    fun growFor(key: Any?): TypingGrow? = grow?.takeIf { it.key == key && it.key == newestKey && key !in grown }
+
+    /** Whether an arrival still needs the list to rest on it; true once per arrival. */
+    fun takeAnchor(): Boolean = anchorPending.also { anchorPending = false }
 
     /** Whether [key] is the arrival this model just opened, so the list's own push leaves it be. */
     fun grows(key: Any?): Boolean = grow?.key == key && key !in grown

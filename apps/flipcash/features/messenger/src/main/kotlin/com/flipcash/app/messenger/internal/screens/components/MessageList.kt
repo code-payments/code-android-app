@@ -365,24 +365,18 @@ internal fun MessageList(
         val dotsPresence = remember { Animatable(0f) }
         val typingScope = rememberCoroutineScope()
         val density = LocalDensity.current
-        val rowGaps = CodeTheme.dimens.grid.let { grid ->
-            with(density) { Triple(grid.x1.roundToPx(), grid.x2.roundToPx(), grid.x3.roundToPx()) }
+        val typists = state.typists
+        val arriveUnderDots = {
+            typingRow.arrive(
+                typing = typists,
+                messages = messages,
+                dotsHeightPx = {
+                    Snapshot.withoutReadObservation { (typingRow.slotPx * dotsPresence.value).roundToInt() }
+                },
+                resting = { key, index -> Snapshot.withoutReadObservation { listState.restsOn(key, index) } },
+            )
         }
-        fun RowGap.px() = when (this) {
-            RowGap.Tight -> rowGaps.first
-            RowGap.Normal -> rowGaps.second
-            RowGap.Wide -> rowGaps.third
-        }
-        val typingFrame = typingRow.update(
-            typing = state.typists,
-            messages = messages,
-            dotsHeightPx = {
-                Snapshot.withoutReadObservation { (typingRow.slotPx * dotsPresence.value).roundToInt() }
-            },
-            resting = { Snapshot.withoutReadObservation { listState.restsOnNewest() } },
-            gapPx = { item, below -> rowGapBelow(item, below, separatorConfig).px() },
-            newestGapPx = RowGap.Tight.px(),
-        )
+        val typingFrame = typingRow.update(typing = typists, arrive = arriveUnderDots)
         if (typingFrame.anchorNewest) {
             // Before the layout that places the arrival, which would otherwise hold the previous
             // newest row where it sat and leave the arrival under the bottom edge.
@@ -466,7 +460,15 @@ internal fun MessageList(
                 // Cross-item bookkeeping, so it stays with the list rather than the row: a message
                 // animates in once, the first time it is laid out after the initial page.
                 // The newest row opening from under the typing dots: see TypingRowModel.
-                val grow = typingFrame.grow?.takeIf { index == 0 && it.key == item.itemKey }
+                // Decided here too: the list can lay this row out before the composition above
+                // has seen it arrive. See TypingRowModel.arrive.
+                val grow = if (index == 0) {
+                    arriveUnderDots()
+                    if (typingRow.takeAnchor()) SideEffect { listState.requestScrollToItem(0, 0) }
+                    typingRow.growFor(item.itemKey)
+                } else {
+                    null
+                }
                 val animateInsertion = index == 0 && hasLoaded && item.itemKey !in animatedKeys &&
                     // A message growing out of the dots doesn't rise in as well.
                     grow?.handoff == null
@@ -584,7 +586,7 @@ internal fun MessageList(
                     TypingRow(
                         avatars = dotsAvatars,
                         // The newest row already keeps the tight gap under it; the dots add the rest.
-                        gapAbove = when (gapAboveTypingRow(item, typingFrame.typists)) {
+                        gapAbove = when (gapAboveTypingRow(item, typingFrame.lastTypists)) {
                             RowGap.Tight -> 0.dp
                             RowGap.Normal -> CodeTheme.dimens.grid.x2 - CodeTheme.dimens.grid.x1
                             RowGap.Wide -> CodeTheme.dimens.grid.x3 - CodeTheme.dimens.grid.x1
@@ -917,6 +919,17 @@ private suspend fun LazyListState.alignBelowTopBar(index: Int) {
 private fun LazyListState.restsOnNewest(): Boolean =
     firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset == 0
 
+/**
+ * Whether the transcript rests on the row keyed [key], which a new page has moved to [index]. The
+ * list re-anchors on that key when it measures the new page, so this holds both before that measure
+ * (still at 0, as the last layout placed it) and during it (already at [index]).
+ */
+private fun LazyListState.restsOn(key: Any, index: Int): Boolean =
+    firstVisibleItemScrollOffset == 0 && (
+        firstVisibleItemIndex == index ||
+            (firstVisibleItemIndex == 0 && layoutInfo.visibleItemsInfo.firstOrNull()?.key == key)
+        )
+
 /** The presented index of [messageId], or `null` while it is still unloaded. */
 private fun indexOf(messages: LazyPagingItems<ChatListItem>, messageId: Long): Int? =
     (0 until messages.itemCount).firstOrNull { i ->
@@ -991,3 +1004,4 @@ private const val NextLayoutTimeoutMs = 250L
 private const val JUMP_PAGE_SIZE = 50
 private const val MAX_JUMP_ITEMS = 5_000
 private const val JUMP_STEP_TIMEOUT_MS = 2_000L
+
