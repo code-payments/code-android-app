@@ -9,6 +9,7 @@ import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.ui.Alignment
@@ -36,6 +37,10 @@ object ChatAnimations {
     // bounces. Matches iOS reflow: .spring(duration: 0.35, bounce: 0).
     private const val ReflowStiffness = 322f
     private val reflowIntSize: SpringSpec<IntSize> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
+    private val reflowFloat: SpringSpec<Float> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
+    val reflowDp: SpringSpec<Dp> =
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
 
     // Typing indicator entry/exit — scale from 0.95 + opacity.
@@ -87,6 +92,8 @@ object ChatAnimations {
     // line fades out fast enough to be gone before the bubble below reaches it. iOS
     // receiptExitFade: 0.08 s.
     val receiptExit: ExitTransition = shrinkVertically(reflowIntSize) + fadeOut(tween(durationMillis = 80))
+    // Its arrival on the row below, on the same spring, so one row grows as the other shrinks.
+    val receiptEnter: EnterTransition = expandVertically(reflowIntSize) + fadeIn(reflowFloat)
 
     // Reaction pills, from iOS ChatMotion's reaction springs and scales.
     // A pill arriving — iOS reaction: .spring(duration: 0.32, bounce: 0.35), from 40%.

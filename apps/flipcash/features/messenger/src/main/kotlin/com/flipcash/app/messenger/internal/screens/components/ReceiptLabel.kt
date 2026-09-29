@@ -2,16 +2,11 @@ package com.flipcash.app.messenger.internal.screens.components
 
 import android.text.format.DateFormat
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.snap
 import com.flipcash.shared.chat.ui.ChatAnimations
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +16,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -46,84 +40,64 @@ internal fun ReceiptLabel(
     status: ReceiptStatus,
     readPointer: MessagePointer?,
     modifier: Modifier = Modifier,
-    animateEntrance: Boolean = false,
     onRetryFailed: (() -> Unit)? = null,
 ) {
-    // animateEntrance: true only for a line arriving on the viewer's own send, which it does once
-    // the send has settled (see rememberSettlingSend) -- the same beat the line above leaves on.
-    // Opening a chat or scrolling a delivered/read message into view skips the entrance.
-    val deliveredVisible = remember { MutableTransitionState(!animateEntrance).apply { targetState = true } }
-
-    val deliveredSpec = ChatAnimations.delivered
-
     Box(
         modifier = modifier.padding(
             top = CodeTheme.dimens.grid.x1,
             end = CodeTheme.dimens.grid.x2,
         ),
     ) {
-        AnimatedVisibility(
-            visibleState = deliveredVisible,
-            // Expand + opacity, no scale: iOS un-hides the label and cross-fades its text in,
-            // letting the cell self-size. The line itself never scales.
-            enter = if (animateEntrance) {
-                expandVertically() + fadeIn(deliveredSpec)
-            } else {
-                expandVertically(snap()) + fadeIn(snap())
+        // Delivered -> Read directional swap with scale
+        val readSwapSpec = ChatAnimations.readSwap
+        AnimatedContent(
+            targetState = status,
+            transitionSpec = {
+                (scaleIn(readSwapSpec, initialScale = 0.9f) + fadeIn(readSwapSpec)) togetherWith
+                        (scaleOut(readSwapSpec, targetScale = 0.9f) + fadeOut(readSwapSpec))
             },
-            exit = shrinkVertically(snap()) + fadeOut(snap()),
-        ) {
-            // Delivered -> Read directional swap with scale
-            val readSwapSpec = ChatAnimations.readSwap
-            AnimatedContent(
-                targetState = status,
-                transitionSpec = {
-                    (scaleIn(readSwapSpec, initialScale = 0.9f) + fadeIn(readSwapSpec)) togetherWith
-                            (scaleOut(readSwapSpec, targetScale = 0.9f) + fadeOut(readSwapSpec))
+            label = "receiptStatus",
+        ) { animatedStatus ->
+            val text = when (animatedStatus) {
+                ReceiptStatus.SENT -> stringResource(R.string.label_chatReceipt_delivered)
+                ReceiptStatus.READ -> stringResource(R.string.label_chatReceipt_read)
+                ReceiptStatus.FAILED -> stringResource(R.string.label_chatReceipt_notSent)
+                else -> return@AnimatedContent
+            }
+
+            val readAtFormatted =
+                readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
+
+            Row(
+                modifier = if (animatedStatus == ReceiptStatus.FAILED && onRetryFailed != null) {
+                    Modifier.clickable(onClick = onRetryFailed)
+                } else {
+                    Modifier
                 },
-                label = "receiptStatus",
-            ) { animatedStatus ->
-                val text = when (animatedStatus) {
-                    ReceiptStatus.SENT -> stringResource(R.string.label_chatReceipt_delivered)
-                    ReceiptStatus.READ -> stringResource(R.string.label_chatReceipt_read)
-                    ReceiptStatus.FAILED -> stringResource(R.string.label_chatReceipt_notSent)
-                    else -> return@AnimatedContent
-                }
-
-                val readAtFormatted =
-                    readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
-
-                Row(
-                    modifier = if (animatedStatus == ReceiptStatus.FAILED && onRetryFailed != null) {
-                        Modifier.clickable(onClick = onRetryFailed)
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+            ) {
+                Text(
+                    modifier = Modifier.alignByBaseline(),
+                    text = text,
+                    style = CodeTheme.typography.caption.copy(
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    color = if (animatedStatus == ReceiptStatus.FAILED) {
+                        CodeTheme.colors.errorText
                     } else {
-                        Modifier
+                        CodeTheme.colors.textSecondary
                     },
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-                ) {
+                )
+
+                if (animatedStatus == ReceiptStatus.READ && readAtFormatted.isNotEmpty()) {
                     Text(
                         modifier = Modifier.alignByBaseline(),
-                        text = text,
+                        text = readAtFormatted,
                         style = CodeTheme.typography.caption.copy(
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Medium,
                         ),
-                        color = if (animatedStatus == ReceiptStatus.FAILED) {
-                            CodeTheme.colors.errorText
-                        } else {
-                            CodeTheme.colors.textSecondary
-                        },
+                        color = CodeTheme.colors.textSecondary,
                     )
-
-                    if (animatedStatus == ReceiptStatus.READ && readAtFormatted.isNotEmpty()) {
-                        Text(
-                            modifier = Modifier.alignByBaseline(),
-                            text = readAtFormatted,
-                            style = CodeTheme.typography.caption.copy(
-                                fontWeight = FontWeight.Medium,
-                            ),
-                            color = CodeTheme.colors.textSecondary,
-                        )
-                    }
                 }
             }
         }

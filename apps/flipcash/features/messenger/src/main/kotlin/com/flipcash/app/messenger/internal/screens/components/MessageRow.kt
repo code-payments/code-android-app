@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -133,7 +134,12 @@ internal fun MessageRow(
     }
     val showReceipt = item is ChatListItem.ContentBubble && carriesReceipt(index)
     val receiptAbove = index + 1 < messages.itemCount && carriesReceipt(index + 1)
-    val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig, showReceipt)
+    // Animated so the gap closes with the line leaving it, instead of snapping a frame ahead of it.
+    val bottomSpacing by animateDpAsState(
+        targetValue = bottomSpacingFor(index, item, messages, separatorConfig, showReceipt),
+        animationSpec = ChatAnimations.reflowDp,
+        label = "rowGap",
+    )
 
     val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
 
@@ -286,15 +292,6 @@ internal fun MessageRow(
 
             is ChatListItem.ContentBubble -> {
                 val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
-                // Track whether this item was ever seen as SENDING so we
-                // can animate the receipt label entrance on the
-                // SENDING→SENT transition. This remember persists across
-                // recompositions of the same item (keyed by LazyColumn),
-                // surviving the status change that gates the label.
-                var wasSending by remember { mutableStateOf(false) }
-                if (item.receiptStatus == ReceiptStatus.SENDING) {
-                    wasSending = true
-                }
                 // Bound to a local: `sender` is a property of another module's public API, so
                 // Kotlin will not smart-cast it to non-null inside the branches below.
                 val sender = item.sender
@@ -494,14 +491,17 @@ internal fun MessageRow(
                                 }
                                 AnimatedVisibility(
                                     visible = showReceipt && effectiveStatus != null,
-                                    enter = EnterTransition.None,
+                                    // Only a line arriving on a row already on screen animates: a row
+                                    // composed with its line (opening the chat, scrolling back) starts
+                                    // visible. It grows on the same spring the line above shrinks on,
+                                    // so the two rows trade height and the transcript holds still.
+                                    enter = ChatAnimations.receiptEnter,
                                     exit = ChatAnimations.receiptExit,
                                 ) {
                                     if (effectiveStatus != null) {
                                         ReceiptLabel(
                                             status = effectiveStatus,
                                             readPointer = otherReadPointer,
-                                            animateEntrance = wasSending,
                                             onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
                                                 { onAction(ChatAction.RetryMessage(item)) }
                                             } else null,
