@@ -555,6 +555,9 @@
 
     <string name="title_finishYourProfile">Finish Your Profile</string>
 
+    <!-- Copy matches iOS's "Finish Your Profile" display-name step. -->
+    <string name="title_addDisplayName">Add your display name</string>
+    <string name="subtitle_addDisplayName">Choose the name people see in chat</string>
     <string name="title_addProfilePicture">Add a profile picture</string>
     <string name="subtitle_addProfilePicture">Select a photo from your gallery</string>
 
