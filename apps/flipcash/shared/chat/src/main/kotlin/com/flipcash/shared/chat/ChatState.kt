@@ -34,6 +34,11 @@ data class ChatSummary(
 data class ActiveTypist(
     val userId: ID,
     val since: Instant,
+    /**
+     * Their message has arrived and is on its way into the transcript. They stay listed briefly, so
+     * the transcript's dots hold until the message is there to grow out of them.
+     */
+    val arrived: Boolean = false,
 )
 
 enum class FeedSyncState {

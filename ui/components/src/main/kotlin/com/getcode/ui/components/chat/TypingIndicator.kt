@@ -45,12 +45,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
@@ -69,26 +71,27 @@ import kotlin.math.roundToInt
  * top at the right. [avatar] draws one typist inside a circle the stack sizes, clips and animates;
  * it is measured to fill that circle. [key] identifies a typist across updates, so an avatar slides
  * to its new place as others join and leave rather than animating out and back in.
+ *
+ * [modifier] goes on the dots bubble, not the row, so a caller can measure or decorate the bubble
+ * alone. [background] and [border] colour it.
  */
 @Composable
 fun <T> TypingIndicator(
     typists: List<T>,
     key: (T) -> Any,
     modifier: Modifier = Modifier,
+    background: Color = CodeTheme.colors.chat.typingIndicator.background,
+    border: Color = CodeTheme.colors.chat.typingIndicator.border,
     avatar: @Composable (T) -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .padding(top = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         AvatarStack(
             typists = typists,
             key = key,
             avatar = avatar,
         )
 
-        TypingDots(modifier = modifier)
+        TypingDots(modifier = modifier, background = background, border = border)
     }
 }
 
@@ -229,9 +232,15 @@ private fun <T> AvatarStack(
     }
 }
 
+/**
+ * The three waving dots in their bubble. A transparent [background] and [border] draw the dots
+ * alone, the way a message growing out of the bubble leaves them behind as it takes over.
+ */
 @Composable
-private fun TypingDots(
+fun TypingDots(
     modifier: Modifier = Modifier,
+    background: Color = CodeTheme.colors.chat.typingIndicator.background,
+    border: Color = CodeTheme.colors.chat.typingIndicator.border,
 ) {
     val shape = CodeTheme.shapes.medium
     Row(
@@ -239,15 +248,8 @@ private fun TypingDots(
             .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
             .clip(shape)
             .then(modifier)
-            .border(
-                color = CodeTheme.colors.chat.typingIndicator.border,
-                width = CodeTheme.dimens.border,
-                shape = CodeTheme.shapes.medium,
-            )
-            .background(
-                color = CodeTheme.colors.chat.typingIndicator.background,
-                shape = CodeTheme.shapes.medium,
-            )
+            .addIfBorder(border, CodeTheme.dimens.border, shape)
+            .background(color = background, shape = shape)
             .padding(
                 horizontal = CodeTheme.dimens.grid.x2,
                 vertical = CodeTheme.dimens.grid.x3,
@@ -299,6 +301,13 @@ private fun TypingDots(
         }
     }
 }
+
+private fun Modifier.addIfBorder(border: Color, width: Dp, shape: Shape): Modifier =
+    if (border == Color.Transparent || border == Color.Unspecified) {
+        this
+    } else {
+        this.border(color = border, width = width, shape = shape)
+    }
 
 private const val MaxAvatars = 3
 private const val AvatarEnterScale = 0.4f

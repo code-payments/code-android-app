@@ -37,6 +37,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.flipcash.shared.chat.ui.BubblePosition
+import com.getcode.ui.components.chat.TypingDots
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -122,6 +124,8 @@ internal fun MessageRow(
     /** Where the top bar ends, from the window's top; the strip stays below it. */
     topBarBottom: Dp = 0.dp,
     attention: () -> Float = { 0f },
+    /** Set while this row's bubble grows out of the typing dots it replaced; see [TypingHandoff]. */
+    typingHandoff: TypingHandoff? = null,
 ) {
     val onAction = LocalChatActionHandler.current
     val vibrator = LocalVibrator.current
@@ -372,11 +376,17 @@ internal fun MessageRow(
                                     // The strip lines up with the bubble as drawn, which sits
                                     // inside a full-width layout, so it's measured here rather than
                                     // taken from the popup's anchor.
-                                    modifier = Modifier.addIf(onBubbleBounds != null) {
-                                        Modifier.onGloballyPositioned {
-                                            onBubbleBounds?.invoke(it.boundsInWindow().roundToIntRect())
+                                    modifier = Modifier
+                                        .addIf(onBubbleBounds != null) {
+                                            Modifier.onGloballyPositioned {
+                                                onBubbleBounds?.invoke(it.boundsInWindow().roundToIntRect())
+                                            }
                                         }
-                                    },
+                                        .then(
+                                            typingHandoff?.let {
+                                                Modifier.growFromTypingDots(it.from, it.progress, it.contentAlpha)
+                                            } ?: Modifier
+                                        ),
                                     item = item,
                                     // The bubble's own targets go with the row's: a cash
                                     // bubble behind the backdrop would otherwise open token
@@ -387,16 +397,33 @@ internal fun MessageRow(
                                     // same gesture is what makes a cash bubble selectable.
                                     onLongClick = select,
                                     onDoubleClick = presentStrip,
-                                    position = bubblePositionOf(
-                                        index,
-                                        item,
-                                        messages,
-                                        separatorConfig,
-                                        receiptAbove = receiptAbove,
-                                        receiptBelow = showReceipt,
-                                    ),
+                                    // Out of the dots' solo corners, as the dots never join a run;
+                                    // it settles into its own run on the corner spring once grown.
+                                    position = if (typingHandoff != null) {
+                                        BubblePosition.Solo
+                                    } else {
+                                        bubblePositionOf(
+                                            index,
+                                            item,
+                                            messages,
+                                            separatorConfig,
+                                            receiptAbove = receiptAbove,
+                                            receiptBelow = showReceipt,
+                                        )
+                                    },
                                     attention = attention,
                                 )
+
+                                // What's left of the dots as the bubble grows out from under them.
+                                if (typingHandoff != null) {
+                                    TypingDots(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .graphicsLayer { alpha = typingHandoff.dotsAlpha() },
+                                        background = Color.Transparent,
+                                        border = Color.Transparent,
+                                    )
+                                }
 
                                 // The quick strip lives above the message, only while it is the
                                 // selected one — it replaces the backdrop's own reach for a

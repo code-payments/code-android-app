@@ -46,6 +46,20 @@ object ChatAnimations {
     // Typing indicator entry/exit — scale from 0.95 + opacity.
     val typingIndicator: SpringSpec<Float> = spring(dampingRatio = 0.73f, stiffness = Spring.StiffnessHigh)
 
+    // The typing row's own height opening as it joins the transcript and closing as it leaves, the
+    // rows above riding with it. The push's spring, so the dots and a message arriving under them
+    // move the transcript the same way.
+    val typingRowHeight: SpringSpec<Float> = insertionPush
+
+    // An incoming message growing out of the typing bubble it replaces: the bubble's outline grows
+    // from the dots' to its own, the content fades in behind it, and the dots fade where they stood.
+    // iOS fromTyping: .spring(duration: 0.20, bounce: 0.21), fromTypingTextDelay 0.058,
+    // fromTypingTextFade 0.155, fromTypingDotsFade 0.08.
+    val fromTyping: SpringSpec<Float> = spring(dampingRatio = 0.79f, stiffness = 987f)
+    const val fromTypingTextDelayMs = 58
+    const val fromTypingTextFadeMs = 155
+    const val fromTypingDotsFadeMs = 80
+
     // Action bar <-> composer swap — scale from 0.95 + opacity.
     val composerSwap: SpringSpec<Float> = spring(dampingRatio = 0.69f, stiffness = Spring.StiffnessHigh)
 
