@@ -60,6 +60,8 @@ internal class ChatProfileViewModel @Inject constructor(
             val fromServer: Boolean = false,
         ) : Event
         data class JoinDateLoaded(val joinDate: Instant?) : Event
+        /** The participant as the server has them, replacing the cached one the screen opened on. */
+        data class ProfileLoaded(val participant: ChatParticipant.TipUser) : Event
         data object BlockUser : Event
         data class BlockConfirmed(val participant: ChatParticipant.TipUser) : Event
         data class BlockProcessing(val loading: Boolean = false, val success: Boolean = false): Event
@@ -73,14 +75,18 @@ internal class ChatProfileViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach { event ->
                 val (userId, profile) = event.participant as ChatParticipant.TipUser
-                // The cached member profile doesn't carry a join date, so resolve it from the
-                // server profile, falling back to whatever the participant already had.
-                val joinDate = if (event.fromServer) {
-                    profile.joinedAt
-                } else {
-                    profiles.getProfileForUser(userId).getOrNull()?.joinedAt ?: profile.joinedAt
+                if (event.fromServer) {
+                    dispatchEvent(Event.JoinDateLoaded(profile.joinedAt))
+                    return@onEach
                 }
-                dispatchEvent(Event.JoinDateLoaded(joinDate))
+                // The participant came from the cache, which carries no join date and may carry a
+                // roster page's blank name. The server profile replaces it whole; the cached one
+                // stays when the fetch fails.
+                val fetched = profiles.getProfileForUser(userId).getOrNull()
+                if (fetched != null) {
+                    dispatchEvent(Event.ProfileLoaded(ChatParticipant.TipUser(userId, fetched)))
+                }
+                dispatchEvent(Event.JoinDateLoaded(fetched?.joinedAt ?: profile.joinedAt))
             }
             .launchIn(viewModelScope)
 
@@ -104,7 +110,7 @@ internal class ChatProfileViewModel @Inject constructor(
                     // "Block ?" is what this read for an account with no display name.
                     title = resources.getString(
                         R.string.prompt_title_blockUser,
-                        participant.name.orEmpty(),
+                        participant.name ?: resources.getString(R.string.title_unnamedUser),
                     ),
                     message = resources.getString(R.string.prompt_description_blockUser),
                     actions = listOf(
@@ -145,6 +151,7 @@ internal class ChatProfileViewModel @Inject constructor(
             when (event) {
                 is Event.OnParticipantSet -> { state -> state.copy(participant = event.participant) }
                 is Event.JoinDateLoaded -> { state -> state.copy(joinDate = event.joinDate) }
+                is Event.ProfileLoaded -> { state -> state.copy(participant = event.participant) }
                 is Event.BlockProcessing -> { state ->
                     val current = state.processingState
                     state.copy(

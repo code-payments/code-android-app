@@ -70,6 +70,7 @@ class BlockedUserDataSource @Inject constructor(
             userIdHex = resolved.blocked.userId.hexEncodedString(),
             displayName = resolved.profile?.displayName,
             profilePicture = resolved.profile?.profilePicture,
+            username = resolved.profile?.username,
         )
     }
 }

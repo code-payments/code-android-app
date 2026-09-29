@@ -22,7 +22,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
 
-/** Where a person's profile gets its join date from. */
+/** Where a person's profile gets its name and join date from. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatProfileViewModelTest {
 
@@ -46,10 +46,10 @@ class ChatProfileViewModelTest {
         resources = mockk<ResourceHelper>(relaxed = true),
     )
 
-    private fun participant(joinedAt: Instant?) = ChatParticipant.TipUser(
+    private fun participant(joinedAt: Instant?, displayName: String = "Sally") = ChatParticipant.TipUser(
         userId = theirId,
         profile = UserProfile(
-            displayName = "Sally",
+            displayName = displayName,
             socialAccounts = emptyList(),
             phoneNumber = null,
             email = null,
@@ -69,6 +69,32 @@ class ChatProfileViewModelTest {
 
         assertEquals(serverJoin, model.stateFlow.value.joinDate)
         coVerify(exactly = 1) { profiles.getProfileForUser(theirId) }
+    }
+
+    @Test
+    fun `a cached participant with no name takes the server's`() = runTest {
+        coEvery { profiles.getProfileForUser(theirId) } returns
+            Result.success(participant(serverJoin).profile)
+        val model = viewModel()
+
+        model.dispatchEvent(
+            ChatProfileViewModel.Event.OnParticipantSet(participant(cachedJoin, displayName = ""))
+        )
+
+        assertEquals("Sally", model.stateFlow.value.participant?.name)
+    }
+
+    @Test
+    fun `a failed fetch keeps the cached participant`() = runTest {
+        coEvery { profiles.getProfileForUser(theirId) } returns Result.failure(Exception("offline"))
+        val model = viewModel()
+
+        model.dispatchEvent(
+            ChatProfileViewModel.Event.OnParticipantSet(participant(cachedJoin, displayName = "Cached"))
+        )
+
+        assertEquals("Cached", model.stateFlow.value.participant?.name)
+        assertEquals(cachedJoin, model.stateFlow.value.joinDate)
     }
 
     @Test

@@ -66,6 +66,8 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.isDmAddressable
+import com.flipcash.services.models.handle
+import com.flipcash.services.models.nameOrHandle
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
 import com.flipcash.shared.amountentry.AmountEntryLabel
@@ -890,19 +892,26 @@ internal class ChatViewModel @Inject constructor(
                     val storedReactions = MessageReactions.from(message.reactions)
 
                     // A message the viewer sent needs no attribution, and neither does a DM —
-                    // `profiles` is null for one. Asking for a profile that is missing is what keeps
-                    // a sender from showing as a blank name for the rest of the session; the
-                    // resolver dedupes, so asking once per page is asking once.
+                    // `profiles` is null for one. Asking for a profile that is missing, or cached
+                    // with no name, is what keeps a sender from showing as a blank name for the
+                    // rest of the session; the resolver dedupes, so asking once per page is asking
+                    // once.
                     val sender = profiles?.let { resolved ->
                         message.senderId?.takeIf { !message.isFromSelf }?.let { senderId ->
                             val profile = resolved[senderId.hexEncodedString()]
-                            if (profile == null) {
+                            if (profile == null || profile.displayName.isBlank()) {
                                 chatCoordinator.requestSenderProfile(senderId)
+                            }
+                            if (profile == null) {
                                 null
                             } else {
                                 SenderIdentity(
                                     userId = senderId,
-                                    displayName = profile.displayName,
+                                    displayName = nameOrHandle(profile.displayName, profile.handle)
+                                        ?: resources.getString(R.string.title_unnamedUser),
+                                    // Only a name the person chose gives initials; "Flipcash User"
+                                    // would put the same "FU" on every one of them.
+                                    initialsName = nameOrHandle(profile.displayName, profile.handle),
                                     picture = profile.profilePicture,
                                 )
                             }
@@ -1007,9 +1016,16 @@ internal class ChatViewModel @Inject constructor(
         val profiles = senderProfiles.value ?: return stateFlow.value.participant?.name.orEmpty()
         val senderId = senderId ?: return ""
         val profile = profiles[senderId.hexEncodedString()]
-            ?: return "".also { chatCoordinator.requestSenderProfile(senderId) }
+        if (profile == null || profile.displayName.isBlank()) {
+            chatCoordinator.requestSenderProfile(senderId)
+        }
 
-        return profile.displayName
+        return when (profile) {
+            // Still resolving: a placeholder name here would flash before the real one lands.
+            null -> ""
+            else -> nameOrHandle(profile.displayName, profile.handle)
+                ?: resources.getString(R.string.title_unnamedUser)
+        }
     }
 
     private suspend fun ChatMessage.toQuote(): ChatQuote {

@@ -13,6 +13,12 @@ import com.getcode.opencode.model.core.ID
  */
 data class SenderIdentity(
     val userId: ID,
+    /** What the name line says: their name, else their handle, else a generic label. */
     val displayName: String,
     val picture: MediaItem?,
+    /**
+     * What the avatar draws initials from when there is no [picture]. Null when [displayName] is
+     * the generic label, so a nameless sender gets the plain gradient rather than its initials.
+     */
+    val initialsName: String? = displayName,
 )

@@ -41,8 +41,8 @@ class UserProfileDataSource @Inject constructor() {
     }
 
     /**
-     * Stores [profile]'s name + avatar for [userId] (INSERT OR REPLACE, preserving any existing
-     * phone/email/social columns). Used to back-fill the cache after a network resolve so
+     * Stores [profile]'s name, avatar and handle for [userId] (INSERT OR REPLACE, preserving any
+     * existing phone/email/social columns). Used to back-fill the cache after a network resolve so
      * [observeProfiles] re-emits and consumers (e.g. the transaction list) resolve the row live.
      */
     suspend fun store(userId: ID, profile: UserProfile) {
@@ -50,6 +50,7 @@ class UserProfileDataSource @Inject constructor() {
             userIdHex = userId.hexEncodedString(),
             displayName = profile.displayName,
             profilePicture = profile.profilePicture,
+            username = profile.username,
         )
     }
 

@@ -329,7 +329,7 @@ internal fun MessageRow(
                                 if (sender != null && runStart) {
                                     ContactAvatar(
                                         image = sender.picture,
-                                        displayName = sender.displayName,
+                                        displayName = sender.initialsName.orEmpty(),
                                         access = BlobAccessContext.profile(sender.userId),
                                         modifier = Modifier
                                             .fillMaxSize()
