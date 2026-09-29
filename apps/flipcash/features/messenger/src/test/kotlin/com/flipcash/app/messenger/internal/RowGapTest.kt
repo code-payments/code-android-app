@@ -87,4 +87,9 @@ class RowGapTest {
     fun `the newest row has nothing under it`() {
         assertEquals(RowGap.Tight, rowGapBelow(bubble(alice), below = null, config = config))
     }
+
+    @Test
+    fun `a status line under a bubble ends the run with a normal gap`() {
+        assertEquals(RowGap.Normal, rowGapBelow(bubble(alice), bubble(alice), config, carriesReceipt = true))
+    }
 }

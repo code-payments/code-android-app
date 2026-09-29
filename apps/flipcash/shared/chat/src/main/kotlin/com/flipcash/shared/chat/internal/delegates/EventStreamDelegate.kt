@@ -362,6 +362,7 @@ class EventStreamDelegate @Inject constructor(
             // Waited on so a link card lands already sized; see [MessageLinkPrefetch].
             linkPrefetch.prefetch(resolvedMessages, MessageLinkPrefetch.LIVE_WAIT)
             messageDataSource.upsert(chatId, resolvedMessages)
+            typingTracker.messageArrived(chatId, resolvedMessages.mapNotNull { it.senderId })
             resolvedMessages.maxByOrNull { it.messageId }
         } else null
 

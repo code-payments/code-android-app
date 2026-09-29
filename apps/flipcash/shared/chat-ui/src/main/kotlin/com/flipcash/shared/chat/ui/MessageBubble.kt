@@ -997,11 +997,17 @@ private fun groupsWith(
         !item.rendersBareEmoji() &&
         !other.rendersBareEmoji()
 
+/**
+ * [receiptAbove] and [receiptBelow] say whether a status line sits between [item] and the bubble
+ * above or below it. A line ends the run there, so the two keep their round corners.
+ */
 fun bubblePositionOf(
     index: Int,
     item: ChatListItem.ContentBubble,
     messages: LazyPagingItems<ChatListItem>,
     config: SeparatorConfig,
+    receiptAbove: Boolean = false,
+    receiptBelow: Boolean = false,
 ): BubblePosition {
     val above = if (index + 1 < messages.itemCount) {
         messages.peek(index + 1) as? ChatListItem.ContentBubble
@@ -1010,8 +1016,8 @@ fun bubblePositionOf(
         messages.peek(index - 1) as? ChatListItem.ContentBubble
     } else null
 
-    val groupedAbove = groupsWith(item, above, config)
-    val groupedBelow = groupsWith(item, below, config)
+    val groupedAbove = groupsWith(item, above, config) && !receiptAbove
+    val groupedBelow = groupsWith(item, below, config) && !receiptBelow
 
     return when {
         groupedAbove && groupedBelow -> BubblePosition.Middle

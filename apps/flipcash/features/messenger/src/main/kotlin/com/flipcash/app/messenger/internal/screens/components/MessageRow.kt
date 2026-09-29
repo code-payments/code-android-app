@@ -125,7 +125,15 @@ internal fun MessageRow(
     val onAction = LocalChatActionHandler.current
     val vibrator = LocalVibrator.current
     val keyboard = rememberKeyboardController()
-    val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig)
+    // A status line sits between its bubble and the next, so it ends the bubble run there: the
+    // two keep their round corners and the normal gap until the line moves on (iOS #908).
+    fun carriesReceipt(at: Int): Boolean {
+        val bubble = messages.peek(at) as? ChatListItem.ContentBubble ?: return false
+        return shouldShowReceiptLabel(at, bubble, messages, otherReadPointer, settlingKey)
+    }
+    val showReceipt = item is ChatListItem.ContentBubble && carriesReceipt(index)
+    val receiptAbove = index + 1 < messages.itemCount && carriesReceipt(index + 1)
+    val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig, showReceipt)
 
     val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
 
@@ -379,7 +387,9 @@ internal fun MessageRow(
                                         index,
                                         item,
                                         messages,
-                                        separatorConfig
+                                        separatorConfig,
+                                        receiptAbove = receiptAbove,
+                                        receiptBelow = showReceipt,
                                     ),
                                     attention = attention,
                                 )
@@ -464,8 +474,6 @@ internal fun MessageRow(
                                     )
                                 }
                             }
-                            val showReceipt =
-                                shouldShowReceiptLabel(index, item, messages, otherReadPointer, settlingKey)
                             // An emoji-only message, or a card row, has no bubble, so its "Edited"
                             // marker has nowhere to sit inside the message and comes out here
                             // instead — on the same line as the receipt, and ahead of it, so the two
@@ -593,9 +601,10 @@ private fun bottomSpacingFor(
     item: ChatListItem,
     messages: LazyPagingItems<ChatListItem>,
     config: SeparatorConfig,
+    carriesReceipt: Boolean,
 ): Dp {
     // index-1 is the item below (newer) in reverseLayout
-    val gap = rowGapBelow(item, if (index > 0) messages.peek(index - 1) else null, config)
+    val gap = rowGapBelow(item, if (index > 0) messages.peek(index - 1) else null, config, carriesReceipt)
     return when (gap) {
         RowGap.Tight -> CodeTheme.dimens.grid.x1
         RowGap.Normal -> CodeTheme.dimens.grid.x2
@@ -618,7 +627,12 @@ internal enum class RowGap { Tight, Normal, Wide }
  * Pure so it can be tested without a `PagingData`, like [startsSenderRun]: the peek belongs to the
  * caller.
  */
-internal fun rowGapBelow(item: ChatListItem, below: ChatListItem?, config: SeparatorConfig): RowGap {
+internal fun rowGapBelow(
+    item: ChatListItem,
+    below: ChatListItem?,
+    config: SeparatorConfig,
+    carriesReceipt: Boolean = false,
+): RowGap {
     below ?: return RowGap.Tight
 
     // Separator or unread divider adjacent → normal gap
@@ -630,6 +644,8 @@ internal fun rowGapBelow(item: ChatListItem, below: ChatListItem?, config: Separ
         !item.isSameAuthorAs(below) -> RowGap.Wide
         // Same sender, outside grouping window → normal
         !config.isGrouped(item.timestamp, below.timestamp) -> RowGap.Normal
+        // A status line under [item] ends the run, so the pair takes the normal gap
+        carriesReceipt -> RowGap.Normal
         // Same sender, close together → tight
         else -> RowGap.Tight
     }

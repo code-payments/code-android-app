@@ -26,34 +26,19 @@ internal fun effectiveReceiptStatus(
     return base
 }
 
-/**
- * Show a receipt label below a self-message only within the last 2 contiguous
- * self-message groups. In reverseLayout, index 0 is the newest message.
- *
- * Within a group, labels appear at status boundaries (SENT↔READ).
- * At group boundaries, labels are suppressed when the nearest self-group
- * below already shows the same status (avoids duplicate "Read" labels).
- */
-/**
- * The nearest bubble below [index], stepping over the viewer's own tombstones and the send that is
- * still settling ([settlingKey]): neither has taken the receipt yet, so the line stays above them.
- */
-private fun receiptNeighbourBelow(
-    index: Int,
-    peek: (Int) -> ChatListItem?,
-    settlingKey: Any?,
-): ChatListItem.ContentBubble? {
-    for (i in (index - 1) downTo 0) {
-        val bubble = peek(i) as? ChatListItem.ContentBubble ?: return null
-        if (bubble.isFromSelf && bubble.content is MessageContent.Deleted) continue
-        if (bubble.isSettling(settlingKey)) continue
-        return bubble
-    }
-    return null
-}
-
 private fun ChatListItem.ContentBubble.isSettling(settlingKey: Any?): Boolean =
     settlingKey != null && messageKey == settlingKey
+
+/** A confirmed send of the viewer's that can hold a line: not a tombstone, not settling. */
+private fun ChatListItem.confirmedStatus(
+    otherReadPointer: MessagePointer?,
+    settlingKey: Any?,
+): ReceiptStatus? {
+    val bubble = this as? ChatListItem.ContentBubble ?: return null
+    if (bubble.isSettling(settlingKey)) return null
+    return effectiveReceiptStatus(bubble, otherReadPointer)
+        ?.takeIf { it == ReceiptStatus.SENT || it == ReceiptStatus.READ }
+}
 
 internal fun shouldShowReceiptLabel(
     index: Int,
@@ -64,10 +49,16 @@ internal fun shouldShowReceiptLabel(
 ): Boolean = shouldShowReceiptLabel(index, item, messages::peek, otherReadPointer, settlingKey)
 
 /**
+ * Whether [item] carries a status line, following iOS: the viewer's newest confirmed send shows
+ * its status, and the newest one the counterpart has read shows "Read" even when a newer one is
+ * only delivered, so the two lines sit under their own bubbles. A failed send always shows its own.
+ *
  * [settlingKey] is the viewer's newest send while it settles: from the moment it is sent until it
- * is confirmed and the settle floor has passed. It shows no line of its own in that time, and the
- * line above it stays put, so the receipt moves down in one step when the hold releases rather
- * than dropping at confirmation and reappearing a beat later.
+ * is confirmed and the settle floor has passed. It takes no line in that time, and the line above
+ * it stays put, so the receipt moves down in one step when the hold releases rather than dropping
+ * at confirmation and reappearing a beat later.
+ *
+ * Rows are newest first, as the reversed transcript holds them: [peek] of `index - 1` is newer.
  */
 internal fun shouldShowReceiptLabel(
     index: Int,
@@ -77,43 +68,17 @@ internal fun shouldShowReceiptLabel(
     settlingKey: Any? = null,
 ): Boolean {
     if (!item.carriesReceipt) return false
-    // A split message's receipt goes under its last row only. The rows above share its status, so
-    // the rules below would already hide them -- except a failure, which shows everywhere it can.
+    // A split message's receipt goes under its last row only; the rows above share its status.
     if (!item.isLastRow) return false
     val status = effectiveReceiptStatus(item, otherReadPointer) ?: return false
     if (status == ReceiptStatus.FAILED) return true
-    if (item.isSettling(settlingKey)) return false
-    if (status != ReceiptStatus.SENT && status != ReceiptStatus.READ) return false
+    val confirmed = item.confirmedStatus(otherReadPointer, settlingKey) ?: return false
 
-    // index - 1 is the item below (newer) in reverseLayout. A tombstone still belongs to the self
-    // group for bubble shaping, so it is stepped over here rather than treated as a group boundary.
-    val belowBubble = receiptNeighbourBelow(index, peek, settlingKey)
-
-    // Within a self-group: show at intra-group status boundaries only
-    if (belowBubble != null && belowBubble.isFromSelf) {
-        return effectiveReceiptStatus(belowBubble, otherReadPointer) != status
-    }
-
-    // At a group boundary — count which self-group this is.
-    var selfGroups = 0
-    var prevWasSelf = false
-    for (i in 0 until index) {
-        val bubble = (peek(i) ?: break) as? ChatListItem.ContentBubble
-        val isSelf = bubble != null && bubble.isFromSelf
-        if (isSelf && !prevWasSelf) selfGroups++
-        prevWasSelf = isSelf
-    }
-    if (!prevWasSelf) selfGroups++ // current item starts a new group
-    if (selfGroups > 2) return false
-
-    // Bottommost self-group always shows its label
-    if (selfGroups == 1) return true
-
-    // For group 2: show only if status differs from the nearest self-group below
-    for (i in (index - 1) downTo 0) {
-        val bubble = (peek(i) ?: break) as? ChatListItem.ContentBubble ?: continue
-        if (bubble.isSettling(settlingKey)) continue
-        if (bubble.carriesReceipt) return effectiveReceiptStatus(bubble, otherReadPointer) != status
+    // Walking toward the newest: it keeps its line while nothing newer takes it -- no newer send
+    // at all, or, for a read one, only newer sends that are delivered.
+    for (i in index - 1 downTo 0) {
+        val newer = peek(i)?.confirmedStatus(otherReadPointer, settlingKey) ?: continue
+        if (newer == ReceiptStatus.READ || confirmed != ReceiptStatus.READ) return false
     }
     return true
 }
