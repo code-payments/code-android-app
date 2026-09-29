@@ -359,5 +359,80 @@
         "ciphertext": "860fbbbcc67390506bbf4ab45371f88340950f328b6579bacd333b2b2ebf1c38b09f22e213f4402f93812474672094caef33bb48a8f981789ebf22756d518253ac7cf4f44b165add56ab28206c0fda7636fb0f98f1a66172130b7a057f4ccda7f4e202151b5430779a1c79a6a954e59be0b8691d9b20b576f5df8257e6214bf6d433de712b10ddda50c09f059c7bda06ddbf04fef33fc23260e67ea05ee8dd4fd69c78c6277616ed895bec587fec5816d93e4da28648533347fd0c30b755dd5a5f703996b2f2fd4da6378889123223b06976fd823dd9513c"
       }
     ]
+  },
+  "policy": {
+    "flipcashUserId": "70c4a3df54af439a88fea7de606d04cb",
+    "cases": [
+      {
+        "name": "dm-flag-on",
+        "isDirectMessage": true,
+        "useE2ee": true,
+        "peerUserId": "5f0e1d2c3b4a49688776a5b4c3d2e1f0",
+        "shouldEncrypt": true
+      },
+      {
+        "name": "dm-flag-off",
+        "isDirectMessage": true,
+        "useE2ee": false,
+        "peerUserId": "5f0e1d2c3b4a49688776a5b4c3d2e1f0",
+        "shouldEncrypt": false
+      },
+      {
+        "name": "non-dm-flag-on",
+        "isDirectMessage": false,
+        "useE2ee": true,
+        "peerUserId": "5f0e1d2c3b4a49688776a5b4c3d2e1f0",
+        "shouldEncrypt": false
+      },
+      {
+        "name": "non-dm-flag-off",
+        "isDirectMessage": false,
+        "useE2ee": false,
+        "peerUserId": "5f0e1d2c3b4a49688776a5b4c3d2e1f0",
+        "shouldEncrypt": false
+      },
+      {
+        "name": "flipcash-dm-flag-on",
+        "isDirectMessage": true,
+        "useE2ee": true,
+        "peerUserId": "70c4a3df54af439a88fea7de606d04cb",
+        "shouldEncrypt": false
+      },
+      {
+        "name": "flipcash-dm-flag-off",
+        "isDirectMessage": true,
+        "useE2ee": false,
+        "peerUserId": "70c4a3df54af439a88fea7de606d04cb",
+        "shouldEncrypt": false
+      },
+      {
+        "name": "flipcash-non-dm-flag-on",
+        "isDirectMessage": false,
+        "useE2ee": true,
+        "peerUserId": "70c4a3df54af439a88fea7de606d04cb",
+        "shouldEncrypt": false
+      },
+      {
+        "name": "flipcash-prefix-15-bytes-dm-flag-on",
+        "isDirectMessage": true,
+        "useE2ee": true,
+        "peerUserId": "70c4a3df54af439a88fea7de606d04",
+        "shouldEncrypt": true
+      },
+      {
+        "name": "flipcash-plus-1-byte-dm-flag-on",
+        "isDirectMessage": true,
+        "useE2ee": true,
+        "peerUserId": "70c4a3df54af439a88fea7de606d04cb00",
+        "shouldEncrypt": true
+      },
+      {
+        "name": "empty-peer-dm-flag-on",
+        "isDirectMessage": true,
+        "useE2ee": true,
+        "peerUserId": "",
+        "shouldEncrypt": true
+      }
+    ]
   }
 }

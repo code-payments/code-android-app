@@ -4,11 +4,13 @@ import com.getcode.ed25519kmp.Ed25519Kmp
 import com.getcode.ed25519kmp.KeyPair
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
@@ -141,11 +143,34 @@ class ChatCipherVectorTest {
         }
     }
 
+    @Test
+    fun policy_shouldEncrypt() {
+        val policy = root["policy"]!!.jsonObject
+        assertContentEquals(policy.hex("flipcashUserId"), ChatCipher.FLIPCASH_USER_ID)
+        val vectors = policy["cases"]!!.jsonArray.map { it.jsonObject }
+        assertTrue(vectors.size >= 4)
+        for (v in vectors) {
+            val actual = ChatCipher.shouldEncrypt(
+                isDirectMessage = v.bool("isDirectMessage"),
+                useE2ee = v.bool("useE2ee"),
+                peerUserId = v.hex("peerUserId"),
+            )
+            assertEquals(v.bool("shouldEncrypt"), actual, v.name())
+        }
+    }
+
+    @Test
+    fun flipcashUserId_isACopy() {
+        ChatCipher.FLIPCASH_USER_ID[0] = 0
+        assertTrue(!ChatCipher.shouldEncrypt(true, true, root["policy"]!!.jsonObject.hex("flipcashUserId")))
+    }
+
     private fun pair(o: JsonObject) = Ed25519Kmp.createKeyPair(o.hex("edSeed")).also {
         assertContentEquals(o.hex("edPublicKey"), it.publicKey)
     }
 
     private fun JsonObject.payload() = EncryptedPayload(hex("nonce"), hex("ciphertext"))
+    private fun JsonObject.bool(key: String) = this[key]!!.jsonPrimitive.boolean
     private fun JsonObject.name() = this["name"]!!.jsonPrimitive.content
     private fun JsonObject.hex(key: String): ByteArray {
         val s = this[key]!!.jsonPrimitive.content
