@@ -271,6 +271,7 @@ mixpanel = { module = "com.mixpanel.android:mixpanel-android", version.ref = "mi
 
 # Crypto
 sodium-bindings = { module = "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android", version.ref = "sodium-bindings" }
+sodium-bindings-kmp = { module = "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings", version.ref = "sodium-bindings" }
 ionspin-bignum = { module = "com.ionspin.kotlin:bignum", version.ref = "bignum" }
 eddsa = { module = "net.i2p.crypto:eddsa", version = "0.3.0" }
 kotlincrypto-hash-sha2 = { module = "org.kotlincrypto.hash:sha2", version.ref = "kotlincrypto-hash" }

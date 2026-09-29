@@ -208,6 +208,7 @@ include(
     ":libs:datetime",
     ":libs:emojis",
     ":libs:encryption:base58",
+    ":libs:encryption:chat-cipher",
     ":libs:encryption:ed25519",
     ":libs:encryption:ed25519-native",
     ":libs:encryption:hmac",
@@ -330,10 +331,13 @@ val kmpUnitTestModules = setOf(
     ":libs:reporting",
 )
 // ed25519 and mnemonic excluded: both pull in the JNI-backed Ed25519Kmp Android actual for their
-// host vector tests, which can't load on the Linux CI runner (see kmpUnitTestModules).
+// host vector tests, which can't load on the Linux CI runner (see kmpUnitTestModules). chat-cipher
+// has no host test for the same reason, plus libsodium's Android binding; its vectors run on the
+// iOS simulator in the SharedCore tests workflow and as a device test.
 val noUnitTestModules = setOf(
     ":apps:flipcash:benchmark",
     ":kmp:shared-core",
+    ":libs:encryption:chat-cipher",
     ":libs:encryption:ed25519",
     ":libs:encryption:mnemonic",
 )
