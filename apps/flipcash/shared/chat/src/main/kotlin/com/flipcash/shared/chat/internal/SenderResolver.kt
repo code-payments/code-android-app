@@ -43,7 +43,9 @@ import kotlin.time.Duration.Companion.seconds
  * Three things keep that from turning into a call per emission:
  *
  * - **A resolved sender stays marked.** Their profile is in `user_profiles`, so the transcript
- *   reads it from [profiles] and never reaches [request] again.
+ *   reads it from [profiles]. The transcript also asks again for a cached profile with no name,
+ *   since that row may have come from a roster page rather than `GetProfile`; the mark is what
+ *   stops an account that really has no name from being fetched on every emission.
  * - **An unresolvable sender stays marked.** See [unresolvable].
  * - **A sender whose fetch failed for any other reason is held for [RETRY_BACKOFF].** See
  *   [inFlight].

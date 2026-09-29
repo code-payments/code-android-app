@@ -179,7 +179,7 @@ class UserProfileDaoTest {
         dao.upsertFull(listOf(fullProfile("u1")))
 
         // Blocklist sync only knows name + avatar — must not wipe phone/email/social.
-        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = "Alice (blocked)", profilePicture = null)
+        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = "Alice (blocked)", profilePicture = null, username = null)
 
         db.openHelper.writableDatabase.query("SELECT display_name, phone_value, email_value FROM user_profiles WHERE user_id_hex = 'u1'").use {
             it.moveToFirst()
@@ -195,9 +195,19 @@ class UserProfileDaoTest {
         dao.upsertFull(listOf(fullProfile("u1")))
 
         // The blocklist has no username to write; the handle must survive its sync.
-        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = "Alice (blocked)", profilePicture = null)
+        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = "Alice (blocked)", profilePicture = null, username = null)
 
         assertEquals("alice", dao.getByUserId("u1")?.username)
+    }
+
+    @Test
+    fun `partial write stores the handle a fetched profile carries`() = runBlocking {
+        val dao = db.userProfileDao()
+
+        // A sender resolved by `GetProfile` has no roster row; their handle is the fallback name.
+        dao.upsertNameAndAvatar(userIdHex = "u2", displayName = "", profilePicture = null, username = "bob")
+
+        assertEquals("bob", dao.getByUserId("u2")?.username)
     }
 
     @Test
@@ -206,7 +216,7 @@ class UserProfileDaoTest {
         dao.upsertFull(listOf(fullProfile("u1")))
 
         // The blocklist writes no name when the profile fetch failed; that is not a rename.
-        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = null, profilePicture = null)
+        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = null, profilePicture = null, username = null)
 
         assertEquals("Alice", dao.getByUserId("u1")?.displayName)
     }
@@ -215,7 +225,7 @@ class UserProfileDaoTest {
     fun `partial write with no name and nothing cached stores an empty name`() = runBlocking {
         val dao = db.userProfileDao()
 
-        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = null, profilePicture = null)
+        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = null, profilePicture = null, username = null)
 
         assertEquals("", dao.getByUserId("u1")?.displayName)
     }
@@ -226,7 +236,7 @@ class UserProfileDaoTest {
         dao.upsertFull(listOf(fullProfile("u1")))
 
         // A fetched profile with no name is the user's own choice, not a failed lookup.
-        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = "", profilePicture = null)
+        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = "", profilePicture = null, username = null)
 
         assertEquals("", dao.getByUserId("u1")?.displayName)
     }

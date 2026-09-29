@@ -69,7 +69,7 @@ class ChatMemberDataSource @Inject constructor(
         // member never observes a missing profile mid-write. Profiles go first (the
         // @Relation reads them), and use the authoritative full-profile upsert.
         database.withTransaction {
-            database.userProfileDao().upsertFull(members.map { mapper.toProfileEntity(it) })
+            database.userProfileDao().upsertFull(profileRows(members))
             database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
         }
     }
@@ -105,7 +105,7 @@ class ChatMemberDataSource @Inject constructor(
         val database = db ?: return
         val hex = mapper.chatIdHex(chatId)
         database.withTransaction {
-            database.userProfileDao().upsertFull(members.map { mapper.toProfileEntity(it) })
+            database.userProfileDao().upsertFull(profileRows(members))
             database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
             database.chatMemberDao().deleteMembersNotIn(
                 chatIdHex = hex,
@@ -132,4 +132,21 @@ class ChatMemberDataSource @Inject constructor(
     suspend fun clear() {
         db?.chatMemberDao()?.deleteAll()
     }
+
+    /**
+     * The `user_profiles` rows [members] can vouch for.
+     *
+     * A member can arrive with no name, picture or handle — the mapper builds a profile whether or
+     * not the server sent one. Writing that as a full-row replace would wipe whatever a `GetProfile`
+     * had already filled in, and leave a blank row the transcript cannot tell from a nameless one. Left out instead: the member row still lands, and a sender with no profile row is
+     * what makes the transcript fetch one.
+     */
+    private fun profileRows(members: List<ChatMember>) = members
+        .filter { member ->
+            val profile = member.userProfile
+            profile.displayName.isNotBlank() ||
+                profile.profilePicture != null ||
+                !profile.username.isNullOrBlank()
+        }
+        .map { mapper.toProfileEntity(it) }
 }

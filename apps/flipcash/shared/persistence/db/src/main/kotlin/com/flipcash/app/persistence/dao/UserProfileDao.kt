@@ -20,15 +20,16 @@ interface UserProfileDao {
     suspend fun upsertFull(profiles: List<UserProfileEntity>)
 
     /**
-     * Partial write for callers that only know name + avatar (blocklist sync). Inserts a new
-     * row, or updates *only* those two columns on an existing one — so it never downgrades a
-     * richer profile already cached from a chat, and never clears a pending migration blob.
+     * Partial write for callers that only know a user's public identity — name, avatar and handle
+     * (blocklist sync, a single `GetProfile`). Inserts a new row, or updates *only* those three
+     * columns on an existing one — so it never downgrades a richer profile already cached from a
+     * chat, and never clears a pending migration blob.
      *
      * Uses `INSERT OR REPLACE` with correlated sub-selects (rather than `ON CONFLICT DO
      * UPDATE`) so it works on the minSdk-29 SQLite build, which predates UPSERT. The
      * sub-selects read the current row before the replace, preserving every column the
-     * blocklist doesn't know about. The name and avatar keep their existing values when
-     * [displayName] or [profilePicture] is null, via COALESCE: null means the caller has no
+     * blocklist doesn't know about. The name, avatar and handle keep their existing values when
+     * [displayName], [profilePicture] or [username] is null, via COALESCE: null means the caller has no
      * profile to write (a failed fetch), whereas an empty name is one the user really has. A
      * null name with nothing cached stores an empty one, since the column is NOT NULL.
      */
@@ -47,12 +48,17 @@ interface UserProfileDao {
             (SELECT email_verified FROM user_profiles WHERE user_id_hex = :userIdHex),
             (SELECT social_accounts_json FROM user_profiles WHERE user_id_hex = :userIdHex),
             COALESCE(:profilePicture, (SELECT profile_picture_json FROM user_profiles WHERE user_id_hex = :userIdHex)),
-            (SELECT username FROM user_profiles WHERE user_id_hex = :userIdHex),
+            COALESCE(:username, (SELECT username FROM user_profiles WHERE user_id_hex = :userIdHex)),
             (SELECT pending_migration_json FROM user_profiles WHERE user_id_hex = :userIdHex)
         )
         """
     )
-    suspend fun upsertNameAndAvatar(userIdHex: String, displayName: String?, profilePicture: MediaItem?)
+    suspend fun upsertNameAndAvatar(
+        userIdHex: String,
+        displayName: String?,
+        profilePicture: MediaItem?,
+        username: String?,
+    )
 
     /** The cached profile for [userIdHex], or null if none is cached. */
     @Query("SELECT * FROM user_profiles WHERE user_id_hex = :userIdHex LIMIT 1")

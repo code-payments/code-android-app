@@ -353,7 +353,8 @@ interface MessagingOperations {
 
     /**
      * Asks for [userId]'s profile if nothing has asked already, for a sender the roster subset
-     * does not cover. Returns immediately; the answer arrives through [observeSenderProfiles].
+     * does not cover or whose cached profile has no name. Returns immediately; the answer arrives
+     * through [observeSenderProfiles].
      */
     fun requestSenderProfile(userId: ID)
 
