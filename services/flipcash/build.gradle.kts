@@ -28,6 +28,7 @@ dependencies {
     api(project(":libs:network:jwt"))
     api(project(":services:opencode"))
     implementation(project(":ui:resources"))
+    implementation(project(":libs:encryption:chat-cipher"))
 
     implementation(libs.javax.inject)
 
