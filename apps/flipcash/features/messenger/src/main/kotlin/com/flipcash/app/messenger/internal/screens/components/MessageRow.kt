@@ -127,28 +127,29 @@ internal fun MessageRow(
 
     val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
 
-    // Message insertion animation — scale from 0.95 + opacity with edge anchor.
+    // Message insertion: the row starts a little below its slot, faded and scaled down about its
+    // bottom corner on the sender's side, and rides up into place — pushed in from below rather
+    // than fading in on top of the row above.
     var appeared by remember(item.itemKey) { mutableStateOf(!animateInsertion) }
     LaunchedEffect(Unit) { if (!appeared) appeared = true }
-    val insertionAlpha by animateFloatAsState(
+    val insertionProgress by animateFloatAsState(
         targetValue = if (appeared) 1f else 0f,
         animationSpec = ChatAnimations.insertion,
-        label = "insertAlpha",
-    )
-    val insertionScale by animateFloatAsState(
-        targetValue = if (appeared) 1f else 0.95f,
-        animationSpec = ChatAnimations.insertion,
-        label = "insertScale",
+        label = "insertProgress",
     )
 
     val insertionModifier = Modifier.graphicsLayer {
-        alpha = insertionAlpha
-        scaleX = insertionScale
-        scaleY = insertionScale
+        val remaining = 1f - insertionProgress
+        alpha = insertionProgress.coerceIn(0f, 1f)
+        val scale = 1f - (1f - ChatAnimations.insertionScale) * remaining
+        scaleX = scale
+        scaleY = scale
+        // As on iOS, the rise covers the row and the gap below it.
+        translationY = (size.height + bottomSpacing.toPx()) * ChatAnimations.insertionRise * remaining
         transformOrigin = if (isOutgoing) {
-            TransformOrigin(1f, 0.5f) // anchor trailing
+            TransformOrigin(1f, 1f) // bottom trailing
         } else {
-            TransformOrigin(0f, 0.5f) // anchor leading
+            TransformOrigin(0f, 1f) // bottom leading
         }
     }
 
@@ -540,10 +541,10 @@ private fun SwipeToReplyAffordance(
                 val fraction = progress()
                 translationX = pullBackPx()
                 alpha = fraction
-                // Never from nothing: the circle is already most of its size when it starts to
-                // show, so it reads as arriving rather than as inflating.
-                scaleX = 0.6f + 0.4f * fraction
-                scaleY = 0.6f + 0.4f * fraction
+                // Grows from about a third of its size to full as the drag reaches the threshold,
+                // matching iOS ChatSwipeToReply.arrowStartScale.
+                scaleX = 0.35f + 0.65f * fraction
+                scaleY = 0.35f + 0.65f * fraction
             }
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.12f)),

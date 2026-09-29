@@ -36,15 +36,16 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -258,7 +259,11 @@ internal fun MessageList(
         // shortening the list from below — whether the keyboard came up for the edit or because the
         // composer was tapped with the selection bar still showing. See FocusPin.
         val imeInsets = WindowInsets.ime
-        val listBottomPad = CodeTheme.dimens.grid.x2 + contentPadding.calculateBottomPadding()
+        // With the keyboard up the newest message sits a little closer to the composer, which no
+        // longer rests into the navigation bar's inset. Follows the keyboard the same way the
+        // composer does (see ChatBottomBar), so the two move together.
+        val raisedDrop = lerp(0.dp, CodeTheme.dimens.grid.x2, keyboardOpenFraction())
+        val listBottomPad = CodeTheme.dimens.grid.x2 + contentPadding.calculateBottomPadding() - raisedDrop
         val listBottomPadPx = with(LocalDensity.current) { listBottomPad.roundToPx() }
         val focusPin = rememberFocusPin(listState, messages, focusedMessageId, imeInsets, listBottomPadPx)
         // Read live from the auto-scroll effect below, which outlives the composition it launched in.
