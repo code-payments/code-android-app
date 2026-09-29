@@ -33,6 +33,7 @@ import com.flipcash.shared.chat.ui.AnimatedConversationPreview
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.BulletRow
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -162,29 +163,6 @@ private fun SimplifiedContactRationaleContent() {
                 shape = CircleShape,
             )
         }
-    }
-}
-
-@Composable
-internal fun BulletRow(
-    painter: Painter,
-    text: String,
-    modifier : Modifier = Modifier,
-    textStyle: TextStyle = CodeTheme.typography.textSmall,
-    textColor: Color = CodeTheme.colors.textSecondary,
-    iconTint: Color = CodeTheme.colors.textMain,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(painter = painter, contentDescription = null, tint = iconTint)
-        Text(
-            text = text,
-            style = textStyle,
-            color = textColor,
-        )
     }
 }
 
