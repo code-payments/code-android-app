@@ -5,13 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,7 +43,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -62,16 +55,13 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.balanceRequirement
 import com.flipcash.app.messenger.internal.requiresStaff
 import com.flipcash.features.messenger.R
-import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.shared.chat.ui.ComposerReplyStrip
-import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
-import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
 import com.getcode.ui.utils.rememberKeyboardController
@@ -146,47 +136,6 @@ internal fun UserControlBottomBar(
         modifier = Modifier
             .fillMaxWidth(),
     ) {
-        // Typing indicator entry/exit — scale from 0.95 anchored leading + opacity
-        // (same as message bubble insertion, no vertical slide)
-        AnimatedContent(
-            modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-            targetState = state.typists.isNotEmpty(),
-            transitionSpec = {
-                (scaleIn(
-                    ChatAnimations.typingIndicator,
-                    initialScale = 0.95f,
-                    transformOrigin = TransformOrigin(0f, 0.5f)
-                ) + fadeIn(ChatAnimations.typingIndicator)) togetherWith
-                        (scaleOut(
-                            ChatAnimations.typingIndicator,
-                            targetScale = 0.95f,
-                            transformOrigin = TransformOrigin(0f, 0.5f)
-                        ) + fadeOut(ChatAnimations.typingIndicator)) using
-                        // The container shrinks to nothing as the indicator leaves; unclipped, the
-                        // indicator fades out whole instead of being cut off by the shrinking bounds.
-                        SizeTransform(clip = false)
-            }
-        ) { show ->
-            if (show) {
-                TypingIndicator(
-                    typists = state.typingAvatars,
-                    key = { it.key },
-                    modifier = Modifier
-                        .hazeBlur(HazeInput.Sources(hazeState), material),
-                ) { typist ->
-                    // Drawn the way the transcript's sender gutter draws the same member, so the
-                    // face beside the dots is the face beside their messages. A typist whose
-                    // profile hasn't resolved goes through the same call with no picture and no
-                    // name, rather than a separate unknown-person glyph.
-                    val profile = typist.profile
-                    ContactAvatar(
-                        image = profile?.profilePicture,
-                        displayName = profile?.displayName.orEmpty(),
-                        access = BlobAccessContext.profile(typist.userId),
-                    )
-                }
-            }
-        }
         // Compact at rest: with the keyboard down the composer sits narrower and a little lower, into
         // the navigation bar's inset, and opens out to the normal margins as the keyboard comes up.
         // Only once there is a composer; the full-width Send Cash button keeps its width.

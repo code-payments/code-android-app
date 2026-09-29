@@ -132,15 +132,65 @@ class TypingIndicatorTrackerTest {
     }
 
     @Test
-    fun `the typist's message ends the linger at once`() = runTest {
+    fun `the typist's message holds them as arrived, then drops them`() = runTest {
         val h = harness()
         h.send(chat, alice, TypingState.STARTED_TYPING)
         h.send(chat, bob, TypingState.STARTED_TYPING)
-        h.send(chat, alice, TypingState.STOPPED_TYPING)
         advance(100.milliseconds)
 
         h.tracker.messageArrived(chat, listOf(alice))
+        runCurrent()
+        assertEquals(listOf(alice to true, bob to false), h.typists(chat).map { it.userId to it.arrived })
+
+        advance(1499.milliseconds)
+        assertEquals(listOf(alice, bob), h.typists(chat).map { it.userId })
+        advance(1.milliseconds)
         assertEquals(listOf(bob), h.typists(chat).map { it.userId })
+    }
+
+    @Test
+    fun `a message cuts a longer typing deadline to the hold`() = runTest {
+        val h = harness()
+        h.send(chat, alice, TypingState.STARTED_TYPING)
+        runCurrent()
+
+        h.tracker.messageArrived(chat, listOf(alice))
+        advance(1500.milliseconds)
+        assertTrue(chat !in h.stateHolder.current.typingIndicators)
+    }
+
+    @Test
+    fun `the STOPPED that trails a send does not reopen the linger`() = runTest {
+        val h = harness()
+        h.send(chat, alice, TypingState.STARTED_TYPING)
+        h.tracker.messageArrived(chat, listOf(alice))
+        advance(1400.milliseconds)
+
+        h.send(chat, alice, TypingState.STOPPED_TYPING)
+        advance(100.milliseconds)
+        assertTrue(chat !in h.stateHolder.current.typingIndicators)
+    }
+
+    @Test
+    fun `typing again after a message starts a new session`() = runTest {
+        val h = harness()
+        h.send(chat, alice, TypingState.STARTED_TYPING)
+        h.tracker.messageArrived(chat, listOf(alice))
+        advance(200.milliseconds)
+
+        h.send(chat, alice, TypingState.STARTED_TYPING)
+        runCurrent()
+        val typist = h.typists(chat).single()
+        assertEquals(false, typist.arrived)
+        assertEquals(Instant.fromEpochMilliseconds(200), typist.since)
+    }
+
+    @Test
+    fun `a message from someone not typing adds nobody`() = runTest {
+        val h = harness()
+        h.tracker.messageArrived(chat, listOf(alice))
+        runCurrent()
+        assertTrue(chat !in h.stateHolder.current.typingIndicators)
     }
 
     @Test

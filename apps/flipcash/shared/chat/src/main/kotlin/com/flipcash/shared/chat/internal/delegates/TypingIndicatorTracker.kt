@@ -38,6 +38,7 @@ internal class TypingIndicatorTracker(
     private val timeSource: TimeSource.WithComparableMarks = TimeSource.Monotonic,
     private val expiry: Duration = INCOMING_EXPIRY,
     private val stoppedLinger: Duration = STOPPED_LINGER,
+    private val arrivalHold: Duration = ARRIVAL_HOLD,
     private val now: () -> Instant = { Clock.System.now() },
 ) {
 
@@ -53,9 +54,17 @@ internal class TypingIndicatorTracker(
         // message take them away ([messageArrived]); a STOPPED with nothing behind it (the draft
         // was deleted) just leaves this much later. iOS's `defaultStoppedLinger`.
         val STOPPED_LINGER = 800.milliseconds
+
+        // How long a typist stays listed after their message arrives. The transcript draws the
+        // dots as its newest row and grows the message out of them, but the message reaches the
+        // paged list a beat after it reaches here; dropping the typist on arrival would take the
+        // dots away first and leave nothing to grow out of. The transcript lets go of the typist
+        // itself as soon as the message lands, so this only runs out when it never does.
+        val ARRIVAL_HOLD = 1500.milliseconds
     }
 
-    private class Typist(val since: Instant, val deadline: ComparableTimeMark)
+    /** [arrived] marks a typist held for their message to land; see [ARRIVAL_HOLD]. */
+    private class Typist(val since: Instant, val deadline: ComparableTimeMark, val arrived: Boolean = false)
 
     private val lock = Any()
     private val typists = mutableMapOf<ChatId, MutableMap<ID, Typist>>()
@@ -74,13 +83,16 @@ internal class TypingIndicatorTracker(
                 TypingState.STARTED_TYPING, TypingState.STILL_TYPING -> {
                     val chat = typists.getOrPut(chatId) { mutableMapOf() }
                     // A STILL heartbeat extends the deadline but keeps the typist's place in line.
-                    val since = chat[notification.userId]?.since ?: now()
+                    // Typing again after a message is a new session, with a new place.
+                    val since = chat[notification.userId]?.takeUnless { it.arrived }?.since ?: now()
                     chat[notification.userId] = Typist(since, timeSource.markNow() + expiry)
                 }
                 TypingState.STOPPED_TYPING, TypingState.TYPING_TIMED_OUT -> {
                     // Lingers rather than leaving at once; someone not typing is never added back.
                     val chat = typists[chatId] ?: continue
                     val typist = chat[notification.userId] ?: continue
+                    // Already held for their message; the STOPPED that trails a send doesn't cut it short.
+                    if (typist.arrived) continue
                     chat[notification.userId] = Typist(typist.since, timeSource.markNow() + stoppedLinger)
                 }
                 TypingState.UNKNOWN -> Unit
@@ -90,11 +102,21 @@ internal class TypingIndicatorTracker(
         scheduleExpiry()
     }
 
-    /** Takes [senderIds] out of [chatId]'s typists as their messages arrive, ending any linger. */
+    /**
+     * Ends the typing of [senderIds] in [chatId] as their messages arrive: any linger is cut to
+     * [ARRIVAL_HOLD], and a later STOPPED doesn't reopen it. They stay listed for that long so the
+     * transcript can hand their dots to the message; see [ARRIVAL_HOLD].
+     */
     fun messageArrived(chatId: ChatId, senderIds: Collection<ID>) = synchronized(lock) {
         val chat = typists[chatId] ?: return@synchronized
-        if (senderIds.none { it in chat }) return@synchronized
-        senderIds.forEach { remove(chatId, it) }
+        var changed = false
+        for (senderId in senderIds) {
+            val typist = chat[senderId] ?: continue
+            if (typist.arrived) continue
+            chat[senderId] = Typist(typist.since, timeSource.markNow() + arrivalHold, arrived = true)
+            changed = true
+        }
+        if (!changed) return@synchronized
         publish()
         scheduleExpiry()
     }
@@ -141,7 +163,7 @@ internal class TypingIndicatorTracker(
 
     private fun publish() {
         val snapshot = typists.mapValues { (_, chat) ->
-            chat.map { (userId, typist) -> ActiveTypist(userId = userId, since = typist.since) }.toSet()
+            chat.map { (userId, typist) -> ActiveTypist(userId = userId, since = typist.since, arrived = typist.arrived) }.toSet()
         }
         stateHolder.update { it.copy(typingIndicators = snapshot) }
     }

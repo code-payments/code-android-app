@@ -1,6 +1,14 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.core.Animatable
+import com.getcode.ui.core.addIf
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.coroutineScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.SideEffect
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -349,6 +357,70 @@ internal fun MessageList(
             mutableStateMapOf<Any, IntRect>()
         }
 
+        // The typing dots, drawn under the newest row rather than as a row of their own: the paged
+        // indices stay the lazy indices every helper here assumes, and the newest row opening and
+        // closing at its lower edge moves the transcript the way the insertion push does. See
+        // TypingRowModel for which arrival grows out of them.
+        val typingRow = remember { TypingRowModel() }
+        val dotsPresence = remember { Animatable(0f) }
+        val typingScope = rememberCoroutineScope()
+        val density = LocalDensity.current
+        val rowGaps = CodeTheme.dimens.grid.let { grid ->
+            with(density) { Triple(grid.x1.roundToPx(), grid.x2.roundToPx(), grid.x3.roundToPx()) }
+        }
+        fun RowGap.px() = when (this) {
+            RowGap.Tight -> rowGaps.first
+            RowGap.Normal -> rowGaps.second
+            RowGap.Wide -> rowGaps.third
+        }
+        val typingFrame = typingRow.update(
+            typing = state.typists,
+            messages = messages,
+            dotsHeightPx = {
+                Snapshot.withoutReadObservation { (typingRow.slotPx * dotsPresence.value).roundToInt() }
+            },
+            resting = { Snapshot.withoutReadObservation { listState.restsOnNewest() } },
+            gapPx = { item, below -> rowGapBelow(item, below, separatorConfig).px() },
+            newestGapPx = RowGap.Tight.px(),
+        )
+        if (typingFrame.anchorNewest) {
+            // Before the layout that places the arrival, which would otherwise hold the previous
+            // newest row where it sat and leave the arrival under the bottom edge.
+            SideEffect { listState.requestScrollToItem(0, 0) }
+        }
+        if (typingFrame.handedOff) {
+            // The message took the dots' place, so there is nothing left of them to close. Not an
+            // effect keyed on the frame, which the next recomposition would cancel.
+            SideEffect { typingScope.launch { dotsPresence.snapTo(0f) } }
+        }
+        val showDots = typingFrame.typists.isNotEmpty()
+        val dotsVisible by remember { derivedStateOf { dotsPresence.value > 0f } }
+        val dotsAvatars = if (isGroup) {
+            state.typingAvatars.filter { it.userId in typingFrame.typists }
+        } else {
+            emptyList()
+        }
+        LaunchedEffect(showDots) {
+            val target = if (showDots) 1f else 0f
+            if (dotsPresence.value == target) return@LaunchedEffect
+            if (listState.restsOnNewest()) {
+                // Resting on the newest row, the dots open and close it, and the rows above ride
+                // with them on the insertion push's spring.
+                dotsPresence.animateTo(target, ChatAnimations.typingRowHeight)
+            } else {
+                // Scrolled up, nothing on screen moves for them: only the newest row changes
+                // height, and the scroll takes that change back.
+                val delta = ((target - dotsPresence.value) * typingRow.slotPx).roundToInt()
+                dotsPresence.snapTo(target)
+                if (listState.firstVisibleItemIndex == 0 && delta != 0) {
+                    listState.requestScrollToItem(
+                        0,
+                        (listState.firstVisibleItemScrollOffset + delta).coerceAtLeast(0),
+                    )
+                }
+            }
+        }
+
         LazyColumn(
             // NB: no sheetResignmentBehavior, unlike every other scrolling list in the app. The
             // conversation is a full-screen destination, not a sheet, so there is no dismiss drag
@@ -393,7 +465,11 @@ internal fun MessageList(
 
                 // Cross-item bookkeeping, so it stays with the list rather than the row: a message
                 // animates in once, the first time it is laid out after the initial page.
-                val animateInsertion = index == 0 && hasLoaded && item.itemKey !in animatedKeys
+                // The newest row opening from under the typing dots: see TypingRowModel.
+                val grow = typingFrame.grow?.takeIf { index == 0 && it.key == item.itemKey }
+                val animateInsertion = index == 0 && hasLoaded && item.itemKey !in animatedKeys &&
+                    // A message growing out of the dots doesn't rise in as well.
+                    grow?.handoff == null
                 if (animateInsertion) animatedKeys.add(item.itemKey)
 
                 val bubble = item as? ChatListItem.ContentBubble
@@ -423,6 +499,52 @@ internal fun MessageList(
                 }
                 val hostsStrip = inSelection && item.itemKey == state.selection?.itemKey
 
+                var growing by remember { mutableStateOf(grow != null) }
+                val growProgress = remember { Animatable(if (grow != null) 0f else 1f) }
+                val contentAlpha = remember { Animatable(if (grow?.handoff != null) 0f else 1f) }
+                val dotsAlpha = remember { Animatable(if (grow?.handoff != null) 1f else 0f) }
+                LaunchedEffect(grow) {
+                    grow ?: return@LaunchedEffect
+                    coroutineScope {
+                        val spec = if (grow.handoff != null) {
+                            ChatAnimations.fromTyping
+                        } else {
+                            ChatAnimations.insertionPush
+                        }
+                        launch { growProgress.animateTo(1f, spec) }
+                        if (grow.handoff != null) {
+                            launch {
+                                contentAlpha.animateTo(
+                                    1f,
+                                    tween(
+                                        durationMillis = ChatAnimations.fromTypingTextFadeMs,
+                                        delayMillis = ChatAnimations.fromTypingTextDelayMs,
+                                    ),
+                                )
+                            }
+                            launch { dotsAlpha.animateTo(0f, tween(ChatAnimations.fromTypingDotsFadeMs)) }
+                        }
+                    }
+                    growing = false
+                    typingRow.finished(grow.key)
+                }
+                val handoff = grow?.handoff?.takeIf { growing }?.let { from ->
+                    remember(from) {
+                        TypingHandoff(
+                            from = from,
+                            progress = { growProgress.value },
+                            contentAlpha = { contentAlpha.value },
+                            dotsAlpha = { dotsAlpha.value },
+                        )
+                    }
+                }
+
+                // Every item is wrapped alike, so a row keeps its state as it moves off index 0.
+                Column(
+                    modifier = Modifier.addIf(grow != null && growing) {
+                        Modifier.openFromTypingRow(grow?.fromPx ?: 0) { growProgress.value }
+                    },
+                ) {
                 MessageRow(
                     index = index,
                     item = item,
@@ -453,7 +575,27 @@ internal fun MessageList(
                     } else {
                         NoAttention
                     },
+                    typingHandoff = handoff,
                 )
+
+                // Under the newest row, not in place of it. A message growing out of the dots
+                // draws what is left of them itself.
+                if (index == 0 && (showDots || dotsVisible) && !typingFrame.handedOff && handoff == null) {
+                    TypingRow(
+                        avatars = dotsAvatars,
+                        // The newest row already keeps the tight gap under it; the dots add the rest.
+                        gapAbove = when (gapAboveTypingRow(item, typingFrame.typists)) {
+                            RowGap.Tight -> 0.dp
+                            RowGap.Normal -> CodeTheme.dimens.grid.x2 - CodeTheme.dimens.grid.x1
+                            RowGap.Wide -> CodeTheme.dimens.grid.x3 - CodeTheme.dimens.grid.x1
+                        },
+                        model = typingRow,
+                        presence = { dotsPresence.value },
+                        // Dots carried under a newer message keep their place.
+                        enters = Snapshot.withoutReadObservation { dotsPresence.value == 0f },
+                    )
+                }
+                }
             }
 
             // Show trailing separator and contact info once messages are available
@@ -571,12 +713,15 @@ internal fun MessageList(
             }
                 .filterNotNull()
                 .distinctUntilChanged()
-                .collectLatest {
+                .collectLatest { newestKey ->
                     // The paged snapshot changes before the list lays it out, so wait for the next
                     // layout pass; until then the scroll position describes the old list.
                     withTimeoutOrNull(NextLayoutTimeoutMs) {
                         snapshotFlow { listState.layoutInfo }.drop(1).first()
                     }
+                    // Opening from under the typing dots already moves the transcript. Checked after
+                    // the layout, by which point the composition that decided it has run.
+                    if (typingRow.grows(newestKey)) return@collectLatest
                     // The list holds its position by key, so a message arriving at index 0 leaves
                     // the one that was newest (now index 1) where it sat. Sitting at offset 0 means
                     // the transcript was resting on the newest message.
@@ -767,6 +912,10 @@ private suspend fun LazyListState.alignBelowTopBar(index: Int) {
     // band's start (its bottom edge), so the room it leaves over goes below it.
     scrollToItem(index, scrollOffset = -(band.last - band.first - height).coerceAtLeast(0))
 }
+
+/** Whether the transcript rests on its newest row, with nothing of it scrolled out of view. */
+private fun LazyListState.restsOnNewest(): Boolean =
+    firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset == 0
 
 /** The presented index of [messageId], or `null` while it is still unloaded. */
 private fun indexOf(messages: LazyPagingItems<ChatListItem>, messageId: Long): Int? =
