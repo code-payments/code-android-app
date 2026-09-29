@@ -104,4 +104,56 @@ class SenderAttributionPlannerTest {
     }
 
     // endregion
+
+    // region Sender name
+
+    @Test
+    fun `a device-contact name wins over the profile`() {
+        assertEquals(
+            "Mom",
+            planSenderName(contactName = "Mom", displayName = "Alice", handle = "alice", title = "Alice", number = "+1 555-000-0001"),
+        )
+    }
+
+    @Test
+    fun `a display name wins over a phone number`() {
+        assertEquals(
+            "Alice",
+            planSenderName(contactName = null, displayName = "Alice", handle = null, title = null, number = "+1 555-000-0001"),
+        )
+    }
+
+    @Test
+    fun `a handle is used when there is no display name`() {
+        assertEquals(
+            "alice",
+            planSenderName(contactName = null, displayName = " ", handle = "alice", title = "Server", number = "+1 555-000-0001"),
+        )
+    }
+
+    @Test
+    fun `the push title is used before a phone number`() {
+        assertEquals(
+            "Server",
+            planSenderName(contactName = null, displayName = null, handle = null, title = "Server", number = "+1 555-000-0001"),
+        )
+    }
+
+    @Test
+    fun `a phone number is the last resort`() {
+        assertEquals(
+            "+1 555-000-0001",
+            planSenderName(contactName = null, displayName = null, handle = null, title = null, number = "+1 555-000-0001"),
+        )
+    }
+
+    @Test
+    fun `no name at all is empty`() {
+        assertEquals(
+            "",
+            planSenderName(contactName = null, displayName = null, handle = null, title = null, number = null),
+        )
+    }
+
+    // endregion
 }
