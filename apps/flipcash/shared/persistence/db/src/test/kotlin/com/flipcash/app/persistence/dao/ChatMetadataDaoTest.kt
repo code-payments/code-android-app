@@ -62,6 +62,7 @@ class ChatMetadataDaoTest {
         muteForever: Boolean = false,
         viewerStateVersion: Long = 0,
         canEdit: Boolean = false,
+        useE2ee: Boolean = false,
     ) = ChatMetadataEntity(
         chatIdHex = chatIdHex,
         chatType = chatType,
@@ -80,6 +81,7 @@ class ChatMetadataDaoTest {
         muteForever = muteForever,
         viewerStateVersion = viewerStateVersion,
         canEdit = canEdit,
+        useE2ee = useE2ee,
     )
 
     @Test
@@ -170,6 +172,24 @@ class ChatMetadataDaoTest {
         val stored = dao.getById(CHAT_HEX)
         assertEquals("New title", stored?.title)
         assertEquals(false, stored?.isMember)
+    }
+
+    @Test
+    fun `upsert picks up use_e2ee turning on for a stored chat`() = runTest {
+        dao.upsert(entity(useE2ee = false))
+
+        dao.upsert(entity(useE2ee = true))
+
+        assertEquals(true, dao.getById(CHAT_HEX)?.useE2ee)
+    }
+
+    @Test
+    fun `upsert picks up use_e2ee turning off for a stored chat`() = runTest {
+        dao.upsert(entity(useE2ee = true))
+
+        dao.upsert(entity(useE2ee = false))
+
+        assertEquals(false, dao.getById(CHAT_HEX)?.useE2ee)
     }
 
     /**
