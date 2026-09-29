@@ -67,9 +67,9 @@ class ChatMemberDataSource @Inject constructor(
         val hex = mapper.chatIdHex(chatId)
         // Member rows and their normalized profiles are written in one transaction so a
         // member never observes a missing profile mid-write. Profiles go first (the
-        // @Relation reads them), and use the authoritative full-profile upsert.
+        // @Relation reads them).
         database.withTransaction {
-            database.userProfileDao().upsertFull(profileRows(members))
+            database.userProfileDao().upsertMembers(profileRows(members))
             database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
         }
     }
@@ -105,7 +105,7 @@ class ChatMemberDataSource @Inject constructor(
         val database = db ?: return
         val hex = mapper.chatIdHex(chatId)
         database.withTransaction {
-            database.userProfileDao().upsertFull(profileRows(members))
+            database.userProfileDao().upsertMembers(profileRows(members))
             database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
             database.chatMemberDao().deleteMembersNotIn(
                 chatIdHex = hex,

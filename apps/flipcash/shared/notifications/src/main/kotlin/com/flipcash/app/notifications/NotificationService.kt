@@ -345,11 +345,12 @@ class NotificationService : FirebaseMessagingService(),
         // Every name this sender is known by, not just the one rendered: the server composed the
         // body from one of them and the line is drawn with another, so stripping the sender's name
         // out of their own message needs all of them. See [planMessageBody].
-        val senderNames = listOf(
-            e164?.let { contactResolver.resolveName(it) },
-            sender?.profile?.displayName,
-            sender?.profile?.socialHandle(),
-            title,
+        val senderNames = senderNameCandidates(
+            contactName = e164?.let { contactResolver.resolveContactName(it) },
+            displayName = sender?.profile?.displayName,
+            handle = sender?.profile?.socialHandle(),
+            title = title,
+            number = e164?.let { contactResolver.formatNumber(it) },
         )
         val senderName = senderNames.firstOrNull { !it.isNullOrBlank() }.orEmpty()
 

@@ -241,6 +241,70 @@ class UserProfileDaoTest {
         assertEquals("", dao.getByUserId("u1")?.displayName)
     }
 
+    // A user's row is shared by every chat they're in, but the server sends their phone number
+    // only in some of them: a CONTACT_DM member carries it, the same user in a TIP_DM does not.
+    private fun memberWithoutContact(userId: String, displayName: String = "Alice") =
+        fullProfile(userId).copy(
+            displayName = displayName,
+            phoneValue = null, phoneVerified = null,
+            emailValue = null, emailVerified = null,
+        )
+
+    @Test
+    fun `member write without a phone or email keeps the stored ones`() = runBlocking {
+        val dao = db.userProfileDao()
+        dao.upsertMembers(listOf(fullProfile("u1")))
+
+        dao.upsertMembers(listOf(memberWithoutContact("u1")))
+
+        val stored = dao.getByUserId("u1")
+        assertEquals("+15551234567", stored?.phoneValue)
+        assertEquals(true, stored?.phoneVerified)
+        assertEquals("a@b.com", stored?.emailValue)
+        assertEquals(false, stored?.emailVerified)
+    }
+
+    @Test
+    fun `member write without a phone still updates the name`() = runBlocking {
+        val dao = db.userProfileDao()
+        dao.upsertMembers(listOf(fullProfile("u1")))
+
+        dao.upsertMembers(listOf(memberWithoutContact("u1", displayName = "Alice B")))
+
+        assertEquals("Alice B", dao.getByUserId("u1")?.displayName)
+    }
+
+    @Test
+    fun `member write with a new phone replaces the stored one`() = runBlocking {
+        val dao = db.userProfileDao()
+        dao.upsertMembers(listOf(fullProfile("u1")))
+
+        dao.upsertMembers(listOf(fullProfile("u1").copy(phoneValue = "+15550000002", phoneVerified = false)))
+
+        val stored = dao.getByUserId("u1")
+        assertEquals("+15550000002", stored?.phoneValue)
+        assertEquals(false, stored?.phoneVerified)
+    }
+
+    @Test
+    fun `member write inserts a new user as given`() = runBlocking {
+        val dao = db.userProfileDao()
+
+        dao.upsertMembers(listOf(memberWithoutContact("u1")))
+
+        assertNull(dao.getByUserId("u1")?.phoneValue)
+    }
+
+    @Test
+    fun `member write clears a staged migration blob`() = runBlocking {
+        val dao = db.userProfileDao()
+        dao.upsertFull(listOf(fullProfile("u1").copy(pendingMigrationJson = "{}")))
+
+        dao.upsertMembers(listOf(memberWithoutContact("u1")))
+
+        assertNull(dao.getByUserId("u1")?.pendingMigrationJson)
+    }
+
     @Test
     fun `chat member relation joins the shared normalized profile`() = runBlocking {
         db.userProfileDao().upsertFull(listOf(fullProfile("u1")))

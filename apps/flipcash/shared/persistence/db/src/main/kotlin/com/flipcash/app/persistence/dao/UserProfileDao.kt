@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.flipcash.app.persistence.entities.UserProfileEntity
 import com.flipcash.services.models.chat.MediaItem
@@ -12,12 +13,31 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface UserProfileDao {
 
-    /**
-     * Authoritative full-profile write (chat member sync). The caller has the complete
-     * profile, so a whole-row replace is correct — and it clears any staged migration blob.
-     */
+    /** Whole-row replace, which also clears any staged migration blob. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertFull(profiles: List<UserProfileEntity>)
+
+    /**
+     * Writes the profiles a chat's member list carries. A user's row is shared by every chat
+     * they are in, but the server sends their phone number and email only in some of them (a
+     * CONTACT_DM member carries the number, the same user as a TIP_DM member does not). So a
+     * member without a phone or email keeps the one already stored instead of erasing it; every
+     * other column is replaced, and the staged migration blob is cleared as [upsertFull] does.
+     */
+    @Transaction
+    suspend fun upsertMembers(profiles: List<UserProfileEntity>) {
+        upsertFull(
+            profiles.map { incoming ->
+                val stored = getByUserId(incoming.userIdHex) ?: return@map incoming
+                incoming.copy(
+                    phoneValue = incoming.phoneValue ?: stored.phoneValue,
+                    phoneVerified = if (incoming.phoneValue != null) incoming.phoneVerified else stored.phoneVerified,
+                    emailValue = incoming.emailValue ?: stored.emailValue,
+                    emailVerified = if (incoming.emailValue != null) incoming.emailVerified else stored.emailVerified,
+                )
+            }
+        )
+    }
 
     /**
      * Partial write for callers that only know a user's public identity — name, avatar and handle

@@ -50,3 +50,33 @@ fun planSenderLookup(
     chatType == ChatType.GROUP -> SenderLookup.None
     else -> SenderLookup.OtherMember
 }
+
+/**
+ * The name a chat notification shows for its sender, best first.
+ *
+ * Only an address-book name beats the sender's own profile, because it's the name the user chose
+ * for them. A bare phone number comes last: a profile carries one only in some chats, so ranking it
+ * above the display name would flip the same sender between their name and their number depending
+ * on which chat's member list was stored last.
+ *
+ * @param contactName the address-book name for the sender's number, null when there is no contact
+ * @param number the sender's number, formatted for display
+ */
+fun senderNameCandidates(
+    contactName: String?,
+    displayName: String?,
+    handle: String?,
+    title: String?,
+    number: String?,
+): List<String?> = listOf(contactName, displayName, handle, title, number)
+
+/** The first usable name from [senderNameCandidates], or empty when there is none. */
+fun planSenderName(
+    contactName: String?,
+    displayName: String?,
+    handle: String?,
+    title: String?,
+    number: String?,
+): String = senderNameCandidates(contactName, displayName, handle, title, number)
+    .firstOrNull { !it.isNullOrBlank() }
+    .orEmpty()

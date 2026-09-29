@@ -12,7 +12,11 @@ class ContactResolver @Inject constructor(
     private val deviceContactLookup: DeviceContactLookup,
     private val phoneUtils: PhoneUtils,
 ) {
-    suspend fun resolveName(e164: String, fallback: String = e164): String {
+    suspend fun resolveName(e164: String, fallback: String = e164): String =
+        resolveContactName(e164) ?: formatNumber(e164, fallback)
+
+    /** The address-book name for [e164], or null when no contact has that number. */
+    suspend fun resolveContactName(e164: String): String? {
         val cached = contactDataSource.getDisplayName(e164)
         val device = deviceContactLookup.lookupDisplayName(e164)
 
@@ -22,8 +26,10 @@ class ContactResolver @Inject constructor(
         }
 
         return cached
-            ?: runCatching { phoneUtils.formatNumber(e164) }.getOrDefault(fallback)
     }
+
+    fun formatNumber(e164: String, fallback: String = e164): String =
+        runCatching { phoneUtils.formatNumber(e164) }.getOrDefault(fallback)
 
     suspend fun resolvePhotoUri(e164: String): String? {
         val cached = contactDataSource.getPhotoUri(e164)

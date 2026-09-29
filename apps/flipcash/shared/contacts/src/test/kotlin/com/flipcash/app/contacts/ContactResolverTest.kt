@@ -83,6 +83,18 @@ class ContactResolverTest {
         assertEquals("Alice Device", result)
     }
 
+    @Test
+    fun `contact name is null without a contact rather than the formatted number`() = runTest {
+        val result = resolver(formatted = "+1 (555) 123-4567").resolveContactName(e164)
+        assertNull(result)
+    }
+
+    @Test
+    fun `contact name comes from the device`() = runTest {
+        val result = resolver(dbName = "Alice DB", deviceName = "Alice Device").resolveContactName(e164)
+        assertEquals("Alice Device", result)
+    }
+
     // endregion
 
     // region resolvePhotoUri
