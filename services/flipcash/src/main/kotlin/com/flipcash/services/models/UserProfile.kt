@@ -33,6 +33,11 @@ data class UserProfile(
     // when the user hasn't set one, in which case the server default applies.
     // Update it with ProfileController.setMinDmChatInitFee.
     val minDmChatInitFee: Fiat? = null,
+    // True when the current username was assigned by the server from the display
+    // name rather than chosen with setUsername. Private: only set on the caller's
+    // own profile; false for anyone else's and when there is no username. Choosing
+    // a different username clears it.
+    val isUsernameAutoAssigned: Boolean = false,
 ): Parcelable {
     /** The phone number only when it has been verified — backwards-compatible accessor. */
     val verifiedPhoneNumber: String? get() = phoneNumber?.takeIf { it.verified }?.value
@@ -50,6 +55,7 @@ data class UserProfile(
             userId = null,
             username = null,
             minDmChatInitFee = null,
+            isUsernameAutoAssigned = false,
         )
     }
 }

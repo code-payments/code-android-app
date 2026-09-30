@@ -27,11 +27,12 @@ class UserProfileMapper @Inject constructor(
             joinedAt = if (from.hasJoinTs()) {
                 Instant.fromEpochSeconds(from.joinTs.seconds, from.joinTs.nanos)
             } else null,
-            tipCardColor = if (from.hasTipCardCustomization()) from.tipCardCustomization.color.hex else null,
+            tipCardColor = if (from.hasFlipcardCustomization()) from.flipcardCustomization.color.hex else null,
             userId = if (from.hasUserId()) from.userId.toId() else null,
             // Public, so it is returned for any user — absent only when unclaimed.
             username = from.usernameOrNull?.value,
             minDmChatInitFee = if (from.hasMinDmChatInitFee()) from.minDmChatInitFee.toFiat() else null,
+            isUsernameAutoAssigned = from.isUsernameAutoAssigned,
         )
     }
 }
