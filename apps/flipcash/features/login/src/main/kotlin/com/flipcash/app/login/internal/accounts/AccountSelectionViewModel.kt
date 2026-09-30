@@ -2,7 +2,9 @@ package com.flipcash.app.login.internal.accounts
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.internal.accounts.AccountProfileName
 import com.flipcash.app.auth.internal.accounts.AccountRecord
+import com.flipcash.services.models.asHandle
 import com.flipcash.features.login.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.crypt.DerivePath
@@ -143,10 +145,11 @@ class AccountSelectionViewModel @Inject constructor(
             .onStart { emit(Event.Load) }
             .map { derive(authManager.accounts.all()) }
             .onEach { derived ->
+                val profiles = authManager.accountProfiles.all()
                 dispatchEvent(
                     Event.OnAccountsLoaded(
                         accounts = derived.map { (record, cluster) ->
-                            record.toUiModel(cluster.getOrNull())
+                            record.toUiModel(cluster.getOrNull(), profiles)
                         },
                         currentEntropy = authManager.currentEntropy,
                     )
@@ -222,15 +225,23 @@ class AccountSelectionViewModel @Inject constructor(
     private fun derive(records: List<AccountRecord>): List<Pair<AccountRecord, Result<AccountCluster>>> =
         records.map { record -> record to runCatching { clusterFor(record.entropy) } }
 
-    private fun AccountRecord.toUiModel(cluster: AccountCluster?): AccountUiModel {
+    private fun AccountRecord.toUiModel(
+        cluster: AccountCluster?,
+        profiles: Map<String, AccountProfileName>,
+    ): AccountUiModel {
         val mnemonic = runCatching { mnemonicManager.fromEntropyBase64(entropy) }.getOrNull()
         val owner = cluster?.authorityPublicKey?.base58()
+        val profile = owner?.let { profiles[it] }
         return AccountUiModel(
             // A record that will not derive has no owner key to be keyed on; its creation
             // timestamp is the only other thing distinguishing it.
             id = owner ?: "underived-$creationDate",
             entropy = entropy,
-            name = mnemonic?.let { displayName(it) }.orEmpty(),
+            name = title(
+                username = profile?.username,
+                displayName = profile?.displayName,
+                mnemonic = mnemonic,
+            ),
             ownerAddress = owner?.let { truncateAddress(it) }.orEmpty(),
             creationDate = creationDate,
             // A record we cannot derive from is one we can never fetch a balance for.
@@ -291,6 +302,16 @@ class AccountSelectionViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "AccountSelection"
+
+        /**
+         * A row's title: the account's `@username`, else its profile display name, else the
+         * mnemonic name. iOS picks in the same order, so an account reads the same on both.
+         * Blank counts as absent, so a cleared name falls through rather than showing nothing.
+         */
+        fun title(username: String?, displayName: String?, mnemonic: MnemonicPhrase?): String =
+            username?.takeIf { it.isNotBlank() }?.asHandle()
+                ?: displayName?.takeIf { it.isNotBlank() }
+                ?: mnemonic?.let { displayName(it) }.orEmpty()
 
         /** iOS's `MnemonicPhrase.name`: first word, ellipsis, last word, both capitalised. */
         fun displayName(mnemonic: MnemonicPhrase): String =

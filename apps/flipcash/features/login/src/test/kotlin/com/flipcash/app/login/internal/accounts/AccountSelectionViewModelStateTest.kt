@@ -2,6 +2,7 @@ package com.flipcash.app.login.internal.accounts
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.internal.accounts.AccountProfileCache
 import com.flipcash.app.auth.internal.accounts.AccountRecord
 import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.core.MainCoroutineRule
@@ -17,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -46,6 +48,9 @@ class AccountSelectionViewModelStateTest {
     private val mnemonicManager: MnemonicManager = mock()
     private val tokenController: TokenController = mock()
     private val resources = FakeResourceHelper()
+    private val profiles: AccountProfileCache = mock {
+        onBlocking { all() } doReturn emptyMap()
+    }
 
     /** Records only what was asked of it; the real store's semantics are covered by its own tests. */
     private class RecordingAccountStore(private var records: List<AccountRecord>) : AccountStore {
@@ -66,6 +71,7 @@ class AccountSelectionViewModelStateTest {
     private fun viewModel(store: AccountStore, current: String?, dispatchers: TestDispatchers):
         AccountSelectionViewModel {
         whenever(authManager.accounts).thenReturn(store)
+        whenever(authManager.accountProfiles).thenReturn(profiles)
         whenever(authManager.currentEntropy).thenReturn(current)
         whenever(mnemonicManager.fromEntropyBase64(any()))
             .thenThrow(IllegalArgumentException("not a real seed"))
@@ -114,6 +120,7 @@ class AccountSelectionViewModelStateTest {
     fun `selecting an account switches to its base58 seed`() = runTest(mainCoroutineRule.dispatcher) {
         val phrase = MnemonicPhrase(MnemonicPhrase.Kind.L12, List(12) { "abandon" })
         whenever(authManager.accounts).thenReturn(RecordingAccountStore(listOf(record("a", 1_000L))))
+        whenever(authManager.accountProfiles).thenReturn(profiles)
         whenever(authManager.currentEntropy).thenReturn(null)
         whenever(mnemonicManager.fromEntropyBase64(any())).thenReturn(phrase)
         whenever(mnemonicManager.getEncodedBase58(phrase)).thenReturn("base58-of-a")
@@ -156,5 +163,35 @@ class AccountSelectionViewModelStateTest {
 
         assertEquals(listOf("a"), store.deleted)
         assertEquals(listOf("b"), viewModel.stateFlow.value.accounts.map { it.entropy })
+    }
+
+    private val phrase = MnemonicPhrase(
+        MnemonicPhrase.Kind.L12,
+        listOf("apple") + List(10) { "abandon" } + "elder",
+    )
+
+    @Test
+    fun `title prefers the username, as a handle`() {
+        assertEquals(
+            "@sally_streamer",
+            AccountSelectionViewModel.title(username = "sally_streamer", displayName = "Sally", mnemonic = phrase),
+        )
+    }
+
+    @Test
+    fun `title falls back to the display name without a username`() {
+        assertEquals("Sally", AccountSelectionViewModel.title(username = null, displayName = "Sally", mnemonic = phrase))
+        assertEquals("Sally", AccountSelectionViewModel.title(username = " ", displayName = "Sally", mnemonic = phrase))
+    }
+
+    @Test
+    fun `title falls back to the mnemonic name without either`() {
+        assertEquals("Apple ... Elder", AccountSelectionViewModel.title(username = null, displayName = null, mnemonic = phrase))
+        assertEquals("Apple ... Elder", AccountSelectionViewModel.title(username = "", displayName = "", mnemonic = phrase))
+    }
+
+    @Test
+    fun `title is empty for an account with no name and no mnemonic`() {
+        assertEquals("", AccountSelectionViewModel.title(username = null, displayName = null, mnemonic = null))
     }
 }
