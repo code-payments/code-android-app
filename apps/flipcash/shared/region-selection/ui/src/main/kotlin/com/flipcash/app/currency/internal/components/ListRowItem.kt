@@ -24,7 +24,8 @@ import com.flipcash.app.currency.internal.RegionListItem
 import com.flipcash.features.currency.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SwipeActionRow
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 
 @Composable
 internal fun ListRowItem(
@@ -39,11 +40,12 @@ internal fun ListRowItem(
             modifier = Modifier
                 .fillMaxSize()
                 .background(CodeTheme.colors.background)
-                .let {
-                    if (item.currency.rate > 0) {
-                        it.clickable { onClick() }
-                    } else it
-                }
+                .selectable(
+                    selected = isSelected,
+                    enabled = item.currency.rate > 0,
+                    role = Role.RadioButton,
+                    onClick = onClick,
+                )
         ) {
             Box(
                 modifier = Modifier.fillMaxSize()
@@ -88,7 +90,7 @@ internal fun ListRowItem(
                         if (isSelected)
                             R.drawable.ic_checked else R.drawable.ic_unchecked
                     ),
-                    contentDescription = ""
+                    contentDescription = null
                 )
             }
         }

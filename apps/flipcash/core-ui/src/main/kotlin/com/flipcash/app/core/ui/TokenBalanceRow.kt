@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -23,6 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -182,12 +186,24 @@ fun TokenBalanceRow(
 ) {
     val exchange = LocalExchange.current
     val backgroundColor = CodeTheme.colors.background
+    // The checkbox mark is drawn, not announced, so the row carries the selection instead.
+    val selection = isSelected.takeIf { styling.selectionStyle == TokenSelectionStyle.Checkbox }
+    val isClickable = onClick != null && isEnabled
     Row(
         modifier = Modifier
-            .addIf(onClick != null && isEnabled) {
-                Modifier.clickable {
-                    onClick?.invoke()
+            .addIf(isClickable) {
+                if (selection != null) {
+                    Modifier.selectable(selected = selection, role = Role.RadioButton) {
+                        onClick?.invoke()
+                    }
+                } else {
+                    Modifier.clickable {
+                        onClick?.invoke()
+                    }
                 }
+            }
+            .addIf(!isClickable && selection != null) {
+                Modifier.semantics(mergeDescendants = true) { selected = selection == true }
             }
             .then(modifier)
             .addIf(!isEnabled) {
@@ -325,7 +341,7 @@ fun TokenBalanceRow(
                                 if (isSelected)
                                     R.drawable.ic_checked else R.drawable.ic_unchecked
                             ),
-                            contentDescription = ""
+                            contentDescription = null
                         )
                     }
                 }
