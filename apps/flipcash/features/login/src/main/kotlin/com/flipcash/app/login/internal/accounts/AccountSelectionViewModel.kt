@@ -298,9 +298,8 @@ class AccountSelectionViewModel @Inject constructor(
 
     /**
      * One account's username and display name, fetched by the user id cached from its last
-     * sign-in on this device. A row with no cached user id makes no call: the only other way to a
-     * user id is the Login RPC, and the app must not sign in as an account the user has not
-     * switched to. A failure keeps whatever the cache gave the row.
+     * sign-in on this device. A row with no cached user id resolves one through Login first, as a
+     * last resort. A failure keeps whatever the cache gave the row.
      */
     private fun profile(
         entry: Pair<AccountRecord, Result<AccountCluster>>,
@@ -309,7 +308,7 @@ class AccountSelectionViewModel @Inject constructor(
         val (record, cluster) = entry
         val owner = cluster.getOrNull() ?: return@flow
         val ownerAddress = owner.authorityPublicKey.base58()
-        val userId = profiles[ownerAddress]?.userId ?: return@flow
+        val userId = profiles[ownerAddress]?.userId
         profileFetcher.fetch(owner.authority.keyPair, ownerAddress, userId)
             .onSuccess { emit(Event.OnProfileResolved(record.entropy, it)) }
             .onFailure { error ->

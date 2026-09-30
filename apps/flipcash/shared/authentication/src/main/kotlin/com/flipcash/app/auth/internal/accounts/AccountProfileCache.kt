@@ -45,15 +45,13 @@ data class CachedAccountProfile(
  * The last known username and display name of every account that has signed in on this device,
  * keyed by owner public key (base58).
  *
- * Only the signed-in account has a session. The user id cached here is what lets the account list
- * fetch another account's profile with `GetProfile`, a read, instead of resolving the id with the
- * Login RPC: the app must not sign in as an account the user has not switched to. An account with
- * no cached user id has not signed in on this device since the id was first cached, so its row
- * keeps whatever name is cached, or the mnemonic name.
+ * The user id cached here is what lets the account list fetch another account's profile with
+ * `GetProfile` directly. Only an account with no cached user id goes through the Login RPC to
+ * resolve one, and that id is cached too, so each account needs Login at most once on this device.
  *
  * Written from [UserManager]'s state, which every profile change of the signed-in account goes
- * through — the restore at sign-in, the server refresh, and edits — and from each profile the
- * account list fetches.
+ * through — the restore at sign-in, the server refresh, and edits — and from each profile and user
+ * id the account list fetches.
  *
  * Kept out of the Block Store entry on purpose: that one has a 4KB budget sized for fixed-width
  * records, and a name costs nothing to lose — a missing entry falls back to the mnemonic name. The
@@ -109,6 +107,9 @@ class AccountProfileCache @Inject constructor(
 
     /** Records a name fetched for [owner], so the next offline visit still has it. */
     suspend fun put(owner: String, name: AccountProfileName) = persist(owner, name)
+
+    /** Records the user id Login resolved for [owner], so later fetches skip Login. */
+    suspend fun putUserId(owner: String, userId: ID) = persistUserId(owner, userId)
 
     private suspend fun persistUserId(owner: String, userId: ID) {
         runCatching {

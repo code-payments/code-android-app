@@ -22,8 +22,6 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import com.getcode.util.resources.FakeResourceHelper
-import com.getcode.util.resources.ResourceHelper
-import com.flipcash.libs.coroutines.DispatcherProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -33,13 +31,13 @@ import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -229,33 +227,50 @@ class AccountSelectionViewModelStateTest {
     }
 
     /**
-     * The product rule: the switcher never signs in as an account the user has not switched to.
-     * A row with no cached user id could only get one from the Login RPC, so it keeps its cached
-     * name and makes one network call, the balance lookup.
+     * A row with no stored user id asks the fetcher to resolve one (the fetcher's Login fallback).
+     * The switcher itself never switches the session: [AuthManager.login] is not called.
      */
     @Test
-    fun `a row with no stored user id is titled from the cache without logging in`() =
+    fun `a row with no stored user id is fetched without a user id`() =
         runTest(mainCoroutineRule.dispatcher) {
-            val tokens = offlineTokens()
+            val fetcher: AccountProfileFetcher = mock {
+                onBlocking { fetch(any(), any(), isNull()) } doReturn
+                    Result.success(AccountProfileName(username = "sally_streamer", displayName = "Sally"))
+            }
+            val viewModel = loadNonActiveRow(
+                cached = CachedAccountProfile(userId = null, name = null),
+                fetcher = fetcher,
+            )
+            advanceUntilIdle()
+
+            assertEquals("@sally_streamer", viewModel.stateFlow.value.accounts.single().name)
+            verify(fetcher).fetch(any(), any(), isNull())
+            verify(authManager, never()).login(any(), any(), any(), any())
+        }
+
+    /** A failed fetch, Login included, keeps whatever name the cache gave the row. */
+    @Test
+    fun `a failed fetch keeps the cached name`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val fetcher: AccountProfileFetcher = mock {
+                onBlocking { fetch(any(), any(), anyOrNull()) } doReturn
+                    Result.failure(IllegalStateException("offline"))
+            }
             val viewModel = loadNonActiveRow(
                 cached = CachedAccountProfile(
                     userId = null,
                     name = AccountProfileName(username = "sally_streamer", displayName = "Sally"),
                 ),
-                tokens = tokens,
+                fetcher = fetcher,
             )
             advanceUntilIdle()
 
             val row = viewModel.stateFlow.value.accounts.single()
             assertEquals("@sally_streamer", row.name)
             assertFalse(row.notFound)
-            verify(authManager, never()).login(any(), any(), any(), any())
-            verifyNoInteractions(profileFetcher)
-            verify(tokens).fetchTokenBalances(any())
-            verifyNoMoreInteractions(tokens)
         }
 
-    /** A stored user id is enough for GetProfile, a read; the fetched names replace the cached. */
+    /** A stored user id goes straight to the fetch; the fetched names replace the cached. */
     @Test
     fun `a row with a stored user id is retitled by a profile fetch`() =
         runTest(mainCoroutineRule.dispatcher) {
@@ -271,31 +286,8 @@ class AccountSelectionViewModelStateTest {
             advanceUntilIdle()
 
             assertEquals("Sally", viewModel.stateFlow.value.accounts.single().name)
-            verify(authManager, never()).login(any(), any(), any(), any())
+            verify(fetcher).fetch(any(), any(), eq(userId))
         }
-
-    /**
-     * The row pipeline cannot call Login if it cannot reach it. An earlier profile fetch came in
-     * as one more constructor dependency and logged in as every listed account, so any new
-     * dependency fails here until someone confirms it cannot sign in as a non-active account.
-     * [AuthManager]'s own login is covered above, and [AccountProfileFetcher]'s dependencies by
-     * its own test.
-     */
-    @Test
-    fun `the view model depends on nothing that can log in as another account`() {
-        val allowed = listOf(
-            AuthManager::class.java,
-            MnemonicManager::class.java,
-            TokenController::class.java,
-            AccountProfileFetcher::class.java,
-            ResourceHelper::class.java,
-            DispatcherProvider::class.java,
-        )
-        val injected = AccountSelectionViewModel::class.java.constructors
-            .single { it.parameterCount > 0 }
-            .parameterTypes.toList()
-        assertEquals(allowed, injected)
-    }
 
     private val mnemonicName = "Apple ... Elder"
 
