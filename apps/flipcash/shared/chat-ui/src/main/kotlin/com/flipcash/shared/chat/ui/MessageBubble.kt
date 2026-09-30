@@ -279,11 +279,7 @@ fun ContentBubble(
                         isFromSelf = item.isFromSelf,
                         position = position,
                         maxWidth = bubbleMaxWidth,
-                        onShare = if (interactive) {
-                            { actionHandler(ChatAction.ShareOwnProfile) }
-                        } else {
-                            null
-                        },
+                        onShare = if (interactive) actionHandler else null,
                         onLongClick = onLongClick?.takeIf { interactive },
                         onDoubleClick = onDoubleClick?.takeIf { interactive },
                         attention = attention,

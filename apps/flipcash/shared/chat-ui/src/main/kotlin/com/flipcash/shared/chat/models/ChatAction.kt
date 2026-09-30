@@ -46,11 +46,14 @@ sealed interface ChatAction {
     data class OpenMention(val username: String) : ChatAction
 
     /**
-     * Shares the reader's own profile link, from the Share button on a share-profile widget. A verb
-     * only: the widget always describes the signed-in user, so the handler reads who that is from
-     * the session rather than from the message.
+     * Shares the profile a share-profile widget describes, from its Share button. The widget
+     * carries only a handle; [userId] is the id of the profile that handle resolved to.
      */
-    data object ShareOwnProfile : ChatAction
+    data class ShareProfile(
+        val userId: ID,
+        val username: String,
+        val displayName: String?,
+    ) : ChatAction
     data object ViewProfile : ChatAction
 
     /**

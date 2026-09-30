@@ -241,22 +241,16 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
             }
 
-            // The reader's own link, shared the way the You tab shares it: the handle form when they
-            // have one, titled with their name.
-            ChatAction.ShareOwnProfile -> {
-                userManager?.accountId?.let { userId ->
-                    val profile = userManager.state.value.userProfile
-                    scope.launch {
-                        shareController.present(
-                            Shareable.TipCard(
-                                userId = userId,
-                                title = profile?.displayName?.takeIf { it.isNotBlank() }
-                                    ?.let { context.getString(R.string.label_tipUser, it) },
-                                username = profile?.username,
-                            )
-                        )
-                    }
-                }
+            // The profile a share-profile widget names, shared the way a profile's Share shortcut
+            // shares it (`rememberProfileShare`): the handle form, titled with their name.
+            is ChatAction.ShareProfile -> scope.launch {
+                shareController.present(
+                    Shareable.TipCard(
+                        userId = action.userId,
+                        title = action.displayName?.let { context.getString(R.string.label_tipUser, it) },
+                        username = action.username,
+                    )
+                )
             }
 
             ChatAction.JoinChat -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)

@@ -16,8 +16,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +36,11 @@ import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.core.ui.shimmer
+import com.flipcash.shared.chat.models.ChatAction
+import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.chat.models.LinkCardResolution
+import com.flipcash.shared.chat.models.LocalLinkCardResolution
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.MediaItem
@@ -39,16 +48,19 @@ import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.getcode.opencode.model.core.ID
 import com.getcode.theme.CodeTheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import com.getcode.theme.White05
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
 /**
- * The share-profile widget as it sits in a transcript: whose profile it is comes from the session,
- * because the widget always describes the signed-in user and carries only [username] on the wire.
+ * The share-profile widget as it sits in a transcript. The widget carries only [username], which
+ * decides whose profile the card shows and shares: the signed-in user's own comes from the session,
+ * anyone else's from the same by-handle lookup a person link card uses.
  *
- * With no profile in the session (a preview, or the moment before it restores) the name falls back
- * to [username], and the avatar to that name's initials.
+ * Until that lookup answers, and if it fails, the name is [username] and the avatar its initials.
+ * Share needs the profile's id, so it stays off until the profile has resolved.
  */
 @Composable
 internal fun ShareProfileWidgetBubble(
@@ -56,29 +68,87 @@ internal fun ShareProfileWidgetBubble(
     isFromSelf: Boolean,
     position: BubblePosition,
     maxWidth: Dp,
-    onShare: (() -> Unit)?,
+    onShare: ((ChatAction.ShareProfile) -> Unit)?,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
     attention: () -> Float = { 0f },
 ) {
-    val userManager = LocalUserManager.current
-    val profile: UserProfile? = userManager?.state?.collectAsState()?.value?.userProfile
+    val profile = rememberWidgetProfile(username)
     ShareProfileWidgetBubble(
-        displayName = profile?.displayName?.takeIf { it.isNotBlank() } ?: username,
+        displayName = (profile as? WidgetProfile.Resolved)?.displayName ?: username,
         username = username,
-        profilePicture = profile?.profilePicture,
-        userId = profile?.userId ?: userManager?.accountId,
+        profilePicture = (profile as? WidgetProfile.Resolved)?.picture,
+        userId = (profile as? WidgetProfile.Resolved)?.userId,
+        loading = profile is WidgetProfile.Loading,
         isFromSelf = isFromSelf,
         position = position,
         maxWidth = maxWidth,
-        onShare = onShare,
+        onShare = (profile as? WidgetProfile.Resolved)?.let { resolved ->
+            onShare?.let { share ->
+                {
+                    share(
+                        ChatAction.ShareProfile(
+                            userId = resolved.userId,
+                            username = username,
+                            displayName = resolved.displayName,
+                        )
+                    )
+                }
+            }
+        },
         modifier = modifier,
         onLongClick = onLongClick,
         onDoubleClick = onDoubleClick,
         attention = attention,
     )
 }
+
+/** Whose card it is, as far as it is known. */
+internal sealed interface WidgetProfile {
+    data object Loading : WidgetProfile
+    data object Failed : WidgetProfile
+    data class Resolved(
+        val userId: ID,
+        val displayName: String?,
+        val picture: MediaItem?,
+    ) : WidgetProfile
+}
+
+/** [displayName] and [picture] of whoever [username] names, from the session or the lookup. */
+@Composable
+private fun rememberWidgetProfile(username: String): WidgetProfile {
+    val userManager = LocalUserManager.current
+    val own: UserProfile? = userManager?.state?.collectAsState()?.value?.userProfile
+    val ownId = userManager?.accountId
+    if (own != null && ownId != null && own.username.equals(username.removePrefix("@"), ignoreCase = true)) {
+        return WidgetProfile.Resolved(
+            userId = own.userId ?: ownId,
+            displayName = own.displayName.takeIf { it.isNotBlank() },
+            picture = own.profilePicture,
+        )
+    }
+
+    val resolution = LocalLinkCardResolution.current
+    val revision by resolution.revision.collectAsState()
+    val identity = remember(username) { LinkCard.User.Identity.ByUsername(username) }
+    val seed = remember(identity) { userCard(identity, LinkCard.User.State.Loading) }
+    var card by remember(identity) { mutableStateOf(resolution.peek(seed) ?: seed) }
+    LaunchedEffect(identity, revision) { card = resolution.resolve(seed) }
+
+    return when (val state = (card as? LinkCard.User)?.state) {
+        is LinkCard.User.State.Resolved -> WidgetProfile.Resolved(
+            userId = state.userId,
+            displayName = state.profile.displayName.takeIf { it.isNotBlank() },
+            picture = state.profile.profilePicture,
+        )
+        LinkCard.User.State.NotFound -> WidgetProfile.Failed
+        else -> WidgetProfile.Loading
+    }
+}
+
+private fun userCard(identity: LinkCard.User.Identity, state: LinkCard.User.State) =
+    LinkCard.User(url = "", start = 0, end = 0, identity = identity, state = state)
 
 /** Node 10588:1979. */
 @Composable
@@ -91,6 +161,7 @@ internal fun ShareProfileWidgetBubble(
     position: BubblePosition,
     maxWidth: Dp,
     onShare: (() -> Unit)?,
+    loading: Boolean = false,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
@@ -144,6 +215,7 @@ internal fun ShareProfileWidgetBubble(
                         textAlign = TextAlign.Center,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = if (loading) Modifier.shimmer(RoundedCornerShape(4.dp)) else Modifier,
                     )
                     Text(
                         text = "@$username",
@@ -197,10 +269,43 @@ internal object ShareProfileWidgetDefaults {
     val STROKE = Color.White.copy(alpha = 0.08f)
 }
 
+/** A lookup that answers with [state], for the previews and the screenshot test. */
+internal class FixedUserResolution(private val state: LinkCard.User.State) : LinkCardResolution {
+    override val revision: StateFlow<Int> = MutableStateFlow(0)
+    override fun peek(card: LinkCard): LinkCard? = (card as? LinkCard.User)?.copy(state = state)
+    override suspend fun resolve(card: LinkCard): LinkCard = peek(card) ?: card
+}
+
+@Composable
+internal fun PreviewShareProfileWidget(state: LinkCard.User.State, username: String) {
+    CompositionLocalProvider(LocalLinkCardResolution provides FixedUserResolution(state)) {
+        ShareProfileWidgetBubble(
+            username = username,
+            isFromSelf = false,
+            position = BubblePosition.Solo,
+            maxWidth = 320.dp,
+            onShare = {},
+            modifier = Modifier.padding(16.dp),
+        )
+    }
+}
+
+/** Someone else's profile, resolved by handle. */
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_ShareProfileWidgetBubble() {
+    PreviewShareProfileWidget(
+        state = previewUserResolved(name = "Brad Burnham", handle = "@brad_burnham_2", blurHash = null),
+        username = "brad_burnham_2",
+    )
+}
+
+/** The signed-in user's own profile, which needs no lookup. */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_ShareProfileWidgetBubble_Own() {
     ShareProfileWidgetBubble(
         displayName = "Brad Burnham",
         username = "brad_burnham_2",
@@ -212,4 +317,12 @@ private fun Preview_ShareProfileWidgetBubble() {
         onShare = {},
         modifier = Modifier.padding(16.dp),
     )
+}
+
+/** The lookup found nobody or failed: the handle stands in for the name, and Share is off. */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_ShareProfileWidgetBubble_LookupFailed() {
+    PreviewShareProfileWidget(state = LinkCard.User.State.NotFound, username = "brad_burnham_2")
 }
