@@ -239,7 +239,7 @@ class AccountSelectionViewModel @Inject constructor(
             mnemonicName = mnemonic?.let { displayName(it) }.orEmpty(),
             username = profile?.username,
             displayName = profile?.displayName,
-            ownerAddress = owner?.let { truncateAddress(it) }.orEmpty(),
+            ownerAddress = owner.orEmpty(),
             creationDate = creationDate,
             // A record we cannot derive from is one we can never fetch a balance for.
             balanceUnavailable = cluster == null,
@@ -340,10 +340,6 @@ class AccountSelectionViewModel @Inject constructor(
                 .joinToString(" ... ") { word ->
                     word.lowercase().replaceFirstChar { it.titlecase() }
                 }
-
-        fun truncateAddress(address: String): String =
-            if (address.length <= 8) address
-            else "${address.take(4)}...${address.takeLast(4)}"
 
         private val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {

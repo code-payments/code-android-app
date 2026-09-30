@@ -22,7 +22,7 @@ tags:
     visible:
       id: account_selection_screen
     timeout: 15000
-- assertVisible: "Select an Account"
+- assertVisible: "Select Account"
 # The row itself. The display name comes from the seed, which the flow does not know, so the
 # creation subtitle is what identifies a row generically.
 - assertVisible: "Created .*"
