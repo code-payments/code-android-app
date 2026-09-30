@@ -3,6 +3,7 @@ package com.flipcash.app.login.internal.accounts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.ui.shimmer
 import com.flipcash.features.login.R
 import com.getcode.theme.CodeTheme
 
@@ -81,7 +84,7 @@ internal fun AccountRow(
         }
 
         // Order matters: a resolved balance wins, then the backend's own "no such account", then
-        // our inability to ask. An account whose balance we could not fetch must not be reported as
+        // our inability to ask, and only then is the fetch still in flight. An account whose balance we could not fetch must not be reported as
         // not found — the two say very different things to someone checking their own wallet.
         when {
             account.balance != null -> Text(
@@ -100,6 +103,14 @@ internal fun AccountRow(
                 text = stringResource(R.string.subtitle_balanceUnavailable),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
+            )
+
+            // The skeleton the discovery list uses, sized to a short balance on the textMedium
+            // line. It carries no semantics: TalkBack announces the balance when it lands.
+            else -> Box(
+                Modifier
+                    .size(width = 60.dp, height = 14.dp)
+                    .shimmer()
             )
         }
     }
