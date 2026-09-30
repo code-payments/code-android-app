@@ -516,6 +516,47 @@ class AmountEntryDelegateTest {
         assertTrue(delegate.config.value.action.loadingState.success)
     }
 
+    @Test
+    fun `hint stays frozen while sending and after success, then goes live on idle`() = runTest {
+        val loading = MutableStateFlow(LoadingSuccessState())
+        val max = MutableStateFlow<Fiat?>(Fiat(100.77, CurrencyCode.USD))
+        val delegate = createDelegate(
+            style = AmountEntryStyle(
+                actionLabel = AmountEntryLabel.Plain("Send"),
+                infoHint = { "$it available" },
+                overMaxHint = { "Only $it available" },
+            ),
+            loadingState = loading,
+            maxAmount = max,
+        )
+        delegate.onCurrencyChanged(usd)
+        delegate.onNumber(9)
+        delegate.onNumber(9)
+
+        val idleHint = delegate.config.value.hint
+        assertIs<AmountEntryHint.Info>(idleHint)
+
+        // The send debits the balance while the action is still loading.
+        loading.value = LoadingSuccessState(loading = true)
+        max.value = Fiat(1.78, CurrencyCode.USD)
+
+        assertEquals(idleHint, delegate.config.value.hint)
+        assertTrue(delegate.config.value.action.loadingState.loading)
+
+        // Success holds the frozen hint until the sheet dismisses.
+        loading.value = LoadingSuccessState(success = true)
+
+        assertEquals(idleHint, delegate.config.value.hint)
+        assertTrue(delegate.config.value.action.loadingState.success)
+
+        // Back to idle, the hint reflects the post-send balance again.
+        loading.value = LoadingSuccessState()
+
+        val liveHint = delegate.config.value.hint
+        assertIs<AmountEntryHint.Error>(liveHint)
+        assertTrue(liveHint.text.startsWith("Only"))
+    }
+
     // ---------------------------------------------------------------
     // Config derivation — reactive style updates
     // ---------------------------------------------------------------
