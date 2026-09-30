@@ -3,12 +3,14 @@ package com.flipcash.shared.chat.internal
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.ChatRosterDataSource
+import com.flipcash.app.persistence.sources.RosterSyncState
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.RosterSummary
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -22,17 +24,22 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Reads a group's whole roster into the member table, so the mention picker can search every
+ * Keeps the device's copy of a group's roster whole, so the mention picker can search every
  * member rather than the ones the feed happened to carry.
  *
- * `GetRoster` pages at most [PAGE_SIZE] members, so a full read walks the pages until `has_more`
- * is false, stopping at [MAX_PAGES]. It runs on a group's open, not on launch: reading every
- * group's roster up front would cost a page per hundred members of each whether or not the user
- * ever mentions anyone there.
+ * `GetRoster` pages at most [PAGE_SIZE] members, most recently joined first, and each member
+ * carries the roster version they joined at. There is no delta against a roster version, so
+ * repairs aim for the smallest read instead:
  *
- * Once read, the roster stays current off the event stream: [RosterStateHolder] applies joins and
- * leaves, and flags the chat through [ChatRosterDataSource.markNeedsResync] when it sees a version
- * skipped, which is the one case the stream cannot repair.
+ * - **Joins missed** since the watermark come back from the top of the roster: [catchUp] reads
+ *   down to the first member at or below the watermark, usually one page.
+ * - **Leaves missed** are invisible from the top. A catch-up notices them only as more members
+ *   held than `member_count`, and hands the chat to a [fullSync] in WorkManager, which is the one
+ *   read that can say who is gone.
+ *
+ * Runs on a group's open, not on launch: reading every group's roster up front would cost a page
+ * per hundred members of each whether or not the user ever mentions anyone there. Versions are
+ * only ever compared, never subtracted: the proto calls them opaque.
  */
 @Singleton
 class RosterSync @Inject constructor(
@@ -40,68 +47,175 @@ class RosterSync @Inject constructor(
     private val metadataDataSource: ChatMetadataDataSource,
     private val memberDataSource: ChatMemberDataSource,
     private val rosterDataSource: ChatRosterDataSource,
+    private val reconcileScheduler: RosterReconcileScheduler,
     dispatchers: DispatcherProvider,
 ) : RosterSyncTrigger {
 
-    // Its own scope, like [SenderResolver]'s: a read outlives the screen that asked for it, so
-    // leaving the chat before the last page lands still leaves the roster complete.
+    // Its own scope, like [SenderResolver]'s: a read outlives the screen that asked for it.
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
 
     // One read per chat at a time. A second open of the same chat waits, then finds nothing to do.
     private val locks = ConcurrentHashMap<ChatId, Mutex>()
 
+    private suspend fun <T> locked(chatId: ChatId, block: suspend () -> T): T =
+        locks.getOrPut(chatId) { Mutex() }.withLock { block() }
+
     override fun onChatOpened(chatId: ChatId) {
-        scope.launch { syncIfNeeded(chatId) }
+        scope.launch { onOpen(chatId) }
     }
 
-    /** Reads [chatId]'s roster to the end if it is a group whose held roster is incomplete. */
-    suspend fun syncIfNeeded(chatId: ChatId) {
+    override fun onRosterGap(chatId: ChatId) {
+        scope.launch { onGap(chatId) }
+    }
+
+    /**
+     * What a group's open does: the first full read if it never had one, the pending reconcile if
+     * one is owed, otherwise a catch-up if the roster has moved past the watermark.
+     */
+    internal suspend fun onOpen(chatId: ChatId) {
         if (metadataDataSource.getChatType(chatId) != ChatType.GROUP) return
-        locks.getOrPut(chatId) { Mutex() }.withLock {
-            if (needsFullSync(chatId)) syncAll(chatId)
+        locked(chatId) {
+            val state = rosterDataSource.getSyncState(chatId)
+            when {
+                state == null || !state.fullySynced -> firstSync(chatId)
+                // KEEP makes this a no-op while the work is queued, and re-queues it if it gave up.
+                state.reconcilePending -> reconcileScheduler.schedule(chatId)
+                metadataDataSource.getRosterVersion(chatId) > state.watermark -> catchUp(chatId, state)
+            }
         }
     }
 
     /**
-     * A group needs a full read when it has never had one, when the stream skipped a version since,
-     * or when the device holds fewer members than the roster has — unless the last read stopped at
-     * the page cap, where a new read would stop in the same place.
+     * A version skipped on the stream. Only a chat already read in full is caught up here; one
+     * never read waits for its open, so a gap does not start a read of a group nobody opened.
      */
-    internal suspend fun needsFullSync(chatId: ChatId): Boolean {
-        val state = rosterDataSource.getSyncState(chatId) ?: return true
-        if (state.needsResync) return true
-        if (state.truncated) return false
-        return memberDataSource.countMembers(chatId) < metadataDataSource.getMemberCount(chatId)
+    internal suspend fun onGap(chatId: ChatId) = locked(chatId) {
+        val state = rosterDataSource.getSyncState(chatId)
+        if (state == null || !state.fullySynced || state.reconcilePending) return@locked
+        catchUp(chatId, state)
+    }
+
+    /** The full read WorkManager runs. False when it should be retried. */
+    internal suspend fun reconcileNow(chatId: ChatId): Boolean = locked(chatId) { fullSync(chatId) }
+
+    // A roster of one page is a single request, so it is read on the spot. Anything larger goes
+    // to WorkManager, where the walk survives the user leaving the chat or the process dying.
+    private suspend fun firstSync(chatId: ChatId) {
+        if (metadataDataSource.getMemberCount(chatId) > PAGE_SIZE) {
+            reconcileScheduler.schedule(chatId)
+        } else {
+            fullSync(chatId)
+        }
     }
 
     /**
-     * Pages through [chatId]'s roster, writing each page as it lands, and records how far it got.
-     *
-     * Members absent from a complete read are dropped, but only when every page described the same
-     * roster version and the stream has not moved past it: a change applied mid-read could be one
-     * the pages predate, and a page that predates a leave would put the member back. In that case
-     * the read keeps what it wrote and flags the chat to be read again.
+     * Recovers the joins missed since [state]'s watermark by reading from the top of the roster,
+     * then checks the count for leaves the top cannot show.
      */
-    internal suspend fun syncAll(chatId: ChatId) {
+    internal suspend fun catchUp(chatId: ChatId, state: RosterSyncState) {
+        val watermark = state.watermark
         var token: PagingToken? = null
         var pages = 0
-        var truncated = false
-        val seen = HashSet<ID>()
-        val versions = HashSet<Long>()
-        var memberCount = 0L
+        var summary: RosterSummary? = null
+        var readVersion = Long.MAX_VALUE
+        var recovered = 0
+        var reachedStored = false
 
         while (true) {
             val page = chatController.getRoster(chatId, QueryOptions(limit = PAGE_SIZE, token = token))
                 .getOrElse {
-                    // Nothing is recorded, so the next open tries again from the first page.
-                    trace(tag = TAG, message = "Roster page ${pages + 1} failed for $chatId", type = TraceType.Error)
+                    trace(tag = TAG, message = "Roster catch-up failed for $chatId", type = TraceType.Error)
                     return
+                }
+            pages++
+            if (summary == null) summary = page.rosterSummary
+            readVersion = minOf(readVersion, page.rosterSummary.version)
+
+            // The stopping rule. Pages run most recently joined first, and Member.version is the
+            // version a member joined at, so the first member at or below the watermark is where
+            // the stored copy begins and everyone after them is already held.
+            // REVISIT: model.proto says Member.version will move on later member changes, such as
+            // a role change. Once it does, version order stops matching page order and this rule
+            // no longer holds: a long-standing member with a bumped version reads as a new join.
+            val newer = page.members.takeWhile { it.version > watermark }
+            memberDataSource.upsert(chatId, newer)
+            recovered += newer.size
+
+            if (newer.size < page.members.size || !page.hasMore) {
+                reachedStored = true
+                break
+            }
+            val next = page.pagingToken
+            if (pages >= MAX_PAGES || next == null) break
+            token = next
+        }
+
+        if (!reachedStored) {
+            // More joins missed than the cap reads: only a full read catches up now.
+            trace(tag = TAG, message = "Roster catch-up for $chatId ran past the cap", type = TraceType.Silent)
+            rosterDataSource.markReconcilePending(chatId)
+            reconcileScheduler.schedule(chatId)
+            return
+        }
+
+        val held = memberDataSource.countMembers(chatId).toLong()
+        val memberCount = summary!!.memberCount
+        when {
+            held == memberCount -> {
+                // The page's version, not the stream's: a large group's pages can trail the stream,
+                // and the watermark may only claim what the pages showed.
+                rosterDataSource.setWatermark(chatId, readVersion)
+            }
+            held > memberCount -> {
+                // Someone left and the top of the roster cannot say who. Search keeps them until
+                // the full read settles it.
+                rosterDataSource.markReconcilePending(chatId)
+                reconcileScheduler.schedule(chatId)
+            }
+            // A roster cut off at the cap is always short, so short is no sign of a missed join.
+            state.truncated -> rosterDataSource.setWatermark(chatId, readVersion)
+            // Otherwise a join is still to come: the page trails the stream, and the join arrives
+            // as a roster update. (A chat never read in full does not get here: its open reads it.)
+            else -> Unit
+        }
+
+        trace(
+            tag = TAG,
+            message = "Roster catch-up for $chatId: $recovered joins over $pages pages; " +
+                "holding $held of $memberCount",
+            type = TraceType.Silent,
+        )
+    }
+
+    /**
+     * Reads [chatId]'s whole roster, up to [MAX_PAGES], and drops the members it shows have left.
+     * False if a page failed or the database is not open, so nothing was recorded.
+     *
+     * The reconcile rule is the proto's: a held member absent from the read has left, unless they
+     * joined after the version the read described. With pages at different versions the lowest is
+     * used, since each page is only a promise about the roster as of its own version.
+     */
+    internal suspend fun fullSync(chatId: ChatId): Boolean {
+        if (!rosterDataSource.isAvailable) return false
+
+        var token: PagingToken? = null
+        var pages = 0
+        var truncated = false
+        val seen = HashSet<ID>()
+        var readSummary: RosterSummary? = null
+
+        while (true) {
+            val page = chatController.getRoster(chatId, QueryOptions(limit = PAGE_SIZE, token = token))
+                .getOrElse {
+                    trace(tag = TAG, message = "Roster page ${pages + 1} failed for $chatId", type = TraceType.Error)
+                    return false
                 }
             pages++
             memberDataSource.upsert(chatId, page.members)
             page.members.mapTo(seen) { it.userId }
-            versions += page.rosterSummary.version
-            memberCount = page.rosterSummary.memberCount
+            if (readSummary == null || page.rosterSummary.version < readSummary.version) {
+                readSummary = page.rosterSummary
+            }
 
             if (!page.hasMore) break
             val next = page.pagingToken
@@ -112,25 +226,20 @@ class RosterSync @Inject constructor(
             token = next
         }
 
-        val version = versions.max()
-        val stored = metadataDataSource.getRosterVersion(chatId)
-        val consistent = versions.size == 1 && stored <= version
-        if (consistent && !truncated) {
-            memberDataSource.retainOnly(chatId, seen)
-        }
-        if (consistent) {
-            // No-op unless the pages are ahead of what the stream has applied.
-            metadataDataSource.updateRoster(chatId, memberCount = memberCount, rosterVersion = version)
-        }
-        rosterDataSource.markSynced(chatId, version = version, truncated = truncated, needsResync = !consistent)
+        val summary = readSummary!!
+        // A partial read cannot tell who left, so it drops no one.
+        if (!truncated) memberDataSource.reconcile(chatId, seen, readVersion = summary.version)
+        // No-op unless the read is ahead of what the stream has applied.
+        metadataDataSource.updateRoster(chatId, memberCount = summary.memberCount, rosterVersion = summary.version)
+        rosterDataSource.markFullySynced(chatId, watermark = summary.version, truncated = truncated)
 
         trace(
             tag = TAG,
-            message = "Roster read for $chatId: ${seen.size} members over $pages pages at v$version" +
-                (if (truncated) ", stopped at the cap" else "") +
-                (if (!consistent) ", roster moved during the read" else ""),
+            message = "Roster read for $chatId: ${seen.size} members over $pages pages at v${summary.version}" +
+                if (truncated) ", stopped at the cap" else "",
             type = TraceType.Silent,
         )
+        return true
     }
 
     /**
@@ -152,24 +261,29 @@ class RosterSync @Inject constructor(
         /** The most `GetRoster` returns in one page. */
         const val PAGE_SIZE = 100
 
-        /** Where a full read stops: 2,000 members. A search covers whatever was read by then. */
+        /** Where a read stops: 2,000 members. A search covers whatever was read by then. */
         const val MAX_PAGES = 20
     }
 }
 
 /**
- * Told when a chat opens, so a group's roster can be read in full off the screen's path.
+ * Told when a chat opens or its roster stream skips a version, so the roster can be repaired off
+ * the caller's path.
  *
- * A seam rather than [RosterSync] itself so the delegates that report an open can be built in
- * tests without one.
+ * A seam rather than [RosterSync] itself so the classes that report these can be built in tests
+ * without one.
  */
 interface RosterSyncTrigger {
 
     /** Returns at once; any read it starts runs in the background. */
     fun onChatOpened(chatId: ChatId)
 
-    /** Does nothing. What a delegate built without a roster sync -- a unit test -- is given. */
+    /** Returns at once; any read it starts runs in the background. */
+    fun onRosterGap(chatId: ChatId)
+
+    /** Does nothing. What a class built without a roster sync -- a unit test -- is given. */
     object None : RosterSyncTrigger {
         override fun onChatOpened(chatId: ChatId) = Unit
+        override fun onRosterGap(chatId: ChatId) = Unit
     }
 }

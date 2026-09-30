@@ -3,6 +3,7 @@ package com.flipcash.shared.chat
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.ChatRosterDataSource
+import com.flipcash.shared.chat.internal.RosterSyncTrigger
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
@@ -15,6 +16,7 @@ import com.flipcash.shared.chat.internal.RosterStateHolder
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.time.Instant
@@ -34,12 +36,14 @@ class RosterStateHolderTest {
     private val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true)
     private val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
     private val rosterDataSource = mockk<ChatRosterDataSource>(relaxed = true)
+    private val rosterSync = mockk<RosterSyncTrigger>(relaxed = true)
 
     private val subject = RosterStateHolder(
         chatController = controller,
         metadataDataSource = metadataDataSource,
         memberDataSource = memberDataSource,
         rosterDataSource = rosterDataSource,
+        rosterSync = rosterSync,
     )
 
     private fun joiner(userId: List<Byte> = joinerId) = ChatMember(
@@ -123,17 +127,18 @@ class RosterStateHolderTest {
         coVerify { memberDataSource.upsert(chatId, refetched.members) }
         // The skipped change is not applied on top of what the refetch returned.
         coVerify(exactly = 0) { metadataDataSource.updateRoster(chatId, 13, 7) }
-        // The skipped versions may hold leaves the refetch cannot show, so the roster is read again.
-        coVerify { rosterDataSource.markNeedsResync(chatId) }
+        // The skipped versions may hold joins and leaves the refetch cannot show, so it catches up.
+        verify { rosterSync.onRosterGap(chatId) }
     }
 
     @Test
-    fun `a change in sequence does not flag the roster for a re-read`() = runTest {
+    fun `a change in sequence moves the watermark along from where it was`() = runTest {
         storedVersion(4)
 
         subject.apply(chatId, listOf(joined(version = 5)))
 
-        coVerify(exactly = 0) { rosterDataSource.markNeedsResync(any()) }
+        coVerify { rosterDataSource.advanceWatermark(chatId, from = 4, to = 5) }
+        verify(exactly = 0) { rosterSync.onRosterGap(any()) }
     }
 
     @Test

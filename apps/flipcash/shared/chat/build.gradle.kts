@@ -24,6 +24,10 @@ dependencies {
 
     implementation(libs.androidx.paging.runtime)
 
+    implementation(libs.androidx.work)
+    implementation(libs.hilt.worker)
+    testImplementation(libs.androidx.work.testing)
+
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:persistence:db"))
     implementation(project(":apps:flipcash:shared:contacts"))

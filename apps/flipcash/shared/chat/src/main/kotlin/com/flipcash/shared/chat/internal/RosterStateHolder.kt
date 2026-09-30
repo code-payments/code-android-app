@@ -35,6 +35,7 @@ class RosterStateHolder @Inject constructor(
     private val metadataDataSource: ChatMetadataDataSource,
     private val memberDataSource: ChatMemberDataSource,
     private val rosterDataSource: ChatRosterDataSource,
+    private val rosterSync: RosterSyncTrigger,
 ) {
 
     /**
@@ -52,12 +53,12 @@ class RosterStateHolder @Inject constructor(
             when {
                 incoming <= stored -> continue
                 incoming > stored + 1 -> refetch(chatId, stored, incoming)
-                else -> applyChange(chatId, change)
+                else -> applyChange(chatId, change, stored)
             }
         }
     }
 
-    private suspend fun applyChange(chatId: ChatId, change: RosterChange) {
+    private suspend fun applyChange(chatId: ChatId, change: RosterChange, stored: Long) {
         when (change) {
             is RosterChange.MemberJoined -> memberDataSource.upsert(chatId, listOf(change.member))
             is RosterChange.MemberLeft -> memberDataSource.deleteMember(chatId, change.userId)
@@ -67,6 +68,9 @@ class RosterStateHolder @Inject constructor(
             memberCount = change.rosterSummary.memberCount,
             rosterVersion = change.rosterSummary.version,
         )
+        // In sequence on a roster held whole keeps it whole. Behind, the watermark stays put and
+        // the next catch-up reads down to it.
+        rosterDataSource.advanceWatermark(chatId, from = stored, to = change.rosterSummary.version)
     }
 
     /**
@@ -78,8 +82,8 @@ class RosterStateHolder @Inject constructor(
      * Departures come through [RosterChange.MemberLeft]; this is only here to get the count and
      * the version back in step with the server.
      *
-     * The skipped changes may include leaves the merge cannot see, so the chat is also flagged for
-     * a full [RosterSync] read the next time it opens.
+     * The skipped changes may include joins and leaves the merge cannot see, so [RosterSync] also
+     * catches the roster up from its watermark.
      */
     private suspend fun refetch(chatId: ChatId, stored: Long, incoming: Long) {
         trace(
@@ -87,7 +91,7 @@ class RosterStateHolder @Inject constructor(
             message = "Roster version gap on $chatId: stored $stored, incoming $incoming",
             type = TraceType.Silent,
         )
-        rosterDataSource.markNeedsResync(chatId)
+        rosterSync.onRosterGap(chatId)
         val metadata = chatController.getChat(chatId).getOrElse {
             // Leaving the stored version alone is what makes this retryable: the next change on
             // this chat still reads as a gap, and tries again.
