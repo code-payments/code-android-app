@@ -24,15 +24,4 @@ class AccountSelectionViewModelTest {
         val name = AccountSelectionViewModel.displayName(phrase("Apple", "Elder"))
         assertEquals("Apple ... Elder", name)
     }
-
-    @Test
-    fun `truncates an owner address in the middle`() {
-        val truncated = AccountSelectionViewModel.truncateAddress("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        assertEquals("ABCD...WXYZ", truncated)
-    }
-
-    @Test
-    fun `leaves a short address alone`() {
-        assertEquals("ABCD", AccountSelectionViewModel.truncateAddress("ABCD"))
-    }
 }

@@ -115,10 +115,13 @@ internal fun AccountRow(
                 style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
             )
+            // The full key on one line, as iOS shows it; the middle gives way only if it can't fit.
             Text(
                 text = account.ownerAddress,
                 style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.MiddleEllipsis,
             )
         }
     }
