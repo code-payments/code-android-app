@@ -30,6 +30,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -230,6 +231,41 @@ class ChatMentionPickerTest {
         type(vm, "@er @x")
 
         coVerify(exactly = 1) { rosterSearch.refresh(chatId) }
+    }
+
+    @Test
+    fun `the open word searches again when the refresh lands`() = runTest(mainCoroutineRule.dispatcher) {
+        val refreshed = CompletableDeferred<Unit>()
+        val erin = match("Erin", "erin")
+        coEvery { rosterSearch.refresh(chatId) } coAnswers { refreshed.await() }
+        val vm = createViewModel()
+        vm.openGroup()
+        type(vm, "@er")
+        assertEquals(listOf(erica), vm.suggestions)
+
+        // The refresh brought in a new joiner; no keystroke follows.
+        coEvery { rosterSearch.search(any(), any(), any()) } returns listOf(erica, erin)
+        refreshed.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf(erica, erin), vm.suggestions)
+        coVerify(exactly = 2) { rosterSearch.search(chatId, "@er", any()) }
+    }
+
+    @Test
+    fun `a refresh landing after the list closed leaves it closed`() = runTest(mainCoroutineRule.dispatcher) {
+        val refreshed = CompletableDeferred<Unit>()
+        coEvery { rosterSearch.refresh(chatId) } coAnswers { refreshed.await() }
+        val vm = createViewModel()
+        vm.openGroup()
+        type(vm, "@er")
+        type(vm, "@er ")
+
+        refreshed.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), vm.suggestions)
+        coVerify(exactly = 1) { rosterSearch.search(any(), any(), any()) }
     }
 
     private fun match(name: String, username: String?) = MemberMatch(

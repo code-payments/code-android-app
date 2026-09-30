@@ -179,6 +179,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -2290,6 +2291,9 @@ internal class ChatViewModel @Inject constructor(
         // Once per visit, the first time the picker opens: profile edits don't move the roster
         // version, so the names held since the last full read can be stale.
         var refreshed = false
+        // Bumped when that refresh lands, so the open word searches again and new joiners show
+        // without another keystroke.
+        val refreshes = MutableStateFlow(0)
         val eligible = stateFlow
             .map { it.chatType == ChatType.GROUP && !it.isAnonymous && !it.replacesComposer }
             .distinctUntilChanged()
@@ -2297,14 +2301,19 @@ internal class ChatViewModel @Inject constructor(
             val input = stateFlow.value.chatInputState
             activeMentionToken(input.text, input.selection)?.text
         }
-        combine(eligible, word) { canMention, query -> query.takeIf { canMention } }
+        combine(eligible, word, refreshes) { canMention, query, refresh ->
+            query.takeIf { canMention } to refresh
+        }
             .distinctUntilChanged()
-            .mapLatest { query ->
+            .mapLatest { (query, _) ->
                 val chatId = stateFlow.value.chatId
                 if (query == null || chatId == null) return@mapLatest emptyList()
                 if (!refreshed) {
                     refreshed = true
-                    viewModelScope.launch { runCatching { rosterSearch.refresh(chatId) } }
+                    viewModelScope.launch {
+                        runCatching { rosterSearch.refresh(chatId) }
+                            .onSuccess { refreshes.update { it + 1 } }
+                    }
                 }
                 rosterSearch.search(chatId, query).mentionable()
             }
