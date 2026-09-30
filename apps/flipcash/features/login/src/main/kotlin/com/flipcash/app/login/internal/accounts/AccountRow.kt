@@ -40,7 +40,8 @@ internal fun AccountRow(
                 onClick = onClick,
                 onLongClick = onLongClick,
             )
-            .padding(vertical = CodeTheme.dimens.grid.x3),
+            // iOS pads each row 20pt on every side; the list's contentPadding supplies the sides.
+            .padding(vertical = CodeTheme.dimens.grid.x4),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
@@ -61,6 +62,8 @@ internal fun AccountRow(
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         ) {
             Text(
+                // iOS adds 5pt under the name line on top of the column's spacing.
+                modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x1),
                 text = account.name,
                 // iOS sets the name and the balance on one 16pt line (appTextMedium).
                 style = CodeTheme.typography.textMedium,
