@@ -7,7 +7,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -96,6 +96,10 @@ fun NavigationBar(
     // avatar and passes null when there is no photo. The modifier handed back already sizes, clips
     // and fades the slot; the avatar only has to fill it.
     avatar: (@Composable (Modifier) -> Unit)? = null,
+    // Long-pressing the You tab opens the account switcher, as on iOS. Null leaves the tab with no
+    // long-press at all — no haptic, and a long hold still selects it — which is what a caller
+    // passes while the switcher's gate is closed. The other tabs never take a long-press.
+    onYouTabLongClick: (() -> Unit)? = null,
 ) {
     val order = NavBarButton.tabs
     if (order.isEmpty()) return
@@ -176,10 +180,14 @@ fun NavigationBar(
                         // Deliberately unclipped: the unread badge overhangs the icon's top-right
                         // corner and a clip would shave it. Safe because the click indication is
                         // null, so there is no ripple that needs bounding.
-                        .clickable(
+                        // combinedClickable fires the long-press haptic itself, and only when
+                        // onLongClick is non-null, so a closed gate stays silent.
+                        .combinedClickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                        ) { onButtonClick(button) },
+                            onLongClick = onYouTabLongClick.takeIf { button == NavBarButton.TipCard },
+                            onClick = { onButtonClick(button) },
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Box {
