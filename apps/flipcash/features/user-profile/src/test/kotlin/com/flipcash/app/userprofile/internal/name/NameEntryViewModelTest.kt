@@ -68,7 +68,7 @@ class NameEntryViewModelTest {
         dispatchers = TestDispatchers(testScheduler)
         every { userManager.state } returns MutableStateFlow(UserManager.State())
         every { userManager.profile } returns null
-        whenever(profileController.setDisplayName(any())).thenReturn(Result.success(Unit))
+        whenever(profileController.setDisplayName(any())).thenReturn(Result.success<String?>(null))
 
         val vm = createViewModel()
         vm.dispatchEvent(NameEntryViewModel.Event.CheckName(DisplayNameSource.Onboarding))
@@ -85,7 +85,7 @@ class NameEntryViewModelTest {
         dispatchers = TestDispatchers(testScheduler)
         every { userManager.state } returns MutableStateFlow(UserManager.State())
         every { userManager.profile } returns profileNamed("Ada")
-        whenever(profileController.setDisplayName(any())).thenReturn(Result.success(Unit))
+        whenever(profileController.setDisplayName(any())).thenReturn(Result.success<String?>(null))
 
         val vm = createViewModel()
         vm.dispatchEvent(NameEntryViewModel.Event.CheckName(DisplayNameSource.MyAccount))

@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.accounts.AccountProfileFetcher
 import com.flipcash.app.auth.internal.accounts.AccountProfileName
+import com.flipcash.app.auth.internal.accounts.CachedAccountProfile
 import com.flipcash.app.auth.internal.accounts.AccountRecord
 import com.flipcash.services.models.asHandle
 import com.flipcash.features.login.R
@@ -129,9 +130,8 @@ class AccountSelectionViewModel @Inject constructor(
             .filterIsInstance<Event.Load>()
             // Nothing outside drives this screen, so the pipeline seeds its own first read.
             .onStart { emit(Event.Load) }
-            .map { derive(authManager.accounts.all()) }
-            .onEach { derived ->
-                val profiles = authManager.accountProfiles.all()
+            .map { derive(authManager.accounts.all()) to authManager.accountProfiles.all() }
+            .onEach { (derived, profiles) ->
                 dispatchEvent(
                     Event.OnAccountsLoaded(
                         accounts = derived.map { (record, cluster) ->
@@ -141,11 +141,11 @@ class AccountSelectionViewModel @Inject constructor(
                     )
                 )
             }
-            .flatMapLatest { derived ->
-                derived.asFlow().flatMapMerge { merge(balance(it), profile(it)) }
+            .flatMapLatest { (derived, profiles) ->
+                derived.asFlow().flatMapMerge { merge(balance(it), profile(it, profiles)) }
             }
             .onEach { dispatchEvent(it) }
-            // Derivation is PBKDF2 plus a SLIP-10 chain, and the fetches are network calls;
+            // Derivation is PBKDF2 plus a SLIP-10 chain, and the balance fetches are network calls;
             // neither belongs on the thread drawing the list.
             .flowOn(dispatchers.IO)
             .launchIn(viewModelScope)
@@ -225,11 +225,11 @@ class AccountSelectionViewModel @Inject constructor(
 
     private fun AccountRecord.toUiModel(
         cluster: AccountCluster?,
-        profiles: Map<String, AccountProfileName>,
+        profiles: Map<String, CachedAccountProfile>,
     ): AccountUiModel {
         val mnemonic = runCatching { mnemonicManager.fromEntropyBase64(entropy) }.getOrNull()
         val owner = cluster?.authorityPublicKey?.base58()
-        val profile = owner?.let { profiles[it] }
+        val profile = owner?.let { profiles[it]?.name }
         return AccountUiModel(
             // A record that will not derive has no owner key to be keyed on; its creation
             // timestamp is the only other thing distinguishing it.
@@ -297,13 +297,19 @@ class AccountSelectionViewModel @Inject constructor(
     }
 
     /**
-     * One account's username and display name, fetched signed as that account, so every row is
-     * named and not just the signed-in one. A failure keeps whatever the cache gave the row.
+     * One account's username and display name, fetched by the user id cached from its last
+     * sign-in on this device. A row with no cached user id resolves one through Login first, as a
+     * last resort. A failure keeps whatever the cache gave the row.
      */
-    private fun profile(entry: Pair<AccountRecord, Result<AccountCluster>>): Flow<Event> = flow {
+    private fun profile(
+        entry: Pair<AccountRecord, Result<AccountCluster>>,
+        profiles: Map<String, CachedAccountProfile>,
+    ): Flow<Event> = flow {
         val (record, cluster) = entry
         val owner = cluster.getOrNull() ?: return@flow
-        profileFetcher.fetch(owner.authority.keyPair, owner.authorityPublicKey.base58())
+        val ownerAddress = owner.authorityPublicKey.base58()
+        val userId = profiles[ownerAddress]?.userId
+        profileFetcher.fetch(owner.authority.keyPair, ownerAddress, userId)
             .onSuccess { emit(Event.OnProfileResolved(record.entropy, it)) }
             .onFailure { error ->
                 trace(
