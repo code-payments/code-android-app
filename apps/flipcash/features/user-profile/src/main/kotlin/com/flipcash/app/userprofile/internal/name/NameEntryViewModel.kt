@@ -61,6 +61,16 @@ class NameEntryViewModel @Inject constructor(
         val hasName: Boolean
             get() = nameFieldState.text.isNotBlank()
 
+        /**
+         * Whether the current text may be submitted. Onboarding applies the stricter
+         * [isValidOnboardingDisplayName] rule; other sources only need a non-blank name.
+         */
+        fun isSubmittable(source: DisplayNameSource): Boolean = when (source) {
+            DisplayNameSource.Onboarding -> isValidOnboardingDisplayName(nameFieldState.text.toString())
+            DisplayNameSource.MyAccount,
+            DisplayNameSource.TipCardSetup -> hasName
+        }
+
         /** Node 9553:113166 — one character's difference is enough to arm the confirm button. */
         val isChanged: Boolean
             get() = nameFieldState.text.toString() != savedName
@@ -111,6 +121,12 @@ class NameEntryViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.ConfirmNameChange>()
             .onEach { event ->
+                // The keyboard Done action reaches here without passing the button's enabled
+                // gate, so an invalid onboarding name is dropped the same way the disabled
+                // button drops it.
+                if (event.source == DisplayNameSource.Onboarding && !stateFlow.value.isSubmittable(event.source)) {
+                    return@onEach
+                }
                 if (stateFlow.value.savedName.isBlank()) {
                     dispatchEvent(Event.CheckName(event.source))
                     return@onEach
