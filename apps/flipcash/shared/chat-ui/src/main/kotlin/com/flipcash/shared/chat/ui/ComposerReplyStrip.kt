@@ -37,6 +37,7 @@ import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.PriceWithFlag
+import com.getcode.ui.components.chat.ChatInputDefaults
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
@@ -76,7 +77,10 @@ fun ComposerReplyStrip(
     // sample.
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
     val ground = if (hazeState != null) {
-        Modifier.hazeBlur(HazeInput.Sources(hazeState), material)
+        Modifier
+            .hazeBlur(HazeInput.Sources(hazeState), material)
+            // The input field's own fill over the same glass, so strip and field read as one surface.
+            .background(ChatInputDefaults.ContainerColor)
     } else {
         Modifier.background(Color.White.copy(alpha = 0.1f))
     }

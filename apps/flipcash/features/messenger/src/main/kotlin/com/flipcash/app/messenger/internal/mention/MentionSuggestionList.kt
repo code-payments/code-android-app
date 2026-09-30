@@ -32,6 +32,7 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.chat.MemberMatch
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.ChatInputDefaults
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
@@ -61,6 +62,8 @@ internal fun MentionSuggestionList(
             .fillMaxWidth()
             .clip(shape)
             .hazeBlur(HazeInput.Sources(hazeState), material)
+            // The input field's own fill over the same glass, so card and field read as one surface.
+            .background(ChatInputDefaults.ContainerColor)
             .border(border, CodeTheme.colors.divider, shape)
             .heightIn(max = mentionListHeight(maxRows, border)),
     ) {
