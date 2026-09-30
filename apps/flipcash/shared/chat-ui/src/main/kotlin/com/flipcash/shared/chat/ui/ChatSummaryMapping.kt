@@ -182,6 +182,9 @@ private fun MessageContent.previewText(
     // TODO:
     is MessageContent.Media -> null
     is MessageContent.System -> null
+
+    // TODO: preview text for widgets once the design settles.
+    is MessageContent.Widget -> null
 }
 
 private const val MAX_REPLY_UNWRAP_DEPTH = 4

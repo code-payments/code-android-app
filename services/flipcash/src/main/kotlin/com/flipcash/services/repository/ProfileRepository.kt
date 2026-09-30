@@ -12,7 +12,7 @@ import com.getcode.opencode.model.financial.Fiat
 
 interface ProfileRepository {
     suspend fun getProfile(identifier: ProfileIdentifier, owner: Ed25519.KeyPair): Result<UserProfile>
-    suspend fun setDisplayName(displayName: String, owner: Ed25519.KeyPair): Result<Unit>
+    suspend fun setDisplayName(displayName: String, owner: Ed25519.KeyPair): Result<String?>
     suspend fun setUsername(username: String, owner: Ed25519.KeyPair): Result<Unit>
     suspend fun setProfilePicture(blobId: BlobId, owner: Ed25519.KeyPair): Result<MediaItem>
     suspend fun updateTipCard(owner: Ed25519.KeyPair, hexColor: String): Result<Unit>

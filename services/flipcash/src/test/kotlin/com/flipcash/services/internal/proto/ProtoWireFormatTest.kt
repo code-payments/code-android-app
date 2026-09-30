@@ -96,7 +96,7 @@ class ProtoWireFormatTest {
     @Test
     fun `preserves unknown fields when re-encoding`() {
         val original = Model.Metadata.newBuilder()
-            .setType(Model.ChatType.TIP_DM)
+            .setType(Model.ChatType.DM)
             .setLatestEventSequence(42L)
             .setTitle("forward compatible")
             .build()

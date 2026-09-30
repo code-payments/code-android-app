@@ -225,6 +225,11 @@ sealed interface MessageContentSerialized {
         val caption: Text?,
     ) : MessageContentSerialized
 
+    // Mirrors MessageContent.Widget. [username] is null for an unsupported widget variant.
+    @Serializable
+    @SerialName("widget_share_profile")
+    data class WidgetShareProfile(val username: String?) : MessageContentSerialized
+
     @Serializable
     @SerialName("system")
     data class System(val fallbackText: String) : MessageContentSerialized
@@ -343,4 +348,8 @@ sealed interface ChatRuleRequirementSerialized {
     @Serializable
     @SerialName("staff")
     data object Staff : ChatRuleRequirementSerialized
+
+    @Serializable
+    @SerialName("never")
+    data object Never : ChatRuleRequirementSerialized
 }

@@ -42,6 +42,7 @@ import com.flipcash.services.models.chat.ImageMetadata
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.MuteState
@@ -198,6 +199,14 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
             scheme = encrypted.schemeValue,
             nonce = encrypted.nonce.toByteArray(),
             ciphertext = encrypted.ciphertext.toByteArray(),
+        )
+        // A widget variant this client doesn't know renders as unsupported rather than dropping.
+        MessagingModel.Content.TypeCase.WIDGET -> MessageContent.Widget(
+            when (widget.typeCase) {
+                MessagingModel.WidgetContent.TypeCase.SHARE_PROFILE ->
+                    WidgetContent.ShareProfile(widget.shareProfile.username.value)
+                else -> WidgetContent.Unsupported
+            }
         )
         else -> MessageContent.Text("")
     }
@@ -387,7 +396,7 @@ internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
 internal fun ChatModel.ChatType.toChatType(): ChatType {
     return when (this) {
         ChatModel.ChatType.CONTACT_DM -> ChatType.CONTACT_DM
-        ChatModel.ChatType.TIP_DM -> ChatType.TIP_DM
+        ChatModel.ChatType.DM -> ChatType.TIP_DM
         ChatModel.ChatType.GROUP -> ChatType.GROUP
         else -> ChatType.UNKNOWN
     }
@@ -525,6 +534,7 @@ internal fun ChatModel.SpeakerRules.toRuleRequirementOrNull(): ChatRuleRequireme
     return when (kindCase) {
         ChatModel.SpeakerRules.KindCase.MINIMUM_BALANCE -> minimumBalance.toRuleRequirement()
         ChatModel.SpeakerRules.KindCase.STAFF -> ChatRuleRequirement.Staff
+        ChatModel.SpeakerRules.KindCase.NEVER -> ChatRuleRequirement.Never
         else -> null
     }
 }

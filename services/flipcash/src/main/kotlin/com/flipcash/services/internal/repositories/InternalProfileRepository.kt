@@ -39,7 +39,7 @@ internal class InternalProfileRepository(
     override suspend fun setDisplayName(
         displayName: String,
         owner: Ed25519.KeyPair
-    ): Result<Unit> {
+    ): Result<String?> {
         return service.setDisplayName(displayName, owner)
             .onFailure {
                 // The rejections below are the server answering a user's choice of

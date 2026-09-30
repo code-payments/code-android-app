@@ -35,4 +35,7 @@ sealed interface ChatRuleRequirement {
 
     /** Requires Flipcash staff membership, as indicated by `UserFlags.is_staff`. */
     data object Staff : ChatRuleRequirement
+
+    /** Nobody may take the action (`chat.v1.Never`). Only the server sends it, and only as a speaker rule. */
+    data object Never : ChatRuleRequirement
 }

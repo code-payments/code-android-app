@@ -14,6 +14,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
@@ -160,6 +161,18 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                     .apply { if (caption != null) setCaption(MessagingModel.TextContent.newBuilder().setText(caption.text)) }
             )
             .build()
+        is MessageContent.Widget -> when (val w = widget) {
+            is WidgetContent.ShareProfile -> MessagingModel.Content.newBuilder()
+                .setWidget(
+                    MessagingModel.WidgetContent.newBuilder()
+                        .setShareProfile(
+                            MessagingModel.ShareProfileWidget.newBuilder().setUsername(w.username.asUsername())
+                        )
+                )
+                .build()
+            // Received-only: there is nothing to send for a variant this client can't read.
+            WidgetContent.Unsupported -> MessagingModel.Content.getDefaultInstance()
+        }
         is MessageContent.System -> MessagingModel.Content.newBuilder()
             .setSystem(MessagingModel.SystemContent.newBuilder().setFallbackText(fallbackText))
             .build()
@@ -216,7 +229,7 @@ internal fun ChatType.asProtoChatType(): ChatModel.ChatType {
     return when (this) {
         ChatType.UNKNOWN -> ChatModel.ChatType.UNKNOWN
         ChatType.CONTACT_DM -> ChatModel.ChatType.CONTACT_DM
-        ChatType.TIP_DM -> ChatModel.ChatType.TIP_DM
+        ChatType.TIP_DM -> ChatModel.ChatType.DM
         ChatType.GROUP -> ChatModel.ChatType.GROUP
     }
 }
@@ -257,6 +270,7 @@ internal fun ChatRules.asProtoRules(): ChatModel.Rules {
 internal fun ChatRuleRequirement.asProtoListenerRules(): ChatModel.ListenerRules {
     val builder = ChatModel.ListenerRules.newBuilder()
     return when (this) {
+        ChatRuleRequirement.Never -> error("ListenerRules has no `never` arm; Never is speaker-only")
         is ChatRuleRequirement.MinimumBalance -> builder.setMinimumBalance(asProtoMinimumBalanceRequirement()).build()
         ChatRuleRequirement.Staff -> builder.setStaff(ChatModel.StaffRequirement.getDefaultInstance()).build()
     }
@@ -267,6 +281,7 @@ internal fun ChatRuleRequirement.asProtoSpeakerRules(): ChatModel.SpeakerRules {
     return when (this) {
         is ChatRuleRequirement.MinimumBalance -> builder.setMinimumBalance(asProtoMinimumBalanceRequirement()).build()
         ChatRuleRequirement.Staff -> builder.setStaff(ChatModel.StaffRequirement.getDefaultInstance()).build()
+        ChatRuleRequirement.Never -> builder.setNever(ChatModel.Never.getDefaultInstance()).build()
     }
 }
 
