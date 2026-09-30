@@ -3,20 +3,30 @@ package com.flipcash.app.login.internal.accounts
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.accounts.AccountProfileCache
-import com.flipcash.app.auth.internal.accounts.AccountProfileFetcher
 import com.flipcash.app.auth.internal.accounts.AccountProfileName
 import com.flipcash.app.auth.internal.accounts.AccountRecord
 import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
+import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.managers.MnemonicManager
+import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkAll
 import com.getcode.util.resources.FakeResourceHelper
+import com.getcode.util.resources.ResourceHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.any
@@ -24,8 +34,10 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -50,7 +62,6 @@ class AccountSelectionViewModelStateTest {
     private val mnemonicManager: MnemonicManager = mock()
     private val tokenController: TokenController = mock()
     private val resources = FakeResourceHelper()
-    private val profileFetcher: AccountProfileFetcher = mock()
     private val profiles: AccountProfileCache = mock {
         onBlocking { all() } doReturn emptyMap()
     }
@@ -82,11 +93,13 @@ class AccountSelectionViewModelStateTest {
             authManager = authManager,
             mnemonicManager = mnemonicManager,
             tokenController = tokenController,
-            profileFetcher = profileFetcher,
             resources = resources,
             dispatchers = dispatchers,
         )
     }
+
+    @After
+    fun tearDown() = unmockkAll()
 
     @Test
     fun `load marks which account is signed in`() = runTest(mainCoroutineRule.dispatcher) {
@@ -132,7 +145,6 @@ class AccountSelectionViewModelStateTest {
             authManager = authManager,
             mnemonicManager = mnemonicManager,
             tokenController = tokenController,
-            profileFetcher = profileFetcher,
             resources = resources,
             dispatchers = TestDispatchers(testScheduler),
         )
@@ -170,22 +182,73 @@ class AccountSelectionViewModelStateTest {
         assertEquals(listOf("b"), viewModel.stateFlow.value.accounts.map { it.entropy })
     }
 
-    /** A fetched profile renames only its own row, and the username wins over the display name. */
+    /**
+     * The product rule: the switcher never signs in as an account the user has not switched to.
+     * A row that is not the signed-in account takes its name from the local cache, and loading it
+     * makes one network call, the balance lookup — never the Login RPC, which is the only way from
+     * an owner key to the user id that GetProfile needs.
+     */
     @Test
-    fun `a fetched profile retitles its row`() = runTest(mainCoroutineRule.dispatcher) {
-        val store = RecordingAccountStore(listOf(record("a", 2_000L), record("b", 1_000L)))
-        val viewModel = viewModel(store, current = "b", TestDispatchers(testScheduler))
-        advanceUntilIdle()
-
-        viewModel.dispatchEvent(
-            AccountSelectionViewModel.Event.OnProfileResolved(
-                entropy = "a",
-                name = AccountProfileName(username = "sally_streamer", displayName = "Sally"),
+    fun `a non-active row is titled from the cache without logging in`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            // Real derivation reaches android.util.Base64, which is a stub on the JVM; the row only
+            // needs a cluster with an owner key to look up the cache and fetch a balance with.
+            val phrase = MnemonicPhrase(MnemonicPhrase.Kind.L12, List(12) { "abandon" })
+            val ownerKey = PublicKey(List(32) { 7 })
+            mockkObject(DerivedKey)
+            every { DerivedKey.derive(any(), phrase) } returns mockk(relaxed = true)
+            mockkObject(AccountCluster)
+            every { AccountCluster.newInstance(any(), any()) } returns
+                mockk(relaxed = true) { every { authorityPublicKey } returns ownerKey }
+            val owner = ownerKey.base58()
+            val cache: AccountProfileCache = mock {
+                onBlocking { all() } doReturn mapOf(
+                    owner to AccountProfileName(username = "sally_streamer", displayName = "Sally"),
+                )
+            }
+            whenever(authManager.accounts).thenReturn(RecordingAccountStore(listOf(record("a", 1_000L))))
+            whenever(authManager.accountProfiles).thenReturn(cache)
+            whenever(authManager.currentEntropy).thenReturn("b")
+            whenever(mnemonicManager.fromEntropyBase64("a")).thenReturn(phrase)
+            val tokenController: TokenController = mock {
+                onBlocking { fetchTokenBalances(any()) } doReturn Result.failure(IllegalStateException("offline"))
+            }
+            val viewModel = AccountSelectionViewModel(
+                authManager = authManager,
+                mnemonicManager = mnemonicManager,
+                tokenController = tokenController,
+                resources = resources,
+                dispatchers = TestDispatchers(testScheduler),
             )
-        )
-        advanceUntilIdle()
+            advanceUntilIdle()
 
-        assertEquals(listOf("@sally_streamer", ""), viewModel.stateFlow.value.accounts.map { it.name })
+            val row = viewModel.stateFlow.value.accounts.single()
+            assertEquals("@sally_streamer", row.name)
+            assertFalse(row.notFound)
+            verify(authManager, never()).login(any(), any(), any(), any())
+            verify(tokenController).fetchTokenBalances(any())
+            verifyNoMoreInteractions(tokenController)
+        }
+
+    /**
+     * The row pipeline cannot call Login if it cannot reach it. The profile fetch this screen once
+     * had came in as one more constructor dependency and logged in as every listed account, so any
+     * new dependency fails here until someone confirms it cannot sign in as a non-active account.
+     * [AuthManager]'s own login is covered by the test above.
+     */
+    @Test
+    fun `the view model depends on nothing that can log in as another account`() {
+        val allowed = listOf(
+            AuthManager::class.java,
+            MnemonicManager::class.java,
+            TokenController::class.java,
+            ResourceHelper::class.java,
+            DispatcherProvider::class.java,
+        )
+        val injected = AccountSelectionViewModel::class.java.constructors
+            .single { it.parameterCount > 0 }
+            .parameterTypes.toList()
+        assertEquals(allowed, injected)
     }
 
     private val mnemonicName = "Apple ... Elder"

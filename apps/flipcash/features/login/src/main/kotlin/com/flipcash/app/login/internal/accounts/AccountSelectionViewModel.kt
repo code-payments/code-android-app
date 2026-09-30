@@ -2,7 +2,6 @@ package com.flipcash.app.login.internal.accounts
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
-import com.flipcash.app.auth.internal.accounts.AccountProfileFetcher
 import com.flipcash.app.auth.internal.accounts.AccountProfileName
 import com.flipcash.app.auth.internal.accounts.AccountRecord
 import com.flipcash.services.models.asHandle
@@ -40,7 +39,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
@@ -53,7 +51,6 @@ class AccountSelectionViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val mnemonicManager: MnemonicManager,
     private val tokenController: TokenController,
-    private val profileFetcher: AccountProfileFetcher,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
 ) : BaseViewModel<AccountSelectionViewModel.State, AccountSelectionViewModel.Event>(
@@ -110,7 +107,6 @@ class AccountSelectionViewModel @Inject constructor(
             val currentEntropy: String?,
         ) : Event
 
-        data class OnProfileResolved(val entropy: String, val name: AccountProfileName) : Event
         data class OnBalanceResolved(val entropy: String, val balance: Fiat) : Event
         data class OnBalanceNotFound(val entropy: String) : Event
         data class OnBalanceUnavailable(val entropy: String) : Event
@@ -142,10 +138,10 @@ class AccountSelectionViewModel @Inject constructor(
                 )
             }
             .flatMapLatest { derived ->
-                derived.asFlow().flatMapMerge { merge(balance(it), profile(it)) }
+                derived.asFlow().flatMapMerge { balance(it) }
             }
             .onEach { dispatchEvent(it) }
-            // Derivation is PBKDF2 plus a SLIP-10 chain, and the fetches are network calls;
+            // Derivation is PBKDF2 plus a SLIP-10 chain, and the balance fetches are network calls;
             // neither belongs on the thread drawing the list.
             .flowOn(dispatchers.IO)
             .launchIn(viewModelScope)
@@ -235,7 +231,9 @@ class AccountSelectionViewModel @Inject constructor(
             // timestamp is the only other thing distinguishing it.
             id = owner ?: "underived-$creationDate",
             entropy = entropy,
-            // The cached names show at once and offline; the fetch replaces them when it lands.
+            // Names come only from what this device cached while the account was signed in. There
+            // is no fetch for the other accounts: resolving their user id takes the Login RPC, and
+            // the app must not sign in as an account the user has not switched to.
             mnemonicName = mnemonic?.let { displayName(it) }.orEmpty(),
             username = profile?.username,
             displayName = profile?.displayName,
@@ -296,25 +294,6 @@ class AccountSelectionViewModel @Inject constructor(
             }
     }
 
-    /**
-     * One account's username and display name, fetched signed as that account, so every row is
-     * named and not just the signed-in one. A failure keeps whatever the cache gave the row.
-     */
-    private fun profile(entry: Pair<AccountRecord, Result<AccountCluster>>): Flow<Event> = flow {
-        val (record, cluster) = entry
-        val owner = cluster.getOrNull() ?: return@flow
-        profileFetcher.fetch(owner.authority.keyPair, owner.authorityPublicKey.base58())
-            .onSuccess { emit(Event.OnProfileResolved(record.entropy, it)) }
-            .onFailure { error ->
-                trace(
-                    tag = TAG,
-                    message = "Profile fetch failed for a stored account",
-                    error = error,
-                    type = TraceType.Error,
-                )
-            }
-    }
-
     companion object {
         private const val TAG = "AccountSelection"
 
@@ -346,18 +325,6 @@ class AccountSelectionViewModel @Inject constructor(
                         accounts = event.accounts,
                         loading = false,
                         currentEntropy = event.currentEntropy,
-                    )
-                }
-
-                is Event.OnProfileResolved -> { state ->
-                    state.copy(
-                        accounts = state.accounts.map {
-                            if (it.entropy == event.entropy) {
-                                it.copy(username = event.name.username, displayName = event.name.displayName)
-                            } else {
-                                it
-                            }
-                        }
                     )
                 }
 

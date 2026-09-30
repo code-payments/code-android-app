@@ -36,10 +36,12 @@ data class AccountProfileName(
  * The last known username and display name of every account that has signed in on this device,
  * keyed by owner public key (base58).
  *
- * Only the signed-in account has a session, so this is how the account list names the others
- * before [AccountProfileFetcher] has answered, or when it cannot. It is written from two places:
- * [UserManager]'s state, which every profile change of the signed-in account goes through — the
- * restore at sign-in, the server refresh, and edits — and each fetch the account list makes.
+ * Only the signed-in account has a session, so this is the only source of names for the others:
+ * the account list does not fetch them, because resolving another account's user id takes the
+ * Login RPC, and the app must not sign in as an account the user has not switched to. It is written
+ * from [UserManager]'s state, which every profile change of the signed-in account goes through —
+ * the restore at sign-in, the server refresh, and edits. An account that has never signed in on
+ * this device has no entry, and its row keeps the mnemonic name.
  *
  * Kept out of the Block Store entry on purpose: that one has a 4KB budget sized for fixed-width
  * records, and a name costs nothing to lose — a missing entry falls back to the mnemonic name. The
@@ -81,9 +83,6 @@ class AccountProfileCache @Inject constructor(
                 trace(tag = TAG, message = "Could not read account profiles", error = error, type = TraceType.Error)
             }
             .getOrDefault(emptyMap())
-
-    /** Records a name fetched for [owner], so the next offline visit still has it. */
-    suspend fun put(owner: String, name: AccountProfileName) = persist(owner, name)
 
     private suspend fun persist(owner: String, name: AccountProfileName) {
         runCatching {
