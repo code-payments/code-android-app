@@ -117,7 +117,7 @@ private fun NameEntryScreenContent(
                         bottom = CodeTheme.dimens.grid.x3
                     ).imePadding(),
                 text = stringResource(R.string.action_next),
-                enabled = state.hasName && state.isChanged && state.processingState.isIdle,
+                enabled = state.isSubmittable(source) && state.isChanged && state.processingState.isIdle,
                 isLoading = state.processingState.loading,
                 isSuccess = state.processingState.success,
                 onClick = {
