@@ -69,16 +69,20 @@ sealed interface Shareable {
         override val pendingData: ShareablePendingData? = null
     }
 
-    data class TipCard(
+    /**
+     * A user's profile link. The Sharesheet title ("Chat with Ada on Flipcash") is built from
+     * [displayName] when sharing, so every place that shares a profile titles it the same way.
+     */
+    data class Profile(
         val userId: ID,
-        // Optional pre-rendered Sharesheet preview. Null degrades to sharing the URL alone.
-        val preview: TipCodePreview? = null,
-        // Optional Sharesheet title shown above the link (e.g. "Tip Brandon McAnsh").
-        val title: String? = null,
+        // The owner's display name. Null shares the link without a title.
+        val displayName: String? = null,
         // The owner's claimed handle, when they have one. Carried so the shared link is the vanity
         // form the You tab shows and copies — sharing a UUID for a card that displays
         // `flipcash.com/<username>` would hand out a second, unrecognisable address for it.
         val username: String? = null,
+        // Optional pre-rendered Sharesheet preview. Null degrades to sharing the URL alone.
+        val preview: TipCodePreview? = null,
     ): Shareable {
         override val pendingData: ShareablePendingData? = null
     }
@@ -86,7 +90,7 @@ sealed interface Shareable {
     /**
      * The tip code itself, as a file (see [TipCodeExport]) — what the "Download" action produces.
      *
-     * Distinct from [TipCard]: that shares the tip *link* and only uses an image as the Sharesheet's
+     * Distinct from [Profile]: that shares the profile *link* and only uses an image as the Sharesheet's
      * thumbnail. Here the file IS the payload, so it goes out as an `EXTRA_STREAM` of the export's
      * own MIME type and a "save to Files" target receives something real.
      */

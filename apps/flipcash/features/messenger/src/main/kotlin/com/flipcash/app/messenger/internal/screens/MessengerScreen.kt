@@ -49,7 +49,6 @@ import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
-import com.flipcash.features.messenger.R
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -245,9 +244,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             // shares it (`rememberProfileShare`): the handle form, titled with their name.
             is ChatAction.ShareProfile -> scope.launch {
                 shareController.present(
-                    Shareable.TipCard(
+                    Shareable.Profile(
                         userId = action.userId,
-                        title = action.displayName?.let { context.getString(R.string.label_tipUser, it) },
+                        displayName = action.displayName,
                         username = action.username,
                     )
                 )
