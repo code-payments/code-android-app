@@ -375,7 +375,7 @@
   <string name="title_requireTouchID">Require Touch ID</string>
   <string name="title_results">Results</string>
   <string name="title_returned">Returned</string>
-  <string name="title_selectAccount">Select an Account</string>
+  <string name="title_selectAccount">Select Account</string>
   <string name="title_selectCountry">Select a Country</string>
   <string name="title_selectCurrency">Select a Currency</string>
   <string name="title_sent">Sent</string>

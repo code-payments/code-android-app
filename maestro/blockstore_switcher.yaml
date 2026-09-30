@@ -17,7 +17,7 @@ tags:
     visible:
       id: account_selection_screen
     timeout: 15000
-- assertVisible: "Select an Account"
+- assertVisible: "Select Account"
 - assertVisible: "Created .*"
 # From inside the app there is no onboarding flow to fall through to, so the footer is hidden —
 # which makes the back control the only way out.
