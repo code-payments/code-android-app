@@ -270,6 +270,8 @@ fun ContentBubble(
                 // TODO
                 is MessageContent.Media -> Unit
                 is MessageContent.System -> Unit
+                // TODO: render ShareProfile; an unsupported widget variant draws nothing until then.
+                is MessageContent.Widget -> Unit
             }
         }
     }

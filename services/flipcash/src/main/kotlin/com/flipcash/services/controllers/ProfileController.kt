@@ -89,14 +89,20 @@ class ProfileController @Inject constructor(
 
     suspend fun setDisplayName(
         displayName: String,
-    ): Result<Unit> {
+    ): Result<String?> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.setDisplayName(displayName, owner)
             // Reflect the change locally so anything observing the profile (e.g. a setup flow
             // deciding which steps remain) sees it without waiting for a refresh.
-            .onSuccess { mergeLocalProfile { it.copy(displayName = displayName) } }
+            .onSuccess { assigned ->
+                mergeLocalProfile {
+                    // Use the server-assigned username when it sent one, rather than assuming the
+                    // existing username is unchanged.
+                    it.copy(displayName = displayName, username = assigned ?: it.username)
+                }
+            }
     }
 
     /**

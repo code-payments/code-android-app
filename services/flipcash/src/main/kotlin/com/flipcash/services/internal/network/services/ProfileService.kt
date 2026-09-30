@@ -48,13 +48,15 @@ internal class ProfileService @Inject constructor(
     suspend fun setDisplayName(
         displayName: String,
         owner: Ed25519.KeyPair,
-    ): Result<Unit> {
+    ): Result<String?> {
         return runCatching {
             api.setDisplayName(displayName, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    ProfileService.SetDisplayNameResponse.Result.OK -> Result.success(Unit)
+                    ProfileService.SetDisplayNameResponse.Result.OK ->
+                        // The server may auto-assign a username derived from the display name.
+                        Result.success(if (response.hasUsername()) response.username.value else null)
                     ProfileService.SetDisplayNameResponse.Result.INVALID_DISPLAY_NAME -> Result.failure(SetDisplayNameError.InvalidDisplayName())
                     ProfileService.SetDisplayNameResponse.Result.DENIED -> Result.failure(SetDisplayNameError.Denied())
                     ProfileService.SetDisplayNameResponse.Result.FAILED_MODERATED ->

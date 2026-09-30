@@ -93,6 +93,9 @@ sealed interface GroupAccess {
                     // one they left. Everyone else is blocked with nothing to buy, which is the arm
                     // that gets a disabled button rather than a purchase they cannot make.
                     ChatRuleRequirement.Staff -> !isStaff
+                    // A speaker-only rule; the server does not send it as a listener rule. If one
+                    // ever appears here nobody satisfies it.
+                    ChatRuleRequirement.Never -> true
                 }
             }
 

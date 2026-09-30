@@ -209,11 +209,33 @@ class ProfileControllerTest {
     @Test
     fun `setDisplayName delegates to repository`() = runTest {
         stubOwner()
-        repository.setDisplayNameResult = Result.success(Unit)
+        repository.setDisplayNameResult = Result.success(null)
 
         val result = controller.setDisplayName("Test")
 
         assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `setDisplayName caches the username the server assigned`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile().copy(username = "old")
+        repository.setDisplayNameResult = Result.success("assigned")
+
+        controller.setDisplayName("Test")
+
+        verify { userManager.set(match<UserProfile> { it.displayName == "Test" && it.username == "assigned" }) }
+    }
+
+    @Test
+    fun `setDisplayName keeps the existing username when the server assigns none`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile().copy(username = "old")
+        repository.setDisplayNameResult = Result.success(null)
+
+        controller.setDisplayName("Test")
+
+        verify { userManager.set(match<UserProfile> { it.displayName == "Test" && it.username == "old" }) }
     }
 
     // endregion
@@ -302,7 +324,7 @@ class ProfileControllerTest {
 
 private class FakeProfileRepository : ProfileRepository {
     var getProfileResult: Result<UserProfile> = Result.failure(RuntimeException("not configured"))
-    var setDisplayNameResult: Result<Unit> = Result.success(Unit)
+    var setDisplayNameResult: Result<String?> = Result.success(null)
     var setUsernameResult: Result<Unit> = Result.success(Unit)
     var setProfilePictureResult: Result<MediaItem> = Result.failure(RuntimeException("not configured"))
     var updateTipCardResult: Result<Unit> = Result.success(Unit)

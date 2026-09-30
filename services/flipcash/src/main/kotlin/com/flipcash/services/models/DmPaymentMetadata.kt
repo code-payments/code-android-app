@@ -65,22 +65,22 @@ fun buildTipDmPaymentMetadata(
         .setChat(
             FlipcashIntentModel.ChatMetadata.newBuilder()
                 .setChatId(Common.ChatId.newBuilder().setValue(chatId.bytes.toByteString()))
-                .setTipDmPayment(
-                    FlipcashIntentModel.ChatMetadata.TipDmPayment.newBuilder()
+                .setDmPayment(
+                    FlipcashIntentModel.ChatMetadata.DmPayment.newBuilder()
                         .setLocation(
                             when (origin) {
                                 TipOrigin.TIPCARD ->
-                                    FlipcashIntentModel.ChatMetadata.TipDmPayment.Location.TIPCARD
+                                    FlipcashIntentModel.ChatMetadata.DmPayment.Location.FLIPCARD
                                 TipOrigin.CHAT ->
-                                    FlipcashIntentModel.ChatMetadata.TipDmPayment.Location.CHAT
+                                    FlipcashIntentModel.ChatMetadata.DmPayment.Location.CHAT
                             }
                         )
                         .setAction(
                             when (action) {
                                 TipAction.SEND ->
-                                    FlipcashIntentModel.ChatMetadata.TipDmPayment.Action.SEND
+                                    FlipcashIntentModel.ChatMetadata.DmPayment.Action.SEND
                                 TipAction.TIP ->
-                                    FlipcashIntentModel.ChatMetadata.TipDmPayment.Action.TIP
+                                    FlipcashIntentModel.ChatMetadata.DmPayment.Action.TIP
                             }
                         )
                 )

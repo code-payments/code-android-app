@@ -10,7 +10,7 @@ import kotlin.test.assertNull
 
 /**
  * [buildTipDmPaymentMetadata] and [buildDmPaymentMetadata] are the only places that build a
- * `ChatMetadata.TipDmPayment` / `ChatMetadata.ContactDmPayment`. Nothing round-tripped either
+ * `ChatMetadata.DmPayment` / `ChatMetadata.ContactDmPayment`. Nothing round-tripped either
  * through the wire before this, so a mistake in which field gets which value — or in which enum
  * constant a [TipOrigin]/[TipAction] maps to — would ship silently. These parse the built bytes
  * back into `AppMetadata` and assert on the decoded fields, not just on the builder calls.
@@ -30,16 +30,16 @@ class DmPaymentMetadataTest {
         val decoded = FlipcashIntentModel.AppMetadata.parseFrom(bytes!!)
 
         assertEquals(
-            FlipcashIntentModel.ChatMetadata.TipDmPayment.Location.TIPCARD,
-            decoded.chat.tipDmPayment.location,
+            FlipcashIntentModel.ChatMetadata.DmPayment.Location.FLIPCARD,
+            decoded.chat.dmPayment.location,
         )
         assertEquals(
-            FlipcashIntentModel.ChatMetadata.TipDmPayment.Action.TIP,
-            decoded.chat.tipDmPayment.action,
+            FlipcashIntentModel.ChatMetadata.DmPayment.Action.TIP,
+            decoded.chat.dmPayment.action,
         )
         assertNotEquals(
-            FlipcashIntentModel.ChatMetadata.TipDmPayment.Action.DEFAULT,
-            decoded.chat.tipDmPayment.action,
+            FlipcashIntentModel.ChatMetadata.DmPayment.Action.DEFAULT,
+            decoded.chat.dmPayment.action,
         )
         assertEquals(chatId.bytes.toByteString(), decoded.chat.chatId.value)
     }
@@ -55,16 +55,16 @@ class DmPaymentMetadataTest {
         val decoded = FlipcashIntentModel.AppMetadata.parseFrom(bytes!!)
 
         assertEquals(
-            FlipcashIntentModel.ChatMetadata.TipDmPayment.Location.CHAT,
-            decoded.chat.tipDmPayment.location,
+            FlipcashIntentModel.ChatMetadata.DmPayment.Location.CHAT,
+            decoded.chat.dmPayment.location,
         )
         assertEquals(
-            FlipcashIntentModel.ChatMetadata.TipDmPayment.Action.SEND,
-            decoded.chat.tipDmPayment.action,
+            FlipcashIntentModel.ChatMetadata.DmPayment.Action.SEND,
+            decoded.chat.dmPayment.action,
         )
         assertNotEquals(
-            FlipcashIntentModel.ChatMetadata.TipDmPayment.Action.DEFAULT,
-            decoded.chat.tipDmPayment.action,
+            FlipcashIntentModel.ChatMetadata.DmPayment.Action.DEFAULT,
+            decoded.chat.dmPayment.action,
         )
     }
 
