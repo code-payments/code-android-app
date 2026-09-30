@@ -3,6 +3,8 @@ package com.flipcash.app.login.internal.accounts
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.accounts.AccountProfileCache
+import com.flipcash.app.auth.internal.accounts.AccountProfileFetcher
+import com.flipcash.app.auth.internal.accounts.AccountProfileName
 import com.flipcash.app.auth.internal.accounts.AccountRecord
 import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.core.MainCoroutineRule
@@ -48,6 +50,7 @@ class AccountSelectionViewModelStateTest {
     private val mnemonicManager: MnemonicManager = mock()
     private val tokenController: TokenController = mock()
     private val resources = FakeResourceHelper()
+    private val profileFetcher: AccountProfileFetcher = mock()
     private val profiles: AccountProfileCache = mock {
         onBlocking { all() } doReturn emptyMap()
     }
@@ -79,6 +82,7 @@ class AccountSelectionViewModelStateTest {
             authManager = authManager,
             mnemonicManager = mnemonicManager,
             tokenController = tokenController,
+            profileFetcher = profileFetcher,
             resources = resources,
             dispatchers = dispatchers,
         )
@@ -128,6 +132,7 @@ class AccountSelectionViewModelStateTest {
             authManager = authManager,
             mnemonicManager = mnemonicManager,
             tokenController = tokenController,
+            profileFetcher = profileFetcher,
             resources = resources,
             dispatchers = TestDispatchers(testScheduler),
         )
@@ -165,33 +170,43 @@ class AccountSelectionViewModelStateTest {
         assertEquals(listOf("b"), viewModel.stateFlow.value.accounts.map { it.entropy })
     }
 
-    private val phrase = MnemonicPhrase(
-        MnemonicPhrase.Kind.L12,
-        listOf("apple") + List(10) { "abandon" } + "elder",
-    )
+    /** A fetched profile renames only its own row, and the username wins over the display name. */
+    @Test
+    fun `a fetched profile retitles its row`() = runTest(mainCoroutineRule.dispatcher) {
+        val store = RecordingAccountStore(listOf(record("a", 2_000L), record("b", 1_000L)))
+        val viewModel = viewModel(store, current = "b", TestDispatchers(testScheduler))
+        advanceUntilIdle()
+
+        viewModel.dispatchEvent(
+            AccountSelectionViewModel.Event.OnProfileResolved(
+                entropy = "a",
+                name = AccountProfileName(username = "sally_streamer", displayName = "Sally"),
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf("@sally_streamer", ""), viewModel.stateFlow.value.accounts.map { it.name })
+    }
+
+    private val mnemonicName = "Apple ... Elder"
 
     @Test
     fun `title prefers the username, as a handle`() {
         assertEquals(
             "@sally_streamer",
-            AccountSelectionViewModel.title(username = "sally_streamer", displayName = "Sally", mnemonic = phrase),
+            AccountSelectionViewModel.title(username = "sally_streamer", displayName = "Sally", mnemonicName = mnemonicName),
         )
     }
 
     @Test
     fun `title falls back to the display name without a username`() {
-        assertEquals("Sally", AccountSelectionViewModel.title(username = null, displayName = "Sally", mnemonic = phrase))
-        assertEquals("Sally", AccountSelectionViewModel.title(username = " ", displayName = "Sally", mnemonic = phrase))
+        assertEquals("Sally", AccountSelectionViewModel.title(username = null, displayName = "Sally", mnemonicName = mnemonicName))
+        assertEquals("Sally", AccountSelectionViewModel.title(username = " ", displayName = "Sally", mnemonicName = mnemonicName))
     }
 
     @Test
     fun `title falls back to the mnemonic name without either`() {
-        assertEquals("Apple ... Elder", AccountSelectionViewModel.title(username = null, displayName = null, mnemonic = phrase))
-        assertEquals("Apple ... Elder", AccountSelectionViewModel.title(username = "", displayName = "", mnemonic = phrase))
-    }
-
-    @Test
-    fun `title is empty for an account with no name and no mnemonic`() {
-        assertEquals("", AccountSelectionViewModel.title(username = null, displayName = null, mnemonic = null))
+        assertEquals(mnemonicName, AccountSelectionViewModel.title(username = null, displayName = null, mnemonicName = mnemonicName))
+        assertEquals(mnemonicName, AccountSelectionViewModel.title(username = "", displayName = "", mnemonicName = mnemonicName))
     }
 }

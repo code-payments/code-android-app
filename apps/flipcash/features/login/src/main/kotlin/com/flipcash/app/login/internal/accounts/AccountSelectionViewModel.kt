@@ -2,6 +2,7 @@ package com.flipcash.app.login.internal.accounts
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.internal.accounts.AccountProfileFetcher
 import com.flipcash.app.auth.internal.accounts.AccountProfileName
 import com.flipcash.app.auth.internal.accounts.AccountRecord
 import com.flipcash.services.models.asHandle
@@ -41,6 +42,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import java.util.concurrent.atomic.AtomicBoolean
@@ -52,6 +54,7 @@ class AccountSelectionViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val mnemonicManager: MnemonicManager,
     private val tokenController: TokenController,
+    private val profileFetcher: AccountProfileFetcher,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
 ) : BaseViewModel<AccountSelectionViewModel.State, AccountSelectionViewModel.Event>(
@@ -98,13 +101,18 @@ class AccountSelectionViewModel @Inject constructor(
          */
         val id: String,
         val entropy: String,
-        val name: String,
+        /** The mnemonic name, the title of last resort. */
+        val mnemonicName: String,
+        val username: String? = null,
+        val displayName: String? = null,
         val ownerAddress: String,
         val creationDate: Long,
         val balance: Fiat? = null,
         val notFound: Boolean = false,
         val balanceUnavailable: Boolean = false,
     ) {
+        val name: String get() = title(username, displayName, mnemonicName)
+
         // The default data class toString() would put a seed into every log line and crash report
         // that touches this state.
         override fun toString(): String = "AccountUiModel(owner=$ownerAddress)"
@@ -125,6 +133,7 @@ class AccountSelectionViewModel @Inject constructor(
             val currentEntropy: String?,
         ) : Event
 
+        data class OnProfileResolved(val entropy: String, val name: AccountProfileName) : Event
         data class OnBalanceResolved(val entropy: String, val balance: Fiat) : Event
         data class OnBalanceNotFound(val entropy: String) : Event
         data class OnBalanceUnavailable(val entropy: String) : Event
@@ -155,7 +164,9 @@ class AccountSelectionViewModel @Inject constructor(
                     )
                 )
             }
-            .flatMapLatest { derived -> derived.asFlow().flatMapMerge { balance(it) } }
+            .flatMapLatest { derived ->
+                derived.asFlow().flatMapMerge { merge(balance(it), profile(it)) }
+            }
             .onEach { dispatchEvent(it) }
             // Derivation is PBKDF2 plus a SLIP-10 chain, and the fetches are network calls;
             // neither belongs on the thread drawing the list.
@@ -237,11 +248,10 @@ class AccountSelectionViewModel @Inject constructor(
             // timestamp is the only other thing distinguishing it.
             id = owner ?: "underived-$creationDate",
             entropy = entropy,
-            name = title(
-                username = profile?.username,
-                displayName = profile?.displayName,
-                mnemonic = mnemonic,
-            ),
+            // The cached names show at once and offline; the fetch replaces them when it lands.
+            mnemonicName = mnemonic?.let { displayName(it) }.orEmpty(),
+            username = profile?.username,
+            displayName = profile?.displayName,
             ownerAddress = owner?.let { truncateAddress(it) }.orEmpty(),
             creationDate = creationDate,
             // A record we cannot derive from is one we can never fetch a balance for.
@@ -300,6 +310,25 @@ class AccountSelectionViewModel @Inject constructor(
             }
     }
 
+    /**
+     * One account's username and display name, fetched signed as that account, so every row is
+     * named and not just the signed-in one. A failure keeps whatever the cache gave the row.
+     */
+    private fun profile(entry: Pair<AccountRecord, Result<AccountCluster>>): Flow<Event> = flow {
+        val (record, cluster) = entry
+        val owner = cluster.getOrNull() ?: return@flow
+        profileFetcher.fetch(owner.authority.keyPair, owner.authorityPublicKey.base58())
+            .onSuccess { emit(Event.OnProfileResolved(record.entropy, it)) }
+            .onFailure { error ->
+                trace(
+                    tag = TAG,
+                    message = "Profile fetch failed for a stored account",
+                    error = error,
+                    type = TraceType.Error,
+                )
+            }
+    }
+
     companion object {
         private const val TAG = "AccountSelection"
 
@@ -308,10 +337,10 @@ class AccountSelectionViewModel @Inject constructor(
          * mnemonic name. iOS picks in the same order, so an account reads the same on both.
          * Blank counts as absent, so a cleared name falls through rather than showing nothing.
          */
-        fun title(username: String?, displayName: String?, mnemonic: MnemonicPhrase?): String =
+        fun title(username: String?, displayName: String?, mnemonicName: String): String =
             username?.takeIf { it.isNotBlank() }?.asHandle()
                 ?: displayName?.takeIf { it.isNotBlank() }
-                ?: mnemonic?.let { displayName(it) }.orEmpty()
+                ?: mnemonicName
 
         /** iOS's `MnemonicPhrase.name`: first word, ellipsis, last word, both capitalised. */
         fun displayName(mnemonic: MnemonicPhrase): String =
@@ -331,6 +360,18 @@ class AccountSelectionViewModel @Inject constructor(
                         accounts = event.accounts,
                         loading = false,
                         currentEntropy = event.currentEntropy,
+                    )
+                }
+
+                is Event.OnProfileResolved -> { state ->
+                    state.copy(
+                        accounts = state.accounts.map {
+                            if (it.entropy == event.entropy) {
+                                it.copy(username = event.name.username, displayName = event.name.displayName)
+                            } else {
+                                it
+                            }
+                        }
                     )
                 }
 

@@ -37,9 +37,9 @@ data class AccountProfileName(
  * keyed by owner public key (base58).
  *
  * Only the signed-in account has a session, so this is how the account list names the others
- * without the network and without signing as them. It is written from [UserManager]'s state, which
- * every profile change goes through — the restore at sign-in, the server refresh, and edits — so
- * the entry is as fresh as the last time that account was signed in.
+ * before [AccountProfileFetcher] has answered, or when it cannot. It is written from two places:
+ * [UserManager]'s state, which every profile change of the signed-in account goes through — the
+ * restore at sign-in, the server refresh, and edits — and each fetch the account list makes.
  *
  * Kept out of the Block Store entry on purpose: that one has a 4KB budget sized for fixed-width
  * records, and a name costs nothing to lose — a missing entry falls back to the mnemonic name. The
@@ -81,6 +81,9 @@ class AccountProfileCache @Inject constructor(
                 trace(tag = TAG, message = "Could not read account profiles", error = error, type = TraceType.Error)
             }
             .getOrDefault(emptyMap())
+
+    /** Records a name fetched for [owner], so the next offline visit still has it. */
+    suspend fun put(owner: String, name: AccountProfileName) = persist(owner, name)
 
     private suspend fun persist(owner: String, name: AccountProfileName) {
         runCatching {
