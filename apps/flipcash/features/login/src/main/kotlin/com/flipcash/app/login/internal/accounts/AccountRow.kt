@@ -62,20 +62,20 @@ internal fun AccountRow(
         ) {
             Text(
                 text = account.name,
-                // textLarge is the primary line on the app's other list rows (Blocklist).
-                style = CodeTheme.typography.textLarge,
+                // iOS sets the name and the balance on one 16pt line (appTextMedium).
+                style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textMain,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = stringResource(R.string.subtitle_accountCreated, relativeCreationDate),
-                style = CodeTheme.typography.textSmall,
+                style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
             )
             Text(
                 text = account.ownerAddress,
-                style = CodeTheme.typography.textSmall,
+                style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
             )
         }
@@ -92,13 +92,13 @@ internal fun AccountRow(
 
             account.notFound -> Text(
                 text = stringResource(R.string.subtitle_accountNotFound),
-                style = CodeTheme.typography.textSmall,
+                style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
             )
 
             account.balanceUnavailable -> Text(
                 text = stringResource(R.string.subtitle_balanceUnavailable),
-                style = CodeTheme.typography.textSmall,
+                style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
             )
 
