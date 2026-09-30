@@ -20,12 +20,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.ui.FlagWithFiat
 import com.flipcash.app.core.ui.shimmer
 import com.flipcash.features.login.R
-import com.getcode.opencode.compose.LocalExchange
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.PriceWithFlag
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -89,7 +87,11 @@ internal fun AccountRow(
                 // flight. An account whose balance we could not fetch must not be reported as not
                 // found — the two say very different things to someone checking their own wallet.
                 when {
-                    account.balance != null -> BalanceWithFlag(account.balance)
+                    // iOS's AmountText(flagSize: .small): a 15pt flag beside the balance.
+                    account.balance != null -> FlagWithFiat(
+                        fiat = account.balance,
+                        iconSize = CodeTheme.dimens.grid.x3,
+                    )
 
                     account.notFound -> NotFoundBadge()
 
@@ -143,33 +145,6 @@ private fun NotFoundBadge(modifier: Modifier = Modifier) {
             text = stringResource(R.string.subtitle_accountNotFound),
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
-        )
-    }
-}
-
-/** iOS's `AmountText(flagSize: .small)`: a 15pt flag beside the balance. */
-@Composable
-private fun BalanceWithFlag(balance: Fiat, modifier: Modifier = Modifier) {
-    val currencyCode = balance.currencyCode.name
-    val flag = LocalExchange.current.getFlagByCurrency(currencyCode)
-    val amount: @Composable (String) -> Unit = { formatted ->
-        Text(
-            text = formatted,
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-        )
-    }
-    // PriceWithFlag draws nothing, amount included, when there is no flag to show.
-    if (flag == null) {
-        Box(modifier) { amount(balance.formatted()) }
-    } else {
-        PriceWithFlag(
-            modifier = modifier,
-            currencyCode = currencyCode,
-            amount = balance.formatted(),
-            flag = flag,
-            iconSize = CodeTheme.dimens.grid.x3,
-            text = amount,
         )
     }
 }
