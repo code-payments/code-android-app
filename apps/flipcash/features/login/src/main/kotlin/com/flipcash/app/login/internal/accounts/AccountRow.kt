@@ -1,6 +1,7 @@
 package com.flipcash.app.login.internal.accounts
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,13 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,17 +44,16 @@ internal fun AccountRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
-        // The tick is laid out for every row so the names line up; it is only drawn, and only
-        // announced, for the account the user is signed into.
-        Icon(
-            modifier = Modifier.size(CodeTheme.dimens.grid.x4),
-            imageVector = Icons.Default.Check,
+        // The same mark as the region, token and group-invite pickers.
+        Image(
+            painter = painterResource(
+                if (isCurrent) R.drawable.ic_checked else R.drawable.ic_unchecked
+            ),
             contentDescription = if (isCurrent) {
                 stringResource(R.string.subtitle_currentAccount)
             } else {
                 null
             },
-            tint = if (isCurrent) CodeTheme.colors.textMain else Color.Transparent,
         )
 
         Column(
@@ -115,3 +112,4 @@ internal fun AccountRow(
         }
     }
 }
+
