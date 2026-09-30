@@ -64,40 +64,7 @@ sealed interface GroupAccess {
             val listener = rules?.listener.orEmpty()
             if (listener.isEmpty()) return Eligible
 
-            // Keyed by bytes, not by the key object: `class Mint(bytes) : PublicKey(bytes)`
-            // (libs/encryption/keys/.../Mint.kt), so the `PublicKey`s in `mints` are not `Mint`s and
-            // a map keyed by `Mint` would miss every one of them.
-            val byMint: Map<List<Byte>, Fiat> =
-                balances.associate { it.token.address.bytes to it.balance }
-
-            val unmet = listener.firstOrNull { requirement ->
-                when (requirement) {
-                    is ChatRuleRequirement.MinimumBalance -> {
-                        val held = if (requirement.mints.isEmpty()) {
-                            byMint.values.sum()
-                        } else {
-                            requirement.mints.mapNotNull { byMint[it.bytes] }.maxOrNull()
-                        }
-                        // Compared at display precision, the held side rounded half-up to cents
-                        // (`Fiat.toDouble`), and a total rounded once, after adding: a balance the wallet shows as $5.00 meets a $5 bar even
-                        // when its exact worth is $4.998, and $4.995 passes too. A launchpad
-                        // holding's exact worth depends on the supply this client last saw, and one
-                        // that lags a buy prices the new tokens a fraction below what was paid. The
-                        // server enforces the rule against its own supply, so admitting half a cent
-                        // too generously costs one denied join. iOS's `ConversationGate.unmetBalance`
-                        // rounds the same way; keep the two in step.
-                        held == null || held.toDouble() < requirement.amount.decimalValue
-                    }
-                    // `UserFlags.is_staff` is the same field the rule is written against, and the
-                    // client already has it — so staff are eligible for a staff chat and can rejoin
-                    // one they left. Everyone else is blocked with nothing to buy, which is the arm
-                    // that gets a disabled button rather than a purchase they cannot make.
-                    ChatRuleRequirement.Staff -> !isStaff
-                    // A speaker-only rule; the server does not send it as a listener rule. If one
-                    // ever appears here nobody satisfies it.
-                    ChatRuleRequirement.Never -> true
-                }
-            }
+            val unmet = listener.firstOrNull { it.isUnmet(balances, isStaff) }
 
             return if (unmet == null) Eligible else Blocked(unmet)
         }
@@ -129,3 +96,73 @@ fun TokenCoordinator.groupAccess(
     )
 }
     .distinctUntilChanged()
+
+/**
+ * Whether the viewer may speak here: every speaker rule holds, as measured by the same predicate
+ * the listener gate uses.
+ *
+ * Independent of [GroupAccess] on purpose. That type answers "may this viewer read and join", and
+ * membership settles it before any rule is looked at; speaking is a second question asked of
+ * someone already in the chat, and a member whose balance has dipped below a speaker bar is still a
+ * member. [ChatRuleRequirement.Never] is never satisfied, so a chat with a `never` speaker rule is
+ * read-only for everyone.
+ *
+ * Callers combine this with membership themselves: a chat the viewer is outside of has no
+ * composer to gate, and whether they may post there is already decided by `canPost`.
+ */
+fun canSpeak(
+    rules: ChatRules?,
+    balances: List<TokenWithBalance>,
+    isStaff: Boolean,
+): Boolean = rules?.speaker.orEmpty().none { it.isUnmet(balances, isStaff) }
+
+/** [canSpeak] over the live balance and the live staff flag, with the same de-duplication as [groupAccess]. */
+fun TokenCoordinator.speakerAccess(
+    rules: ChatRules?,
+    isStaff: Flow<Boolean>,
+): Flow<Boolean> = combine(tokenBalances, isStaff) { balances, staff ->
+    canSpeak(rules = rules, balances = balances, isStaff = staff)
+}
+    .distinctUntilChanged()
+
+/**
+ * Whether one rule is standing in the viewer's way. Shared by the listener gate and [canSpeak] so
+ * a balance or staff bar means the same thing wherever it is written.
+ */
+private fun ChatRuleRequirement.isUnmet(
+    balances: List<TokenWithBalance>,
+    isStaff: Boolean,
+): Boolean {
+    // Keyed by bytes, not by the key object: `class Mint(bytes) : PublicKey(bytes)`
+    // (libs/encryption/keys/.../Mint.kt), so the `PublicKey`s in `mints` are not `Mint`s and
+    // a map keyed by `Mint` would miss every one of them.
+    val byMint: Map<List<Byte>, Fiat> =
+        balances.associate { it.token.address.bytes to it.balance }
+
+    return when (this) {
+        is ChatRuleRequirement.MinimumBalance -> {
+            val held = if (mints.isEmpty()) {
+                byMint.values.sum()
+            } else {
+                mints.mapNotNull { byMint[it.bytes] }.maxOrNull()
+            }
+            // Compared at display precision, the held side rounded half-up to cents
+            // (`Fiat.toDouble`), and a total rounded once, after adding: a balance the wallet shows as $5.00 meets a $5 bar even
+            // when its exact worth is $4.998, and $4.995 passes too. A launchpad
+            // holding's exact worth depends on the supply this client last saw, and one
+            // that lags a buy prices the new tokens a fraction below what was paid. The
+            // server enforces the rule against its own supply, so admitting half a cent
+            // too generously costs one denied join. iOS's `ConversationGate.unmetBalance`
+            // rounds the same way; keep the two in step.
+            held == null || held.toDouble() < amount.decimalValue
+        }
+        // `UserFlags.is_staff` is the same field the rule is written against, and the
+        // client already has it — so staff are eligible for a staff chat and can rejoin
+        // one they left. Everyone else is blocked with nothing to buy, which is the arm
+        // that gets a disabled button rather than a purchase they cannot make.
+        ChatRuleRequirement.Staff -> !isStaff
+        // Nobody satisfies it. The server sends it as a speaker rule only, where it is what
+        // makes a chat read-only for everyone; as a listener rule it would lock everyone out.
+        ChatRuleRequirement.Never -> true
+    }
+}

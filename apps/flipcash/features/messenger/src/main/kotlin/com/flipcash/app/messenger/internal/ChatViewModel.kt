@@ -64,6 +64,7 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.isDmAddressable
@@ -80,6 +81,7 @@ import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.speakerAccess
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.MessagePolicy
 import com.flipcash.shared.chat.MessageReactions
@@ -356,6 +358,11 @@ internal class ChatViewModel @Inject constructor(
          */
         val groupAccess: GroupAccess? = null,
         /**
+         * Whether the chat's speaker rules let this viewer speak. True for a DM, which has none,
+         * and until the balance and staff flag arrive, so a group does not flash Reply away.
+         */
+        val canSpeak: Boolean = true,
+        /**
          * The gate's Join button, same shape as [sendProgress]. Membership arrives from the roster
          * rather than from the join's own reply, so without this the button would sit unchanged for
          * the whole round trip and read as dead — which is what it looked like before it had one.
@@ -524,6 +531,7 @@ internal class ChatViewModel @Inject constructor(
 
         /** The gate re-decided, because membership, the rules, or the balance moved. */
         data class OnGroupAccessResolved(val access: GroupAccess) : Event
+        data class OnCanSpeakResolved(val canSpeak: Boolean) : Event
 
         /** The gate's "Join Chat" button. */
         data object JoinChat : Event
@@ -757,6 +765,12 @@ internal class ChatViewModel @Inject constructor(
     private val viewerCanPost = stateFlow.map { !it.isOutsideGroup }.distinctUntilChanged()
 
     /**
+     * Whether the chat's speaker rules let the viewer speak, alongside [viewerCanPost] (which is
+     * membership). Only a widget's Reply and reactions read it.
+     */
+    private val viewerCanSpeak = stateFlow.map { it.canSpeak }.distinctUntilChanged()
+
+    /**
      * Live reaction overrides for the open chat — see [ReactionOperations.observeChatReactions].
      * A message missing here falls back to `MessageReactions.from(message.reactions)` in
      * [mappedMessages], per that function's contract.
@@ -847,8 +861,8 @@ internal class ChatViewModel @Inject constructor(
             pendingMutations,
             messagePolicy,
             senderProfiles,
-            viewerCanPost,
-        ) { pagingData, mutations, policy, profiles, canPost ->
+            combine(viewerCanPost, viewerCanSpeak, ::Pair),
+        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak) ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.flatMapIndexed { index, content ->
@@ -948,7 +962,12 @@ internal class ChatViewModel @Inject constructor(
                         // Resolved once, here, so no menu re-derives it: a later group-role
                         // taxonomy becomes another input to the resolver rather than a branch at
                         // each action site.
-                        capabilities = resolveCapabilities(message, policy, canPost = canPost),
+                        capabilities = resolveCapabilities(
+                            message,
+                            policy,
+                            canPost = canPost,
+                            canSpeak = canSpeak,
+                        ),
                         quote = quote,
                         sender = sender,
                         // Independent of the profile lookup above: the runs have to break by
@@ -960,7 +979,7 @@ internal class ChatViewModel @Inject constructor(
                         // `splitAroundLinkCard` keeps these pills on the last row only.
                         reactionPills = storedReactions.pills,
                         selfReactions = storedReactions.selfReactions,
-                        canReact = canReact(message),
+                        canReact = canReact(message, canSpeak = canPost && canSpeak),
                         undecryptableHint = undecryptableHint(
                             encryption = message.encryption,
                             isFromSelf = message.isFromSelf,
@@ -1070,6 +1089,15 @@ internal class ChatViewModel @Inject constructor(
                 )
 
                 is MessageContent.Text -> ChatQuoteSnippet.Text(body.text)
+
+                // Named the way the chat list previews it, so a citation and its source agree.
+                is MessageContent.Widget -> ChatQuoteSnippet.Text(
+                    when (body.widget) {
+                        is WidgetContent.ShareProfile ->
+                            resources.getString(R.string.label_chat_preview_sharedProfile)
+                        WidgetContent.Unsupported -> ""
+                    }
+                )
 
                 // A reply to a reply cites the inner body, not the nested citation.
                 is MessageContent.Reply -> ChatQuoteSnippet.Text(
@@ -1625,6 +1653,22 @@ internal class ChatViewModel @Inject constructor(
             }
             .filterNotNull()
             .onEach { dispatchEvent(Event.OnGroupAccessResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // The speaker rules, on the same terms as the gate above. A DM has none, so it speaks.
+        stateFlow.map { it.subject as? ChatSubject.Group }
+            .distinctUntilChanged()
+            .flatMapLatest { group ->
+                if (group == null) {
+                    flowOf(true)
+                } else {
+                    tokenCoordinator.speakerAccess(
+                        rules = group.rules,
+                        isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+                    )
+                }
+            }
+            .onEach { dispatchEvent(Event.OnCanSpeakResolved(it)) }
             .launchIn(viewModelScope)
 
         // Observe member identity — if the other member loses identity (e.g. unlinked
@@ -2675,6 +2719,7 @@ internal class ChatViewModel @Inject constructor(
                 is Event.OnRuleCurrencyResolved ->
                     { state -> state.copy(ruleCurrency = event.currency) }
                 is Event.OnGroupAccessResolved -> { state -> state.copy(groupAccess = event.access) }
+                is Event.OnCanSpeakResolved -> { state -> state.copy(canSpeak = event.canSpeak) }
                 Event.JoinChat -> { state ->
                     state.copy(joinProgress = LoadingSuccessState(loading = true))
                 }

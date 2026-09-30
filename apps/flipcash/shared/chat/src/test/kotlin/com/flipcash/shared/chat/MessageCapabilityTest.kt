@@ -120,11 +120,32 @@ class MessageCapabilityTest {
         )
         assertEquals(emptySet(), resolveCapabilities(theirSystemNotice))
 
-        val widget = message(
+    }
+
+    private val widgetMessage
+        get() = message(
             listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))),
             isFromSelf = false,
         )
-        assertEquals(emptySet(), resolveCapabilities(widget))
+
+    @Test
+    fun `a widget offers only Reply where the viewer may speak`() {
+        // No Copy (no text), no Report (no user sender), no Edit or Delete (not the viewer's).
+        assertEquals(setOf(MessageCapability.Reply), resolveCapabilities(widgetMessage))
+        assertEquals(
+            setOf(MessageCapability.Reply),
+            resolveCapabilities(widgetMessage, canPost = true, canSpeak = true),
+        )
+    }
+
+    @Test
+    fun `a widget offers nothing where the speaker rules forbid speaking`() {
+        assertEquals(emptySet(), resolveCapabilities(widgetMessage, canSpeak = false))
+    }
+
+    @Test
+    fun `a widget offers nothing to a viewer who cannot post`() {
+        assertEquals(emptySet(), resolveCapabilities(widgetMessage, canPost = false))
     }
 
     @Test
@@ -386,9 +407,11 @@ class MessageCapabilityTest {
     }
 
     @Test
-    fun `a widget is not reactable`() {
+    fun `a widget is reactable where the viewer may speak, and not where they may not`() {
         val widget = message(listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))))
-        assertEquals(false, canReact(widget))
+        assertEquals(true, canReact(widget))
+        assertEquals(true, canReact(widget, canSpeak = true))
+        assertEquals(false, canReact(widget, canSpeak = false))
     }
 
     @Test
