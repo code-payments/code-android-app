@@ -6,7 +6,9 @@ import com.flipcash.app.android.R
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.shareable.ShareSheetController
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -15,6 +17,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,7 +30,20 @@ internal class HomeViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val appSettingsCoordinator: AppSettingsCoordinator,
     private val shareSheetController: ShareSheetController,
+    featureFlagController: FeatureFlagController,
+    userFlags: UserFlagsCoordinator,
 ) : ViewModel() {
+
+    /**
+     * Whether a long-press on the You tab opens the account switcher. The same gate that shows
+     * Switch Accounts in Advanced Features — beta flags unlocked, or staff — so the two entry
+     * points always agree. iOS gates both on `betaFlags.canSwitchAccounts`.
+     */
+    val canSwitchAccounts: StateFlow<Boolean> = combine(
+        featureFlagController.observeOverride(),
+        userFlags.resolvedFlags,
+    ) { override, flags -> override || flags.isStaff.effectiveValue }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initialValue = false)
 
     private val _requireBiometrics = MutableStateFlow<Boolean?>(null)
     val requireBiometrics = _requireBiometrics.stateIn(

@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.core.extensions.openAsSheet
 import dev.chrisbanes.haze.HazeState
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.asNavBarTab
@@ -60,6 +61,8 @@ internal fun AppNavigationBar(
     // the controller rather than a Float so the progress is read inside a graphicsLayer and a frame of
     // the expansion doesn't recompose the bar.
     cardExpansion: CardExpansionController? = null,
+    // The same gate as Switch Accounts in Advanced Features: beta flags unlocked, or staff.
+    canSwitchAccounts: Boolean = false,
 ) {
     // Selection follows the base of the backstack (the tab "home"), so it stays correct while a
     // sheet/modal sits on top and is right on launch. The top route only gates visibility.
@@ -133,11 +136,27 @@ internal fun AppNavigationBar(
                     },
                     hazeState = hazeState,
                     avatar = avatar,
+                    onYouTabLongClick = youTabLongClick(canSwitchAccounts, navigator),
                 )
             }
         }
     }
 }
+
+/**
+ * What a long-press on the You tab does: open the account switcher as a sheet, or nothing while
+ * [canSwitchAccounts] is closed. Mirrors iOS `HomeTabView.handleLongPress(on:)`.
+ *
+ * The switcher is the same screen Advanced Features pushes. At a sheet's root its app bar shows a
+ * Close, and choosing an account logs out, which App.kt answers by replacing the stack — sheet
+ * included — with onboarding for the chosen account.
+ */
+internal fun youTabLongClick(canSwitchAccounts: Boolean, navigator: CodeNavigator): (() -> Unit)? =
+    if (canSwitchAccounts) {
+        { navigator.openAsSheet(AppRoute.Menu.AccountSelection) }
+    } else {
+        null
+    }
 
 /**
  * The account's own photo, ready to drop into the You tab, or null when there isn't one.
