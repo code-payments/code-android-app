@@ -2,6 +2,7 @@ package com.flipcash.shared.chat.internal
 
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.ChatRosterDataSource
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.RosterChange
@@ -33,6 +34,7 @@ class RosterStateHolder @Inject constructor(
     private val chatController: ChatController,
     private val metadataDataSource: ChatMetadataDataSource,
     private val memberDataSource: ChatMemberDataSource,
+    private val rosterDataSource: ChatRosterDataSource,
 ) {
 
     /**
@@ -75,6 +77,9 @@ class RosterStateHolder @Inject constructor(
      * members the device legitimately holds — including the senders a transcript needs to name.
      * Departures come through [RosterChange.MemberLeft]; this is only here to get the count and
      * the version back in step with the server.
+     *
+     * The skipped changes may include leaves the merge cannot see, so the chat is also flagged for
+     * a full [RosterSync] read the next time it opens.
      */
     private suspend fun refetch(chatId: ChatId, stored: Long, incoming: Long) {
         trace(
@@ -82,6 +87,7 @@ class RosterStateHolder @Inject constructor(
             message = "Roster version gap on $chatId: stored $stored, incoming $incoming",
             type = TraceType.Silent,
         )
+        rosterDataSource.markNeedsResync(chatId)
         val metadata = chatController.getChat(chatId).getOrElse {
             // Leaving the stored version alone is what makes this retryable: the next change on
             // this chat still reads as a gap, and tries again.

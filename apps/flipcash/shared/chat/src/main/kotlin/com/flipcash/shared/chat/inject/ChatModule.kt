@@ -2,10 +2,14 @@ package com.flipcash.shared.chat.inject
 
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
+import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
+import com.flipcash.shared.chat.internal.LocalRosterSearchSource
 import com.flipcash.shared.chat.internal.OutgoingEncryption
 import com.flipcash.shared.chat.internal.RealChatCoordinator
 import com.flipcash.shared.chat.internal.RealChatDraftStore
+import com.flipcash.shared.chat.internal.RosterSync
+import com.flipcash.shared.chat.internal.RosterSyncTrigger
 import com.getcode.opencode.providers.SessionListener
 import dagger.Binds
 import dagger.Module
@@ -34,6 +38,16 @@ abstract class ChatModule {
     internal abstract fun bindOutgoingEncryption(
         impl: DmOutgoingEncryption
     ): OutgoingEncryption
+
+    @Binds
+    internal abstract fun bindRosterSearchSource(
+        impl: LocalRosterSearchSource
+    ): RosterSearchSource
+
+    @Binds
+    abstract fun bindRosterSyncTrigger(
+        impl: RosterSync
+    ): RosterSyncTrigger
 
     @Binds
     @IntoSet

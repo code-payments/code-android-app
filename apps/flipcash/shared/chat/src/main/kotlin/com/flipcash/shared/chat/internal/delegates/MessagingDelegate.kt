@@ -43,6 +43,7 @@ import com.flipcash.shared.chat.PendingMutation
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.OutgoingEncryption
+import com.flipcash.shared.chat.internal.RosterSyncTrigger
 import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.MessageLinkPrefetch
@@ -96,6 +97,8 @@ class MessagingDelegate @Inject constructor(
     private val outgoing: OutgoingEncryption = OutgoingEncryption.None,
     /** Opens encrypted pushes; without it, every push keeps the server's body. */
     private val incoming: IncomingMessageOpener? = null,
+    /** Reads a group's whole roster when it opens; without it, only what the feed carries is held. */
+    private val rosterSync: RosterSyncTrigger = RosterSyncTrigger.None,
 ) : MessagingOperations {
 
     /**
@@ -124,6 +127,7 @@ class MessagingDelegate @Inject constructor(
 
     override fun setActiveChatId(chatId: ChatId?) {
         stateHolder.update { it.copy(activeChat = chatId) }
+        if (chatId != null) rosterSync.onChatOpened(chatId)
     }
 
     override fun clearActiveChat(chatId: ChatId?) {
