@@ -9,6 +9,7 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.shared.chat.ChatSummary
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.toFiat
@@ -348,5 +349,24 @@ class ChatSummaryPreviewTest {
 
         assertTrue(reference.hasMessages)
         assertNull(reference.lastMessagePreview)
+    }
+
+    @Test
+    fun `a shared profile previews as such, and the viewer's own says so`() {
+        every {
+            resources.getString(R.string.label_chat_preview_sharedProfile)
+        } returns "Shared a profile"
+        every {
+            resources.getString(R.string.label_chat_preview_sharedProfile_you)
+        } returns "You shared a profile"
+        val widget = MessageContent.Widget(WidgetContent.ShareProfile("brad"))
+
+        assertEquals("Shared a profile", preview(listOf(widget)))
+        assertEquals("You shared a profile", preview(listOf(widget), senderId = self))
+    }
+
+    @Test
+    fun `a widget this client can't draw has nothing to preview`() {
+        assertNull(preview(listOf(MessageContent.Widget(WidgetContent.Unsupported))))
     }
 }

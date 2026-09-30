@@ -4,6 +4,7 @@ import com.flipcash.core.R
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.ChatSummary
 import com.getcode.opencode.model.core.ID
@@ -183,8 +184,16 @@ private fun MessageContent.previewText(
     is MessageContent.Media -> null
     is MessageContent.System -> null
 
-    // TODO: preview text for widgets once the design settles.
-    is MessageContent.Widget -> null
+    // A widget this client can't draw previews as nothing, as an undecryptable message does.
+    is MessageContent.Widget -> when (widget) {
+        is WidgetContent.ShareProfile -> when {
+            sentBySelf -> resources.getString(R.string.label_chat_preview_sharedProfile_you)
+            senderName != null ->
+                resources.getString(R.string.label_chat_preview_sharedProfile_bySender, senderName)
+            else -> resources.getString(R.string.label_chat_preview_sharedProfile)
+        }
+        WidgetContent.Unsupported -> null
+    }
 }
 
 private const val MAX_REPLY_UNWRAP_DEPTH = 4
