@@ -32,7 +32,7 @@ internal class UserFlagsMapper @Inject constructor():
             enablePhoneNumberSend = from.enablePhoneNumberSend,
             minimumHolderValue = Fiat(quarks = from.minimumHolderValue),
             requireCoinbaseEmailVerification = from.requireCoinbaseEmailVerification,
-            tipPresets = from.tipPresetsList.map { it.toDomain() },
+            tipPresets = from.sendPresetsList.map { it.toDomain() },
             usernameMinBalance = Fiat(quarks = from.usernameMinBalance),
             messageEditWindow = if (from.hasMessageEditWindow()) {
                 from.messageEditWindow.seconds.toDuration(DurationUnit.SECONDS)
@@ -44,7 +44,7 @@ internal class UserFlagsMapper @Inject constructor():
     }
 }
 
-private fun FlipcashAccountService.TipPresets.toDomain(): TipPresets = TipPresets(
+private fun FlipcashAccountService.SendPresets.toDomain(): TipPresets = TipPresets(
     region = region.value,
     minimum = minimum,
     low = low,

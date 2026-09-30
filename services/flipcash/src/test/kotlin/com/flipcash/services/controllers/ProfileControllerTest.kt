@@ -238,6 +238,27 @@ class ProfileControllerTest {
         verify { userManager.set(match<UserProfile> { it.displayName == "Test" && it.username == "old" }) }
     }
 
+    @Test
+    fun `setDisplayName flags the username as auto-assigned when the server assigns one`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile()
+        repository.setDisplayNameResult = Result.success("assigned")
+
+        controller.setDisplayName("Test")
+
+        verify { userManager.set(match<UserProfile> { it.isUsernameAutoAssigned }) }
+    }
+
+    @Test
+    fun `setUsername clears the auto-assigned flag`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile().copy(username = "assigned", isUsernameAutoAssigned = true)
+
+        controller.setUsername("chosen")
+
+        verify { userManager.set(match<UserProfile> { it.username == "chosen" && !it.isUsernameAutoAssigned }) }
+    }
+
     // endregion
 
     // region linkTwitterXAccount

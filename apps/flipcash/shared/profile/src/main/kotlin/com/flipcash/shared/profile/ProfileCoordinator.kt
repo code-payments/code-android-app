@@ -81,6 +81,7 @@ private data class CachedProfile(
     val socialAccounts: List<CachedSocialAccount> = emptyList(),
     val phoneNumber: VerifiableContactMethod? = null,
     val email: VerifiableContactMethod? = null,
+    val isUsernameAutoAssigned: Boolean = false,
 ) {
     fun toDomain(): UserProfile = UserProfile(
         displayName = displayName.orEmpty(),
@@ -88,6 +89,7 @@ private data class CachedProfile(
         socialAccounts = socialAccounts.mapNotNull { it.toDomain() },
         phoneNumber = phoneNumber,
         email = email,
+        isUsernameAutoAssigned = isUsernameAutoAssigned,
     )
 
     companion object {
@@ -97,6 +99,7 @@ private data class CachedProfile(
             socialAccounts = profile.socialAccounts.map { CachedSocialAccount.fromDomain(it) },
             phoneNumber = profile.phoneNumber,
             email = profile.email,
+            isUsernameAutoAssigned = profile.isUsernameAutoAssigned,
         )
     }
 }

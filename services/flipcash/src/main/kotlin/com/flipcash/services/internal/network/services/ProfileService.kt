@@ -120,14 +120,14 @@ internal class ProfileService @Inject constructor(
         hexColor: String,
     ): Result<Unit> {
         return runCatching {
-            api.updateTipCard(owner, hexColor)
+            api.updateFlipcard(owner, hexColor)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    ProfileService.UpdateTipCardResponse.Result.OK -> Result.success(Unit)
-                    ProfileService.UpdateTipCardResponse.Result.DENIED -> Result.failure(UpdateTipCardError.Denied())
-                    ProfileService.UpdateTipCardResponse.Result.INVALID_COLOR -> Result.failure(UpdateTipCardError.InvalidColor())
-                    ProfileService.UpdateTipCardResponse.Result.UNRECOGNIZED -> Result.failure(UpdateTipCardError.Unrecognized())
+                    ProfileService.UpdateFlipcardResponse.Result.OK -> Result.success(Unit)
+                    ProfileService.UpdateFlipcardResponse.Result.DENIED -> Result.failure(UpdateTipCardError.Denied())
+                    ProfileService.UpdateFlipcardResponse.Result.INVALID_COLOR -> Result.failure(UpdateTipCardError.InvalidColor())
+                    ProfileService.UpdateFlipcardResponse.Result.UNRECOGNIZED -> Result.failure(UpdateTipCardError.Unrecognized())
                     null -> Result.failure(UpdateTipCardError.Unrecognized())
                 }
             },

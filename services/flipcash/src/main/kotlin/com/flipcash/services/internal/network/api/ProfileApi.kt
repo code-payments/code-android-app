@@ -140,11 +140,11 @@ internal class ProfileApi @Inject constructor(
     /**
      * Updates the caller's tip card customization with the given hex color.
      */
-    suspend fun updateTipCard(
+    suspend fun updateFlipcard(
         owner: Ed25519.KeyPair,
         hexColor: String,
-    ): ProfileService.UpdateTipCardResponse {
-        val request = ProfileService.UpdateTipCardRequest.newBuilder()
+    ): ProfileService.UpdateFlipcardResponse {
+        val request = ProfileService.UpdateFlipcardRequest.newBuilder()
             .setColor(
                 Common.Color.newBuilder()
                     .setHex(hexColor)
@@ -156,7 +156,7 @@ internal class ProfileApi @Inject constructor(
         request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
-            api.updateTipCard(request)
+            api.updateFlipcard(request)
         }
     }
 
