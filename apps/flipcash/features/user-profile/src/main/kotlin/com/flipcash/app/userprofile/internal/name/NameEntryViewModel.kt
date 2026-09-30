@@ -158,8 +158,9 @@ class NameEntryViewModel @Inject constructor(
                 // pushes the stored name into the field, so the field itself
                 // cannot tell us whether one already existed.
                 val hadPreviousName = !userManager.profile?.displayName.isNullOrBlank()
+                val typed = stateFlow.value.nameFieldState.text.toString()
                 val result = profileController.setDisplayName(
-                    stateFlow.value.nameFieldState.text.toString()
+                    submittedName(typed, event.source)
                 )
                 result.onSuccess {
                     val analyticsEvent = if (hadPreviousName) {
@@ -244,6 +245,10 @@ class NameEntryViewModel @Inject constructor(
         }
     }
     internal companion object {
+        /** Onboarding submits the trimmed name (as iOS does); other sources send the field text as typed. */
+        fun submittedName(typed: String, source: DisplayNameSource): String =
+            if (source == DisplayNameSource.Onboarding) trimOnboardingDisplayName(typed) else typed
+
         val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
                 is Event.ConfirmNameChange -> { state -> state }

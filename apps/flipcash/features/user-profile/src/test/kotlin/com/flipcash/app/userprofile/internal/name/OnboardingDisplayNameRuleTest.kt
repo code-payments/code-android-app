@@ -54,4 +54,21 @@ class OnboardingDisplayNameRuleTest {
         assertTrue(state.isSubmittable(DisplayNameSource.TipCardSetup))
         assertEquals(true, state.hasName)
     }
+
+    @Test
+    fun `trims the same set as iOS whitespacesAndNewlines`() {
+        assertTrue(isValidOnboardingDisplayName("Taylor\u00A0"))
+        assertTrue(isValidOnboardingDisplayName("\u3000Taylor"))
+        assertTrue(isValidOnboardingDisplayName("Taylor\u0085"))
+        assertFalse(isValidOnboardingDisplayName("Taylor\u001F"))
+        assertFalse(isValidOnboardingDisplayName("Tay\u00A0lor"))
+    }
+
+    @Test
+    fun `onboarding submits the trimmed name and other sources the typed text`() {
+        val typed = "\u3000Taylor Smith\u0085"
+        assertEquals("Taylor Smith", NameEntryViewModel.submittedName(typed, DisplayNameSource.Onboarding))
+        assertEquals(typed, NameEntryViewModel.submittedName(typed, DisplayNameSource.MyAccount))
+        assertEquals(typed, NameEntryViewModel.submittedName(typed, DisplayNameSource.TipCardSetup))
+    }
 }
