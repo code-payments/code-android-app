@@ -267,7 +267,7 @@ fun TokenBalanceRow(
                             .width(styling.flagSize)
                             .clip(CircleShape),
                         painter = painterResource(it),
-                        contentDescription = ""
+                        contentDescription = null
                     )
                 }
             }

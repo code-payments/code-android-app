@@ -65,7 +65,7 @@ internal fun ListRowItem(
                                 .clip(CodeTheme.shapes.large)
                                 .align(Alignment.CenterVertically),
                             painter = painterResource(resId),
-                            contentDescription = ""
+                            contentDescription = null
                         )
                     }
                     Column(
