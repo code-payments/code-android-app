@@ -101,6 +101,18 @@ class GroupAccessTest {
     }
 
     @Test
+    fun `a creator requirement among listener rules is never satisfied`() {
+        val access = GroupAccess.evaluate(
+            isMember = false,
+            rules = rules(ChatRuleRequirement.Creator),
+            balances = emptyList(),
+            isStaff = true,
+        )
+
+        assertEquals(GroupAccess.Blocked(ChatRuleRequirement.Creator), access)
+    }
+
+    @Test
     fun `too little of the named token is blocked by that requirement`() {
         val requirement = ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))
 

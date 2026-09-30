@@ -208,6 +208,31 @@ class ChatEntityMapperTest {
     }
 
     @Test
+    fun `creator, never and unsupported speaker rules survive the round trip`() {
+        val metadata = groupMetadata().copy(
+            rules = ChatRules(
+                listener = emptyList(),
+                speaker = listOf(
+                    ChatRuleRequirement.Creator,
+                    ChatRuleRequirement.Never,
+                    ChatRuleRequirement.UnsupportedSpeakerRule,
+                ),
+            ),
+        )
+
+        val restored = mapper.toMetadata(mapper.toEntity(metadata), members = emptyList(), lastMessage = null)
+
+        assertEquals(
+            listOf(
+                ChatRuleRequirement.Creator,
+                ChatRuleRequirement.Never,
+                ChatRuleRequirement.UnsupportedSpeakerRule,
+            ),
+            restored.rules?.speaker,
+        )
+    }
+
+    @Test
     fun `group identity and roster survive the round trip`() {
         val entity = mapper.toEntity(groupMetadata())
 

@@ -514,7 +514,7 @@ internal fun ChatModel.RosterUpdate.toRosterChangeOrNull(
 internal fun ChatModel.Rules.toChatRules(): ChatRules {
     return ChatRules(
         listener = listenerList.mapNotNull { it.toRuleRequirementOrNull() },
-        speaker = speakerList.mapNotNull { it.toRuleRequirementOrNull() },
+        speaker = speakerList.map { it.toSpeakerRequirement() },
     )
 }
 
@@ -535,9 +535,15 @@ internal fun ChatModel.SpeakerRules.toRuleRequirementOrNull(): ChatRuleRequireme
         ChatModel.SpeakerRules.KindCase.MINIMUM_BALANCE -> minimumBalance.toRuleRequirement()
         ChatModel.SpeakerRules.KindCase.STAFF -> ChatRuleRequirement.Staff
         ChatModel.SpeakerRules.KindCase.NEVER -> ChatRuleRequirement.Never
+        ChatModel.SpeakerRules.KindCase.CREATOR -> ChatRuleRequirement.Creator
         else -> null
     }
 }
+
+// Unlike listener rules, an unrecognised speaker rule is kept: RULE_NOT_SET is also what a case from
+// a newer contract decodes to, and dropping it would read as "no requirement" and open posting.
+internal fun ChatModel.SpeakerRules.toSpeakerRequirement(): ChatRuleRequirement =
+    toRuleRequirementOrNull() ?: ChatRuleRequirement.UnsupportedSpeakerRule
 
 internal fun ChatModel.MinimumBalanceRequirement.toRuleRequirement(): ChatRuleRequirement.MinimumBalance {
     return ChatRuleRequirement.MinimumBalance(

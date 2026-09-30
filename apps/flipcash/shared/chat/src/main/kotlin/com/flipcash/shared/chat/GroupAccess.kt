@@ -180,5 +180,8 @@ private fun ChatRuleRequirement.isUnmet(
         // Nobody satisfies it. The server sends it as a speaker rule only, where it is what
         // makes a chat read-only for everyone; as a listener rule it would lock everyone out.
         ChatRuleRequirement.Never -> true
+        // Speaker-only; nobody satisfies either as a listener rule.
+        ChatRuleRequirement.Creator,
+        ChatRuleRequirement.UnsupportedSpeakerRule -> true
     }
 }
