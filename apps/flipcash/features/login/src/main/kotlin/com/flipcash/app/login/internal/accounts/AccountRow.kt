@@ -2,6 +2,7 @@ package com.flipcash.app.login.internal.accounts
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -69,7 +71,9 @@ internal fun AccountRow(
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
                 Text(
-                    modifier = Modifier.weight(1f),
+                    // Without a balance to push to the end, the Not Found badge follows the name
+                    // directly, as on iOS.
+                    modifier = Modifier.weight(1f, fill = !account.notFound),
                     text = account.name,
                     style = CodeTheme.typography.textMedium,
                     color = CodeTheme.colors.textMain,
@@ -88,11 +92,7 @@ internal fun AccountRow(
                         color = CodeTheme.colors.textMain,
                     )
 
-                    account.notFound -> Text(
-                        text = stringResource(R.string.subtitle_accountNotFound),
-                        style = CodeTheme.typography.caption,
-                        color = CodeTheme.colors.textSecondary,
-                    )
+                    account.notFound -> NotFoundBadge()
 
                     account.balanceUnavailable -> Text(
                         text = stringResource(R.string.subtitle_balanceUnavailable),
@@ -124,3 +124,23 @@ internal fun AccountRow(
     }
 }
 
+/** iOS's `Badge(decoration: .circle(.textError))`: a 6pt dot in textError beside appTextSmall. */
+@Composable
+private fun NotFoundBadge(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        Box(
+            Modifier
+                .size(6.dp)
+                .background(CodeTheme.colors.errorText, CircleShape)
+        )
+        Text(
+            text = stringResource(R.string.subtitle_accountNotFound),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+        )
+    }
+}
