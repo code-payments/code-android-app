@@ -67,14 +67,6 @@ internal fun AccountSelectionContent(
                     contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset),
                 ) {
                     itemsIndexed(state.accounts, key = { _, account -> account.id }) { index, account ->
-                        // iOS separates the rows with a hairline in rowSeparator, the same white
-                        // at 10% as divider.
-                        if (index > 0) {
-                            HorizontalDivider(
-                                color = CodeTheme.colors.divider,
-                                thickness = 0.5.dp,
-                            )
-                        }
                         AccountRow(
                             account = account,
                             isCurrent = account.entropy == state.currentEntropy,
@@ -84,6 +76,14 @@ internal fun AccountSelectionContent(
                             onClick = { onSelect(account.entropy) },
                             onLongClick = { onRemove(account.entropy) },
                         )
+                        // iOS separates the rows with a hairline in rowSeparator, the same white
+                        // at 10% as divider.
+                        if (index < state.accounts.lastIndex) {
+                            HorizontalDivider(
+                                color = CodeTheme.colors.divider,
+                                thickness = 0.5.dp,
+                            )
+                        }
                     }
                 }
             }
