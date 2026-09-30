@@ -371,4 +371,29 @@ class GroupAccessTest {
         assertEquals(false, canSpeak(both, emptyList(), isStaff = true))
         assertEquals(true, canSpeak(both, listOf(held(1, "BadBoys", 600.0)), isStaff = true))
     }
+
+    @Test
+    fun `the unmet speaker requirement names a balance before a staff or never rule`() {
+        val bar = ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys))
+        val rules = speaker(ChatRuleRequirement.Never, ChatRuleRequirement.Staff, bar)
+        assertEquals(bar, unmetSpeakerRequirement(rules, emptyList(), isStaff = false))
+        assertEquals(
+            ChatRuleRequirement.Never,
+            unmetSpeakerRequirement(rules, listOf(held(1, "BadBoys", 600.0)), isStaff = true),
+        )
+    }
+
+    @Test
+    fun `a met speaker rule is never named`() {
+        val bar = ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys))
+        val rules = speaker(bar, ChatRuleRequirement.Staff)
+        assertEquals(
+            ChatRuleRequirement.Staff,
+            unmetSpeakerRequirement(rules, listOf(held(1, "BadBoys", 600.0)), isStaff = false),
+        )
+        assertEquals(
+            null,
+            unmetSpeakerRequirement(rules, listOf(held(1, "BadBoys", 600.0)), isStaff = true),
+        )
+    }
 }

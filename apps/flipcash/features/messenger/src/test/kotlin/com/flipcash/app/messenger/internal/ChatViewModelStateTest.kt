@@ -534,4 +534,40 @@ class ChatViewModelStateTest {
         replyTarget = replyingTo?.toDraftReply(),
         editStash = editing?.stashedDraft,
     )
+
+    @Test
+    fun `a member the speaker rules silence sees the read-only panel and cannot speak`() {
+        val state = ChatViewModel.State(
+            subject = group(isMember = true),
+            speakerBlock = ChatRuleRequirement.Never,
+        )
+        assertTrue(state.isReadOnlySpeaker)
+        assertFalse(state.canSpeak)
+        // The Join gate is not the one standing in: this viewer is in the group.
+        assertFalse(state.replacesComposer)
+    }
+
+    @Test
+    fun `a member who may speak keeps the composer`() {
+        val state = ChatViewModel.State(subject = group(isMember = true), speakerBlock = null)
+        assertFalse(state.isReadOnlySpeaker)
+        assertTrue(state.canSpeak)
+    }
+
+    @Test
+    fun `an outsider gets the join gate rather than the read-only panel`() {
+        val state = ChatViewModel.State(
+            subject = group(isMember = false),
+            speakerBlock = ChatRuleRequirement.Never,
+        )
+        assertTrue(state.replacesComposer)
+        assertFalse(state.isReadOnlySpeaker)
+    }
+
+    @Test
+    fun `a direct message has no rules and is never read-only`() {
+        val state = ChatViewModel.State(subject = dm)
+        assertTrue(state.canSpeak)
+        assertFalse(state.isReadOnlySpeaker)
+    }
 }

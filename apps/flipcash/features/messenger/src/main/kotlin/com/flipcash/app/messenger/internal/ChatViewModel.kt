@@ -80,8 +80,9 @@ import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.shared.chat.GroupAccess
-import com.flipcash.shared.chat.speakerAccess
+import com.flipcash.shared.chat.speakerBlock
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.MessagePolicy
 import com.flipcash.shared.chat.MessageReactions
@@ -358,10 +359,11 @@ internal class ChatViewModel @Inject constructor(
          */
         val groupAccess: GroupAccess? = null,
         /**
-         * Whether the chat's speaker rules let this viewer speak. True for a DM, which has none,
-         * and until the balance and staff flag arrive, so a group does not flash Reply away.
+         * The speaker requirement standing between this viewer and speaking, or null when there is
+         * none. Null for a DM, which has no rules, and until the balance and staff flag arrive, so
+         * a group does not flash Reply away.
          */
-        val canSpeak: Boolean = true,
+        val speakerBlock: ChatRuleRequirement? = null,
         /**
          * The gate's Join button, same shape as [sendProgress]. Membership arrives from the roster
          * rather than from the join's own reply, so without this the button would sit unchanged for
@@ -449,6 +451,20 @@ internal class ChatViewModel @Inject constructor(
         val obscuresTranscript: Boolean
             get() = isOutsideGroup && !readsFromOutside
 
+        /** Whether the chat's speaker rules let this viewer speak. See [speakerBlock]. */
+        val canSpeak: Boolean
+            get() = speakerBlock == null
+
+        /**
+         * Whether a member who may not speak sees the read-only panel in place of the composer.
+         * Distinct from [replacesComposer], which is about the viewer being outside the group: a
+         * viewer outside has the Join gate, and speaking is a question asked only of a member.
+         *
+         * Mirrors iOS `ConversationGatePresentation.readOnly`.
+         */
+        val isReadOnlySpeaker: Boolean
+            get() = subject is ChatSubject.Group && !isOutsideGroup && !replacesComposer && speakerBlock != null
+
         /**
          * Whether the gate stands where the composer does. Every viewer outside the group, eligible
          * or not: reading a group from outside is not posting in it.
@@ -531,7 +547,7 @@ internal class ChatViewModel @Inject constructor(
 
         /** The gate re-decided, because membership, the rules, or the balance moved. */
         data class OnGroupAccessResolved(val access: GroupAccess) : Event
-        data class OnCanSpeakResolved(val canSpeak: Boolean) : Event
+        data class OnSpeakerBlockResolved(val block: ChatRuleRequirement?) : Event
 
         /** The gate's "Join Chat" button. */
         data object JoinChat : Event
@@ -766,7 +782,7 @@ internal class ChatViewModel @Inject constructor(
 
     /**
      * Whether the chat's speaker rules let the viewer speak, alongside [viewerCanPost] (which is
-     * membership). Only a widget's Reply and reactions read it.
+     * membership). Reply and reactions read it on every message.
      */
     private val viewerCanSpeak = stateFlow.map { it.canSpeak }.distinctUntilChanged()
 
@@ -1660,15 +1676,15 @@ internal class ChatViewModel @Inject constructor(
             .distinctUntilChanged()
             .flatMapLatest { group ->
                 if (group == null) {
-                    flowOf(true)
+                    flowOf(null)
                 } else {
-                    tokenCoordinator.speakerAccess(
+                    tokenCoordinator.speakerBlock(
                         rules = group.rules,
                         isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
                     )
                 }
             }
-            .onEach { dispatchEvent(Event.OnCanSpeakResolved(it)) }
+            .onEach { dispatchEvent(Event.OnSpeakerBlockResolved(it)) }
             .launchIn(viewModelScope)
 
         // Observe member identity — if the other member loses identity (e.g. unlinked
@@ -2719,7 +2735,7 @@ internal class ChatViewModel @Inject constructor(
                 is Event.OnRuleCurrencyResolved ->
                     { state -> state.copy(ruleCurrency = event.currency) }
                 is Event.OnGroupAccessResolved -> { state -> state.copy(groupAccess = event.access) }
-                is Event.OnCanSpeakResolved -> { state -> state.copy(canSpeak = event.canSpeak) }
+                is Event.OnSpeakerBlockResolved -> { state -> state.copy(speakerBlock = event.block) }
                 Event.JoinChat -> { state ->
                     state.copy(joinProgress = LoadingSuccessState(loading = true))
                 }

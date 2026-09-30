@@ -57,6 +57,7 @@ import com.flipcash.app.messenger.internal.requiresStaff
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.models.ChatActionHandler
+import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.shared.chat.ui.ComposerReplyStrip
 import com.getcode.theme.CodeTheme
@@ -117,6 +118,23 @@ internal fun UserControlBottomBar(
             currency = state.ruleCurrency,
             onAction = onAction,
             joinProgress = state.joinProgress,
+        )
+        return
+    }
+
+    // A member the speaker rules keep from speaking: nothing to type into, so the panel stands
+    // where the composer would. Checked after the join gate, which owns every viewer outside.
+    state.speakerBlock?.takeIf { state.isReadOnlySpeaker }?.let { block ->
+        val rules = (state.subject as? ChatSubject.Group)?.rules
+        val ruleMint = rules.balanceRequirement()?.mints?.firstOrNull()
+        val blockMint = (block as? ChatRuleRequirement.MinimumBalance)?.mints?.firstOrNull()
+        SpeakerGateBar(
+            requirement = block,
+            hazeState = hazeState,
+            // The resolved currency describes the chat's stated balance rule; only name it when
+            // that is the mint this requirement is about.
+            currencyName = state.ruleCurrency?.nameInRequirement
+                ?.takeIf { blockMint != null && ruleMint?.bytes == blockMint.bytes },
         )
         return
     }
