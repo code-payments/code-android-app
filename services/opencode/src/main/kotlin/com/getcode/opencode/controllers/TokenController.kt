@@ -132,6 +132,44 @@ class TokenController @Inject constructor(
     }
 
     /**
+     * Like [fetchTokenAccounts], for an owner with no warm metadata cache: one account lookup and
+     * one batched metadata lookup, however many tokens the owner holds. [fetchTokenAccounts]
+     * resolves metadata one mint at a time, which is cheap behind a cache and a round trip per
+     * token without one. This is the shape iOS's account list uses.
+     *
+     * A mint the batch does not return fails the whole fetch, rather than dropping that token and
+     * reporting a total that is silently short.
+     */
+    suspend fun fetchTokenBalances(cluster: AccountCluster): Result<List<TokenWithBalance>> {
+        val response = retryable(maxRetries = 3) {
+            accountController.getAccounts(
+                cluster, cluster, AccountFilter.AccountType(AccountType.Primary)
+            )
+        } ?: return Result.failure(IllegalStateException("Failed to fetch accounts after retries"))
+
+        return response.mapCatching { accountResponse ->
+            val accounts = accountResponse.accounts.values
+            if (accounts.isEmpty()) return@mapCatching emptyList()
+
+            val metadata = getTokenMetadata(accounts.map { it.mint }.distinct())
+                .getOrThrow()
+                .associateBy { it.address }
+
+            accounts.map { account ->
+                val token = metadata[account.mint]
+                    ?: throw IllegalStateException("No metadata returned for ${account.mint}")
+                val tokenBalance = Fiat.tokenBalance(account.balance, token)
+                TokenWithBalance(
+                    token = token,
+                    balance = tokenBalance,
+                    appreciation = tokenBalance - Fiat(fiat = account.usdCostBasis),
+                    tokenQuarks = account.balance,
+                )
+            }
+        }
+    }
+
+    /**
      * Fetches a single token account for the given mint and builds a [TokenWithBalance].
      *
      * @param cluster The authenticated user's [AccountCluster].

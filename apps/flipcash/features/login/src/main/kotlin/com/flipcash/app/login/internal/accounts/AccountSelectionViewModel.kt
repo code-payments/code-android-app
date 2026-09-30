@@ -18,11 +18,8 @@ import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.TokenResult
 import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.usdf
-import com.getcode.opencode.providers.TokenMetadataProvider
-import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
@@ -31,9 +28,10 @@ import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -45,6 +43,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
@@ -62,28 +61,6 @@ class AccountSelectionViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
-
-    /**
-     * TokenController does not implement [TokenMetadataProvider] itself (only TokenCoordinator
-     * does, scoped to the single signed-in user, which is wrong for this screen's other, dormant
-     * accounts), so this screen brings its own, delegating to TokenController's network-tier
-     * lookup with no cache — there is no warm cache here to benefit from anyway.
-     *
-     * One instance per account fetch, because it also records whether any lookup failed.
-     * `fetchTokenAccounts` resolves metadata through `mapNotNull`, so a failed lookup silently
-     * drops that token: without this flag an account whose metadata we could not read is
-     * indistinguishable from one the backend has never heard of, and the row would say
-     * "Not Found" about a wallet that exists.
-     */
-    private inner class RecordingMetadataProvider : TokenMetadataProvider {
-        var failed: Boolean = false
-            private set
-
-        override suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> =
-            tokenController.getTokenMetadata(mint).onFailure { failed = true }
-
-        override fun observeTokenCache(): Flow<Map<Mint, Token>> = emptyFlow()
-    }
 
     /**
      * One row. All three result fields false/null is the in-flight state.
@@ -233,8 +210,18 @@ class AccountSelectionViewModel @Inject constructor(
      * stretch plus a SLIP-10 chain, and this list can hold 50 accounts. A record that will not
      * derive is kept rather than dropped — the user should still see it.
      */
-    private fun derive(records: List<AccountRecord>): List<Pair<AccountRecord, Result<AccountCluster>>> =
-        records.map { record -> record to runCatching { clusterFor(record.entropy) } }
+    /**
+     * Each account's key costs a PBKDF2 run and a SLIP-10 chain, and nothing on screen can show
+     * until every one is done, so they run side by side on the CPU pool instead of one after
+     * another.
+     */
+    private suspend fun derive(
+        records: List<AccountRecord>,
+    ): List<Pair<AccountRecord, Result<AccountCluster>>> = withContext(dispatchers.Default) {
+        records.map { record ->
+            async { record to runCatching { clusterFor(record.entropy) } }
+        }.awaitAll()
+    }
 
     private fun AccountRecord.toUiModel(
         cluster: AccountCluster?,
@@ -283,13 +270,12 @@ class AccountSelectionViewModel @Inject constructor(
             return@flow emit(Event.OnBalanceUnavailable(record.entropy))
         }
 
-        val metadata = RecordingMetadataProvider()
-        tokenController.fetchTokenAccounts(owner, metadata)
+        // Batched: one account lookup and one metadata lookup, however many tokens the account
+        // holds. It fails outright rather than drop a token whose metadata did not come back, so a
+        // short total is never shown as the balance.
+        tokenController.fetchTokenBalances(owner)
             .onSuccess { tokens ->
                 when {
-                    // A dropped token makes the total wrong as surely as it makes an empty list
-                    // meaningless, so a failed lookup rules out both other answers.
-                    metadata.failed -> emit(Event.OnBalanceUnavailable(record.entropy))
                     tokens.isEmpty() -> emit(Event.OnBalanceNotFound(record.entropy))
                     else -> emit(
                         Event.OnBalanceResolved(
