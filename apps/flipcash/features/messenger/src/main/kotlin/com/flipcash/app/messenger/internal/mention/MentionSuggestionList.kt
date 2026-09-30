@@ -16,14 +16,18 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.chat.MemberMatch
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -35,9 +39,10 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /**
  * Group members offered for an `@`-mention, in the reply strip's card: the same glass, hairline and
- * shape. Rows are [MentionSuggestionListDefaults.rowHeight] tall; past [maxRows] the list scrolls.
+ * shape, so the two stacked cards read as one set. Rows are [MentionSuggestionListDefaults.rowHeight]
+ * tall; past [maxRows] the list scrolls and the card stays that height.
  *
- * Values come from the prototype (layout only); the visual pass against the design is still to do.
+ * Metrics follow the design (mention row set, node 10633:68; spec, node 10662:64911).
  */
 @Composable
 internal fun MentionSuggestionList(
@@ -61,8 +66,10 @@ internal fun MentionSuggestionList(
     ) {
         itemsIndexed(matches, key = { _, match -> match.userId.toString() }) { index, match ->
             if (index > 0) {
+                // Starts under the name, clear of the avatar column; none after the last row.
                 Box(
                     Modifier
+                        .padding(start = MentionSuggestionListDefaults.dividerInset)
                         .fillMaxWidth()
                         .height(border)
                         .background(CodeTheme.colors.divider),
@@ -96,16 +103,17 @@ private fun MentionRow(match: MemberMatch, onClick: () -> Unit) {
         )
         Text(
             text = match.displayName,
-            style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Bold),
-            color = CodeTheme.colors.textMain,
+            style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Bold, lineHeight = 16.sp),
+            // The same per-person colour the reply strip gives a quoted author.
+            color = nameColor(match.userId) ?: CodeTheme.colors.textMain,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             modifier = Modifier.weight(1f),
             text = "@${match.username}",
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
+            style = CodeTheme.typography.textSmall.copy(fontWeight = FontWeight.Medium),
+            color = MentionSuggestionListDefaults.usernameColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -121,6 +129,16 @@ internal fun mentionListHeight(rows: Int, divider: Dp): Dp {
 internal object MentionSuggestionListDefaults {
     val rowHeight = 50.dp
     val avatar = 32.dp
-    val horizontalPadding = 10.dp
-    val gap = 9.dp
+    val horizontalPadding = 14.dp
+    val gap = 10.dp
+
+    /** Lines a divider up with the name: the row's leading padding, the avatar and the gap after it. */
+    val dividerInset = horizontalPadding + avatar + gap
+
+    /** iOS's secondary label, #EBEBF5 at 60%. */
+    val usernameColor = Color(0xFFEBEBF5).copy(alpha = 0.6f)
 }
+
+@Composable
+private fun nameColor(userId: List<Byte>): Color? =
+    remember(userId) { generateComplementaryColorPalette(userId)?.second }
