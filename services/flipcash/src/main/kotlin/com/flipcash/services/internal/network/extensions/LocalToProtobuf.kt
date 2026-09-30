@@ -260,6 +260,8 @@ internal fun ChatRuleRequirement.asProtoListenerRules(): ChatModel.ListenerRules
     val builder = ChatModel.ListenerRules.newBuilder()
     return when (this) {
         ChatRuleRequirement.Never -> error("ListenerRules has no `never` arm; Never is speaker-only")
+        ChatRuleRequirement.Creator -> error("ListenerRules has no `creator` arm; Creator is speaker-only")
+        ChatRuleRequirement.UnsupportedSpeakerRule -> error("UnsupportedSpeakerRule is a client-only speaker rule")
         is ChatRuleRequirement.MinimumBalance -> builder.setMinimumBalance(asProtoMinimumBalanceRequirement()).build()
         ChatRuleRequirement.Staff -> builder.setStaff(ChatModel.StaffRequirement.getDefaultInstance()).build()
     }
@@ -271,6 +273,9 @@ internal fun ChatRuleRequirement.asProtoSpeakerRules(): ChatModel.SpeakerRules {
         is ChatRuleRequirement.MinimumBalance -> builder.setMinimumBalance(asProtoMinimumBalanceRequirement()).build()
         ChatRuleRequirement.Staff -> builder.setStaff(ChatModel.StaffRequirement.getDefaultInstance()).build()
         ChatRuleRequirement.Never -> builder.setNever(ChatModel.Never.getDefaultInstance()).build()
+        ChatRuleRequirement.Creator -> builder.setCreator(ChatModel.CreatorRequirement.getDefaultInstance()).build()
+        // Rejected, not skipped: there is no wire shape for a rule this build cannot decode.
+        ChatRuleRequirement.UnsupportedSpeakerRule -> error("UnsupportedSpeakerRule is decode-only; it has no wire form")
     }
 }
 

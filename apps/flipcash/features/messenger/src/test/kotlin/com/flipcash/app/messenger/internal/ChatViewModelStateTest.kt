@@ -13,6 +13,7 @@ import com.flipcash.shared.chat.ChatDraftReply
 import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftSnippet
 import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.resolveSpeakerBlock
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.chatDraftOf
@@ -585,5 +586,62 @@ class ChatViewModelStateTest {
         val state = ChatViewModel.State(subject = dm, speakerBlock = null)
         assertFalse(state.isReadOnlySpeaker)
         assertTrue(state.canSpeak)
+    }
+
+    // -- creator / unsupported: posting is gated, reactions follow the unmet rule --
+
+    private val creatorId = List<Byte>(32) { 7 }
+    private val viewerId = List<Byte>(32) { 9 }
+
+    /** The state the reducer builds from a resolved [SpeakerBlock], as `OnSpeakerBlockResolved` does. */
+    private fun stateFor(vararg speaker: ChatRuleRequirement, isStaff: Boolean = false): ChatViewModel.State {
+        val block = resolveSpeakerBlock(
+            rules = ChatRules(listener = emptyList(), speaker = speaker.toList()),
+            balances = emptyList(),
+            isStaff = isStaff,
+            viewerId = viewerId,
+            creatorId = creatorId,
+        )
+        return ChatViewModel.State(
+            subject = group(isMember = true, rules = null),
+            speakerBlock = block?.requirement,
+            speakerBlocksReactions = block?.reactionsBlocked == true,
+        )
+    }
+
+    @Test
+    fun `a creator rule replaces the composer and withholds Reply but leaves reactions on`() {
+        val state = stateFor(ChatRuleRequirement.Creator)
+
+        assertTrue(state.isReadOnlySpeaker)
+        assertFalse(state.canSpeak)
+        assertFalse(state.speakerBlocksReactions)
+        assertEquals(ChatRuleRequirement.Creator, state.speakerBlock)
+    }
+
+    @Test
+    fun `an unsupported rule replaces the composer even for staff and leaves reactions on`() {
+        val state = stateFor(ChatRuleRequirement.UnsupportedSpeakerRule, isStaff = true)
+
+        assertTrue(state.isReadOnlySpeaker)
+        assertFalse(state.canSpeak)
+        assertFalse(state.speakerBlocksReactions)
+    }
+
+    @Test
+    fun `creator plus staff withholds reactions as well as posting`() {
+        val state = stateFor(ChatRuleRequirement.Creator, ChatRuleRequirement.Staff)
+
+        assertFalse(state.canSpeak)
+        assertTrue(state.speakerBlocksReactions)
+    }
+
+    @Test
+    fun `no unmet speaker rule leaves the composer and reactions alone`() {
+        val state = stateFor()
+
+        assertFalse(state.isReadOnlySpeaker)
+        assertTrue(state.canSpeak)
+        assertFalse(state.speakerBlocksReactions)
     }
 }

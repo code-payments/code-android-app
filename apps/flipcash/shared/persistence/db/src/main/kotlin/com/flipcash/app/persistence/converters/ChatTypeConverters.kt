@@ -352,4 +352,12 @@ sealed interface ChatRuleRequirementSerialized {
     @Serializable
     @SerialName("never")
     data object Never : ChatRuleRequirementSerialized
+
+    @Serializable
+    @SerialName("creator")
+    data object Creator : ChatRuleRequirementSerialized
+
+    @Serializable
+    @SerialName("unsupported_speaker_rule")
+    data object UnsupportedSpeakerRule : ChatRuleRequirementSerialized
 }

@@ -34,7 +34,7 @@ import dev.chrisbanes.haze.rememberHazeState
  *
  * The surface is the composer field's own: the same shape, outline and blur over the same
  * [hazeState], so the transcript scrolling under it reads as it does under the field. Disabled,
- * with no input, attach or send button and no call to action: none of the three requirements has an
+ * with no input, attach or send button and no call to action: none of the requirements has an
  * action the viewer could take from here.
  *
  * Copy follows iOS `ConversationGatePanel`: `never` names the sender, a balance states the amount
@@ -59,6 +59,8 @@ internal fun SpeakerGateBar(
     val text = when (requirement) {
         ChatRuleRequirement.Never -> stringResource(R.string.label_chatGate_speakerNever)
         ChatRuleRequirement.Staff -> stringResource(R.string.subtitle_chatGate_speakerStaffOnly)
+        ChatRuleRequirement.Creator -> stringResource(R.string.subtitle_chatGate_speakerCreatorOnly)
+        ChatRuleRequirement.UnsupportedSpeakerRule -> stringResource(R.string.subtitle_chatGate_speakerUnsupported)
         is ChatRuleRequirement.MinimumBalance ->
             if (currencyName != null) {
                 stringResource(

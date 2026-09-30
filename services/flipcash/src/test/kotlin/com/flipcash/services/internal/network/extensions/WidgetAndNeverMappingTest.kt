@@ -4,11 +4,14 @@ import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
 import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.blocksReactions
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class WidgetAndNeverMappingTest {
 
@@ -51,5 +54,45 @@ class WidgetAndNeverMappingTest {
 
         assertEquals(ChatModel.SpeakerRules.KindCase.NEVER, proto.kindCase)
         assertEquals(ChatRuleRequirement.Never, proto.toRuleRequirementOrNull())
+    }
+
+    @Test
+    fun `speaker creator maps to Creator and back`() {
+        val proto = ChatRuleRequirement.Creator.asProtoSpeakerRules()
+
+        assertEquals(ChatModel.SpeakerRules.KindCase.CREATOR, proto.kindCase)
+        assertEquals(ChatRuleRequirement.Creator, proto.toRuleRequirementOrNull())
+    }
+
+    @Test
+    fun `an unset speaker rule is kept as unsupported, not dropped`() {
+        val rules = ChatModel.Rules.newBuilder()
+            .addSpeaker(ChatModel.SpeakerRules.getDefaultInstance())
+            .addSpeaker(ChatModel.SpeakerRules.newBuilder().setStaff(ChatModel.StaffRequirement.getDefaultInstance()))
+            .build()
+
+        assertEquals(
+            listOf(ChatRuleRequirement.UnsupportedSpeakerRule, ChatRuleRequirement.Staff),
+            rules.toChatRules().speaker,
+        )
+    }
+
+    @Test
+    fun `unsupported speaker rule has no wire form`() {
+        assertFailsWith<IllegalStateException> { ChatRuleRequirement.UnsupportedSpeakerRule.asProtoSpeakerRules() }
+        assertFailsWith<IllegalStateException> { ChatRuleRequirement.UnsupportedSpeakerRule.asProtoListenerRules() }
+    }
+
+    @Test
+    fun `creator and unsupported block posting but not reactions`() {
+        assertFalse(ChatRuleRequirement.Creator.blocksReactions)
+        assertFalse(ChatRuleRequirement.UnsupportedSpeakerRule.blocksReactions)
+        assertTrue(ChatRuleRequirement.Never.blocksReactions)
+        assertTrue(ChatRuleRequirement.Staff.blocksReactions)
+    }
+
+    @Test
+    fun `creator is speaker-only and is rejected as a listener rule`() {
+        assertFailsWith<IllegalStateException> { ChatRuleRequirement.Creator.asProtoListenerRules() }
     }
 }

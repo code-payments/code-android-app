@@ -474,6 +474,8 @@ private fun ChatRuleRequirement.toSerialized(): ChatRuleRequirementSerialized = 
     )
     ChatRuleRequirement.Staff -> ChatRuleRequirementSerialized.Staff
     ChatRuleRequirement.Never -> ChatRuleRequirementSerialized.Never
+    ChatRuleRequirement.Creator -> ChatRuleRequirementSerialized.Creator
+    ChatRuleRequirement.UnsupportedSpeakerRule -> ChatRuleRequirementSerialized.UnsupportedSpeakerRule
 }
 
 private fun ChatRulesSerialized.toDomain(): ChatRules = ChatRules(
@@ -491,6 +493,8 @@ private fun ChatRuleRequirementSerialized.toDomain(): ChatRuleRequirement = when
     )
     ChatRuleRequirementSerialized.Staff -> ChatRuleRequirement.Staff
     ChatRuleRequirementSerialized.Never -> ChatRuleRequirement.Never
+    ChatRuleRequirementSerialized.Creator -> ChatRuleRequirement.Creator
+    ChatRuleRequirementSerialized.UnsupportedSpeakerRule -> ChatRuleRequirement.UnsupportedSpeakerRule
 }
 
 private fun SocialAccount.toSerialized(): SocialAccountSerialized = when (this) {

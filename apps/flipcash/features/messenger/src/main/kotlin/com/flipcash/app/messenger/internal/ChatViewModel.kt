@@ -82,6 +82,7 @@ import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.SpeakerBlock
 import com.flipcash.shared.chat.speakerBlock
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.MessagePolicy
@@ -365,6 +366,11 @@ internal class ChatViewModel @Inject constructor(
          */
         val speakerBlock: ChatRuleRequirement? = null,
         /**
+         * Whether an unmet speaker rule also takes reactions away. False for `creator` alone, which
+         * withholds posting (composer, Reply) and nothing else. See [SpeakerBlock].
+         */
+        val speakerBlocksReactions: Boolean = false,
+        /**
          * The gate's Join button, same shape as [sendProgress]. Membership arrives from the roster
          * rather than from the join's own reply, so without this the button would sit unchanged for
          * the whole round trip and read as dead — which is what it looked like before it had one.
@@ -547,7 +553,7 @@ internal class ChatViewModel @Inject constructor(
 
         /** The gate re-decided, because membership, the rules, or the balance moved. */
         data class OnGroupAccessResolved(val access: GroupAccess) : Event
-        data class OnSpeakerBlockResolved(val block: ChatRuleRequirement?) : Event
+        data class OnSpeakerBlockResolved(val block: SpeakerBlock?) : Event
 
         /** The gate's "Join Chat" button. */
         data object JoinChat : Event
@@ -786,6 +792,9 @@ internal class ChatViewModel @Inject constructor(
      */
     private val viewerCanSpeak = stateFlow.map { it.canSpeak }.distinctUntilChanged()
 
+    /** Whether the speaker rules leave reactions open; wider than [viewerCanSpeak], see `speakerBlocksReactions`. */
+    private val viewerCanReact = stateFlow.map { !it.speakerBlocksReactions }.distinctUntilChanged()
+
     /**
      * Live reaction overrides for the open chat — see [ReactionOperations.observeChatReactions].
      * A message missing here falls back to `MessageReactions.from(message.reactions)` in
@@ -877,8 +886,8 @@ internal class ChatViewModel @Inject constructor(
             pendingMutations,
             messagePolicy,
             senderProfiles,
-            combine(viewerCanPost, viewerCanSpeak, ::Pair),
-        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak) ->
+            combine(viewerCanPost, viewerCanSpeak, viewerCanReact, ::Triple),
+        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages) ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.flatMapIndexed { index, content ->
@@ -995,7 +1004,7 @@ internal class ChatViewModel @Inject constructor(
                         // `splitAroundLinkCard` keeps these pills on the last row only.
                         reactionPills = storedReactions.pills,
                         selfReactions = storedReactions.selfReactions,
-                        canReact = canReact(message, canSpeak = canPost && canSpeak),
+                        canReact = canReact(message, canSpeak = canPost && canReactToMessages),
                         undecryptableHint = undecryptableHint(
                             encryption = message.encryption,
                             isFromSelf = message.isFromSelf,
@@ -1676,15 +1685,20 @@ internal class ChatViewModel @Inject constructor(
         stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
             .flatMapLatest { chatCoordinator.observeMetadata(it) }
-            .map { it?.metadata?.rules }
+            // The creator rides along with the rules: a `creator` rule is met by comparing the viewer
+            // to it, and the same metadata carries both.
+            .map { it?.metadata?.let { metadata -> metadata.rules to metadata.creator } }
             .distinctUntilChanged()
-            .flatMapLatest { rules ->
+            .flatMapLatest { rulesAndCreator ->
+                val rules = rulesAndCreator?.first
                 if (rules == null) {
                     flowOf(null)
                 } else {
                     tokenCoordinator.speakerBlock(
                         rules = rules,
                         isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+                        viewerId = userManager.accountId,
+                        creatorId = rulesAndCreator.second,
                     )
                 }
             }
@@ -2731,6 +2745,7 @@ internal class ChatViewModel @Inject constructor(
                             memberCount = metadata.rosterSummary.memberCount,
                             rules = metadata.rules,
                             isMember = event.membership.isMember,
+                            creator = metadata.creator,
                         ),
                         chatType = ChatType.GROUP,
                         resolveState = ResolveState.Resolved,
@@ -2739,7 +2754,10 @@ internal class ChatViewModel @Inject constructor(
                 is Event.OnRuleCurrencyResolved ->
                     { state -> state.copy(ruleCurrency = event.currency) }
                 is Event.OnGroupAccessResolved -> { state -> state.copy(groupAccess = event.access) }
-                is Event.OnSpeakerBlockResolved -> { state -> state.copy(speakerBlock = event.block) }
+                is Event.OnSpeakerBlockResolved -> { state -> state.copy(
+                    speakerBlock = event.block?.requirement,
+                    speakerBlocksReactions = event.block?.reactionsBlocked == true,
+                ) }
                 Event.JoinChat -> { state ->
                     state.copy(joinProgress = LoadingSuccessState(loading = true))
                 }

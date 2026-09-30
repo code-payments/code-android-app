@@ -230,8 +230,10 @@ private fun Duration?.stillOpen(sentAt: Instant, now: Instant): Boolean =
 /**
  * Whether [message] may be reacted to.
  *
- * A reaction is speaking, so [canSpeak] gates it on every message, like Reply in
- * [resolveCapabilities]. A direct message has no rules and always speaks.
+ * Reply is posting and follows any unmet speaker rule ([resolveCapabilities]). A reaction is not
+ * always: [canSpeak] is whether the speaker rules leave reactions open, which is false only when an
+ * unmet rule has `blocksReactions` (balance, staff, never). A `creator` or unsupported rule alone
+ * keeps reactions on. A direct message has no rules and always reacts.
  *
  * Reactions have no edit/delete-style windows and no report-only carve-out: anyone's message is
  * reactable, own or another participant's, text or cash. Only two things rule a message out —
