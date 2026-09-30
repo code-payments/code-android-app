@@ -45,6 +45,8 @@ internal fun SpeakerGateBar(
     /** The token a balance rule names, or null to state the amount alone (the reserve, or unresolved). */
     currencyName: String?,
     modifier: Modifier = Modifier,
+    /** Off only for a Robolectric render, whose native runtime cannot compile the blur shader. */
+    blurEnabled: Boolean = true,
 ) {
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
     val text = when (requirement) {
@@ -73,7 +75,7 @@ internal fun SpeakerGateBar(
             .padding(vertical = CodeTheme.dimens.grid.x3)
             .height(50.dp)
             .border(CodeTheme.dimens.border, CodeTheme.colors.divider, CodeTheme.shapes.medium)
-            .hazeBlur(HazeInput.Sources(hazeState), material)
+            .then(if (blurEnabled) Modifier.hazeBlur(HazeInput.Sources(hazeState), material) else Modifier)
             .padding(horizontal = CodeTheme.dimens.grid.x3),
         contentAlignment = Alignment.Center,
     ) {

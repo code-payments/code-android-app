@@ -914,7 +914,7 @@
     <string name="subtitle_chatGate_minimumBalance">Minimum Balance: %1$s of %2$s</string>
     <string name="subtitle_chatGate_minimumBalance_anyToken">Minimum Balance: %1$s</string>
     <string name="subtitle_chatGate_staffOnly">This chat is open to Flipcash staff only.</string>
-    <string name="label_chatGate_speakerNever">Messages can\'t be sent in this chat</string>
+    <string name="label_chatGate_speakerNever">Only Flipcash can send messages</string>
     <string name="subtitle_chatGate_speakerMinimumBalance">Minimum Balance to Send Messages: %1$s of %2$s</string>
     <string name="subtitle_chatGate_speakerMinimumBalance_anyToken">Minimum Balance to Send Messages: %1$s</string>
     <string name="subtitle_chatGate_speakerStaffOnly">Only Flipcash staff can send messages here</string>
