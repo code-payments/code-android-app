@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -37,6 +40,9 @@ import dev.chrisbanes.haze.rememberHazeState
  * Copy follows iOS `ConversationGatePanel`: `never` names the sender, a balance states the amount
  * as a sending requirement, staff names who may send.
  */
+/** The design's fill, drawn over the blur (node 10588:1969), matching iOS's tint. */
+private val PillTint = Color(0xFF1E1E1E).copy(alpha = 0.46f)
+
 @Composable
 internal fun SpeakerGateBar(
     /** The requirement standing in the viewer's way. */
@@ -48,6 +54,7 @@ internal fun SpeakerGateBar(
     /** Off only for a Robolectric render, whose native runtime cannot compile the blur shader. */
     blurEnabled: Boolean = true,
 ) {
+    val shape = CodeTheme.shapes.medium
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
     val text = when (requirement) {
         ChatRuleRequirement.Never -> stringResource(R.string.label_chatGate_speakerNever)
@@ -74,8 +81,10 @@ internal fun SpeakerGateBar(
             .padding(horizontal = CodeTheme.dimens.grid.x6.coerceAtLeast(CodeTheme.dimens.inset))
             .padding(vertical = CodeTheme.dimens.grid.x3)
             .height(50.dp)
-            .border(CodeTheme.dimens.border, CodeTheme.colors.divider, CodeTheme.shapes.medium)
+            .border(CodeTheme.dimens.border, CodeTheme.colors.divider, shape)
+            .clip(shape)
             .then(if (blurEnabled) Modifier.hazeBlur(HazeInput.Sources(hazeState), material) else Modifier)
+            .background(PillTint)
             .padding(horizontal = CodeTheme.dimens.grid.x3),
         contentAlignment = Alignment.Center,
     ) {
