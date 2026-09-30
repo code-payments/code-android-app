@@ -123,18 +123,20 @@ class ChatMemberDataSource @Inject constructor(
         db?.chatMemberSearchDao()?.countMembers(mapper.chatIdHex(chatId)) ?: 0
 
     /**
-     * Drops every member of [chatId] not in [keep], with their search tokens.
+     * Drops the members of [chatId] a full roster read shows have left: held, not in [seen], and
+     * joined at or before [readVersion], the roster version the read described. A member who
+     * joined after it is newer than the read, not gone, and stays.
      *
-     * For a roster that has just been read to the end, where anyone the device holds but the read
-     * did not return has left. Done a member at a time rather than as one `NOT IN` list: a large
-     * group's roster runs past the 999 bound variables the minSdk SQLite build allows in a statement.
+     * Done a member at a time rather than as one `NOT IN` list: a large group's roster runs past
+     * the 999 bound variables the minSdk SQLite build allows in a statement.
      */
-    suspend fun retainOnly(chatId: ChatId, keep: Set<ID>) {
+    suspend fun reconcile(chatId: ChatId, seen: Set<ID>, readVersion: Long) {
         val database = db ?: return
         val hex = mapper.chatIdHex(chatId)
-        val keepHexes = keep.mapTo(HashSet()) { mapper.userIdHex(it) }
+        val seenHexes = seen.mapTo(HashSet()) { mapper.userIdHex(it) }
         database.withTransaction {
-            val departed = database.chatMemberSearchDao().getMemberIds(hex).filterNot { it in keepHexes }
+            val departed = database.chatMemberSearchDao().getMemberIdsJoinedBy(hex, readVersion)
+                .filterNot { it in seenHexes }
             for (userIdHex in departed) {
                 database.chatMemberDao().deleteMember(hex, userIdHex)
                 database.chatMemberSearchDao().deleteTokensForMember(hex, userIdHex)

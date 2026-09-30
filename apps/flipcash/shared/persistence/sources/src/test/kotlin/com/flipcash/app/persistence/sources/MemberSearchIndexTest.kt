@@ -66,12 +66,33 @@ class MemberSearchIndexTest {
 
     @Test
     fun `a full read drops members it did not return`() = runTest {
-        members.upsert(CHAT, listOf(member(ERICA, "Erica"), member(ERIN, "Erin")))
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 3), member(ERIN, "Erin", version = 4)))
 
-        members.retainOnly(CHAT, setOf(ERIN))
+        members.reconcile(CHAT, seen = setOf(ERIN), readVersion = 7)
 
         assertEquals(setOf(ERIN), search("eri"))
         assertEquals(1, members.countMembers(CHAT))
+    }
+
+    @Test
+    fun `a full read keeps a member who joined after the version it read`() = runTest {
+        // Erica joined at 9 off the stream; the read described the roster at 7, before she was in it.
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 9), member(ERIN, "Erin", version = 4)))
+
+        members.reconcile(CHAT, seen = setOf(ERIN), readVersion = 7)
+
+        assertEquals(setOf(ERICA, ERIN), search("eri"))
+    }
+
+    @Test
+    fun `a trailing page does not wind a member's version back`() = runTest {
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 9)))
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 2)))
+
+        // Still above the read, so still kept.
+        members.reconcile(CHAT, seen = emptySet(), readVersion = 7)
+
+        assertEquals(setOf(ERICA), search("eri"))
     }
 
     @Test
@@ -103,7 +124,7 @@ class MemberSearchIndexTest {
     @Test
     fun `closing a chat clears its index and sync state`() = runTest {
         members.upsert(CHAT, listOf(member(ERICA, "Erica")))
-        roster.markSynced(CHAT, version = 4, truncated = false)
+        roster.markFullySynced(CHAT, watermark = 4, truncated = false)
 
         members.deleteForChat(CHAT)
 
@@ -119,8 +140,8 @@ class MemberSearchIndexTest {
         username = username,
     )
 
-    private fun member(id: ID, name: String, username: String? = null) =
-        ChatMember(userId = id, userProfile = profile(name, username), pointers = emptyList())
+    private fun member(id: ID, name: String, username: String? = null, version: Long = 0) =
+        ChatMember(userId = id, userProfile = profile(name, username), pointers = emptyList(), version = version)
 
     private companion object {
         const val ENTROPY = "bWVtYmVyLXNlYXJjaC1pbmRleC10ZXN0"

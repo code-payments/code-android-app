@@ -129,8 +129,9 @@ interface ChatMemberSearchDao {
     @Query("SELECT COUNT(*) FROM chat_members WHERE chat_id_hex = :chatIdHex")
     suspend fun countMembers(chatIdHex: String): Int
 
-    @Query("SELECT user_id_hex FROM chat_members WHERE chat_id_hex = :chatIdHex")
-    suspend fun getMemberIds(chatIdHex: String): List<String>
+    /** Members of [chatIdHex] who joined at or before [version]: the ones a full read may drop. */
+    @Query("SELECT user_id_hex FROM chat_members WHERE chat_id_hex = :chatIdHex AND version <= :version")
+    suspend fun getMemberIdsJoinedBy(chatIdHex: String, version: Long): List<String>
 
     @Query("SELECT * FROM chat_roster_sync WHERE chat_id_hex = :chatIdHex LIMIT 1")
     suspend fun getSyncState(chatIdHex: String): ChatRosterSyncEntity?
@@ -141,15 +142,19 @@ interface ChatMemberSearchDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertSyncStateIfAbsent(state: ChatRosterSyncEntity)
 
-    @Query("UPDATE chat_roster_sync SET needs_resync = 1 WHERE chat_id_hex = :chatIdHex")
-    suspend fun setNeedsResync(chatIdHex: String)
+    @Query("UPDATE chat_roster_sync SET watermark = :watermark WHERE chat_id_hex = :chatIdHex")
+    suspend fun setWatermark(chatIdHex: String, watermark: Long)
 
-    /** Flags [chatIdHex] for a full read on its next open, whether or not it was ever read. */
-    @Transaction
-    suspend fun markNeedsResync(chatIdHex: String) {
-        insertSyncStateIfAbsent(ChatRosterSyncEntity(chatIdHex = chatIdHex, syncedVersion = 0, needsResync = true))
-        setNeedsResync(chatIdHex)
-    }
+    /**
+     * Moves [chatIdHex]'s watermark from [from] to [to], and only from [from]: a stream change
+     * applied on top of a roster the device held in full keeps it in full. From anywhere else the
+     * watermark stays put, and the next catch-up reads down to it.
+     */
+    @Query("UPDATE chat_roster_sync SET watermark = :to WHERE chat_id_hex = :chatIdHex AND watermark = :from")
+    suspend fun advanceWatermark(chatIdHex: String, from: Long, to: Long)
+
+    @Query("UPDATE chat_roster_sync SET reconcile_pending = 1 WHERE chat_id_hex = :chatIdHex")
+    suspend fun setReconcilePending(chatIdHex: String)
 
     @Query("DELETE FROM chat_roster_sync WHERE chat_id_hex = :chatIdHex")
     suspend fun deleteSyncState(chatIdHex: String)

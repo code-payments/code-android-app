@@ -267,6 +267,7 @@ class ChatEntityMapper @Inject constructor() {
             chatIdHex = chatIdHex,
             userIdHex = member.userId.hexEncodedString(),
             pointersJson = member.pointers.map { it.toSerialized() },
+            version = member.version,
         )
     }
 
@@ -295,6 +296,7 @@ class ChatEntityMapper @Inject constructor() {
             userId = relation.member.userIdHex.hexToId(),
             userProfile = relation.profile?.toSerialized()?.toDomain() ?: UserProfile.Empty,
             pointers = relation.member.pointersJson?.map { it.toDomain() } ?: emptyList(),
+            version = relation.member.version,
         )
     }
 

@@ -44,6 +44,8 @@ interface ChatMemberDao {
         insertOrReplace(
             entity.copy(
                 pointersJson = mergePointers(existing.pointersJson, entity.pointersJson),
+                // Greater wins: a page that trails the stream must not wind a member back.
+                version = maxOf(existing.version, entity.version),
             )
         )
     }

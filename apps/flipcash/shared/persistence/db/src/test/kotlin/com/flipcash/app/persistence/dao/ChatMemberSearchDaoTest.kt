@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.ChatMemberEntity
 import com.flipcash.app.persistence.entities.ChatMessageEntity
+import com.flipcash.app.persistence.entities.ChatRosterSyncEntity
 import com.flipcash.app.persistence.entities.UserProfileEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -160,10 +161,15 @@ class ChatMemberSearchDaoTest {
     }
 
     @Test
-    fun `flagging a chat never read creates its row`() = runTest {
-        dao.markNeedsResync(CHAT)
+    fun `the stream moves the watermark only from where it stands`() = runTest {
+        dao.upsertSyncState(ChatRosterSyncEntity(chatIdHex = CHAT, watermark = 5, fullySynced = true))
 
-        assertEquals(true, dao.getSyncState(CHAT)?.needsResync)
+        dao.advanceWatermark(CHAT, from = 5, to = 6)
+        assertEquals(6, dao.getSyncState(CHAT)?.watermark)
+
+        // Out of step: the device missed something between 6 and 8, so 9 does not vouch for it.
+        dao.advanceWatermark(CHAT, from = 8, to = 9)
+        assertEquals(6, dao.getSyncState(CHAT)?.watermark)
     }
 
     private fun profile(userIdHex: String, name: String) = UserProfileEntity(

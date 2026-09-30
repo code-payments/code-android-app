@@ -14,6 +14,11 @@ data class ChatMemberEntity(
     @ColumnInfo(name = "chat_id_hex") val chatIdHex: String,
     @ColumnInfo(name = "user_id_hex") val userIdHex: String,
     @ColumnInfo(name = "pointers_json") val pointersJson: List<MessagePointerSerialized>?,
+    // The roster version the member joined at: `Member.version`. The merge key across roster pages
+    // and stream updates (greater wins), and what a full roster read checks before dropping a
+    // member it did not see. Zero for chat-creation joins, DM participants, and rows from before
+    // it was stored.
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 
 /**
