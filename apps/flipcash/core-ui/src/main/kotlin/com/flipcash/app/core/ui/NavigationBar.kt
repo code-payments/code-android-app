@@ -11,6 +11,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,9 +21,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -37,9 +42,12 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import com.flipcash.app.core.navigation.NavBarButton
@@ -104,8 +112,17 @@ fun NavigationBar(
     val order = NavBarButton.tabs
     if (order.isEmpty()) return
 
-    val iconSize = CodeTheme.dimens.staticGrid.x6
-    val itemHeight = iconSize + CodeTheme.dimens.staticGrid.x2 * 2
+    // The design's glyphs are 28pt (node 10599:65384), which sits off the 5dp grid.
+    val iconSize = 28.dp
+    // The design frames glyph and name with 5pt above and below in an 86.5 x 50pt item (node
+    // 10599:65384). The item wraps its column rather than fixing a height, so a large font scale
+    // grows the bar instead of clipping the name.
+    val itemPadding = CodeTheme.dimens.staticGrid.x1
+    val indicatorOverhang = CodeTheme.dimens.staticGrid.x2
+    // The design sets the name in Demi 10 on a 12pt line (node 10599:65384). caption is the
+    // theme's smallest type token; its 18sp line would leave the name floating in slack under the
+    // glyph, so the name takes the font's own line height instead.
+    val labelStyle = CodeTheme.typography.caption.copy(lineHeight = TextUnit.Unspecified)
     val selectedIndex = order.indexOf(state.selectedTab)
         .takeIf { it >= 0 && it <= order.lastIndex }
         ?: order.indexOf(NavBarButton.Wallet)
@@ -146,21 +163,26 @@ fun NavigationBar(
             .fillMaxWidth()
             .then(modifier)
             .then(pillBackground)
-            .padding(CodeTheme.dimens.grid.x1),
+            .padding(vertical = CodeTheme.dimens.grid.x1)
+            .padding(horizontal = CodeTheme.dimens.grid.x1 + indicatorOverhang),
     ) {
         val itemWidth = maxWidth / order.size
 
-        // Selected-state pill that slides to the active tab, drawn behind the icons.
+        // Selected-state pill that slides to the active tab, drawn behind the icons. It takes the
+        // row's height rather than one of its own, so it always frames the whole item, and reaches
+        // indicatorOverhang past the item on each side into the bar's side padding, as the iOS bar
+        // does. That leaves the end pills the same gap to the bar's edge as above and below.
         val indicatorOffset by animateDpAsState(
-            targetValue = itemWidth * selectedIndex,
+            targetValue = itemWidth * selectedIndex - indicatorOverhang,
             animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
             label = "navBarIndicatorOffset",
         )
         Box(
             modifier = Modifier
+                .matchParentSize()
                 .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
-                .width(itemWidth)
-                .height(itemHeight)
+                .wrapContentWidth(Alignment.Start, unbounded = true)
+                .width(itemWidth + indicatorOverhang * 2)
                 .background(Color.White.copy(alpha = 0.2f), CircleShape),
         )
 
@@ -172,10 +194,9 @@ fun NavigationBar(
                     label = "navBarIconAlpha",
                 )
                 val badgeCount = state.badgeCount(button)
-                Box(
+                Column(
                     modifier = Modifier
                         .weight(1f)
-                        .height(itemHeight)
                         .testTag(button.testTag)
                         // Deliberately unclipped: the unread badge overhangs the icon's top-right
                         // corner and a clip would shave it. Safe because the click indication is
@@ -187,10 +208,13 @@ fun NavigationBar(
                             indication = null,
                             onLongClick = onYouTabLongClick.takeIf { button == NavBarButton.TipCard },
                             onClick = { onButtonClick(button) },
-                        ),
-                    contentAlignment = Alignment.Center,
+                        )
+                        .padding(vertical = itemPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box {
+                    // Sized to the glyph so a wide badge overflows it instead of widening it,
+                    // which would pull the glyph off the item's centre.
+                    Box(modifier = Modifier.size(iconSize)) {
                         if (button == NavBarButton.TipCard && avatar != null) {
                             // The photo slot has its own unselected state (node 9713:664): the ring
                             // thins from 2dp to 1dp and drops to white at 50%, which the slot's
@@ -235,17 +259,32 @@ fun NavigationBar(
                                 contentDescription = null,
                             )
                         }
-                        // Overlaps the glyph's top-right corner (matching the iOS bar) rather than
-                        // floating detached above it. Full opacity regardless of tab selection —
-                        // the count must stay readable on an unselected tab.
+                        // Overlaps the glyph's top-right corner (node 10599:65444): a 17.5pt circle
+                        // starting 16pt into the glyph and rising 3.25pt above it, which leaves a
+                        // sliver of the pill above. Anchored by its start so a longer count ("12",
+                        // "99+") grows into the empty side of the item rather than over the glyph.
+                        // Full opacity regardless of tab selection — the count must stay readable
+                        // on an unselected tab.
                         Badge(
                             modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = CodeTheme.dimens.staticGrid.x1, y = -CodeTheme.dimens.staticGrid.x1),
+                                .align(Alignment.TopStart)
+                                .offset(x = 16.dp, y = (-3.25).dp)
+                                .wrapContentSize(Alignment.TopStart, unbounded = true),
                             count = badgeCount,
                             color = CodeTheme.colors.indicator,
+                            textStyle = CodeTheme.typography.caption.copy(lineHeight = TextUnit.Unspecified),
+                            contentPadding = PaddingValues(horizontal = CodeTheme.dimens.staticGrid.x1),
+                            height = 17.5.dp,
                         )
                     }
+                    Text(
+                        text = stringResource(button.label),
+                        style = labelStyle,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier.graphicsLayer { alpha = iconAlpha },
+                    )
                 }
             }
         }
@@ -253,9 +292,9 @@ fun NavigationBar(
 }
 
 /**
- * Stable UI-test anchor per tab. The bar is icon-only -- no labels, and the glyphs carry no content
- * description -- so without these ids the tabs are unaddressable from Maestro/UiAutomator. These are
- * what `maestro/subflows/navigate_to_*.yaml` tap; keep them in sync with those flows.
+ * Stable UI-test anchor per tab. The glyphs carry no content description, so these ids address a
+ * tab without depending on its label text or locale. They are what
+ * `maestro/subflows/navigate_to_*.yaml` tap; keep them in sync with those flows.
  */
 internal val NavBarButton.testTag: String
     get() = when (this) {
@@ -263,6 +302,15 @@ internal val NavBarButton.testTag: String
         NavBarButton.Wallet -> "nav_wallet"
         NavBarButton.Chats -> "nav_chats"
         NavBarButton.TipCard -> "nav_tipcard"
+    }
+
+/** The tab's name under its glyph, in tab order Scan, Chat, Wallet, You (node 10642:1325). */
+private val NavBarButton.label: Int
+    get() = when (this) {
+        NavBarButton.Scanner -> R.string.title_tabScan
+        NavBarButton.Chats -> R.string.title_tabChat
+        NavBarButton.Wallet -> R.string.title_tabWallet
+        NavBarButton.TipCard -> R.string.title_tabYou
     }
 
 /**

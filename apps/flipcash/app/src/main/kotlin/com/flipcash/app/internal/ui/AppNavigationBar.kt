@@ -127,7 +127,9 @@ internal fun AppNavigationBar(
                 NavigationBar(
                     modifier = Modifier
                         .navigationBarsPadding()
-                        .padding(horizontal = CodeTheme.dimens.grid.x8)
+                        // The design insets the bar 24pt from each edge (node 10642:1325), which
+                        // keeps each tab's pill wider than tall; 25 is the nearest fixed step.
+                        .padding(horizontal = CodeTheme.dimens.staticGrid.x5)
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     state = state,
                     onButtonClick = { button ->
