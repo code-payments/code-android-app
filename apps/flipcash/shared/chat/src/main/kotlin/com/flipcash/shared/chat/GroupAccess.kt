@@ -3,6 +3,8 @@ package com.flipcash.shared.chat
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
+import com.flipcash.services.models.chat.blocksReactions
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.sum
@@ -114,7 +116,9 @@ fun canSpeak(
     rules: ChatRules?,
     balances: List<TokenWithBalance>,
     isStaff: Boolean,
-): Boolean = unmetSpeakerRequirement(rules, balances, isStaff) == null
+    viewerId: ID? = null,
+    creatorId: ID? = null,
+): Boolean = unmetSpeakerRequirement(rules, balances, isStaff, viewerId, creatorId) == null
 
 /**
  * The speaker requirement to name when the viewer may not speak, or null when they may.
@@ -127,17 +131,52 @@ fun unmetSpeakerRequirement(
     rules: ChatRules?,
     balances: List<TokenWithBalance>,
     isStaff: Boolean,
-): ChatRuleRequirement? {
-    val unmet = rules?.speaker.orEmpty().filter { it.isUnmet(balances, isStaff) }
-    return unmet.firstOrNull { it is ChatRuleRequirement.MinimumBalance } ?: unmet.firstOrNull()
+    viewerId: ID? = null,
+    creatorId: ID? = null,
+): ChatRuleRequirement? = resolveSpeakerBlock(rules, balances, isStaff, viewerId, creatorId)?.requirement
+
+/**
+ * What stands between the viewer and speaking: the requirement to name, and whether any unmet
+ * rule also takes reactions away.
+ *
+ * Posting (the composer and Reply) is withheld whenever a block exists. Reactions are withheld
+ * only when an unmet rule has [blocksReactions], so `creator` alone leaves them on while
+ * `creator` + `staff` turns them off. [reactionsBlocked] looks at every unmet rule, not just the
+ * named one, because the named one is chosen for what the viewer can act on.
+ */
+data class SpeakerBlock(
+    val requirement: ChatRuleRequirement,
+    val reactionsBlocked: Boolean,
+)
+
+/** The [SpeakerBlock] for the viewer, or null when every speaker rule holds. */
+fun resolveSpeakerBlock(
+    rules: ChatRules?,
+    balances: List<TokenWithBalance>,
+    isStaff: Boolean,
+    viewerId: ID? = null,
+    creatorId: ID? = null,
+): SpeakerBlock? {
+    val unmet = rules?.speaker.orEmpty().filter { it.isUnmet(balances, isStaff, viewerId, creatorId) }
+    val named = unmet.firstOrNull { it is ChatRuleRequirement.MinimumBalance } ?: unmet.firstOrNull()
+        ?: return null
+    return SpeakerBlock(requirement = named, reactionsBlocked = unmet.any { it.blocksReactions })
 }
 
-/** [unmetSpeakerRequirement] over the live balance and the live staff flag, de-duplicated like [groupAccess]. */
+/**
+ * [resolveSpeakerBlock] over the live balance and the live staff flag, de-duplicated like [groupAccess].
+ *
+ * [viewerId] and [creatorId] are plain values: who the viewer is and who made the chat do not
+ * change while the chat is open. A null [creatorId] (the chat's metadata did not carry one) leaves
+ * a `creator` rule unmet.
+ */
 fun TokenCoordinator.speakerBlock(
     rules: ChatRules?,
     isStaff: Flow<Boolean>,
-): Flow<ChatRuleRequirement?> = combine(tokenBalances, isStaff) { balances, staff ->
-    unmetSpeakerRequirement(rules = rules, balances = balances, isStaff = staff)
+    viewerId: ID? = null,
+    creatorId: ID? = null,
+): Flow<SpeakerBlock?> = combine(tokenBalances, isStaff) { balances, staff ->
+    resolveSpeakerBlock(rules = rules, balances = balances, isStaff = staff, viewerId = viewerId, creatorId = creatorId)
 }
     .distinctUntilChanged()
 
@@ -148,6 +187,8 @@ fun TokenCoordinator.speakerBlock(
 private fun ChatRuleRequirement.isUnmet(
     balances: List<TokenWithBalance>,
     isStaff: Boolean,
+    viewerId: ID? = null,
+    creatorId: ID? = null,
 ): Boolean {
     // Keyed by bytes, not by the key object: `class Mint(bytes) : PublicKey(bytes)`
     // (libs/encryption/keys/.../Mint.kt), so the `PublicKey`s in `mints` are not `Mint`s and
@@ -180,8 +221,11 @@ private fun ChatRuleRequirement.isUnmet(
         // Nobody satisfies it. The server sends it as a speaker rule only, where it is what
         // makes a chat read-only for everyone; as a listener rule it would lock everyone out.
         ChatRuleRequirement.Never -> true
-        // Speaker-only; nobody satisfies either as a listener rule.
-        ChatRuleRequirement.Creator,
+        // Met only by the chat's creator. Staff get no bypass. With no creator on the metadata, or
+        // no viewer, nobody can be shown to be the creator, so it stays closed. As a listener rule
+        // (the server never sends one) the ids are not passed and it is unmet.
+        ChatRuleRequirement.Creator -> creatorId == null || viewerId == null || viewerId != creatorId
+        // A rule this build cannot read: unmet for everyone, staff included.
         ChatRuleRequirement.UnsupportedSpeakerRule -> true
     }
 }

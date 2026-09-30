@@ -6,6 +6,7 @@ import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.shared.chat.models.LinkCard
+import com.getcode.opencode.model.core.ID
 
 /**
  * What the messenger screen is a conversation *with*.
@@ -83,6 +84,8 @@ sealed interface ChatSubject {
         val memberCount: Long,
         val rules: ChatRules?,
         val isMember: Boolean?,
+        /** The group's creator (`ChatMetadata.creator`); null when the metadata did not carry one. */
+        val creator: ID? = null,
     ) : ChatSubject {
         override val title: String get() = groupTitle.orEmpty()
         override val subtitle: String? get() = null

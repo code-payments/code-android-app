@@ -181,6 +181,27 @@ class MessageCapabilityTest {
     }
 
     @Test
+    fun `a creator-gated viewer loses Reply but keeps Copy, Report and own Edit and Delete`() {
+        // The panel passes canSpeak = false for any unmet speaker rule, creator included.
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Report),
+            resolveCapabilities(text(isFromSelf = false), canSpeak = false),
+        )
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete),
+            resolveCapabilities(text(), now = sentAt, canSpeak = false),
+        )
+    }
+
+    @Test
+    fun `reactions follow the rules' reaction flag, not the posting gate`() {
+        // canReact's gate is whether the rules leave reactions open (true for a creator-only block),
+        // so a message stays reactable while Reply is withheld.
+        assertEquals(true, canReact(text(isFromSelf = false), canSpeak = true))
+        assertEquals(false, canReact(text(isFromSelf = false), canSpeak = false))
+    }
+
+    @Test
     fun `a viewer with no speaker rules, as in a direct message, is unaffected`() {
         // canSpeak defaults true: a DM has no rules to fail.
         assertEquals(

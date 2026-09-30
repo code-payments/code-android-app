@@ -35,12 +35,21 @@ class SpeakerGateBarScreenshotTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun rendersNeverPanel() {
+    fun rendersNeverPanel() = render(ChatRuleRequirement.Never, "speaker_gate_never.png")
+
+    @Test
+    fun rendersCreatorPanel() = render(ChatRuleRequirement.Creator, "android-creator-composer.png")
+
+    @Test
+    fun rendersUnsupportedPanel() =
+        render(ChatRuleRequirement.UnsupportedSpeakerRule, "android-unsupported-composer.png")
+
+    private fun render(requirement: ChatRuleRequirement, fileName: String) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             FlipcashPreview(showBackground = true) {
                 SpeakerGateBar(
-                    requirement = ChatRuleRequirement.Never,
+                    requirement = requirement,
                     hazeState = rememberHazeState(),
                     currencyName = null,
                     modifier = Modifier.width(402.dp),
@@ -52,7 +61,7 @@ class SpeakerGateBarScreenshotTest {
         val root: View = composeRule.activity.findViewById(android.R.id.content)
         val bitmap = Bitmap.createBitmap(root.width.coerceAtLeast(1), root.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
         root.draw(Canvas(bitmap))
-        val file = File("build/screenshots").apply { mkdirs() }.resolve("speaker_gate_never.png")
+        val file = File("build/screenshots").apply { mkdirs() }.resolve(fileName)
         file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         println("SCREENSHOT_WRITTEN: ${file.absolutePath}")
     }

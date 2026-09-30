@@ -408,4 +408,82 @@ class GroupAccessTest {
             unmetSpeakerRequirement(rules, listOf(held(1, "BadBoys", 600.0)), isStaff = true),
         )
     }
+
+    // -- Speaker rules: creator and unsupported --
+
+    private val creatorId: List<Byte> = List(32) { 7 }
+    private val otherId: List<Byte> = List(32) { 9 }
+
+    private fun block(
+        rules: ChatRules,
+        viewerId: List<Byte>? = otherId,
+        creator: List<Byte>? = creatorId,
+        isStaff: Boolean = false,
+    ) = resolveSpeakerBlock(rules, emptyList(), isStaff, viewerId, creator)
+
+    @Test
+    fun `the creator meets a creator rule and may post`() {
+        val rules = speaker(ChatRuleRequirement.Creator)
+
+        assertEquals(null, block(rules, viewerId = creatorId))
+        assertEquals(true, canSpeak(rules, emptyList(), false, creatorId, creatorId))
+    }
+
+    @Test
+    fun `a member who is not the creator is blocked by a creator rule, staff included`() {
+        val rules = speaker(ChatRuleRequirement.Creator)
+
+        assertEquals(ChatRuleRequirement.Creator, block(rules)?.requirement)
+        assertEquals(ChatRuleRequirement.Creator, block(rules, isStaff = true)?.requirement)
+    }
+
+    @Test
+    fun `a creator rule is unmet when the chat carries no creator`() {
+        val rules = speaker(ChatRuleRequirement.Creator)
+
+        assertEquals(ChatRuleRequirement.Creator, block(rules, creator = null)?.requirement)
+        // Not even a viewer who would have matched: there is nothing to match against.
+        assertEquals(ChatRuleRequirement.Creator, block(rules, viewerId = creatorId, creator = null)?.requirement)
+        assertEquals(ChatRuleRequirement.Creator, block(rules, viewerId = null)?.requirement)
+    }
+
+    @Test
+    fun `an unsupported speaker rule is unmet for everyone, staff and creator included`() {
+        val rules = speaker(ChatRuleRequirement.UnsupportedSpeakerRule)
+
+        assertEquals(ChatRuleRequirement.UnsupportedSpeakerRule, block(rules)?.requirement)
+        assertEquals(ChatRuleRequirement.UnsupportedSpeakerRule, block(rules, isStaff = true)?.requirement)
+        assertEquals(ChatRuleRequirement.UnsupportedSpeakerRule, block(rules, viewerId = creatorId)?.requirement)
+    }
+
+    @Test
+    fun `creator and unsupported withhold posting but leave reactions on`() {
+        assertEquals(false, block(speaker(ChatRuleRequirement.Creator))?.reactionsBlocked)
+        assertEquals(false, block(speaker(ChatRuleRequirement.UnsupportedSpeakerRule))?.reactionsBlocked)
+    }
+
+    @Test
+    fun `creator plus staff turns reactions off for a non-creator non-staff viewer`() {
+        val rules = speaker(ChatRuleRequirement.Creator, ChatRuleRequirement.Staff)
+
+        val blocked = block(rules)
+        assertEquals(ChatRuleRequirement.Creator, blocked?.requirement)
+        assertEquals(true, blocked?.reactionsBlocked)
+    }
+
+    @Test
+    fun `creator plus staff leaves reactions on once the staff rule is met`() {
+        val rules = speaker(ChatRuleRequirement.Creator, ChatRuleRequirement.Staff)
+
+        val blocked = block(rules, isStaff = true)
+        assertEquals(ChatRuleRequirement.Creator, blocked?.requirement)
+        assertEquals(false, blocked?.reactionsBlocked)
+    }
+
+    @Test
+    fun `never and an unmet balance withhold reactions`() {
+        assertEquals(true, block(speaker(ChatRuleRequirement.Never))?.reactionsBlocked)
+        val balance = ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))
+        assertEquals(true, block(speaker(balance))?.reactionsBlocked)
+    }
 }
