@@ -21,6 +21,7 @@ import com.flipcash.app.persistence.converters.TokenTypeConverters
 import com.flipcash.app.persistence.dao.BlockedUserDao
 import com.flipcash.app.persistence.dao.ChatDraftDao
 import com.flipcash.app.persistence.dao.ChatMemberDao
+import com.flipcash.app.persistence.dao.ChatMemberSearchDao
 import com.flipcash.app.persistence.dao.ChatMessageDao
 import com.flipcash.app.persistence.dao.ChatMetadataDao
 import com.flipcash.app.persistence.dao.ContactDao
@@ -32,8 +33,10 @@ import com.flipcash.app.persistence.dao.UserProfileDao
 import com.flipcash.app.persistence.entities.BlockedUserEntity
 import com.flipcash.app.persistence.entities.ChatDraftEntity
 import com.flipcash.app.persistence.entities.ChatMemberEntity
+import com.flipcash.app.persistence.entities.ChatMemberSearchTokenEntity
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
+import com.flipcash.app.persistence.entities.ChatRosterSyncEntity
 import com.flipcash.app.persistence.entities.ContactMappingEntity
 import com.flipcash.app.persistence.entities.ContactSyncStateEntity
 import com.flipcash.app.persistence.entities.CurrencyCreatorDraftEntity
@@ -64,6 +67,8 @@ import com.getcode.utils.subByteArray
         BlockedUserEntity::class,
         UserProfileEntity::class,
         LinkPreviewEntity::class,
+        ChatMemberSearchTokenEntity::class,
+        ChatRosterSyncEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
@@ -111,8 +116,11 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 37, to = 38), // chat_metadata.creator_hex (nullable), use_e2ee (default 0)
         AutoMigration(from = 38, to = 39), // link_previews table
         AutoMigration(from = 39, to = 40, spec = FlipcashDatabase.Migration39To40::class),
+        // chat_member_search_tokens and chat_roster_sync. Both start empty: a group's first open
+        // after the upgrade finds no sync row and reads its roster, which fills the index.
+        AutoMigration(from = 40, to = 41),
     ],
-    version = 40,
+    version = 41,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -124,6 +132,7 @@ abstract class FlipcashDatabase : RoomDatabase() {
     abstract fun chatMetadataDao(): ChatMetadataDao
     abstract fun chatMessageDao(): ChatMessageDao
     abstract fun chatMemberDao(): ChatMemberDao
+    abstract fun chatMemberSearchDao(): ChatMemberSearchDao
     abstract fun chatDraftDao(): ChatDraftDao
     abstract fun blockedUserDao(): BlockedUserDao
     abstract fun userProfileDao(): UserProfileDao

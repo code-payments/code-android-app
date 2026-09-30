@@ -4,6 +4,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.room.withTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.sources.search.reindexMemberProfile
 import com.flipcash.app.persistence.entities.BlockedUserWithProfile
 import com.flipcash.app.persistence.sources.mapper.blocklist.BlockedUserEntityToProfileMapper
 import com.flipcash.app.persistence.sources.mapper.blocklist.BlockedUserToEntityMapper
@@ -72,5 +73,6 @@ class BlockedUserDataSource @Inject constructor(
             profilePicture = resolved.profile?.profilePicture,
             username = resolved.profile?.username,
         )
+        reindexMemberProfile(resolved.blocked.userId.hexEncodedString())
     }
 }

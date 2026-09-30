@@ -59,6 +59,10 @@ class ChatMetadataDataSource @Inject constructor(
     suspend fun getRosterVersion(chatId: ChatId): Long =
         db?.chatMetadataDao()?.getRosterVersion(mapper.chatIdHex(chatId)) ?: 0L
 
+    /** [chatId]'s true roster size; 0 when the chat is not stored yet. */
+    suspend fun getMemberCount(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getMemberCount(mapper.chatIdHex(chatId)) ?: 0L
+
     suspend fun updateRoster(chatId: ChatId, memberCount: Long, rosterVersion: Long) {
         db?.chatMetadataDao()?.updateRosterIfNewer(
             chatIdHex = mapper.chatIdHex(chatId),

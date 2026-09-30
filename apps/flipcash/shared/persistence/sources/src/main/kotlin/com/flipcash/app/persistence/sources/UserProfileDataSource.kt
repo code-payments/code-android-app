@@ -1,7 +1,9 @@
 package com.flipcash.app.persistence.sources
 
+import androidx.room.withTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.toSerialized
+import com.flipcash.app.persistence.sources.search.reindexMemberProfile
 import com.flipcash.app.persistence.sources.mapper.toDomain
 import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.model.core.ID
@@ -44,14 +46,21 @@ class UserProfileDataSource @Inject constructor() {
      * Stores [profile]'s name, avatar and handle for [userId] (INSERT OR REPLACE, preserving any
      * existing phone/email/social columns). Used to back-fill the cache after a network resolve so
      * [observeProfiles] re-emits and consumers (e.g. the transaction list) resolve the row live.
+     *
+     * Also rewrites the user's member search tokens, so a renamed member is found by their new name.
      */
     suspend fun store(userId: ID, profile: UserProfile) {
-        db?.userProfileDao()?.upsertNameAndAvatar(
-            userIdHex = userId.hexEncodedString(),
-            displayName = profile.displayName,
-            profilePicture = profile.profilePicture,
-            username = profile.username,
-        )
+        val database = db ?: return
+        val userIdHex = userId.hexEncodedString()
+        database.withTransaction {
+            database.userProfileDao().upsertNameAndAvatar(
+                userIdHex = userIdHex,
+                displayName = profile.displayName,
+                profilePicture = profile.profilePicture,
+                username = profile.username,
+            )
+            database.reindexMemberProfile(userIdHex)
+        }
     }
 
     /**

@@ -51,6 +51,10 @@ interface ChatMetadataDao {
     @Query("SELECT roster_version FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getRosterVersion(chatIdHex: String): Long?
 
+    /** The true size of [chatIdHex]'s roster, or null when the chat is not stored. */
+    @Query("SELECT member_count FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getMemberCount(chatIdHex: String): Long?
+
     @Query("SELECT * FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getById(chatIdHex: String): ChatMetadataEntity?
 

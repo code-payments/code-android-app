@@ -3,6 +3,7 @@ package com.flipcash.app.persistence.sources
 import androidx.room.withTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
+import com.flipcash.app.persistence.sources.search.MemberSearchText
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatType
@@ -71,6 +72,7 @@ class ChatMemberDataSource @Inject constructor(
         database.withTransaction {
             database.userProfileDao().upsertMembers(profileRows(members))
             database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
+            index(database, hex, members)
         }
     }
 
@@ -111,6 +113,32 @@ class ChatMemberDataSource @Inject constructor(
                 chatIdHex = hex,
                 keepUserIdHexes = members.map { mapper.userIdHex(it.userId) },
             )
+            index(database, hex, members)
+            database.chatMemberSearchDao().deleteTokensOfFormerMembers(hex)
+        }
+    }
+
+    /** How many of [chatId]'s members the device holds. For a group, compare with its `member_count`. */
+    suspend fun countMembers(chatId: ChatId): Int =
+        db?.chatMemberSearchDao()?.countMembers(mapper.chatIdHex(chatId)) ?: 0
+
+    /**
+     * Drops every member of [chatId] not in [keep], with their search tokens.
+     *
+     * For a roster that has just been read to the end, where anyone the device holds but the read
+     * did not return has left. Done a member at a time rather than as one `NOT IN` list: a large
+     * group's roster runs past the 999 bound variables the minSdk SQLite build allows in a statement.
+     */
+    suspend fun retainOnly(chatId: ChatId, keep: Set<ID>) {
+        val database = db ?: return
+        val hex = mapper.chatIdHex(chatId)
+        val keepHexes = keep.mapTo(HashSet()) { mapper.userIdHex(it) }
+        database.withTransaction {
+            val departed = database.chatMemberSearchDao().getMemberIds(hex).filterNot { it in keepHexes }
+            for (userIdHex in departed) {
+                database.chatMemberDao().deleteMember(hex, userIdHex)
+                database.chatMemberSearchDao().deleteTokensForMember(hex, userIdHex)
+            }
         }
     }
 
@@ -119,18 +147,48 @@ class ChatMemberDataSource @Inject constructor(
      * cannot, because a roster change names who left rather than who remains.
      */
     suspend fun deleteMember(chatId: ChatId, userId: ID) {
-        db?.chatMemberDao()?.deleteMember(
-            chatIdHex = mapper.chatIdHex(chatId),
-            userIdHex = mapper.userIdHex(userId),
-        )
+        val database = db ?: return
+        val hex = mapper.chatIdHex(chatId)
+        val userIdHex = mapper.userIdHex(userId)
+        database.withTransaction {
+            database.chatMemberDao().deleteMember(chatIdHex = hex, userIdHex = userIdHex)
+            database.chatMemberSearchDao().deleteTokensForMember(chatIdHex = hex, userIdHex = userIdHex)
+        }
     }
 
     suspend fun deleteForChat(chatId: ChatId) {
-        db?.chatMemberDao()?.deleteForChat(mapper.chatIdHex(chatId))
+        val database = db ?: return
+        val hex = mapper.chatIdHex(chatId)
+        database.withTransaction {
+            database.chatMemberDao().deleteForChat(hex)
+            database.chatMemberSearchDao().deleteTokensForChat(hex)
+            // The roster read is only complete for the members it wrote.
+            database.chatMemberSearchDao().deleteSyncState(hex)
+        }
     }
 
     suspend fun clear() {
-        db?.chatMemberDao()?.deleteAll()
+        val database = db ?: return
+        database.withTransaction {
+            database.chatMemberDao().deleteAll()
+            database.chatMemberSearchDao().deleteAllTokens()
+            database.chatMemberSearchDao().deleteAllSyncState()
+        }
+    }
+
+    /**
+     * Rewrites the search tokens of [members] in [chatIdHex] from their stored profiles.
+     *
+     * Read back after the profile write rather than taken from [members]: a member can arrive with
+     * no profile (see [profileRows]), and is then indexed by the one already stored, if any.
+     */
+    private suspend fun index(database: FlipcashDatabase, chatIdHex: String, members: List<ChatMember>) {
+        val search = database.chatMemberSearchDao()
+        for (member in members) {
+            val userIdHex = mapper.userIdHex(member.userId)
+            val profile = database.userProfileDao().getByUserId(userIdHex) ?: continue
+            search.replaceTokens(chatIdHex, userIdHex, MemberSearchText.tokens(profile.displayName, profile.username))
+        }
     }
 
     /**
