@@ -463,7 +463,7 @@ internal class ChatViewModel @Inject constructor(
          * Mirrors iOS `ConversationGatePresentation.readOnly`.
          */
         val isReadOnlySpeaker: Boolean
-            get() = subject is ChatSubject.Group && !isOutsideGroup && !replacesComposer && speakerBlock != null
+            get() = subject != null && !isOutsideGroup && !replacesComposer && speakerBlock != null
 
         /**
          * Whether the gate stands where the composer does. Every viewer outside the group, eligible
@@ -1671,15 +1671,19 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnGroupAccessResolved(it)) }
             .launchIn(viewModelScope)
 
-        // The speaker rules, on the same terms as the gate above. A DM has none, so it speaks.
-        stateFlow.map { it.subject as? ChatSubject.Group }
+        // The speaker rules, read from the chat's metadata for every chat type: the Flipcash welcome
+        // chat is a DM that carries a `never` rule. A chat without rules, as most DMs are, speaks.
+        stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
-            .flatMapLatest { group ->
-                if (group == null) {
+            .flatMapLatest { chatCoordinator.observeMetadata(it) }
+            .map { it?.metadata?.rules }
+            .distinctUntilChanged()
+            .flatMapLatest { rules ->
+                if (rules == null) {
                     flowOf(null)
                 } else {
                     tokenCoordinator.speakerBlock(
-                        rules = group.rules,
+                        rules = rules,
                         isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
                     )
                 }

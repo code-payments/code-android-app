@@ -570,4 +570,20 @@ class ChatViewModelStateTest {
         assertTrue(state.canSpeak)
         assertFalse(state.isReadOnlySpeaker)
     }
+
+    @Test
+    fun `a DM carrying a never rule is read-only with the never panel`() {
+        // The Flipcash welcome chat: a DM whose metadata holds the rule.
+        val state = ChatViewModel.State(subject = dm, speakerBlock = ChatRuleRequirement.Never)
+        assertTrue(state.isReadOnlySpeaker)
+        assertFalse(state.canSpeak)
+        assertEquals(ChatRuleRequirement.Never, state.speakerBlock)
+    }
+
+    @Test
+    fun `a DM with no rules keeps the composer`() {
+        val state = ChatViewModel.State(subject = dm, speakerBlock = null)
+        assertFalse(state.isReadOnlySpeaker)
+        assertTrue(state.canSpeak)
+    }
 }
