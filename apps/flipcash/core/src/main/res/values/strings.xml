@@ -1054,7 +1054,6 @@
 
     <string name="action_tips">Tips</string>
     <string name="title_tips">Tips</string>
-    <string name="title_chats">Chats</string>
     <string name="title_noChatsYet">No Chats Yet</string>
     <string name="description_noChatsYet">Start a new chat, or share your profile</string>
 
@@ -1325,5 +1324,11 @@
          editing it, so the list reads as an inventory of the profile. -->
     <string name="title_displayName">Display Name</string>
     <string name="title_profilePicture">Profile Picture</string>
+
+    <!-- Tab bar labels, in tab order (node 10642:1325). -->
+    <string name="title_tabScan">Scan</string>
+    <string name="title_tabChat">Chat</string>
+    <string name="title_tabWallet">Wallet</string>
+    <string name="title_tabYou">You</string>
 
 </resources>

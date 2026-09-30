@@ -98,7 +98,7 @@ fun ChatsScreen() {
                         size = size.copy(height = scrimHeight),
                     )
                 },
-                title = stringResource(R.string.title_chats),
+                title = stringResource(R.string.title_tabChat),
                 // Centred rather than flush-start: an empty leading slot reserves no width, so a
                 // Start title sits at the inset and reads as off-centre against the Add button.
                 titleAlignment = Alignment.CenterHorizontally,
