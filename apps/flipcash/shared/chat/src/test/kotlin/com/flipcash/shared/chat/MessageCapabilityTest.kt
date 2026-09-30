@@ -2,6 +2,7 @@ package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import org.junit.Test
@@ -118,6 +119,33 @@ class MessageCapabilityTest {
             isFromSelf = false,
         )
         assertEquals(emptySet(), resolveCapabilities(theirSystemNotice))
+
+    }
+
+    private val widgetMessage
+        get() = message(
+            listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))),
+            isFromSelf = false,
+        )
+
+    @Test
+    fun `a widget offers only Reply where the viewer may speak`() {
+        // No Copy (no text), no Report (no user sender), no Edit or Delete (not the viewer's).
+        assertEquals(setOf(MessageCapability.Reply), resolveCapabilities(widgetMessage))
+        assertEquals(
+            setOf(MessageCapability.Reply),
+            resolveCapabilities(widgetMessage, canPost = true, canSpeak = true),
+        )
+    }
+
+    @Test
+    fun `a widget offers nothing where the speaker rules forbid speaking`() {
+        assertEquals(emptySet(), resolveCapabilities(widgetMessage, canSpeak = false))
+    }
+
+    @Test
+    fun `a widget offers nothing to a viewer who cannot post`() {
+        assertEquals(emptySet(), resolveCapabilities(widgetMessage, canPost = false))
     }
 
     @Test
@@ -376,6 +404,14 @@ class MessageCapabilityTest {
     fun `a system notice is not reactable`() {
         val system = message(listOf(MessageContent.System("Anna joined")))
         assertEquals(false, canReact(system))
+    }
+
+    @Test
+    fun `a widget is reactable where the viewer may speak, and not where they may not`() {
+        val widget = message(listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))))
+        assertEquals(true, canReact(widget))
+        assertEquals(true, canReact(widget, canSpeak = true))
+        assertEquals(false, canReact(widget, canSpeak = false))
     }
 
     @Test

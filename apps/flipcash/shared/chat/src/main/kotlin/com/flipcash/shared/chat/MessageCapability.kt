@@ -103,6 +103,13 @@ data class MessagePolicy(
  * | Another participant's cash or tip message | Reply, Report |
  * | A tombstone | none |
  * | A system notice | none |
+ * | A widget (server-sent), viewer may speak | Reply |
+ * | A widget (server-sent), viewer may not speak | none |
+ *
+ * A widget is the server's, so it has no text to copy, no sender to report, and is never the
+ * viewer's to edit or delete. It can still be replied to, which is speaking, so Reply follows the
+ * chat's speaker rules ([canSpeak]): a `never` rule, an unmet minimum balance or an unmet staff
+ * requirement takes it away, exactly as it would take away the composer.
  *
  * Report follows one rule: anything a participant sent can be reported, and anything the server
  * wrote, or that no longer exists, cannot. Your own messages are left out because reporting one is
@@ -114,14 +121,17 @@ data class MessagePolicy(
  *
  * @param canPost whether the viewer may post in this chat. False for a viewer outside a group,
  * including one who has left it and still has messages of their own in the transcript.
+ * @param canSpeak whether the chat's speaker rules let the viewer speak (see [canSpeak]). Applied to
+ * a widget only, the one message whose Reply depends on it.
  */
 fun resolveCapabilities(
     message: ChatMessage,
     policy: MessagePolicy = MessagePolicy.Default,
     now: Instant = Clock.System.now(),
     canPost: Boolean = true,
+    canSpeak: Boolean = true,
 ): Set<MessageCapability> {
-    val resolved = resolveForParticipant(message, policy, now)
+    val resolved = resolveForParticipant(message, policy, now, canSpeak)
     return if (canPost) resolved else resolved.readOnly()
 }
 
@@ -137,6 +147,7 @@ private fun resolveForParticipant(
     message: ChatMessage,
     policy: MessagePolicy,
     now: Instant,
+    canSpeak: Boolean,
 ): Set<MessageCapability> {
     val contents = message.content
     if (contents.isEmpty()) return emptySet()
@@ -159,8 +170,14 @@ private fun resolveForParticipant(
         }
     }
 
-    // Server-authored notices, not a participant's message.
+    // A system notice is the server's and nothing anyone answers.
     if (contents.all { it is MessageContent.System }) return emptySet()
+
+    // A widget is the server's too: nothing to copy, no user sender to report, nothing of the
+    // viewer's to edit or delete. Replying to it is speaking, so it follows the speaker rules.
+    if (contents.all { it is MessageContent.Widget }) {
+        return if (canSpeak) setOf(MessageCapability.Reply) else emptySet()
+    }
 
     val hasText = contents.any { it is MessageContent.Text || it is MessageContent.Reply }
 
@@ -209,6 +226,8 @@ private fun Duration?.stillOpen(sentAt: Instant, now: Instant): Boolean =
 /**
  * Whether [message] may be reacted to.
  *
+ * [canSpeak] applies to a widget alone, like the same parameter of [resolveCapabilities].
+ *
  * Reactions have no edit/delete-style windows and no report-only carve-out: anyone's message is
  * reactable, own or another participant's, text or cash. Only two things rule a message out —
  * a system notice (nothing a participant sent) and an unconfirmed send (`eventSequence == 0`,
@@ -216,11 +235,13 @@ private fun Duration?.stillOpen(sentAt: Instant, now: Instant): Boolean =
  * has not acknowledged). A tombstone has no content left ([MessageContent.Deleted] clears it),
  * so the empty-content check below already excludes it.
  */
-fun canReact(message: ChatMessage): Boolean {
+fun canReact(message: ChatMessage, canSpeak: Boolean = true): Boolean {
     val contents = message.content
     if (contents.isEmpty()) return false
     if (contents.any { it is MessageContent.Deleted }) return false
     if (message.eventSequence == 0L) return false
     if (contents.all { it is MessageContent.System }) return false
+    // A widget is reactable only where the viewer may speak; see [canSpeak].
+    if (contents.all { it is MessageContent.Widget }) return canSpeak
     return true
 }

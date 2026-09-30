@@ -46,6 +46,12 @@ import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
 import com.getcode.ui.components.BlurredContent
 import com.flipcash.shared.chat.models.ChatAction
+import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.shareable.LocalShareController
+import com.flipcash.app.shareable.Shareable
+import com.flipcash.features.messenger.R
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
@@ -67,6 +73,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val transcriptUriHandler = remember(context, uriHandler) {
         ExternalLinkUriHandler(context, uriHandler)
     }
+
+    val userManager = LocalUserManager.current
+    val shareController = LocalShareController.current
+    val scope = rememberCoroutineScope()
 
     val hazeState = rememberHazeState()
     // Measured by the bar and read by the transcript: the blur has to cover the bar's own
@@ -229,6 +239,18 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             is ChatAction.JumpToMessage -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
+            }
+
+            // The profile a share-profile widget names, shared the way a profile's Share shortcut
+            // shares it (`rememberProfileShare`): the handle form, titled with their name.
+            is ChatAction.ShareProfile -> scope.launch {
+                shareController.present(
+                    Shareable.TipCard(
+                        userId = action.userId,
+                        title = action.displayName?.let { context.getString(R.string.label_tipUser, it) },
+                        username = action.username,
+                    )
+                )
             }
 
             ChatAction.JoinChat -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)

@@ -14,7 +14,6 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
-import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
@@ -161,18 +160,8 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                     .apply { if (caption != null) setCaption(MessagingModel.TextContent.newBuilder().setText(caption.text)) }
             )
             .build()
-        is MessageContent.Widget -> when (val w = widget) {
-            is WidgetContent.ShareProfile -> MessagingModel.Content.newBuilder()
-                .setWidget(
-                    MessagingModel.WidgetContent.newBuilder()
-                        .setShareProfile(
-                            MessagingModel.ShareProfileWidget.newBuilder().setUsername(w.username.asUsername())
-                        )
-                )
-                .build()
-            // Received-only: there is nothing to send for a variant this client can't read.
-            WidgetContent.Unsupported -> MessagingModel.Content.getDefaultInstance()
-        }
+        // Server-authored and receive-only: no client path builds one, so reaching this is a bug.
+        is MessageContent.Widget -> error("Widget messages are receive-only and are never sent by a client")
         is MessageContent.System -> MessagingModel.Content.newBuilder()
             .setSystem(MessagingModel.SystemContent.newBuilder().setFallbackText(fallbackText))
             .build()

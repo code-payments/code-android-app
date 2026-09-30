@@ -325,4 +325,50 @@ class GroupAccessTest {
 
         assertEquals(GroupAccess.Eligible, access)
     }
+
+    private fun speaker(vararg speaker: ChatRuleRequirement) =
+        ChatRules(listener = emptyList(), speaker = speaker.toList())
+
+    @Test
+    fun `no speaker rules means the viewer may speak`() {
+        assertEquals(true, canSpeak(rules = null, balances = emptyList(), isStaff = false))
+        assertEquals(true, canSpeak(rules = speaker(), balances = emptyList(), isStaff = false))
+        // Listener rules are not speaker rules.
+        assertEquals(
+            true,
+            canSpeak(rules(ChatRuleRequirement.Staff), emptyList(), isStaff = false),
+        )
+    }
+
+    @Test
+    fun `a never speaker rule silences everyone, staff included`() {
+        val never = speaker(ChatRuleRequirement.Never)
+        assertEquals(false, canSpeak(never, listOf(held(1, "BadBoys", 1_000.0)), isStaff = true))
+        assertEquals(false, canSpeak(never, emptyList(), isStaff = false))
+    }
+
+    @Test
+    fun `an unmet speaker balance silences the viewer and a met one does not`() {
+        val bar = speaker(ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys)))
+        assertEquals(false, canSpeak(bar, listOf(held(1, "BadBoys", 100.0)), isStaff = false))
+        assertEquals(true, canSpeak(bar, listOf(held(1, "BadBoys", 600.0)), isStaff = false))
+    }
+
+    @Test
+    fun `a staff speaker rule silences everyone but staff`() {
+        val staff = speaker(ChatRuleRequirement.Staff)
+        assertEquals(false, canSpeak(staff, emptyList(), isStaff = false))
+        assertEquals(true, canSpeak(staff, emptyList(), isStaff = true))
+    }
+
+    @Test
+    fun `every speaker rule has to hold`() {
+        val both = speaker(
+            ChatRuleRequirement.Staff,
+            ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys)),
+        )
+        assertEquals(false, canSpeak(both, listOf(held(1, "BadBoys", 600.0)), isStaff = false))
+        assertEquals(false, canSpeak(both, emptyList(), isStaff = true))
+        assertEquals(true, canSpeak(both, listOf(held(1, "BadBoys", 600.0)), isStaff = true))
+    }
 }
