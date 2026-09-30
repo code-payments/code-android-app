@@ -114,14 +114,30 @@ fun canSpeak(
     rules: ChatRules?,
     balances: List<TokenWithBalance>,
     isStaff: Boolean,
-): Boolean = rules?.speaker.orEmpty().none { it.isUnmet(balances, isStaff) }
+): Boolean = unmetSpeakerRequirement(rules, balances, isStaff) == null
 
-/** [canSpeak] over the live balance and the live staff flag, with the same de-duplication as [groupAccess]. */
-fun TokenCoordinator.speakerAccess(
+/**
+ * The speaker requirement to name when the viewer may not speak, or null when they may.
+ *
+ * Picks the way iOS's `ConversationGate` does: the first unmet minimum balance, since it is the
+ * only requirement a viewer can act on, falling back to the first unmet rule. A met rule is never
+ * named.
+ */
+fun unmetSpeakerRequirement(
+    rules: ChatRules?,
+    balances: List<TokenWithBalance>,
+    isStaff: Boolean,
+): ChatRuleRequirement? {
+    val unmet = rules?.speaker.orEmpty().filter { it.isUnmet(balances, isStaff) }
+    return unmet.firstOrNull { it is ChatRuleRequirement.MinimumBalance } ?: unmet.firstOrNull()
+}
+
+/** [unmetSpeakerRequirement] over the live balance and the live staff flag, de-duplicated like [groupAccess]. */
+fun TokenCoordinator.speakerBlock(
     rules: ChatRules?,
     isStaff: Flow<Boolean>,
-): Flow<Boolean> = combine(tokenBalances, isStaff) { balances, staff ->
-    canSpeak(rules = rules, balances = balances, isStaff = staff)
+): Flow<ChatRuleRequirement?> = combine(tokenBalances, isStaff) { balances, staff ->
+    unmetSpeakerRequirement(rules = rules, balances = balances, isStaff = staff)
 }
     .distinctUntilChanged()
 

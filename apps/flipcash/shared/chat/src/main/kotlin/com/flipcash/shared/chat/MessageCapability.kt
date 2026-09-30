@@ -106,10 +106,14 @@ data class MessagePolicy(
  * | A widget (server-sent), viewer may speak | Reply |
  * | A widget (server-sent), viewer may not speak | none |
  *
+ * Reply is speaking, so on every message it follows the chat's speaker rules ([canSpeak]): a
+ * `never` rule, an unmet minimum balance or an unmet staff requirement takes it away, exactly as
+ * it takes away the composer. The rows above assume the viewer may speak; where they may not, drop
+ * Reply from each and keep the rest (own text keeps Copy, Edit and Delete; another's keeps Copy and
+ * Report; cash keeps Report). Edit and Delete act on the viewer's own message and are not speaking.
+ *
  * A widget is the server's, so it has no text to copy, no sender to report, and is never the
- * viewer's to edit or delete. It can still be replied to, which is speaking, so Reply follows the
- * chat's speaker rules ([canSpeak]): a `never` rule, an unmet minimum balance or an unmet staff
- * requirement takes it away, exactly as it would take away the composer.
+ * viewer's to edit or delete: Reply is all it has to lose.
  *
  * Report follows one rule: anything a participant sent can be reported, and anything the server
  * wrote, or that no longer exists, cannot. Your own messages are left out because reporting one is
@@ -121,8 +125,8 @@ data class MessagePolicy(
  *
  * @param canPost whether the viewer may post in this chat. False for a viewer outside a group,
  * including one who has left it and still has messages of their own in the transcript.
- * @param canSpeak whether the chat's speaker rules let the viewer speak (see [canSpeak]). Applied to
- * a widget only, the one message whose Reply depends on it.
+ * @param canSpeak whether the chat's speaker rules let the viewer speak (see [canSpeak]). Gates
+ * Reply on every message. A direct message has no rules and always speaks.
  */
 fun resolveCapabilities(
     message: ChatMessage,
@@ -165,7 +169,7 @@ private fun resolveForParticipant(
     // transcript that records it.
     if (contents.any { it is MessageContent.Cash }) {
         return buildSet {
-            add(MessageCapability.Reply)
+            if (canSpeak) add(MessageCapability.Reply)
             if (!message.isFromSelf) add(MessageCapability.Report)
         }
     }
@@ -185,7 +189,7 @@ private fun resolveForParticipant(
         // Media carries no text, and this change edits text only. Not covered by the shared table;
         // revisit when media messages actually ship.
         if (hasText) add(MessageCapability.Copy)
-        add(MessageCapability.Reply)
+        if (canSpeak) add(MessageCapability.Reply)
         if (message.isFromSelf) {
             if (hasText) add(MessageCapability.Edit)
             add(MessageCapability.Delete)
@@ -226,7 +230,8 @@ private fun Duration?.stillOpen(sentAt: Instant, now: Instant): Boolean =
 /**
  * Whether [message] may be reacted to.
  *
- * [canSpeak] applies to a widget alone, like the same parameter of [resolveCapabilities].
+ * A reaction is speaking, so [canSpeak] gates it on every message, like Reply in
+ * [resolveCapabilities]. A direct message has no rules and always speaks.
  *
  * Reactions have no edit/delete-style windows and no report-only carve-out: anyone's message is
  * reactable, own or another participant's, text or cash. Only two things rule a message out —
@@ -241,7 +246,5 @@ fun canReact(message: ChatMessage, canSpeak: Boolean = true): Boolean {
     if (contents.any { it is MessageContent.Deleted }) return false
     if (message.eventSequence == 0L) return false
     if (contents.all { it is MessageContent.System }) return false
-    // A widget is reactable only where the viewer may speak; see [canSpeak].
-    if (contents.all { it is MessageContent.Widget }) return canSpeak
-    return true
+    return canSpeak
 }

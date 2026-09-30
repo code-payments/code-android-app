@@ -144,6 +144,62 @@ class MessageCapabilityTest {
     }
 
     @Test
+    fun `where the viewer may speak, text and cash keep Reply`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
+            resolveCapabilities(text(isFromSelf = false), canSpeak = true),
+        )
+        assertEquals(
+            setOf(MessageCapability.Reply, MessageCapability.Report),
+            resolveCapabilities(cash(isFromSelf = false), canSpeak = true),
+        )
+    }
+
+    @Test
+    fun `where the viewer may not speak, another's text loses Reply and keeps Copy and Report`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Report),
+            resolveCapabilities(text(isFromSelf = false), canSpeak = false),
+        )
+    }
+
+    @Test
+    fun `where the viewer may not speak, own text keeps Copy, Edit and Delete but not Reply`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete),
+            resolveCapabilities(text(), now = sentAt, canSpeak = false),
+        )
+    }
+
+    @Test
+    fun `where the viewer may not speak, cash loses Reply and keeps Report`() {
+        assertEquals(
+            setOf(MessageCapability.Report),
+            resolveCapabilities(cash(isFromSelf = false), canSpeak = false),
+        )
+        assertEquals(emptySet(), resolveCapabilities(cash(), canSpeak = false))
+    }
+
+    @Test
+    fun `a viewer with no speaker rules, as in a direct message, is unaffected`() {
+        // canSpeak defaults true: a DM has no rules to fail.
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
+            resolveCapabilities(text(isFromSelf = false)),
+        )
+        assertEquals(true, canReact(text(isFromSelf = false)))
+        assertEquals(true, canReact(cash(isFromSelf = false)))
+    }
+
+    @Test
+    fun `text and cash are not reactable where the viewer may not speak`() {
+        assertEquals(false, canReact(text(), canSpeak = false))
+        assertEquals(false, canReact(text(isFromSelf = false), canSpeak = false))
+        assertEquals(false, canReact(cash(), canSpeak = false))
+        assertEquals(false, canReact(cash(isFromSelf = false), canSpeak = false))
+    }
+
+    @Test
     fun `a widget offers nothing to a viewer who cannot post`() {
         assertEquals(emptySet(), resolveCapabilities(widgetMessage, canPost = false))
     }
