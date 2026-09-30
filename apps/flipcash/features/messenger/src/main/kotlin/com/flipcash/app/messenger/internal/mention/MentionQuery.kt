@@ -37,14 +37,18 @@ internal fun activeMentionToken(text: CharSequence, selection: TextRange): Menti
 
 /**
  * [text] with [token] replaced by `@`[username] and one space, and the cursor after that space.
+ * When whitespace already follows the word, no space is added and the cursor goes after that one.
  *
  * Only the token moves: whatever came before the `@` and after the cursor is kept as it was. The
  * space ends the word, so the picker closes on the same rule as typing one.
  */
 internal fun insertMention(text: String, token: MentionToken, username: String): Pair<String, Int> {
-    val inserted = "@$username "
+    // Whitespace already after the word separates the mention; the cursor goes past it instead of
+    // doubling it. Anywhere else, the mention brings its own space.
+    val followedBySpace = text.getOrNull(token.end)?.isWhitespace() == true
+    val inserted = if (followedBySpace) "@$username" else "@$username "
     val result = text.substring(0, token.start) + inserted + text.substring(token.end)
-    return result to token.start + inserted.length
+    return result to token.start + inserted.length + if (followedBySpace) 1 else 0
 }
 
 /** Only members with a username can be mentioned: the username is what gets inserted. */

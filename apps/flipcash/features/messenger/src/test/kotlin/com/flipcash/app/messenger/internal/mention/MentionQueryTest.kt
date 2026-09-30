@@ -76,6 +76,22 @@ class MentionQueryTest {
     }
 
     @Test
+    fun `picking before an existing space reuses it and puts the cursor after it`() {
+        val text = "hi @ma there"
+        val (result, cursor) = insertMention(text, token(text, cursor = 6)!!, "maria")
+        assertEquals("hi @maria there", result)
+        assertEquals("hi @maria ".length, cursor)
+    }
+
+    @Test
+    fun `picking before a newline reuses it and puts the cursor after it`() {
+        val text = "hi @ma\nthere"
+        val (result, cursor) = insertMention(text, token(text, cursor = 6)!!, "maria")
+        assertEquals("hi @maria\nthere", result)
+        assertEquals("hi @maria\n".length, cursor)
+    }
+
+    @Test
     fun `picking replaces exactly the word and adds one space`() {
         val text = "hey @er, see this"
         val t = token(text, cursor = 7)!!
