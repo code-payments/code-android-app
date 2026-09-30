@@ -2,7 +2,9 @@ package com.flipcash.app.login.internal.accounts
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.internal.accounts.AccountProfileFetcher
 import com.flipcash.app.auth.internal.accounts.AccountProfileName
+import com.flipcash.app.auth.internal.accounts.CachedAccountProfile
 import com.flipcash.app.auth.internal.accounts.AccountRecord
 import com.flipcash.services.models.asHandle
 import com.flipcash.features.login.R
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
@@ -51,6 +54,7 @@ class AccountSelectionViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val mnemonicManager: MnemonicManager,
     private val tokenController: TokenController,
+    private val profileFetcher: AccountProfileFetcher,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
 ) : BaseViewModel<AccountSelectionViewModel.State, AccountSelectionViewModel.Event>(
@@ -107,6 +111,7 @@ class AccountSelectionViewModel @Inject constructor(
             val currentEntropy: String?,
         ) : Event
 
+        data class OnProfileResolved(val entropy: String, val name: AccountProfileName) : Event
         data class OnBalanceResolved(val entropy: String, val balance: Fiat) : Event
         data class OnBalanceNotFound(val entropy: String) : Event
         data class OnBalanceUnavailable(val entropy: String) : Event
@@ -125,9 +130,8 @@ class AccountSelectionViewModel @Inject constructor(
             .filterIsInstance<Event.Load>()
             // Nothing outside drives this screen, so the pipeline seeds its own first read.
             .onStart { emit(Event.Load) }
-            .map { derive(authManager.accounts.all()) }
-            .onEach { derived ->
-                val profiles = authManager.accountProfiles.all()
+            .map { derive(authManager.accounts.all()) to authManager.accountProfiles.all() }
+            .onEach { (derived, profiles) ->
                 dispatchEvent(
                     Event.OnAccountsLoaded(
                         accounts = derived.map { (record, cluster) ->
@@ -137,8 +141,8 @@ class AccountSelectionViewModel @Inject constructor(
                     )
                 )
             }
-            .flatMapLatest { derived ->
-                derived.asFlow().flatMapMerge { balance(it) }
+            .flatMapLatest { (derived, profiles) ->
+                derived.asFlow().flatMapMerge { merge(balance(it), profile(it, profiles)) }
             }
             .onEach { dispatchEvent(it) }
             // Derivation is PBKDF2 plus a SLIP-10 chain, and the balance fetches are network calls;
@@ -221,19 +225,17 @@ class AccountSelectionViewModel @Inject constructor(
 
     private fun AccountRecord.toUiModel(
         cluster: AccountCluster?,
-        profiles: Map<String, AccountProfileName>,
+        profiles: Map<String, CachedAccountProfile>,
     ): AccountUiModel {
         val mnemonic = runCatching { mnemonicManager.fromEntropyBase64(entropy) }.getOrNull()
         val owner = cluster?.authorityPublicKey?.base58()
-        val profile = owner?.let { profiles[it] }
+        val profile = owner?.let { profiles[it]?.name }
         return AccountUiModel(
             // A record that will not derive has no owner key to be keyed on; its creation
             // timestamp is the only other thing distinguishing it.
             id = owner ?: "underived-$creationDate",
             entropy = entropy,
-            // Names come only from what this device cached while the account was signed in. There
-            // is no fetch for the other accounts: resolving their user id takes the Login RPC, and
-            // the app must not sign in as an account the user has not switched to.
+            // The cached names show at once and offline; the fetch replaces them when it lands.
             mnemonicName = mnemonic?.let { displayName(it) }.orEmpty(),
             username = profile?.username,
             displayName = profile?.displayName,
@@ -294,6 +296,32 @@ class AccountSelectionViewModel @Inject constructor(
             }
     }
 
+    /**
+     * One account's username and display name, fetched by the user id cached from its last
+     * sign-in on this device. A row with no cached user id makes no call: the only other way to a
+     * user id is the Login RPC, and the app must not sign in as an account the user has not
+     * switched to. A failure keeps whatever the cache gave the row.
+     */
+    private fun profile(
+        entry: Pair<AccountRecord, Result<AccountCluster>>,
+        profiles: Map<String, CachedAccountProfile>,
+    ): Flow<Event> = flow {
+        val (record, cluster) = entry
+        val owner = cluster.getOrNull() ?: return@flow
+        val ownerAddress = owner.authorityPublicKey.base58()
+        val userId = profiles[ownerAddress]?.userId ?: return@flow
+        profileFetcher.fetch(owner.authority.keyPair, ownerAddress, userId)
+            .onSuccess { emit(Event.OnProfileResolved(record.entropy, it)) }
+            .onFailure { error ->
+                trace(
+                    tag = TAG,
+                    message = "Profile fetch failed for a stored account",
+                    error = error,
+                    type = TraceType.Error,
+                )
+            }
+    }
+
     companion object {
         private const val TAG = "AccountSelection"
 
@@ -325,6 +353,18 @@ class AccountSelectionViewModel @Inject constructor(
                         accounts = event.accounts,
                         loading = false,
                         currentEntropy = event.currentEntropy,
+                    )
+                }
+
+                is Event.OnProfileResolved -> { state ->
+                    state.copy(
+                        accounts = state.accounts.map {
+                            if (it.entropy == event.entropy) {
+                                it.copy(username = event.name.username, displayName = event.name.displayName)
+                            } else {
+                                it
+                            }
+                        }
                     )
                 }
 

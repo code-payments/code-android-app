@@ -3,6 +3,8 @@ package com.flipcash.app.login.internal.accounts
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.accounts.AccountProfileCache
+import com.flipcash.app.auth.internal.accounts.AccountProfileFetcher
+import com.flipcash.app.auth.internal.accounts.CachedAccountProfile
 import com.flipcash.app.auth.internal.accounts.AccountProfileName
 import com.flipcash.app.auth.internal.accounts.AccountRecord
 import com.flipcash.app.auth.internal.accounts.AccountStore
@@ -23,6 +25,7 @@ import com.getcode.util.resources.FakeResourceHelper
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -31,9 +34,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
 import kotlin.test.assertEquals
@@ -62,6 +67,7 @@ class AccountSelectionViewModelStateTest {
     private val mnemonicManager: MnemonicManager = mock()
     private val tokenController: TokenController = mock()
     private val resources = FakeResourceHelper()
+    private val profileFetcher: AccountProfileFetcher = mock()
     private val profiles: AccountProfileCache = mock {
         onBlocking { all() } doReturn emptyMap()
     }
@@ -93,6 +99,7 @@ class AccountSelectionViewModelStateTest {
             authManager = authManager,
             mnemonicManager = mnemonicManager,
             tokenController = tokenController,
+            profileFetcher = profileFetcher,
             resources = resources,
             dispatchers = dispatchers,
         )
@@ -145,6 +152,7 @@ class AccountSelectionViewModelStateTest {
             authManager = authManager,
             mnemonicManager = mnemonicManager,
             tokenController = tokenController,
+            profileFetcher = profileFetcher,
             resources = resources,
             dispatchers = TestDispatchers(testScheduler),
         )
@@ -183,42 +191,58 @@ class AccountSelectionViewModelStateTest {
     }
 
     /**
+     * A single non-active, derivable row with [cached] as its cache entry. Real derivation reaches
+     * android.util.Base64, a stub on the JVM, so the cluster is faked; the row only needs an owner
+     * key to look up the cache and fetch with.
+     */
+    private fun TestScope.loadNonActiveRow(
+        cached: CachedAccountProfile,
+        fetcher: AccountProfileFetcher = profileFetcher,
+        tokens: TokenController = offlineTokens(),
+    ): AccountSelectionViewModel {
+        val phrase = MnemonicPhrase(MnemonicPhrase.Kind.L12, List(12) { "abandon" })
+        val ownerKey = PublicKey(List(32) { 7 })
+        mockkObject(DerivedKey)
+        every { DerivedKey.derive(any(), phrase) } returns mockk(relaxed = true)
+        mockkObject(AccountCluster)
+        every { AccountCluster.newInstance(any(), any()) } returns
+            mockk(relaxed = true) { every { authorityPublicKey } returns ownerKey }
+        val cache: AccountProfileCache = mock {
+            onBlocking { all() } doReturn mapOf(ownerKey.base58() to cached)
+        }
+        whenever(authManager.accounts).thenReturn(RecordingAccountStore(listOf(record("a", 1_000L))))
+        whenever(authManager.accountProfiles).thenReturn(cache)
+        whenever(authManager.currentEntropy).thenReturn("b")
+        whenever(mnemonicManager.fromEntropyBase64("a")).thenReturn(phrase)
+        return AccountSelectionViewModel(
+            authManager = authManager,
+            mnemonicManager = mnemonicManager,
+            tokenController = tokens,
+            profileFetcher = fetcher,
+            resources = resources,
+            dispatchers = TestDispatchers(testScheduler),
+        )
+    }
+
+    private fun offlineTokens(): TokenController = mock {
+        onBlocking { fetchTokenBalances(any()) } doReturn Result.failure(IllegalStateException("offline"))
+    }
+
+    /**
      * The product rule: the switcher never signs in as an account the user has not switched to.
-     * A row that is not the signed-in account takes its name from the local cache, and loading it
-     * makes one network call, the balance lookup — never the Login RPC, which is the only way from
-     * an owner key to the user id that GetProfile needs.
+     * A row with no cached user id could only get one from the Login RPC, so it keeps its cached
+     * name and makes one network call, the balance lookup.
      */
     @Test
-    fun `a non-active row is titled from the cache without logging in`() =
+    fun `a row with no stored user id is titled from the cache without logging in`() =
         runTest(mainCoroutineRule.dispatcher) {
-            // Real derivation reaches android.util.Base64, which is a stub on the JVM; the row only
-            // needs a cluster with an owner key to look up the cache and fetch a balance with.
-            val phrase = MnemonicPhrase(MnemonicPhrase.Kind.L12, List(12) { "abandon" })
-            val ownerKey = PublicKey(List(32) { 7 })
-            mockkObject(DerivedKey)
-            every { DerivedKey.derive(any(), phrase) } returns mockk(relaxed = true)
-            mockkObject(AccountCluster)
-            every { AccountCluster.newInstance(any(), any()) } returns
-                mockk(relaxed = true) { every { authorityPublicKey } returns ownerKey }
-            val owner = ownerKey.base58()
-            val cache: AccountProfileCache = mock {
-                onBlocking { all() } doReturn mapOf(
-                    owner to AccountProfileName(username = "sally_streamer", displayName = "Sally"),
-                )
-            }
-            whenever(authManager.accounts).thenReturn(RecordingAccountStore(listOf(record("a", 1_000L))))
-            whenever(authManager.accountProfiles).thenReturn(cache)
-            whenever(authManager.currentEntropy).thenReturn("b")
-            whenever(mnemonicManager.fromEntropyBase64("a")).thenReturn(phrase)
-            val tokenController: TokenController = mock {
-                onBlocking { fetchTokenBalances(any()) } doReturn Result.failure(IllegalStateException("offline"))
-            }
-            val viewModel = AccountSelectionViewModel(
-                authManager = authManager,
-                mnemonicManager = mnemonicManager,
-                tokenController = tokenController,
-                resources = resources,
-                dispatchers = TestDispatchers(testScheduler),
+            val tokens = offlineTokens()
+            val viewModel = loadNonActiveRow(
+                cached = CachedAccountProfile(
+                    userId = null,
+                    name = AccountProfileName(username = "sally_streamer", displayName = "Sally"),
+                ),
+                tokens = tokens,
             )
             advanceUntilIdle()
 
@@ -226,15 +250,36 @@ class AccountSelectionViewModelStateTest {
             assertEquals("@sally_streamer", row.name)
             assertFalse(row.notFound)
             verify(authManager, never()).login(any(), any(), any(), any())
-            verify(tokenController).fetchTokenBalances(any())
-            verifyNoMoreInteractions(tokenController)
+            verifyNoInteractions(profileFetcher)
+            verify(tokens).fetchTokenBalances(any())
+            verifyNoMoreInteractions(tokens)
+        }
+
+    /** A stored user id is enough for GetProfile, a read; the fetched names replace the cached. */
+    @Test
+    fun `a row with a stored user id is retitled by a profile fetch`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val userId = listOf<Byte>(1, 2, 3)
+            val fetcher: AccountProfileFetcher = mock {
+                onBlocking { fetch(any(), any(), eq(userId)) } doReturn
+                    Result.success(AccountProfileName(username = null, displayName = "Sally"))
+            }
+            val viewModel = loadNonActiveRow(
+                cached = CachedAccountProfile(userId = userId, name = null),
+                fetcher = fetcher,
+            )
+            advanceUntilIdle()
+
+            assertEquals("Sally", viewModel.stateFlow.value.accounts.single().name)
+            verify(authManager, never()).login(any(), any(), any(), any())
         }
 
     /**
-     * The row pipeline cannot call Login if it cannot reach it. The profile fetch this screen once
-     * had came in as one more constructor dependency and logged in as every listed account, so any
-     * new dependency fails here until someone confirms it cannot sign in as a non-active account.
-     * [AuthManager]'s own login is covered by the test above.
+     * The row pipeline cannot call Login if it cannot reach it. An earlier profile fetch came in
+     * as one more constructor dependency and logged in as every listed account, so any new
+     * dependency fails here until someone confirms it cannot sign in as a non-active account.
+     * [AuthManager]'s own login is covered above, and [AccountProfileFetcher]'s dependencies by
+     * its own test.
      */
     @Test
     fun `the view model depends on nothing that can log in as another account`() {
@@ -242,6 +287,7 @@ class AccountSelectionViewModelStateTest {
             AuthManager::class.java,
             MnemonicManager::class.java,
             TokenController::class.java,
+            AccountProfileFetcher::class.java,
             ResourceHelper::class.java,
             DispatcherProvider::class.java,
         )

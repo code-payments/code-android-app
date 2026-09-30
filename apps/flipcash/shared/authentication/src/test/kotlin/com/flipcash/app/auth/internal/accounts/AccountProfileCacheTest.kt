@@ -1,6 +1,8 @@
 package com.flipcash.app.auth.internal.accounts
 
 import com.flipcash.services.models.UserProfile
+import com.getcode.opencode.model.core.NoId
+import com.getcode.utils.hexEncodedString
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -47,5 +49,31 @@ class AccountProfileCacheTest {
             "owner" to AccountProfileName(username = null, displayName = null),
             AccountProfileCache.entryFor(owner = "owner", accountId = signedIn, profile = profile),
         )
+    }
+
+    @Test
+    fun `records the signed-in owner's user id`() {
+        assertEquals("owner" to signedIn, AccountProfileCache.userIdFor(owner = "owner", accountId = signedIn))
+    }
+
+    /** Sign-out resets the id to NoId, which is empty; it must not be stored as an account's id. */
+    @Test
+    fun `skips a state with no owner or no user id`() {
+        assertNull(AccountProfileCache.userIdFor(owner = null, accountId = signedIn))
+        assertNull(AccountProfileCache.userIdFor(owner = "owner", accountId = null))
+        assertNull(AccountProfileCache.userIdFor(owner = "owner", accountId = NoId))
+    }
+
+    @Test
+    fun `decodes a stored user id`() {
+        val id = listOf<Byte>(0, 15, -1, 127, -128)
+        assertEquals(id, AccountProfileCache.decodeUserId(id.hexEncodedString()))
+    }
+
+    @Test
+    fun `treats a malformed user id as absent`() {
+        assertNull(AccountProfileCache.decodeUserId(""))
+        assertNull(AccountProfileCache.decodeUserId("abc"))
+        assertNull(AccountProfileCache.decodeUserId("zz"))
     }
 }
