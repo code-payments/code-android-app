@@ -11,6 +11,14 @@ android {
     }
 }
 
+// MigrationTestHelper reads exported schemas from the unit test's assets.
+androidComponents {
+    onVariants { variant ->
+        variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]
+            ?.sources?.assets?.addStaticSourceDirectory("$projectDir/schemas")
+    }
+}
+
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
