@@ -16,7 +16,10 @@ import com.getcode.opencode.model.financial.minus
  * Mirrors iOS `usernameGate(session:minimum:)` in `UsernameGate.swift`.
  */
 internal sealed interface UsernameGate {
-    /** A handle is already claimed — the nudge is spent, and changing it lives in My Account. */
+    /**
+     * A handle the user chose is already claimed — the nudge is spent, and changing it lives in
+     * My Account. A handle the server assigned does not count: the user hasn't picked it.
+     */
     data object Claimed : UsernameGate
 
     /** Nothing in the way: either the balance clears the minimum, or there is no minimum. */
@@ -35,16 +38,19 @@ internal sealed interface UsernameGate {
 }
 
 /**
- * @param username the account's claimed handle, null or blank when it hasn't claimed one.
+ * @param username the account's handle, null or blank when it has none.
+ * @param isAutoAssigned whether [username] was assigned by the server rather than chosen by the
+ *   user. An assigned handle still counts as unclaimed, so the nudge keeps showing.
  * @param minimum the balance the account must hold to claim, from the `usernameMinBalance` flag.
  * @param balance the account's total balance, in the same currency as [minimum].
  */
 internal fun usernameGate(
     username: String?,
+    isAutoAssigned: Boolean,
     minimum: Fiat,
     balance: Fiat,
 ): UsernameGate = when {
-    !username.isNullOrBlank() -> UsernameGate.Claimed
+    !username.isNullOrBlank() && !isAutoAssigned -> UsernameGate.Claimed
     // A zero minimum is no gate at all — which is also what an unresolved flag looks like. Either
     // reading leaves nothing holding the account back, so both fail open.
     !minimum.isPositive -> UsernameGate.Unlocked

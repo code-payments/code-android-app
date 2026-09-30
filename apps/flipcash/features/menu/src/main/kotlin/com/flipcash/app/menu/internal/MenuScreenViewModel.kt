@@ -302,11 +302,11 @@ internal class MenuScreenViewModel @Inject constructor(
         combine(
             userManager.state
                 .filter { it.authState is AuthState.Ready }
-                .map { it.userProfile?.username },
+                .map { it.userProfile?.username to (it.userProfile?.isUsernameAutoAssigned == true) },
             userFlags.resolvedFlags.map { it.usernameMinBalance.effectiveValue },
             totalBalance.observeTotalBalance(),
-        ) { username, minimum, balance ->
-            val progress = when (val gate = usernameGate(username, minimum, balance)) {
+        ) { (username, isAutoAssigned), minimum, balance ->
+            val progress = when (val gate = usernameGate(username, isAutoAssigned, minimum, balance)) {
                 UsernameGate.Claimed -> null
                 UsernameGate.Unlocked -> UsernameProgress.Unlocked
                 is UsernameGate.Locked -> UsernameProgress.Locked(
