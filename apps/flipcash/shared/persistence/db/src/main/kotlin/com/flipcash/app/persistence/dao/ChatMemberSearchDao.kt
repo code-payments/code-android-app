@@ -37,7 +37,7 @@ interface ChatMemberSearchDao {
     @Query("SELECT token FROM chat_member_search_tokens WHERE chat_id_hex = :chatIdHex AND user_id_hex = :userIdHex")
     suspend fun getTokens(chatIdHex: String, userIdHex: String): List<String>
 
-    @Query("SELECT chat_id_hex FROM chat_members WHERE user_id_hex = :userIdHex")
+    @Query("SELECT chat_id_hex FROM chat_members WHERE user_id_hex = :userIdHex AND is_member = 1")
     suspend fun getChatIdsForMember(userIdHex: String): List<String>
 
     /**
@@ -52,7 +52,7 @@ interface ChatMemberSearchDao {
     /** Drops the words of anyone in [chatIdHex]'s index who is no longer one of its members. */
     @Query(
         "DELETE FROM chat_member_search_tokens WHERE chat_id_hex = :chatIdHex " +
-            "AND user_id_hex NOT IN (SELECT user_id_hex FROM chat_members WHERE chat_id_hex = :chatIdHex)"
+            "AND user_id_hex NOT IN (SELECT user_id_hex FROM chat_members WHERE chat_id_hex = :chatIdHex AND is_member = 1)"
     )
     suspend fun deleteTokensOfFormerMembers(chatIdHex: String)
 
@@ -88,7 +88,7 @@ interface ChatMemberSearchDao {
                 ORDER BY timestamp_epoch_ms DESC LIMIT :recentWindow
             ) GROUP BY sender_id_hex
         ) r ON r.sender_id_hex = m.user_id_hex
-        WHERE m.chat_id_hex = :chatIdHex AND m.user_id_hex != :selfIdHex
+        WHERE m.chat_id_hex = :chatIdHex AND m.is_member = 1 AND m.user_id_hex != :selfIdHex
             AND m.user_id_hex IN (
                 SELECT user_id_hex FROM chat_member_search_tokens
                 WHERE chat_id_hex = :chatIdHex AND token >= :lower AND token < :upper
@@ -117,7 +117,7 @@ interface ChatMemberSearchDao {
             ) GROUP BY sender_id_hex
         ) r ON r.sender_id_hex = m.user_id_hex
         LEFT JOIN user_profiles p ON p.user_id_hex = m.user_id_hex
-        WHERE m.chat_id_hex = :chatIdHex AND m.user_id_hex != :selfIdHex
+        WHERE m.chat_id_hex = :chatIdHex AND m.is_member = 1 AND m.user_id_hex != :selfIdHex
         """
     )
     suspend fun recentSpeakers(chatIdHex: String, selfIdHex: String, recentWindow: Int): List<MemberSearchRow>
@@ -126,11 +126,11 @@ interface ChatMemberSearchDao {
 
     // region roster sync
 
-    @Query("SELECT COUNT(*) FROM chat_members WHERE chat_id_hex = :chatIdHex")
+    @Query("SELECT COUNT(*) FROM chat_members WHERE chat_id_hex = :chatIdHex AND is_member = 1")
     suspend fun countMembers(chatIdHex: String): Int
 
     /** Members of [chatIdHex] who joined at or before [version]: the ones a full read may drop. */
-    @Query("SELECT user_id_hex FROM chat_members WHERE chat_id_hex = :chatIdHex AND version <= :version")
+    @Query("SELECT user_id_hex FROM chat_members WHERE chat_id_hex = :chatIdHex AND is_member = 1 AND version <= :version")
     suspend fun getMemberIdsJoinedBy(chatIdHex: String, version: Long): List<String>
 
     @Query("SELECT * FROM chat_roster_sync WHERE chat_id_hex = :chatIdHex LIMIT 1")

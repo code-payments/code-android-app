@@ -2,9 +2,11 @@ package com.flipcash.shared.chat
 
 import com.flipcash.app.persistence.sources.RosterSearchCandidate
 import com.flipcash.app.persistence.sources.search.MemberSearchText
+import com.flipcash.shared.chat.internal.CodePointOrder
 import com.flipcash.shared.chat.internal.rankRosterMatches
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class RosterSearchRankingTest {
 
@@ -48,6 +50,36 @@ class RosterSearchRankingTest {
         assertEquals(
             listOf("Érica", "Alan"),
             rank("@ERICA", candidate(1, "Alan", username = "ericaz"), candidate(2, "Érica", username = "érica")),
+        )
+    }
+
+    @Test
+    fun `names sort by code point, so an emoji sorts above U+FFxx`() {
+        // U+FFFD has no decomposition, so it survives folding. UTF-16 order would put the emoji's
+        // high surrogate (U+D83D) first; code point order, like Swift's, puts U+1F600 last.
+        assertEquals(
+            listOf("\uFFFD Box", "\uD83D\uDE00 Smile"),
+            rank("", candidate(1, "\uD83D\uDE00 Smile"), candidate(2, "\uFFFD Box")),
+        )
+    }
+
+    @Test
+    fun `the raw-name tiebreak compares code points too`() {
+        // A full-width letter (U+FF21) against an emoji, as the raw names reach the tiebreak.
+        assertTrue(CodePointOrder.compare("\uFF21", "\uD83D\uDE00") < 0)
+        assertTrue("\uFF21" > "\uD83D\uDE00") // what String.compareTo would have said
+        assertEquals(0, CodePointOrder.compare("abc", "abc"))
+        assertTrue(CodePointOrder.compare("ab", "abc") < 0)
+    }
+
+    @Test
+    fun `the last tie breaks on the user id as lowercase hex`() {
+        // Signed bytes would put 0xAB (-85) before 0x0C (12); hex puts "0c" first.
+        val low = candidate(0x0C, "Same")
+        val high = candidate(0xAB, "Same")
+        assertEquals(
+            listOf(low.userId, high.userId),
+            rankRosterMatches(listOf(high, low), emptyList()).map { it.userId },
         )
     }
 

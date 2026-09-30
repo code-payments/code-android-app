@@ -19,6 +19,11 @@ data class ChatMemberEntity(
     // member it did not see. Zero for chat-creation joins, DM participants, and rows from before
     // it was stored.
     @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
+    // False for a marker left by a `MemberLeft`, with [version] set to the leave's roster version.
+    // Kept rather than deleted so a roster page that trails the stream cannot re-add the member:
+    // the greater version wins, and only a rejoin carries one above the leave. Every read of this
+    // table skips markers; a complete roster read clears those at or below its version.
+    @ColumnInfo(name = "is_member", defaultValue = "1") val isMember: Boolean = true,
 )
 
 /**

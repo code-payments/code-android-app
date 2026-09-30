@@ -14,15 +14,15 @@ import kotlinx.coroutines.flow.Flow
 interface ChatMemberDao {
 
     @Transaction
-    @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex")
+    @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex AND is_member = 1")
     suspend fun getMembersForChat(chatIdHex: String): List<ChatMemberWithProfile>
 
     @Transaction
-    @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex")
+    @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex AND is_member = 1")
     fun observeMembersForChat(chatIdHex: String): Flow<List<ChatMemberWithProfile>>
 
     @Transaction
-    @Query("SELECT * FROM chat_members")
+    @Query("SELECT * FROM chat_members WHERE is_member = 1")
     fun observeAll(): Flow<List<ChatMemberWithProfile>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -40,15 +40,41 @@ interface ChatMemberDao {
     suspend fun upsert(entity: ChatMemberEntity) {
         val existing = getMember(entity.chatIdHex, entity.userIdHex)
             ?: return insertOrReplace(entity)
+        // A member who left stays out until a rejoin, the only change with a version above the
+        // leave. A page that trails the stream still lists them, at their older join version.
+        if (!existing.isMember && entity.version <= existing.version) return
 
         insertOrReplace(
             entity.copy(
                 pointersJson = mergePointers(existing.pointersJson, entity.pointersJson),
                 // Greater wins: a page that trails the stream must not wind a member back.
                 version = maxOf(existing.version, entity.version),
+                isMember = true,
             )
         )
     }
+
+    /**
+     * Applies a `MemberLeft` at roster [version]: [userIdHex] becomes a marker in [chatIdHex], so a
+     * trailing roster page cannot re-add them. A leave older than the member's join is stale and
+     * changes nothing. Pointers stay with the marker for a rejoin to carry on from.
+     *
+     * @return whether the leave applied, so the caller drops the member's search words only then.
+     */
+    @Transaction
+    suspend fun markLeft(chatIdHex: String, userIdHex: String, version: Long): Boolean {
+        val existing = getMember(chatIdHex, userIdHex)
+        if (existing != null && existing.version > version) return false
+        insertOrReplace(
+            existing?.copy(version = version, isMember = false)
+                ?: ChatMemberEntity(chatIdHex, userIdHex, pointersJson = null, version = version, isMember = false)
+        )
+        return true
+    }
+
+    /** Clears [chatIdHex]'s leave markers at or below [version]: a complete read at that version outranks them. */
+    @Query("DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex AND is_member = 0 AND version <= :version")
+    suspend fun deleteMarkersUpTo(chatIdHex: String, version: Long)
 
     @Transaction
     suspend fun upsert(entities: List<ChatMemberEntity>) {
@@ -67,7 +93,7 @@ interface ChatMemberDao {
         """
         SELECT m.chat_id_hex FROM chat_members m
         INNER JOIN chat_metadata c ON c.chat_id_hex = m.chat_id_hex
-        WHERE m.user_id_hex = :userIdHex AND c.chat_type = :chatType
+        WHERE m.user_id_hex = :userIdHex AND m.is_member = 1 AND c.chat_type = :chatType
         ORDER BY c.last_activity_epoch_ms DESC
         LIMIT 1
         """
@@ -93,30 +119,33 @@ interface ChatMemberDao {
         userIdHex: String,
         pointer: MessagePointerSerialized,
     ) {
-        val existing = getMember(chatIdHex, userIdHex)?.pointersJson.orEmpty()
+        val row = getMember(chatIdHex, userIdHex)
+        val existing = row?.pointersJson.orEmpty()
         val current = existing.firstOrNull { it.type == pointer.type }
         if (current != null && current.value >= pointer.value) return
 
+        val pointers = existing.filterNot { it.type == pointer.type } + pointer
+        // Copied, not rebuilt: a fresh row would drop the member's version and re-add one who left.
         insertOrReplace(
-            ChatMemberEntity(
-                chatIdHex = chatIdHex,
-                userIdHex = userIdHex,
-                pointersJson = existing.filterNot { it.type == pointer.type } + pointer,
-            )
+            row?.copy(pointersJson = pointers)
+                ?: ChatMemberEntity(chatIdHex = chatIdHex, userIdHex = userIdHex, pointersJson = pointers)
         )
     }
 
     @Query("DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex")
     suspend fun deleteForChat(chatIdHex: String)
 
-    /** Drops the members of [chatIdHex] that are no longer in [keepUserIdHexes]. */
+    /**
+     * Drops the members of [chatIdHex] that are no longer in [keepUserIdHexes]. Leave markers stay:
+     * they guard against a trailing roster page, which a feed refresh does not change.
+     */
     @Query(
-        "DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex " +
+        "DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex AND is_member = 1 " +
             "AND user_id_hex NOT IN (:keepUserIdHexes)"
     )
     suspend fun deleteMembersNotIn(chatIdHex: String, keepUserIdHexes: List<String>)
 
-    /** Drops one member of [chatIdHex]. What a `MemberLeft` roster change applies. */
+    /** Drops one member row of [chatIdHex], marker or not. A `MemberLeft` uses [markLeft] instead. */
     @Query("DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex AND user_id_hex = :userIdHex")
     suspend fun deleteMember(chatIdHex: String, userIdHex: String)
 

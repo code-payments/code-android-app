@@ -78,12 +78,12 @@ class RosterStateHolderTest {
     }
 
     @Test
-    fun `a leave one version ahead removes the member`() = runTest {
+    fun `a leave one version ahead marks the member left at that version`() = runTest {
         storedVersion(4)
 
         subject.apply(chatId, listOf(left(version = 5)))
 
-        coVerify { memberDataSource.deleteMember(chatId, leaverId) }
+        coVerify { memberDataSource.markLeft(chatId, leaverId, version = 5) }
         coVerify { metadataDataSource.updateRoster(chatId, memberCount = 11, rosterVersion = 5) }
     }
 

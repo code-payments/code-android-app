@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 41,
-    "identityHash": "b7e885eef3b08050a5e11bbad5e7c3c5",
+    "identityHash": "d49e6cd616d1c1631dbb3e78901e2b00",
     "entities": [
       {
         "tableName": "messages",
@@ -746,7 +746,7 @@
       },
       {
         "tableName": "chat_members",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_id_hex` TEXT NOT NULL, `user_id_hex` TEXT NOT NULL, `pointers_json` TEXT, `version` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`chat_id_hex`, `user_id_hex`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chat_id_hex` TEXT NOT NULL, `user_id_hex` TEXT NOT NULL, `pointers_json` TEXT, `version` INTEGER NOT NULL DEFAULT 0, `is_member` INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(`chat_id_hex`, `user_id_hex`))",
         "fields": [
           {
             "fieldPath": "chatIdHex",
@@ -771,6 +771,13 @@
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
+          },
+          {
+            "fieldPath": "isMember",
+            "columnName": "is_member",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
           }
         ],
         "primaryKey": {
@@ -1026,7 +1033,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b7e885eef3b08050a5e11bbad5e7c3c5')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd49e6cd616d1c1631dbb3e78901e2b00')"
     ]
   }
 }

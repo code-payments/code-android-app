@@ -61,7 +61,8 @@ class RosterStateHolder @Inject constructor(
     private suspend fun applyChange(chatId: ChatId, change: RosterChange, stored: Long) {
         when (change) {
             is RosterChange.MemberJoined -> memberDataSource.upsert(chatId, listOf(change.member))
-            is RosterChange.MemberLeft -> memberDataSource.deleteMember(chatId, change.userId)
+            is RosterChange.MemberLeft ->
+                memberDataSource.markLeft(chatId, change.userId, version = change.rosterSummary.version)
         }
         metadataDataSource.updateRoster(
             chatId = chatId,

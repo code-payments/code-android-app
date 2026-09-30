@@ -8,6 +8,8 @@ import com.flipcash.app.persistence.sources.search.MemberSearchText
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.services.models.chat.PointerType
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -16,6 +18,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.time.Instant
 
 /**
  * The search index follows every member write: a roster read, a join or leave off the stream, and a
@@ -59,9 +63,70 @@ class MemberSearchIndexTest {
     fun `a member who left is no longer found`() = runTest {
         members.upsert(CHAT, listOf(member(ERICA, "Erica"), member(ERIN, "Erin")))
 
-        members.deleteMember(CHAT, ERICA)
+        members.markLeft(CHAT, ERICA, version = 5)
 
         assertEquals(setOf(ERIN), search("eri"))
+        assertEquals(1, members.countMembers(CHAT))
+    }
+
+    @Test
+    fun `a trailing roster page does not bring back a member who left`() = runTest {
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 3), member(ERIN, "Erin", version = 4)))
+        members.markLeft(CHAT, ERICA, version = 5)
+
+        // A GetRoster page from before the leave still lists Erica, at the version she joined.
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 3)))
+
+        assertEquals(setOf(ERIN), search("eri"))
+        assertEquals(1, members.countMembers(CHAT))
+        assertEquals(listOf(ERIN), members.getMembersForChat(CHAT).map { it.userId })
+    }
+
+    @Test
+    fun `a rejoin after a leave brings the member back`() = runTest {
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 3)))
+        members.markLeft(CHAT, ERICA, version = 5)
+
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 6)))
+
+        assertEquals(setOf(ERICA), search("eri"))
+        assertEquals(1, members.countMembers(CHAT))
+    }
+
+    @Test
+    fun `a leave older than the member's join changes nothing`() = runTest {
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 6)))
+
+        members.markLeft(CHAT, ERICA, version = 5)
+
+        assertEquals(setOf(ERICA), search("eri"))
+    }
+
+    @Test
+    fun `a read pointer for a member who left does not bring them back`() = runTest {
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 3)))
+        members.markLeft(CHAT, ERICA, version = 5)
+
+        members.updatePointers(CHAT, MessagePointer(PointerType.READ, ERICA, value = 9, timestamp = Instant.fromEpochMilliseconds(0)))
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 3)))
+
+        assertEquals(emptySet(), search("eri"))
+        assertEquals(0, members.countMembers(CHAT))
+    }
+
+    @Test
+    fun `a complete read clears leave markers at or below its version`() = runTest {
+        members.upsert(CHAT, listOf(member(ERICA, "Erica", version = 3), member(ERIN, "Erin", version = 4)))
+        members.markLeft(CHAT, ERICA, version = 5)
+        members.markLeft(CHAT, ERIN, version = 8)
+
+        members.reconcile(CHAT, seen = emptySet(), readVersion = 7)
+
+        val dao = FlipcashDatabase.getInstance()!!.chatMemberDao()
+        val chatHex = mapper.chatIdHex(CHAT)
+        assertNull(dao.getMember(chatHex, mapper.userIdHex(ERICA)))
+        // Erin's leave is newer than the read, so her marker still guards against older pages.
+        assertEquals(false, dao.getMember(chatHex, mapper.userIdHex(ERIN))?.isMember)
     }
 
     @Test

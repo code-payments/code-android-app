@@ -7,6 +7,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.MemberMatch
 import com.flipcash.shared.chat.RosterSearchSource
+import com.getcode.utils.hexEncodedString
 import javax.inject.Inject
 
 /**
@@ -62,6 +63,11 @@ internal class LocalRosterSearchSource @Inject constructor(
  *
  * Names compare in their normalized form, so "Érica" sorts with the e's. Ties fall back to the raw
  * name and then the user id, so an order never depends on the order rows came back in.
+ *
+ * Names compare by code point, as Swift's String ordering does, so both platforms list the same
+ * members in the same order. Kotlin's [String.compareTo] compares UTF-16 units instead, which puts
+ * an emoji (a surrogate pair, D800–DFFF) below a full-width letter (FF00–FFEF). The user id breaks
+ * the last tie as lowercase hex, which orders the same as iOS's lowercase hyphenated UUID string.
  */
 internal fun rankRosterMatches(
     candidates: List<RosterSearchCandidate>,
@@ -76,8 +82,24 @@ internal fun rankRosterMatches(
         compareBy<Pair<RosterSearchCandidate, String>> { (candidate, _) -> candidate.lastSpokeEpochMs == null }
             .thenByDescending { (candidate, _) -> candidate.lastSpokeEpochMs ?: 0L }
             .thenBy { (candidate, _) -> !isExactHandle(candidate) }
-            .thenBy { (_, name) -> name }
-            .thenBy { (candidate, _) -> candidate.displayName }
-            .thenBy { (candidate, _) -> candidate.userId.joinToString(",") }
+            .thenComparing({ (_, name) -> name }, CodePointOrder)
+            .thenComparing({ (candidate, _) -> candidate.displayName }, CodePointOrder)
+            .thenBy { (candidate, _) -> candidate.userId.hexEncodedString() }
     ).map { it.first }
+}
+
+/** Orders strings by Unicode code point, not by UTF-16 unit. */
+internal object CodePointOrder : Comparator<String> {
+    override fun compare(a: String, b: String): Int {
+        var i = 0
+        var j = 0
+        while (i < a.length && j < b.length) {
+            val x = a.codePointAt(i)
+            val y = b.codePointAt(j)
+            if (x != y) return x.compareTo(y)
+            i += Character.charCount(x)
+            j += Character.charCount(y)
+        }
+        return (a.length - i).compareTo(b.length - j)
+    }
 }

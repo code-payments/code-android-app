@@ -46,6 +46,15 @@ class MemberSearchTextTest {
     }
 
     @Test
+    fun `a query word loses exactly one leading mention trigger`() {
+        // The second @ is part of the word, so "@@eri" does not match a token "eri".
+        assertEquals(listOf("@eri"), MemberSearchText.queryWords("@@eri"))
+        // A full-width ＠ folds to @ under NFKD and is stripped the same way.
+        assertEquals(listOf("eri"), MemberSearchText.queryWords("＠eri"))
+        assertEquals(listOf("a", "b"), MemberSearchText.queryWords("@a @b"))
+    }
+
+    @Test
     fun `the upper bound sorts above any continuation of a prefix`() {
         // SQLite compares TEXT as UTF-8 bytes; so does this.
         fun bytes(s: String) = s.toByteArray(Charsets.UTF_8).map { it.toInt() and 0xFF }

@@ -141,20 +141,26 @@ class ChatMemberDataSource @Inject constructor(
                 database.chatMemberDao().deleteMember(hex, userIdHex)
                 database.chatMemberSearchDao().deleteTokensForMember(hex, userIdHex)
             }
+            // The read lists everyone in the roster as of [readVersion], so a leave at or below it
+            // no longer needs its marker.
+            database.chatMemberDao().deleteMarkersUpTo(hex, readVersion)
         }
     }
 
     /**
-     * Drops one member of [chatId]. What a `MemberLeft` roster change applies — [replaceMembers]
-     * cannot, because a roster change names who left rather than who remains.
+     * Applies a `MemberLeft` at roster [version]: [userId] leaves search and the count, and a
+     * roster page that trails the stream cannot add them back (model.proto: a trailing page
+     * "cannot resurrect" a removed member). [replaceMembers] cannot do this, because a roster
+     * change names who left rather than who remains.
      */
-    suspend fun deleteMember(chatId: ChatId, userId: ID) {
+    suspend fun markLeft(chatId: ChatId, userId: ID, version: Long) {
         val database = db ?: return
         val hex = mapper.chatIdHex(chatId)
         val userIdHex = mapper.userIdHex(userId)
         database.withTransaction {
-            database.chatMemberDao().deleteMember(chatIdHex = hex, userIdHex = userIdHex)
-            database.chatMemberSearchDao().deleteTokensForMember(chatIdHex = hex, userIdHex = userIdHex)
+            if (database.chatMemberDao().markLeft(chatIdHex = hex, userIdHex = userIdHex, version = version)) {
+                database.chatMemberSearchDao().deleteTokensForMember(chatIdHex = hex, userIdHex = userIdHex)
+            }
         }
     }
 
@@ -188,6 +194,8 @@ class ChatMemberDataSource @Inject constructor(
         val search = database.chatMemberSearchDao()
         for (member in members) {
             val userIdHex = mapper.userIdHex(member.userId)
+            // A member the upsert kept out, having left at a later version, gets no words.
+            if (database.chatMemberDao().getMember(chatIdHex, userIdHex)?.isMember != true) continue
             val profile = database.userProfileDao().getByUserId(userIdHex) ?: continue
             search.replaceTokens(chatIdHex, userIdHex, MemberSearchText.tokens(profile.displayName, profile.username))
         }
