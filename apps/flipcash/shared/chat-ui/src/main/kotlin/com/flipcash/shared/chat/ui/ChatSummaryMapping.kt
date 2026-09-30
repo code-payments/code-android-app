@@ -186,12 +186,7 @@ private fun MessageContent.previewText(
 
     // A widget this client can't draw previews as nothing, as an undecryptable message does.
     is MessageContent.Widget -> when (widget) {
-        is WidgetContent.ShareProfile -> when {
-            sentBySelf -> resources.getString(R.string.label_chat_preview_sharedProfile_you)
-            senderName != null ->
-                resources.getString(R.string.label_chat_preview_sharedProfile_bySender, senderName)
-            else -> resources.getString(R.string.label_chat_preview_sharedProfile)
-        }
+        is WidgetContent.ShareProfile -> resources.getString(R.string.label_chat_preview_sharedProfile)
         WidgetContent.Unsupported -> null
     }
 }

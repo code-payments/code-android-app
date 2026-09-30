@@ -2,6 +2,7 @@ package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import org.junit.Test
@@ -118,6 +119,12 @@ class MessageCapabilityTest {
             isFromSelf = false,
         )
         assertEquals(emptySet(), resolveCapabilities(theirSystemNotice))
+
+        val widget = message(
+            listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))),
+            isFromSelf = false,
+        )
+        assertEquals(emptySet(), resolveCapabilities(widget))
     }
 
     @Test
@@ -376,6 +383,12 @@ class MessageCapabilityTest {
     fun `a system notice is not reactable`() {
         val system = message(listOf(MessageContent.System("Anna joined")))
         assertEquals(false, canReact(system))
+    }
+
+    @Test
+    fun `a widget is not reactable`() {
+        val widget = message(listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))))
+        assertEquals(false, canReact(widget))
     }
 
     @Test

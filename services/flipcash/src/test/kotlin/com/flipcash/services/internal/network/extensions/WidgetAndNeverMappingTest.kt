@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class WidgetAndNeverMappingTest {
 
@@ -38,10 +39,10 @@ class WidgetAndNeverMappingTest {
     }
 
     @Test
-    fun `share profile widget round trips through the wire type`() {
-        val domain = MessageContent.Widget(WidgetContent.ShareProfile("alice"))
-
-        assertEquals(domain, domain.asContent().toMessageContent())
+    fun `a widget can't be built for sending`() {
+        assertFailsWith<IllegalStateException> {
+            MessageContent.Widget(WidgetContent.ShareProfile("alice")).asContent()
+        }
     }
 
     @Test

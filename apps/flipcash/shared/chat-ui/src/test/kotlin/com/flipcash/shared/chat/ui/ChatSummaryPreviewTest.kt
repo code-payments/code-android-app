@@ -352,17 +352,14 @@ class ChatSummaryPreviewTest {
     }
 
     @Test
-    fun `a shared profile previews as such, and the viewer's own says so`() {
+    fun `a shared profile previews the same whoever the sender is`() {
         every {
             resources.getString(R.string.label_chat_preview_sharedProfile)
         } returns "Shared a profile"
-        every {
-            resources.getString(R.string.label_chat_preview_sharedProfile_you)
-        } returns "You shared a profile"
         val widget = MessageContent.Widget(WidgetContent.ShareProfile("brad"))
 
         assertEquals("Shared a profile", preview(listOf(widget)))
-        assertEquals("You shared a profile", preview(listOf(widget), senderId = self))
+        assertEquals("Shared a profile", preview(listOf(widget), senderId = self))
     }
 
     @Test

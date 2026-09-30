@@ -103,6 +103,7 @@ data class MessagePolicy(
  * | Another participant's cash or tip message | Reply, Report |
  * | A tombstone | none |
  * | A system notice | none |
+ * | A widget (server-sent) | none |
  *
  * Report follows one rule: anything a participant sent can be reported, and anything the server
  * wrote, or that no longer exists, cannot. Your own messages are left out because reporting one is
@@ -159,8 +160,9 @@ private fun resolveForParticipant(
         }
     }
 
-    // Server-authored notices, not a participant's message.
-    if (contents.all { it is MessageContent.System }) return emptySet()
+    // Server-authored notices and widgets, not a participant's message: nothing to copy, reply to
+    // or report, and no user sender to attribute either to.
+    if (contents.all { it is MessageContent.System || it is MessageContent.Widget }) return emptySet()
 
     val hasText = contents.any { it is MessageContent.Text || it is MessageContent.Reply }
 
@@ -211,7 +213,7 @@ private fun Duration?.stillOpen(sentAt: Instant, now: Instant): Boolean =
  *
  * Reactions have no edit/delete-style windows and no report-only carve-out: anyone's message is
  * reactable, own or another participant's, text or cash. Only two things rule a message out —
- * a system notice (nothing a participant sent) and an unconfirmed send (`eventSequence == 0`,
+ * a system notice or widget (nothing a participant sent) and an unconfirmed send (`eventSequence == 0`,
  * the same guard [resolveForParticipant] uses: no valid request can name a message the server
  * has not acknowledged). A tombstone has no content left ([MessageContent.Deleted] clears it),
  * so the empty-content check below already excludes it.
@@ -221,6 +223,6 @@ fun canReact(message: ChatMessage): Boolean {
     if (contents.isEmpty()) return false
     if (contents.any { it is MessageContent.Deleted }) return false
     if (message.eventSequence == 0L) return false
-    if (contents.all { it is MessageContent.System }) return false
+    if (contents.all { it is MessageContent.System || it is MessageContent.Widget }) return false
     return true
 }
