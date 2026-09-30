@@ -2,7 +2,10 @@ package com.flipcash.app.login.internal.accounts
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.internal.accounts.AccountProfileFetcher
+import com.flipcash.app.auth.internal.accounts.AccountProfileName
 import com.flipcash.app.auth.internal.accounts.AccountRecord
+import com.flipcash.services.models.asHandle
 import com.flipcash.features.login.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.crypt.DerivePath
@@ -15,11 +18,8 @@ import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.TokenResult
 import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.usdf
-import com.getcode.opencode.providers.TokenMetadataProvider
-import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
@@ -28,9 +28,10 @@ import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -39,8 +40,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
@@ -50,6 +53,7 @@ class AccountSelectionViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val mnemonicManager: MnemonicManager,
     private val tokenController: TokenController,
+    private val profileFetcher: AccountProfileFetcher,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
 ) : BaseViewModel<AccountSelectionViewModel.State, AccountSelectionViewModel.Event>(
@@ -57,28 +61,6 @@ class AccountSelectionViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
-
-    /**
-     * TokenController does not implement [TokenMetadataProvider] itself (only TokenCoordinator
-     * does, scoped to the single signed-in user, which is wrong for this screen's other, dormant
-     * accounts), so this screen brings its own, delegating to TokenController's network-tier
-     * lookup with no cache — there is no warm cache here to benefit from anyway.
-     *
-     * One instance per account fetch, because it also records whether any lookup failed.
-     * `fetchTokenAccounts` resolves metadata through `mapNotNull`, so a failed lookup silently
-     * drops that token: without this flag an account whose metadata we could not read is
-     * indistinguishable from one the backend has never heard of, and the row would say
-     * "Not Found" about a wallet that exists.
-     */
-    private inner class RecordingMetadataProvider : TokenMetadataProvider {
-        var failed: Boolean = false
-            private set
-
-        override suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> =
-            tokenController.getTokenMetadata(mint).onFailure { failed = true }
-
-        override fun observeTokenCache(): Flow<Map<Mint, Token>> = emptyFlow()
-    }
 
     /**
      * One row. All three result fields false/null is the in-flight state.
@@ -96,13 +78,18 @@ class AccountSelectionViewModel @Inject constructor(
          */
         val id: String,
         val entropy: String,
-        val name: String,
+        /** The mnemonic name, the title of last resort. */
+        val mnemonicName: String,
+        val username: String? = null,
+        val displayName: String? = null,
         val ownerAddress: String,
         val creationDate: Long,
         val balance: Fiat? = null,
         val notFound: Boolean = false,
         val balanceUnavailable: Boolean = false,
     ) {
+        val name: String get() = title(username, displayName, mnemonicName)
+
         // The default data class toString() would put a seed into every log line and crash report
         // that touches this state.
         override fun toString(): String = "AccountUiModel(owner=$ownerAddress)"
@@ -123,6 +110,7 @@ class AccountSelectionViewModel @Inject constructor(
             val currentEntropy: String?,
         ) : Event
 
+        data class OnProfileResolved(val entropy: String, val name: AccountProfileName) : Event
         data class OnBalanceResolved(val entropy: String, val balance: Fiat) : Event
         data class OnBalanceNotFound(val entropy: String) : Event
         data class OnBalanceUnavailable(val entropy: String) : Event
@@ -143,16 +131,19 @@ class AccountSelectionViewModel @Inject constructor(
             .onStart { emit(Event.Load) }
             .map { derive(authManager.accounts.all()) }
             .onEach { derived ->
+                val profiles = authManager.accountProfiles.all()
                 dispatchEvent(
                     Event.OnAccountsLoaded(
                         accounts = derived.map { (record, cluster) ->
-                            record.toUiModel(cluster.getOrNull())
+                            record.toUiModel(cluster.getOrNull(), profiles)
                         },
                         currentEntropy = authManager.currentEntropy,
                     )
                 )
             }
-            .flatMapLatest { derived -> derived.asFlow().flatMapMerge { balance(it) } }
+            .flatMapLatest { derived ->
+                derived.asFlow().flatMapMerge { merge(balance(it), profile(it)) }
+            }
             .onEach { dispatchEvent(it) }
             // Derivation is PBKDF2 plus a SLIP-10 chain, and the fetches are network calls;
             // neither belongs on the thread drawing the list.
@@ -219,18 +210,35 @@ class AccountSelectionViewModel @Inject constructor(
      * stretch plus a SLIP-10 chain, and this list can hold 50 accounts. A record that will not
      * derive is kept rather than dropped — the user should still see it.
      */
-    private fun derive(records: List<AccountRecord>): List<Pair<AccountRecord, Result<AccountCluster>>> =
-        records.map { record -> record to runCatching { clusterFor(record.entropy) } }
+    /**
+     * Each account's key costs a PBKDF2 run and a SLIP-10 chain, and nothing on screen can show
+     * until every one is done, so they run side by side on the CPU pool instead of one after
+     * another.
+     */
+    private suspend fun derive(
+        records: List<AccountRecord>,
+    ): List<Pair<AccountRecord, Result<AccountCluster>>> = withContext(dispatchers.Default) {
+        records.map { record ->
+            async { record to runCatching { clusterFor(record.entropy) } }
+        }.awaitAll()
+    }
 
-    private fun AccountRecord.toUiModel(cluster: AccountCluster?): AccountUiModel {
+    private fun AccountRecord.toUiModel(
+        cluster: AccountCluster?,
+        profiles: Map<String, AccountProfileName>,
+    ): AccountUiModel {
         val mnemonic = runCatching { mnemonicManager.fromEntropyBase64(entropy) }.getOrNull()
         val owner = cluster?.authorityPublicKey?.base58()
+        val profile = owner?.let { profiles[it] }
         return AccountUiModel(
             // A record that will not derive has no owner key to be keyed on; its creation
             // timestamp is the only other thing distinguishing it.
             id = owner ?: "underived-$creationDate",
             entropy = entropy,
-            name = mnemonic?.let { displayName(it) }.orEmpty(),
+            // The cached names show at once and offline; the fetch replaces them when it lands.
+            mnemonicName = mnemonic?.let { displayName(it) }.orEmpty(),
+            username = profile?.username,
+            displayName = profile?.displayName,
             ownerAddress = owner?.let { truncateAddress(it) }.orEmpty(),
             creationDate = creationDate,
             // A record we cannot derive from is one we can never fetch a balance for.
@@ -262,13 +270,12 @@ class AccountSelectionViewModel @Inject constructor(
             return@flow emit(Event.OnBalanceUnavailable(record.entropy))
         }
 
-        val metadata = RecordingMetadataProvider()
-        tokenController.fetchTokenAccounts(owner, metadata)
+        // Batched: one account lookup and one metadata lookup, however many tokens the account
+        // holds. It fails outright rather than drop a token whose metadata did not come back, so a
+        // short total is never shown as the balance.
+        tokenController.fetchTokenBalances(owner)
             .onSuccess { tokens ->
                 when {
-                    // A dropped token makes the total wrong as surely as it makes an empty list
-                    // meaningless, so a failed lookup rules out both other answers.
-                    metadata.failed -> emit(Event.OnBalanceUnavailable(record.entropy))
                     tokens.isEmpty() -> emit(Event.OnBalanceNotFound(record.entropy))
                     else -> emit(
                         Event.OnBalanceResolved(
@@ -289,8 +296,37 @@ class AccountSelectionViewModel @Inject constructor(
             }
     }
 
+    /**
+     * One account's username and display name, fetched signed as that account, so every row is
+     * named and not just the signed-in one. A failure keeps whatever the cache gave the row.
+     */
+    private fun profile(entry: Pair<AccountRecord, Result<AccountCluster>>): Flow<Event> = flow {
+        val (record, cluster) = entry
+        val owner = cluster.getOrNull() ?: return@flow
+        profileFetcher.fetch(owner.authority.keyPair, owner.authorityPublicKey.base58())
+            .onSuccess { emit(Event.OnProfileResolved(record.entropy, it)) }
+            .onFailure { error ->
+                trace(
+                    tag = TAG,
+                    message = "Profile fetch failed for a stored account",
+                    error = error,
+                    type = TraceType.Error,
+                )
+            }
+    }
+
     companion object {
         private const val TAG = "AccountSelection"
+
+        /**
+         * A row's title: the account's `@username`, else its profile display name, else the
+         * mnemonic name. iOS picks in the same order, so an account reads the same on both.
+         * Blank counts as absent, so a cleared name falls through rather than showing nothing.
+         */
+        fun title(username: String?, displayName: String?, mnemonicName: String): String =
+            username?.takeIf { it.isNotBlank() }?.asHandle()
+                ?: displayName?.takeIf { it.isNotBlank() }
+                ?: mnemonicName
 
         /** iOS's `MnemonicPhrase.name`: first word, ellipsis, last word, both capitalised. */
         fun displayName(mnemonic: MnemonicPhrase): String =
@@ -310,6 +346,18 @@ class AccountSelectionViewModel @Inject constructor(
                         accounts = event.accounts,
                         loading = false,
                         currentEntropy = event.currentEntropy,
+                    )
+                }
+
+                is Event.OnProfileResolved -> { state ->
+                    state.copy(
+                        accounts = state.accounts.map {
+                            if (it.entropy == event.entropy) {
+                                it.copy(username = event.name.username, displayName = event.name.displayName)
+                            } else {
+                                it
+                            }
+                        }
                     )
                 }
 

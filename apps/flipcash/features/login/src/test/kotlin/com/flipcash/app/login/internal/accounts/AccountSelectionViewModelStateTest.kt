@@ -2,6 +2,9 @@ package com.flipcash.app.login.internal.accounts
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.internal.accounts.AccountProfileCache
+import com.flipcash.app.auth.internal.accounts.AccountProfileFetcher
+import com.flipcash.app.auth.internal.accounts.AccountProfileName
 import com.flipcash.app.auth.internal.accounts.AccountRecord
 import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.core.MainCoroutineRule
@@ -17,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -46,6 +50,10 @@ class AccountSelectionViewModelStateTest {
     private val mnemonicManager: MnemonicManager = mock()
     private val tokenController: TokenController = mock()
     private val resources = FakeResourceHelper()
+    private val profileFetcher: AccountProfileFetcher = mock()
+    private val profiles: AccountProfileCache = mock {
+        onBlocking { all() } doReturn emptyMap()
+    }
 
     /** Records only what was asked of it; the real store's semantics are covered by its own tests. */
     private class RecordingAccountStore(private var records: List<AccountRecord>) : AccountStore {
@@ -66,6 +74,7 @@ class AccountSelectionViewModelStateTest {
     private fun viewModel(store: AccountStore, current: String?, dispatchers: TestDispatchers):
         AccountSelectionViewModel {
         whenever(authManager.accounts).thenReturn(store)
+        whenever(authManager.accountProfiles).thenReturn(profiles)
         whenever(authManager.currentEntropy).thenReturn(current)
         whenever(mnemonicManager.fromEntropyBase64(any()))
             .thenThrow(IllegalArgumentException("not a real seed"))
@@ -73,6 +82,7 @@ class AccountSelectionViewModelStateTest {
             authManager = authManager,
             mnemonicManager = mnemonicManager,
             tokenController = tokenController,
+            profileFetcher = profileFetcher,
             resources = resources,
             dispatchers = dispatchers,
         )
@@ -114,6 +124,7 @@ class AccountSelectionViewModelStateTest {
     fun `selecting an account switches to its base58 seed`() = runTest(mainCoroutineRule.dispatcher) {
         val phrase = MnemonicPhrase(MnemonicPhrase.Kind.L12, List(12) { "abandon" })
         whenever(authManager.accounts).thenReturn(RecordingAccountStore(listOf(record("a", 1_000L))))
+        whenever(authManager.accountProfiles).thenReturn(profiles)
         whenever(authManager.currentEntropy).thenReturn(null)
         whenever(mnemonicManager.fromEntropyBase64(any())).thenReturn(phrase)
         whenever(mnemonicManager.getEncodedBase58(phrase)).thenReturn("base58-of-a")
@@ -121,6 +132,7 @@ class AccountSelectionViewModelStateTest {
             authManager = authManager,
             mnemonicManager = mnemonicManager,
             tokenController = tokenController,
+            profileFetcher = profileFetcher,
             resources = resources,
             dispatchers = TestDispatchers(testScheduler),
         )
@@ -156,5 +168,45 @@ class AccountSelectionViewModelStateTest {
 
         assertEquals(listOf("a"), store.deleted)
         assertEquals(listOf("b"), viewModel.stateFlow.value.accounts.map { it.entropy })
+    }
+
+    /** A fetched profile renames only its own row, and the username wins over the display name. */
+    @Test
+    fun `a fetched profile retitles its row`() = runTest(mainCoroutineRule.dispatcher) {
+        val store = RecordingAccountStore(listOf(record("a", 2_000L), record("b", 1_000L)))
+        val viewModel = viewModel(store, current = "b", TestDispatchers(testScheduler))
+        advanceUntilIdle()
+
+        viewModel.dispatchEvent(
+            AccountSelectionViewModel.Event.OnProfileResolved(
+                entropy = "a",
+                name = AccountProfileName(username = "sally_streamer", displayName = "Sally"),
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf("@sally_streamer", ""), viewModel.stateFlow.value.accounts.map { it.name })
+    }
+
+    private val mnemonicName = "Apple ... Elder"
+
+    @Test
+    fun `title prefers the username, as a handle`() {
+        assertEquals(
+            "@sally_streamer",
+            AccountSelectionViewModel.title(username = "sally_streamer", displayName = "Sally", mnemonicName = mnemonicName),
+        )
+    }
+
+    @Test
+    fun `title falls back to the display name without a username`() {
+        assertEquals("Sally", AccountSelectionViewModel.title(username = null, displayName = "Sally", mnemonicName = mnemonicName))
+        assertEquals("Sally", AccountSelectionViewModel.title(username = " ", displayName = "Sally", mnemonicName = mnemonicName))
+    }
+
+    @Test
+    fun `title falls back to the mnemonic name without either`() {
+        assertEquals(mnemonicName, AccountSelectionViewModel.title(username = null, displayName = null, mnemonicName = mnemonicName))
+        assertEquals(mnemonicName, AccountSelectionViewModel.title(username = "", displayName = "", mnemonicName = mnemonicName))
     }
 }
