@@ -44,17 +44,17 @@ fun NewChatScreen() {
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             ChoiceRow(
+                label = stringResource(R.string.action_findByUsername),
+                icon = R.drawable.ic_at,
+                onClick = { navigator.push(AppRoute.Messaging.FindByUsername) },
+            )
+            ChoiceRow(
                 label = stringResource(R.string.action_createPublicGroup),
                 icon = R.drawable.ic_group_3,
                 onClick = {
                     analytics.track(GroupEvents.newOpened())
                     navigator.push(AppRoute.Messaging.NewGroup)
                 },
-            )
-            ChoiceRow(
-                label = stringResource(R.string.action_findByUsername),
-                icon = R.drawable.ic_at,
-                onClick = { navigator.push(AppRoute.Messaging.FindByUsername) },
             )
         }
     }
