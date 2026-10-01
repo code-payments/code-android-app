@@ -985,7 +985,7 @@
     <string name="label_edited">Edited</string>
     <string name="label_messageDeletedByYou">You deleted this message</string>
     <string name="label_messageDeleted">This message was deleted</string>
-    <string name="label_messageUndecryptable">This message can\'t be displayed</string>
+    <string name="label_messageUndecryptable">This message can’t be displayed</string>
     <string name="hint_messageUndecryptable_update">Update Flipcash to see it</string>
     <string name="hint_messageUndecryptable_askToResend">Ask %1$s to send it again</string>
     <string name="hint_messageUndecryptable_tryAgain">Try sending it again</string>
@@ -995,9 +995,9 @@
     <string name="label_e2eeFooter_group">Public groups are not end-to-end encrypted</string>
     <string name="action_learnMore">Learn More</string>
 
-    <string name="title_e2eeSheet_dm">Your messages are private</string>
-    <string name="subtitle_e2eeSheet_dm">Messages and media in this chat are end-to-end encrypted. Only you and the person you\'re chatting with can read them.</string>
-    <string name="title_e2eeSheet_group">Public groups are not encrypted</string>
+    <string name="title_e2eeSheet_dm">Your Messages Are Private</string>
+    <string name="subtitle_e2eeSheet_dm">Messages and media in this chat are end-to-end encrypted. Only you and the person you’re chatting with can read them.</string>
+    <string name="title_e2eeSheet_group">Public Groups Are Not Encrypted</string>
     <string name="subtitle_e2eeSheet_group">End-to-end encryption covers chats between two people. Messages in public groups are stored on Flipcash servers in plain text.</string>
     <string name="header_e2eeSheet_encrypted">ENCRYPTED</string>
     <string name="header_e2eeSheet_notEncrypted">NOT ENCRYPTED</string>
