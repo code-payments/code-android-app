@@ -150,7 +150,8 @@ if [[ -n "$EXPLICIT_ERROR_ID" ]]; then
   USERS=$(echo "$ERROR_JSON" | jq -r '.users')
   FIRST_SEEN=$(echo "$ERROR_JSON" | jq -r '.first_seen')
 else
-  # Fetch top open error
+  # Fetch top open error, ranked by affected users: ranking by events lets one device
+  # stuck in a retry loop outrank errors that hit dozens of users.
   FILTERS="filters[error.status][]=open&filters[app.release_stage][]=${RELEASE_STAGE}"
   if [[ -n "$SEVERITY" ]]; then
     FILTERS="${FILTERS}&filters[event.severity][]=${SEVERITY}"
@@ -159,7 +160,7 @@ else
     FILTERS="${FILTERS}&filters[event.since][]=${SINCE}"
   fi
 
-  ERRORS_URL="${API_BASE}/projects/${PROJECT_ID}/errors?${FILTERS}&sort=events&direction=desc&per_page=1"
+  ERRORS_URL="${API_BASE}/projects/${PROJECT_ID}/errors?${FILTERS}&sort=users&direction=desc&per_page=1"
   ERRORS_JSON=$(api "$ERRORS_URL")
 
   if [[ -z "$ERRORS_JSON" ]] || ! echo "$ERRORS_JSON" | jq -e '.[0]' >/dev/null 2>&1; then
