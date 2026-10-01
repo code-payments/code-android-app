@@ -1078,7 +1078,7 @@
          (node 10127:117987). -->
     <string name="title_startNewChat">New Chat</string>
     <string name="action_createPublicGroup">Create a Public Group</string>
-    <string name="action_findByUsername">Find by Username</string>
+    <string name="action_findByUsername">Find Someone by Username</string>
 
     <!-- Creating a public group (node 10153:22901). -->
     <string name="title_newPublicGroup">New Public Group</string>
