@@ -50,22 +50,21 @@ internal fun E2eeLearnMoreSheet(
 ) {
     val isDm = kind == E2eeSheetKind.Dm
     val encrypted = if (isDm) {
-        listOf(R.string.item_e2eeSheet_textAndReplies, R.string.item_e2eeSheet_photos)
+        listOf(R.string.item_e2eeSheet_allMessageText, R.string.item_e2eeSheet_allMedia)
     } else {
-        listOf(R.string.item_e2eeSheet_messagesInDms)
+        listOf(R.string.item_e2eeSheet_messagesAndMediaInDms)
     }
     val notEncrypted = if (isDm) {
         listOf(
-            R.string.item_e2eeSheet_tipsAndPayments,
+            R.string.item_e2eeSheet_payments,
             R.string.item_e2eeSheet_reactions,
-            R.string.item_e2eeSheet_editedOrDeleted,
-            R.string.item_e2eeSheet_groupChats,
+            R.string.item_e2eeSheet_publicGroupChats,
             R.string.item_e2eeSheet_beforeEncryption,
         )
     } else {
         listOf(
-            R.string.item_e2eeSheet_groupChatsIncludingThis,
-            R.string.item_e2eeSheet_tipsAndPayments,
+            R.string.item_e2eeSheet_publicGroupChatsIncludingThis,
+            R.string.item_e2eeSheet_payments,
         )
     }
 
