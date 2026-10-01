@@ -10,7 +10,8 @@
 #   ./bugsnag-top.sh --since 2026-05-01T00:00:00Z  # custom since filter
 #   ./bugsnag-top.sh --severity error   # filter by severity
 #   ./bugsnag-top.sh --error-id <id>    # fetch a specific error by ID
-#   ./bugsnag-top.sh --url <bugsnag_url>  # fetch a specific error by Bugsnag URL
+#   ./bugsnag-top.sh --url <bugsnag_url>  # fetch a specific error (and ?event_id=, if present) by Bugsnag URL
+#   ./bugsnag-top.sh --error-id <id> --event-id <id>  # a specific event of that error
 
 set -euo pipefail
 
@@ -66,6 +67,7 @@ SEVERITY=""
 SINCE=""
 ALL_VERSIONS=false
 EXPLICIT_ERROR_ID=""
+EXPLICIT_EVENT_ID=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -74,6 +76,7 @@ while [[ $# -gt 0 ]]; do
     --all)        ALL_VERSIONS=true; shift ;;
     --since)      SINCE="$2"; shift 2 ;;
     --error-id)   EXPLICIT_ERROR_ID="$2"; shift 2 ;;
+    --event-id)   EXPLICIT_EVENT_ID="$2"; shift 2 ;;
     --url)
       # Extract error ID from a Bugsnag dashboard URL
       # e.g. https://app.bugsnag.com/org/project/errors/abc123def456
@@ -82,6 +85,9 @@ while [[ $# -gt 0 ]]; do
         echo "ERROR: Could not extract error ID from URL: $2" >&2
         exit 1
       fi
+      # A link copied from an event view pins that event; without it we take the latest.
+      URL_EVENT_ID=$(echo "$2" | grep -oE '[?&]event_id=[a-f0-9]+' | sed 's|.*event_id=||' || true)
+      [[ -n "$URL_EVENT_ID" ]] && EXPLICIT_EVENT_ID="$URL_EVENT_ID"
       shift 2
       ;;
     *)            echo "Unknown option: $1" >&2; exit 1 ;;
@@ -144,7 +150,8 @@ if [[ -n "$EXPLICIT_ERROR_ID" ]]; then
   USERS=$(echo "$ERROR_JSON" | jq -r '.users')
   FIRST_SEEN=$(echo "$ERROR_JSON" | jq -r '.first_seen')
 else
-  # Fetch top open error
+  # Fetch top open error, ranked by affected users: ranking by events lets one device
+  # stuck in a retry loop outrank errors that hit dozens of users.
   FILTERS="filters[error.status][]=open&filters[app.release_stage][]=${RELEASE_STAGE}"
   if [[ -n "$SEVERITY" ]]; then
     FILTERS="${FILTERS}&filters[event.severity][]=${SEVERITY}"
@@ -153,7 +160,7 @@ else
     FILTERS="${FILTERS}&filters[event.since][]=${SINCE}"
   fi
 
-  ERRORS_URL="${API_BASE}/projects/${PROJECT_ID}/errors?${FILTERS}&sort=events&direction=desc&per_page=1"
+  ERRORS_URL="${API_BASE}/projects/${PROJECT_ID}/errors?${FILTERS}&sort=users&direction=desc&per_page=1"
   ERRORS_JSON=$(api "$ERRORS_URL")
 
   if [[ -z "$ERRORS_JSON" ]] || ! echo "$ERRORS_JSON" | jq -e '.[0]' >/dev/null 2>&1; then
@@ -169,13 +176,18 @@ else
   FIRST_SEEN=$(echo "$ERRORS_JSON" | jq -r '.[0].first_seen')
 fi
 
-# ── Fetch latest event for this error ─────────────────────────────────
-EVENTS_URL="${API_BASE}/projects/${PROJECT_ID}/errors/${ERROR_ID}/events?sort=timestamp&direction=desc&per_page=1"
-EVENTS_JSON=$(api "$EVENTS_URL")
-
-EVENT_ID=$(echo "$EVENTS_JSON" | jq -r '.[0].id')
-EVENT_URL="${API_BASE}/projects/${PROJECT_ID}/errors/${ERROR_ID}/events/${EVENT_ID}"
-RELEASE=$(echo "$EVENTS_JSON" | jq -r '.[0].app.version // "unknown"')
+# ── Resolve the event: the one the URL pinned, else the latest ───────
+if [[ -n "$EXPLICIT_EVENT_ID" ]]; then
+  EVENT_ID="$EXPLICIT_EVENT_ID"
+else
+  EVENTS_URL="${API_BASE}/projects/${PROJECT_ID}/errors/${ERROR_ID}/events?sort=timestamp&direction=desc&per_page=1"
+  EVENTS_JSON=$(api "$EVENTS_URL")
+  EVENT_ID=$(echo "$EVENTS_JSON" | jq -r '.[0].id')
+fi
+# The event-by-id endpoint is project-scoped; nesting it under /errors/{id} returns 404.
+EVENT_URL="${API_BASE}/projects/${PROJECT_ID}/events/${EVENT_ID}"
+# The events list omits app info, so the release comes from the full event.
+RELEASE=$(api "$EVENT_URL" | jq -r '.app.version // "unknown"')
 
 # ── Emit result ───────────────────────────────────────────────────────
 jq -n \
