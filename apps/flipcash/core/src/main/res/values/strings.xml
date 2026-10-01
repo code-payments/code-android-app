@@ -985,31 +985,30 @@
     <string name="label_edited">Edited</string>
     <string name="label_messageDeletedByYou">You deleted this message</string>
     <string name="label_messageDeleted">This message was deleted</string>
-    <string name="label_messageUndecryptable">This message can\'t be displayed</string>
+    <string name="label_messageUndecryptable">This message can’t be displayed</string>
     <string name="hint_messageUndecryptable_update">Update Flipcash to see it</string>
     <string name="hint_messageUndecryptable_askToResend">Ask %1$s to send it again</string>
     <string name="hint_messageUndecryptable_tryAgain">Try sending it again</string>
 
     <string name="label_e2eeMarker">Encrypted</string>
     <string name="label_e2eeFooter_dm">Messages are end-to-end encrypted</string>
-    <string name="label_e2eeFooter_group">Group chats aren\'t end-to-end encrypted</string>
+    <string name="label_e2eeFooter_group">Public groups are not end-to-end encrypted</string>
     <string name="action_learnMore">Learn More</string>
 
-    <string name="title_e2eeSheet_dm">Your messages are private</string>
-    <string name="subtitle_e2eeSheet_dm">Messages and photos in this chat are end-to-end encrypted. Only you and the person you\'re chatting with can read them. Not even Flipcash can.</string>
-    <string name="title_e2eeSheet_group">Group chats aren\'t encrypted</string>
-    <string name="subtitle_e2eeSheet_group">End-to-end encryption covers chats between two people. Messages in group chats are stored on Flipcash servers in a form Flipcash can read.</string>
+    <string name="title_e2eeSheet_dm">Your Messages Are Private</string>
+    <string name="subtitle_e2eeSheet_dm">Messages and media in this chat are end-to-end encrypted. Only you and the person you’re chatting with can read them.</string>
+    <string name="title_e2eeSheet_group">Public Groups Are Not Encrypted</string>
+    <string name="subtitle_e2eeSheet_group">End-to-end encryption covers chats between two people. Messages in public groups are stored on Flipcash servers in plain text.</string>
     <string name="header_e2eeSheet_encrypted">ENCRYPTED</string>
     <string name="header_e2eeSheet_notEncrypted">NOT ENCRYPTED</string>
-    <string name="item_e2eeSheet_textAndReplies">Text messages and replies</string>
-    <string name="item_e2eeSheet_photos">Photos you send</string>
-    <string name="item_e2eeSheet_tipsAndPayments">Tips and payments, which are recorded on Solana</string>
+    <string name="item_e2eeSheet_allMessageText">All message text</string>
+    <string name="item_e2eeSheet_allMedia">All media</string>
+    <string name="item_e2eeSheet_payments">Payments, which are recorded on the Solana blockchain</string>
     <string name="item_e2eeSheet_reactions">Reactions, and who sent them</string>
-    <string name="item_e2eeSheet_editedOrDeleted">That a message was edited or deleted</string>
-    <string name="item_e2eeSheet_groupChats">Group chats</string>
-    <string name="item_e2eeSheet_beforeEncryption">Messages sent before encryption was turned on</string>
-    <string name="item_e2eeSheet_messagesInDms">Messages in DMs</string>
-    <string name="item_e2eeSheet_groupChatsIncludingThis">Group chats, including this one</string>
+    <string name="item_e2eeSheet_publicGroupChats">Public group chats</string>
+    <string name="item_e2eeSheet_beforeEncryption">Messages sent before encryption became available</string>
+    <string name="item_e2eeSheet_messagesAndMediaInDms">Messages and media in 1:1 chats</string>
+    <string name="item_e2eeSheet_publicGroupChatsIncludingThis">Public group chats, including this one</string>
 
     <!-- Cash link card: the state of the link a message carries, read without claiming it -->
     <string name="label_linkCard_cash">Cash</string>
