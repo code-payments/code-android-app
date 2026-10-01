@@ -2,6 +2,7 @@ package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import org.junit.Test
@@ -118,6 +119,110 @@ class MessageCapabilityTest {
             isFromSelf = false,
         )
         assertEquals(emptySet(), resolveCapabilities(theirSystemNotice))
+
+    }
+
+    private val widgetMessage
+        get() = message(
+            listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))),
+            isFromSelf = false,
+        )
+
+    @Test
+    fun `a widget offers only Reply where the viewer may speak`() {
+        // No Copy (no text), no Report (no user sender), no Edit or Delete (not the viewer's).
+        assertEquals(setOf(MessageCapability.Reply), resolveCapabilities(widgetMessage))
+        assertEquals(
+            setOf(MessageCapability.Reply),
+            resolveCapabilities(widgetMessage, canPost = true, canSpeak = true),
+        )
+    }
+
+    @Test
+    fun `a widget offers nothing where the speaker rules forbid speaking`() {
+        assertEquals(emptySet(), resolveCapabilities(widgetMessage, canSpeak = false))
+    }
+
+    @Test
+    fun `where the viewer may speak, text and cash keep Reply`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
+            resolveCapabilities(text(isFromSelf = false), canSpeak = true),
+        )
+        assertEquals(
+            setOf(MessageCapability.Reply, MessageCapability.Report),
+            resolveCapabilities(cash(isFromSelf = false), canSpeak = true),
+        )
+    }
+
+    @Test
+    fun `where the viewer may not speak, another's text loses Reply and keeps Copy and Report`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Report),
+            resolveCapabilities(text(isFromSelf = false), canSpeak = false),
+        )
+    }
+
+    @Test
+    fun `where the viewer may not speak, own text keeps Copy, Edit and Delete but not Reply`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete),
+            resolveCapabilities(text(), now = sentAt, canSpeak = false),
+        )
+    }
+
+    @Test
+    fun `where the viewer may not speak, cash loses Reply and keeps Report`() {
+        assertEquals(
+            setOf(MessageCapability.Report),
+            resolveCapabilities(cash(isFromSelf = false), canSpeak = false),
+        )
+        assertEquals(emptySet(), resolveCapabilities(cash(), canSpeak = false))
+    }
+
+    @Test
+    fun `a creator-gated viewer loses Reply but keeps Copy, Report and own Edit and Delete`() {
+        // The panel passes canSpeak = false for any unmet speaker rule, creator included.
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Report),
+            resolveCapabilities(text(isFromSelf = false), canSpeak = false),
+        )
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete),
+            resolveCapabilities(text(), now = sentAt, canSpeak = false),
+        )
+    }
+
+    @Test
+    fun `reactions follow the rules' reaction flag, not the posting gate`() {
+        // canReact's gate is whether the rules leave reactions open (true for a creator-only block),
+        // so a message stays reactable while Reply is withheld.
+        assertEquals(true, canReact(text(isFromSelf = false), canSpeak = true))
+        assertEquals(false, canReact(text(isFromSelf = false), canSpeak = false))
+    }
+
+    @Test
+    fun `a viewer with no speaker rules, as in a direct message, is unaffected`() {
+        // canSpeak defaults true: a DM has no rules to fail.
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
+            resolveCapabilities(text(isFromSelf = false)),
+        )
+        assertEquals(true, canReact(text(isFromSelf = false)))
+        assertEquals(true, canReact(cash(isFromSelf = false)))
+    }
+
+    @Test
+    fun `text and cash are not reactable where the viewer may not speak`() {
+        assertEquals(false, canReact(text(), canSpeak = false))
+        assertEquals(false, canReact(text(isFromSelf = false), canSpeak = false))
+        assertEquals(false, canReact(cash(), canSpeak = false))
+        assertEquals(false, canReact(cash(isFromSelf = false), canSpeak = false))
+    }
+
+    @Test
+    fun `a widget offers nothing to a viewer who cannot post`() {
+        assertEquals(emptySet(), resolveCapabilities(widgetMessage, canPost = false))
     }
 
     @Test
@@ -376,6 +481,14 @@ class MessageCapabilityTest {
     fun `a system notice is not reactable`() {
         val system = message(listOf(MessageContent.System("Anna joined")))
         assertEquals(false, canReact(system))
+    }
+
+    @Test
+    fun `a widget is reactable where the viewer may speak, and not where they may not`() {
+        val widget = message(listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))))
+        assertEquals(true, canReact(widget))
+        assertEquals(true, canReact(widget, canSpeak = true))
+        assertEquals(false, canReact(widget, canSpeak = false))
     }
 
     @Test

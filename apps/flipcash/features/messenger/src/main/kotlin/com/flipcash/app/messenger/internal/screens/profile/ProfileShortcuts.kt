@@ -86,9 +86,9 @@ internal fun rememberProfileShare(): (ChatParticipant.TipUser) -> Unit {
         { user ->
             scope.launch {
                 shareController.present(
-                    Shareable.TipCard(
+                    Shareable.Profile(
                         userId = user.userId,
-                        title = user.profile.displayName,
+                        displayName = user.profile.displayName,
                         username = user.profile.username,
                     )
                 )

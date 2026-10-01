@@ -63,6 +63,7 @@ import androidx.paging.compose.LazyPagingItems
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.LinkCard
@@ -270,6 +271,25 @@ fun ContentBubble(
                 // TODO
                 is MessageContent.Media -> Unit
                 is MessageContent.System -> Unit
+                // A widget variant this client doesn't know draws as any message it can't show.
+                is MessageContent.Widget -> when (val widget = content.widget) {
+                    is WidgetContent.ShareProfile -> ShareProfileWidgetBubble(
+                        modifier = modifier,
+                        username = widget.username,
+                        isFromSelf = item.isFromSelf,
+                        position = position,
+                        maxWidth = bubbleMaxWidth,
+                        onShare = if (interactive) actionHandler else null,
+                        onLongClick = onLongClick?.takeIf { interactive },
+                        onDoubleClick = onDoubleClick?.takeIf { interactive },
+                        attention = attention,
+                    )
+
+                    WidgetContent.Unsupported -> UndecryptableBubble(
+                        modifier = modifier,
+                        hint = UndecryptableHint.UpdateApp,
+                    )
+                }
             }
         }
     }
@@ -857,7 +877,7 @@ internal object BubbleDefaults {
 }
 
 @Composable
-private fun Bubble(
+internal fun Bubble(
     isFromSelf: Boolean,
     position: BubblePosition,
     maxWidth: Dp,

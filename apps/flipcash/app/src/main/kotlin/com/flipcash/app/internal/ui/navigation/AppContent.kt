@@ -84,6 +84,7 @@ internal fun AppContent(
     cardExpansion: CardExpansionController,
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
+    canSwitchAccounts: Boolean = false,
 ) {
     // The nav bar is a single persistent overlay at the app root (below), so tab switches stay
     // seamless — one instance, sliding selection pill, one haze source. It's a bottom OVERLAY over the
@@ -230,6 +231,7 @@ internal fun AppContent(
             // The bar fades itself out with the wallet's card expansion — and drops out of the tree at
             // the end of the fade, so an invisible bar can't be tapped. See AppNavigationBar.
             cardExpansion = cardExpansion,
+            canSwitchAccounts = canSwitchAccounts,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .measured { if (it.height > tabBarHeight.value) tabBarHeight.value = it.height },

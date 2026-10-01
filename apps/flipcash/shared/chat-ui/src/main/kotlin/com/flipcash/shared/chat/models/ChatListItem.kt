@@ -219,6 +219,7 @@ sealed interface ChatListItem {
                 is MessageContent.Media -> "media"
                 is MessageContent.Reply -> "reply-message"
                 is MessageContent.System -> "system-message"
+                is MessageContent.Widget -> "widget-message"
                 is MessageContent.Encrypted -> "encrypted-message"
             }
         }

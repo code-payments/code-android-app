@@ -80,7 +80,7 @@
 
     <string name="permissions_description_camera">Your camera is used to grab Digital Cash. Please allow access to the camera to proceed</string>
     <string name="permissions_title_push">Push Notifications Required</string>
-    <string name="permissions_description_push">Push notifications are used to update you on tips and messages</string>
+    <string name="permissions_description_push">Push notifications are used to update you on new messages</string>
 
     <string name="permissions_title_push_rationale">Are You Sure?</string>
     <string name="permissions_description_push_rationale">You won\'t be notified of changes to your balance if you don\'t enable notifications</string>
@@ -88,8 +88,8 @@
     <string name="title_allowNotifications">Allow Notifications</string>
 
 
-    <string name="notification_preview_title">You received a $5.00 tip!</string>
-    <string name="notification_preview_body">Your balance has been updated</string>
+    <string name="notification_preview_title">Sally Smith</string>
+    <string name="notification_preview_body">Thanks for the cash!</string>
 
     <string name="error_title_ignoredPushPermissions">Are You Sure?</string>
     <string name="error_description_ignoredPushPermissions">You won\'t receive updates when your balance changes</string>
@@ -470,7 +470,6 @@
     <string name="subtitle_youPay">You Pay</string>
     <string name="subtitle_youReceive">You Receive</string>
 
-    <string name="action_give">Give</string>
     <string name="action_send">Send</string>
     <string name="title_transactionHistory">Transaction History</string>
     <string name="action_viewTransactionHistory">Transaction History</string>
@@ -914,6 +913,12 @@
     <string name="subtitle_chatGate_minimumBalance">Minimum Balance: %1$s of %2$s</string>
     <string name="subtitle_chatGate_minimumBalance_anyToken">Minimum Balance: %1$s</string>
     <string name="subtitle_chatGate_staffOnly">This chat is open to Flipcash staff only.</string>
+    <string name="label_chatGate_speakerNever">Only Flipcash can send messages</string>
+    <string name="subtitle_chatGate_speakerMinimumBalance">Minimum Balance to Send Messages: %1$s of %2$s</string>
+    <string name="subtitle_chatGate_speakerMinimumBalance_anyToken">Minimum Balance to Send Messages: %1$s</string>
+    <string name="subtitle_chatGate_speakerStaffOnly">Only Flipcash staff can send messages here</string>
+    <string name="subtitle_chatGate_speakerCreatorOnly">Only the creator can send messages</string>
+    <string name="subtitle_chatGate_speakerUnsupported">Update Flipcash to send messages</string>
     <string name="action_buyMoreToken">Buy More %1$s</string>
     <string name="action_joinChat">Join Chat</string>
     <string name="title_leaveChat">Leave Chat</string>
@@ -973,6 +978,7 @@
     <string name="label_chat_preview_senderMessage">%1$s: %2$s</string>
     <string name="label_chat_preview_sentCash_bySender">%1$s sent %2$s</string>
     <string name="label_chat_preview_tippedCash_bySender">%1$s tipped %2$s</string>
+    <string name="label_chat_preview_sharedProfile">Shared a profile</string>
     <string name="label_chat_preview_noMessages">Nothing yet</string>
     <string name="label_isTyping">Is Typing…</string>
 
@@ -1054,7 +1060,6 @@
 
     <string name="action_tips">Tips</string>
     <string name="title_tips">Tips</string>
-    <string name="title_chats">Chats</string>
     <string name="title_noChatsYet">No Chats Yet</string>
     <string name="description_noChatsYet">Start a new chat, or share your profile</string>
 
@@ -1072,7 +1077,7 @@
          (node 10127:117987). -->
     <string name="title_startNewChat">New Chat</string>
     <string name="action_createPublicGroup">Create a Public Group</string>
-    <string name="action_findByUsername">Find by Username</string>
+    <string name="action_findByUsername">Find Someone by Username</string>
 
     <!-- Creating a public group (node 10153:22901). -->
     <string name="title_newPublicGroup">New Public Group</string>
@@ -1238,7 +1243,7 @@
     <string name="placeholder_profileDisplayName">Your Name</string>
     <string name="subtitle_profileImageRecommended">500x500 Recommended</string>
     <string name="title_myTipCard">My Tip Card</string>
-    <string name="label_tipUser">Tip %1$s</string>
+    <string name="title_shareProfile">Chat with %1$s on Flipcash</string>
     <string name="subtitle_myTipCard">Share Your Tip Card to Get Tipped</string>
     <string name="action_showTipCard">Show My Tip Card</string>
     <string name="title_sendTip">Send a Tip</string>
@@ -1325,5 +1330,11 @@
          editing it, so the list reads as an inventory of the profile. -->
     <string name="title_displayName">Display Name</string>
     <string name="title_profilePicture">Profile Picture</string>
+
+    <!-- Tab bar labels, in tab order (node 10642:1325). -->
+    <string name="title_tabScan">Scan</string>
+    <string name="title_tabChat">Chat</string>
+    <string name="title_tabWallet">Wallet</string>
+    <string name="title_tabYou">You</string>
 
 </resources>

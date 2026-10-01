@@ -14,14 +14,33 @@ class UsernameGateTest {
     fun `a claimed handle spends the nudge, whatever the balance`() {
         assertEquals(
             UsernameGate.Claimed,
-            usernameGate(username = "mcansh", minimum = usd(25.0), balance = Fiat.Zero),
+            usernameGate(username = "mcansh", isAutoAssigned = false, minimum = usd(25.0), balance = Fiat.Zero),
         )
     }
 
     @Test
     fun `a blank handle counts as unclaimed`() {
         assertIs<UsernameGate.Locked>(
-            usernameGate(username = "   ", minimum = usd(25.0), balance = Fiat.Zero),
+            usernameGate(username = "   ", isAutoAssigned = false, minimum = usd(25.0), balance = Fiat.Zero),
+        )
+    }
+
+    @Test
+    fun `an auto-assigned handle still counts as unclaimed`() {
+        assertIs<UsernameGate.Locked>(
+            usernameGate(username = "user4821", isAutoAssigned = true, minimum = usd(25.0), balance = Fiat.Zero),
+        )
+    }
+
+    @Test
+    fun `an auto-assigned handle follows the balance rules of no handle`() {
+        assertEquals(
+            UsernameGate.Unlocked,
+            usernameGate(username = "user4821", isAutoAssigned = true, minimum = usd(25.0), balance = usd(25.0)),
+        )
+        assertEquals(
+            UsernameGate.Unlocked,
+            usernameGate(username = "user4821", isAutoAssigned = true, minimum = Fiat.Zero, balance = Fiat.Zero),
         )
     }
 
@@ -29,7 +48,7 @@ class UsernameGateTest {
     fun `a zero minimum fails open`() {
         assertEquals(
             UsernameGate.Unlocked,
-            usernameGate(username = null, minimum = Fiat.Zero, balance = Fiat.Zero),
+            usernameGate(username = null, isAutoAssigned = false, minimum = Fiat.Zero, balance = Fiat.Zero),
         )
     }
 
@@ -37,7 +56,7 @@ class UsernameGateTest {
     fun `exactly the minimum unlocks`() {
         assertEquals(
             UsernameGate.Unlocked,
-            usernameGate(username = null, minimum = usd(25.0), balance = usd(25.0)),
+            usernameGate(username = null, isAutoAssigned = false, minimum = usd(25.0), balance = usd(25.0)),
         )
     }
 
@@ -45,13 +64,13 @@ class UsernameGateTest {
     fun `above the minimum unlocks`() {
         assertEquals(
             UsernameGate.Unlocked,
-            usernameGate(username = null, minimum = usd(25.0), balance = usd(25.01)),
+            usernameGate(username = null, isAutoAssigned = false, minimum = usd(25.0), balance = usd(25.01)),
         )
     }
 
     @Test
     fun `below the minimum reports the shortfall and how far along it is`() {
-        val gate = usernameGate(username = null, minimum = usd(25.0), balance = usd(20.0))
+        val gate = usernameGate(username = null, isAutoAssigned = false, minimum = usd(25.0), balance = usd(20.0))
 
         assertIs<UsernameGate.Locked>(gate)
         assertEquals(usd(25.0), gate.minimum)
@@ -61,7 +80,7 @@ class UsernameGateTest {
 
     @Test
     fun `an empty balance is zero progress, not a divide by zero`() {
-        val gate = usernameGate(username = null, minimum = usd(25.0), balance = Fiat.Zero)
+        val gate = usernameGate(username = null, isAutoAssigned = false, minimum = usd(25.0), balance = Fiat.Zero)
 
         assertIs<UsernameGate.Locked>(gate)
         assertEquals(usd(25.0), gate.shortfall)
@@ -70,7 +89,7 @@ class UsernameGateTest {
 
     @Test
     fun `a negative balance clamps to zero progress rather than a backwards bar`() {
-        val gate = usernameGate(username = null, minimum = usd(25.0), balance = usd(-5.0))
+        val gate = usernameGate(username = null, isAutoAssigned = false, minimum = usd(25.0), balance = usd(-5.0))
 
         assertIs<UsernameGate.Locked>(gate)
         assertEquals(0f, gate.fraction)

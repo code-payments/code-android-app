@@ -302,11 +302,11 @@ internal class MenuScreenViewModel @Inject constructor(
         combine(
             userManager.state
                 .filter { it.authState is AuthState.Ready }
-                .map { it.userProfile?.username },
+                .map { it.userProfile?.username to (it.userProfile?.isUsernameAutoAssigned == true) },
             userFlags.resolvedFlags.map { it.usernameMinBalance.effectiveValue },
             totalBalance.observeTotalBalance(),
-        ) { username, minimum, balance ->
-            val progress = when (val gate = usernameGate(username, minimum, balance)) {
+        ) { (username, isAutoAssigned), minimum, balance ->
+            val progress = when (val gate = usernameGate(username, isAutoAssigned, minimum, balance)) {
                 UsernameGate.Claimed -> null
                 UsernameGate.Unlocked -> UsernameProgress.Unlocked
                 is UsernameGate.Locked -> UsernameProgress.Locked(
@@ -467,16 +467,14 @@ internal class MenuScreenViewModel @Inject constructor(
             .filterIsInstance<Event.ShareTipCard>()
             .mapNotNull { tippingCoordinator.currentUserId }
             .map { userId ->
-                // Title shown above the link, e.g. "Tip Ada" (same label as the card).
-                val title = stateFlow.value.tipCard?.user?.displayName
-                    ?.let { resources.getString(R.string.label_tipUser, it) }
+                val user = stateFlow.value.tipCard?.user
                 // Attach the eagerly-rendered preview if it's ready; null shares the URL alone.
                 shareable.present(
-                    Shareable.TipCard(
+                    Shareable.Profile(
                         userId = userId,
+                        displayName = user?.displayName,
+                        username = user?.username,
                         preview = tipCodePreviewCache.get(userId),
-                        title = title,
-                        username = stateFlow.value.tipCard?.user?.username,
                     )
                 )
             }

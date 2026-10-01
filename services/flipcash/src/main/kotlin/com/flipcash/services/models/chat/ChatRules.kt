@@ -35,4 +35,38 @@ sealed interface ChatRuleRequirement {
 
     /** Requires Flipcash staff membership, as indicated by `UserFlags.is_staff`. */
     data object Staff : ChatRuleRequirement
+
+    /** Nobody may take the action (`chat.v1.Never`). Only the server sends it, and only as a speaker rule. */
+    data object Never : ChatRuleRequirement
+
+    /**
+     * Only the chat's creator (`ChatMetadata.creator`, `chat.v1.Metadata.creator`) may take the
+     * action (`chat.v1.CreatorRequirement`). Speaker-only: `ListenerRules` has no creator arm. The
+     * requirement carries no id; it is met when the viewer's user id equals the chat's creator.
+     */
+    data object Creator : ChatRuleRequirement
+
+    /**
+     * A speaker rule this build cannot decode: the oneof was unset, or carries a case added by a
+     * newer contract. Decoding it as a requirement rather than dropping it keeps the chat closed;
+     * dropping it would read as "no requirement" and let everyone post. Nobody satisfies it, staff
+     * included. Client-only: never encoded back to the wire, and never a listener rule.
+     */
+    data object UnsupportedSpeakerRule : ChatRuleRequirement
 }
+
+/**
+ * Whether leaving this requirement unmet also withholds reactions, not only posting.
+ *
+ * [ChatRuleRequirement.Creator] and [ChatRuleRequirement.UnsupportedSpeakerRule] gate posting (the
+ * composer and Reply) and nothing else: any member can still react, copy and report. The rest also
+ * withhold reactions.
+ */
+val ChatRuleRequirement.blocksReactions: Boolean
+    get() = when (this) {
+        is ChatRuleRequirement.MinimumBalance,
+        ChatRuleRequirement.Staff,
+        ChatRuleRequirement.Never -> true
+        ChatRuleRequirement.Creator,
+        ChatRuleRequirement.UnsupportedSpeakerRule -> false
+    }

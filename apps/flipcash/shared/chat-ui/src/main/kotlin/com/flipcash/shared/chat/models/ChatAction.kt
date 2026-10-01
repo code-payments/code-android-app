@@ -44,6 +44,16 @@ sealed interface ChatAction {
      * the tap, and the handler decides where it leads once it has.
      */
     data class OpenMention(val username: String) : ChatAction
+
+    /**
+     * Shares the profile a share-profile widget describes, from its Share button. The widget
+     * carries only a handle; [userId] is the id of the profile that handle resolved to.
+     */
+    data class ShareProfile(
+        val userId: ID,
+        val username: String,
+        val displayName: String?,
+    ) : ChatAction
     data object ViewProfile : ChatAction
 
     /**

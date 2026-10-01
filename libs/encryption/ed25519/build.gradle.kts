@@ -30,14 +30,18 @@ val ed25519CSources = fileTree(ed25519SrcDir) {
 //
 // Output: build/cinterop/<targetName>/libored25519.a
 
-data class AppleTarget(val kotlinName: String, val sdk: String, val arch: String)
+// Without a -m*-version-min flag clang stamps each object with the SDK's own
+// version as its minimum, and every app linking the framework with a lower
+// deployment target gets one ld warning per object. These match the minimums
+// Kotlin/Native stamps on the rest of the framework.
+data class AppleTarget(val kotlinName: String, val sdk: String, val arch: String, val minVersionFlag: String)
 
 val appleTargetDefs = listOf(
-    AppleTarget("iosArm64",          "iphoneos",        "arm64"),
-    AppleTarget("iosSimulatorArm64", "iphonesimulator", "arm64"),
-    AppleTarget("iosX64",            "iphonesimulator", "x86_64"),
-    AppleTarget("macosArm64",        "macosx",          "arm64"),
-    AppleTarget("macosX64",          "macosx",          "x86_64"),
+    AppleTarget("iosArm64",          "iphoneos",        "arm64",  "-mios-version-min=14.0"),
+    AppleTarget("iosSimulatorArm64", "iphonesimulator", "arm64",  "-mios-simulator-version-min=14.0"),
+    AppleTarget("iosX64",            "iphonesimulator", "x86_64", "-mios-simulator-version-min=14.0"),
+    AppleTarget("macosArm64",        "macosx",          "arm64",  "-mmacosx-version-min=11.0"),
+    AppleTarget("macosX64",          "macosx",          "x86_64", "-mmacosx-version-min=11.0"),
 )
 
 appleTargetDefs.forEach { target ->
@@ -57,7 +61,7 @@ appleTargetDefs.forEach { target ->
         commandLine("sh", "-c", buildString {
             val compileLines = ed25519CSources.files.joinToString(" && ") { src ->
                 val obj = outDir.get().file(src.nameWithoutExtension + ".o").asFile.absolutePath
-                "xcrun -sdk ${target.sdk} clang -arch ${target.arch} -O2" +
+                "xcrun -sdk ${target.sdk} clang -arch ${target.arch} ${target.minVersionFlag} -O2" +
                     " -c \"${src.absolutePath}\"" +
                     " -I\"${ed25519SrcDir.absolutePath}\"" +
                     " -o \"$obj\""

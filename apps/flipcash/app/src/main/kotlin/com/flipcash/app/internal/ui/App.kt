@@ -103,6 +103,7 @@ internal fun App(
     val analytics = rememberAnalytics()
     val viewModel = getActivityScopedViewModel<HomeViewModel>()
     val requireBiometrics by viewModel.requireBiometrics.collectAsStateWithLifecycle()
+    val canSwitchAccounts by viewModel.canSwitchAccounts.collectAsStateWithLifecycle()
     val biometricsState = rememberBiometricsState(
         requireBiometrics = requireBiometrics,
         onError = { error ->
@@ -200,6 +201,7 @@ internal fun App(
                                             barManager = barManager,
                                             cardExpansion = cardExpansion,
                                             deepLink = { deepLink },
+                                            canSwitchAccounts = canSwitchAccounts,
                                             onPendingAction = { action ->
                                                 deeplinkHandled = true
                                                 when (action) {

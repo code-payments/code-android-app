@@ -2,6 +2,7 @@ package com.flipcash.app.auth
 
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.appsettings.AppSettingsCoordinator
+import com.flipcash.app.auth.internal.accounts.AccountProfileCache
 import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
@@ -43,6 +44,7 @@ import javax.inject.Singleton
 class AuthManager @Inject constructor(
     private val credentialManager: PassphraseCredentialManager,
     private val accountStore: AccountStore,
+    private val accountProfileCache: AccountProfileCache,
     private val userManager: UserManager,
     private val notificationManager: NotificationManagerCompat,
     private val accountController: AccountController,
@@ -287,6 +289,12 @@ class AuthManager @Inject constructor(
 
 
     val accounts: AccountStore get() = accountStore
+
+    /**
+     * The last known username and display name of each account, by owner public key. Filled as
+     * each account signs in, so a row for an account that is not signed in can still be named.
+     */
+    val accountProfiles: AccountProfileCache get() = accountProfileCache
 
     /**
      * The entropy of the signed-in account, or null when nobody is. The selection screen needs it

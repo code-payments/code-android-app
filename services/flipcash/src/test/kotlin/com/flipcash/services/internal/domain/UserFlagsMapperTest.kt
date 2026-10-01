@@ -161,8 +161,8 @@ class UserFlagsMapperTest {
     @Test
     fun `maps tip presets`() {
         val proto = FlipcashAccountService.UserFlags.newBuilder()
-            .addTipPresets(
-                FlipcashAccountService.TipPresets.newBuilder()
+            .addSendPresets(
+                FlipcashAccountService.SendPresets.newBuilder()
                     .setRegion(com.codeinc.flipcash.gen.common.v1.Common.Region.newBuilder().setValue("usd"))
                     .setMinimum(1.0)
                     .setLow(2.0)

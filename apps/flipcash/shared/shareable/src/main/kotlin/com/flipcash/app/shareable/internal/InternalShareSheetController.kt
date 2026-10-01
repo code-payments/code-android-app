@@ -116,7 +116,7 @@ internal class InternalShareSheetController(
                 is Shareable.TokenInfo -> Unit
                 is Shareable.Invite -> Unit
                 is Shareable.GroupInvite -> Unit
-                is Shareable.TipCard -> Unit
+                is Shareable.Profile -> Unit
                 is Shareable.TipCodeImage -> Unit
             }
         }
@@ -217,7 +217,7 @@ internal class InternalShareSheetController(
                 shareGroupInvite(shareable)
             }
 
-            is Shareable.TipCard -> shareTipCard(shareable)
+            is Shareable.Profile -> shareProfile(shareable)
 
             is Shareable.TipCodeImage -> shareTipCodeImage(shareable)
         }
@@ -392,7 +392,7 @@ internal class InternalShareSheetController(
 
             if (preview != null) {
                 // The Sharesheet draws its thumbnail from ClipData, not from any extra — see
-                // shareTipCard. The payload stays the text; this is preview only.
+                // shareProfile. The payload stays the text; this is preview only.
                 clipData = ClipData.newUri(context.contentResolver, "Group picture", preview)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
@@ -400,7 +400,7 @@ internal class InternalShareSheetController(
 
         val share = Intent.createChooser(intent, null).apply {
             // addFlags, not `flags =` — assigning would wipe the read grant createChooser migrates
-            // onto the chooser intent, and the Sharesheet could not open the image. See shareTipCard.
+            // onto the chooser intent, and the Sharesheet could not open the image. See shareProfile.
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             if (preview != null) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
@@ -408,7 +408,7 @@ internal class InternalShareSheetController(
         context.startActivity(share)
     }
 
-    private fun shareTipCard(shareable: Shareable.TipCard) {
+    private fun shareProfile(shareable: Shareable.Profile) {
         // Addressed the same way the You tab's link row addresses it, so what gets shared is what
         // the card says it is.
         val url = Linkify.tipcard(
@@ -421,7 +421,9 @@ internal class InternalShareSheetController(
             // URL's OG tags. type stays text/plain and the bitmap is NOT an EXTRA_STREAM.
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, url)
-            shareable.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
+            shareable.displayName
+                ?.let { resources.getString(R.string.title_shareProfile, it) }
+                ?.let { putExtra(Intent.EXTRA_TITLE, it) }
 
             if (preview != null) {
                 // Android draws the Sharesheet thumbnail from the intent's ClipData (a content:// URI),
@@ -446,7 +448,7 @@ internal class InternalShareSheetController(
     }
 
     /**
-     * Shares the exported code file itself (PNG/SVG). Unlike [shareTipCard], the payload here IS the
+     * Shares the exported code file itself (PNG/SVG). Unlike [shareProfile], the payload here IS the
      * file: it goes out as an `EXTRA_STREAM` of the export's own MIME type, so "save to Files" and
      * image-consuming targets receive something real rather than a link.
      */
@@ -467,7 +469,7 @@ internal class InternalShareSheetController(
         }
 
         val share = Intent.createChooser(intent, null).apply {
-            // addFlags, not `flags =` — see shareTipCard: assigning would wipe the migrated grant.
+            // addFlags, not `flags =` — see shareProfile: assigning would wipe the migrated grant.
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

@@ -105,6 +105,7 @@ class AuthManagerTest {
         authManager = AuthManager(
             credentialManager = credentialManager,
             accountStore = accountStore,
+            accountProfileCache = mockk(relaxed = true),
             userManager = userManager,
             notificationManager = notificationManager,
             accountController = accountController,

@@ -110,4 +110,10 @@ class UserProfileMapperTest {
         val proto = userProfile { displayName = "Heidi" }
         assertNull(mapper.map(proto).profilePicture)
     }
+
+    @Test
+    fun `maps is_username_auto_assigned`() {
+        assertEquals(true, mapper.map(userProfile { isUsernameAutoAssigned = true }).isUsernameAutoAssigned)
+        assertEquals(false, mapper.map(userProfile { displayName = "Ivan" }).isUsernameAutoAssigned)
+    }
 }

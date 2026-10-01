@@ -223,6 +223,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:shared:bill-customization"))
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:shared:google-play-billing"))
@@ -363,4 +364,5 @@ dependencies {
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
 }

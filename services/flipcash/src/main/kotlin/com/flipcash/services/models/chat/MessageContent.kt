@@ -28,6 +28,11 @@ sealed interface MessageContent {
         val items: List<MediaItem>,
         val caption: Text?,
     ) : MessageContent
+    /**
+     * A structured widget (`messaging.v1.Content.widget`). A widget variant this client does not
+     * recognise arrives as [WidgetContent.Unsupported] and is rendered as an unsupported message.
+     */
+    data class Widget(val widget: WidgetContent) : MessageContent
     data class System(val fallbackText: String) : MessageContent
     data class Deleted(
         val deletedTs: Instant,

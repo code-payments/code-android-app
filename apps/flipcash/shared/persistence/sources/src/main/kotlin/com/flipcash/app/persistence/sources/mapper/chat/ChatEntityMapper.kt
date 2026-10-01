@@ -33,6 +33,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.EmojiReaction
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
@@ -396,6 +397,9 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         items = items,
         caption = caption?.let { MessageContentSerialized.Text(it.text) },
     )
+    is MessageContent.Widget -> MessageContentSerialized.WidgetShareProfile(
+        username = (widget as? WidgetContent.ShareProfile)?.username,
+    )
     is MessageContent.System -> MessageContentSerialized.System(fallbackText = fallbackText)
     is MessageContent.Deleted -> MessageContentSerialized.Deleted(
         deletedAt = deletedTs.epochSeconds,
@@ -409,6 +413,9 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
 }
 
 private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
+    is MessageContentSerialized.WidgetShareProfile -> MessageContent.Widget(
+        username?.let { WidgetContent.ShareProfile(it) } ?: WidgetContent.Unsupported,
+    )
     is MessageContentSerialized.Text -> MessageContent.Text(text)
     is MessageContentSerialized.Cash -> MessageContent.Cash(
         intentId = intentId.decodeBase58().toList(),
@@ -468,6 +475,9 @@ private fun ChatRuleRequirement.toSerialized(): ChatRuleRequirementSerialized = 
         mints = mints.map { it.base58() },
     )
     ChatRuleRequirement.Staff -> ChatRuleRequirementSerialized.Staff
+    ChatRuleRequirement.Never -> ChatRuleRequirementSerialized.Never
+    ChatRuleRequirement.Creator -> ChatRuleRequirementSerialized.Creator
+    ChatRuleRequirement.UnsupportedSpeakerRule -> ChatRuleRequirementSerialized.UnsupportedSpeakerRule
 }
 
 private fun ChatRulesSerialized.toDomain(): ChatRules = ChatRules(
@@ -484,6 +494,9 @@ private fun ChatRuleRequirementSerialized.toDomain(): ChatRuleRequirement = when
         mints = mints.map { PublicKey(it.decodeBase58().toList()) },
     )
     ChatRuleRequirementSerialized.Staff -> ChatRuleRequirement.Staff
+    ChatRuleRequirementSerialized.Never -> ChatRuleRequirement.Never
+    ChatRuleRequirementSerialized.Creator -> ChatRuleRequirement.Creator
+    ChatRuleRequirementSerialized.UnsupportedSpeakerRule -> ChatRuleRequirement.UnsupportedSpeakerRule
 }
 
 private fun SocialAccount.toSerialized(): SocialAccountSerialized = when (this) {

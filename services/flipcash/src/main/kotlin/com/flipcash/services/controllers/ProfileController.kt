@@ -89,14 +89,25 @@ class ProfileController @Inject constructor(
 
     suspend fun setDisplayName(
         displayName: String,
-    ): Result<Unit> {
+    ): Result<String?> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.setDisplayName(displayName, owner)
             // Reflect the change locally so anything observing the profile (e.g. a setup flow
             // deciding which steps remain) sees it without waiting for a refresh.
-            .onSuccess { mergeLocalProfile { it.copy(displayName = displayName) } }
+            .onSuccess { assigned ->
+                mergeLocalProfile {
+                    // Use the server-assigned username when it sent one, rather than assuming the
+                    // existing username is unchanged.
+                    it.copy(
+                        displayName = displayName,
+                        username = assigned ?: it.username,
+                        // A username the server sent back was derived from the display name.
+                        isUsernameAutoAssigned = if (assigned != null) true else it.isUsernameAutoAssigned,
+                    )
+                }
+            }
     }
 
     /**
@@ -112,7 +123,10 @@ class ProfileController @Inject constructor(
         return repository.setUsername(username, owner)
             // Reflect the change locally so anything observing the profile (e.g. a setup flow
             // deciding which steps remain) sees it without waiting for a refresh.
-            .onSuccess { mergeLocalProfile { it.copy(username = username) } }
+            .onSuccess {
+                // Choosing a username clears the auto-assigned flag.
+                mergeLocalProfile { it.copy(username = username, isUsernameAutoAssigned = false) }
+            }
     }
 
     /**
