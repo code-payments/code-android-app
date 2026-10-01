@@ -340,7 +340,7 @@ private fun CurrencyActionTiles(
     val giveTile: @Composable RowScope.() -> Unit = {
         ActionTile(
             modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_give),
+            label = stringResource(R.string.action_cash),
             icon = {
                 Icon(
                     painter = painterResource(R.drawable.ic_banknote),
