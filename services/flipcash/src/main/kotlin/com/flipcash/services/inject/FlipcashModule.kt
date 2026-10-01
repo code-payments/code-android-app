@@ -161,7 +161,8 @@ internal object FlipcashModule {
     internal fun providesChatRepository(
         service: ChatService,
         mapper: ChatMetadataMapper,
-    ): ChatRepository = InternalChatRepository(service, mapper)
+        userProfileMapper: UserProfileMapper,
+    ): ChatRepository = InternalChatRepository(service, mapper, userProfileMapper)
 
     @Provides
     internal fun providesEventStreamingRepository(

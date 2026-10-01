@@ -385,6 +385,16 @@ sealed class GetRosterError(
     data class Other(override val cause: Throwable? = null) : GetRosterError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class GetMentionSuggestionsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetMentionSuggestionsError("Denied")
+    class NotFound : GetMentionSuggestionsError("Not found")
+    class Unrecognized : GetMentionSuggestionsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetMentionSuggestionsError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class JoinChatError(
     override val message: String? = null,
     override val cause: Throwable? = null

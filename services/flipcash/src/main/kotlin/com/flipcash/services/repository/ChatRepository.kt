@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewerState
@@ -59,6 +60,17 @@ interface ChatRepository {
         chatId: ChatId,
         queryOptions: QueryOptions = QueryOptions(),
     ): Result<RosterPage>
+
+    /**
+     * The pool of members [chatId], a group, offers for `@` mentions: ranked by the server, most
+     * relevant first, and neither paged nor complete. Never the caller, users the caller blocked,
+     * or users without a username. Fails with [com.flipcash.services.models.GetMentionSuggestionsError.Denied]
+     * for a DM or when the caller may not speak.
+     */
+    suspend fun getMentionSuggestions(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<List<MentionSuggestion>>
 
     /**
      * Edits [chatId], a group chat, applying only the fields set in [parameters]. Unset fields

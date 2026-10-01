@@ -2288,8 +2288,8 @@ internal class ChatViewModel @Inject constructor(
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun initMentionPicker() {
-        // Once per visit, the first time the picker opens: profile edits don't move the roster
-        // version, so the names held since the last full read can be stale.
+        // Once per visit, the first time the picker opens: that starts the composing session, which
+        // fetches the group's mention pool.
         var refreshed = false
         // Bumped when that refresh lands, so the open word searches again and new joiners show
         // without another keystroke.

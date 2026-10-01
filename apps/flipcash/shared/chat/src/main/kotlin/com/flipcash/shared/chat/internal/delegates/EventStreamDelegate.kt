@@ -28,6 +28,7 @@ import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.MessageLinkPrefetch
+import com.flipcash.shared.chat.internal.MentionPoolUpdates
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
@@ -92,6 +93,7 @@ class EventStreamDelegate @Inject constructor(
     private val analytics: FlipcashAnalytics,
     private val exchange: Exchange,
     private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
+    private val mentionPool: MentionPoolUpdates = MentionPoolUpdates.None,
 ) : EventStreamOperations {
 
     companion object {
@@ -363,6 +365,7 @@ class EventStreamDelegate @Inject constructor(
             linkPrefetch.prefetch(resolvedMessages, MessageLinkPrefetch.LIVE_WAIT)
             messageDataSource.upsert(chatId, resolvedMessages)
             typingTracker.messageArrived(chatId, resolvedMessages.mapNotNull { it.senderId })
+            mentionPool.onMessages(chatId, resolvedMessages.mapNotNull { m -> m.senderId?.let { it to m.timestamp } })
             resolvedMessages.maxByOrNull { it.messageId }
         } else null
 

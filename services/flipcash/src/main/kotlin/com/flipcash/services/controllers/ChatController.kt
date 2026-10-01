@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewerState
@@ -82,6 +83,14 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.getRoster(owner, chatId, queryOptions)
+    }
+
+    /** The pool [chatId] offers for `@` mentions. See [ChatRepository.getMentionSuggestions]. */
+    suspend fun getMentionSuggestions(chatId: ChatId): Result<List<MentionSuggestion>> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getMentionSuggestions(owner, chatId)
     }
 
     /** Edits [chatId] per [parameters]. See [ChatRepository.editChat] for no-op semantics. */

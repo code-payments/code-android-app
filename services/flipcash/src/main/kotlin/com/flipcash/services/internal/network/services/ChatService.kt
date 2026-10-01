@@ -8,6 +8,7 @@ import com.flipcash.services.models.EditChatError
 import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.GetDmChatFeedError
 import com.flipcash.services.models.GetGroupChatFeedError
+import com.flipcash.services.models.GetMentionSuggestionsError
 import com.flipcash.services.models.GetRosterError
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.LeaveChatError
@@ -117,6 +118,28 @@ internal class ChatService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { GetRosterError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun getMentionSuggestions(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<RpcChatService.GetMentionSuggestionsResponse> {
+        return runCatching {
+            api.getMentionSuggestions(owner, chatId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.GetMentionSuggestionsResponse.Result.OK -> Result.success(response)
+                    RpcChatService.GetMentionSuggestionsResponse.Result.DENIED -> Result.failure(GetMentionSuggestionsError.Denied())
+                    RpcChatService.GetMentionSuggestionsResponse.Result.NOT_FOUND -> Result.failure(GetMentionSuggestionsError.NotFound())
+                    RpcChatService.GetMentionSuggestionsResponse.Result.UNRECOGNIZED -> Result.failure(GetMentionSuggestionsError.Unrecognized())
+                    else -> Result.failure(GetMentionSuggestionsError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetMentionSuggestionsError.Other(cause = it) })
             }
         )
     }
