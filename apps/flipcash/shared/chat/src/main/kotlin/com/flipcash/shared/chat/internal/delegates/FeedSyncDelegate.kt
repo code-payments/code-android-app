@@ -177,8 +177,8 @@ class FeedSyncDelegate @Inject constructor(
         val selfPhone = userManager.profile?.verifiedPhoneNumber
         return feed
             .filter { it.type in requested }
-            // The one place archive is applied (rule 1): the list, every chip and the tab badge read
-            // `feed`, so none of them can disagree about what is archived.
+            // The one place archive is applied. An archived chat leaves the list, every chip and the
+            // tab badge together: they all read `feed`, so none can disagree about what is archived.
             .filter { (it.chatId in state.archived) == archived }
             .filter { isRenderable(it, selfId, selfPhone) }
             .map { metadata ->

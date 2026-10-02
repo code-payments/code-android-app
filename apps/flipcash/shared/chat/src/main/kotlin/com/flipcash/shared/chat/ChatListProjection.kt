@@ -4,8 +4,8 @@ package com.flipcash.shared.chat
 enum class ChatListFilter { All, Unread, Groups }
 
 /**
- * One chat as the list projection sees it. [id] is opaque here (the app passes the chat id hex;
- * the fixture passes its own ids). [unread] is the chat's unread count, with null meaning "unread
+ * One chat as the list projection sees it. [id] is opaque here (the app passes the chat id's
+ * `toString()`, its base58 form; the fixture passes its own ids). [unread] is the chat's unread count, with null meaning "unread
  * by an unknown count", which counts as unread.
  */
 data class ChatListEntry(
@@ -36,7 +36,9 @@ data class ChatListEntry(
  * @property archivedRowCount unread archived chats that are not muted. Muted archived chats count
  *   toward nothing, as muted chats count toward nothing there today.
  * @property tabBadge unread chats in [main], muted ones included, as the Chats tab badge counts
- *   today.
+ *   today. No Android screen reads it: the badge comes from
+ *   [observeUnreadChatListCount], which counts the same chats. It stays because the shared
+ *   fixture's `list` cases check it on both platforms, and iOS draws its badge from it.
  */
 data class ChatListProjection(
     val main: List<String>,
@@ -71,7 +73,8 @@ data class ChatListProjection(
 }
 
 /**
- * Rule 1 and the numbers the list draws. Pure, so the fixture's `list` cases drive it directly.
+ * Splits chats into the main list and the Archived row (an archived chat leaves the list, every
+ * chip and the tab badge together), and counts the numbers the list draws. Pure, so the fixture's `list` cases drive it directly.
  *
  * Ties in last activity keep their input order (`sortedByDescending` is stable).
  */

@@ -4,11 +4,11 @@ package com.flipcash.shared.chat
  * Whether a push for a chat may post a notification.
  *
  * - **Muted: never**, archived or not. Mute already suppresses every push and archiving must not
- *   add a way through it (rule 2).
+ *   add a way through it.
  * - **Not archived and not muted: always.** Archive adds a filter; it never changes what an
  *   ordinary chat does.
  * - **Archived, not muted: only a message addressed to the viewer**, which is an @mention of them
- *   or a reply to one of their messages (rule 3). The message's kind does not matter: received
+ *   or a reply to one of their messages. The message's kind does not matter: received
  *   cash, media and system messages do not break through on their own, because in a tip DM most
  *   messages may be cash and letting them through would make archive useless where people most
  *   want quiet.

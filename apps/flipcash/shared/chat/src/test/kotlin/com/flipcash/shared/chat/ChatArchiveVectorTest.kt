@@ -40,7 +40,7 @@ class ChatArchiveVectorTest {
                 repliesToViewer = push.triState("repliesToViewer"),
             )
             assertEquals(expect.getBoolean("notify"), actual, "$name: ${case.optString("note")}")
-            // Rule 3: nothing a message does unarchives the chat. No Android code path can write
+            // Nothing a message does unarchives the chat. No Android code path can write
             // archive from a push, so the fixture's `expect.archived` is checked against the input.
             assertEquals(push.getBoolean("archived"), expect.getBoolean("archived"), "$name: a push never changes archive")
         }
