@@ -237,7 +237,7 @@ class NotificationService : FirebaseMessagingService(),
             launch {
                 try {
                     if (syncContacts) launch { contactCoordinator.sync() }
-                    val decided = post?.let { applyArchive(it) }
+                    val decided = post?.let { applyArchiveOrPost(it) }
                     if (decided != null) {
                         val resolvedTitle =
                             applySubstitutions(decided.title, decided.payload?.titleSubstitutions.orEmpty())
@@ -252,6 +252,20 @@ class NotificationService : FirebaseMessagingService(),
             }
         }
     }
+
+    /**
+     * [applyArchive], falling back to [post] unchanged if it fails: a broken archive read must not
+     * drop the notification. An archived chat may then notify loudly, which is the safer miss.
+     */
+    private suspend fun applyArchiveOrPost(post: PushAction.PostNotification): PushAction.PostNotification? =
+        try {
+            applyArchive(post)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            trace(tag = "NotificationService", message = "Couldn't apply archive to a push", error = e)
+            post
+        }
 
     /**
      * Re-decides [post] for an archived chat. Runs after authentication, because the archive and

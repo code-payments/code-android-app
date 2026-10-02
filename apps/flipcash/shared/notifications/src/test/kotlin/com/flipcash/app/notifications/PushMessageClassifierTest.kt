@@ -23,7 +23,7 @@ import kotlin.test.assertEquals
 import kotlin.time.Instant
 
 /**
- * Rule 3's two ways in, and the default when the device cannot tell. Runs under Robolectric because
+ * The two ways a message breaks through an archived chat's silence, and the default when the device cannot tell. Runs under Robolectric because
  * mention detection reads `android.util.Patterns` for the links it must skip.
  */
 @RunWith(RobolectricTestRunner::class)

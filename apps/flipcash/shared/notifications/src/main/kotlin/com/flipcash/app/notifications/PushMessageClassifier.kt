@@ -10,10 +10,11 @@ import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ui.detectMentions
 import com.flipcash.shared.chat.ui.detectUrls
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Whether a received message is addressed to the viewer: the two ways a push breaks through an
- * archived chat's silence (rule 3).
+ * archived chat's silence. An archived chat notifies only for a message addressed to the viewer.
  */
 data class PushClassification(
     val mentionsViewer: Boolean,
@@ -28,7 +29,7 @@ data class PushClassification(
 /**
  * Reads a push's message against what this device knows.
  *
- * Both answers default to false when the device cannot tell, which is rule 3's "stays silent":
+ * Both answers default to false when the device cannot tell, so an archived chat stays silent:
  * - the message is not in the payload and not yet stored, or has no readable text (cash, media
  *   without a caption), so there is nothing to scan;
  * - the message is end-to-end encrypted and cannot be opened on this device;
@@ -53,9 +54,14 @@ class PushMessageClassifier @Inject constructor(
             ?: metadata?.messageId?.let { messages.getMessage(chatId, it) }
             ?: return PushClassification.None
         val message = if (received.content.singleOrNull() is MessageContent.Encrypted) {
-            runCatching { chatCoordinator.openPushedChatMessage(chatId, received, messageId = null) }
-                .getOrNull()
-                ?: return PushClassification.None
+            val opened = try {
+                chatCoordinator.openPushedChatMessage(chatId, received, messageId = null)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            opened ?: return PushClassification.None
         } else {
             received
         }
