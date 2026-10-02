@@ -254,10 +254,6 @@ class NotificationService : FirebaseMessagingService(),
     }
 
     /**
-     * @param silent post without sound, vibration or heads-up, and not at all while the app is in
-     *   the foreground: an archived chat's message that is not addressed to the viewer.
-     */
-    /**
      * Re-decides [post] for an archived chat. Runs after authentication, because the archive and
      * the viewer's username, account id and stored messages all live in the per-user database and
      * user state that sign-in opens; read earlier, an archived chat would look unarchived and
@@ -281,6 +277,10 @@ class NotificationService : FirebaseMessagingService(),
     private fun isAppInForeground(): Boolean =
         ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
 
+    /**
+     * @param silent post without sound, vibration or heads-up, and not at all while the app is in
+     *   the foreground: an archived chat's message that is not addressed to the viewer.
+     */
     private suspend fun postNotification(
         title: String,
         body: String?,

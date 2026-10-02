@@ -53,7 +53,8 @@ class PushMessageClassifier @Inject constructor(
             ?: metadata?.messageId?.let { messages.getMessage(chatId, it) }
             ?: return PushClassification.None
         val message = if (received.content.singleOrNull() is MessageContent.Encrypted) {
-            chatCoordinator.openPushedChatMessage(chatId, received, messageId = null)
+            runCatching { chatCoordinator.openPushedChatMessage(chatId, received, messageId = null) }
+                .getOrNull()
                 ?: return PushClassification.None
         } else {
             received

@@ -147,6 +147,14 @@ class PushMessageClassifierTest {
     }
 
     @Test
+    fun `an encrypted message whose opening throws is not addressed to the viewer`() = runTest {
+        val pushed = message(sealed)
+        coEvery { chatCoordinator.openPushedChatMessage(chatId, pushed, null) } throws
+            IllegalStateException("decryption failed")
+        assertEquals(PushClassification.None, classifier.classify(chatId, metadata(pushed)))
+    }
+
+    @Test
     fun `a viewer with no username cannot be mentioned`() = runTest {
         every { userManager.profile } returns UserProfile.Empty
         val result = classifier.classify(chatId, metadata(message(MessageContent.Text("hey @bmc"))))
