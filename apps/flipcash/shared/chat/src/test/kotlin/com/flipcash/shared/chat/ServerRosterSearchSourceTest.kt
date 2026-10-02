@@ -120,6 +120,18 @@ class ServerRosterSearchSourceTest {
     }
 
     @Test
+    fun `someone who has left the group is still suggested`() = runTest {
+        // Spoke in the group, then left: no member row on this device. The server's pool is shown as
+        // it comes, with no membership check, so who is offered is the server's call.
+        val former = suggestion(5, "Fern", "fern", sentAt = 50)
+        serverReturns(erin, former)
+        val subject = subject()
+
+        assertEquals(listOf("Fern"), subject.names("@fe"))
+        assertEquals(listOf("Erin", "Fern"), subject.names("@"))
+    }
+
+    @Test
     fun `the caller is never suggested`() = runTest {
         serverReturns(erin, suggestion(1, "Me", "me"))
 
