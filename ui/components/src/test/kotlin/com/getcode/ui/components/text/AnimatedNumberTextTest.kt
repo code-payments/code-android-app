@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import org.junit.Rule
@@ -51,6 +52,52 @@ class AnimatedNumberTextTest {
     /** And the mounted roller keeps working for later changes. */
     @Test
     fun `a later change rolls`() = assertRolls(from = "0", to = "2", changesBefore = 1)
+
+    /**
+     * Like numericText, the digits start left to right rather than all in one frame: going from `00`
+     * to `11`, there is a frame where only the left digit has started.
+     */
+    @Test
+    fun `digits start left to right`() {
+        var value by mutableStateOf("00")
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent { AnimatedNumberText(value = value) }
+        composeRule.mainClock.advanceTimeByFrame()
+
+        composeRule.runOnUiThread { value = "11" }
+
+        var staggered = false
+        repeat(FramesPerRoll) {
+            composeRule.mainClock.advanceTimeByFrame()
+            if (composeRule.onAllNodesWithText("1").fetchSemanticsNodes().size == 1) staggered = true
+        }
+        assertTrue(staggered, "both digits started in the same frame")
+        assertEquals(2, composeRule.onAllNodesWithText("1").fetchSemanticsNodes().size)
+    }
+
+    /**
+     * A fast scrub changes the value every frame. The digit that was showing must still roll out
+     * rather than holding in place while each change restarts its roll.
+     */
+    @Test
+    fun `a digit changing every frame still rolls out`() {
+        var value by mutableStateOf("0")
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent { AnimatedNumberText(value = value) }
+        composeRule.mainClock.advanceTimeByFrame()
+
+        repeat(FramesPerRoll / 2) { frame ->
+            composeRule.runOnUiThread {
+                value = "${frame % 9 + 1}"
+                Snapshot.sendApplyNotifications()
+            }
+            composeRule.mainClock.advanceTimeByFrame()
+        }
+        assertTrue(
+            composeRule.onAllNodesWithText("0").fetchSemanticsNodes().isEmpty(),
+            "the starting digit is still showing after ${FramesPerRoll / 2} frames of changes",
+        )
+    }
 
     private fun assertRolls(from: String, to: String, changesBefore: Int) {
         var value by mutableStateOf(from)

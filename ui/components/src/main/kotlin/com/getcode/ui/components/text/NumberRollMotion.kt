@@ -52,12 +52,18 @@ internal fun glyphMotion(d: Float, fade: Float, p: Float, presence: Float): Glyp
 /** The outgoing glyph is fully faded by p = [OutgoingFadeEnd]. */
 internal fun outgoingFade(p: Float): Float = 1f - (p / OutgoingFadeEnd).coerceIn(0f, 1f)
 
-internal const val OutgoingFadeEnd = 0.6f
+internal const val OutgoingFadeEnd = 0.7f
 
-/** The incoming glyph starts appearing at p = 0.4. */
-internal fun incomingFade(p: Float): Float = ((p - 0.4f) / 0.6f).coerceIn(0f, 1f)
+/**
+ * The incoming glyph fades in over p = 0.2..0.9, overlapping the outgoing fade so mid-roll both glyphs
+ * show as dim smudges, as on iOS, instead of the slot going blank.
+ */
+internal fun incomingFade(p: Float): Float = ((p - 0.2f) / 0.7f).coerceIn(0f, 1f)
 
 internal const val MaxTravel = 0.3f
+
+/** How much later each slot starts than the one to its left, measured off iOS's `.numericText()` at 60fps. */
+internal const val StaggerNanos = 12_000_000L
 
 /**
  * The number a formatted readout stands for, enough to tell which way it moved: `$22.7K` is 22,700

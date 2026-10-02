@@ -2,12 +2,12 @@ package com.getcode.ui.components.text
 
 import android.os.Build
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.FloatSpringSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -20,10 +20,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
@@ -37,6 +37,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.ui.utils.AutoSizeTextMeasurer
 import com.getcode.ui.utils.ConstraintMode
@@ -49,7 +50,7 @@ import kotlin.math.roundToInt
  * A number whose digits roll like SwiftUI's `.contentTransition(.numericText())`.
  *
  * Characters are slots keyed by role (see [numberSlots]), so a longer or shorter string keeps each
- * digit in its own slot. A digit slot's transition is an [Animatable] spring that is retargeted,
+ * digit in its own slot. A digit slot's transition is a spring stepped every frame and retargeted,
  * keeping its offset and velocity, whenever the digit changes again mid-roll, so a value that moves
  * every frame glides instead of restarting. Digits share the widest digit's width; symbols and
  * suffixes stay still unless they change; a slot appearing or disappearing animates its width.
@@ -189,10 +190,11 @@ private fun RollingNumber(
     layout.absorb(chars)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        for (slotKey in layout.keys()) {
+        for ((index, slotKey) in layout.keys().withIndex()) {
             key(slotKey) {
                 NumberSlot(
                     char = chars[slotKey],
+                    staggerIndex = index,
                     rising = direction.rising,
                     digitWidthPx = digitWidthPx,
                     style = style,
@@ -235,6 +237,7 @@ private class SlotLayout {
 @Composable
 private fun NumberSlot(
     char: Char?,
+    staggerIndex: Int,
     rising: Boolean,
     digitWidthPx: Int,
     style: TextStyle,
@@ -260,7 +263,7 @@ private fun NumberSlot(
     val inDigit = remember { mutableIntStateOf(initial) }
     val startOffset = remember { mutableFloatStateOf(0f) }
     val dir = remember { mutableFloatStateOf(1f) }
-    val progress = remember { Animatable(1f) }
+    val motion = remember { RollMotion() }
     val track = remember { SlotTrack(if (isDigit) shownChar.digitToInt() else -1) }
     LaunchedEffect(char) {
         if (char == null || !char.isDigit()) {
@@ -271,33 +274,46 @@ private fun NumberSlot(
         if (track.digit < 0) {
             outDigit.intValue = next
             inDigit.intValue = next
-            progress.snapTo(1f)
+            motion.settle()
         } else if (next != inDigit.intValue) {
-            val p = progress.value
-            val vp = progress.velocity
+            // numericText starts its characters left to right, about a frame apart, not all at once.
+            // Only a settled slot waits: a slot already rolling (or already waiting) keeps its start
+            // time, so a scrub that changes it every frame doesn't keep pushing the start back.
+            if (!motion.active) motion.delayNanos = staggerIndex * StaggerNanos
+            val p = motion.progress
+            val vp = motion.velocity
             val dOut = startOffset.floatValue + (-dir.floatValue - startOffset.floatValue) * p
             val dIn = dir.floatValue * (1f - p)
             val inDominant = abs(dIn) <= abs(dOut)
+            val newDir = if (rising) 1f else -1f
+            if (motion.active && !inDominant && newDir == dir.floatValue) {
+                // The outgoing glyph is still the one showing: let it keep leaving at its own pace
+                // and swap in the newest digit. Restarting the roll from its offset would start it
+                // near rest, so a fast scrub would hold the old digit in place.
+                inDigit.intValue = next
+                track.digit = next
+                return@LaunchedEffect
+            }
             val d0 = if (inDominant) dIn else dOut
             val vDisp = if (inDominant) -dir.floatValue * vp else vp * (-dir.floatValue - startOffset.floatValue)
             outDigit.intValue = if (inDominant) inDigit.intValue else outDigit.intValue
             inDigit.intValue = next
             startOffset.floatValue = d0
-            dir.floatValue = if (rising) 1f else -1f
+            dir.floatValue = newDir
             val denom = -dir.floatValue - d0
-            val v0 = if (abs(denom) > 0.3f) vDisp / denom else 0f
-            progress.snapTo(0f)
-            progress.animateTo(
-                1f,
-                spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 380f),
-                initialVelocity = v0,
-            )
+            motion.retarget(velocity = if (abs(denom) > 0.3f) vDisp / denom else 0f)
         }
         track.digit = next
     }
+    // A change only retargets [motion]; this loop steps it every frame. Restarting an animation per
+    // change instead would cost a frame and the velocity each time, so a scrub that changes the value
+    // every frame would hold the old digit in place.
+    LaunchedEffect(motion) {
+        snapshotFlow { motion.kicks }.collect { motion.run(RollSpring) }
+    }
     // The outgoing glyph is invisible from OutgoingFadeEnd on, so it leaves the tree there: a settled
     // digit is one node, and TalkBack doesn't read the number twice.
-    val outgoingMounted by remember { derivedStateOf { progress.value < OutgoingFadeEnd } }
+    val outgoingMounted by remember { derivedStateOf { motion.progress < OutgoingFadeEnd } }
 
     val fade = remember { Animatable(1f) }
     LaunchedEffect(char) {
@@ -315,6 +331,11 @@ private fun NumberSlot(
 
     Box(
         modifier = Modifier
+            // Clip only while the slot is growing or shrinking. A settled slot leaves its glyphs
+            // unclipped, so a digit's blur and overshoot spill past its cell the way numericText's do.
+            // The layer sits outside the layout below so it takes the shown width; inside, it would
+            // take the glyph's full width and a growing digit would draw over its neighbours.
+            .graphicsLayer { clip = presence.value < 1f }
             .layout { measurable, _ ->
                 val p = measurable.measure(Constraints())
                 val w = if (isDigit) digitWidthPx else p.width
@@ -323,7 +344,6 @@ private fun NumberSlot(
                     p.place((shownWidth - p.width) / 2, 0)
                 }
             }
-            .clipToBounds()
             .then(if (char == null) Modifier.clearAndSetSemantics { } else Modifier),
         contentAlignment = Alignment.Center,
     ) {
@@ -331,12 +351,13 @@ private fun NumberSlot(
             if (outgoingMounted) {
                 Text(
                     modifier = Modifier
-                        .digitCell(digitWidthPx)
+                        .digitCell(digitWidthPx, bleed = MaxBlur)
                         .graphicsLayer {
-                            val p = progress.value
+                            val p = motion.progress
                             val d = startOffset.floatValue + (-dir.floatValue - startOffset.floatValue) * p
                             applyGlyphMotion(d, outgoingFade(p), p, presence.value)
-                        },
+                        }
+                        .padding(MaxBlur),
                     text = outDigit.intValue.toString(),
                     style = style,
                     color = color,
@@ -344,20 +365,23 @@ private fun NumberSlot(
                     softWrap = false,
                 )
             }
-            Text(
-                modifier = Modifier
-                    .digitCell(digitWidthPx)
-                    .graphicsLayer {
-                        val p = progress.value
-                        val d = dir.floatValue * (1f - p)
-                        applyGlyphMotion(d, incomingFade(p), p, presence.value)
-                    },
-                text = inDigit.intValue.toString(),
-                style = style,
-                color = color,
-                maxLines = 1,
-                softWrap = false,
-            )
+            if (!motion.waiting) {
+                Text(
+                    modifier = Modifier
+                        .digitCell(digitWidthPx, bleed = MaxBlur)
+                        .graphicsLayer {
+                            val p = motion.progress
+                            val d = dir.floatValue * (1f - p)
+                            applyGlyphMotion(d, incomingFade(p), p, presence.value)
+                        }
+                        .padding(MaxBlur),
+                    text = inDigit.intValue.toString(),
+                    style = style,
+                    color = color,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
         } else {
             Text(
                 modifier = Modifier.graphicsLayer { alpha = fade.value * presence.value },
@@ -371,11 +395,17 @@ private fun NumberSlot(
     }
 }
 
-/** Lays a glyph out [widthPx] wide, centred, so every digit takes the same room. */
-private fun Modifier.digitCell(widthPx: Int): Modifier = layout { measurable, _ ->
+/**
+ * Lays a glyph out [widthPx] wide, centred, so every digit takes the same room. [bleed] is padding the
+ * content carries on every side that should not count towards the cell's size: a glyph's blur layer is
+ * padded by the blur radius because Android renders a `RenderEffect` into a layer the size of its
+ * node, so without the room a blurred glyph is cut off square at its own edges.
+ */
+private fun Modifier.digitCell(widthPx: Int, bleed: Dp = 0.dp): Modifier = layout { measurable, _ ->
     val p = measurable.measure(Constraints())
-    layout(widthPx, p.height) {
-        p.place((widthPx - p.width) / 2, 0)
+    val bleedPx = bleed.roundToPx()
+    layout(widthPx, p.height - 2 * bleedPx) {
+        p.place((widthPx - p.width) / 2, -bleedPx)
     }
 }
 
@@ -385,7 +415,8 @@ private fun Modifier.digitCell(widthPx: Int): Modifier = layout { measurable, _ 
  */
 private fun GraphicsLayerScope.applyGlyphMotion(d: Float, fade: Float, p: Float, presence: Float) {
     val motion = glyphMotion(d, fade, p, presence)
-    translationY = motion.travel * size.height
+    // The layer carries [MaxBlur] of padding on each side; travel is in heights of the glyph itself.
+    translationY = motion.travel * (size.height - 2 * MaxBlur.toPx())
     alpha = motion.alpha
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val radius = MaxBlur.toPx() * motion.blur
@@ -417,5 +448,66 @@ private fun TextMeasurer.digitMetrics(style: TextStyle): DigitMetrics {
 private class CharHolder(var value: Char)
 
 private class SlotTrack(var digit: Int, var symbol: Char? = null)
+
+// Stiffness matches iOS's per-digit roll time measured off a 60fps recording of the chart readout.
+// The damping is SwiftUI's `.snappy` (bounce 0.15), which that readout uses: a digit passes its rest
+// slightly and settles back.
+private val RollSpring = FloatSpringSpec(dampingRatio = 0.85f, stiffness = 380f)
+
+/** A digit slot's roll: progress from the outgoing glyph (0) to the incoming one (1), stepped by [run]. */
+private class RollMotion {
+    var progress by mutableFloatStateOf(1f)
+    var velocity = 0f
+    var active = false
+    var delayNanos = 0L
+    private var startAtNanos = -1L
+
+    /** True while a roll is waiting out its stagger delay; the incoming glyph isn't drawn yet. */
+    var waiting by mutableStateOf(false)
+
+    /** Bumped on every [retarget], so [run] restarts after it has settled. */
+    var kicks by mutableIntStateOf(0)
+
+    fun settle() {
+        progress = 1f
+        velocity = 0f
+        active = false
+        waiting = false
+        delayNanos = 0L
+        startAtNanos = -1L
+    }
+
+    fun retarget(velocity: Float) {
+        progress = 0f
+        this.velocity = velocity
+        if (!active) {
+            active = true
+            waiting = delayNanos > 0
+            kicks++
+        }
+    }
+
+    suspend fun run(spec: FloatSpringSpec) {
+        var last = -1L
+        while (active) {
+            withFrameNanos { now ->
+                if (startAtNanos < 0) startAtNanos = now + delayNanos
+                if (now < startAtNanos || last < 0) {
+                    last = now
+                    return@withFrameNanos
+                }
+                waiting = false
+                val dt = now - last
+                last = now
+                val p = spec.getValueFromNanos(dt, progress, 1f, velocity)
+                val v = spec.getVelocityFromNanos(dt, progress, 1f, velocity)
+                if (abs(1f - p) < 0.001f && abs(v) < 0.01f) settle() else {
+                    progress = p
+                    velocity = v
+                }
+            }
+        }
+    }
+}
 
 private class DirectionHolder(var last: String, var rising: Boolean = true)
