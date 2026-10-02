@@ -367,6 +367,10 @@ class TokenCoordinator @Inject constructor(
     fun balanceForToken(tokenAddress: Mint): Flow<Fiat> =
         _state.map { it.balances[tokenAddress] ?: Fiat.Zero }
 
+    /** On-chain quarks held in [tokenAddress]; null while only a USD value is known (restored from Room). */
+    fun heldQuarksForToken(tokenAddress: Mint): Flow<Long?> =
+        _state.map { it.holdings[tokenAddress]?.tokenQuarks }
+
     fun appreciationForToken(tokenAddress: Mint): Flow<Fiat> =
         _state.map { it.appreciation[tokenAddress] ?: Fiat.Zero }
             .map { appreciation ->

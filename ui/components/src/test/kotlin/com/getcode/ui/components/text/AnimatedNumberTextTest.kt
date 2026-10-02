@@ -15,10 +15,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * The roller inside [AnimatedNumberText] is only mounted once a digit has actually changed, because
- * `AnimatedContent` costs several times the `Text` it wraps to compose and a wallet full of numbers
- * pays that before its first frame. These cover what that defers: the digit still has to roll when
- * the number moves, including the very first time.
+ * The roller inside [AnimatedNumberText] is only mounted once the number has actually changed,
+ * because it costs several times the `Text` it wraps to compose and a wallet full of numbers pays
+ * that before its first frame. These cover what that defers: the digit still has to roll when the
+ * number moves, including the very first time, and the outgoing digit leaves once the roll is done.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")

@@ -158,6 +158,11 @@ internal fun CurrencyInfoContentV2(
 
                 val isUsdf = state.isCashReserve
                 val isHeld = state.showTransactionHistory || state.balance.nativeAmount.isPositive
+                val openExplainer = {
+                    dispatch(
+                        TokenInfoViewModel.Event.OpenScreen(AppRoute.Token.MarketCapExplainer(token.address))
+                    )
+                }
 
                 // 1. Hero bill card
                 item {
@@ -275,6 +280,16 @@ internal fun CurrencyInfoContentV2(
                                 onPeriodSelected = {
                                     dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
                                 },
+                                onHeaderClick = openExplainer,
+                            )
+                        }
+                        item {
+                            MarketCapExplainerRow(
+                                modifier = Modifier
+                                    .fillParentMaxWidth()
+                                    .padding(horizontal = inset)
+                                    .padding(top = grid.x3),
+                                onClick = openExplainer,
                             )
                         }
                     }
