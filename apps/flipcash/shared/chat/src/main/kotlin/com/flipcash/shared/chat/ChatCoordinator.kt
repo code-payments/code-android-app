@@ -53,6 +53,15 @@ interface FeedOperations {
     fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int>
 
     /**
+     * [feed]'s counterpart: the same rows for the chats the viewer archived, newest first. Emits
+     * nothing until the list is known, like [feed].
+     */
+    fun archivedFeed(vararg chatTypes: ChatType): Flow<List<ChatSummary>>
+
+    /** [currentFeed]'s counterpart for archived chats. */
+    fun currentArchivedFeed(vararg chatTypes: ChatType): List<ChatSummary>?
+
+    /**
      * The same conversations as [feed], paged.
      *
      * Room is the page source and [com.flipcash.app.persistence.sources.mediator.ChatFeedRemoteMediator]

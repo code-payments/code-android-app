@@ -22,6 +22,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.PointerType
+import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.FeedOperations
@@ -77,6 +78,7 @@ class FeedSyncDelegate @Inject constructor(
     private val userManager: UserManager,
     private val messagingController: ChatMessagingController,
     private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
+    private val archiveStore: ChatArchiveStore = ChatArchiveStore.None,
 ) : FeedOperations {
 
     companion object {
@@ -129,13 +131,21 @@ class FeedSyncDelegate @Inject constructor(
 
     override fun feed(vararg chatTypes: ChatType): Flow<List<ChatSummary>> {
         val requested = chatTypes.toSet()
-        return stateHolder.state.mapNotNull { state -> summaries(state, requested) }
+        return stateHolder.state.mapNotNull { state -> summaries(state, requested, archived = false) }
     }
 
     override fun currentFeed(vararg chatTypes: ChatType): List<ChatSummary>? =
-        summaries(stateHolder.state.value, chatTypes.toSet())
+        summaries(stateHolder.state.value, chatTypes.toSet(), archived = false)
 
-    private fun summaries(state: ChatState, requested: Set<ChatType>): List<ChatSummary>? {
+    override fun archivedFeed(vararg chatTypes: ChatType): Flow<List<ChatSummary>> {
+        val requested = chatTypes.toSet()
+        return stateHolder.state.mapNotNull { state -> summaries(state, requested, archived = true) }
+    }
+
+    override fun currentArchivedFeed(vararg chatTypes: ChatType): List<ChatSummary>? =
+        summaries(stateHolder.state.value, chatTypes.toSet(), archived = true)
+
+    private fun summaries(state: ChatState, requested: Set<ChatType>, archived: Boolean): List<ChatSummary>? {
         // Nothing until the list is known: the chat list shows its empty state for an emitted empty
         // list, so it must not see one that only means "not read yet". Chats on disk are known as
         // soon as they are read. An empty database is not, because on a fresh sign-in it is empty
@@ -149,6 +159,9 @@ class FeedSyncDelegate @Inject constructor(
         val selfPhone = userManager.profile?.verifiedPhoneNumber
         return feed
             .filter { it.type in requested }
+            // The one place archive is applied (rule 1): the list, every chip and the tab badge read
+            // `feed`, so none of them can disagree about what is archived.
+            .filter { (it.chatId in state.archived) == archived }
             .filter { isRenderable(it, selfId, selfPhone) }
             .map { metadata ->
                 val count = unreadCount(metadata, selfId) { id -> state.readStampAt(metadata.chatId, id) }
@@ -226,10 +239,12 @@ class FeedSyncDelegate @Inject constructor(
         feedObserverJob = combine(
             metadataDataSource.observeAll(),
             memberDataSource.observeAll(),
-        ) { metadataEntities, membersByChat ->
-            buildFeedFromDb(metadataEntities, membersByChat)
-        }.onEach { (feed, readStamps) ->
-            stateHolder.update { it.copy(feed = feed, readStamps = readStamps) }
+            archiveStore.observeArchived(),
+        ) { metadataEntities, membersByChat, archived ->
+            buildFeedFromDb(metadataEntities, membersByChat) to archived
+        }.onEach { (built, archived) ->
+            val (feed, readStamps) = built
+            stateHolder.update { it.copy(feed = feed, readStamps = readStamps, archived = archived) }
             fetchMissingReadStamps(feed)
         }.launchIn(scope)
     }
