@@ -64,7 +64,13 @@ If the script exits non-zero, stop and report the error to the user.
 ## Step 2 — Pull event detail
 
 Fetch `event_url` (include header `Authorization: token $BUGSNAG_TOKEN`).
-Source `.env` from the repo root if the variable is not already set.
+The token lives in `.env` or `.env.local` at the repo root, as the script reads
+it; load both in the same shell as the request:
+
+```bash
+set -a; [ -f .env ] && . ./.env; [ -f .env.local ] && . ./.env.local; set +a
+curl -s -H "Authorization: token $BUGSNAG_TOKEN" "<event_url>"
+```
 
 Parse the response using the event shape documented in
 `.claude/skills/triage/references/event-shape.md`.

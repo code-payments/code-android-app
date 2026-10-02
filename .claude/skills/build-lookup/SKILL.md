@@ -32,6 +32,10 @@ Run the helper script:
 bash .claude/skills/build-lookup/scripts/build-lookup.sh <versionCode>
 ```
 
+The script fetches and counts from `origin/code/cash`, the branch builds are cut
+from, so a stale or detached local checkout does not matter. Pass `--ref <ref>`
+to count from another ref.
+
 The script emits JSON:
 
 ```json

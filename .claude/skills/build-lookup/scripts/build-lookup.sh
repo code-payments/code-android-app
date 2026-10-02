@@ -5,9 +5,14 @@
 # apps/flipcash/app/build.gradle.kts:20-25). versionCode N = the Nth commit
 # from the root of the repo.
 #
+# Builds are cut from code/cash, so commits are counted from origin/code/cash
+# (fetched first), not from the local HEAD, which may be behind or on another
+# branch.
+#
 # Usage:
 #   ./build-lookup.sh <versionCode>
 #   ./build-lookup.sh 3797
+#   ./build-lookup.sh 3797 --ref <ref>   # count from another ref
 #
 # Output: JSON with commit_sha, commit_short, commit_message, and (if found)
 #         the GitHub Actions run ID and URL for the Flipcash2 workflow.
@@ -15,22 +20,34 @@
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: build-lookup.sh <versionCode>" >&2
+  echo "Usage: build-lookup.sh <versionCode> [--ref <ref>]" >&2
   exit 1
 fi
 
-VERSION_CODE="$1"
+VERSION_CODE="$1"; shift
+REF="origin/code/cash"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --ref) REF="$2"; shift 2 ;;
+    *) echo "Unknown argument: $1" >&2; exit 1 ;;
+  esac
+done
+
+if [[ "$REF" == "origin/code/cash" ]]; then
+  git fetch --quiet origin code/cash 2>/dev/null \
+    || echo "WARN: could not fetch origin/code/cash; using the local copy" >&2
+fi
 WORKFLOW_ID="229420296"  # "Flipcash2 Build and Deploy"
 
 # ── Resolve versionCode to commit ───────────────────────────────────
 # versionCode = git rev-list --count HEAD at the time of build.
-# The Nth commit (1-indexed from root) is at position N in `git rev-list --reverse HEAD`.
-# Equivalently: git rev-list HEAD | sed -n '<offset>p' where offset = total - N + 1.
+# The Nth commit (1-indexed from root) is at position N in `git rev-list --reverse $REF`.
+# Equivalently: git rev-list $REF | sed -n '<offset>p' where offset = total - N + 1.
 
-TOTAL=$(git rev-list --count HEAD)
+TOTAL=$(git rev-list --count "$REF")
 
 if (( VERSION_CODE > TOTAL )); then
-  echo "ERROR: versionCode $VERSION_CODE exceeds current commit count ($TOTAL)" >&2
+  echo "ERROR: versionCode $VERSION_CODE exceeds the commit count of $REF ($TOTAL)" >&2
   exit 1
 fi
 
@@ -40,7 +57,13 @@ if (( VERSION_CODE < 1 )); then
 fi
 
 OFFSET=$(( TOTAL - VERSION_CODE + 1 ))
-COMMIT_SHA=$(git rev-list HEAD | sed -n "${OFFSET}p")
+COMMIT_SHA=$(git rev-list "$REF" | sed -n "${OFFSET}p")
+
+# The offset assumes linear history. Confirm the commit really is the Nth.
+if [[ "$(git rev-list --count "$COMMIT_SHA")" != "$VERSION_CODE" ]]; then
+  echo "ERROR: commit ${COMMIT_SHA:0:9} on $REF has $(git rev-list --count "$COMMIT_SHA") ancestors, not $VERSION_CODE (non-linear history?)" >&2
+  exit 1
+fi
 COMMIT_SHORT="${COMMIT_SHA:0:9}"
 COMMIT_MESSAGE=$(git log -1 --format='%s' "$COMMIT_SHA")
 COMMIT_DATE=$(git log -1 --format='%aI' "$COMMIT_SHA")
