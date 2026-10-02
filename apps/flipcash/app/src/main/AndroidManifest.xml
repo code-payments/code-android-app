@@ -379,6 +379,12 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
 
+            <!-- emoji2-bundled used to strip this; keep emoji on the system font. -->
+            <meta-data
+                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+
             <meta-data
                 android:name="com.flipcash.app.internal.startup.TraceInitializer"
                 android:value="androidx.startup" />
