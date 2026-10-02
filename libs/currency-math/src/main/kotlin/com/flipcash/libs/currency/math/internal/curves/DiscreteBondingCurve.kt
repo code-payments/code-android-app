@@ -82,6 +82,11 @@ internal object DiscreteBondingCurve : BondingCurve {
         BigDecimal(result)
     }
 
+    /** Interpolated (fractional-token) supply whose cumulative reserve equals [value]. */
+    fun supplyFromValue(value: BigDecimal): Result<BigDecimal> = runCatching {
+        BigDecimal(SharedBondingCurve.preciseSupplyFromValue(value.toPlainString()))
+    }
+
     override fun tokensForValueExchange(currentValue: BigDecimal, value: BigDecimal): Result<Valuation.Tokens> = runCatching {
         val result = SharedBondingCurve.tokensForValueExchange(currentValue.toPlainString(), value.toPlainString())
             ?: throw IllegalArgumentException("Invalid exchange")

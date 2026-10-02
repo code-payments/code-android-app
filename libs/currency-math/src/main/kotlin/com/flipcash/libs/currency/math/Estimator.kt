@@ -351,6 +351,24 @@ object Estimator {
         }
     }
 
+    /**
+     * The reserve (dollars held by the discrete curve) at a supply: the value of every token from
+     * zero to [supplyInTokens].
+     */
+    fun reserveAtSupply(supplyInTokens: BigDecimal): Result<BigDecimal> =
+        runCatching {
+            DiscreteBondingCurve.getOrThrow()
+                .tokensToValue(currentSupply = BigDecimal.ZERO, tokens = supplyInTokens)
+                .getOrThrow()
+        }
+
+    /**
+     * The inverse of [reserveAtSupply]: the supply, in whole (fractional) tokens, at which the
+     * discrete curve's reserve equals [reserve].
+     */
+    fun supplyAtReserve(reserve: BigDecimal): Result<BigDecimal> =
+        runCatching { DiscreteBondingCurve.getOrThrow().supplyFromValue(reserve).getOrThrow() }
+
     fun currentMarketCap(
         currentSupplyInQuarks: Long,
         curveType: CurveType = DefaultCurveType,
