@@ -116,6 +116,21 @@ class ChatMetadataDataSource @Inject constructor(
         db?.chatMetadataDao()?.updateLastMessageId(mapper.chatIdHex(chatId), messageId)
     }
 
+    /**
+     * Records what a catch-up learned about [chatId] in one write: the event cursor [latestEventSequence]
+     * (0 for none) and the [newest] message it carried (null for none). Only advances; see
+     * [ChatMetadataDao.applyCatchUp][com.flipcash.app.persistence.dao.ChatMetadataDao.applyCatchUp].
+     */
+    suspend fun applyCatchUp(chatId: ChatId, latestEventSequence: Long, newest: ChatMessage?) {
+        if (latestEventSequence <= 0L && newest == null) return
+        db?.chatMetadataDao()?.applyCatchUp(
+            chatIdHex = mapper.chatIdHex(chatId),
+            latestEventSequence = latestEventSequence,
+            messageId = newest?.messageId ?: 0L,
+            timestampEpochMs = newest?.timestamp?.toEpochMilliseconds() ?: 0L,
+        )
+    }
+
     suspend fun updateLatestEventSequence(chatId: ChatId, sequence: Long) {
         db?.chatMetadataDao()?.updateLatestEventSequence(mapper.chatIdHex(chatId), sequence)
     }

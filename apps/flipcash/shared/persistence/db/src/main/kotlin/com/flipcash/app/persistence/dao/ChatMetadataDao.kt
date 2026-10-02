@@ -239,6 +239,39 @@ interface ChatMetadataDao {
     @Query("SELECT latest_event_sequence FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getLatestEventSequence(chatIdHex: String): Long?
 
+    /**
+     * The catch-up write: one statement, so a catch-up costs the list one invalidation instead of
+     * three, and idempotent, so one that learns nothing costs it none.
+     *
+     * - `latest_event_sequence` only moves forward.
+     * - `last_message_id` and `last_activity_epoch_ms` move only when [messageId] is strictly newer
+     *   than the stored `last_message_id`. A feed sync has usually written the same message
+     *   already, and re-stamping its activity from the message's own timestamp (which can differ
+     *   from the server's `last_activity`) reordered rows that had nothing new.
+     * - Even when the message is newer, `last_activity_epoch_ms` never moves backwards: `MAX`.
+     *
+     * The `WHERE` guard turns the no-op case into zero changed rows, which SQLite does not report
+     * to Room's invalidation tracker. Pass `0` for [latestEventSequence] or [messageId] to leave
+     * that half alone.
+     */
+    @Query(
+        "UPDATE chat_metadata SET " +
+            "latest_event_sequence = MAX(latest_event_sequence, :latestEventSequence), " +
+            "last_activity_epoch_ms = CASE WHEN :messageId > COALESCE(last_message_id, 0) " +
+            "THEN MAX(last_activity_epoch_ms, :timestampEpochMs) ELSE last_activity_epoch_ms END, " +
+            "last_message_id = CASE WHEN :messageId > COALESCE(last_message_id, 0) " +
+            "THEN :messageId ELSE last_message_id END " +
+            "WHERE chat_id_hex = :chatIdHex AND (" +
+            ":latestEventSequence > latest_event_sequence " +
+            "OR :messageId > COALESCE(last_message_id, 0))"
+    )
+    suspend fun applyCatchUp(
+        chatIdHex: String,
+        latestEventSequence: Long,
+        messageId: Long,
+        timestampEpochMs: Long,
+    )
+
     @Query("SELECT chat_type FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getChatType(chatIdHex: String): String?
 

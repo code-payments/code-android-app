@@ -295,21 +295,14 @@ class EventStreamDelegate @Inject constructor(
                     if (delta.messages.isNotEmpty()) {
                         linkPrefetch.prefetch(delta.messages, MessageLinkPrefetch.LIVE_WAIT)
                         messageDataSource.upsert(chatId, delta.messages)
-                        val latest = delta.messages.maxByOrNull { it.messageId }
-                        latest?.let { msg ->
-                            metadataDataSource.updateLastMessageId(chatId, msg.messageId)
-                            // Only advance lastActivity — a partial page from a
-                            // delta sync must not regress it to an older timestamp.
-                            val existing = metadataDataSource.getLastActivity(chatId)
-                            val incoming = msg.timestamp.toEpochMilliseconds()
-                            if (existing == null || incoming > existing) {
-                                metadataDataSource.updateLastActivity(chatId, incoming)
-                            }
-                        }
                     }
-                    if (delta.latestSequence > afterSequence) {
-                        metadataDataSource.updateLatestEventSequence(chatId, delta.latestSequence)
-                    }
+                    // One write that only moves forward: the cursor, and the newest message only
+                    // when it is newer than the stored one. See ChatMetadataDao.applyCatchUp.
+                    metadataDataSource.applyCatchUp(
+                        chatId,
+                        if (delta.latestSequence > afterSequence) delta.latestSequence else 0L,
+                        delta.messages.maxByOrNull { it.messageId },
+                    )
                     sequenceTracker.resetTo(chatId, delta.latestSequence)
                     trace(tag = TAG, message = "Delta sync complete: ${delta.messages.size} messages, sequence ${delta.latestSequence}", type = TraceType.Process)
                 }
@@ -442,10 +435,8 @@ class EventStreamDelegate @Inject constructor(
         // Update lastMessageId and lastActivity AFTER metadata updates so that
         // incoming message timestamps always take precedence over a potentially
         // stale FullRefresh.
-        lastMsg?.let { msg ->
-            metadataDataSource.updateLastMessageId(chatId, msg.messageId)
-            metadataDataSource.updateLastActivity(chatId, msg.timestamp.toEpochMilliseconds())
-        }
+        // One write, forward-only: a message that is not newer than the stored one changes nothing.
+        lastMsg?.let { msg -> metadataDataSource.applyCatchUp(chatId, 0L, msg) }
 
         // --- Roster changes ---
 
