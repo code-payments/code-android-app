@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 
 /**
@@ -34,7 +35,8 @@ fun FilterChip(
         backgroundColor = if (selected) CodeTheme.colors.textMain else CodeTheme.colors.surfaceVariant,
         contentPadding = PaddingValues(
             horizontal = CodeTheme.dimens.grid.x3,
-            vertical = CodeTheme.dimens.grid.x1,
+            // 7dp to match iOS's selectable chip; no grid step lands on it.
+            vertical = 7.dp,
         ),
     ) {
         Text(
@@ -46,7 +48,7 @@ fun FilterChip(
             Text(
                 text = count.toString(),
                 style = CodeTheme.typography.textSmall,
-                color = contentColor.copy(alpha = 0.7f),
+                color = contentColor,
             )
         }
     }
