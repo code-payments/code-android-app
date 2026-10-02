@@ -12,7 +12,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
@@ -81,17 +80,22 @@ object ChatAnimations {
     // frame, so an overshoot here drags every message past where it settles and back.
     val replySurface: SpringSpec<Float> =
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 816f)
-    private val replySurfaceIntSize: SpringSpec<IntSize> =
+    // The same spring for a card that resizes while another one opens or closes beside it: the
+    // mention list giving up a row to the reply strip moves with the strip, not ahead of it.
+    val replySurfaceDp: SpringSpec<Dp> =
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 816f)
+    val replySurfaceIntOffset: SpringSpec<IntOffset> =
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 816f)
 
-    // Asymmetric, as on iOS: nothing fades in, because the clip edge uncovering the quote is the
-    // whole effect, and a fade on top of it reads as a second animation. Going away it does fade,
-    // so the quote dissolves rather than being sliced off by an edge moving over text that is still
-    // fully opaque.
-    val replySurfaceEnter: EnterTransition =
-        expandVertically(replySurfaceIntSize, expandFrom = Alignment.Top)
-    val replySurfaceExit: ExitTransition =
-        shrinkVertically(replySurfaceIntSize, shrinkTowards = Alignment.Top) + fadeOut(replySurface)
+    // Reply mode and mention list, enter and exit: the card is revealed by this spring running 0 to 1
+    // and back, with the content clipped by the moving edge (see ComposerAccessorySlot). Nothing
+    // fades in, because the clip edge uncovering the card is the whole effect and a fade on top of
+    // it reads as a second animation; going away it does fade, so the card dissolves rather than
+    // being sliced off by an edge moving over content that is still fully opaque.
+    //
+    // Not expandVertically/shrinkVertically: those report their target size to a lookahead pass,
+    // and the scaffold reads the bar's height from that pass to inset the transcript, so the
+    // transcript would jump to the finished height on the first frame of an enter.
 
     // The flash a jump leaves on the message it landed on: white at full, held long enough to be
     // caught by an eye still following the scroll, then faded off.

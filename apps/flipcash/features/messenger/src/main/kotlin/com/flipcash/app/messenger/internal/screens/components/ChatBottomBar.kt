@@ -182,12 +182,15 @@ internal fun UserControlBottomBar(
                 // The transcript runs under the bar and dissolves into the background here, from the
                 // bar's top edge to the bottom of the screen (or the keyboard's top edge). The bar has no
                 // surface of its own and floats over it.
+                //
+                // Sized to the bar rather than to its last measured height: the Box takes the larger of
+                // its children, so a height read back from the previous frame held the bar one frame
+                // taller whenever it shrank. The scaffold bottom-aligns the bar from that height, so the
+                // composer stepped off its rest position and back as a card above it left.
                 val fadeColor = CodeTheme.colors.background
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(buttonHeight)
-                        .align(Alignment.BottomCenter)
+                        .matchParentSize()
                         .drawWithGradient(
                             brush = { startY, endY -> composerFade(fadeColor, startY, endY) },
                             startY = { 0f },
