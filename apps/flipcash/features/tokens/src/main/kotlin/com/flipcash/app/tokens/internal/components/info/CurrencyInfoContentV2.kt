@@ -280,7 +280,6 @@ internal fun CurrencyInfoContentV2(
                                 onPeriodSelected = {
                                     dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
                                 },
-                                onHeaderClick = openExplainer,
                             )
                         }
                         item {
