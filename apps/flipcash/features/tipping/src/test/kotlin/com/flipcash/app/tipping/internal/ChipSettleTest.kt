@@ -66,4 +66,12 @@ class ChipSettleTest {
             chipSettle(pastPark = 2_000f, chipHeight = 0f, velocity = -5_000f, pullStartedAtTop = false),
         )
     }
+
+    @Test
+    fun `a quick flick down from park reveals`() {
+        // 0 - 600 * 0.1 = -60: past half once projected, with nothing pulled yet.
+        assertEquals(ChipSettle.Reveal, settle(pastPark = 0f, velocity = 600f))
+        // Too slow to project past half: the list stays parked (a clamped fling stops at once).
+        assertEquals(ChipSettle.ClampedFling, settle(pastPark = 0f, velocity = 400f))
+    }
 }

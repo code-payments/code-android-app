@@ -112,8 +112,22 @@ internal class ChipRevealConnection(
         return when (chipSettle(pastPark, chipHeight, available.y, fromTop && canReveal())) {
             ChipSettle.None -> Velocity.Zero
             ChipSettle.Reveal -> {
-                settleBy(-(pastPark + chipHeight), velocity = -available.y)
-                onRevealed()
+                var marked = false
+                val markRevealed = {
+                    if (!marked) {
+                        marked = true
+                        onRevealed()
+                    }
+                }
+                try {
+                    // Revealed the moment the chips are fully on, not when the spring comes to
+                    // rest: a touch in the spring's tail cancels it, and an unmarked row would be
+                    // parked again by the next scroll toward the top.
+                    settleBy(-(pastPark + chipHeight), velocity = -available.y, onReached = markRevealed)
+                } finally {
+                    // Cancelled before getting there, but already mostly on: keep them.
+                    if (listState.pastPark() <= -chipHeight / 2) markRevealed()
+                }
                 available
             }
             ChipSettle.Park -> {
@@ -132,8 +146,11 @@ internal class ChipRevealConnection(
      * release carries straight into the settle. Overshoot is held at the target rather than
      * scrolled past and back.
      */
-    private suspend fun settleBy(delta: Float, velocity: Float) {
-        if (delta == 0f) return
+    private suspend fun settleBy(delta: Float, velocity: Float, onReached: () -> Unit = {}) {
+        if (delta == 0f) {
+            onReached()
+            return
+        }
         val low = min(0f, delta)
         val high = max(0f, delta)
         listState.scroll {
@@ -145,6 +162,7 @@ internal class ChipRevealConnection(
                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
             ) { value, _ ->
                 applied += scrollBy(value.coerceIn(low, high) - applied)
+                if (applied == delta) onReached()
             }
         }
     }
@@ -189,6 +207,19 @@ internal fun LazyListState.pastPark(): Float {
     items.firstOrNull { it.index == 0 }?.let { return -(it.offset + it.size).toFloat() }
     items.firstOrNull { it.index == 1 }?.let { return -it.offset.toFloat() }
     return layoutInfo.beforeContentPadding.toFloat()
+}
+
+/**
+ * Lets no touch through to the chip row while [blocked]: hidden, it lies in the list's top padding
+ * under the title bar, and a tap on the bar's lower edge would otherwise land on an invisible chip.
+ * Only the pointer is stopped; the row's semantics stay, so a screen reader can still reach it.
+ */
+internal fun Modifier.blockTouchesWhile(blocked: () -> Boolean): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        // A consumed down never starts a click below. The list's own drag still starts from it.
+        if (blocked()) down.consume()
+    }
 }
 
 /**

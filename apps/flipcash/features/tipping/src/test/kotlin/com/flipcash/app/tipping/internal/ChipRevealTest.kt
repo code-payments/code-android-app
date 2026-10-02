@@ -1,6 +1,7 @@
 package com.flipcash.app.tipping.internal
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.TouchInjectionScope
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
@@ -49,6 +51,7 @@ class ChipRevealTest {
     private lateinit var listState: LazyListState
     private var revealed by mutableStateOf(false)
     private var firstFrame: Float? = null
+    private var chipClicks = 0
 
     // xhdpi: 2px per dp.
     private val chipPx = 100f
@@ -73,7 +76,13 @@ class ChipRevealTest {
                 contentPadding = PaddingValues(top = 56.dp),
             ) {
                 item(key = "chips") {
-                    Box(Modifier.fillMaxWidth().height(50.dp))
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .blockTouchesWhile { !revealed && listState.chipVisibleFraction() == 0f }
+                            .clickable { chipClicks++ }
+                    )
                     if (firstFrame == null) firstFrame = listState.chipVisibleFraction()
                 }
                 item(key = "archived") {}
@@ -193,5 +202,54 @@ class ChipRevealTest {
         }
         composeRule.waitForIdle()
         assertEquals(-chipPx, pastPark, 0.5f)
+    }
+
+    @Test
+    fun `a tap on the bar over hidden chips does not reach them`() {
+        setContent()
+        // Parked, the chip row lies in the top padding: 12px to 112px.
+        composeRule.onNodeWithTag("list").performTouchInput { click(Offset(centerX, 60f)) }
+        composeRule.waitForIdle()
+        assertEquals(0, chipClicks)
+        assertEquals(0f, pastPark, 0.5f)
+
+        revealed = true
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("list").performTouchInput { click(Offset(centerX, 60f)) }
+        composeRule.waitForIdle()
+        assertEquals(1, chipClicks)
+    }
+
+    @Test
+    fun `a quick flick down from park reveals`() {
+        setContent()
+        composeRule.onNodeWithTag("list").performTouchInput {
+            down(Offset(centerX, 400f))
+            // Barely past touch slop, but fast.
+            repeat(5) { moveBy(Offset(0f, 12f), delayMillis = 8) }
+            up()
+        }
+        composeRule.waitForIdle()
+        assertEquals(-chipPx, pastPark, 0.5f)
+        assertTrue(revealed)
+    }
+
+    @Test
+    fun `a touch that cancels the settle partway still leaves the chips revealed`() {
+        setContent()
+        composeRule.mainClock.autoAdvance = false
+        val list = composeRule.onNodeWithTag("list")
+        list.performTouchInput { slowDrag(chipPx * 0.75f + 16f) }
+        repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+        assertFalse("settle already done", revealed)
+        list.performTouchInput { down(Offset(centerX, 600f)) }
+        repeat(3) { composeRule.mainClock.advanceTimeByFrame() }
+        val stoppedAt = pastPark
+        assertTrue("settle not cancelled: $stoppedAt", stoppedAt > -chipPx + 0.5f)
+        assertTrue(revealed)
+        list.performTouchInput { up() }
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        assertTrue(revealed)
     }
 }

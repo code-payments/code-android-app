@@ -14,6 +14,7 @@ import androidx.compose.material.SnackbarResult
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.rememberScaffoldState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.graphicsLayer
@@ -24,6 +25,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import com.flipcash.app.tipping.internal.ChipRevealConnection
+import com.flipcash.app.tipping.internal.blockTouchesWhile
 import com.flipcash.app.tipping.internal.chipReveal
 import com.flipcash.app.tipping.internal.chipVisibleFraction
 import com.flipcash.shared.chat.ChatListFilter
@@ -121,6 +123,13 @@ fun ChatsScreen() {
             onRevealed = viewModel::revealChips,
         )
     }
+    // Restored on the chips (after process death, say) with the ViewModel starting over: they are
+    // on screen, so they count as revealed rather than being parked by the next scroll.
+    LaunchedEffect(listState) {
+        if (listState.firstVisibleItemIndex == 0 && !viewModel.stateFlow.value.showsChips) {
+            viewModel.revealChips()
+        }
+    }
     // One row open at a time: swiping another row closes the one left revealed.
     val revealGroup = rememberSwipeRevealGroup()
     val scaffoldState = rememberScaffoldState()
@@ -198,11 +207,13 @@ fun ChatsScreen() {
         ) {
             item(key = "chips", contentType = "chips") {
                 ChatFilterRow(
-                    modifier = Modifier.graphicsLayer {
-                        // Fades in with the pull. Read here, in the draw phase, so following the
-                        // finger never recomposes the row.
-                        alpha = if (state.showsChips) 1f else listState.chipVisibleFraction()
-                    },
+                    modifier = Modifier
+                        .blockTouchesWhile { !state.showsChips && listState.chipVisibleFraction() == 0f }
+                        .graphicsLayer {
+                            // Fades in with the pull. Read here, in the draw phase, so following
+                            // the finger never recomposes the row.
+                            alpha = if (state.showsChips) 1f else listState.chipVisibleFraction()
+                        },
                     selected = state.filter,
                     unreadCount = state.projection.unreadChipCount,
                     groupsCount = state.projection.groupsChipCount,
@@ -492,7 +503,7 @@ private fun ArchivedRow(count: Int, onClick: () -> Unit) {
     ) {
         // Centred in the avatar column, so the label lines up with the chat names below.
         Box(
-            modifier = Modifier.padding(start = CodeTheme.dimens.inset).width(CodeTheme.dimens.staticGrid.x8),
+            modifier = Modifier.width(CodeTheme.dimens.staticGrid.x8),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
