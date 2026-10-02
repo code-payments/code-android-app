@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -136,7 +137,9 @@ internal fun MarketCapExplainerSlider(
                 Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
                     SliderDefaults.Track(
                         sliderState = state,
-                        modifier = Modifier.height(10.dp),
+                        // A square inside corner keeps the fill flush under the thumb, but at the far
+                        // end it would leave the green squared off; clipping to the pill rounds it.
+                        modifier = Modifier.height(10.dp).clip(CircleShape),
                         colors = colors,
                         drawStopIndicator = null,
                         thumbTrackGapSize = 0.dp,
