@@ -3,6 +3,7 @@ package com.flipcash.app.notifications
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
+import com.flipcash.shared.chat.shouldNotify
 
 /**
  * Decides what a received push should cause the app to do.
@@ -13,18 +14,40 @@ import com.flipcash.services.models.NotificationPayload
  * @param title resolved push title, null for a data-only push
  * @param body resolved push body, may be null even for a visible push
  * @param payload decoded [NotificationPayload], null when absent or undecodable
+ * @param archived whether the viewer has this chat archived, read from local storage: the push
+ *   payload carries no archive flag yet
+ * @param mentionsViewer whether the message text @mentions the viewer; false when it cannot be told
+ * @param repliesToViewer whether the message replies to one of the viewer's messages; false when
+ *   the cited message is not stored locally
  */
 fun planPushHandling(
     title: String?,
     body: String?,
     payload: NotificationPayload?,
+    archived: Boolean = false,
+    mentionsViewer: Boolean = false,
+    repliesToViewer: Boolean = false,
 ): List<PushAction> {
     val sync = syncActionsFor(payload)
 
-    // The sync half is the same either way; a title adds the notification on top, unless the
-    // chat was silenced when the push was sent.
-    if (title == null || isMuted(payload)) return sync
-    return sync + PushAction.PostNotification(title, body, payload)
+    // The sync half is the same either way; a title adds the notification on top. Archived chats
+    // still sync: the message must reach the database either way.
+    if (title == null) return sync
+    val muted = isMuted(payload)
+    val notify = shouldNotify(
+        archived = archived,
+        muted = muted,
+        mentionsViewer = mentionsViewer,
+        repliesToViewer = repliesToViewer,
+    )
+    return when {
+        notify -> sync + PushAction.PostNotification(title, body, payload)
+        // A chat silenced when the push was sent shows nothing, archived or not.
+        muted -> sync
+        // An archived chat's message that is not addressed to the viewer is posted quietly rather
+        // than dropped, as iOS delivers it passive.
+        else -> sync + PushAction.PostNotification(title, body, payload, silent = true)
+    }
 }
 
 /**

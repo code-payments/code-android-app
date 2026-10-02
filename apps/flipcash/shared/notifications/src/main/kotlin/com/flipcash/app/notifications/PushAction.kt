@@ -33,10 +33,17 @@ sealed interface PushAction {
     /** Refresh the contact list. */
     data object SyncContacts : PushAction
 
-    /** Post a user-visible notification. Absent for a silent push. */
+    /**
+     * Post a user-visible notification. Absent for a silent push.
+     *
+     * [silent] is set for an archived chat's message that is not addressed to the viewer: it is
+     * posted without sound, vibration or heads-up while the app is in the background, and not at
+     * all while it is in the foreground (iOS delivers these as passive).
+     */
     data class PostNotification(
         val title: String,
         val body: String?,
         val payload: NotificationPayload?,
+        val silent: Boolean = false,
     ) : PushAction
 }

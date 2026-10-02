@@ -17,6 +17,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
@@ -27,6 +29,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
+import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -57,6 +60,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import java.security.SecureRandom
 import javax.inject.Inject
@@ -127,6 +131,12 @@ class NotificationService : FirebaseMessagingService(),
     @Inject
     lateinit var chatMetadataDataSource: ChatMetadataDataSource
 
+    @Inject
+    lateinit var archiveStore: ChatArchiveStore
+
+    @Inject
+    lateinit var pushMessageClassifier: PushMessageClassifier
+
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
     //  Tracking: https://github.com/firebase/firebase-android-sdk/issues/8087
@@ -158,10 +168,31 @@ class NotificationService : FirebaseMessagingService(),
             .takeIf { it.isNotEmpty() }
             ?.let { NotificationPayload.fromEncoded(it) }
 
+        // Classification reads Room, so it needs a coroutine; this function is not one and must
+        // stay synchronous: FCM may treat the message as handled, and let the process go, once it
+        // returns. A data-only push never posts, so it skips the reads; a chat that is not archived
+        // costs one primary-key read and never reads the message.
+        val chatId = (payload?.navigation as? NavigationTrigger.Chat.ById)?.chatId
+        val (archived, classification) = if (title == null || chatId == null) {
+            false to PushClassification.None
+        } else {
+            runBlocking {
+                val isArchived = archiveStore.isArchived(chatId)
+                isArchived to if (isArchived) {
+                    pushMessageClassifier.classify(chatId, payload.chatMetadata)
+                } else {
+                    PushClassification.None
+                }
+            }
+        }
+
         val actions = planPushHandling(
             title = title,
             body = body,
             payload = payload,
+            archived = archived,
+            mentionsViewer = classification.mentionsViewer,
+            repliesToViewer = classification.repliesToViewer,
         )
 
         val latencyMs = System.currentTimeMillis() - message.sentTime
@@ -177,6 +208,7 @@ class NotificationService : FirebaseMessagingService(),
                 "has_body" to (body != null)
                 "actions" to actions.size
                 "silent" to (title == null)
+                "archived" to archived
                 "bucket" to bucket
                 "latency_ms" to latencyMs
                 "priority" to message.priority
@@ -232,7 +264,7 @@ class NotificationService : FirebaseMessagingService(),
                         val resolvedBody = post.body?.let {
                             applySubstitutions(it, post.payload?.bodySubstitutions.orEmpty())
                         }
-                        postNotification(resolvedTitle, resolvedBody, post.payload)
+                        postNotification(resolvedTitle, resolvedBody, post.payload, post.silent)
                     }
                 } catch (e: Exception) {
                     trace(tag = "NotificationService", message = "Failed to handle push", error = e)
@@ -241,7 +273,16 @@ class NotificationService : FirebaseMessagingService(),
         }
     }
 
-    private suspend fun postNotification(title: String, body: String?, payload: NotificationPayload?) {
+    /**
+     * @param silent post without sound, vibration or heads-up, and not at all while the app is in
+     *   the foreground: an archived chat's message that is not addressed to the viewer.
+     */
+    private suspend fun postNotification(
+        title: String,
+        body: String?,
+        payload: NotificationPayload?,
+        silent: Boolean = false,
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED
@@ -260,6 +301,9 @@ class NotificationService : FirebaseMessagingService(),
         }
 
         if (chatId != null && chatCoordinator.isActiveChat(chatId)) return
+        // iOS suppresses a passive push entirely while the app is in front; the chat list already
+        // shows the message.
+        if (silent && isAppInForeground()) return
 
         // Resolved once, here, because the tap target and the message style both turn on what
         // kind of chat this is and neither can take the payload's word for it.
@@ -276,8 +320,17 @@ class NotificationService : FirebaseMessagingService(),
         val group = planNotificationGroup(payloadGroupKey = groupKey, isChat = isChat)
 
         val builder = NotificationCompat.Builder(this, channel.id)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+            .apply {
+                if (silent) {
+                    // Overrides the channel's sound and vibration for this one notification, and
+                    // without an alert there is no heads-up: it lands in the shade only.
+                    setSilent(true)
+                    setPriority(NotificationCompat.PRIORITY_LOW)
+                } else {
+                    setPriority(NotificationCompat.PRIORITY_HIGH)
+                    setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                }
+            }
             .setSmallIcon(R.drawable.flipcash_logo)
             .setColor(getColor(R.color.notification_color))
             .setAutoCancel(true)
@@ -455,6 +508,10 @@ class NotificationService : FirebaseMessagingService(),
      * the same profiles, but it is fire-and-forget by design (it must not stall Paging), and a
      * notification has to render now.
      */
+    /** Whether any of the app's activities is visible, as iOS's foreground delegate sees it. */
+    private fun isAppInForeground(): Boolean =
+        ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+
     private suspend fun resolveSenderProfile(userId: ID): UserProfile? =
         userProfileDataSource.getCachedProfile(userId)
             ?: profileController.getProfileForUser(userId).getOrNull()

@@ -12,6 +12,7 @@ import com.getcode.solana.keys.Mint
 import kotlin.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PushHandlingPlannerTest {
@@ -256,6 +257,99 @@ class PushHandlingPlannerTest {
     fun `a muted push that names no chat is silenced too`() {
         val p = payload(chatMetadata = chatMetadata(message = null, muted = true))
         assertEquals(emptyList(), planPushHandling("Title", "Body", p))
+    }
+
+    // endregion
+
+    // region An archived chat
+
+    private val chatNav = NavigationTrigger.Chat.ById(ChatId("aabbccdd"))
+
+    private fun post(actions: List<PushAction>) =
+        actions.filterIsInstance<PushAction.PostNotification>().singleOrNull()
+
+    @Test
+    fun `an archived chat posts an ordinary message silently`() {
+        val actions = planPushHandling(
+            title = "Ada", body = "hi",
+            payload = payload(navigation = chatNav, chatMetadata = chatMetadata(inlinedMessage())),
+            archived = true,
+        )
+        assertEquals(true, post(actions)?.silent)
+    }
+
+    @Test
+    fun `an archived chat still syncs the message it was sent`() {
+        val actions = planPushHandling(
+            title = "Ada", body = "hi",
+            payload = payload(navigation = chatNav, chatMetadata = chatMetadata(inlinedMessage())),
+            archived = true,
+        )
+        assertTrue(actions.any { it is PushAction.ApplyMessage })
+    }
+
+    @Test
+    fun `an archived chat posts normally when the message mentions the viewer`() {
+        val actions = planPushHandling(
+            title = "Ada", body = "hi @me",
+            payload = payload(navigation = chatNav, chatMetadata = chatMetadata(inlinedMessage())),
+            archived = true,
+            mentionsViewer = true,
+        )
+        assertEquals(false, post(actions)?.silent)
+    }
+
+    @Test
+    fun `an archived chat posts normally when the message replies to the viewer`() {
+        val actions = planPushHandling(
+            title = "Ada", body = "yes",
+            payload = payload(navigation = chatNav, chatMetadata = chatMetadata(inlinedMessage())),
+            archived = true,
+            repliesToViewer = true,
+        )
+        assertEquals(false, post(actions)?.silent)
+    }
+
+    @Test
+    fun `a muted and archived chat posts nothing even for a mention`() {
+        val actions = planPushHandling(
+            title = "Ada", body = "hi @me",
+            payload = payload(navigation = chatNav, chatMetadata = chatMetadata(inlinedMessage(), muted = true)),
+            archived = true,
+            mentionsViewer = true,
+            repliesToViewer = true,
+        )
+        assertNull(post(actions))
+        assertTrue(actions.any { it is PushAction.ApplyMessage })
+    }
+
+    @Test
+    fun `a muted and archived chat posts nothing for an ordinary message`() {
+        val actions = planPushHandling(
+            title = "Ada", body = "hi",
+            payload = payload(navigation = chatNav, chatMetadata = chatMetadata(inlinedMessage(), muted = true)),
+            archived = true,
+        )
+        assertNull(post(actions))
+    }
+
+    @Test
+    fun `a chat that is not archived posts normally as before`() {
+        val actions = planPushHandling(
+            title = "Ada", body = "hi",
+            payload = payload(navigation = chatNav, chatMetadata = chatMetadata(inlinedMessage())),
+        )
+        assertEquals(false, post(actions)?.silent)
+    }
+
+    @Test
+    fun `a data-only push for an archived chat posts nothing`() {
+        val actions = planPushHandling(
+            title = null, body = null,
+            payload = payload(navigation = chatNav, chatMetadata = chatMetadata(inlinedMessage())),
+            archived = true,
+        )
+        assertNull(post(actions))
     }
 
     // endregion
