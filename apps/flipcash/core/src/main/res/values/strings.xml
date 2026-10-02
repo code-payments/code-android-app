@@ -1070,6 +1070,7 @@
     <string name="title_filterGroups">Groups</string>
     <string name="title_noUnreadChats">No unread chats</string>
     <string name="title_noGroupChats">No groups</string>
+    <string name="title_noArchivedChats">No archived chats</string>
     <string name="title_allChatsArchived">All your chats are archived</string>
     <string name="message_chatArchived">Chat archived</string>
     <string name="action_undo">Undo</string>

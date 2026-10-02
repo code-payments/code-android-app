@@ -237,7 +237,7 @@ fun ChatsScreen() {
                 if (state.showsArchivedRow) {
                     ArchivedRow(
                         count = state.projection.archivedRowCount,
-                        onClick = openArchivedChats,
+                        onClick = { navigator.push(AppRoute.Messaging.ArchivedChats) },
                     )
                 }
             }
@@ -285,9 +285,6 @@ fun ChatsScreen() {
         }
     }
 }
-
-// TODO(Task 12): push AppRoute.Messaging.ArchivedChats once the Archived chats screen exists.
-private val openArchivedChats: () -> Unit = {}
 
 /**
  * How far past the bar's bottom edge the scrim reaches before it is fully transparent. Rows begin

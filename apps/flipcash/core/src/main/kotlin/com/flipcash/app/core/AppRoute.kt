@@ -363,6 +363,16 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object NewChat : Messaging
 
         /**
+         * The chats the viewer archived, behind the Archived row on the Chats list.
+         *
+         * A pushed route rather than an in-place screen, for the reason [NewChat] is: the Chats
+         * list is a tab home, and anything drawn inside it would leave the tab bar over this one.
+         */
+        @Serializable
+        @Parcelize
+        data object ArchivedChats : Messaging
+
+        /**
          * Another person's profile, opened on its own rather than from inside a chat — the
          * destination of a `flipcash.com/{username}` or `flipcash.com/{uuid}` link.
          *
