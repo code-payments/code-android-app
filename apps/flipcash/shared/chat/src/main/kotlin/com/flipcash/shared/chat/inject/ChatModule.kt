@@ -2,7 +2,11 @@ package com.flipcash.shared.chat.inject
 
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
+import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
+import com.flipcash.shared.chat.internal.MentionPoolUpdates
+import com.flipcash.shared.chat.internal.MentionSuggestionPool
+import com.flipcash.shared.chat.internal.ServerRosterSearchSource
 import com.flipcash.shared.chat.internal.OutgoingEncryption
 import com.flipcash.shared.chat.internal.RealChatCoordinator
 import com.flipcash.shared.chat.internal.RealChatDraftStore
@@ -34,6 +38,16 @@ abstract class ChatModule {
     internal abstract fun bindOutgoingEncryption(
         impl: DmOutgoingEncryption
     ): OutgoingEncryption
+
+    @Binds
+    internal abstract fun bindRosterSearchSource(
+        impl: ServerRosterSearchSource
+    ): RosterSearchSource
+
+    @Binds
+    internal abstract fun bindMentionPoolUpdates(
+        impl: MentionSuggestionPool
+    ): MentionPoolUpdates
 
     @Binds
     @IntoSet

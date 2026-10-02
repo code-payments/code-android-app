@@ -1,7 +1,6 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -11,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
@@ -48,18 +48,19 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.balanceRequirement
+import com.flipcash.app.messenger.internal.mention.mentionListHeight
+import com.flipcash.app.messenger.internal.mention.mentionRowCap
 import com.flipcash.app.messenger.internal.requiresStaff
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.services.models.chat.ChatRuleRequirement
-import com.flipcash.shared.chat.ui.ChatAnimations
-import com.flipcash.shared.chat.ui.ComposerReplyStrip
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
@@ -98,6 +99,7 @@ internal fun UserControlBottomBar(
     hazeState: HazeState,
     onAction: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
+    topBarHeight: Dp = 0.dp,
 ) {
     if (state.isAnonymous) {
         DeactivatedChatBottomBar()
@@ -142,6 +144,7 @@ internal fun UserControlBottomBar(
     val keyboard = rememberKeyboardController()
     val focusRequester = remember { FocusRequester() }
     var buttonHeight by remember { mutableStateOf(0.dp) }
+    var mentionListHeight by remember { mutableStateOf(0.dp) }
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
 
     LaunchedEffect(keyboard.visible) {
@@ -150,212 +153,206 @@ internal fun UserControlBottomBar(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth(),
-    ) {
-        // Compact at rest: with the keyboard down the composer sits narrower and a little lower, into
-        // the navigation bar's inset, and opens out to the normal margins as the keyboard comes up.
-        // Only once there is a composer; the full-width Send Cash button keeps its width.
-        //
-        // Tracks how far open the keyboard is rather than springing on a keyboard up/down flag, so
-        // the bar changes size in step with the keyboard's own motion: not ahead of it (a flag that
-        // flips as the hide starts), and not after it (one that waits for the hide to finish). The
-        // composer appearing at all (typingConstraints resolving a frame after the bar is revealed)
-        // doesn't move anything, since nothing here animates on its own.
-        val keyboardOpen = keyboardOpenFraction()
-        val hasComposer = state.typingConstraints.enabled
-        val compactInset = CodeTheme.dimens.grid.x6.coerceAtLeast(CodeTheme.dimens.inset)
-        val sideInset = if (hasComposer) lerp(compactInset, CodeTheme.dimens.inset, keyboardOpen) else CodeTheme.dimens.inset
-        val restingDrop = if (hasComposer) lerp(CodeTheme.dimens.grid.x2, 0.dp, keyboardOpen) else 0.dp
-        // The part of the navigation bar's inset the keyboard isn't covering, so the bar only sinks
-        // into it once the keyboard has cleared it.
-        val restingRoom = WindowInsets.navigationBars.exclude(WindowInsets.ime)
-        Box {
-            // The transcript runs under the bar and dissolves into the background here, from the
-            // bar's top edge to the bottom of the screen (or the keyboard's top edge). The bar has no
-            // surface of its own and floats over it.
-            val fadeColor = CodeTheme.colors.background
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(buttonHeight)
-                    .align(Alignment.BottomCenter)
-                    .drawWithGradient(
-                        brush = { startY, endY -> composerFade(fadeColor, startY, endY) },
-                        startY = { 0f },
-                    ),
-            )
-            AnimatedContent(
-                modifier = Modifier
-                    .measured { buttonHeight = it.height }
-                    // Reports itself shorter by the drop and lets the controls run past its bottom
-                    // edge, so the bar sits that far into the navigation bar's inset and the
-                    // transcript's bottom padding (measured from this height) follows it down.
-                    .layout { measurable, constraints ->
-                        val drop = restingDrop.roundToPx().coerceAtMost(restingRoom.getBottom(this))
-                        val placeable = measurable.measure(constraints)
-                        layout(placeable.width, (placeable.height - drop).coerceAtLeast(0)) {
-                            placeable.place(0, 0)
+    // The bar is measured against the whole screen (the scaffold overlays it), so this is the
+    // height the mention list's row cap weighs the transcript's share against.
+    BoxWithConstraints {
+        val screenHeight = maxHeight
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(),
+        ) {
+            // Compact at rest: with the keyboard down the composer sits narrower and a little lower, into
+            // the navigation bar's inset, and opens out to the normal margins as the keyboard comes up.
+            // Only once there is a composer; the full-width Send Cash button keeps its width.
+            //
+            // Tracks how far open the keyboard is rather than springing on a keyboard up/down flag, so
+            // the bar changes size in step with the keyboard's own motion: not ahead of it (a flag that
+            // flips as the hide starts), and not after it (one that waits for the hide to finish). The
+            // composer appearing at all (typingConstraints resolving a frame after the bar is revealed)
+            // doesn't move anything, since nothing here animates on its own.
+            val keyboardOpen = keyboardOpenFraction()
+            val hasComposer = state.typingConstraints.enabled
+            val compactInset = CodeTheme.dimens.grid.x6.coerceAtLeast(CodeTheme.dimens.inset)
+            val sideInset = if (hasComposer) lerp(compactInset, CodeTheme.dimens.inset, keyboardOpen) else CodeTheme.dimens.inset
+            val restingDrop = if (hasComposer) lerp(CodeTheme.dimens.grid.x2, 0.dp, keyboardOpen) else 0.dp
+            // The part of the navigation bar's inset the keyboard isn't covering, so the bar only sinks
+            // into it once the keyboard has cleared it.
+            val restingRoom = WindowInsets.navigationBars.exclude(WindowInsets.ime)
+            Box {
+                // The transcript runs under the bar and dissolves into the background here, from the
+                // bar's top edge to the bottom of the screen (or the keyboard's top edge). The bar has no
+                // surface of its own and floats over it.
+                //
+                // Sized to the bar rather than to its last measured height: the Box takes the larger of
+                // its children, so a height read back from the previous frame held the bar one frame
+                // taller whenever it shrank. The scaffold bottom-aligns the bar from that height, so the
+                // composer stepped off its rest position and back as a card above it left.
+                val fadeColor = CodeTheme.colors.background
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .drawWithGradient(
+                            brush = { startY, endY -> composerFade(fadeColor, startY, endY) },
+                            startY = { 0f },
+                        ),
+                )
+                AnimatedContent(
+                    modifier = Modifier
+                        .measured { buttonHeight = it.height }
+                        // Reports itself shorter by the drop and lets the controls run past its bottom
+                        // edge, so the bar sits that far into the navigation bar's inset and the
+                        // transcript's bottom padding (measured from this height) follows it down.
+                        .layout { measurable, constraints ->
+                            val drop = restingDrop.roundToPx().coerceAtMost(restingRoom.getBottom(this))
+                            val placeable = measurable.measure(constraints)
+                            layout(placeable.width, (placeable.height - drop).coerceAtLeast(0)) {
+                                placeable.place(0, 0)
+                            }
                         }
-                    }
-                    .padding(vertical = CodeTheme.dimens.grid.x3)
-                    .navigationBarsPadding()
-                    // typingConstraints.enabled starts false and only resolves a frame or two after
-                    // open, once Room confirms whether the chat has a cash message. Rendering the
-                    // default false layout first showed a full-width "Send $" button that then
-                    // scaled down to the pill + input box. Hold the bar invisible (but measured, so
-                    // the message list keeps correct padding) until resolved, then reveal the final
-                    // layout directly — no visible full-width state, no resize.
-                    //
-                    // The chat kind starts UNKNOWN and, for tip DMs, SendCashButton would otherwise
-                    // read a not-yet-resolved chat as a non-tip chat and show the white expanded pill
-                    // before condensing — a visible flash. Wait until the kind is known (chatType is
-                    // CONTACT_DM or TIP_DM) so the bar reveals already in its final presentation.
-                    // chatType resolves from a local contact lookup, not the network profile, so this
-                    // adds no perceptible delay; a tip chat whose identity never resolves flips to the
-                    // deactivated bar instead, so this can't hide it forever.
-                    .alpha(
-                        if (state.typingConstraints.resolved &&
-                            state.chatType != ChatType.UNKNOWN
-                        ) 1f else 0f
-                    ),
-                targetState = state.typingConstraints.enabled,
-                // The layout only ever changes on the initial async resolution, which is hidden by
-                // the alpha gate above, so snap rather than crossfade. The SendCashButton's own
-                // color/label springs still animate the typing interaction.
-                transitionSpec = {
-                    ContentTransform(
-                        targetContentEnter = EnterTransition.None,
-                        initialContentExit = ExitTransition.None,
-                        sizeTransform = null,
-                    )
-                },
-            ) { canType ->
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // A banner, unlike an edit, which swaps the leading control instead. The two differ
-                    // in what the user needs to see: an edit's subject is already in front of them as
-                    // the composer's text, while a reply's subject is a different message that is very
-                    // likely scrolled off screen. Gated on canType so a reply strip never sits above a
-                    // bar with nothing to send from.
-                    //
-                    // The bar grows into the strip rather than the strip appearing over the bar, so
-                    // the reveal is a height animation with the content clipped by the edge that is
-                    // moving. `replyingTo` is held past the dismissal by AnimatedVisibility's own
-                    // retention, so the quote is still there to fade out on the way down.
-                    //
-                    // Held one target past the state: cancelling clears `replyingTo` on the frame
-                    // the collapse starts, and reading it directly would shrink an empty strip. It
-                    // still follows a live change, so replying to a second message while the strip
-                    // is up swaps the quote rather than keeping the first.
-                    var lastQuote by remember { mutableStateOf(state.replyingTo) }
-                    state.replyingTo?.let { lastQuote = it }
-                    AnimatedVisibility(
-                        visible = state.replyingTo != null && canType,
-                        enter = ChatAnimations.replySurfaceEnter,
-                        exit = ChatAnimations.replySurfaceExit,
-                    ) {
-                        lastQuote?.let { quote ->
-                            ComposerReplyStrip(
-                                quote = quote,
-                                onDismiss = { dispatch(ChatViewModel.Event.CancelReply) },
-                                hazeState = hazeState,
-                                modifier = Modifier
-                                    // Inset to the composer row's own margins, so the card's edges
-                                    // line up with the field it sits above, and narrows with it.
-                                    .padding(horizontal = sideInset)
-                                    .padding(bottom = CodeTheme.dimens.grid.x2)
-                                    .testTag("composer_reply_strip"),
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = sideInset),
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
-                        // Editing swaps the leading control rather than adding a banner above the bar:
-                        // send-cash is not reachable mid-edit anyway, and cancel is what the slot is
-                        // for while the edit is open.
-                        if (state.editing != null) {
-                            CancelEditButton(
-                                onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
-                            )
-                        } else {
-                            SendCashButton(
-                                state = state,
-                                hazeState = hazeState,
-                                hazeMaterial = material,
-                                onClick = {
-                                    keyboard.hideIfVisible {
-                                        dispatch(ChatViewModel.Event.OnSendCash)
+                        .padding(vertical = CodeTheme.dimens.grid.x3)
+                        .navigationBarsPadding()
+                        // typingConstraints.enabled starts false and only resolves a frame or two after
+                        // open, once Room confirms whether the chat has a cash message. Rendering the
+                        // default false layout first showed a full-width "Send $" button that then
+                        // scaled down to the pill + input box. Hold the bar invisible (but measured, so
+                        // the message list keeps correct padding) until resolved, then reveal the final
+                        // layout directly — no visible full-width state, no resize.
+                        //
+                        // The chat kind starts UNKNOWN and, for tip DMs, SendCashButton would otherwise
+                        // read a not-yet-resolved chat as a non-tip chat and show the white expanded pill
+                        // before condensing — a visible flash. Wait until the kind is known (chatType is
+                        // CONTACT_DM or TIP_DM) so the bar reveals already in its final presentation.
+                        // chatType resolves from a local contact lookup, not the network profile, so this
+                        // adds no perceptible delay; a tip chat whose identity never resolves flips to the
+                        // deactivated bar instead, so this can't hide it forever.
+                        .alpha(
+                            if (state.typingConstraints.resolved &&
+                                state.chatType != ChatType.UNKNOWN
+                            ) 1f else 0f
+                        ),
+                    targetState = state.typingConstraints.enabled,
+                    // The layout only ever changes on the initial async resolution, which is hidden by
+                    // the alpha gate above, so snap rather than crossfade. The SendCashButton's own
+                    // color/label springs still animate the typing interaction.
+                    transitionSpec = {
+                        ContentTransform(
+                            targetContentEnter = EnterTransition.None,
+                            initialContentExit = ExitTransition.None,
+                            sizeTransform = null,
+                        )
+                    },
+                ) { canType ->
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // Cards above the input row: mention suggestions, then the reply strip. A reply
+                        // is a banner, unlike an edit, which swaps the leading control instead. The two
+                        // differ in what the user needs to see: an edit's subject is already in front of
+                        // them as the composer's text, while a reply's subject is a different message
+                        // that is very likely scrolled off screen.
+                        val accessories = composerAccessories(state, canType)
+                        val divider = CodeTheme.dimens.border
+                        val mentionRows = mentionRowCap(
+                            replyOpen = accessories.any { it is ComposerAccessory.Reply },
+                            // What the transcript and the list share: the screen less the top bar and
+                            // the rest of this bar (the reply strip, input row and their padding).
+                            roomAboveComposer = screenHeight - topBarHeight - (buttonHeight - mentionListHeight),
+                            listHeight = { rows -> mentionListHeight(rows, divider) },
+                        )
+                        ComposerAccessoryStack(
+                            accessories = accessories,
+                            sideInset = sideInset,
+                            mentionRows = mentionRows,
+                            hazeState = hazeState,
+                            dispatch = dispatch,
+                            mentionListModifier = Modifier.measured { mentionListHeight = it.height },
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = sideInset),
+                            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                            verticalAlignment = Alignment.Bottom,
+                        ) {
+                            // Editing swaps the leading control rather than adding a banner above the bar:
+                            // send-cash is not reachable mid-edit anyway, and cancel is what the slot is
+                            // for while the edit is open.
+                            if (state.editing != null) {
+                                CancelEditButton(
+                                    onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
+                                )
+                            } else {
+                                SendCashButton(
+                                    state = state,
+                                    hazeState = hazeState,
+                                    hazeMaterial = material,
+                                    onClick = {
+                                        keyboard.hideIfVisible {
+                                            dispatch(ChatViewModel.Event.OnSendCash)
+                                        }
                                     }
-                                }
-                            )
-                        }
-
-                        if (canType) {
-                            ChatInput(
-                                modifier = Modifier
-                                    .testTag("chat_message_input")
-                                    .weight(1f)
-                                    .border(
-                                        CodeTheme.dimens.border,
-                                        CodeTheme.colors.divider,
-                                        CodeTheme.shapes.medium,
-                                    )
-                                    .hazeBlur(HazeInput.Sources(hazeState), material),
-                                focusRequester = focusRequester,
-                                hint = stringResource(
-                                    if (state.replyingTo != null) R.string.hint_chatReply
-                                    else R.string.hint_chatMessage
-                                ),
-                                state = state.chatInputState,
-                                // One read of the edit state decides both the glyph and what the tap
-                                // does, so the composer cannot show a checkmark and send a new message.
-                                submit = if (state.editing != null) {
-                                    ChatInputSubmit.ConfirmEdit {
-                                        dispatch(ChatViewModel.Event.SubmitEdit)
-                                        keyboard.restartInput()
-                                    }
-                                } else {
-                                    ChatInputSubmit.Send {
-                                        dispatch(ChatViewModel.Event.SendMessage)
-                                        keyboard.restartInput()
-                                    }
-                                },
-                            )
-
-                            // An edit starts from a long-press, which leaves the keyboard down, so the
-                            // composer has to claim focus itself or the pre-filled text sits unreachable.
-                            LaunchedEffect(state.editing?.messageId) {
-                                if (state.editing != null) {
-                                    focusRequester.requestFocus()
-                                    keyboard.show()
-                                }
+                                )
                             }
 
-                            // A reply starts from a long-press or a swipe, neither of which raises the
-                            // keyboard, so the composer claims focus for the same reason.
-                            LaunchedEffect(state.replyingTo?.messageId) {
-                                if (state.replyingTo != null) {
-                                    focusRequester.requestFocus()
-                                    keyboard.show()
-                                }
-                            }
+                            if (canType) {
+                                ChatInput(
+                                    modifier = Modifier
+                                        .testTag("chat_message_input")
+                                        .weight(1f)
+                                        .border(
+                                            CodeTheme.dimens.border,
+                                            CodeTheme.colors.divider,
+                                            CodeTheme.shapes.medium,
+                                        )
+                                        .hazeBlur(HazeInput.Sources(hazeState), material),
+                                    focusRequester = focusRequester,
+                                    hint = stringResource(
+                                        if (state.replyingTo != null) R.string.hint_chatReply
+                                        else R.string.hint_chatMessage
+                                    ),
+                                    state = state.chatInputState,
+                                    // One read of the edit state decides both the glyph and what the tap
+                                    // does, so the composer cannot show a checkmark and send a new message.
+                                    submit = if (state.editing != null) {
+                                        ChatInputSubmit.ConfirmEdit {
+                                            dispatch(ChatViewModel.Event.SubmitEdit)
+                                            keyboard.restartInput()
+                                        }
+                                    } else {
+                                        ChatInputSubmit.Send {
+                                            dispatch(ChatViewModel.Event.SendMessage)
+                                            keyboard.restartInput()
+                                        }
+                                    },
+                                )
 
-                            // Restores the pre-#1075 behavior: when OnStartMessageInput raises
-                            // state.messageInputRequested (returning from amount entry after a send, or a
-                            // post-tip open), focus the input and show the keyboard. Co-located with
-                            // ChatInput so focusRequester is guaranteed attached; consumes the request so
-                            // it fires once and a later manual dismiss doesn't re-open it.
-                            LaunchedEffect(state.messageInputRequested) {
-                                if (state.messageInputRequested) {
-                                    focusRequester.requestFocus()
-                                    keyboard.show()
-                                    dispatch(ChatViewModel.Event.OnMessageInputConsumed)
+                                // An edit starts from a long-press, which leaves the keyboard down, so the
+                                // composer has to claim focus itself or the pre-filled text sits unreachable.
+                                LaunchedEffect(state.editing?.messageId) {
+                                    if (state.editing != null) {
+                                        focusRequester.requestFocus()
+                                        keyboard.show()
+                                    }
+                                }
+
+                                // A reply starts from a long-press or a swipe, neither of which raises the
+                                // keyboard, so the composer claims focus for the same reason.
+                                LaunchedEffect(state.replyingTo?.messageId) {
+                                    if (state.replyingTo != null) {
+                                        focusRequester.requestFocus()
+                                        keyboard.show()
+                                    }
+                                }
+
+                                // Restores the pre-#1075 behavior: when OnStartMessageInput raises
+                                // state.messageInputRequested (returning from amount entry after a send, or a
+                                // post-tip open), focus the input and show the keyboard. Co-located with
+                                // ChatInput so focusRequester is guaranteed attached; consumes the request so
+                                // it fires once and a later manual dismiss doesn't re-open it.
+                                LaunchedEffect(state.messageInputRequested) {
+                                    if (state.messageInputRequested) {
+                                        focusRequester.requestFocus()
+                                        keyboard.show()
+                                        dispatch(ChatViewModel.Event.OnMessageInputConsumed)
+                                    }
                                 }
                             }
                         }

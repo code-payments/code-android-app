@@ -362,6 +362,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         hazeState = hazeState,
                         onAction = chatActionHandler,
                         dispatch = viewModel::dispatchEvent,
+                        topBarHeight = barHeight,
                     )
                 }
                 if (behindBackdrop) {

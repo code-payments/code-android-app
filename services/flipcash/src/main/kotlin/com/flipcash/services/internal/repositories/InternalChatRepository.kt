@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.repositories
 
 import com.flipcash.services.internal.domain.ChatMetadataMapper
+import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.network.extensions.toChatMember
 import com.flipcash.services.internal.network.extensions.toPagingToken
 import com.flipcash.services.internal.network.extensions.toRosterSummary
@@ -15,6 +16,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewerState
@@ -22,10 +24,12 @@ import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatRepository
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.utils.ErrorUtils
+import kotlin.time.Instant
 
 internal class InternalChatRepository(
     private val service: ChatService,
     private val mapper: ChatMetadataMapper,
+    private val userProfileMapper: UserProfileMapper,
 ) : ChatRepository {
     override suspend fun getChat(
         owner: KeyPair,
@@ -83,6 +87,22 @@ internal class InternalChatRepository(
                 pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
                 hasMore = response.hasMore,
             )
+        }
+
+    override suspend fun getMentionSuggestions(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<List<MentionSuggestion>> = service.getMentionSuggestions(owner, chatId)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { response ->
+            response.suggestionsList.map { suggestion ->
+                MentionSuggestion(
+                    userProfile = userProfileMapper.map(suggestion.userProfile),
+                    lastSentAt = if (suggestion.hasLastSentAt()) {
+                        Instant.fromEpochSeconds(suggestion.lastSentAt.seconds, suggestion.lastSentAt.nanos)
+                    } else null,
+                )
+            }
         }
 
     override suspend fun editChat(

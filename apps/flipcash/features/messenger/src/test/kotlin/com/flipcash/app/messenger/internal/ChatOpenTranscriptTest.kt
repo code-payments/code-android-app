@@ -105,6 +105,7 @@ class ChatOpenTranscriptTest {
         toastController = mockk(relaxed = true),
         emojiCatalogLoader = mockk(relaxed = true),
         userProfileDataSource = mockk(relaxed = true),
+        rosterSearch = mockk(relaxed = true),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 

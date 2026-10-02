@@ -148,6 +148,22 @@ internal class ChatApi @Inject constructor(
         }
     }
 
+    suspend fun getMentionSuggestions(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.GetMentionSuggestionsResponse {
+        val request = RpcChatService.GetMentionSuggestionsRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getMentionSuggestions(request)
+        }
+    }
+
     suspend fun editChat(
         owner: KeyPair,
         chatId: ChatId,

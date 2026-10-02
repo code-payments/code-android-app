@@ -15,6 +15,7 @@ import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -501,6 +502,11 @@ private class FakeChatRepository : ChatRepository {
     ): Result<ChatMetadata> {
         return startChatResult
     }
+
+    override suspend fun getMentionSuggestions(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+    ): Result<List<MentionSuggestion>> = Result.success(emptyList())
 
     override suspend fun getRoster(
         owner: Ed25519.KeyPair,

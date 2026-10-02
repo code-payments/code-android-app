@@ -154,6 +154,7 @@ class ChatGroupAnalyticsTest {
         toastController = mockk(relaxed = true),
         emojiCatalogLoader = emojiCatalogLoader,
         userProfileDataSource = userProfileDataSource,
+        rosterSearch = mockk(relaxed = true),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 

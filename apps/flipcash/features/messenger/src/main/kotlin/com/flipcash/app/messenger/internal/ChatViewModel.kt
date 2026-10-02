@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.text.TextRange
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -45,6 +46,9 @@ import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
+import com.flipcash.app.messenger.internal.mention.activeMentionToken
+import com.flipcash.app.messenger.internal.mention.insertMention
+import com.flipcash.app.messenger.internal.mention.mentionable
 import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.app.session.CashLinkClaims
 import com.flipcash.app.session.ChatCashLinks
@@ -86,7 +90,9 @@ import com.flipcash.shared.chat.SpeakerBlock
 import com.flipcash.shared.chat.speakerBlock
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.MessagePolicy
+import com.flipcash.shared.chat.MemberMatch
 import com.flipcash.shared.chat.MessageReactions
+import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.applying
 import com.flipcash.shared.chat.canReact
@@ -166,12 +172,14 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -213,6 +221,7 @@ internal class ChatViewModel @Inject constructor(
     private val emojiCatalogLoader: EmojiCatalogLoader,
     private val toastController: SystemToastController,
     private val userProfileDataSource: UserProfileDataSource,
+    private val rosterSearch: RosterSearchSource,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
@@ -312,6 +321,14 @@ internal class ChatViewModel @Inject constructor(
          * emits, so a reducer that cleared it would empty it before the handler could read it.
          */
         val replyingTo: ChatQuote? = null,
+        /**
+         * Members matching the `@` word at the composer's cursor, for the mention picker. Empty
+         * whenever the picker is closed: outside a group, with no `@` word at the cursor, or when
+         * nothing matched. Only members with a username, since the username is what a pick inserts.
+         *
+         * Independent of [replyingTo] and [editing]: opening or cancelling a reply leaves it alone.
+         */
+        val mentionSuggestions: List<MemberMatch> = emptyList(),
         /**
          * A message the transcript has been asked to scroll to, held until the list consumes it.
          *
@@ -691,6 +708,12 @@ internal class ChatViewModel @Inject constructor(
         /** Opens the composer's reply strip on an already-resolved citation. */
         data class ReplyToMessage(val quote: ChatQuote) : Event
         data object CancelReply : Event
+
+        /** The mention picker's results for the `@` word now at the cursor; empty closes it. */
+        data class OnMentionSuggestions(val matches: List<MemberMatch>) : Event
+
+        /** Replaces the `@` word at the cursor with [match]'s username and a space. */
+        data class PickMention(val match: MemberMatch) : Event
 
         /**
          * Toggles the viewer's reaction with [emoji] on [messageId] — a tap on a pill, on the
@@ -1272,6 +1295,7 @@ internal class ChatViewModel @Inject constructor(
             initTokenAndExchangeObservers()
             initTypingHandlers()
             initSendHandlers()
+            initMentionPicker()
             initMessageActionHandlers()
         }
     }
@@ -2254,6 +2278,63 @@ internal class ChatViewModel @Inject constructor(
         dispatchEvent(Event.EditingEnded)
     }
 
+    /**
+     * Drives the mention picker from the composer's text and cursor.
+     *
+     * Each change works out the `@` word at the cursor and searches the roster for it; a new word
+     * cancels the search still running for the last one. No word (whitespace typed, the cursor
+     * moved off it, the `@` deleted, the text sent) closes the picker. Groups only, and only while
+     * the viewer has a composer to type in.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun initMentionPicker() {
+        // Once per visit, the first time the picker opens: that starts the composing session, which
+        // fetches the group's mention pool.
+        var refreshed = false
+        // Bumped when that refresh lands, so the open word searches again and new joiners show
+        // without another keystroke.
+        val refreshes = MutableStateFlow(0)
+        val eligible = stateFlow
+            .map { it.chatType == ChatType.GROUP && !it.isAnonymous && !it.replacesComposer }
+            .distinctUntilChanged()
+        val word = snapshotFlow {
+            val input = stateFlow.value.chatInputState
+            activeMentionToken(input.text, input.selection)?.text
+        }
+        combine(eligible, word, refreshes) { canMention, query, refresh ->
+            query.takeIf { canMention } to refresh
+        }
+            .distinctUntilChanged()
+            .mapLatest { (query, _) ->
+                val chatId = stateFlow.value.chatId
+                if (query == null || chatId == null) return@mapLatest emptyList()
+                if (!refreshed) {
+                    refreshed = true
+                    viewModelScope.launch {
+                        runCatching { rosterSearch.refresh(chatId) }
+                            .onSuccess { refreshes.update { it + 1 } }
+                    }
+                }
+                rosterSearch.search(chatId, query).mentionable()
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnMentionSuggestions(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.PickMention>()
+            .onEach { event ->
+                val username = event.match.username?.takeIf { it.isNotBlank() } ?: return@onEach
+                val input = stateFlow.value.chatInputState
+                val token = activeMentionToken(input.text, input.selection) ?: return@onEach
+                val (text, cursor) = insertMention(input.text.toString(), token, username)
+                input.edit {
+                    replace(0, length, text)
+                    selection = TextRange(cursor)
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
     private fun initSendHandlers() {
         // Send text message
         eventFlow.filterIsInstance<Event.SendMessage>()
@@ -2924,6 +3005,10 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 Event.CancelReply -> { state -> state.copy(replyingTo = null) }
+                is Event.OnMentionSuggestions -> { state -> state.copy(mentionSuggestions = event.matches) }
+                // Closed at once rather than waiting for the inserted space to reach the query
+                // observer, so the list doesn't linger a frame over the text it just wrote.
+                is Event.PickMention -> { state -> state.copy(mentionSuggestions = emptyList()) }
                 // The toggle itself is handled in initMessageActionHandlers (it calls the
                 // coordinator); the reducer's only job is to take the bubble out of selection mode
                 // when the tap came from the quick strip.
