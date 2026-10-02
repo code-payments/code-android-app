@@ -3,6 +3,7 @@ package com.flipcash.app.tipping.internal
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,10 +57,12 @@ class ChipRevealTest {
     // xhdpi: 2px per dp.
     private val chipPx = 100f
 
-    private fun setContent() {
+    private fun setContent(rows: Int = 60) {
         composeRule.setContent {
             listState = rememberLazyListState(initialFirstVisibleItemIndex = 1)
             val fling = ScrollableDefaults.flingBehavior()
+            val filler = rememberParkFiller()
+            val keys = remember(rows) { listOf<Any>("archived") + (0 until rows).toList() }
             val connection = remember(listState, fling) {
                 ChipRevealConnection(
                     listState = listState,
@@ -85,8 +88,11 @@ class ChipRevealTest {
                     )
                     if (firstFrame == null) firstFrame = listState.chipVisibleFraction()
                 }
-                item(key = "archived") {}
-                items((0 until 60).toList()) { Box(Modifier.fillMaxWidth().height(60.dp)) }
+                item(key = "archived") { Box(filler.tracked("archived")) }
+                items((0 until rows).toList(), key = { it }) {
+                    Box(filler.tracked(it).fillMaxWidth().height(60.dp))
+                }
+                item(key = "filler") { Box(with(filler) { filler(keys) }) }
             }
         }
         composeRule.waitForIdle()
@@ -251,5 +257,46 @@ class ChipRevealTest {
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()
         assertTrue(revealed)
+    }
+
+    @Test
+    fun `a list shorter than the screen still parks, reveals and parks again`() {
+        // Three rows: 360px against a 1488px viewport (1600 less the bar's 112).
+        setContent(rows = 3)
+        assertEquals(0f, firstFrame!!, 0f)
+        assertEquals(1, listState.firstVisibleItemIndex)
+        assertEquals(0, listState.firstVisibleItemScrollOffset)
+        // The filler makes up the viewport and no more: parked is as far as the list goes.
+        assertFalse(listState.canScrollForward)
+
+        composeRule.onNodeWithTag("list").performTouchInput { slowDrag(chipPx * 0.75f + 16f) }
+        composeRule.waitForIdle()
+        assertEquals(-chipPx, pastPark, 0.5f)
+        assertTrue(revealed)
+    }
+
+    @Test
+    fun `a short pull on a list shorter than the screen parks`() {
+        setContent(rows = 3)
+        composeRule.onNodeWithTag("list").performTouchInput { slowDrag(chipPx * 0.3f + 16f) }
+        composeRule.waitForIdle()
+        assertEquals(0f, pastPark, 0.5f)
+        assertFalse(revealed)
+        // A swipe up from park goes nowhere: nothing below the last row to scroll into.
+        composeRule.onNodeWithTag("list").performTouchInput { slowDrag(-300f) }
+        composeRule.waitForIdle()
+        assertEquals(0f, pastPark, 0.5f)
+    }
+
+    @Test
+    fun `a long list scrolled to its end leaves no filler`() {
+        setContent()
+        // Scrolled through on the way, so every row has reported its height.
+        runBlocking { repeat(20) { listState.scrollBy(500f) } }
+        composeRule.waitForIdle()
+        val info = listState.layoutInfo
+        val lastRow = info.visibleItemsInfo.first { it.key == 59 }
+        // The end of the list is the last row: the filler takes nothing.
+        assertEquals(info.viewportEndOffset - info.afterContentPadding, lastRow.offset + lastRow.size)
     }
 }

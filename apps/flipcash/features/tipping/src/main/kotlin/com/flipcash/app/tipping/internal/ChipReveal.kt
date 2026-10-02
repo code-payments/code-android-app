@@ -8,7 +8,15 @@ import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -245,3 +253,59 @@ internal fun LazyListState.chipVisibleFraction(): Float {
     if (height <= 0f) return 0f
     return (-pastPark() / height).coerceIn(0f, 1f)
 }
+
+/**
+ * Keeps the list long enough to park. Parked means item 1 at the top, which a list can only hold
+ * if everything from item 1 on is at least a viewport tall: shorter, and the list scrolls back to
+ * index 0 and the chips show, on the first frame included. iOS sets the scroll distance outright;
+ * here a last item makes up the difference, and nothing more, so the list never scrolls further
+ * past its last row than the chip row's height.
+ *
+ * Each item after the chips reports its height with [tracked] as it is measured. The list measures
+ * forward from item 1, so in a short list every row has reported by the time [filler] is measured
+ * in the same pass, and the first frame is already parked.
+ */
+@Stable
+internal class ParkFiller {
+    private val heights = mutableStateMapOf<Any, Int>()
+
+    /** Reports the height of the item under [key]. On the root of each item between chips and filler. */
+    fun tracked(key: Any): Modifier = Modifier.layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        val known = Snapshot.withoutReadObservation { heights[key] }
+        if (known != placeable.height) heights[key] = placeable.height
+        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+    }
+
+    /**
+     * The last item's modifier, from a [LazyItemScope]: as tall as the viewport less the items
+     * under [keys]. While any of them has not been measured yet the list is long enough already
+     * (it skipped them), so it takes no height.
+     */
+    fun LazyItemScope.filler(keys: List<Any>): Modifier = Modifier
+        .layout { measurable, constraints ->
+            // Measured only to learn the viewport (less the content padding).
+            val viewport = measurable.measure(constraints).height
+            var taken = 0
+            var known = true
+            for (key in keys) {
+                val height = heights[key]
+                if (height == null) {
+                    known = false
+                    break
+                }
+                taken += height
+            }
+            val height = if (known) (viewport - taken).coerceAtLeast(0) else 0
+            layout(constraints.maxWidth.takeIf { it != Constraints.Infinity } ?: 0, height) {}
+        }
+        .fillParentMaxHeight()
+
+    /** Forgets items no longer in the list. */
+    fun retain(keys: List<Any>) {
+        heights.keys.retainAll(keys.toSet())
+    }
+}
+
+@Composable
+internal fun rememberParkFiller(): ParkFiller = remember { ParkFiller() }

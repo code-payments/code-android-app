@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.graphicsLayer
@@ -25,7 +26,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import com.flipcash.app.tipping.internal.ChipRevealConnection
+import com.flipcash.app.tipping.internal.ParkFiller
 import com.flipcash.app.tipping.internal.blockTouchesWhile
+import com.flipcash.app.tipping.internal.rememberParkFiller
 import com.flipcash.app.tipping.internal.chipReveal
 import com.flipcash.app.tipping.internal.chipVisibleFraction
 import com.flipcash.shared.chat.ChatListFilter
@@ -123,6 +126,18 @@ fun ChatsScreen() {
             onRevealed = viewModel::revealChips,
         )
     }
+    val visible = state.visibleChats
+    // Everything between the chips and the filler, in list order.
+    val parkKeys: List<Any> = remember(state.chats, state.hasNoChatsAtAll, visible) {
+        listOf<Any>("archived") + when {
+            !chats.isLoaded() -> listOf("loading")
+            state.hasNoChatsAtAll -> listOf("empty")
+            visible.isEmpty() -> listOf("empty_filter")
+            else -> visible.map { it.chatId }
+        }
+    }
+    val parkFiller = rememberParkFiller()
+    SideEffect { parkFiller.retain(parkKeys) }
     // Restored on the chips (after process death, say) with the ViewModel starting over: they are
     // on screen, so they count as revealed rather than being parked by the next scroll.
     LaunchedEffect(listState) {
@@ -234,24 +249,29 @@ fun ChatsScreen() {
             // Always emitted, so item 1 exists from the first composition (including while
             // loading) and the parked position has a stable anchor; empty when there is no row.
             item(key = "archived", contentType = "archived") {
-                if (state.showsArchivedRow) {
-                    ArchivedRow(
-                        count = state.projection.archivedRowCount,
-                        onClick = { navigator.push(AppRoute.Messaging.ArchivedChats) },
-                    )
+                Box(parkFiller.tracked("archived")) {
+                    if (state.showsArchivedRow) {
+                        ArchivedRow(
+                            count = state.projection.archivedRowCount,
+                            onClick = { navigator.push(AppRoute.Messaging.ArchivedChats) },
+                        )
+                    }
                 }
             }
 
-            val visible = state.visibleChats
             when {
                 // A full-height spacer: with only the chips and an empty Archived slot the content
                 // is shorter than the viewport, the list fills backward to index 0, and the chips
                 // would show once rows arrive.
-                !chats.isLoaded() -> item(key = "loading") { Spacer(Modifier.fillParentMaxSize()) }
-                state.hasNoChatsAtAll -> item(key = "empty") { NoChatsYet(Modifier.fillParentMaxSize()) }
+                !chats.isLoaded() -> item(key = "loading") {
+                    Spacer(parkFiller.tracked("loading").fillParentMaxSize())
+                }
+                state.hasNoChatsAtAll -> item(key = "empty") {
+                    NoChatsYet(parkFiller.tracked("empty").fillParentMaxSize())
+                }
                 visible.isEmpty() -> item(key = "empty_filter") {
                     EmptyFilterState(
-                        modifier = Modifier.fillParentMaxSize(),
+                        modifier = parkFiller.tracked("empty_filter").fillParentMaxSize(),
                         message = when (state.filter) {
                             ChatListFilter.Unread -> R.string.title_noUnreadChats
                             ChatListFilter.Groups -> R.string.title_noGroupChats
@@ -280,7 +300,13 @@ fun ChatsScreen() {
                         }
                     },
                     revealGroup = revealGroup,
+                    parkFiller = parkFiller,
                 )
+            }
+
+            // Makes up a list shorter than the viewport, so it can still park; see [ParkFiller].
+            item(key = "park_filler", contentType = "park_filler") {
+                Spacer(with(parkFiller) { filler(parkKeys) })
             }
         }
     }
@@ -340,10 +366,12 @@ private fun LazyListScope.tipChatItems(
     onMute: (ConversationReference) -> Unit,
     onArchive: (ConversationReference) -> Unit,
     revealGroup: SwipeRevealGroup,
+    parkFiller: ParkFiller,
 ) {
     // Keyed by chat so a row's swipe state stays with its chat when new activity reorders the list.
     itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
         ChatSwipeRow(
+            modifier = parkFiller.tracked(chat.chatId),
             isMuted = rememberIsMuted(chat.viewerState),
             onMute = { onMute(chat) },
             onArchive = { onArchive(chat) },
@@ -380,6 +408,7 @@ private fun ChatSwipeRow(
     onArchive: () -> Unit,
     stateKey: Any,
     revealGroup: SwipeRevealGroup,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     val muteLabel = stringResource(
@@ -420,7 +449,7 @@ private fun ChatSwipeRow(
             },
         ),
         // A swipe is out of reach with a screen reader, so the row offers the same actions there.
-        modifier = Modifier.semantics {
+        modifier = modifier.semantics {
             customActions = listOf(
                 CustomAccessibilityAction(muteLabel) { onMute(); true },
                 CustomAccessibilityAction(archiveLabel) { onArchive(); true },
