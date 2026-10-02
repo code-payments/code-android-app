@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.currentArchivedChatListFeed
 import com.flipcash.shared.chat.currentChatListFeed
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
@@ -40,10 +41,11 @@ internal class MuteChatViewModel @Inject constructor(
      *
      * Seeds [observeViewerState] so the sheet opens with its unmute row already decided. Starting
      * from `null` would open it without the row and then grow it by one as the store answered.
+     * An archived chat is only in the archived list, so that is searched too.
      */
     fun currentViewerState(chatId: ChatId): ViewerState? =
-        chatCoordinator.currentChatListFeed()
-            ?.firstOrNull { it.metadata.chatId == chatId }
+        (chatCoordinator.currentChatListFeed().orEmpty() + chatCoordinator.currentArchivedChatListFeed().orEmpty())
+            .firstOrNull { it.metadata.chatId == chatId }
             ?.metadata?.viewerState
 
     /**
