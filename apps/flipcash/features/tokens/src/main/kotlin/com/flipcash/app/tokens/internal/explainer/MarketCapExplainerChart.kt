@@ -34,7 +34,7 @@ internal fun MarketCapExplainerChart(
     description: String,
     modifier: Modifier = Modifier,
 ) {
-    val accent = ExplainerGreen
+    val accent = CodeTheme.colors.success
     val faded = accent.copy(alpha = 0.35f)
     val guide = CodeTheme.colors.textSecondary.copy(alpha = 0.5f)
     val todayDot = CodeTheme.colors.textSecondary

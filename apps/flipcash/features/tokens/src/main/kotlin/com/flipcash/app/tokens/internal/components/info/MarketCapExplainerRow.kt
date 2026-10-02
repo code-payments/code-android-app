@@ -19,11 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.tokens.internal.explainer.ExplainerRowIconBackground
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
@@ -46,12 +46,13 @@ internal fun MarketCapExplainerRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier.size(40.dp).background(ExplainerRowIconBackground, CircleShape),
+            modifier = Modifier.size(40.dp).background(CodeTheme.colors.surfaceVariant, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Image(
                 modifier = Modifier.size(22.dp),
                 painter = painterResource(R.drawable.ic_market_cap_curve),
+                colorFilter = ColorFilter.tint(CodeTheme.colors.success),
                 contentDescription = null,
             )
         }

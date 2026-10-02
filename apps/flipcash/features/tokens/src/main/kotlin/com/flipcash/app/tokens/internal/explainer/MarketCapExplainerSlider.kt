@@ -88,9 +88,9 @@ internal fun MarketCapExplainerSlider(
     val density = LocalDensity.current
     val interactionSource = remember { MutableInteractionSource() }
     val colors = SliderDefaults.colors(
-        thumbColor = ExplainerGreen,
-        activeTrackColor = ExplainerGreen,
-        inactiveTrackColor = TrackColor,
+        thumbColor = CodeTheme.colors.success,
+        activeTrackColor = CodeTheme.colors.success,
+        inactiveTrackColor = CodeTheme.colors.surfaceVariant,
     )
     // The thumb is a 26dp disc and its centre travels from half a thumb in to half a thumb short of
     // the far end; ticks and labels use the same geometry so they line up with it.
@@ -128,7 +128,7 @@ internal fun MarketCapExplainerSlider(
                         }
                         .shadow((4f * (1f - glass)).dp, CircleShape)
                         .background(
-                            lerp(Color.White, Color(0xFF5A5A5C).copy(alpha = 0.45f), glass),
+                            lerp(Color.White, CodeTheme.colors.toggleUncheckedTrackColor.copy(alpha = 0.45f), glass),
                             CircleShape,
                         )
                         .border(1.dp, Color.White.copy(alpha = 0.28f * glass), CircleShape),
@@ -203,8 +203,6 @@ internal fun MarketCapExplainerSlider(
     }
 }
 
-// Slider spec colour (design node 10700:177 track); the fill is [ExplainerGreen].
-private val TrackColor = Color(0xFF474748)
 
 @Preview
 @Composable
