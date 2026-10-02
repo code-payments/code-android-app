@@ -6,6 +6,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ui.detectMentions
 import com.flipcash.shared.chat.ui.detectUrls
 import javax.inject.Inject
@@ -28,24 +29,35 @@ data class PushClassification(
  * Reads a push's message against what this device knows.
  *
  * Both answers default to false when the device cannot tell, which is rule 3's "stays silent":
- * - the message is not in the payload and not yet stored, or has no readable text (encrypted,
- *   cash, media without a caption), so there is nothing to scan;
+ * - the message is not in the payload and not yet stored, or has no readable text (cash, media
+ *   without a caption), so there is nothing to scan;
+ * - the message is end-to-end encrypted and cannot be opened on this device;
  * - the viewer has no username, so no handle can be theirs;
  * - the replied-to message is not stored locally, so its author is unknown.
  *
  * Mentions are `@handle` text found by [detectMentions], compared case-insensitively with the
  * viewer's username. A reply is a [MessageContent.Reply] whose cited message was sent by the
  * viewer.
+ *
+ * An encrypted DM message is opened first through [ChatCoordinator.openPushedChatMessage], so a
+ * mention or reply inside it counts; the push payload's copy and a stored row may both be sealed.
  */
 class PushMessageClassifier @Inject constructor(
     private val userManager: UserManager,
     private val messages: ChatMessageDataSource,
+    private val chatCoordinator: ChatCoordinator,
 ) {
 
     suspend fun classify(chatId: ChatId, metadata: PushChatMetadata?): PushClassification {
-        val message = metadata?.message
+        val received = metadata?.message
             ?: metadata?.messageId?.let { messages.getMessage(chatId, it) }
             ?: return PushClassification.None
+        val message = if (received.content.singleOrNull() is MessageContent.Encrypted) {
+            chatCoordinator.openPushedChatMessage(chatId, received, messageId = null)
+                ?: return PushClassification.None
+        } else {
+            received
+        }
 
         return PushClassification(
             mentionsViewer = mentionsViewer(message),

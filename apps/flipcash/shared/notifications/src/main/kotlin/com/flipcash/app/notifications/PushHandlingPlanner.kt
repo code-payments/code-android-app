@@ -28,11 +28,34 @@ fun planPushHandling(
     mentionsViewer: Boolean = false,
     repliesToViewer: Boolean = false,
 ): List<PushAction> {
-    val sync = syncActionsFor(payload)
-
     // The sync half is the same either way; a title adds the notification on top. Archived chats
     // still sync: the message must reach the database either way.
-    if (title == null) return sync
+    val sync = syncActionsFor(payload)
+    val post = planNotification(title, body, payload, archived, mentionsViewer, repliesToViewer)
+    return if (post == null) sync else sync + post
+}
+
+/**
+ * The notification half of [planPushHandling] on its own, for the caller that can only learn
+ * [archived], [mentionsViewer] and [repliesToViewer] later: the per-user database they are read
+ * from opens with authentication, which a cold start from a push has not done yet.
+ *
+ * - Muted when the push was sent: nothing, archived or not.
+ * - Otherwise, when [shouldNotify] allows it: a normal notification.
+ * - An archived chat's message not addressed to the viewer: a [PushAction.PostNotification.silent]
+ *   one rather than none, as iOS delivers it passive.
+ *
+ * `null` for a data-only push ([title] null).
+ */
+fun planNotification(
+    title: String?,
+    body: String?,
+    payload: NotificationPayload?,
+    archived: Boolean = false,
+    mentionsViewer: Boolean = false,
+    repliesToViewer: Boolean = false,
+): PushAction.PostNotification? {
+    if (title == null) return null
     val muted = isMuted(payload)
     val notify = shouldNotify(
         archived = archived,
@@ -41,12 +64,9 @@ fun planPushHandling(
         repliesToViewer = repliesToViewer,
     )
     return when {
-        notify -> sync + PushAction.PostNotification(title, body, payload)
-        // A chat silenced when the push was sent shows nothing, archived or not.
-        muted -> sync
-        // An archived chat's message that is not addressed to the viewer is posted quietly rather
-        // than dropped, as iOS delivers it passive.
-        else -> sync + PushAction.PostNotification(title, body, payload, silent = true)
+        notify -> PushAction.PostNotification(title, body, payload)
+        muted -> null
+        else -> PushAction.PostNotification(title, body, payload, silent = true)
     }
 }
 

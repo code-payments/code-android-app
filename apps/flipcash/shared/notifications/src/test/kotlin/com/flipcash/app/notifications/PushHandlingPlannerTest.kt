@@ -343,6 +343,14 @@ class PushHandlingPlannerTest {
     }
 
     @Test
+    fun `the notification half re-decides an archived chat on its own`() {
+        val p = payload(navigation = chatNav, chatMetadata = chatMetadata(inlinedMessage()))
+        assertEquals(PushAction.PostNotification("Ada", "hi", p, silent = true), planNotification("Ada", "hi", p, archived = true))
+        assertEquals(PushAction.PostNotification("Ada", "hi", p), planNotification("Ada", "hi", p, archived = true, mentionsViewer = true))
+        assertEquals(post(planPushHandling("Ada", "hi", p)), planNotification("Ada", "hi", p))
+    }
+
+    @Test
     fun `a data-only push for an archived chat posts nothing`() {
         val actions = planPushHandling(
             title = null, body = null,

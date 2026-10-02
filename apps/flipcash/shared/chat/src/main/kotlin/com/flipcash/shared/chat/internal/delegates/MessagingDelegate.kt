@@ -290,7 +290,14 @@ class MessagingDelegate @Inject constructor(
         }
     }
 
-    override suspend fun openPushedMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): String? {
+    override suspend fun openPushedMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): String? =
+        openPushedChatMessage(chatId, message, messageId)?.content?.singleOrNull()?.pushText()
+
+    override suspend fun openPushedChatMessage(
+        chatId: ChatId,
+        message: ChatMessage?,
+        messageId: Long?,
+    ): ChatMessage? {
         val opener = incoming ?: return null
         val selfId = userManager.accountId ?: return null
         val candidate = message
@@ -310,8 +317,7 @@ class MessagingDelegate @Inject constructor(
             }
             else -> return null
         }
-        if (opened.encryption !is MessageEncryption.Decrypted) return null
-        return opened.content.singleOrNull()?.pushText()
+        return opened.takeIf { it.encryption is MessageEncryption.Decrypted }
     }
 
     /** Text and replies with text are what DMs encrypt; anything else keeps the server's body. */

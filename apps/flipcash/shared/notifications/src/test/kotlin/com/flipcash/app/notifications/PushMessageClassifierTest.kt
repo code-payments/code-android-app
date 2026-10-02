@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.ChatCoordinator
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import io.mockk.coEvery
@@ -38,7 +39,10 @@ class PushMessageClassifierTest {
         every { it.accountId } returns selfId
         every { it.profile } returns UserProfile.Empty.copy(username = "Bmc")
     }
-    private val classifier = PushMessageClassifier(userManager, messages)
+    private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true)
+    private val classifier = PushMessageClassifier(userManager, messages, chatCoordinator)
+
+    private val sealed = MessageContent.Encrypted(scheme = 1, nonce = byteArrayOf(1), ciphertext = byteArrayOf(2))
 
     private fun message(vararg content: MessageContent, id: Long = 10) = ChatMessage(
         messageId = id,
@@ -114,6 +118,32 @@ class PushMessageClassifierTest {
         coEvery { messages.getMessage(chatId, 10) } returns message(MessageContent.Text("hi @bmc"))
         val result = classifier.classify(chatId, metadata(message = null, messageId = 10))
         assertEquals(PushClassification(mentionsViewer = true, repliesToViewer = false), result)
+    }
+
+    @Test
+    fun `an encrypted message is opened before it is read for a mention`() = runTest {
+        val pushed = message(sealed)
+        coEvery { chatCoordinator.openPushedChatMessage(chatId, pushed, null) } returns
+            message(MessageContent.Text("hey @bmc"))
+        val result = classifier.classify(chatId, metadata(pushed))
+        assertEquals(PushClassification(mentionsViewer = true, repliesToViewer = false), result)
+    }
+
+    @Test
+    fun `an encrypted reply to the viewer is a reply to the viewer once opened`() = runTest {
+        val pushed = message(sealed)
+        coEvery { chatCoordinator.openPushedChatMessage(chatId, pushed, null) } returns
+            message(MessageContent.Reply(repliedMessageId = 7, content = listOf(MessageContent.Text("agreed"))))
+        coEvery { messages.getMessage(chatId, 7) } returns message(MessageContent.Text("mine"), id = 7).copy(senderId = selfId)
+        val result = classifier.classify(chatId, metadata(pushed))
+        assertEquals(PushClassification(mentionsViewer = false, repliesToViewer = true), result)
+    }
+
+    @Test
+    fun `an encrypted message that cannot be opened is not addressed to the viewer`() = runTest {
+        val pushed = message(sealed)
+        coEvery { chatCoordinator.openPushedChatMessage(chatId, pushed, null) } returns null
+        assertEquals(PushClassification.None, classifier.classify(chatId, metadata(pushed)))
     }
 
     @Test

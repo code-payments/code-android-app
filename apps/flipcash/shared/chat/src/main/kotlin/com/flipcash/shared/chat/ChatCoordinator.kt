@@ -399,6 +399,15 @@ interface MessagingOperations {
     suspend fun openPushedMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): String?
 
     /**
+     * The end-to-end encrypted message a push is for, opened on this device, with its content in
+     * the clear, so the push can be read for what it is (a reply, a mention) and not just shown.
+     * Resolves [message] or [messageId] the way [openPushedMessage] does.
+     *
+     * `null` when the message isn't encrypted or can't be opened or fetched. Nothing is stored.
+     */
+    suspend fun openPushedChatMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): ChatMessage?
+
+    /**
      * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].
      *
      * [replyToMessageId] cites a message in the same chat, which wraps the body in
