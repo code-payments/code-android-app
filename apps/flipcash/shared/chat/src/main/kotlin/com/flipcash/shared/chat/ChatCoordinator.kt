@@ -29,14 +29,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/** The main and archived lists from one read of the feed. See [FeedOperations.feedWithArchived]. */
+data class ChatFeeds(val main: List<ChatSummary>, val archived: List<ChatSummary>)
+
 /**
  * Feed-level operations: observing the conversation list and its unread state.
  *
  * Implemented by [com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate].
  */
-/** The main and archived lists from one read of the feed. See [FeedOperations.feedWithArchived]. */
-data class ChatFeeds(val main: List<ChatSummary>, val archived: List<ChatSummary>)
-
 interface FeedOperations {
     /**
      * Reactive list of conversations of any of [chatTypes], sorted by last activity.

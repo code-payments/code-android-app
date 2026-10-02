@@ -166,6 +166,7 @@ class ChatArchiveFeedTest {
         assertEquals(2, f.delegate.currentFeed(*listTypes)!!.size)
         assertEquals(2, f.delegate.observeUnreadChatListCount().first())
     }
+
     @Test
     fun `archiving the last main chat moves it in one emission`() = runTest {
         val f = fixture(setOf(ChatId(groupHex)))
