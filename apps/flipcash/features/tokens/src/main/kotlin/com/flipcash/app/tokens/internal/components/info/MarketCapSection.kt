@@ -12,7 +12,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -80,7 +79,6 @@ internal fun MarketCapSection(
     animateChartOpen: Boolean = true,
     onRetry: () -> Unit,
     onPeriodSelected: (Period) -> Unit,
-    onHeaderClick: (() -> Unit)? = null,
 ) {
     var highlightedCapPoint by remember {
         mutableStateOf<MarketCapPoint?>(null)
@@ -133,17 +131,6 @@ internal fun MarketCapSection(
     Column(
         modifier = modifier,
     ) {
-        // Only the label, value and change pill open the explainer; the chart and range chips keep
-        // their own gestures.
-        Column(
-            modifier = Modifier.then(
-                if (onHeaderClick != null) {
-                    Modifier.clickable(onClick = onHeaderClick)
-                } else {
-                    Modifier
-                }
-            ),
-        ) {
         Row(
             modifier = Modifier.padding(start = contentPadding.calculateStartPadding()),
             verticalAlignment = Alignment.CenterVertically,
@@ -202,8 +189,6 @@ internal fun MarketCapSection(
                     )
                 }
             }
-        }
-
         }
 
         MarketCapChart(
