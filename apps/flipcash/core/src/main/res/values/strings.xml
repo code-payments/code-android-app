@@ -1336,4 +1336,19 @@
     <string name="title_tabWallet">Wallet</string>
     <string name="title_tabYou">You</string>
 
+
+    <string name="title_howMarketCapWorks">How Market Cap Works</string>
+    <string name="subtitle_howMarketCapWorksRow">See what moves market cap · 1 min</string>
+    <string name="title_marketCapExplainerHeadline">The more people buy %1$s, the more valuable %1$s becomes.</string>
+    <string name="label_marketCapAmountPurchased">Amount of %1$s purchased by the community</string>
+    <string name="label_marketCapBalanceWouldBeWorth">Your %1$s balance would be worth</string>
+    <string name="label_marketCapScrubToday">%1$s Today</string>
+    <string name="label_marketCapTickToday">Today</string>
+    <string name="title_yourOwnership">Your Ownership</string>
+    <string name="label_underlyingTokensYouOwn">Underlying tokens you own</string>
+    <string name="label_currentPricePerToken">Current price per token</string>
+    <string name="label_shareOfCirculatingSupply">Share of circulating supply</string>
+    <string name="label_shareOfMaxSupply">Share of max supply</string>
+    <string name="label_yourCurrentAppreciation">Your current appreciation</string>
+    <string name="label_marketCapChartAccessibility">Price curve for %1$s with %2$s purchased</string>
 </resources>

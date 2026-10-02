@@ -52,6 +52,7 @@ import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
 import com.flipcash.app.tokens.SwapFlowScreen
+import com.flipcash.app.tokens.MarketCapExplainerScreen
 import com.flipcash.app.tokens.TokenInfoScreen
 import com.flipcash.app.tokens.TokenSelectScreen
 
@@ -137,6 +138,9 @@ fun appEntryProvider(
     }
     annotatedEntry<AppRoute.Token.Transactions>(testTag = "transaction_history_screen") { key ->
         TransactionHistoryScreen(key.mint)
+    }
+    annotatedEntry<AppRoute.Token.MarketCapExplainer>(testTag = "market_cap_explainer_screen") { key ->
+        MarketCapExplainerScreen(key.mint)
     }
     annotatedEntry<AppRoute.Token.Swap> { key ->
         SwapFlowScreen(route = key, resultStateRegistry = resultStateRegistry)

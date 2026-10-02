@@ -231,6 +231,8 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Transactions(val mint: Mint) : Token
         @Serializable
+        data class MarketCapExplainer(val mint: Mint) : Token
+        @Serializable
         data class Swap(
             val purpose: SwapPurpose,
             val shortfall: Fiat? = null,
