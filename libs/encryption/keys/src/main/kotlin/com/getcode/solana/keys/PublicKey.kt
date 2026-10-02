@@ -28,7 +28,9 @@ open class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
             return PublicKey(byteString.toByteArray().toList())
         }
 
-        val ZERO: PublicKey = PublicKey(zero.bytes)
+        // Not Key32.zero: Key32's companion constructs PublicKeys, so when Key32 initializes
+        // first, this runs before Key32.zero is assigned.
+        val ZERO: PublicKey = PublicKey(ByteArray(LENGTH_32).toList())
 
         @JvmField
         val CREATOR: Parcelable.Creator<PublicKey> =
