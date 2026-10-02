@@ -1,13 +1,10 @@
-package com.flipcash.app.tokens.internal.explainer
+package com.getcode.ui.components.text
 
-import com.getcode.opencode.model.financial.CurrencyCode
-import com.getcode.opencode.model.financial.Fiat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class ExplainerNumberTextTest {
-
+class NumberRollMotionTest {
     @Test
     fun `slots are keyed by role with integer digits counted from the point`() {
         assertEquals(
@@ -109,10 +106,7 @@ class ExplainerNumberTextTest {
     }
 
     @Test
-    fun `appreciation tone follows the sign`() {
-        assertEquals(Tone.Positive, appreciationTone(Fiat(12.5, CurrencyCode.USD)))
-        assertEquals(Tone.Negative, appreciationTone(Fiat(-3.0, CurrencyCode.USD)))
-        assertEquals(Tone.Neutral, appreciationTone(Fiat(0.0, CurrencyCode.USD)))
-        assertEquals(Tone.Neutral, appreciationTone(null))
+    fun `a negative readout is below a less negative one`() {
+        assertTrue(numericValue("-\$41.67") > numericValue("-\$44.02"))
     }
 }

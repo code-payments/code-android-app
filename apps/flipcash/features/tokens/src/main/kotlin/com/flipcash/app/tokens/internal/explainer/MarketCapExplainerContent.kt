@@ -46,6 +46,7 @@ import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.theme.White05
+import com.getcode.ui.components.text.AnimatedNumberText
 import java.math.BigDecimal
 
 /** Everything the screen draws, already formatted; the composables below do no math. */
@@ -174,7 +175,7 @@ internal fun MarketCapExplainerBody(
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
             )
-            ExplainerNumberText(
+            AnimatedNumberText(
                 modifier = Modifier.padding(top = grid.x1),
                 value = model.reserveText,
                 style = CodeTheme.typography.displayCompact,
@@ -202,7 +203,7 @@ internal fun MarketCapExplainerBody(
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
             )
-            ExplainerNumberText(
+            AnimatedNumberText(
                 modifier = Modifier.padding(top = grid.x1),
                 value = model.worthText,
                 style = CodeTheme.typography.displayMedium.bolded(),

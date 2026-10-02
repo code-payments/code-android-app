@@ -1,34 +1,39 @@
 package com.getcode.ui.components.text
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterExitState
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.animateFloat
+import android.os.Build
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
@@ -36,8 +41,19 @@ import androidx.compose.ui.unit.dp
 import com.getcode.ui.utils.AutoSizeTextMeasurer
 import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.utils.MeasureWidthFraction
+import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
+/**
+ * A number whose digits roll like SwiftUI's `.contentTransition(.numericText())`.
+ *
+ * Characters are slots keyed by role (see [numberSlots]), so a longer or shorter string keeps each
+ * digit in its own slot. A digit slot's transition is an [Animatable] spring that is retargeted,
+ * keeping its offset and velocity, whenever the digit changes again mid-roll, so a value that moves
+ * every frame glides instead of restarting. Digits share the widest digit's width; symbols and
+ * suffixes stay still unless they change; a slot appearing or disappearing animates its width.
+ */
 @Composable
 fun AnimatedNumberText(
     value: String,
@@ -47,16 +63,18 @@ fun AnimatedNumberText(
     constraintMode: ConstraintMode = ConstraintMode.Free,
 ) {
     BoxWithConstraints(modifier = modifier) {
+        val textMeasurer = rememberTextMeasurer()
         val textSize = if (constraintMode is ConstraintMode.AutoSize) {
-            val textMeasurer = rememberTextMeasurer()
             val autosizeTextMeasurer = remember(textMeasurer) {
                 AutoSizeTextMeasurer(textMeasurer)
             }
             val maxWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
+            // Digits are drawn at the widest digit's width, so size the string as it will be drawn.
+            val widest = remember(style) { textMeasurer.digitMetrics(style).widest }
 
-            remember(value, style.fontSize, maxWidthPx) {
+            remember(value, style.fontSize, maxWidthPx, widest) {
                 autosizeTextMeasurer.findFontSize(
-                    text = AnnotatedString(value),
+                    text = AnnotatedString(value.map { if (it.isDigit()) widest else it }.joinToString("")),
                     style = style,
                     constraints = Constraints(
                         maxWidth = (maxWidthPx * MeasureWidthFraction).roundToInt(),
@@ -72,11 +90,112 @@ fun AnimatedNumberText(
         }
 
         val resolvedStyle = style.copy(fontSize = textSize)
-        Row {
-            value.forEach { char ->
-                AnimatedDigit(
-                    char = char,
-                    style = resolvedStyle,
+        val digitWidthPx = remember(resolvedStyle) { textMeasurer.digitMetrics(resolvedStyle).widthPx }
+
+        DeferredNumberRoll(
+            value = value,
+            style = resolvedStyle,
+            color = color,
+            digitWidthPx = digitWidthPx,
+        )
+    }
+}
+
+/**
+ * Shows [value] as plain text until it first changes, then mounts the roller.
+ *
+ * The roller costs several times the `Text` it wraps to compose, and a screen that shows many
+ * numbers at once -- the wallet's card deck -- would pay that for every character of every number
+ * before the first frame, to animate nothing. A number that never moves costs a [Text] per character.
+ *
+ * The first change still rolls: the roller mounts seeded with the value already on screen, and only
+ * follows [value] from the next frame, so it has something to animate to.
+ */
+@Composable
+private fun DeferredNumberRoll(
+    value: String,
+    style: TextStyle,
+    color: Color,
+    digitWidthPx: Int,
+) {
+    // What the static row shows, and what the roller is seeded with when it mounts.
+    val seed = remember { value }
+    var mounted by remember { mutableStateOf(false) }
+    var following by remember { mutableStateOf(false) }
+
+    LaunchedEffect(value) {
+        if (mounted) return@LaunchedEffect
+        if (value != seed) mounted = true
+    }
+    // Restarts on the composition that mounted the roller.
+    LaunchedEffect(mounted) {
+        if (!mounted) return@LaunchedEffect
+        // Give the roller a frame of its own before moving it. Effects run inside the frame that
+        // composed them, so following [value] straight away would settle the mount and the move in
+        // one pass and the digits would snap instead of rolling.
+        withFrameNanos { }
+        following = true
+    }
+
+    if (!mounted) {
+        StaticNumber(value = seed, style = style, color = color, digitWidthPx = digitWidthPx)
+    } else {
+        RollingNumber(
+            value = if (following) value else seed,
+            style = style,
+            color = color,
+            digitWidthPx = digitWidthPx,
+        )
+    }
+}
+
+@Composable
+private fun StaticNumber(
+    value: String,
+    style: TextStyle,
+    color: Color,
+    digitWidthPx: Int,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        value.forEach { char ->
+            Text(
+                modifier = if (char.isDigit()) Modifier.digitCell(digitWidthPx) else Modifier,
+                text = char.toString(),
+                style = style,
+                color = color,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RollingNumber(
+    value: String,
+    style: TextStyle,
+    color: Color,
+    digitWidthPx: Int,
+) {
+    val direction = remember { DirectionHolder(value) }
+    if (direction.last != value) {
+        direction.rising = numericValue(value) >= numericValue(direction.last)
+        direction.last = value
+    }
+
+    // The largest extent seen is kept so a slot that empties can animate out instead of vanishing.
+    val layout = remember { SlotLayout() }
+    val chars = numberSlots(value)
+    layout.absorb(chars)
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        for (slotKey in layout.keys()) {
+            key(slotKey) {
+                NumberSlot(
+                    char = chars[slotKey],
+                    rising = direction.rising,
+                    digitWidthPx = digitWidthPx,
+                    style = style,
                     color = color,
                 )
             }
@@ -84,108 +203,219 @@ fun AnimatedNumberText(
     }
 }
 
-/**
- * One character of [AnimatedNumberText]: a digit that rolls to its replacement, anything else plain.
- *
- * The roller is only mounted once the digit has actually changed. `AnimatedContent` costs several
- * times the `Text` it wraps to compose, and a screen that shows many numbers at once -- the wallet's
- * card deck -- pays that for every character of every number before the first frame, to animate
- * nothing. A number that never moves now costs a plain [Text].
- *
- * The first change still animates: [rolling] flips a frame ahead of [shown], so the roller mounts
- * seeded with the digit already on screen and has something to animate to.
- */
+private class SlotLayout {
+    private var prefix = 0
+    private var left = 0
+    private var right = 0
+    private var suffix = 0
+    private var dot = false
+
+    fun absorb(chars: Map<String, Char>) {
+        for (k in chars.keys) {
+            val n = k.drop(1).toIntOrNull()?.plus(1) ?: 0
+            when {
+                k == "dot" -> dot = true
+                k[0] == 'P' -> prefix = maxOf(prefix, n)
+                k[0] == 'L' -> left = maxOf(left, n)
+                k[0] == 'R' -> right = maxOf(right, n)
+                k[0] == 'S' -> suffix = maxOf(suffix, n)
+            }
+        }
+    }
+
+    fun keys(): List<String> = buildList {
+        for (i in 0 until prefix) add("P$i")
+        for (i in left - 1 downTo 0) add("L$i")
+        if (dot) add("dot")
+        for (i in 0 until right) add("R$i")
+        for (i in 0 until suffix) add("S$i")
+    }
+}
+
 @Composable
-private fun AnimatedDigit(
-    char: Char,
+private fun NumberSlot(
+    char: Char?,
+    rising: Boolean,
+    digitWidthPx: Int,
     style: TextStyle,
     color: Color,
 ) {
-    if (!char.isDigit()) {
-        Text(
-            text = char.toString(),
-            style = style,
-            color = color,
-        )
-        return
+    // Keep the last real character so a slot that empties can fade and shrink out.
+    val shown = remember { CharHolder(char ?: ' ') }
+    if (char != null) shown.value = char
+    val shownChar = shown.value
+    val isDigit = shownChar.isDigit()
+
+    val presence = remember { Animatable(if (char != null) 1f else 0f) }
+    LaunchedEffect(char != null) {
+        presence.animateTo(if (char != null) 1f else 0f, tween(220))
     }
 
-    var rolling by remember { mutableStateOf(false) }
-    // What the roller is showing. Held one composition behind [char] on the change that mounts the
-    // roller, so that mount is seeded with the outgoing digit rather than the incoming one.
-    var shown by remember { mutableStateOf(char) }
-
+    // Two-glyph transition like numericText: the old glyph slides out and the new one slides in from
+    // the other side, with nothing drawn for the digits in between. Offsets are in glyph heights:
+    // out = s + (-dir - s) * p, in = dir * (1 - p). A retarget keeps the glyph that is showing most as
+    // the new outgoing one, starting from its current offset and velocity.
+    val initial = if (isDigit) shownChar.digitToInt() else 0
+    val outDigit = remember { mutableIntStateOf(initial) }
+    val inDigit = remember { mutableIntStateOf(initial) }
+    val startOffset = remember { mutableFloatStateOf(0f) }
+    val dir = remember { mutableFloatStateOf(1f) }
+    val progress = remember { Animatable(1f) }
+    val track = remember { SlotTrack(if (isDigit) shownChar.digitToInt() else -1) }
     LaunchedEffect(char) {
-        if (char != shown) rolling = true
+        if (char == null || !char.isDigit()) {
+            track.digit = -1
+            return@LaunchedEffect
+        }
+        val next = char.digitToInt()
+        if (track.digit < 0) {
+            outDigit.intValue = next
+            inDigit.intValue = next
+            progress.snapTo(1f)
+        } else if (next != inDigit.intValue) {
+            val p = progress.value
+            val vp = progress.velocity
+            val dOut = startOffset.floatValue + (-dir.floatValue - startOffset.floatValue) * p
+            val dIn = dir.floatValue * (1f - p)
+            val inDominant = abs(dIn) <= abs(dOut)
+            val d0 = if (inDominant) dIn else dOut
+            val vDisp = if (inDominant) -dir.floatValue * vp else vp * (-dir.floatValue - startOffset.floatValue)
+            outDigit.intValue = if (inDominant) inDigit.intValue else outDigit.intValue
+            inDigit.intValue = next
+            startOffset.floatValue = d0
+            dir.floatValue = if (rising) 1f else -1f
+            val denom = -dir.floatValue - d0
+            val v0 = if (abs(denom) > 0.3f) vDisp / denom else 0f
+            progress.snapTo(0f)
+            progress.animateTo(
+                1f,
+                spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 380f),
+                initialVelocity = v0,
+            )
+        }
+        track.digit = next
     }
-    // Restarts on the composition that observes [rolling], which is the one that mounted the roller.
-    LaunchedEffect(rolling, char) {
-        if (!rolling) return@LaunchedEffect
-        // Give the roller a frame of its own before moving it. Effects run inside the frame that
-        // composed them, so writing [shown] straight away would settle the mount and the move in one
-        // pass and the digit would snap instead of rolling.
-        if (shown != char) withFrameNanos { }
-        shown = char
+    // The outgoing glyph is invisible from OutgoingFadeEnd on, so it leaves the tree there: a settled
+    // digit is one node, and TalkBack doesn't read the number twice.
+    val outgoingMounted by remember { derivedStateOf { progress.value < OutgoingFadeEnd } }
+
+    val fade = remember { Animatable(1f) }
+    LaunchedEffect(char) {
+        if (char != null && !char.isDigit() && track.symbol != char) {
+            if (track.symbol != null) {
+                fade.snapTo(0f)
+                fade.animateTo(1f, tween(180))
+            }
+        }
+        track.symbol = if (char != null && !char.isDigit()) char else null
     }
 
-    if (!rolling) {
-        Text(
-            text = shown.toString(),
-            style = style,
-            color = color,
-        )
-        return
-    }
-
-    val textMeasurer = rememberTextMeasurer()
-    val height = remember(style) {
-        textMeasurer.measure("0", style).size.height
-    }
+    // A slot that has emptied and finished shrinking draws nothing, so it leaves nothing behind.
+    if (char == null && !presence.isRunning && presence.value == 0f) return
 
     Box(
         modifier = Modifier
-            .height(with(LocalDensity.current) { height.toDp() })
-    ) {
-        AnimatedContent(
-            targetState = shown,
-            transitionSpec = {
-                if (targetState != initialState) {
-                    val rising = (targetState.digitToIntOrNull() ?: 0) >
-                        (initialState.digitToIntOrNull() ?: 0)
-
-                    // Enter: slide in from bottom (increasing) or top (decreasing) + fade
-                    val enter = slideInVertically { height ->
-                        if (rising) height else -height
-                    } + fadeIn()
-
-                    // Exit: just fade/blur in place - no slide
-                    val exit = fadeOut()
-
-                    enter togetherWith exit using SizeTransform()
-                } else {
-                    EnterTransition.None togetherWith ExitTransition.None
-                }
-            },
-            label = "digit"
-        ) { char ->
-            // Apply blur during exit transition
-            val blurRadius by transition.animateFloat(
-                transitionSpec = { tween(150) },
-                label = "blur"
-            ) { state ->
-                when (state) {
-                    EnterExitState.PreEnter -> 12f
-                    EnterExitState.Visible -> 0f
-                    EnterExitState.PostExit -> 12f
+            .layout { measurable, _ ->
+                val p = measurable.measure(Constraints())
+                val w = if (isDigit) digitWidthPx else p.width
+                val shownWidth = (w * presence.value).roundToInt()
+                layout(shownWidth, p.height) {
+                    p.place((shownWidth - p.width) / 2, 0)
                 }
             }
-
+            .clipToBounds()
+            .then(if (char == null) Modifier.clearAndSetSemantics { } else Modifier),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isDigit) {
+            if (outgoingMounted) {
+                Text(
+                    modifier = Modifier
+                        .digitCell(digitWidthPx)
+                        .graphicsLayer {
+                            val p = progress.value
+                            val d = startOffset.floatValue + (-dir.floatValue - startOffset.floatValue) * p
+                            applyGlyphMotion(d, outgoingFade(p), p, presence.value)
+                        },
+                    text = outDigit.intValue.toString(),
+                    style = style,
+                    color = color,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
             Text(
-                modifier = Modifier.blur(blurRadius.dp),
-                text = char.toString(),
+                modifier = Modifier
+                    .digitCell(digitWidthPx)
+                    .graphicsLayer {
+                        val p = progress.value
+                        val d = dir.floatValue * (1f - p)
+                        applyGlyphMotion(d, incomingFade(p), p, presence.value)
+                    },
+                text = inDigit.intValue.toString(),
                 style = style,
                 color = color,
+                maxLines = 1,
+                softWrap = false,
+            )
+        } else {
+            Text(
+                modifier = Modifier.graphicsLayer { alpha = fade.value * presence.value },
+                text = shownChar.toString(),
+                style = style,
+                color = color,
+                maxLines = 1,
+                softWrap = false,
             )
         }
     }
 }
+
+/** Lays a glyph out [widthPx] wide, centred, so every digit takes the same room. */
+private fun Modifier.digitCell(widthPx: Int): Modifier = layout { measurable, _ ->
+    val p = measurable.measure(Constraints())
+    layout(widthPx, p.height) {
+        p.place((widthPx - p.width) / 2, 0)
+    }
+}
+
+/**
+ * Applies [glyphMotion] to a glyph's layer. The blur is a `RenderEffect`, which only exists from
+ * API 31; below that the glyph keeps the short travel and the fade.
+ */
+private fun GraphicsLayerScope.applyGlyphMotion(d: Float, fade: Float, p: Float, presence: Float) {
+    val motion = glyphMotion(d, fade, p, presence)
+    translationY = motion.travel * size.height
+    alpha = motion.alpha
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val radius = MaxBlur.toPx() * motion.blur
+        renderEffect = if (radius > 0.5f) BlurEffect(radius, radius, TileMode.Decal) else null
+    }
+}
+
+private val MaxBlur = 11.dp
+
+private const val Digits = "0123456789"
+
+private class DigitMetrics(val widest: Char, val widthPx: Int)
+
+/** The widest digit in [style] and its width, from one layout of all ten. */
+private fun TextMeasurer.digitMetrics(style: TextStyle): DigitMetrics {
+    val result = measure(Digits, style)
+    var widest = 0
+    var width = 0f
+    for (i in Digits.indices) {
+        val w = result.getBoundingBox(i).width
+        if (w > width) {
+            width = w
+            widest = i
+        }
+    }
+    return DigitMetrics(Digits[widest], ceil(width).toInt())
+}
+
+private class CharHolder(var value: Char)
+
+private class SlotTrack(var digit: Int, var symbol: Char? = null)
+
+private class DirectionHolder(var last: String, var rising: Boolean = true)
