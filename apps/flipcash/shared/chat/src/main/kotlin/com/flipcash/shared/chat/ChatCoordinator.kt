@@ -34,6 +34,9 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * Implemented by [com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate].
  */
+/** The main and archived lists from one read of the feed. See [FeedOperations.feedWithArchived]. */
+data class ChatFeeds(val main: List<ChatSummary>, val archived: List<ChatSummary>)
+
 interface FeedOperations {
     /**
      * Reactive list of conversations of any of [chatTypes], sorted by last activity.
@@ -60,6 +63,16 @@ interface FeedOperations {
 
     /** [currentFeed]'s counterpart for archived chats. */
     fun currentArchivedFeed(vararg chatTypes: ChatType): List<ChatSummary>?
+
+    /**
+     * [feed] and [archivedFeed] read from one state, for a screen that draws both. Collecting the
+     * two separately can pair a new main list with a stale archived one: archiving the last main
+     * chat would briefly show both empty. Emits only when either list changes.
+     */
+    fun feedWithArchived(vararg chatTypes: ChatType): Flow<ChatFeeds>
+
+    /** [feedWithArchived]'s current value, or null while it would emit nothing yet. */
+    fun currentFeedWithArchived(vararg chatTypes: ChatType): ChatFeeds?
 
     /**
      * The same conversations as [feed], paged.

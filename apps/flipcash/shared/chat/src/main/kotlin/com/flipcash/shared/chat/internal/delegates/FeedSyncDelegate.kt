@@ -23,6 +23,7 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.ChatFeeds
 import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.FeedOperations
@@ -44,6 +45,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -144,6 +146,22 @@ class FeedSyncDelegate @Inject constructor(
 
     override fun currentArchivedFeed(vararg chatTypes: ChatType): List<ChatSummary>? =
         summaries(stateHolder.state.value, chatTypes.toSet(), archived = true)
+
+    override fun feedWithArchived(vararg chatTypes: ChatType): Flow<ChatFeeds> {
+        val requested = chatTypes.toSet()
+        return stateHolder.state
+            .mapNotNull { state -> feeds(state, requested) }
+            .distinctUntilChanged()
+    }
+
+    override fun currentFeedWithArchived(vararg chatTypes: ChatType): ChatFeeds? =
+        feeds(stateHolder.state.value, chatTypes.toSet())
+
+    private fun feeds(state: ChatState, requested: Set<ChatType>): ChatFeeds? {
+        val main = summaries(state, requested, archived = false) ?: return null
+        val archived = summaries(state, requested, archived = true) ?: return null
+        return ChatFeeds(main = main, archived = archived)
+    }
 
     private fun summaries(state: ChatState, requested: Set<ChatType>, archived: Boolean): List<ChatSummary>? {
         // Nothing until the list is known: the chat list shows its empty state for an emitted empty

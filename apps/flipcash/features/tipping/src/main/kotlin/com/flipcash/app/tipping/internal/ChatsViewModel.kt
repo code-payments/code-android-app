@@ -11,14 +11,12 @@ import com.flipcash.services.models.chat.isMutedAt
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatFeeds
 import com.flipcash.shared.chat.ChatListEntry
 import com.flipcash.shared.chat.ChatListFilter
 import com.flipcash.shared.chat.ChatListProjection
-import com.flipcash.shared.chat.ChatSummary
-import com.flipcash.shared.chat.archivedChatListFeed
-import com.flipcash.shared.chat.chatListFeed
-import com.flipcash.shared.chat.currentArchivedChatListFeed
-import com.flipcash.shared.chat.currentChatListFeed
+import com.flipcash.shared.chat.chatListFeeds
+import com.flipcash.shared.chat.currentChatListFeeds
 import com.flipcash.shared.chat.projectChatList
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.opencode.model.financial.Token
@@ -105,13 +103,12 @@ internal class ChatsViewModel @Inject constructor(
         val selfId = { userManager.accountId }
 
         fun content(
-            main: List<ChatSummary>,
-            archived: List<ChatSummary>,
+            feeds: ChatFeeds,
             tokens: List<Token>,
             senderProfiles: Map<String, UserProfile>?,
         ): Event.ChatsUpdated {
-            val mainRows = mapConversations(main, tokens, senderProfiles, selfId(), resources, chatCoordinator)
-            val archivedRows = mapConversations(archived, tokens, senderProfiles, selfId(), resources, chatCoordinator)
+            val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator)
+            val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator)
 
             // The projection sees every chat so the chips, the Archived row and the badge number
             // come from the one function the fixture tests. Hidden chats never reach the feeds, so
@@ -133,20 +130,20 @@ internal class ChatsViewModel @Inject constructor(
 
         // On a cold launch the feed is usually built before this screen is, so draw it on the first
         // frame rather than waiting for the collector below to get a turn on the main thread.
-        chatCoordinator.currentChatListFeed()?.let { main ->
+        chatCoordinator.currentChatListFeeds()?.let { feeds ->
             dispatchEvent(
                 content(
-                    main = main,
-                    archived = chatCoordinator.currentArchivedChatListFeed().orEmpty(),
+                    feeds = feeds,
                     tokens = tokenCoordinator.cachedTokens(),
                     senderProfiles = null,
                 )
             )
         }
 
+        // One flow for both lists: two would let a new main list pair with a stale archived one,
+        // and archiving the last main chat would flash the no-chats prompt before the Archived row.
         combine(
-            chatCoordinator.chatListFeed(),
-            chatCoordinator.archivedChatListFeed(),
+            chatCoordinator.chatListFeeds(),
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
             ::content,

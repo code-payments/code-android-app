@@ -25,3 +25,9 @@ fun FeedOperations.archivedChatListFeed(): Flow<List<ChatSummary>> = archivedFee
 
 /** [FeedOperations.currentArchivedFeed] for the chats the Chats list shows. */
 fun FeedOperations.currentArchivedChatListFeed(): List<ChatSummary>? = currentArchivedFeed(*chatListTypes)
+
+/** [FeedOperations.feedWithArchived] for the chats the Chats list shows. */
+fun FeedOperations.chatListFeeds(): Flow<ChatFeeds> = feedWithArchived(*chatListTypes)
+
+/** [FeedOperations.currentFeedWithArchived] for the chats the Chats list shows. */
+fun FeedOperations.currentChatListFeeds(): ChatFeeds? = currentFeedWithArchived(*chatListTypes)

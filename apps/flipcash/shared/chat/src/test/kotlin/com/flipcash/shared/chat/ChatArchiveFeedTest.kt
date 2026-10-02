@@ -26,15 +26,17 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
- * Rule 1: an archived chat leaves the list, every chip and the tab badge together, because they
+ * An archived chat leaves the list, every chip and the tab badge together, because they
  * all read the one feed the delegate filters. It appears only in the archived feed.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -163,5 +165,33 @@ class ChatArchiveFeedTest {
         val f = fixture(emptySet())
         assertEquals(2, f.delegate.currentFeed(*listTypes)!!.size)
         assertEquals(2, f.delegate.observeUnreadChatListCount().first())
+    }
+    @Test
+    fun `archiving the last main chat moves it in one emission`() = runTest {
+        val f = fixture(setOf(ChatId(groupHex)))
+        val emissions = mutableListOf<ChatFeeds>()
+        backgroundScope.launch { f.delegate.feedWithArchived(*listTypes).collect { emissions += it } }
+        runCurrent()
+
+        f.archived.value = setOf(ChatId(tipHex), ChatId(groupHex))
+        runCurrent()
+
+        assertEquals(2, emissions.size, "one emission before, one after: $emissions")
+        assertTrue(emissions.none { it.main.isEmpty() && it.archived.isEmpty() })
+        assertEquals(emptyList(), emissions.last().main)
+        assertEquals(2, emissions.last().archived.size)
+    }
+
+    @Test
+    fun `an unrelated state change does not re-emit the lists`() = runTest {
+        val f = fixture(emptySet())
+        val emissions = mutableListOf<ChatFeeds>()
+        backgroundScope.launch { f.delegate.feedWithArchived(*listTypes).collect { emissions += it } }
+        runCurrent()
+
+        f.archived.value = setOf(ChatId("deadbeef"))
+        runCurrent()
+
+        assertEquals(1, emissions.size)
     }
 }
