@@ -235,7 +235,7 @@ private fun NumberSlot(
                     .graphicsLayer {
                         val p = progress.value
                         val d = startOffset.floatValue + (-dir.floatValue - startOffset.floatValue) * p
-                        applyGlyphMotion(d, 1f - (p / 0.6f).coerceIn(0f, 1f), p, presence.value)
+                        applyGlyphMotion(d, outgoingFade(p), p, presence.value)
                     },
                 text = outDigit.intValue.toString(), style = style, color = color,
                 maxLines = 1, softWrap = false, textAlign = TextAlign.Center,
@@ -247,7 +247,7 @@ private fun NumberSlot(
                     .graphicsLayer {
                         val p = progress.value
                         val d = dir.floatValue * (1f - p)
-                        applyGlyphMotion(d, ((p - 0.4f) / 0.6f).coerceIn(0f, 1f), p, presence.value)
+                        applyGlyphMotion(d, incomingFade(p), p, presence.value)
                     },
                 text = inDigit.intValue.toString(), style = style, color = color,
                 maxLines = 1, softWrap = false, textAlign = TextAlign.Center,
@@ -269,12 +269,10 @@ private fun NumberSlot(
  * `RenderEffect` is ignored, leaving the short travel and the alpha crossfade.
  */
 private fun androidx.compose.ui.graphics.GraphicsLayerScope.applyGlyphMotion(d: Float, fade: Float, p: Float, presence: Float) {
-    translationY = d * MaxTravel * size.height
-    alpha = fade * presence
-    // A retarget restarts p at 0 with the glyph already displaced, so blur follows the larger of the
-    // transition arc and the glyph's own distance from rest; only a settled glyph is sharp.
-    val arc = kotlin.math.sin(Math.PI * p.coerceIn(0f, 1f)).toFloat()
-    val radius = 11.dp.toPx() * maxOf(arc, abs(d).coerceIn(0f, 1f))
+    val motion = glyphMotion(d, fade, p, presence)
+    translationY = motion.travel * size.height
+    alpha = motion.alpha
+    val radius = 11.dp.toPx() * motion.blur
     renderEffect = if (radius > 0.5f) {
         androidx.compose.ui.graphics.BlurEffect(radius, radius, androidx.compose.ui.graphics.TileMode.Decal)
     } else {
@@ -282,7 +280,27 @@ private fun androidx.compose.ui.graphics.GraphicsLayerScope.applyGlyphMotion(d: 
     }
 }
 
-private const val MaxTravel = 0.3f
+/** The pure result of [glyphMotion]: [travel] in glyph heights, [alpha], and [blur] as a 0..1 fraction of the full radius. */
+internal data class GlyphMotion(val travel: Float, val alpha: Float, val blur: Float)
+
+internal fun glyphMotion(d: Float, fade: Float, p: Float, presence: Float): GlyphMotion {
+    // A retarget restarts p at 0 with the glyph already displaced, so blur follows the larger of the
+    // transition arc and the glyph's own distance from rest; only a settled glyph is sharp.
+    val arc = kotlin.math.sin(Math.PI * p.coerceIn(0f, 1f)).toFloat()
+    return GlyphMotion(
+        travel = d * MaxTravel,
+        alpha = fade * presence,
+        blur = maxOf(arc, abs(d).coerceIn(0f, 1f)),
+    )
+}
+
+/** The outgoing glyph is fully faded by p = 0.6. */
+internal fun outgoingFade(p: Float): Float = 1f - (p / 0.6f).coerceIn(0f, 1f)
+
+/** The incoming glyph starts appearing at p = 0.4. */
+internal fun incomingFade(p: Float): Float = ((p - 0.4f) / 0.6f).coerceIn(0f, 1f)
+
+internal const val MaxTravel = 0.3f
 
 private class CharHolder(var value: Char)
 

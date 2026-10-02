@@ -38,6 +38,7 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tokens.marketcap.ExplainerChart
 import com.flipcash.app.tokens.marketcap.ExplainerChartPoint
 import com.flipcash.app.tokens.marketcap.ExplainerCurrency
+import com.getcode.opencode.model.financial.Fiat
 import com.flipcash.app.tokens.marketcap.ExplainerFormat
 import com.flipcash.app.tokens.marketcap.ExplainerTick
 import com.flipcash.app.tokens.ui.MarketCapExplainerViewModel
@@ -61,6 +62,13 @@ internal data class ExplainerUiModel(
 )
 
 internal enum class Tone { Neutral, Positive, Negative }
+
+internal fun appreciationTone(appreciation: Fiat?): Tone = when {
+    appreciation == null || !appreciation.valueNonZero() -> Tone.Neutral
+    appreciation.toDouble() > 0 -> Tone.Positive
+    appreciation.toDouble() < 0 -> Tone.Negative
+    else -> Tone.Neutral
+}
 
 internal data class OwnershipRow(@StringRes val label: Int, val value: String, val tone: Tone = Tone.Neutral)
 
@@ -94,12 +102,7 @@ internal fun MarketCapExplainerContent(state: MarketCapExplainerViewModel.State)
     val scrubLabel = if (snapshot.isToday) stringResource(R.string.label_marketCapScrubToday, reserveText) else reserveText
     val appreciation = state.appreciation
     val appreciationText = appreciation?.formattedAppreciation() ?: Dash
-    val appreciationTone = when {
-        appreciation == null || !appreciation.valueNonZero() -> Tone.Neutral
-        appreciation.toDouble() > 0 -> Tone.Positive
-        appreciation.toDouble() < 0 -> Tone.Negative
-        else -> Tone.Neutral
-    }
+    val appreciationTone = appreciationTone(appreciation)
 
     val model = ExplainerUiModel(
         tokenName = token.name,
