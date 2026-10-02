@@ -190,14 +190,26 @@ class FeedReconcileTest {
         }
 
     @Test
-    fun `a push refresh during the launch sync shares it too`() = runTest(testDispatchers.dispatcher) {
+    fun `a push during an in-flight sync queues exactly one trailing fetch`() = runTest(testDispatchers.dispatcher) {
         loggedIn { subject ->
             subject.refreshFeed()
             runCurrent()
             groupGate.complete(Unit)
             runCurrent()
 
-            coVerify(exactly = 1) { chatController.getDmChatFeed(ChatType.CONTACT_DM, any()) }
+            coVerify(exactly = 2) { chatController.getDmChatFeed(ChatType.CONTACT_DM, any()) }
+        }
+    }
+
+    @Test
+    fun `several pushes during one sync still produce one trailing fetch`() = runTest(testDispatchers.dispatcher) {
+        loggedIn { subject ->
+            repeat(5) { subject.refreshFeed() }
+            runCurrent()
+            groupGate.complete(Unit)
+            runCurrent()
+
+            coVerify(exactly = 2) { chatController.getDmChatFeed(ChatType.CONTACT_DM, any()) }
         }
     }
 

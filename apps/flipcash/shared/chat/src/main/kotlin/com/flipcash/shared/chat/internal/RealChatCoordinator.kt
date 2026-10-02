@@ -298,7 +298,9 @@ class RealChatCoordinator @Inject constructor(
      * conversation list, and none of them know which half a chat belongs to.
      */
     override fun refreshFeed() {
-        syncFeeds()
+        // A push says the server has something new: join a sync in flight, but queue one trailing
+        // run behind it, since that sync may have fetched before the change. Coalesced.
+        syncFeeds(fresh = true)
     }
 
     /**
