@@ -1062,6 +1062,20 @@
     <string name="title_noChatsYet">No Chats Yet</string>
     <string name="description_noChatsYet">Start a new chat, or share your profile</string>
 
+    <!-- Chats list filter chips, the Archived row, and archiving from a row's swipe. -->
+    <string name="title_archived">Archived</string>
+    <string name="content_description_archivedUnread">Archived, %1$d unread</string>
+    <string name="title_filterAll">All</string>
+    <string name="title_filterUnread">Unread</string>
+    <string name="title_filterGroups">Groups</string>
+    <string name="title_noUnreadChats">No unread chats</string>
+    <string name="title_noGroupChats">No groups</string>
+    <string name="title_allChatsArchived">All your chats are archived</string>
+    <string name="message_chatArchived">Chat archived</string>
+    <string name="action_undo">Undo</string>
+    <string name="content_description_archiveChat">Archive chat</string>
+    <string name="content_description_unarchiveChat">Unarchive chat</string>
+
     <!-- Starting a chat by @handle from the Chats tab's "+" (nodes 9442:5825 / 9442:103386). -->
     <string name="title_newChat">Enter Flipcash username</string>
     <string name="subtitle_newChat">Enter the Flipcash username of the person you want to chat with</string>
