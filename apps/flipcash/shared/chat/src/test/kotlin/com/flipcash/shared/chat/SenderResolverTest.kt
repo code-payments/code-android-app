@@ -56,6 +56,19 @@ class SenderResolverTest {
     )
 
     @Test
+    fun `cachedProfiles holds the persisted names as soon as the table is read`() =
+        runTest(dispatchers.dispatcher) {
+            every { userProfileDataSource.observeProfiles() } returns
+                MutableStateFlow(mapOf(userIdHex to profile))
+            val resolver = subject()
+            assertEquals(null, resolver.cachedProfiles)
+
+            runCurrent()
+
+            assertEquals("Ada", resolver.cachedProfiles?.get(userIdHex)?.displayName)
+        }
+
+    @Test
     fun `a miss triggers one fetch and is written to user_profiles`() = runTest(dispatchers.dispatcher) {
         coEvery { profileController.getProfileForUser(userId) } returns Result.success(profile)
         val resolver = subject()

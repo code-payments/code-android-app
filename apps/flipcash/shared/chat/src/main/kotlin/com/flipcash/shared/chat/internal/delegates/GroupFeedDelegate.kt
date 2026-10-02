@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.internal.delegates
 
+import com.flipcash.app.persistence.sources.ChatFeedWriter
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -51,6 +52,8 @@ class GroupFeedDelegate @Inject constructor(
     private val rosterStateHolder: RosterStateHolder,
     private val userManager: UserManager,
     private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
+    private val feedWriter: ChatFeedWriter =
+        ChatFeedWriter(metadataDataSource, memberDataSource, messageDataSource),
 ) : GroupOperations {
 
     sealed interface Event {
@@ -75,9 +78,10 @@ class GroupFeedDelegate @Inject constructor(
         this.scope = scope
     }
 
+    /** Standalone group sync. A sync already in flight is shared, not cancelled and restarted. */
     internal fun syncGroupFeed() {
         val scope = scope ?: return
-        syncJob?.cancel()
+        if (syncJob?.isActive == true) return
         syncJob = scope.launch { performGroupFeedSync() }
     }
 
@@ -95,17 +99,28 @@ class GroupFeedDelegate @Inject constructor(
      * does not.
      */
     internal suspend fun performGroupFeedSync() {
+        val chats = fetchGroupFeed() ?: return
+        persist(chats)
+        requestCatchUp(chats)
+    }
+
+    /** The network half of a group sync: the first page, or null when the fetch failed. */
+    internal suspend fun fetchGroupFeed(): List<ChatMetadata>? {
         val page = chatController.getGroupChatFeed().getOrElse {
             trace(tag = TAG, message = "Group feed sync failed", type = TraceType.Error)
-            return
+            return null
         }
-        persist(page.chats)
+        return page.chats
+    }
+
+    /** What follows a committed write of [chats]: transcripts to fetch or gaps to fill. */
+    internal suspend fun requestCatchUp(chats: List<ChatMetadata>) {
 
         // Caching the feed is not the same as having the transcript: [persist] writes each group's
         // last-message preview and nothing else, so without this a synced group opens to a single
         // bubble. The applied cursor is what says whether the transcript was ever pulled — a feed
         // sync never writes it. Same rule the DM feed applies in [FeedSyncDelegate].
-        for (chat in page.chats) {
+        for (chat in chats) {
             val cursor = metadataDataSource.getLatestEventSequence(chat.chatId)
             when {
                 cursor <= 0L -> _events.send(Event.LoadMessages(chat.chatId))
@@ -226,14 +241,9 @@ class GroupFeedDelegate @Inject constructor(
     }
 
     private suspend fun persist(chats: List<ChatMetadata>) {
-        metadataDataSource.upsert(chats)
-        for (chat in chats) {
-            memberDataSource.upsert(chat.chatId, chat.members)
-        }
-        val previews = chats.lastMessagesByChat()
         // Not waited on: a preview is one message per chat, and the feed is not held for it.
-        linkPrefetch.prefetch(previews.values.flatten())
-        messageDataSource.upsertAll(previews)
+        linkPrefetch.prefetch(chats.lastMessagesByChat().values.flatten())
+        feedWriter.write(chats)
     }
 
     private companion object {

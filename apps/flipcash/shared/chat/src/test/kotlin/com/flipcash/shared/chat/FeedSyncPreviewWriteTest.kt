@@ -63,7 +63,7 @@ class FeedSyncPreviewWriteTest {
         ).performFeedSync()
 
         coVerify(exactly = 1) {
-            messageDataSource.upsertAll(
+            messageDataSource.prepare(
                 mapOf(
                     ChatId("aa") to listOf(message(1)),
                     ChatId("bb") to listOf(message(2)),

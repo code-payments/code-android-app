@@ -96,8 +96,7 @@ class MessagingPushedMessageTest {
         delegateWith(metadataDataSource)
             .applyPushedMessage(chatId, message(id = 12, eventSequence = 9, epochSeconds = 1_757_000_042))
 
-        coVerify(exactly = 1) { metadataDataSource.updateLastMessageId(chatId, 12) }
-        coVerify(exactly = 1) { metadataDataSource.updateLastActivity(chatId, 1_757_000_042_000) }
+        coVerify(exactly = 1) { metadataDataSource.applyCatchUp(chatId, 0L, match { it.messageId == 12L }) }
     }
 
     @Test
@@ -107,8 +106,7 @@ class MessagingPushedMessageTest {
 
         delegateWith(metadataDataSource).applyPushedMessage(chatId, message(id = 12, eventSequence = 9))
 
-        coVerify(exactly = 0) { metadataDataSource.updateLastMessageId(chatId, any()) }
-        coVerify(exactly = 0) { metadataDataSource.updateLastActivity(chatId, any()) }
+        coVerify(exactly = 0) { metadataDataSource.applyCatchUp(chatId, any(), any()) }
     }
 
     @Test
@@ -121,7 +119,7 @@ class MessagingPushedMessageTest {
         delegate.applyPushedMessage(chatId, pushed)
         delegate.applyPushedMessage(chatId, pushed)
 
-        coVerify(exactly = 1) { metadataDataSource.updateLastMessageId(chatId, 12) }
+        coVerify(exactly = 1) { metadataDataSource.applyCatchUp(chatId, 0L, match { it.messageId == 12L }) }
     }
 
     @Test
@@ -131,6 +129,6 @@ class MessagingPushedMessageTest {
 
         delegateWith(metadataDataSource).applyPushedMessage(chatId, message(id = 1, eventSequence = 3))
 
-        coVerify(exactly = 1) { metadataDataSource.updateLastMessageId(chatId, 1) }
+        coVerify(exactly = 1) { metadataDataSource.applyCatchUp(chatId, 0L, match { it.messageId == 1L }) }
     }
 }

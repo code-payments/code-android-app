@@ -57,11 +57,11 @@ class MessagingLoadCursorTest {
 
         delegateWith(messagingController, metadataDataSource).loadMessages(chatId)
 
-        coVerify(exactly = 1) { metadataDataSource.updateLatestEventSequence(chatId, 9) }
+        coVerify(exactly = 1) { metadataDataSource.applyCatchUp(chatId, 9, match { it.messageId == 2L }) }
     }
 
     @Test
-    fun `page older than the cursor does not rewind it`() = runTest {
+    fun `page older than the cursor goes through the forward-only write`() = runTest {
         val messagingController = mockk<ChatMessagingController>(relaxed = true)
         coEvery { messagingController.getMessages(chatId, any()) } returns
             Result.success(listOf(message(id = 1, eventSequence = 4)))
@@ -70,7 +70,12 @@ class MessagingLoadCursorTest {
 
         delegateWith(messagingController, metadataDataSource).loadMessages(chatId)
 
+        // The rewind guard is the write's own (ChatMetadataCatchUpTest); what matters here is that
+        // the catch-up is one write and never the three separate ones that each invalidated the list.
+        coVerify(exactly = 1) { metadataDataSource.applyCatchUp(chatId, 4, any()) }
         coVerify(exactly = 0) { metadataDataSource.updateLatestEventSequence(chatId, any()) }
+        coVerify(exactly = 0) { metadataDataSource.updateLastMessageId(chatId, any()) }
+        coVerify(exactly = 0) { metadataDataSource.updateLastActivity(chatId, any()) }
     }
 
     @Test
@@ -82,6 +87,7 @@ class MessagingLoadCursorTest {
 
         delegateWith(messagingController, metadataDataSource).loadMessages(chatId)
 
+        coVerify(exactly = 1) { metadataDataSource.applyCatchUp(chatId, 0, null) }
         coVerify(exactly = 0) { metadataDataSource.updateLatestEventSequence(chatId, any()) }
     }
 }

@@ -72,7 +72,10 @@ interface ChatMetadataDao {
     suspend fun insertIfAbsent(entity: ChatMetadataEntity): Long
 
     /**
-     * Overwrites only the columns the server owns. `latest_event_sequence` and
+     * Overwrites only the columns the server owns, except that `last_activity_epoch_ms` and
+     * `last_message_id` are newer-wins: a feed response that was in flight while a stream event
+     * advanced the row is older than the row, and must not roll it back. Activity only moves
+     * forward (`MAX`); the message id is replaced only when strictly newer. `latest_event_sequence` and
      * `analytics_counted_through` are client-owned watermarks that no server payload
      * carries, so they are deliberately absent here. The roster and viewer-state columns
      * are absent too — they are versioned, and go through [updateRosterIfNewer] and
@@ -80,8 +83,10 @@ interface ChatMetadataDao {
      */
     @Query(
         "UPDATE chat_metadata SET chat_type = :chatType, " +
-            "last_activity_epoch_ms = :lastActivityEpochMs, " +
-            "last_message_id = :lastMessageId, " +
+            "last_activity_epoch_ms = MAX(last_activity_epoch_ms, :lastActivityEpochMs), " +
+            "last_message_id = CASE WHEN :lastMessageId IS NOT NULL " +
+            "AND :lastMessageId > COALESCE(last_message_id, 0) " +
+            "THEN :lastMessageId ELSE last_message_id END, " +
             "is_hidden = :isHidden, " +
             "title = :title, " +
             "picture_json = :pictureJson, " +
@@ -238,6 +243,39 @@ interface ChatMetadataDao {
 
     @Query("SELECT latest_event_sequence FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getLatestEventSequence(chatIdHex: String): Long?
+
+    /**
+     * The catch-up write: one statement, so a catch-up costs the list one invalidation instead of
+     * three, and idempotent, so one that learns nothing costs it none.
+     *
+     * - `latest_event_sequence` only moves forward.
+     * - `last_message_id` and `last_activity_epoch_ms` move only when [messageId] is strictly newer
+     *   than the stored `last_message_id`. A feed sync has usually written the same message
+     *   already, and re-stamping its activity from the message's own timestamp (which can differ
+     *   from the server's `last_activity`) reordered rows that had nothing new.
+     * - Even when the message is newer, `last_activity_epoch_ms` never moves backwards: `MAX`.
+     *
+     * The `WHERE` guard turns the no-op case into zero changed rows, which SQLite does not report
+     * to Room's invalidation tracker. Pass `0` for [latestEventSequence] or [messageId] to leave
+     * that half alone.
+     */
+    @Query(
+        "UPDATE chat_metadata SET " +
+            "latest_event_sequence = MAX(latest_event_sequence, :latestEventSequence), " +
+            "last_activity_epoch_ms = CASE WHEN :messageId > COALESCE(last_message_id, 0) " +
+            "THEN MAX(last_activity_epoch_ms, :timestampEpochMs) ELSE last_activity_epoch_ms END, " +
+            "last_message_id = CASE WHEN :messageId > COALESCE(last_message_id, 0) " +
+            "THEN :messageId ELSE last_message_id END " +
+            "WHERE chat_id_hex = :chatIdHex AND (" +
+            ":latestEventSequence > latest_event_sequence " +
+            "OR :messageId > COALESCE(last_message_id, 0))"
+    )
+    suspend fun applyCatchUp(
+        chatIdHex: String,
+        latestEventSequence: Long,
+        messageId: Long,
+        timestampEpochMs: Long,
+    )
 
     @Query("SELECT chat_type FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getChatType(chatIdHex: String): String?
