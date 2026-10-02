@@ -35,12 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.app.core.money.formattedAppreciation
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.app.tokens.marketcap.ExplainerChart
-import com.flipcash.app.tokens.marketcap.ExplainerChartPoint
-import com.flipcash.app.tokens.marketcap.ExplainerCurrency
+import com.flipcash.app.tokens.bondingcurve.ExplainerChart
+import com.flipcash.app.tokens.bondingcurve.ExplainerChartPoint
 import com.getcode.opencode.model.financial.Fiat
-import com.flipcash.app.tokens.marketcap.ExplainerFormat
-import com.flipcash.app.tokens.marketcap.ExplainerTick
+import com.flipcash.app.tokens.bondingcurve.ExplainerTick
 import com.flipcash.app.tokens.ui.MarketCapExplainerViewModel
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
@@ -77,13 +75,13 @@ private const val Dash = "–"
 
 @Composable
 internal fun MarketCapExplainerContent(state: MarketCapExplainerViewModel.State) {
-    val calculator = state.calculator
+    val projection = state.projection
     val token = state.token
-    if (calculator == null || token == null) return
+    if (projection == null || token == null) return
 
     // The thumb follows the finger while it is down (`dragged`), then springs back to Today on
     // release; the readout and chart read the same position, so they roll back with it.
-    val today = calculator.todayPosition.toFloat()
+    val today = projection.todayPosition.toFloat()
     val scope = rememberCoroutineScope()
     var dragged by remember { mutableStateOf<Float?>(null) }
     val settle = remember(today) { Animatable(today) }
@@ -91,11 +89,11 @@ internal fun MarketCapExplainerContent(state: MarketCapExplainerViewModel.State)
 
     // Keyed on position: the lambda captures the plain Float, so without it the snapshot (and the
     // chart built from it) would freeze at its first value.
-    val snapshot by remember(calculator, position) {
-        derivedStateOf { calculator.snapshotAt(position.toDouble()) }
+    val snapshot by remember(projection, position) {
+        derivedStateOf { projection.snapshotAt(position.toDouble()) }
     }
-    val chart by remember(calculator, snapshot) { derivedStateOf { calculator.chart(snapshot) } }
-    val ownership = remember(calculator) { calculator.ownership() }
+    val chart by remember(projection, snapshot) { derivedStateOf { projection.chart(snapshot) } }
+    val ownership = remember(projection) { projection.ownership() }
 
     // The curve stays in USD; only what is drawn is converted to the preferred currency.
     val currency = remember(state.rate) { ExplainerCurrency(state.rate) }
@@ -108,8 +106,8 @@ internal fun MarketCapExplainerContent(state: MarketCapExplainerViewModel.State)
     val model = ExplainerUiModel(
         tokenName = token.name,
         position = position,
-        ticks = calculator.ticks,
-        tickLabels = calculator.ticks.associateWith { currency.reserve(it.reserve) },
+        ticks = projection.ticks,
+        tickLabels = projection.ticks.associateWith { currency.reserve(it.reserve) },
         reserveText = reserveText,
         worthText = snapshot.worth?.let { currency.convert(it).formatted() } ?: Dash,
         chart = chart,

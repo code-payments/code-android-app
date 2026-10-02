@@ -96,7 +96,7 @@ class MarketCapExplainerViewModelTest {
     }
 
     @Test
-    fun `providing a cached mint loads the token and a calculator at Today`() =
+    fun `providing a cached mint loads the token and a projection at Today`() =
         runTest(mainCoroutineRule.dispatcher) {
             val vm = newVm()
             vm.dispatchEvent(MarketCapExplainerViewModel.Event.OnMintProvided(mint))
@@ -104,18 +104,18 @@ class MarketCapExplainerViewModelTest {
 
             val state = vm.stateFlow.value
             assertEquals(token, state.token)
-            val calculator = assertNotNull(state.calculator)
-            assertEquals(true, calculator.today().isToday)
+            val projection = assertNotNull(state.projection)
+            assertEquals(true, projection.today().isToday)
         }
 
     @Test
-    fun `a token that is not cached leaves the calculator null`() =
+    fun `a token that is not cached leaves the projection null`() =
         runTest(mainCoroutineRule.dispatcher) {
             val vm = newVm(cache = emptyMap())
             vm.dispatchEvent(MarketCapExplainerViewModel.Event.OnMintProvided(mint))
             advanceUntilIdle()
 
-            assertNull(vm.stateFlow.value.calculator)
+            assertNull(vm.stateFlow.value.projection)
         }
 
     @Test

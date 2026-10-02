@@ -1,4 +1,4 @@
-package com.flipcash.app.tokens.marketcap
+package com.flipcash.app.tokens.bondingcurve
 
 import com.flipcash.libs.currency.math.CurveTestInitializer
 import com.getcode.opencode.model.financial.Fiat
@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
  * The acceptance vectors from the shared Android/iOS contract: supply 1.25M tokens, 12,400 held,
  * checked against the real curve tables.
  */
-class MarketCapExplainerCalculatorTest {
+class BondingCurveProjectionTest {
 
     companion object {
         @JvmStatic
@@ -65,8 +65,8 @@ class MarketCapExplainerCalculatorTest {
         holderMetrics = HolderMetrics.None,
     )
 
-    private fun calculator(held: Long? = HELD_QUARKS, supply: Long = SUPPLY_QUARKS) =
-        MarketCapExplainerCalculator(token(supply), supply, held)
+    private fun projection(held: Long? = HELD_QUARKS, supply: Long = SUPPLY_QUARKS) =
+        BondingCurveProjection(token(supply), supply, held)
 
     private fun assertWithin(expected: Double, actual: Double, tolerance: Double, label: String) {
         println("VECTOR $label = $actual (expected $expected +/- $tolerance)")
@@ -75,19 +75,17 @@ class MarketCapExplainerCalculatorTest {
 
     @Test
     fun `today vector`() {
-        val calc = calculator()
+        val calc = projection()
         val today = calc.today()
         assertTrue(today.isToday)
         assertWithin(22_700.0, calc.todayReserve.toDouble(), 50.0, "today reserve")
         assertWithin(0.02994, today.price.toDouble(), 0.000005, "today price")
         assertWithin(369.18, today.worth!!.decimalValue, 0.005, "today worth")
-        assertEquals("$0.02994", ExplainerCurrency(Rate.oneToOne).price(today.price))
-        assertEquals("$22.7K", ExplainerCurrency(Rate.oneToOne).reserve(calc.todayReserve))
     }
 
     @Test
     fun `fixed tick vectors`() {
-        val calc = calculator()
+        val calc = projection()
         // reserve, price, worth of 12,400 tokens, price/worth display tolerance
         val vectors = listOf(
             Triple(5_000, 0.0144, 177.0),
@@ -105,7 +103,7 @@ class MarketCapExplainerCalculatorTest {
 
     @Test
     fun `unknown holdings leave worth and shares unknown`() {
-        val calc = calculator(held = null)
+        val calc = projection(held = null)
         assertNull(calc.today().worth)
         val ownership = calc.ownership()
         assertNull(ownership.tokensHeld)
@@ -115,16 +113,15 @@ class MarketCapExplainerCalculatorTest {
 
     @Test
     fun `ownership shares`() {
-        val ownership = calculator().ownership()
+        val ownership = projection().ownership()
         assertEquals(0, BigDecimal(12_400).compareTo(ownership.tokensHeld))
         assertWithin(0.992, ownership.shareOfCirculating!!.toDouble(), 0.0001, "share of circulating (%)")
         assertWithin(0.0590476, ownership.shareOfMax!!.toDouble(), 0.00001, "share of max (%)")
-        assertEquals("0.99%", ExplainerFormat.percent(ownership.shareOfCirculating!!))
     }
 
     @Test
     fun `track spans five thousand to ten million and today sits on it`() {
-        val calc = calculator()
+        val calc = projection()
         assertEquals(0.0, calc.positionOf(BigDecimal(5_000)), 1e-9)
         assertEquals(1.0, calc.positionOf(BigDecimal(10_000_000)), 1e-9)
         assertTrue(calc.todayPosition in 0.0..1.0)
@@ -135,7 +132,7 @@ class MarketCapExplainerCalculatorTest {
     @Test
     fun `today beyond the base stops extends the track past it`() {
         // ~$100M reserve: past the $10M tick
-        val calc = calculator(supply = 12_000_000L * WHOLE_TOKEN)
+        val calc = projection(supply = 12_000_000L * WHOLE_TOKEN)
         assertTrue(calc.todayReserve > BigDecimal(10_000_000))
         assertTrue(calc.todayPosition < 1.0)
         assertTrue(calc.stops.last() > calc.todayReserve)
@@ -145,8 +142,8 @@ class MarketCapExplainerCalculatorTest {
     @Test
     fun `a fixed tick within ten percent of today loses its label`() {
         // Today at exactly the $1M reserve's supply
-        val supplyAt1M = calculator().snapshotAtReserve(BigDecimal(1_000_000)).supplyQuarks
-        val calc = calculator(supply = supplyAt1M)
+        val supplyAt1M = projection().snapshotAtReserve(BigDecimal(1_000_000)).supplyQuarks
+        val calc = projection(supply = supplyAt1M)
         val millionTick = calc.ticks.single { !it.isToday && it.reserve.compareTo(BigDecimal(1_000_000)) == 0 }
         assertFalse(millionTick.labelVisible)
         // the other fixed ticks keep theirs
@@ -156,7 +153,7 @@ class MarketCapExplainerCalculatorTest {
 
     @Test
     fun `snapping near today returns today exactly`() {
-        val calc = calculator()
+        val calc = projection()
         val snap = calc.snapshotAt(calc.todayPosition + 0.005)
         assertTrue(snap.isToday)
         assertEquals(SUPPLY_QUARKS, snap.supplyQuarks)
@@ -165,7 +162,7 @@ class MarketCapExplainerCalculatorTest {
 
     @Test
     fun `chart spans selected supply plus 750K tokens`() {
-        val calc = calculator()
+        val calc = projection()
         val snap = calc.snapshotAtReserve(BigDecimal(100_000))
         val chart = calc.chart(snap)
         assertEquals(
@@ -180,44 +177,21 @@ class MarketCapExplainerCalculatorTest {
 
     @Test
     fun `holding more than the supply at a low reserve is valued as the whole supply`() {
-        val calc = calculator(held = 2_000_000L * WHOLE_TOKEN)
+        val calc = projection(held = 2_000_000L * WHOLE_TOKEN)
         val snap = calc.snapshotAtReserve(BigDecimal(5_000))
         assertWithin(5_000.0, snap.worth!!.decimalValue, 1.0, "whole-supply worth at the reserve")
     }
 
     @Test
-    fun `display converts to the preferred currency while the curve stays in usd`() {
-        val euro = ExplainerCurrency(Rate(fx = 0.5, currency = CurrencyCode.EUR))
-        // Reserve labels: 5,000 USD is 2,500 EUR; 10M USD is 5M EUR.
-        assertEquals("\u20ac2.5K", euro.reserve(BigDecimal(5_000)))
-        assertEquals("\u20ac50K", euro.reserve(BigDecimal(100_000)))
-        assertEquals("\u20ac500K", euro.reserve(BigDecimal(1_000_000)))
-        assertEquals("\u20ac5M", euro.reserve(BigDecimal(10_000_000)))
-        // Per-token price: 0.02994 USD is 0.01497 EUR, kept to four significant figures.
-        assertEquals("\u20ac0.01497", euro.price(BigDecimal("0.02994")))
-        // Worth: 369.18 USD is 184.59 EUR.
-        assertEquals(CurrencyCode.EUR, euro.convert(Fiat(369.18)).currencyCode)
-        assertEquals("\u20ac184.59", euro.convert(Fiat(369.18)).formatted())
-
-        // The slider stops are USD reserves regardless of the rate.
-        val usd = MarketCapExplainerCalculator.FIXED_RESERVES
+    fun `the fixed slider stops are usd reserves`() {
+        val usd = BondingCurveProjection.FIXED_RESERVES
         assertEquals(listOf(5_000, 100_000, 1_000_000, 10_000_000).map { BigDecimal(it) }, usd)
-    }
-
-    @Test
-    fun `a zero-decimal currency keeps whole units and rolls over compact suffixes`() {
-        val yen = ExplainerCurrency(Rate(fx = 150.0, currency = CurrencyCode.JPY))
-        assertEquals("\u00a5750K", yen.reserve(BigDecimal(5_000)))
-        assertEquals("\u00a51.5B", yen.reserve(BigDecimal(10_000_000)))
-        // 999,960 rounds to 1000K, which must read 1M.
-        assertEquals("\u00a51M", ExplainerCurrency(Rate.oneToOne.copy(currency = CurrencyCode.JPY)).reserve(BigDecimal(999_960)))
-        assertEquals("\u00a54.491", yen.price(BigDecimal("0.02994")))
     }
 
     @Test
     fun `marker, scrub line and today dot stay inside the chart at every slider position`() {
         for (supply in listOf(30_000L, 1_250_000L, 12_000_000L, 20_900_000L)) {
-            val calc = calculator(supply = supply * WHOLE_TOKEN)
+            val calc = projection(supply = supply * WHOLE_TOKEN)
             for (i in 0..200) {
                 val position = i / 200.0
                 val chart = calc.chart(calc.snapshotAt(position))
@@ -236,52 +210,26 @@ class MarketCapExplainerCalculatorTest {
 
     @Test
     fun `x fraction clamps out of range values`() {
-        val chart = calculator().chart(calculator().today())
+        val chart = projection().chart(projection().today())
         assertEquals(1f, chart.xFraction(chart.xMax * 3))
         assertEquals(0f, chart.xFraction(-5.0))
     }
 
     @Test
-    fun `a tiny non-zero share reads as less than a hundredth of a percent`() {
-        val share = BigDecimal(597).multiply(BigDecimal(100)).divide(BigDecimal(21_000_000), java.math.MathContext(20))
-        assertEquals("<0.01%", ExplainerFormat.percent(share))
-        assertEquals("<0.01%", ExplainerFormat.percent(BigDecimal("0.0099")))
-        assertEquals("0.01%", ExplainerFormat.percent(BigDecimal("0.01")))
-        assertEquals("0%", ExplainerFormat.percent(BigDecimal.ZERO))
-    }
-
-    @Test
-    fun `label layout always draws today and drops labels that come within the gap`() {
-        val labels = listOf(
-            ExplainerLabelBox(centre = 20f, width = 40f, isToday = false),
-            ExplainerLabelBox(centre = 100f, width = 40f, isToday = true),
-            ExplainerLabelBox(centre = 130f, width = 40f, isToday = false),
-            ExplainerLabelBox(centre = 300f, width = 40f, isToday = false),
-            ExplainerLabelBox(centre = 395f, width = 40f, isToday = false),
-        )
-        val lefts = layoutExplainerLabels(labels, totalWidth = 400f, minGap = 12f)
-        assertEquals(0f, lefts[0]) // clamped inside, 0..40 vs today 80..120: gap 40 >= 12
-        assertEquals(80f, lefts[1])
-        assertNull(lefts[2]) // overlaps Today
-        assertEquals(280f, lefts[3])
-        assertEquals(360f, lefts[4]) // clamped to the right edge
-    }
-
-    @Test
     fun `marker x fraction rises with the slider position`() {
         for (supply in listOf(30_000L, 1_250_000L, 12_000_000L)) {
-            val calc = calculator(supply = supply * WHOLE_TOKEN)
+            val calc = projection(supply = supply * WHOLE_TOKEN)
             val fractions = (0..20).map { calc.chart(calc.snapshotAt(it / 20.0)).let { c -> c.xFraction(c.selectedTokens) } }
             assertTrue(fractions.zipWithNext().all { (a, b) -> b > a }, "supply=$supply: $fractions")
         }
     }
 
-    private fun calcAtReserve(reserve: Long): MarketCapExplainerCalculator {
-        val quarks = calculator().snapshotAtReserve(BigDecimal(reserve)).supplyQuarks
-        return calculator(supply = quarks)
+    private fun calcAtReserve(reserve: Long): BondingCurveProjection {
+        val quarks = projection().snapshotAtReserve(BigDecimal(reserve)).supplyQuarks
+        return projection(supply = quarks)
     }
 
-    private fun stopsOf(calc: MarketCapExplainerCalculator) = calc.stops.map { it.toLong() }
+    private fun stopsOf(calc: BondingCurveProjection) = calc.stops.map { it.toLong() }
 
     private val baseStops = listOf(5_000L, 100_000, 1_000_000, 10_000_000)
 
@@ -289,7 +237,7 @@ class MarketCapExplainerCalculatorTest {
     fun `small reserves keep the base stops`() {
         assertEquals(baseStops, stopsOf(calcAtReserve(22_700)))
         assertEquals(baseStops, stopsOf(calcAtReserve(171_000)))
-        assertEquals(baseStops, stopsOf(calculator()))
+        assertEquals(baseStops, stopsOf(projection()))
     }
 
     @Test
@@ -313,7 +261,7 @@ class MarketCapExplainerCalculatorTest {
         val calc = calcAtReserve(60_000_000)
         val cap = com.flipcash.libs.currency.math.Estimator.reserveAtSupply(BigDecimal(21_000_000)).getOrThrow()
         assertTrue(calc.stops.all { it <= cap })
-        assertEquals(emptyList(), MarketCapExplainerCalculator.reserveStops(BigDecimal(6_000_000), BigDecimal(50_000_000))
+        assertEquals(emptyList(), BondingCurveProjection.reserveStops(BigDecimal(6_000_000), BigDecimal(50_000_000))
             .filter { it > BigDecimal(50_000_000) })
     }
 

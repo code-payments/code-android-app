@@ -40,13 +40,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
-import com.flipcash.app.tokens.marketcap.ExplainerLabelBox
-import com.flipcash.app.tokens.marketcap.layoutExplainerLabels
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.tokens.marketcap.ExplainerTick
+import com.flipcash.app.tokens.bondingcurve.ExplainerTick
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme

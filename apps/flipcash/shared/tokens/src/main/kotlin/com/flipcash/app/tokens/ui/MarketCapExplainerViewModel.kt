@@ -2,7 +2,7 @@ package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.app.tokens.marketcap.MarketCapExplainerCalculator
+import com.flipcash.app.tokens.bondingcurve.BondingCurveProjection
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
@@ -35,7 +35,7 @@ class MarketCapExplainerViewModel @Inject constructor(
     data class State(
         val token: Token? = null,
         /** Null until the token is cached and its supply is known. */
-        val calculator: MarketCapExplainerCalculator? = null,
+        val projection: BondingCurveProjection? = null,
         /** The pill's appreciation in the user's currency; null for reserves or before it loads. */
         val appreciation: Fiat? = null,
         /** The user's preferred in-app currency rate, the one `TokenInfoViewModel` converts with. */
@@ -44,7 +44,7 @@ class MarketCapExplainerViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnMintProvided(val mint: Mint) : Event
-        data class OnLoaded(val token: Token, val calculator: MarketCapExplainerCalculator) : Event
+        data class OnLoaded(val token: Token, val projection: BondingCurveProjection) : Event
         data class OnAppreciationUpdated(val appreciation: Fiat?) : Event
         data class OnRateUpdated(val rate: Rate) : Event
     }
@@ -67,7 +67,7 @@ class MarketCapExplainerViewModel @Inject constructor(
                     if (token == null || supply == null) return@combine null
                     Event.OnLoaded(
                         token = token,
-                        calculator = MarketCapExplainerCalculator(token, supply, quarks),
+                        projection = BondingCurveProjection(token, supply, quarks),
                     )
                 }
             }
@@ -99,7 +99,7 @@ class MarketCapExplainerViewModel @Inject constructor(
             when (event) {
                 is Event.OnMintProvided -> { state -> state }
                 is Event.OnLoaded -> { state ->
-                    state.copy(token = event.token, calculator = event.calculator)
+                    state.copy(token = event.token, projection = event.projection)
                 }
                 is Event.OnAppreciationUpdated -> { state -> state.copy(appreciation = event.appreciation) }
                 is Event.OnRateUpdated -> { state -> state.copy(rate = event.rate) }

@@ -19,7 +19,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.tokens.marketcap.ExplainerChart
+import com.flipcash.app.tokens.bondingcurve.ExplainerChart
 import com.getcode.theme.CodeTheme
 
 /**
