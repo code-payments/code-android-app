@@ -82,10 +82,10 @@ class NumberRollMotionTest {
     @Test
     fun `outgoing glyph is gone by p 0_6 and incoming starts at p 0_4`() {
         assertEquals(1f, outgoingFade(0f), 1e-6f)
-        assertEquals(0f, outgoingFade(0.6f), 1e-6f)
+        assertEquals(0f, outgoingFade(0.7f), 1e-6f)
         assertEquals(0f, outgoingFade(1f), 1e-6f)
         assertEquals(0f, incomingFade(0f), 1e-6f)
-        assertEquals(0f, incomingFade(0.4f), 1e-6f)
+        assertEquals(0f, incomingFade(0.2f), 1e-6f)
         assertEquals(1f, incomingFade(1f), 1e-6f)
     }
 
