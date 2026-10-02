@@ -72,7 +72,10 @@ interface ChatMetadataDao {
     suspend fun insertIfAbsent(entity: ChatMetadataEntity): Long
 
     /**
-     * Overwrites only the columns the server owns. `latest_event_sequence` and
+     * Overwrites only the columns the server owns, except that `last_activity_epoch_ms` and
+     * `last_message_id` are newer-wins: a feed response that was in flight while a stream event
+     * advanced the row is older than the row, and must not roll it back. Activity only moves
+     * forward (`MAX`); the message id is replaced only when strictly newer. `latest_event_sequence` and
      * `analytics_counted_through` are client-owned watermarks that no server payload
      * carries, so they are deliberately absent here. The roster and viewer-state columns
      * are absent too — they are versioned, and go through [updateRosterIfNewer] and
@@ -80,8 +83,10 @@ interface ChatMetadataDao {
      */
     @Query(
         "UPDATE chat_metadata SET chat_type = :chatType, " +
-            "last_activity_epoch_ms = :lastActivityEpochMs, " +
-            "last_message_id = :lastMessageId, " +
+            "last_activity_epoch_ms = MAX(last_activity_epoch_ms, :lastActivityEpochMs), " +
+            "last_message_id = CASE WHEN :lastMessageId IS NOT NULL " +
+            "AND :lastMessageId > COALESCE(last_message_id, 0) " +
+            "THEN :lastMessageId ELSE last_message_id END, " +
             "is_hidden = :isHidden, " +
             "title = :title, " +
             "picture_json = :pictureJson, " +
