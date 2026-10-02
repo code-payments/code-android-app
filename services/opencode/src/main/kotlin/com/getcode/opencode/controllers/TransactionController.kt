@@ -58,6 +58,8 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.reflect.KClass
+import kotlin.reflect.safeCast
 import kotlin.time.Clock
 import kotlin.time.Duration
 
@@ -565,6 +567,7 @@ class TransactionController @Inject constructor(
     ): Result<TransactionMetadata> = repository.getIntentMetadata(intentId, owner)
 
     suspend fun <T : TransactionMetadata> pollIntentMetadata(
+        type: KClass<T>,
         intentId: PublicKey,
         owner: KeyPair,
         maxAttempts: Int = 10,
@@ -612,14 +615,18 @@ class TransactionController @Inject constructor(
                                 type = TraceType.Process
                             )
                         }
-                        metadata
+                        type.safeCast(metadata)
+                            ?: throw GetIntentMetadataError.UnexpectedType(
+                                expected = type,
+                                actual = metadata::class,
+                            )
                     },
                     onFailure = { error ->
                         if (error is GetIntentMetadataError.Denied) throw error
                         null
                     }
                 )
-            }.mapNotNull { it as? T }
+            }
             .map { Result.success(it) }
             .catch { emit(Result.failure(it)) }
             .firstOrNull()

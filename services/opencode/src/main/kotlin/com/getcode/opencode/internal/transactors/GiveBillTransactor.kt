@@ -219,6 +219,7 @@ internal class GiveBillTransactor(
         ).fold(
             onSuccess = {
                 transactionController.pollIntentMetadata(
+                    type = TransactionMetadata.SendPublicPayment::class,
                     owner = sendingVault.authority.keyPair,
                     intentId = it.id
                 )

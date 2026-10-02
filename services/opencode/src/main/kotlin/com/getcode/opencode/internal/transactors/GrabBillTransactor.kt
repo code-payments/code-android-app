@@ -103,7 +103,7 @@ internal class GrabBillTransactor(
     private suspend fun handleMultiMintScan(
         ownerKey: AccountCluster,
         data: OpenCodePayload
-    ): Result<TransactionMetadata.SendPublicPayment> = timedTraceSuspend(
+    ): Result<TransactionMetadata.PublicPayment> = timedTraceSuspend(
         message = "handleMultiMintScan",
         tag = tag,
     ) { onStep ->
@@ -157,8 +157,15 @@ internal class GrabBillTransactor(
         onStep("createUserAccount (needed=$needsAccount)")
 
         // 4. Send grab request and wait for confirmation
-        val result = requestGrab<TransactionMetadata.SendPublicPayment>(tokenizedCluster, data)
-            .map { it.copy(verifiedExchangeData = exchangeData) }
+        // The server may report the grab as either side of the payment (iOS
+        // accepts both too), so apply the give request's exchange data to whichever arrives.
+        val result = requestGrab(tokenizedCluster, data)
+            .map { metadata ->
+                when (metadata) {
+                    is TransactionMetadata.SendPublicPayment -> metadata.copy(verifiedExchangeData = exchangeData)
+                    is TransactionMetadata.ReceivePublicPayment -> metadata.copy(verifiedExchangeData = exchangeData)
+                }
+            }
             .onSuccess {
                 // 5. Ack the receipt of the give request to clear it from the stream
                 messagingController.ackMessages(data.rendezvous, listOf(messageId))
@@ -172,10 +179,10 @@ internal class GrabBillTransactor(
         return logAndFail(error)
     }
 
-    private suspend fun <T : TransactionMetadata.PublicPayment> requestGrab(
+    private suspend fun requestGrab(
         owner: AccountCluster,
         data: OpenCodePayload
-    ): Result<T> {
+    ): Result<TransactionMetadata.PublicPayment> {
         return messagingController.sendRequestToGrabBill(
             destination = owner.vaultPublicKey,
             payload = data
@@ -183,6 +190,7 @@ internal class GrabBillTransactor(
             onSuccess = {
                 // 5. Wait for confirmation
                 transactionController.pollIntentMetadata(
+                    type = TransactionMetadata.PublicPayment::class,
                     owner = owner.authority.keyPair,
                     intentId = data.rendezvous.toPublicKey(),
                     debugLogs = true

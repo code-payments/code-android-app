@@ -9,9 +9,11 @@ import com.getcode.opencode.model.core.errors.SubmitIntentError.Signature
 import com.getcode.opencode.model.core.errors.SubmitIntentError.StaleState
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Unrecognized
 import com.getcode.opencode.model.transactions.SwapState
+import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ConditionallyNotifiable
 import com.getcode.utils.NotifiableError
+import kotlin.reflect.KClass
 
 sealed class CodeAccountCheckError(
     override val message: String? = null,
@@ -225,8 +227,23 @@ sealed class GetIntentMetadataError(
     class NotFound : GetIntentMetadataError("Not found")
     class Denied : GetIntentMetadataError("Denied")
     class Timeout : GetIntentMetadataError("Never received the desired metadata")
+    class UnexpectedType(
+        expected: KClass<out TransactionMetadata>,
+        actual: KClass<out TransactionMetadata>,
+    ) : GetIntentMetadataError("Expected ${expected.label()} metadata but received ${actual.label()}"), NotifiableError
     class Unrecognized : GetIntentMetadataError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : GetIntentMetadataError(message = cause?.message, cause = cause), NotifiableError
+}
+
+// R8 renames these classes in release builds, so the error message spells them out.
+private fun KClass<out TransactionMetadata>.label(): String = when (this) {
+    TransactionMetadata.OpenAccount::class -> "OpenAccount"
+    TransactionMetadata.PublicPayment::class -> "PublicPayment"
+    TransactionMetadata.SendPublicPayment::class -> "SendPublicPayment"
+    TransactionMetadata.ReceivePublicPayment::class -> "ReceivePublicPayment"
+    TransactionMetadata.PublicDistribution::class -> "PublicDistribution"
+    TransactionMetadata.Unknown::class -> "Unknown"
+    else -> "TransactionMetadata"
 }
 
 sealed class GetLimitsError(

@@ -8,7 +8,9 @@ import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.GiveRequest
+import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.solana.keys.Key32
 import com.getcode.solana.keys.Mint
@@ -21,6 +23,8 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.test.assertIs
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -159,6 +163,50 @@ class GrabBillTransactorTest {
         coVerify(exactly = 1) {
             accountController.createUserAccount(any(), eq(nonCoreMint))
         }
+    }
+
+    @Test
+    fun `MultiMintCash succeeds when the server reports the grab as a receive payment`() = runTest {
+        val transactor = createTransactor(this)
+        setupWithMultiMint(transactor)
+
+        val mint = Mint("nonCoreMint11111111111111111111111111111111")
+        val token = mockk<Token>(relaxed = true) {
+            every { address } returns mint
+        }
+        val giveExchangeData = mockk<ExchangeData.Verified>(relaxed = true)
+        val giveRequest = GiveRequest(
+            messageId = Key32.mock,
+            mint = mint,
+            exchangeData = giveExchangeData,
+            tokenMetadata = token
+        )
+        val received = TransactionMetadata.ReceivePublicPayment(
+            source = Key32.mock,
+            quarks = 639_538_459,
+            isIndirect = true,
+            exchangeData = mockk(relaxed = true),
+            mint = mint,
+        )
+
+        coEvery { messagingController.pollForGiveRequest(any()) } returns Result.success(giveRequest)
+        coEvery { accountController.hasAccountFor(mint) } returns true
+        coEvery { messagingController.sendRequestToGrabBill(any(), any()) } returns Result.success(Key32.mock)
+        coEvery {
+            transactionController.pollIntentMetadata(
+                type = TransactionMetadata.PublicPayment::class,
+                intentId = any(),
+                owner = any(),
+                maxAttempts = any(),
+                debugLogs = any(),
+            )
+        } returns Result.success(received)
+
+        val result = transactor.start()
+
+        val metadata = result.getOrThrow()
+        assertIs<TransactionMetadata.ReceivePublicPayment>(metadata)
+        assertSame(giveExchangeData, metadata.verifiedExchangeData)
     }
 
     // endregion
