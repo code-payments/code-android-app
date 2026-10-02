@@ -352,6 +352,13 @@ interface MessagingOperations {
     fun observeSenderProfiles(): Flow<Map<String, UserProfile>>
 
     /**
+     * The last read of the profiles [observeSenderProfiles] emits, or null before the first read
+     * lands. For a caller that must draw synchronously and would otherwise leave a group preview
+     * without its sender's name until the first emission.
+     */
+    fun currentSenderProfiles(): Map<String, UserProfile>?
+
+    /**
      * Asks for [userId]'s profile if nothing has asked already, for a sender the roster subset
      * does not cover or whose cached profile has no name. Returns immediately; the answer arrives
      * through [observeSenderProfiles].

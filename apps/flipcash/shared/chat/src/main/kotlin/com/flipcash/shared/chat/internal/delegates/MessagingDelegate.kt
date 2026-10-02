@@ -237,6 +237,8 @@ class MessagingDelegate @Inject constructor(
 
     override fun observeSenderProfiles(): Flow<Map<String, UserProfile>> = senderResolver.profiles
 
+    override fun currentSenderProfiles(): Map<String, UserProfile>? = senderResolver.cachedProfiles
+
     override fun requestSenderProfile(userId: ID) = senderResolver.request(userId)
 
     override fun observeOldestEncryptedMessageId(chatId: ChatId): Flow<Long?> =

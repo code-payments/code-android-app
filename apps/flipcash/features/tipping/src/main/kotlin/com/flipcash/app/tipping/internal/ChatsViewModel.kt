@@ -50,7 +50,7 @@ internal class ChatsViewModel @Inject constructor(
         fun conversations(
             summaries: List<ChatSummary>,
             tokens: List<Token>,
-            // Null on the first-frame draw, before the table has been read: asking then would
+            // Null on the first-frame draw if the table has not been read yet: asking then would
             // re-fetch every sender already on disk.
             senderProfiles: Map<String, UserProfile>?,
         ): List<ConversationReference> {
@@ -72,7 +72,13 @@ internal class ChatsViewModel @Inject constructor(
         chatCoordinator.currentChatListFeed()?.let { summaries ->
             dispatchEvent(
                 Event.ChatsUpdated(
-                    Loadable.Loaded(conversations(summaries, tokenCoordinator.cachedTokens(), null))
+                    Loadable.Loaded(
+                        conversations(
+                            summaries,
+                            tokenCoordinator.cachedTokens(),
+                            chatCoordinator.currentSenderProfiles(),
+                        )
+                    )
                 )
             )
         }
