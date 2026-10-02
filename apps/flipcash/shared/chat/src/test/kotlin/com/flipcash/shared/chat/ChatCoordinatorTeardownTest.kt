@@ -9,6 +9,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.ChatIdGenerator
@@ -17,6 +18,7 @@ import com.flipcash.shared.chat.internal.RealChatCoordinator
 import com.flipcash.shared.chat.internal.delegates.DmChatResolverDelegate
 import com.flipcash.shared.chat.internal.delegates.EventStreamDelegate
 import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
+import com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import com.getcode.utils.network.NetworkConnectivityListener
 import io.mockk.coEvery
@@ -50,6 +52,8 @@ class ChatCoordinatorTeardownTest {
     private lateinit var messageDataSource: ChatMessageDataSource
     private lateinit var memberDataSource: ChatMemberDataSource
     private lateinit var draftStore: ChatDraftStore
+    private lateinit var archiveStore: ChatArchiveStore
+    private lateinit var groupFeedDelegate: GroupFeedDelegate
     private lateinit var coordinator: RealChatCoordinator
 
     @Before
@@ -69,6 +73,8 @@ class ChatCoordinatorTeardownTest {
         messageDataSource = mockk(relaxed = true)
         memberDataSource = mockk(relaxed = true)
         draftStore = mockk(relaxed = true)
+        archiveStore = mockk(relaxed = true)
+        groupFeedDelegate = mockk(relaxed = true)
         val messagingController = mockk<ChatMessagingController>(relaxed = true)
         val stateHolder = ChatStateHolder()
 
@@ -117,8 +123,9 @@ class ChatCoordinatorTeardownTest {
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = TestDispatchers(TestCoroutineScheduler()),
-            groupFeedDelegate = mockk(relaxed = true),
+            groupFeedDelegate = groupFeedDelegate,
             reactionsDelegate = mockk(relaxed = true),
+            archiveStore = archiveStore,
         )
     }
 
@@ -158,5 +165,35 @@ class ChatCoordinatorTeardownTest {
         coordinator.clearCache()
 
         coVerify(exactly = 1) { draftStore.clearAll() }
+    }
+
+    /** Like drafts: logout keeps the set (the database is per-account), erasure wipes it. */
+    @Test
+    fun `clearCache drops the archive set, teardown keeps it`() = runTest {
+        coordinator.teardown()
+        coVerify(exactly = 0) { archiveStore.clearAll() }
+
+        coordinator.clearCache()
+        coVerify(exactly = 1) { archiveStore.clearAll() }
+    }
+
+    @Test
+    fun `a successful leave unarchives the chat`() = runTest {
+        val chatId = ChatId("aabbccdd")
+        coEvery { groupFeedDelegate.leave(chatId) } returns Result.success(Unit)
+
+        coordinator.leave(chatId)
+
+        coVerify(exactly = 1) { archiveStore.unarchive(chatId) }
+    }
+
+    @Test
+    fun `a failed leave keeps the archive record`() = runTest {
+        val chatId = ChatId("aabbccdd")
+        coEvery { groupFeedDelegate.leave(chatId) } returns Result.failure(RuntimeException("nope"))
+
+        coordinator.leave(chatId)
+
+        coVerify(exactly = 0) { archiveStore.unarchive(any()) }
     }
 }

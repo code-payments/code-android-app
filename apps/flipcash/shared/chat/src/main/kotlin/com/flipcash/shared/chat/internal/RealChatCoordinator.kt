@@ -10,6 +10,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatState
@@ -94,6 +95,7 @@ class RealChatCoordinator @Inject constructor(
     private val userManager: UserManager,
     private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
+    private val archiveStore: ChatArchiveStore = ChatArchiveStore.None,
 ) : ChatCoordinator,
     SessionListener,
     DefaultLifecycleObserver,
@@ -311,7 +313,14 @@ class RealChatCoordinator @Inject constructor(
      * the draft is what it was.
      */
     override suspend fun leave(chatId: ChatId): Result<Unit> =
-        groupFeedDelegate.leave(chatId).onSuccess { draftStore.clear(chatId) }
+        groupFeedDelegate.leave(chatId).onSuccess {
+            draftStore.clear(chatId)
+            // Leaving clears archive the way it clears mute (rule 5). A remote leave, from another
+            // device, arrives through GroupFeedDelegate's roster path, which has no store: the
+            // record is left behind, harmlessly, because the chat is no longer a member chat and
+            // so is in neither feed.
+            archiveStore.unarchive(chatId)
+        }
 
     /**
      * Fetches both halves of the conversation list.
@@ -350,6 +359,7 @@ class RealChatCoordinator @Inject constructor(
         // same reason the transcript does — the database is per-account, so the next login reopens
         // the same file — and account deletion is the one path that is meant to erase them.
         draftStore.clearAll()
+        archiveStore.clearAll()
         trace(tag = TAG, message = "cache cleared", type = TraceType.Process)
     }
 
