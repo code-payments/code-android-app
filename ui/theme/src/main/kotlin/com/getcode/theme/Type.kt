@@ -35,6 +35,7 @@ data class CodeTypography(
     val displayExtraLarge: TextStyle,
     val displayLarge: TextStyle,
     val displayMedium: TextStyle,
+    val displayCompact: TextStyle,
     val displaySmall: TextStyle,
     val displayExtraSmall: TextStyle,
     val keyboard: TextStyle,
@@ -75,6 +76,12 @@ val codeTypography = CodeTypography(
         fontFamily = Avenir,
         fontSize = 40.sp,
         fontWeight = FontWeight.Medium,
+    ),
+    // Mirrors iOS appDisplayCompact (30 Bold).
+    displayCompact = TextStyle(
+        fontFamily = Avenir,
+        fontSize = 30.sp,
+        fontWeight = FontWeight.Bold,
     ),
     displaySmall = TextStyle(
         fontFamily = Avenir,
