@@ -257,7 +257,6 @@ include(
     ":ui:biometrics",
     ":ui:core",
     ":ui:components",
-    ":ui:emojis",
     ":ui:navigation",
     ":ui:resources",
     ":ui:scanner",

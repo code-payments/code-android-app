@@ -35,7 +35,6 @@ graph TD
 | `:ui:navigation` | The navigation runtime used by the app: `CodeNavigator`, `BaseViewModel`, flow-route types. (See [02](02-state-and-dependency-injection.md) and [03](03-navigation.md).) |
 | `:ui:scanner` | Camera preview and Kik-code capture surface used by the scanner feature. |
 | `:ui:biometrics` | `rememberBiometricsState` and `LocalBiometricsState` for gating sensitive screens. |
-| `:ui:emojis` | Emoji rendering/lookup helpers. |
 | `:ui:testing` | Compose test utilities and `LocalUiTesting` for UI-test affordances. |
 
 ## How features consume the UI layer
@@ -45,7 +44,7 @@ Feature modules don't declare the UI layer by hand — the
 `:ui:navigation`, `:ui:resources`, and `:ui:theme` automatically (see
 [01](01-modules-and-boundaries.md)). So a screen can use the shared components and
 theme tokens immediately, and only adds an explicit dependency for the less common
-pieces (`:ui:scanner`, `:ui:biometrics`, `:ui:emojis`).
+pieces (`:ui:scanner`, `:ui:biometrics`).
 
 ## Compose conventions
 
