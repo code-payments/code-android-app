@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.app.core.money.formattedAppreciation
+import com.flipcash.app.core.util.abbreviated
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tokens.bondingcurve.ExplainerChart
 import com.flipcash.app.tokens.bondingcurve.ExplainerChartPoint
@@ -93,39 +94,33 @@ internal fun MarketCapExplainerContent(state: MarketCapExplainerViewModel.State)
         derivedStateOf { projection.snapshotAt(position.toDouble()) }
     }
     val chart by remember(projection, snapshot) { derivedStateOf { projection.chart(snapshot) } }
-    val ownership = remember(projection) { projection.ownership() }
 
-    // The curve stays in USD; only what is drawn is converted to the preferred currency.
-    val currency = remember(state.rate) { ExplainerCurrency(state.rate) }
-    val reserveText = currency.reserve(snapshot.reserve)
+    // The labels that follow the finger are derived here; the fixed ones come formatted from the
+    // view model. The curve stays in USD and only what is drawn is converted.
+    val labels = state.labels ?: return
+    val reserveText = Fiat(snapshot.reserve.toDouble()).convertingTo(state.rate).abbreviated()
     val scrubLabel = if (snapshot.isToday) stringResource(R.string.label_marketCapScrubToday, reserveText) else reserveText
     val appreciation = state.appreciation
-    val appreciationText = appreciation?.formattedAppreciation() ?: Dash
-    val appreciationTone = appreciationTone(appreciation)
 
     val model = ExplainerUiModel(
         tokenName = token.name,
         position = position,
         ticks = projection.ticks,
-        tickLabels = projection.ticks.associateWith { currency.reserve(it.reserve) },
+        tickLabels = labels.ticks,
         reserveText = reserveText,
-        worthText = snapshot.worth?.let { currency.convert(it).formatted() } ?: Dash,
+        worthText = snapshot.worth?.convertingTo(state.rate)?.formatted() ?: Dash,
         chart = chart,
         scrubLabel = scrubLabel,
         ownership = listOf(
+            OwnershipRow(R.string.label_underlyingTokensYouOwn, labels.tokensHeld ?: Dash),
+            OwnershipRow(R.string.label_currentPricePerToken, labels.price),
+            OwnershipRow(R.string.label_shareOfCirculatingSupply, labels.shareOfCirculating ?: Dash),
+            OwnershipRow(R.string.label_shareOfMaxSupply, labels.shareOfMax ?: Dash),
             OwnershipRow(
-                R.string.label_underlyingTokensYouOwn,
-                ownership.tokensHeld
-                    ?.let { java.text.NumberFormat.getIntegerInstance().format(it.setScale(0, java.math.RoundingMode.DOWN)) }
-                    ?: Dash,
+                R.string.label_yourCurrentAppreciation,
+                appreciation?.formattedAppreciation() ?: Dash,
+                appreciationTone(appreciation),
             ),
-            OwnershipRow(R.string.label_currentPricePerToken, currency.price(ownership.price)),
-            OwnershipRow(
-                R.string.label_shareOfCirculatingSupply,
-                ownership.shareOfCirculating?.let(ExplainerFormat::percent) ?: Dash,
-            ),
-            OwnershipRow(R.string.label_shareOfMaxSupply, ownership.shareOfMax?.let(ExplainerFormat::percent) ?: Dash),
-            OwnershipRow(R.string.label_yourCurrentAppreciation, appreciationText, appreciationTone),
         ),
     )
     MarketCapExplainerBody(

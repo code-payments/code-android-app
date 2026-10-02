@@ -26,6 +26,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
+import java.math.BigDecimal
+import java.math.MathContext
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -168,4 +170,42 @@ class MarketCapExplainerViewModelTest {
 
             assertNull(vm.stateFlow.value.appreciation)
         }
+
+    @Test
+    fun `fixed labels are formatted in the preferred currency and follow a rate change`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val vm = newVm()
+            vm.dispatchEvent(MarketCapExplainerViewModel.Event.OnMintProvided(mint))
+            advanceUntilIdle()
+            val usdTicks = assertNotNull(vm.stateFlow.value.labels).ticks
+            assertEquals("$5K", usdTicks.entries.first { it.key.reserve.compareTo(BigDecimal(5_000)) == 0 }.value)
+
+            rate.value = Rate(fx = 0.5, currency = CurrencyCode.EUR)
+            advanceUntilIdle()
+
+            val labels = assertNotNull(vm.stateFlow.value.labels)
+            val byReserve = labels.ticks.mapKeys { it.key.reserve.toInt() }
+            // 5,000 USD is 2,500 EUR; 10M USD is 5M EUR.
+            assertEquals("\u20ac2.5K", byReserve[5_000])
+            assertEquals("\u20ac5M", byReserve[10_000_000])
+            assertEquals("12,400", labels.tokensHeld)
+        }
+
+    @Test
+    fun `price keeps four significant figures in the preferred currency`() {
+        assertEquals("$0.02994", MarketCapExplainerViewModel.price(BigDecimal("0.02994"), Rate.oneToOne))
+        // 0.02994 USD is 0.01497 EUR.
+        assertEquals("\u20ac0.01497", MarketCapExplainerViewModel.price(BigDecimal("0.02994"), Rate(fx = 0.5, currency = CurrencyCode.EUR)))
+        assertEquals("\u00a54.491", MarketCapExplainerViewModel.price(BigDecimal("0.02994"), Rate(fx = 150.0, currency = CurrencyCode.JPY)))
+    }
+
+    @Test
+    fun `a tiny non-zero share reads as less than a hundredth of a percent`() {
+        val share = BigDecimal(597).multiply(BigDecimal(100)).divide(BigDecimal(21_000_000), MathContext(20))
+        assertEquals("<0.01%", MarketCapExplainerViewModel.percent(share))
+        assertEquals("<0.01%", MarketCapExplainerViewModel.percent(BigDecimal("0.0099")))
+        assertEquals("0.01%", MarketCapExplainerViewModel.percent(BigDecimal("0.01")))
+        assertEquals("0.99%", MarketCapExplainerViewModel.percent(BigDecimal("0.992")))
+        assertEquals("0%", MarketCapExplainerViewModel.percent(BigDecimal.ZERO))
+    }
 }
