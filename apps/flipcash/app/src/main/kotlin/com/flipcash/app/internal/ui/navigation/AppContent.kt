@@ -1,5 +1,20 @@
 package com.flipcash.app.internal.ui.navigation
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import com.flipcash.app.internal.ui.AppNavigationBarVisibility
+import com.flipcash.app.internal.ui.rememberAppNavigationBarVisibility
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.toast.FloatingToastHost
+import com.getcode.ui.components.toast.FloatingToastHostState
+import com.getcode.ui.components.toast.LocalFloatingToastHost
+import dev.chrisbanes.haze.HazeState
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
@@ -98,6 +113,12 @@ internal fun AppContent(
     // Lets a tab home hide the bar without leaving its route — the You tab's tip card expands to
     // full screen in place, so there's no route change for the visibility rule below to notice.
     val tabBarVisibility = remember { TabBarVisibilityController() }
+    val barVisibility = rememberAppNavigationBarVisibility(codeNavigator, tabBarVisibility, cardExpansion)
+
+    // Toasts float with the bar, so they are hosted here rather than per screen: outside the haze
+    // source, so their glass has the nav content to blur, and under the bar in z, so a toast can grow
+    // out from behind it.
+    val toasts = remember { FloatingToastHostState() }
 
     // A tab press replaces the whole back stack (tab-bar semantics — see AppNavigationBar), so every
     // tab home was destroyed and rebuilt on each switch: the wallet re-fetched its balances and the
@@ -124,6 +145,7 @@ internal fun AppContent(
     CompositionLocalProvider(
         LocalCardExpansion provides cardExpansion,
         LocalTabBarVisibility provides tabBarVisibility,
+        LocalFloatingToastHost provides toasts,
     ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Mark the nav content as the haze source so the frosted bar blurs whatever scrolls beneath it.
@@ -222,15 +244,23 @@ internal fun AppContent(
             )
         }
 
+        // Composed before the bar, so the bar draws over a toast rising out of it.
+        AppToastHost(
+            hostState = toasts,
+            barVisibility = barVisibility,
+            barHeight = { tabBarHeight.value },
+            hazeState = hazeState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+
         // Single persistent bottom overlay. Latch the tallest measured height so the reserved inset
         // stays stable when the bar hides for a modal/bill.
         AppNavigationBar(
             navigator = codeNavigator,
-            hazeState = hazeState,
-            forceHidden = tabBarVisibility.isHidden,
             // The bar fades itself out with the wallet's card expansion — and drops out of the tree at
             // the end of the fade, so an invisible bar can't be tapped. See AppNavigationBar.
-            cardExpansion = cardExpansion,
+            visibility = barVisibility,
+            hazeState = hazeState,
             canSwitchAccounts = canSwitchAccounts,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -243,4 +273,31 @@ internal fun AppContent(
         // wallet entry's own composition churn on push/pop.
     }
     }
+}
+
+/**
+ * The root toast host. Over a visible navigation bar a toast rests a little above it and grows out
+ * of it; with no bar it sits where the bar would, above the system navigation bar, and slides up.
+ */
+@Composable
+private fun AppToastHost(
+    hostState: FloatingToastHostState,
+    barVisibility: AppNavigationBarVisibility,
+    barHeight: () -> Dp,
+    hazeState: HazeState,
+    modifier: Modifier = Modifier,
+) {
+    val risesFromBar = barVisibility.isVisible
+    val gap = CodeTheme.dimens.grid.x2
+    val systemBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bottom by animateDpAsState(
+        targetValue = if (risesFromBar) barHeight() + gap else systemBottom + CodeTheme.dimens.grid.x3,
+        label = "toastBottom",
+    )
+    FloatingToastHost(
+        hostState = hostState,
+        risesFromBar = risesFromBar,
+        hazeState = hazeState,
+        modifier = modifier.offset { IntOffset(0, -bottom.roundToPx()) },
+    )
 }

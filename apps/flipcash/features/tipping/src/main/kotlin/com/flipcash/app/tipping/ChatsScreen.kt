@@ -15,7 +15,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.SnackbarResult
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
@@ -35,10 +34,6 @@ import com.flipcash.app.tipping.internal.chipReveal
 import com.flipcash.app.tipping.internal.chipVisibleFraction
 import com.flipcash.shared.chat.ChatListFilter
 import com.getcode.ui.components.FilterChip
-import com.getcode.ui.components.snack.SnackData
-import com.getcode.ui.components.snack.showSnackbar
-import com.getcode.ui.theme.CodeSnackbar
-import com.getcode.ui.theme.CodeSnackbarHost
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -90,6 +85,7 @@ import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.rememberIsMuted
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.toast.LocalFloatingToastHost
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SwipeAction
@@ -150,7 +146,8 @@ fun ChatsScreen() {
     }
     // One row open at a time: swiping another row closes the one left revealed.
     val revealGroup = rememberSwipeRevealGroup()
-    val scaffoldState = rememberScaffoldState()
+    // The root toast host, so the undo rises out of the tab bar on its glass.
+    val toasts = LocalFloatingToastHost.current
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
     val archivedMessage = stringResource(R.string.message_chatArchived)
@@ -158,7 +155,6 @@ fun ChatsScreen() {
     val tabBarPadding = LocalTabBarPadding.current.calculateBottomPadding()
 
     CodeScaffold(
-        scaffoldState = scaffoldState,
         // The list runs the full height and passes under the title bar, which fades it out against
         // the background at its own edge — the same treatment the chat screen gives its message
         // list, rather than cutting the list off at the bar.
@@ -191,13 +187,6 @@ fun ChatsScreen() {
                     AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
                 },
             )
-        },
-        // The tab bar is hoisted, so without this the snackbar draws underneath it.
-        snackbarHost = { hostState ->
-            CodeSnackbarHost(hostState, modifier = Modifier.padding(bottom = tabBarPadding)) { data ->
-                // Every toast on this screen is the archive undo.
-                CodeSnackbar(snackbarData = data, icon = Icons.Outlined.Archive)
-            }
         },
     ) { barPadding ->
         LazyColumn(
@@ -308,10 +297,15 @@ fun ChatsScreen() {
                     onArchive = { chat ->
                         viewModel.archive(chat.chatId)
                         // The row leaves the list at once, so offer to put it back.
-                        scope.launch {
-                            val host = scaffoldState.snackbarHostState
-                            val result = host.showSnackbar(SnackData(message = archivedMessage, actionLabel = undoLabel))
-                            if (result == SnackbarResult.ActionPerformed) viewModel.unarchive(chat.chatId)
+                        if (toasts != null) {
+                            scope.launch {
+                                val result = toasts.show(
+                                    message = archivedMessage,
+                                    icon = Icons.Outlined.Archive,
+                                    actionLabel = undoLabel,
+                                )
+                                if (result == SnackbarResult.ActionPerformed) viewModel.unarchive(chat.chatId)
+                            }
                         }
                     },
                     revealGroup = revealGroup,
