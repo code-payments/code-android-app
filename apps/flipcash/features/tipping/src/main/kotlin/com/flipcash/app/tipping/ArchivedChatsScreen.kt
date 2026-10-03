@@ -74,6 +74,7 @@ private fun ArchivedChatsContent(
         topBar = {
             AppBarWithTitle(
                 title = stringResource(R.string.title_archived),
+                titleAlignment = Alignment.CenterHorizontally,
                 onBackIconClicked = onBack,
             )
         },
