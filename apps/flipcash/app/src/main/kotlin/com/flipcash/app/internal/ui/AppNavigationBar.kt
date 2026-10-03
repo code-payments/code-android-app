@@ -35,6 +35,7 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.user.AuthState
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.Sheet
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.glass.FloatingChrome
@@ -105,6 +106,17 @@ internal class AppNavigationBarVisibility(
      * recomposes on the two frames the boolean flips rather than once per frame of the expansion.
      */
     val fadedOut: Boolean by derivedStateOf { fadeProgress >= 1f }
+
+    /**
+     * A sheet, the bill or a bottom-bar prompt is up. Each renders inside the nav content, below the
+     * root toast host in z, so a toast is dismissed while one is up rather than drawn over it. An
+     * ordinary push hides the bar but covers nothing, so it is not counted.
+     */
+    val coversToast: Boolean by derivedStateOf {
+        navigator.currentRouteKey is Sheet ||
+            bottomBarMessages.value.isNotEmpty() ||
+            billUp.value
+    }
 
     /** On screen and not faded out by a card expansion. */
     val isVisible: Boolean get() = shown && !fadedOut

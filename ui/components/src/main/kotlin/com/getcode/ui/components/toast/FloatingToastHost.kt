@@ -81,6 +81,18 @@ class FloatingToastHostState {
     var current: FloatingToastData? by mutableStateOf(null)
         private set
 
+    /**
+     * Whether something that must not be drawn over (a sheet, a modal, a prompt) is on screen above
+     * the host. Covering dismisses the toast on screen, and a toast shown while covered is dismissed
+     * without appearing: a toast left on top would take that layer's taps, and one hidden beneath it
+     * would time out unseen with its action unreachable.
+     */
+    var isCovered: Boolean = false
+        set(value) {
+            field = value
+            if (value) current?.dismiss()
+        }
+
     private var nextSlot = 0L
 
     /**
@@ -102,6 +114,7 @@ class FloatingToastHostState {
         inPlace: Boolean = false,
         duration: SnackbarDuration = SnackbarDuration.Short,
     ): SnackbarResult {
+        if (isCovered) return SnackbarResult.Dismissed
         val previous = current
         val data = FloatingToastData(
             message = message,

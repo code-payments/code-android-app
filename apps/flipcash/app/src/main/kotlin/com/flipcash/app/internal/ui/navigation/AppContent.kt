@@ -119,6 +119,11 @@ internal fun AppContent(
     // source, so their glass has the nav content to blur, and under the bar in z, so a toast can grow
     // out from behind it.
     val toasts = remember { FloatingToastHostState() }
+    // The host draws above the nav content, so it must stand down while a sheet, the bill or a
+    // bottom-bar prompt is up there rather than float over it and take its taps.
+    LaunchedEffect(toasts, barVisibility) {
+        snapshotFlow { barVisibility.coversToast }.collect { toasts.isCovered = it }
+    }
 
     // A tab press replaces the whole back stack (tab-bar semantics — see AppNavigationBar), so every
     // tab home was destroyed and rebuilt on each switch: the wallet re-fetched its balances and the
