@@ -2,15 +2,14 @@ package com.getcode.ui.components.toast
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -26,12 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -40,7 +37,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.dismiss
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.lerp
 import com.getcode.ui.components.glass.FloatingChrome
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.CompletableDeferred
@@ -148,10 +144,9 @@ val LocalFloatingToastHost = staticCompositionLocalOf<FloatingToastHostState?> {
  * never wider than it. Place it at the bottom of the screen, above the bar, and compose it *before*
  * the bar so the bar draws over it.
  *
- * While [risesFromBar], a toast grows up out of the bar: it starts squashed against its bottom edge
- * and pushed down behind the bar, and settles above it. Otherwise it slides up from the bottom. It
- * leaves the way it came. A [SnackbarDuration.Short] toast stays 4 seconds, or longer when the
- * accessibility settings ask for more time, and a swipe down dismisses it unless it passes through.
+ * A toast slides up by its own height while fading in, and leaves the same way in reverse. A
+ * [SnackbarDuration.Short] toast stays 4 seconds, or longer when the accessibility settings ask for
+ * more time, and a swipe down dismisses it unless it passes through.
  *
  * [hazeState] must not belong to a `hazeSource` that contains this host.
  */
@@ -159,7 +154,6 @@ val LocalFloatingToastHost = staticCompositionLocalOf<FloatingToastHostState?> {
 fun FloatingToastHost(
     hostState: FloatingToastHostState,
     modifier: Modifier = Modifier,
-    risesFromBar: Boolean = false,
     hazeState: HazeState? = null,
 ) {
     val current = hostState.current
@@ -181,10 +175,6 @@ fun FloatingToastHost(
         current.dismiss()
     }
 
-    // Read in the draw phase, so a bar that hides mid-toast changes how it leaves without recomposing.
-    val rises by rememberUpdatedState(risesFromBar)
-    val riseDistance = with(LocalDensity.current) { RiseDistance.toPx() }
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -195,7 +185,8 @@ fun FloatingToastHost(
             targetState = current,
             contentKey = { it?.slot },
             transitionSpec = {
-                fadeIn(tween(EnterFadeMillis)) togetherWith fadeOut(tween(ExitFadeMillis)) using
+                // The motion lives on the progress below, so entering and leaving share one curve.
+                EnterTransition.None togetherWith ExitTransition.None using
                     // Content draws unclipped, so the container has nothing to animate.
                     SizeTransform(clip = false) { _, _ -> snap() }
             },
@@ -221,13 +212,8 @@ fun FloatingToastHost(
 
             val motion = Modifier.graphicsLayer {
                 val p = progress.value
-                if (rises) {
-                    transformOrigin = TransformOrigin(0.5f, 1f)
-                    scaleY = lerp(RiseStartScaleY, 1f, p)
-                    translationY = (1f - p) * riseDistance
-                } else {
-                    translationY = (1f - p) * size.height
-                }
+                alpha = p
+                translationY = (1f - p) * size.height
             }
             SwipeToDismiss(data, motion) {
                 FloatingToast(
@@ -288,7 +274,3 @@ private fun SwipeToDismiss(
 
 // How far below its resting place a rising toast starts: enough to tuck its squashed bottom edge
 // behind the bar it grows out of.
-private val RiseDistance = 20.dp
-private const val RiseStartScaleY = 0.2f
-private const val EnterFadeMillis = 180
-private const val ExitFadeMillis = 150

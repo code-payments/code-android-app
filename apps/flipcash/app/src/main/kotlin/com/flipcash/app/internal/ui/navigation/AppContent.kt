@@ -281,8 +281,8 @@ internal fun AppContent(
 }
 
 /**
- * The root toast host. Over a visible navigation bar a toast rests a little above it and grows out
- * of it; with no bar it sits where the bar would, above the system navigation bar, and slides up.
+ * The root toast host. Over a visible navigation bar a toast rests a little above it; with no bar it
+ * sits where the bar would, above the system navigation bar.
  */
 @Composable
 private fun AppToastHost(
@@ -292,16 +292,14 @@ private fun AppToastHost(
     hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
-    val risesFromBar = barVisibility.isVisible
     val gap = CodeTheme.dimens.grid.x2
     val systemBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottom by animateDpAsState(
-        targetValue = if (risesFromBar) barHeight() + gap else systemBottom + CodeTheme.dimens.grid.x3,
+        targetValue = if (barVisibility.isVisible) barHeight() + gap else systemBottom + CodeTheme.dimens.grid.x3,
         label = "toastBottom",
     )
     FloatingToastHost(
         hostState = hostState,
-        risesFromBar = risesFromBar,
         hazeState = hazeState,
         modifier = modifier.offset { IntOffset(0, -bottom.roundToPx()) },
     )
