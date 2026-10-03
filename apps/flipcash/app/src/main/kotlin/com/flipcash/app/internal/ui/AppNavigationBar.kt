@@ -44,16 +44,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /**
- * The hoisted navigation bar — root chrome, not owned by any screen. It renders over whichever
- * top-level route is a tab home and switches tabs by **swapping the current screen** (single
- * backstack, like a tab bar — hence [CodeNavigator.replaceAll], not a sheet).
- *
- * Only visible when the current route maps to a tab.
- *
- * Self-positions as a full-size, touch-transparent overlay pinned to the bottom, so it can be
- * dropped into any container (it does not require a BoxScope from its caller).
- */
-/**
  * Whether the hoisted navigation bar is on screen, read by the bar itself and by the toast that rises
  * out of it, so both answer the same way.
  *
