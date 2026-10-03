@@ -26,6 +26,7 @@ dependencies {
     implementation(libs.coil3.core)
 
     implementation(libs.androidx.datastore)
+    implementation(libs.androidx.lifecycle.process)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.robolectric)

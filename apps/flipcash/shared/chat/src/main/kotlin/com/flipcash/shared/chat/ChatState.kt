@@ -23,6 +23,9 @@ data class ChatState(
     val feedSyncState: FeedSyncState = FeedSyncState.Idle,
     val historyHydration: ChatHydrationState = ChatHydrationState.Unknown,
     val activeChat: ChatId? = null,
+    // The chats the viewer archived, read in the same combine that builds [feed] so the feed and
+    // the archive set always change together. `feed` and `archivedFeed` split on it.
+    val archived: Set<ChatId> = emptySet(),
 )
 
 data class ChatSummary(

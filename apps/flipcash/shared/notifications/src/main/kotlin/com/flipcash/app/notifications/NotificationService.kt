@@ -17,6 +17,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
@@ -27,6 +29,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
+import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -127,6 +130,12 @@ class NotificationService : FirebaseMessagingService(),
     @Inject
     lateinit var chatMetadataDataSource: ChatMetadataDataSource
 
+    @Inject
+    lateinit var archiveStore: ChatArchiveStore
+
+    @Inject
+    lateinit var pushMessageClassifier: PushMessageClassifier
+
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
     //  Tracking: https://github.com/firebase/firebase-android-sdk/issues/8087
@@ -158,6 +167,8 @@ class NotificationService : FirebaseMessagingService(),
             .takeIf { it.isNotEmpty() }
             ?.let { NotificationPayload.fromEncoded(it) }
 
+        // Planned without the archive inputs: they come from the per-user database, which a cold
+        // start from a push has not opened yet. The post path re-decides once authenticated.
         val actions = planPushHandling(
             title = title,
             body = body,
@@ -226,13 +237,14 @@ class NotificationService : FirebaseMessagingService(),
             launch {
                 try {
                     if (syncContacts) launch { contactCoordinator.sync() }
-                    if (post != null) {
+                    val decided = post?.let { applyArchiveOrPost(it) }
+                    if (decided != null) {
                         val resolvedTitle =
-                            applySubstitutions(post.title, post.payload?.titleSubstitutions.orEmpty())
-                        val resolvedBody = post.body?.let {
-                            applySubstitutions(it, post.payload?.bodySubstitutions.orEmpty())
+                            applySubstitutions(decided.title, decided.payload?.titleSubstitutions.orEmpty())
+                        val resolvedBody = decided.body?.let {
+                            applySubstitutions(it, decided.payload?.bodySubstitutions.orEmpty())
                         }
-                        postNotification(resolvedTitle, resolvedBody, post.payload)
+                        postNotification(resolvedTitle, resolvedBody, decided.payload, decided.silent)
                     }
                 } catch (e: Exception) {
                     trace(tag = "NotificationService", message = "Failed to handle push", error = e)
@@ -241,7 +253,54 @@ class NotificationService : FirebaseMessagingService(),
         }
     }
 
-    private suspend fun postNotification(title: String, body: String?, payload: NotificationPayload?) {
+    /**
+     * [applyArchive], falling back to [post] unchanged if it fails: a broken archive read must not
+     * drop the notification. An archived chat may then notify loudly, which is the safer miss.
+     */
+    private suspend fun applyArchiveOrPost(post: PushAction.PostNotification): PushAction.PostNotification? =
+        try {
+            applyArchive(post)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            trace(tag = "NotificationService", message = "Couldn't apply archive to a push", error = e)
+            post
+        }
+
+    /**
+     * Re-decides [post] for an archived chat. Runs after authentication, because the archive and
+     * the viewer's username, account id and stored messages all live in the per-user database and
+     * user state that sign-in opens; read earlier, an archived chat would look unarchived and
+     * post loudly. A chat that is not archived costs one primary-key read and keeps [post] as is.
+     */
+    private suspend fun applyArchive(post: PushAction.PostNotification): PushAction.PostNotification? {
+        val chatId = (post.payload?.navigation as? NavigationTrigger.Chat.ById)?.chatId ?: return post
+        if (!archiveStore.isArchived(chatId)) return post
+        val classification = pushMessageClassifier.classify(chatId, post.payload.chatMetadata)
+        return planNotification(
+            title = post.title,
+            body = post.body,
+            payload = post.payload,
+            archived = true,
+            mentionsViewer = classification.mentionsViewer,
+            repliesToViewer = classification.repliesToViewer,
+        )
+    }
+
+    /** Whether any of the app's activities is visible, as iOS's foreground delegate sees it. */
+    private fun isAppInForeground(): Boolean =
+        ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+
+    /**
+     * @param silent post without sound, vibration or heads-up, and not at all while the app is in
+     *   the foreground: an archived chat's message that is not addressed to the viewer.
+     */
+    private suspend fun postNotification(
+        title: String,
+        body: String?,
+        payload: NotificationPayload?,
+        silent: Boolean = false,
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED
@@ -260,6 +319,9 @@ class NotificationService : FirebaseMessagingService(),
         }
 
         if (chatId != null && chatCoordinator.isActiveChat(chatId)) return
+        // iOS suppresses a passive push entirely while the app is in front; the chat list already
+        // shows the message.
+        if (silent && isAppInForeground()) return
 
         // Resolved once, here, because the tap target and the message style both turn on what
         // kind of chat this is and neither can take the payload's word for it.
@@ -276,8 +338,18 @@ class NotificationService : FirebaseMessagingService(),
         val group = planNotificationGroup(payloadGroupKey = groupKey, isChat = isChat)
 
         val builder = NotificationCompat.Builder(this, channel.id)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+            .apply {
+                if (silent) {
+                    // androidx implements this by giving the notification GROUP_ALERT_SUMMARY (and
+                    // the GROUP_KEY_SILENT group when it has none), so it never alerts whatever the
+                    // channel's importance: no sound, vibration or heads-up, the shade only. The
+                    // group summary below is GROUP_ALERT_CHILDREN, so it stays quiet too.
+                    setSilent(true)
+                } else {
+                    setPriority(NotificationCompat.PRIORITY_HIGH)
+                    setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                }
+            }
             .setSmallIcon(R.drawable.flipcash_logo)
             .setColor(getColor(R.color.notification_color))
             .setAutoCancel(true)

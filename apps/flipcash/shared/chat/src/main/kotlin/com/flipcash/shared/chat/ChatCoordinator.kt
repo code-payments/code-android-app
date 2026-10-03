@@ -29,6 +29,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/** The main and archived lists from one read of the feed. See [FeedOperations.feedWithArchived]. */
+data class ChatFeeds(val main: List<ChatSummary>, val archived: List<ChatSummary>)
+
 /**
  * Feed-level operations: observing the conversation list and its unread state.
  *
@@ -51,6 +54,25 @@ interface FeedOperations {
 
     /** Emits the number of conversations of any of [chatTypes] that have unread messages. */
     fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int>
+
+    /**
+     * [feed]'s counterpart: the same rows for the chats the viewer archived, newest first. Emits
+     * nothing until the list is known, like [feed].
+     */
+    fun archivedFeed(vararg chatTypes: ChatType): Flow<List<ChatSummary>>
+
+    /** [currentFeed]'s counterpart for archived chats. */
+    fun currentArchivedFeed(vararg chatTypes: ChatType): List<ChatSummary>?
+
+    /**
+     * [feed] and [archivedFeed] read from one state, for a screen that draws both. Collecting the
+     * two separately can pair a new main list with a stale archived one: archiving the last main
+     * chat would briefly show both empty. Emits only when either list changes.
+     */
+    fun feedWithArchived(vararg chatTypes: ChatType): Flow<ChatFeeds>
+
+    /** [feedWithArchived]'s current value, or null while it would emit nothing yet. */
+    fun currentFeedWithArchived(vararg chatTypes: ChatType): ChatFeeds?
 
     /**
      * The same conversations as [feed], paged.
@@ -395,6 +417,15 @@ interface MessagingOperations {
      * notification keeps the server's body. Nothing is stored; the push's sync work does that.
      */
     suspend fun openPushedMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): String?
+
+    /**
+     * The end-to-end encrypted message a push is for, opened on this device, with its content in
+     * the clear, so the push can be read for what it is (a reply, a mention) and not just shown.
+     * Resolves [message] or [messageId] the way [openPushedMessage] does.
+     *
+     * `null` when the message isn't encrypted or can't be opened or fetched. Nothing is stored.
+     */
+    suspend fun openPushedChatMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): ChatMessage?
 
     /**
      * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].

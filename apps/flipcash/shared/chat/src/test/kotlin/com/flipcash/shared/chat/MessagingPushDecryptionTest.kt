@@ -90,6 +90,21 @@ class MessagingPushDecryptionTest {
     }
 
     @Test
+    fun `an opened reply keeps the message it cites`() = runTest {
+        val reply = MessageContent.Reply(repliedMessageId = 2, content = listOf(MessageContent.Text("yes")))
+        val pushed = message(sealedFromPeer(reply))
+
+        val opened = delegate.openPushedChatMessage(chatId, pushed, messageId = null)
+
+        assertEquals(listOf<MessageContent>(reply), opened?.content)
+    }
+
+    @Test
+    fun `a message that isn't encrypted is not opened`() = runTest {
+        assertNull(delegate.openPushedChatMessage(chatId, message(MessageContent.Text("hi")), messageId = null))
+    }
+
+    @Test
     fun `an id-only push fetches the message when it isn't stored`() = runTest {
         val fetched = message(sealedFromPeer(MessageContent.Text("long one")), id = 9)
         coEvery { messageDataSource.getMessage(chatId, 9) } returns null

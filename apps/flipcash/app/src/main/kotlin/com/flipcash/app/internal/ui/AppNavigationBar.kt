@@ -10,13 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.core.AppRoute
@@ -24,6 +25,7 @@ import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
 import dev.chrisbanes.haze.HazeState
 import com.flipcash.app.core.navigation.NavBarButton
+import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.NavigationBar
@@ -33,18 +35,106 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.user.AuthState
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.Sheet
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.glass.FloatingChrome
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+
+/**
+ * Whether the hoisted navigation bar is on screen, read by the bar itself and by the toast that rises
+ * out of it, so both answer the same way.
+ *
+ * Every value is derived lazily, so only the composables that read one recompose when it changes.
+ */
+@Stable
+internal class AppNavigationBarVisibility(
+    private val navigator: CodeNavigator,
+    private val bottomBarMessages: State<List<*>>,
+    private val billUp: State<Boolean>,
+    private val tabBarVisibility: TabBarVisibilityController,
+    private val cardExpansion: CardExpansionController?,
+) {
+    /**
+     * The tab the bar highlights. Selection follows the base of the backstack (the tab "home"), so it
+     * stays correct while a sheet/modal sits on top and is right on launch.
+     */
+    val selectedTab: NavBarButton? by derivedStateOf {
+        navigator.backStack.firstNotNullOfOrNull { (it as? AppRoute)?.asNavBarTab() }
+    }
+
+    /**
+     * The route, modal and bill gate, which the bar slides in and out on. Only the top route gates
+     * visibility. A BottomBar modal (e.g. Add Money) renders in the nav content, above the bar, and a
+     * bill/tip card renders at the app root above everything, so the bar hides under either. A tab
+     * home can also hide it without leaving its route (the You tab's tip card expanding in place).
+     */
+    val shown: Boolean by derivedStateOf {
+        (navigator.currentRouteKey as? AppRoute)?.asNavBarTab() != null &&
+            bottomBarMessages.value.isEmpty() &&
+            !billUp.value &&
+            !tabBarVisibility.isHidden
+    }
+
+    /**
+     * The wallet's card expansion, which fades the bar out as a card opens over the deck. The
+     * expansion is the wallet's, and only the wallet entry can collapse it (CardExpandHost), so the
+     * fade is scoped to that tab: a route change that leaves the wallet mid-expansion would otherwise
+     * strand the bar faded out with nothing left to bring it back.
+     */
+    val fadeProgress: Float
+        get() = cardExpansion
+            ?.takeIf { selectedTab == NavBarButton.Wallet }
+            ?.progress?.value
+            ?: 0f
+
+    /**
+     * Fully faded means fully off screen, and off screen must mean untappable: alpha alone leaves the
+     * bar hit-testable, so an invisible bar still took taps and switched tabs. Derived, so a reader
+     * recomposes on the two frames the boolean flips rather than once per frame of the expansion.
+     */
+    val fadedOut: Boolean by derivedStateOf { fadeProgress >= 1f }
+
+    /**
+     * A sheet, the bill or a bottom-bar prompt is up. Each renders inside the nav content, below the
+     * root toast host in z, so a toast is dismissed while one is up rather than drawn over it. An
+     * ordinary push hides the bar but covers nothing, so it is not counted.
+     */
+    val coversToast: Boolean by derivedStateOf {
+        navigator.currentRouteKey is Sheet ||
+            bottomBarMessages.value.isNotEmpty() ||
+            billUp.value
+    }
+
+    /** On screen and not faded out by a card expansion. */
+    val isVisible: Boolean get() = shown && !fadedOut
+}
+
+@Composable
+internal fun rememberAppNavigationBarVisibility(
+    navigator: CodeNavigator,
+    tabBarVisibility: TabBarVisibilityController,
+    cardExpansion: CardExpansionController?,
+): AppNavigationBarVisibility {
+    val bottomBarMessages = BottomBarManager.messages.collectAsStateWithLifecycle()
+    val session = LocalSessionController.current
+    val billUp = remember(session) {
+        session?.billState?.map { it.bill != null } ?: flowOf(false)
+    }.collectAsStateWithLifecycle(initialValue = false)
+    return remember(navigator, tabBarVisibility, cardExpansion, bottomBarMessages, billUp) {
+        AppNavigationBarVisibility(navigator, bottomBarMessages, billUp, tabBarVisibility, cardExpansion)
+    }
+}
 
 /**
  * The hoisted navigation bar — root chrome, not owned by any screen. It renders over whichever
  * top-level route is a tab home and switches tabs by **swapping the current screen** (single
  * backstack, like a tab bar — hence [CodeNavigator.replaceAll], not a sheet).
  *
- * Only visible when the current route maps to a tab.
+ * Visible while [visibility] says so; it fades out with the wallet's card expansion, like iOS's tab
+ * bar, and drops out of the tree at the end of the fade.
  *
  * Self-positions as a full-size, touch-transparent overlay pinned to the bottom, so it can be
  * dropped into any container (it does not require a BoxScope from its caller).
@@ -52,74 +142,40 @@ import kotlinx.coroutines.flow.map
 @Composable
 internal fun AppNavigationBar(
     navigator: CodeNavigator,
+    visibility: AppNavigationBarVisibility,
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null,
-    // A tab home taking over the whole screen without leaving its route (the You tab's tip card
-    // expanding in place). See TabBarVisibilityController.
-    forceHidden: Boolean = false,
-    // The wallet's card expansion, which fades this bar out as a card opens over the deck. Passed as
-    // the controller rather than a Float so the progress is read inside a graphicsLayer and a frame of
-    // the expansion doesn't recompose the bar.
-    cardExpansion: CardExpansionController? = null,
     // The same gate as Switch Accounts in Advanced Features: beta flags unlocked, or staff.
     canSwitchAccounts: Boolean = false,
 ) {
-    // Selection follows the base of the backstack (the tab "home"), so it stays correct while a
-    // sheet/modal sits on top and is right on launch. The top route only gates visibility.
-    val selectedTab = navigator.backStack.firstNotNullOfOrNull { (it as? AppRoute)?.asNavBarTab() }
-    val topTab = (navigator.currentRouteKey as? AppRoute)?.asNavBarTab()
-
-    // A BottomBar modal (e.g. Add Money) renders in the nav content, above this bar; hide the bar so
-    // it doesn't draw over the modal. Safe because the bar is a bottom overlay (not a scaffold
-    // bottomBar), so hiding it doesn't resize the content beneath (see AppContent).
-    val bottomBarMessages by BottomBarManager.messages.collectAsStateWithLifecycle()
-
-    // A bill/tip card renders at the app root above everything; hide the bar so it doesn't show
-    // beneath the presented bill.
-    val session = LocalSessionController.current
-    val billUp by remember(session) {
-        session?.billState?.map { it.bill != null } ?: flowOf(false)
-    }.collectAsStateWithLifecycle(initialValue = false)
+    val selectedTab = visibility.selectedTab
 
     // Unread chats in the Chats list (tip DMs and groups), badged onto the Chats tab, so the badge
     // appears, updates and clears as conversations are read.
+    val session = LocalSessionController.current
     val chatListUnreadCount by remember(session) {
         session?.state?.map { it.chatListUnreadCount } ?: flowOf(0)
     }.collectAsStateWithLifecycle(initialValue = 0)
 
     val avatar = rememberProfileAvatar()
 
-    // The expansion is the wallet's, and only the wallet entry can collapse it (CardExpandHost), so
-    // scope the fade to that tab. A route change that leaves the wallet mid-expansion would otherwise
-    // strand the bar faded out with nothing left to bring it back.
-    val expansion = cardExpansion?.takeIf { selectedTab == NavBarButton.Wallet }
-    val fadeProgress = { expansion?.progress?.value ?: 0f }
-
-    // Fully faded means fully off screen, and off screen must mean untappable: alpha alone leaves the
-    // bar hit-testable, so an invisible bar still took taps and switched tabs. Drop it from the tree at
-    // the end of the fade instead. derivedStateOf keeps that to the two frames the boolean flips on,
-    // rather than one recomposition per frame of the expansion.
-    val fadedOut by remember(expansion) {
-        derivedStateOf { fadeProgress() >= 1f }
-    }
-
     Box(
         modifier = Modifier
             .then(modifier)
-            // Fades out with the expansion and back in with the collapse (no abrupt snap on return),
-            // like iOS's tab bar. At rest progress is 0, so it's fully shown.
-            .graphicsLayer { alpha = 1f - fadeProgress() },
+            // Read in a graphicsLayer so a frame of the expansion doesn't recompose the bar. At rest
+            // progress is 0, so it's fully shown.
+            .graphicsLayer { alpha = 1f - visibility.fadeProgress },
         contentAlignment = Alignment.BottomCenter,
     ) {
         AnimatedVisibility(
-            visible = topTab != null && bottomBarMessages.isEmpty() && !billUp && !forceHidden,
+            visible = visibility.shown,
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
         ) {
             // Inside the AnimatedVisibility, not part of its `visible`: the bar is already at alpha 0
             // by the time this drops it, so it must not also play the slide-out — and on the way back
             // it reappears where it stood and fades up, as before.
-            if (!fadedOut) {
+            if (!visibility.fadedOut) {
                 val state = rememberNavigationBarState(
                     selectedTab = selectedTab ?: NavBarButton.Wallet,
                     chatListUnreadCount = chatListUnreadCount,
@@ -127,9 +183,8 @@ internal fun AppNavigationBar(
                 NavigationBar(
                     modifier = Modifier
                         .navigationBarsPadding()
-                        // The design insets the bar 24pt from each edge (node 10642:1325), which
-                        // keeps each tab's pill wider than tall; 25 is the nearest fixed step.
-                        .padding(horizontal = CodeTheme.dimens.staticGrid.x5)
+                        // Shared with the toast that rises out of the bar, so it is never wider.
+                        .padding(horizontal = FloatingChrome.horizontalInset)
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     state = state,
                     onButtonClick = { button ->

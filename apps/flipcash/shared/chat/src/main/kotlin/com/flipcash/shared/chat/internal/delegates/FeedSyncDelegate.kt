@@ -23,6 +23,8 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.PointerType
+import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.ChatFeeds
 import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.FeedOperations
@@ -85,6 +87,7 @@ class FeedSyncDelegate @Inject constructor(
     private val userManager: UserManager,
     private val messagingController: ChatMessagingController,
     private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
+    private val archiveStore: ChatArchiveStore = ChatArchiveStore.None,
     private val feedWriter: ChatFeedWriter =
         ChatFeedWriter(metadataDataSource, memberDataSource, messageDataSource),
 ) : FeedOperations {
@@ -160,14 +163,40 @@ class FeedSyncDelegate @Inject constructor(
         // Distinct: state also moves for reasons the list does not show (sync status, typing,
         // overlays), and an equal list repaints nothing but still re-runs every collector.
         return stateHolder.state
-            .mapNotNull { state -> summaries(state, requested) }
+            .mapNotNull { state -> summaries(state, requested, archived = false) }
             .distinctUntilChanged()
     }
 
     override fun currentFeed(vararg chatTypes: ChatType): List<ChatSummary>? =
-        summaries(stateHolder.state.value, chatTypes.toSet())
+        summaries(stateHolder.state.value, chatTypes.toSet(), archived = false)
 
-    private fun summaries(state: ChatState, requested: Set<ChatType>): List<ChatSummary>? {
+    override fun archivedFeed(vararg chatTypes: ChatType): Flow<List<ChatSummary>> {
+        val requested = chatTypes.toSet()
+        return stateHolder.state
+            .mapNotNull { state -> summaries(state, requested, archived = true) }
+            .distinctUntilChanged()
+    }
+
+    override fun currentArchivedFeed(vararg chatTypes: ChatType): List<ChatSummary>? =
+        summaries(stateHolder.state.value, chatTypes.toSet(), archived = true)
+
+    override fun feedWithArchived(vararg chatTypes: ChatType): Flow<ChatFeeds> {
+        val requested = chatTypes.toSet()
+        return stateHolder.state
+            .mapNotNull { state -> feeds(state, requested) }
+            .distinctUntilChanged()
+    }
+
+    override fun currentFeedWithArchived(vararg chatTypes: ChatType): ChatFeeds? =
+        feeds(stateHolder.state.value, chatTypes.toSet())
+
+    private fun feeds(state: ChatState, requested: Set<ChatType>): ChatFeeds? {
+        val main = summaries(state, requested, archived = false) ?: return null
+        val archived = summaries(state, requested, archived = true) ?: return null
+        return ChatFeeds(main = main, archived = archived)
+    }
+
+    private fun summaries(state: ChatState, requested: Set<ChatType>, archived: Boolean): List<ChatSummary>? {
         // Nothing until the list is known: the chat list shows its empty state for an emitted empty
         // list, so it must not see one that only means "not read yet". Chats on disk are known as
         // soon as they are read. An empty database is not, because on a fresh sign-in it is empty
@@ -181,6 +210,9 @@ class FeedSyncDelegate @Inject constructor(
         val selfPhone = userManager.profile?.verifiedPhoneNumber
         return feed
             .filter { it.type in requested }
+            // The one place archive is applied. An archived chat leaves the list, every chip and the
+            // tab badge together: they all read `feed`, so none can disagree about what is archived.
+            .filter { (it.chatId in state.archived) == archived }
             .filter { isRenderable(it, selfId, selfPhone) }
             .map { metadata ->
                 val count = unreadCount(metadata, selfId) { id -> state.readStampAt(metadata.chatId, id) }
@@ -267,15 +299,18 @@ class FeedSyncDelegate @Inject constructor(
             messageDataSource.observeLatestVisibleChanges()
                 .onStart { emit(emptyList()) }
                 .distinctUntilChanged(),
-        ) { metadataEntities, membersByChat, _ ->
-            buildFeedFromDb(metadataEntities, membersByChat)
-        }.onEach { (feed, readStamps) ->
+            archiveStore.observeArchived(),
+        ) { metadataEntities, membersByChat, _, archived ->
+            buildFeedFromDb(metadataEntities, membersByChat) to archived
+        }.onEach { (built, archived) ->
+            val (feed, readStamps) = built
             val staged = drainStagedStamps()
             stateHolder.update {
                 it.copy(
                     feed = feed,
                     readStamps = readStamps,
                     fetchedReadStamps = if (staged.isEmpty()) it.fetchedReadStamps else it.fetchedReadStamps + staged,
+                    archived = archived,
                 )
             }
             // Until the first sync settles, the reconcile looks the stamps up itself, bounded and

@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.inject
 
+import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.RosterSearchSource
@@ -8,6 +9,7 @@ import com.flipcash.shared.chat.internal.MentionPoolUpdates
 import com.flipcash.shared.chat.internal.MentionSuggestionPool
 import com.flipcash.shared.chat.internal.ServerRosterSearchSource
 import com.flipcash.shared.chat.internal.OutgoingEncryption
+import com.flipcash.shared.chat.internal.RealChatArchiveStore
 import com.flipcash.shared.chat.internal.RealChatCoordinator
 import com.flipcash.shared.chat.internal.RealChatDraftStore
 import com.getcode.opencode.providers.SessionListener
@@ -33,6 +35,12 @@ abstract class ChatModule {
     abstract fun bindChatDraftStore(
         impl: RealChatDraftStore
     ): ChatDraftStore
+
+    @Binds
+    @Singleton
+    abstract fun bindChatArchiveStore(
+        impl: RealChatArchiveStore
+    ): ChatArchiveStore
 
     @Binds
     internal abstract fun bindOutgoingEncryption(

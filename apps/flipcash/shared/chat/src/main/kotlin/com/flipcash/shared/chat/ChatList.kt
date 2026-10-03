@@ -19,3 +19,15 @@ fun FeedOperations.currentChatListFeed(): List<ChatSummary>? = currentFeed(*chat
 
 /** How many of the chats the Chats list shows have unread messages; the Chats tab badge. */
 fun FeedOperations.observeUnreadChatListCount(): Flow<Int> = observeUnreadConversations(*chatListTypes)
+
+/** [FeedOperations.archivedFeed] for the chats the Chats list shows. */
+fun FeedOperations.archivedChatListFeed(): Flow<List<ChatSummary>> = archivedFeed(*chatListTypes)
+
+/** [FeedOperations.currentArchivedFeed] for the chats the Chats list shows. */
+fun FeedOperations.currentArchivedChatListFeed(): List<ChatSummary>? = currentArchivedFeed(*chatListTypes)
+
+/** [FeedOperations.feedWithArchived] for the chats the Chats list shows. */
+fun FeedOperations.chatListFeeds(): Flow<ChatFeeds> = feedWithArchived(*chatListTypes)
+
+/** [FeedOperations.currentFeedWithArchived] for the chats the Chats list shows. */
+fun FeedOperations.currentChatListFeeds(): ChatFeeds? = currentFeedWithArchived(*chatListTypes)
