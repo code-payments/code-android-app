@@ -8,57 +8,39 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Icon
 import androidx.compose.material.SnackbarData
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarHostState
-import androidx.compose.material.Text
-import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.dismiss
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
-import com.getcode.theme.White10
+import com.getcode.ui.components.glass.FloatingChrome
+import com.getcode.ui.components.toast.FloatingToast
+import com.getcode.ui.components.toast.LocalFloatingToastHost
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * The app's toast: a pill one step lighter than the screen, with a hairline border, holding an
- * optional [icon], the message, and the action in its own pill. iOS draws the same design.
+ * A [SnackbarData] drawn as the app's [FloatingToast], inset like the navigation bar. A screen-level
+ * host has no bar haze to sample, so the glass takes the bar's no-haze fill.
  *
- * Show it through [CodeSnackbarHost], which owns its motion, lifetime and swipe to dismiss.
+ * Show it through [CodeSnackbarHost], which owns its motion, lifetime and swipe to dismiss. Prefer
+ * [LocalFloatingToastHost] on a screen under the navigation bar, so the toast rises out of the bar.
  */
 @Composable
 fun CodeSnackbar(
@@ -66,73 +48,15 @@ fun CodeSnackbar(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
 ) {
-    val actionLabel = snackbarData.actionLabel
-    Row(
+    FloatingToast(
+        message = snackbarData.message,
+        icon = icon,
+        actionLabel = snackbarData.actionLabel,
+        onAction = snackbarData::performAction,
         modifier = modifier
-            .fillMaxWidth()
-            .padding(12.dp)
-            .clip(CircleShape)
-            // The nearest token to one step above the screen background (Brand).
-            .background(CodeTheme.colors.surfaceVariant)
-            .border(0.5.dp, White10, CircleShape)
-            .padding(
-                PaddingValues(
-                    start = 16.dp,
-                    // With an action, its 48dp touch area sets the height instead.
-                    top = if (actionLabel != null) 0.dp else 8.dp,
-                    bottom = if (actionLabel != null) 0.dp else 8.dp,
-                    end = if (actionLabel != null) 8.dp else 16.dp,
-                )
-            ),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = CodeTheme.colors.textSecondary,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        Text(
-            text = snackbarData.message,
-            style = CodeTheme.typography.textSmall,
-            fontWeight = FontWeight.Normal,
-            color = CodeTheme.colors.textMain,
-            modifier = Modifier
-                .weight(1f)
-                // The action pill's vertical padding, so a toast is the same height with or without one.
-                .padding(vertical = 7.dp)
-                .semantics { liveRegion = LiveRegionMode.Polite },
-        )
-        if (actionLabel != null) {
-            val interactionSource = remember { MutableInteractionSource() }
-            // The touch area is the toast's full height; the ripple stays on the visible pill.
-            Box(
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        role = Role.Button,
-                    ) { snackbarData.performAction() },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = actionLabel,
-                    style = CodeTheme.typography.textSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = CodeTheme.colors.textMain,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(ActionFill)
-                        .indication(interactionSource, ripple())
-                        .padding(horizontal = 16.dp, vertical = 7.dp),
-                )
-            }
-        }
-    }
+            .padding(horizontal = FloatingChrome.horizontalInset)
+            .padding(vertical = 12.dp),
+    )
 }
 
 /**
@@ -221,6 +145,3 @@ private fun SwipeToDismiss(data: SnackbarData, content: @Composable () -> Unit) 
         content()
     }
 }
-
-// No theme token sits at 12%; White10 is the nearest below it.
-private val ActionFill = White.copy(alpha = 0.12f)
