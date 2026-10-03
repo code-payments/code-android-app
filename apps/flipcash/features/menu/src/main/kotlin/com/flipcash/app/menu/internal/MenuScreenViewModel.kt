@@ -160,6 +160,12 @@ internal class MenuScreenViewModel @Inject constructor(
             val source: AddMoneySource = AddMoneySource.MENU,
         ) : Event
         data class OpenScreen(val screen: AppRoute) : Event
+
+        /**
+         * A developer-mode unlock message (the tap countdown, then unlocked). The screen floats it
+         * over the version row without taking taps, so the taps keep counting through it.
+         */
+        data class ShowDevModeToast(val message: String) : Event
         data class OnTipCardStateChanged(val tipCardState: TipCardState) : Event
         data class OnUsernameProgressChanged(
             val progress: UsernameProgress?,
@@ -220,7 +226,7 @@ internal class MenuScreenViewModel @Inject constructor(
             .onEach {
                 if (stateFlow.value.unlockedBetaFeaturesManually) {
                     if (stateFlow.value.logoTapCount - TAP_THRESHOLD > COUNTDOWN_START) {
-                        toastController.showToast(R.string.toast_betaOverrideAlready, replacePrevious = true)
+                        dispatchEvent(Event.ShowDevModeToast(resources.getString(R.string.toast_betaOverrideAlready)))
                     }
                     return@onEach
                 }
@@ -228,10 +234,14 @@ internal class MenuScreenViewModel @Inject constructor(
                 when {
                     remaining <= 0 -> {
                         featureFlags.enableBetaFeatures()
-                        toastController.showToast(R.string.toast_betaOverrideEnabled, replacePrevious = true)
+                        dispatchEvent(Event.ShowDevModeToast(resources.getString(R.string.toast_betaOverrideEnabled)))
                     }
                     remaining <= COUNTDOWN_START -> {
-                        toastController.showQuantityToast(R.plurals.toast_betaOverrideCountdown, remaining, remaining, replacePrevious = true)
+                        dispatchEvent(
+                            Event.ShowDevModeToast(
+                                resources.getQuantityString(R.plurals.toast_betaOverrideCountdown, remaining, remaining)
+                            )
+                        )
                     }
                 }
             }
@@ -580,6 +590,7 @@ internal class MenuScreenViewModel @Inject constructor(
                 Event.CopyTipLink,
                 Event.DownloadTipCard,
                 is Event.ExportTipCard,
+                is Event.ShowDevModeToast,
                 is Event.OpenScreen -> { state -> state }
 
                 is Event.OnFeatureFlagsUpdated -> { state ->
