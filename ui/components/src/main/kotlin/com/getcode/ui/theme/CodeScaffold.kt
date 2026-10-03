@@ -37,9 +37,9 @@ fun CodeScaffold(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
     topBar: @Composable () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
-    snackbarHost: @Composable (SnackbarHostState) -> Unit = {
-        CodeSnackbarHost(it)
-    },
+    // Toasts go through the app's root FloatingToastHost (LocalFloatingToastHost), so a scaffold
+    // hosts none of its own.
+    snackbarHost: @Composable (SnackbarHostState) -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     floatingActionButtonPosition: FabPosition = FabPosition.End,
     isFloatingActionButtonDocked: Boolean = false,
