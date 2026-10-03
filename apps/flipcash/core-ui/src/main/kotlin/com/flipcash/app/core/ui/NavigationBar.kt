@@ -37,7 +37,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.testTag
@@ -51,15 +50,12 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import com.flipcash.app.core.navigation.NavBarButton
-import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.hazeBlur
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
+import com.getcode.ui.components.glass.floatingGlass
 
 data class NavigationBarState(
     // Route-driven: the caller derives this from the current backstack tab so the highlighted tab
@@ -127,36 +123,10 @@ fun NavigationBar(
         .takeIf { it >= 0 && it <= order.lastIndex }
         ?: order.indexOf(NavBarButton.Wallet)
 
-    // Frost the pill over whatever content scrolls beneath it, iOS "liquid glass" style: a wide blur
-    // plus a strong tint toward the BACKGROUND colour (not black) at high alpha. Over empty/dark
-    // content the pill just reads as the background (a subtle glass, not a black blob); over the
-    // vibrant cards the high alpha mutes their colour toward that same neutral dark. A faint bright
-    // rim gives the glass edge. Haze can only blur Compose-layer pixels, so on the scanner tab (a
-    // camera SurfaceView) fall back to the opaque pill. `clip` must precede `hazeBlur` to bound the
-    // blur to the pill shape, not its bounding box.
-    // Tint toward a grey lifted off the (near-black) background so the pill reads as a light frosted
-    // glass sitting ABOVE the dark content, not the background tone itself.
-    val backdrop = CodeTheme.colors.background
-    val glassTint = lerp(backdrop, Color.White, 0.18f)
-    // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
-    val liquidGlass = HazeBlurStyle {
-        blurRadius(32.dp)
-        backgroundColor(backdrop)
-        colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
-    }
-    // Same clip + rim on every tab; only the fill differs. Haze frosts the content beneath — including
-    // the scanner's live camera, since its PreviewView runs in COMPATIBLE mode (a TextureView drawn in
-    // the Compose layer, not a SurfaceView hole). Fall back to a near-opaque fill of the same
-    // lifted-grey tint only when no HazeState is supplied.
-    val pillFill = if (hazeState != null) {
-        Modifier.hazeBlur(HazeInput.Sources(hazeState), liquidGlass)
-    } else {
-        Modifier.background(glassTint.copy(alpha = 0.9f), CircleShape)
-    }
-    val pillBackground = Modifier
-        .clip(CircleShape)
-        .then(pillFill)
-        .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), CircleShape)
+    // The shared floating glass. Haze frosts the content beneath, including the scanner's live
+    // camera, since its PreviewView runs in COMPATIBLE mode (a TextureView drawn in the Compose layer,
+    // not a SurfaceView hole). With no HazeState it falls back to a near-opaque fill.
+    val pillBackground = Modifier.floatingGlass(hazeState)
 
     BoxWithConstraints(
         modifier = Modifier

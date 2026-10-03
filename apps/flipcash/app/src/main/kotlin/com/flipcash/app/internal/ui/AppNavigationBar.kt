@@ -35,6 +35,7 @@ import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.glass.FloatingChrome
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -127,9 +128,8 @@ internal fun AppNavigationBar(
                 NavigationBar(
                     modifier = Modifier
                         .navigationBarsPadding()
-                        // The design insets the bar 24pt from each edge (node 10642:1325), which
-                        // keeps each tab's pill wider than tall; 25 is the nearest fixed step.
-                        .padding(horizontal = CodeTheme.dimens.staticGrid.x5)
+                        // Shared with the toast that rises out of the bar, so it is never wider.
+                        .padding(horizontal = FloatingChrome.horizontalInset)
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     state = state,
                     onButtonClick = { button ->
