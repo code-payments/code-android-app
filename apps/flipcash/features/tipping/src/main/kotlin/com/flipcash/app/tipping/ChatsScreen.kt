@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarResult
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Archive
@@ -39,6 +38,7 @@ import com.getcode.ui.components.FilterChip
 import com.getcode.ui.components.snack.SnackData
 import com.getcode.ui.components.snack.showSnackbar
 import com.getcode.ui.theme.CodeSnackbar
+import com.getcode.ui.theme.CodeSnackbarHost
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -194,8 +194,9 @@ fun ChatsScreen() {
         },
         // The tab bar is hoisted, so without this the snackbar draws underneath it.
         snackbarHost = { hostState ->
-            SnackbarHost(hostState, modifier = Modifier.padding(bottom = tabBarPadding)) { data ->
-                CodeSnackbar(snackbarData = data)
+            CodeSnackbarHost(hostState, modifier = Modifier.padding(bottom = tabBarPadding)) { data ->
+                // Every toast on this screen is the archive undo.
+                CodeSnackbar(snackbarData = data, icon = Icons.Outlined.Archive)
             }
         },
     ) { barPadding ->
@@ -309,7 +310,6 @@ fun ChatsScreen() {
                         // The row leaves the list at once, so offer to put it back.
                         scope.launch {
                             val host = scaffoldState.snackbarHostState
-                            host.currentSnackbarData?.dismiss()
                             val result = host.showSnackbar(SnackData(message = archivedMessage, actionLabel = undoLabel))
                             if (result == SnackbarResult.ActionPerformed) viewModel.unarchive(chat.chatId)
                         }

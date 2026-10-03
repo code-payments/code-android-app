@@ -10,7 +10,11 @@ data class SnackData(
     val duration: SnackbarDuration = SnackbarDuration.Short
 )
 
+/**
+ * Shows [data], replacing any snackbar already on screen rather than queueing behind it.
+ */
 suspend fun SnackbarHostState.showSnackbar(data: SnackData): SnackbarResult {
+    currentSnackbarData?.dismiss()
     return showSnackbar(
         message = data.message,
         actionLabel = data.actionLabel,
