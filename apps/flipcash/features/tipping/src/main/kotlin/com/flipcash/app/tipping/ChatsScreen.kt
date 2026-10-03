@@ -1,5 +1,8 @@
 package com.flipcash.app.tipping
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -248,9 +251,15 @@ fun ChatsScreen() {
 
             // Always emitted, so item 1 exists from the first composition (including while
             // loading) and the parked position has a stable anchor; empty when there is no row.
+            // Its key never leaves the list, so animateItem only moves it; the row itself fades in
+            // and out inside the slot, while the rows below slide to make room or close the gap.
             item(key = "archived", contentType = "archived") {
-                Box(parkFiller.tracked("archived")) {
-                    if (state.showsArchivedRow) {
+                Box(Modifier.animateItem().then(parkFiller.tracked("archived"))) {
+                    AnimatedVisibility(
+                        visible = state.showsArchivedRow,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                    ) {
                         ArchivedRow(
                             count = state.projection.archivedRowCount,
                             onClick = { navigator.push(AppRoute.Messaging.ArchivedChats) },
@@ -266,12 +275,18 @@ fun ChatsScreen() {
                 !chats.isLoaded() -> item(key = "loading") {
                     Spacer(parkFiller.tracked("loading").fillParentMaxSize())
                 }
+                // The empty states fade like the rows do, so a filter or archive that empties the
+                // list doesn't drop the message on top of rows still fading out.
                 state.hasNoChatsAtAll -> item(key = "empty") {
-                    NoChatsYet(parkFiller.tracked("empty").fillParentMaxSize())
+                    NoChatsYet(
+                        Modifier.animateItem().then(parkFiller.tracked("empty")).fillParentMaxSize()
+                    )
                 }
                 visible.isEmpty() -> item(key = "empty_filter") {
                     EmptyFilterState(
-                        modifier = parkFiller.tracked("empty_filter").fillParentMaxSize(),
+                        modifier = Modifier.animateItem()
+                            .then(parkFiller.tracked("empty_filter"))
+                            .fillParentMaxSize(),
                         message = when (state.filter) {
                             ChatListFilter.Unread -> R.string.title_noUnreadChats
                             ChatListFilter.Groups -> R.string.title_noGroupChats
@@ -369,9 +384,11 @@ private fun LazyListScope.tipChatItems(
     parkFiller: ParkFiller,
 ) {
     // Keyed by chat so a row's swipe state stays with its chat when new activity reorders the list.
+    // animateItem fades a row out where it stands when it is archived (or filtered away), even
+    // swiped open, slides its neighbours into the gap, and fades it back in on Undo.
     itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
         ChatSwipeRow(
-            modifier = parkFiller.tracked(chat.chatId),
+            modifier = Modifier.animateItem().then(parkFiller.tracked(chat.chatId)),
             isMuted = rememberIsMuted(chat.viewerState),
             onMute = { onMute(chat) },
             onArchive = { onArchive(chat) },

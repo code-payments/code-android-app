@@ -78,35 +78,43 @@ private fun ArchivedChatsContent(
             )
         },
     ) { padding ->
-        if (isLoaded && chats.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                    text = stringResource(R.string.title_noArchivedChats),
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textSecondary,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().testTag("archived_list"),
-                contentPadding = PaddingValues(top = padding.calculateTopPadding()),
-            ) {
-                // Keyed by chat so a row's swipe state stays with its chat as activity reorders.
-                itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
-                    UnarchiveSwipeRow(
-                        onUnarchive = { onUnarchive(chat.chatId) },
-                        stateKey = chat.chatId,
-                        revealGroup = revealGroup,
+        // One list for the rows and the empty state alike, so unarchiving the last chat fades its
+        // row out and the message in, rather than swapping the whole list for the message at once.
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().testTag("archived_list"),
+            contentPadding = PaddingValues(top = padding.calculateTopPadding()),
+        ) {
+            if (isLoaded && chats.isEmpty()) {
+                item(key = "empty") {
+                    Box(
+                        modifier = Modifier
+                            .animateItem()
+                            .fillParentMaxSize()
+                            .padding(bottom = padding.calculateBottomPadding()),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        // The row draws its divider below itself, so none sits above the first row.
-                        TipChatRow(chat = chat, showDivider = index < chats.lastIndex) {
-                            onOpen(chat.chatId)
-                        }
+                        Text(
+                            modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                            text = stringResource(R.string.title_noArchivedChats),
+                            style = CodeTheme.typography.textMedium,
+                            color = CodeTheme.colors.textSecondary,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            }
+            // Keyed by chat so a row's swipe state stays with its chat as activity reorders.
+            // animateItem fades an unarchived row out where it stands and slides the rest up.
+            itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
+                UnarchiveSwipeRow(
+                    modifier = Modifier.animateItem(),
+                    onUnarchive = { onUnarchive(chat.chatId) },
+                    stateKey = chat.chatId,
+                    revealGroup = revealGroup,
+                ) {
+                    // The row draws its divider below itself, so none sits above the first row.
+                    TipChatRow(chat = chat, showDivider = index < chats.lastIndex) {
+                        onOpen(chat.chatId)
                     }
                 }
             }
@@ -119,6 +127,7 @@ private fun UnarchiveSwipeRow(
     onUnarchive: () -> Unit,
     stateKey: Any,
     revealGroup: SwipeRevealGroup,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     val label = stringResource(R.string.content_description_unarchiveChat)
@@ -137,7 +146,7 @@ private fun UnarchiveSwipeRow(
             },
         ),
         // A swipe is out of reach with a screen reader, so the row offers the action there.
-        modifier = Modifier.semantics {
+        modifier = modifier.semantics {
             customActions = listOf(CustomAccessibilityAction(label) { onUnarchive(); true })
         },
         stateKey = stateKey,
