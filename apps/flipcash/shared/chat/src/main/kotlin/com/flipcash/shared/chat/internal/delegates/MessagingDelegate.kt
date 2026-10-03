@@ -237,6 +237,8 @@ class MessagingDelegate @Inject constructor(
 
     override fun observeSenderProfiles(): Flow<Map<String, UserProfile>> = senderResolver.profiles
 
+    override fun currentSenderProfiles(): Map<String, UserProfile>? = senderResolver.cachedProfiles
+
     override fun requestSenderProfile(userId: ID) = senderResolver.request(userId)
 
     override fun observeOldestEncryptedMessageId(chatId: ChatId): Flow<Long?> =
@@ -264,14 +266,10 @@ class MessagingDelegate @Inject constructor(
                 // transcript as fetched, and it lets a following catch-up resume from head and
                 // append genuinely newer messages instead of re-pulling the whole history from
                 // sequence 0. Only ever advanced — a page older than the cursor must not rewind it.
+                // One write, and one that changes nothing when this page has nothing newer than
+                // what the feed already stored: the list rebuilds only for a real change.
                 val head = messages.maxOfOrNull { it.eventSequence } ?: 0L
-                if (head > metadataDataSource.getLatestEventSequence(chatId)) {
-                    metadataDataSource.updateLatestEventSequence(chatId, head)
-                }
-
-                val latest = messages.maxByOrNull { it.messageId } ?: return@onSuccess
-                metadataDataSource.updateLastMessageId(chatId, latest.messageId)
-                metadataDataSource.updateLastActivity(chatId, latest.timestamp.toEpochMilliseconds())
+                metadataDataSource.applyCatchUp(chatId, head, messages.maxByOrNull { it.messageId })
             }
     }
 
@@ -284,9 +282,10 @@ class MessagingDelegate @Inject constructor(
         // Deliberately not advancing the event-log cursor. A push carries one message, not
         // a page, so seating the cursor at its sequence would let a later catch-up resume
         // from a frontier it never actually fetched and skip whatever it missed in between.
+        // The row the list reads is updated here, so a message that arrived by push is already
+        // on the list at the next cold launch.
         if (message.messageId > (metadataDataSource.getLastMessageId(chatId) ?: 0L)) {
-            metadataDataSource.updateLastMessageId(chatId, message.messageId)
-            metadataDataSource.updateLastActivity(chatId, message.timestamp.toEpochMilliseconds())
+            metadataDataSource.applyCatchUp(chatId, 0L, message)
         }
     }
 

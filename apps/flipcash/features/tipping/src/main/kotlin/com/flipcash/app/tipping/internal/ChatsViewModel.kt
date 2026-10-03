@@ -105,6 +105,8 @@ internal class ChatsViewModel @Inject constructor(
         fun content(
             feeds: ChatFeeds,
             tokens: List<Token>,
+            // Null on the first-frame draw if the table has not been read yet: asking then would
+            // re-fetch every sender already on disk.
             senderProfiles: Map<String, UserProfile>?,
         ): Event.ChatsUpdated {
             val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator)
@@ -135,7 +137,7 @@ internal class ChatsViewModel @Inject constructor(
                 content(
                     feeds = feeds,
                     tokens = tokenCoordinator.cachedTokens(),
-                    senderProfiles = null,
+                    senderProfiles = chatCoordinator.currentSenderProfiles(),
                 )
             )
         }

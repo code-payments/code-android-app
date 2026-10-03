@@ -36,6 +36,9 @@ data class PendingMessage(
     val clientMessageId: ClientMessageId,
 )
 
+/** Messages already opened by [ChatMessageDataSource.prepare], ready for one write. */
+class PreparedMessages internal constructor(internal val byChat: Map<ChatId, List<ChatMessage>>)
+
 @Singleton
 class ChatMessageDataSource @Inject constructor(
     private val mapper: ChatEntityMapper,
@@ -133,6 +136,14 @@ class ChatMessageDataSource @Inject constructor(
         db?.chatMessageDao()?.getLatestVisibleForAllChats()
             ?.associate { it.chatIdHex to toChatMessage(it) }
             .orEmpty()
+
+    /**
+     * Emits whenever the set of newest-visible messages changes (one per chat). Carries the rows
+     * only so callers can de-duplicate on them; the list reads previews with
+     * [getLatestVisibleByChat].
+     */
+    fun observeLatestVisibleChanges(): Flow<List<Any>> =
+        db?.chatMessageDao()?.observeLatestVisibleForAllChats()?.distinctUntilChanged() ?: emptyFlow()
 
     /**
      * The server's unread stamp on one stored message, or null when that message isn't stored —
@@ -293,16 +304,35 @@ class ChatMessageDataSource @Inject constructor(
      * chat in the feed.
      */
     suspend fun upsertAll(messagesByChat: Map<ChatId, List<ChatMessage>>) {
+        if (db == null || messagesByChat.isEmpty()) return
+        val prepared = prepare(messagesByChat)
+        writePrepared(prepared)
+        afterWrite(prepared)
+    }
+
+    /**
+     * The network half of [upsertAll]: opens what can be opened. Split out so a caller can run it
+     * before it takes a transaction, since opening can fetch a key.
+     */
+    suspend fun prepare(messagesByChat: Map<ChatId, List<ChatMessage>>): PreparedMessages =
+        PreparedMessages(
+            messagesByChat.mapValues { (chatId, messages) ->
+                openEncrypted(chatId, mapper.chatIdHex(chatId), messages)
+            },
+        )
+
+    /** The write half of [upsertAll]. Joins a transaction the caller already holds. */
+    suspend fun writePrepared(prepared: PreparedMessages) {
         val database = db ?: return
-        if (messagesByChat.isEmpty()) return
-        // Opened before the transaction: opening can fetch a key over the network.
-        val opened = messagesByChat.mapValues { (chatId, messages) ->
-            openEncrypted(chatId, mapper.chatIdHex(chatId), messages)
-        }
+        if (prepared.byChat.isEmpty()) return
         database.withTransaction {
-            for ((chatId, messages) in opened) write(mapper.chatIdHex(chatId), messages)
+            for ((chatId, messages) in prepared.byChat) write(mapper.chatIdHex(chatId), messages)
         }
-        for ((chatId, messages) in opened) {
+    }
+
+    /** Runs once the transaction that carried [prepared] has committed. */
+    suspend fun afterWrite(prepared: PreparedMessages) {
+        for ((chatId, messages) in prepared.byChat) {
             if (messages.none { it.encryption == MessageEncryption.KeyPending }) reopenKeyPending(chatId)
         }
     }

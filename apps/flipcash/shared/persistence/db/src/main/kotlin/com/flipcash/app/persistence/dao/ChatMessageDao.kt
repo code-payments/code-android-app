@@ -65,6 +65,21 @@ interface ChatMessageDao {
     )
     suspend fun getLatestVisibleForAllChats(): List<ChatMessageEntity>
 
+    /**
+     * [getLatestVisibleForAllChats] as a stream. The conversation list previews these rows, so it
+     * rebuilds when they change; a caller that de-duplicates the emissions rebuilds only when a
+     * chat's preview did, not on every message write.
+     */
+    @Query(
+        "SELECT * FROM chat_messages WHERE rowid IN (" +
+            "SELECT (SELECT m.rowid FROM chat_messages m " +
+            "WHERE m.chat_id_hex = c.chat_id_hex AND m.is_deleted = 0 " +
+            "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
+            "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
+            "FROM (SELECT DISTINCT chat_id_hex FROM chat_messages) c)"
+    )
+    fun observeLatestVisibleForAllChats(): Flow<List<ChatMessageEntity>>
+
     @Query(
         "SELECT * FROM chat_messages " +
             "WHERE chat_id_hex = :chatIdHex " +

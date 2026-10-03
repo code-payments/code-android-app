@@ -20,6 +20,7 @@ import com.flipcash.shared.chat.FeedOperations
 import com.flipcash.shared.chat.GroupOperations
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.ReactionOperations
+import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.shared.chat.internal.delegates.EventStreamDelegate
 import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
 import com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate
@@ -35,6 +36,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -109,6 +112,7 @@ class RealChatCoordinator @Inject constructor(
     companion object {
         private const val TAG = "ChatCoordinator"
         private val FEED_READ_WAIT = 3.seconds
+        private val FEED_PAIR_WAIT = 2.seconds
     }
 
     // Recreated on re-login: [reset] cancels [supervisorJob] on logout, which would
@@ -206,7 +210,7 @@ class RealChatCoordinator @Inject constructor(
             .onEach { event ->
                 when (event) {
                     is EventStreamDelegate.Event.SyncFeedRequested ->
-                        syncFeeds()
+                        syncFeeds(fresh = true)
                     is EventStreamDelegate.Event.LoadMessages ->
                         messagingDelegate.loadMessages(event.chatId)
                     is EventStreamDelegate.Event.RosterChanged ->
@@ -256,6 +260,11 @@ class RealChatCoordinator @Inject constructor(
         messagingDelegate.clearActiveChat(chatId)
     }
 
+    private var feedSyncJob: Job? = null
+
+    @Volatile
+    private var feedSyncRerun = false
+
     override fun onStart(owner: LifecycleOwner) {
         foregrounded.value = true
         backgroundedActiveChat?.let {
@@ -291,7 +300,9 @@ class RealChatCoordinator @Inject constructor(
      * conversation list, and none of them know which half a chat belongs to.
      */
     override fun refreshFeed() {
-        syncFeeds()
+        // A push says the server has something new: join a sync in flight, but queue one trailing
+        // run behind it, since that sync may have fetched before the change. Coalesced.
+        syncFeeds(fresh = true)
     }
 
     /**
@@ -334,14 +345,67 @@ class RealChatCoordinator @Inject constructor(
      * overlap rather than queue. A group feed that fails is traced and dropped by
      * [GroupFeedDelegate.performGroupFeedSync]; it cannot take the DM list down with it.
      */
-    private fun syncFeeds() {
-        feedDelegate.syncFeed()
-        groupFeedDelegate.syncGroupFeed()
+    private fun syncFeeds(fresh: Boolean = false) {
+        if (feedSyncJob?.isActive == true) {
+            // Shared with the one in flight, so a foreground, a reconnect or a heartbeat landing
+            // mid-launch does not cancel and restart the fetch the list is waiting on. `fresh`
+            // is for a trigger that says the server has something this fetch may have missed.
+            if (fresh) feedSyncRerun = true
+            return
+        }
+        feedSyncJob = scope.launch {
+            do {
+                feedSyncRerun = false
+                reconcileFeeds()
+            } while (feedSyncRerun)
+        }
+    }
+
+    /**
+     * Fetches the DM and group feeds concurrently and lands them in one transaction, so the list
+     * rebuilds once instead of once per feed. A feed that is slow past [FEED_PAIR_WAIT] does not
+     * hold the other back: the one in hand is written, and the slow one follows when it arrives.
+     */
+    private suspend fun reconcileFeeds() = coroutineScope {
+        val dm = async { feedDelegate.fetchFeed() }
+        val groups = async { groupFeedDelegate.fetchGroupFeed() }
+        withTimeoutOrNull(FEED_PAIR_WAIT) {
+            dm.await()
+            groups.await()
+        }
+
+        var dmChats: List<ChatMetadata>? = null
+        var groupChats: List<ChatMetadata>? = null
+        if (dm.isCompleted) {
+            dm.await().onSuccess { dmChats = it }.onFailure { feedDelegate.onFeedFailed(it) }
+        }
+        if (groups.isCompleted) groupChats = groups.await()
+        val first = (dmChats.orEmpty()) + (groupChats.orEmpty())
+        // Written together even when one half is missing or empty; a failed half contributes
+        // nothing and cannot take the other down.
+        feedDelegate.writeFeed(first)
+        dmChats?.let { feedDelegate.onFeedCommitted(it) }
+        groupChats?.let { groupFeedDelegate.requestCatchUp(it) }
+
+        if (!dm.isCompleted) {
+            dm.await().onSuccess {
+                feedDelegate.writeFeed(it)
+                feedDelegate.onFeedCommitted(it)
+            }.onFailure { feedDelegate.onFeedFailed(it) }
+        }
+        if (!groups.isCompleted) {
+            groups.await()?.let {
+                feedDelegate.writeFeed(it)
+                groupFeedDelegate.requestCatchUp(it)
+            }
+        }
     }
 
     override suspend fun teardown() {
         eventStreamDelegate.stopHeartbeat()
         eventStreamDelegate.close()
+        feedSyncJob?.cancel()
+        feedSyncJob = null
         feedDelegate.cancelJobs()
         groupFeedDelegate.cancelJobs()
         networkObserverJob?.cancel()

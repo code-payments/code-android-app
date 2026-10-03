@@ -2,6 +2,7 @@ package com.flipcash.shared.chat
 
 import androidx.lifecycle.LifecycleOwner
 import com.flipcash.app.core.dispatchers.TestDispatchers
+import com.flipcash.app.persistence.sources.ChatFeedWriter
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -10,9 +11,9 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
-import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatFeedPage
+import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.RosterChange
@@ -28,13 +29,12 @@ import com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.opencode.model.accounts.AccountCluster
-import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -44,30 +44,43 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.time.Instant
 
 /**
- * The group work reaches the rest of the app through the coordinator and nowhere else: a roster
- * change on the event stream, and every trigger that re-syncs the conversation list. All of them
- * are checked here rather than in the delegates that do the work.
- *
- * The refresh triggers are the reason this file is not only about routing. A group's row comes
- * from `GroupFeedDelegate` alone, so a trigger that reaches `FeedSyncDelegate` by itself leaves
- * the group half of the list on whatever the login pass fetched — which is what these assert
- * against.
+ * Launch fetches the DM and group feeds once and writes them once. A foreground that lands while
+ * that fetch is in flight shares it rather than cancelling and restarting it, which is what used to
+ * double the launch traffic and let the list change twice.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-class GroupChatRoutingTest {
+class FeedReconcileTest {
 
-    private val chatId = ChatId("11223344")
     private val selfId = listOf<Byte>(1, 2, 3)
-    private val chatUpdatesChannel = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
+    private val dmChat = chat("aa", ChatType.CONTACT_DM)
+    private val groupChat = chat("bb", ChatType.GROUP)
 
-    private val groupFeedDelegate = mockk<GroupFeedDelegate>(relaxed = true)
+    private fun chat(hex: String, type: ChatType) = ChatMetadata(
+        chatId = ChatId(hex),
+        type = type,
+        members = emptyList(),
+        lastMessage = null,
+        lastActivity = Instant.fromEpochSeconds(1000),
+    )
+
+    private val groupGate = CompletableDeferred<Unit>()
     private val chatController = mockk<ChatController>(relaxed = true).also {
-        coEvery { it.getDmChatFeed(any(), any()) } returns Result.failure(RuntimeException("not needed"))
+        coEvery { it.getDmChatFeed(ChatType.CONTACT_DM, any()) } returns
+            Result.success(ChatFeedPage(listOf(dmChat), null, false))
+        coEvery { it.getDmChatFeed(ChatType.TIP_DM, any()) } returns
+            Result.success(ChatFeedPage(emptyList(), null, false))
     }
-
+    private val groupFeedDelegate = mockk<GroupFeedDelegate>(relaxed = true).also {
+        coEvery { it.fetchGroupFeed() } coAnswers {
+            groupGate.await()
+            listOf(groupChat)
+        }
+    }
+    private val feedWriter = mockk<ChatFeedWriter>(relaxed = true)
     private val testDispatchers = TestDispatchers(TestCoroutineScheduler())
 
     private fun coordinator(): RealChatCoordinator {
@@ -75,7 +88,7 @@ class GroupChatRoutingTest {
             every { it.accountId } returns selfId
         }
         val eventStreamingController = mockk<EventStreamingController>(relaxed = true).also {
-            every { it.chatUpdates } returns chatUpdatesChannel.receiveAsFlow()
+            every { it.chatUpdates } returns Channel<ChatUpdate>().receiveAsFlow()
             every { it.isConnected } returns true
             every { it.isStreamActive } returns true
         }
@@ -83,6 +96,9 @@ class GroupChatRoutingTest {
         val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
         val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
         val stateHolder = ChatStateHolder()
+        val messagingController = mockk<ChatMessagingController>(relaxed = true).also {
+            coEvery { it.getMessages(any(), any()) } returns Result.success(emptyList())
+        }
 
         return RealChatCoordinator(
             feedDelegate = FeedSyncDelegate(
@@ -93,6 +109,7 @@ class GroupChatRoutingTest {
                 memberDataSource = memberDataSource,
                 stateHolder = stateHolder,
                 userManager = userManager,
+                feedWriter = feedWriter,
             ),
             eventStreamDelegate = EventStreamDelegate(
                 eventStreamingController = eventStreamingController,
@@ -114,7 +131,7 @@ class GroupChatRoutingTest {
             ),
             messagingDelegate = MessagingDelegate(
                 chatController = chatController,
-                messagingController = mockk<ChatMessagingController>(relaxed = true),
+                messagingController = messagingController,
                 metadataDataSource = metadataDataSource,
                 messageDataSource = messageDataSource,
                 memberDataSource = memberDataSource,
@@ -134,23 +151,6 @@ class GroupChatRoutingTest {
         )
     }
 
-    private val change = RosterChange.MemberJoined(
-        member = ChatMember(
-            userId = listOf(9, 9, 9),
-            userProfile = UserProfile.Empty.copy(displayName = "Ada"),
-            pointers = emptyList(),
-        ),
-        metadata = null,
-        rosterSummary = RosterSummary(memberCount = 13, version = 5),
-    )
-
-    /**
-     * Runs [block] against a logged-in coordinator and tears it down afterwards, however it ends.
-     *
-     * The `finally` is the point. The heartbeat the login hook starts is a `while (true)` on the
-     * test scheduler, so a test that fails its assertion before reaching teardown hangs the run
-     * advancing virtual time instead of reporting the failure.
-     */
     private suspend fun TestScope.loggedIn(block: suspend (RealChatCoordinator) -> Unit) {
         val subject = coordinator()
         subject.onUserLoggedIn(mockk<AccountCluster>(relaxed = true))
@@ -158,86 +158,71 @@ class GroupChatRoutingTest {
         try {
             block(subject)
         } finally {
+            groupGate.complete(Unit)
             subject.teardown()
         }
     }
 
     @Test
-    fun `a roster change on the stream reaches the group delegate`() = runTest(testDispatchers.dispatcher) {
+    fun `the DM and group feeds land in one write`() = runTest(testDispatchers.dispatcher) {
         loggedIn {
-            chatUpdatesChannel.send(ChatUpdate(chatId = chatId, rosterUpdates = listOf(change)))
+            groupGate.complete(Unit)
             runCurrent()
 
-            coVerify { groupFeedDelegate.applyRosterChanges(chatId, listOf(change)) }
+            coVerify(exactly = 1) { feedWriter.write(match { it.toSet() == setOf(dmChat, groupChat) }) }
         }
     }
 
     @Test
-    fun `an update with no roster change does not reach the group delegate`() = runTest(testDispatchers.dispatcher) {
-        loggedIn {
-            chatUpdatesChannel.send(ChatUpdate(chatId = chatId))
-            runCurrent()
+    fun `a foreground during the launch sync shares it instead of restarting it`() =
+        runTest(testDispatchers.dispatcher) {
+            loggedIn { subject ->
+                // The group fetch is still in flight: the launch sync has not finished.
+                subject.onStart(mockk<LifecycleOwner>(relaxed = true))
+                runCurrent()
+                groupGate.complete(Unit)
+                runCurrent()
 
-            coVerify(exactly = 0) { groupFeedDelegate.applyRosterChanges(any(), any()) }
+                coVerify(exactly = 1) { chatController.getDmChatFeed(ChatType.CONTACT_DM, any()) }
+                coVerify(exactly = 1) { groupFeedDelegate.fetchGroupFeed() }
+                coVerify(exactly = 1) { feedWriter.write(any()) }
+            }
         }
-    }
 
     @Test
-    fun `logging in syncs the group feed`() = runTest(testDispatchers.dispatcher) {
-        loggedIn {
-            coVerify(exactly = 1) { groupFeedDelegate.fetchGroupFeed() }
-        }
-    }
-
-    @Test
-    fun `refreshing the feed syncs the group feed`() = runTest(testDispatchers.dispatcher) {
+    fun `a push during an in-flight sync queues exactly one trailing fetch`() = runTest(testDispatchers.dispatcher) {
         loggedIn { subject ->
-            clearMocks(groupFeedDelegate, answers = false)
+            subject.refreshFeed()
+            runCurrent()
+            groupGate.complete(Unit)
+            runCurrent()
 
-            // What a chat push and both payment delegates call.
+            coVerify(exactly = 2) { chatController.getDmChatFeed(ChatType.CONTACT_DM, any()) }
+        }
+    }
+
+    @Test
+    fun `several pushes during one sync still produce one trailing fetch`() = runTest(testDispatchers.dispatcher) {
+        loggedIn { subject ->
+            repeat(5) { subject.refreshFeed() }
+            runCurrent()
+            groupGate.complete(Unit)
+            runCurrent()
+
+            coVerify(exactly = 2) { chatController.getDmChatFeed(ChatType.CONTACT_DM, any()) }
+        }
+    }
+
+    @Test
+    fun `a refresh after the sync has finished fetches again`() = runTest(testDispatchers.dispatcher) {
+        loggedIn { subject ->
+            groupGate.complete(Unit)
+            runCurrent()
+
             subject.refreshFeed()
             runCurrent()
 
-            coVerify(exactly = 1) { groupFeedDelegate.fetchGroupFeed() }
+            coVerify(exactly = 2) { chatController.getDmChatFeed(ChatType.CONTACT_DM, any()) }
         }
-    }
-
-    @Test
-    fun `refreshing the feed still syncs the DM feeds`() = runTest(testDispatchers.dispatcher) {
-        loggedIn { subject ->
-            clearMocks(chatController, answers = false)
-
-            // [RealChatCoordinator.refreshFeed] overrides the FeedOperations delegation, so the
-            // half that used to be the only one running needs asserting as well as the half that
-            // did not.
-            subject.refreshFeed()
-            runCurrent()
-
-            coVerify(exactly = 1) { chatController.getDmChatFeed(ChatType.CONTACT_DM, any()) }
-            coVerify(exactly = 1) { chatController.getDmChatFeed(ChatType.TIP_DM, any()) }
-        }
-    }
-
-    @Test
-    fun `resuming from the background syncs the group feed`() = runTest(testDispatchers.dispatcher) {
-        loggedIn { subject ->
-            clearMocks(groupFeedDelegate, answers = false)
-
-            subject.onStart(mockk<LifecycleOwner>(relaxed = true))
-            runCurrent()
-
-            coVerify(exactly = 1) { groupFeedDelegate.fetchGroupFeed() }
-        }
-    }
-
-    @Test
-    fun `teardown cancels the group delegate's jobs`() = runTest(testDispatchers.dispatcher) {
-        val subject = coordinator()
-        subject.onUserLoggedIn(mockk<AccountCluster>(relaxed = true))
-        runCurrent()
-
-        subject.teardown()
-
-        coVerify { groupFeedDelegate.cancelJobs() }
     }
 }

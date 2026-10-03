@@ -99,6 +99,23 @@ class SenderResolver @Inject constructor(
     /** Every profile this device holds, keyed by user-id hex. The transcript indexes into it. */
     val profiles: Flow<Map<String, UserProfile>> = userProfileDataSource.observeProfiles()
 
+    @Volatile
+    private var snapshot: Map<String, UserProfile>? = null
+
+    /**
+     * The last `user_profiles` read, or null before the first one lands. Lets a caller that must
+     * draw synchronously (the chat list's first frame) name a group's last sender from names
+     * persisted by an earlier session, instead of drawing it unattributed until [profiles] emits.
+     * Kept in its own scope so [clear] does not stop it; [profiles] follows the open database.
+     */
+    val cachedProfiles: Map<String, UserProfile>? get() = snapshot
+
+    init {
+        CoroutineScope(dispatchers.IO + SupervisorJob()).launch {
+            profiles.collect { snapshot = it }
+        }
+    }
+
     /**
      * Asks for [userId]'s profile if nothing has asked already. Returns immediately.
      */
