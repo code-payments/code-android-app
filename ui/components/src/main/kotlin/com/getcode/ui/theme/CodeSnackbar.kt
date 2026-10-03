@@ -12,11 +12,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +28,7 @@ import androidx.compose.material.SnackbarData
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
+import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -74,8 +78,9 @@ fun CodeSnackbar(
             .padding(
                 PaddingValues(
                     start = 16.dp,
-                    top = 8.dp,
-                    bottom = 8.dp,
+                    // With an action, its 48dp touch area sets the height instead.
+                    top = if (actionLabel != null) 0.dp else 8.dp,
+                    bottom = if (actionLabel != null) 0.dp else 8.dp,
                     end = if (actionLabel != null) 8.dp else 16.dp,
                 )
             ),
@@ -93,6 +98,7 @@ fun CodeSnackbar(
         Text(
             text = snackbarData.message,
             style = CodeTheme.typography.textSmall,
+            fontWeight = FontWeight.Normal,
             color = CodeTheme.colors.textMain,
             modifier = Modifier
                 .weight(1f)
@@ -101,17 +107,30 @@ fun CodeSnackbar(
                 .semantics { liveRegion = LiveRegionMode.Polite },
         )
         if (actionLabel != null) {
-            Text(
-                text = actionLabel,
-                style = CodeTheme.typography.textSmall,
-                fontWeight = FontWeight.Bold,
-                color = CodeTheme.colors.textMain,
+            val interactionSource = remember { MutableInteractionSource() }
+            // The touch area is the toast's full height; the ripple stays on the visible pill.
+            Box(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(ActionFill)
-                    .clickable(role = Role.Button) { snackbarData.performAction() }
-                    .padding(horizontal = 16.dp, vertical = 7.dp),
-            )
+                    .heightIn(min = 48.dp)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        role = Role.Button,
+                    ) { snackbarData.performAction() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = actionLabel,
+                    style = CodeTheme.typography.textSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = CodeTheme.colors.textMain,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(ActionFill)
+                        .indication(interactionSource, ripple())
+                        .padding(horizontal = 16.dp, vertical = 7.dp),
+                )
+            }
         }
     }
 }
