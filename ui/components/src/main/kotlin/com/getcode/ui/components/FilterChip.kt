@@ -1,6 +1,7 @@
 package com.getcode.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -15,6 +16,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
+import com.getcode.theme.White10
 
 /**
  * A chip that can be selected, for choosing one filter among a few. [CodeChip] is a label with no
@@ -22,7 +24,8 @@ import com.getcode.theme.White
  *
  * Selection is exposed to accessibility (`Role.RadioButton`, selected), because the colour change
  * is the only visual cue. Selected is a white tint at 16% over whatever is behind the chip, with the
- * label in the main text colour; unselected has no fill and uses the secondary text colour. A
+ * label in the main text colour; unselected has no fill and uses the secondary text colour. Both
+ * carry a 1dp white outline at 10%, as iOS draws them. A
  * solid white chip was the brightest thing on a dark screen. A [count] of null or 0 draws nothing:
  * the chips show a number only when there is something in the filter.
  */
@@ -47,6 +50,7 @@ fun FilterChip(
             .clip(CircleShape)
             // Drawn rather than passed as CodeChip's background so the animated fill only redraws.
             .drawBehind { drawRect(backgroundColor) }
+            .border(1.dp, White10, CircleShape)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         backgroundColor = Color.Transparent,
         contentPadding = PaddingValues(
