@@ -18,6 +18,11 @@ on:
         required: false
         default: false
         type: boolean
+      skip_bump:
+        description: 'Record the manifest without bumping the patch version (e.g. Packaging.kt is already ahead)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   release:
@@ -44,6 +49,7 @@ jobs:
           SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
           TRACKS: ${{ github.event.inputs.track }}
           FORCE_BUMP: ${{ github.event.inputs.force_bump }}
+          SKIP_BUMP: ${{ github.event.inputs.skip_bump }}
         run: bash scripts/update-release-manifest.sh
 
       - name: Commit & Push changes
@@ -54,11 +60,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          COMMIT_MSG="${{ steps.manifest.outputs.prod_changed == 'true'
+          COMMIT_MSG="${{ steps.manifest.outputs.prod_changed == 'true' && steps.manifest.outputs.skipped == 'true'
+            && format('build: release Flipcash {0} ({1})', steps.manifest.outputs.new_prod_name, steps.manifest.outputs.new_prod)
+            || (steps.manifest.outputs.prod_changed == 'true'
             && format('build: release Flipcash {0} ({1}), bump to {2}', steps.manifest.outputs.new_prod_name, steps.manifest.outputs.new_prod, steps.manifest.outputs.version)
             || (steps.manifest.outputs.forced == 'true'
               && format('build: bump Flipcash to {0}', steps.manifest.outputs.version)
-              || 'build: update release manifest') }}"
+              || 'build: update release manifest')) }}"
           git commit -m "$COMMIT_MSG"
           git pull --rebase https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git code/cash
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:code/cash
