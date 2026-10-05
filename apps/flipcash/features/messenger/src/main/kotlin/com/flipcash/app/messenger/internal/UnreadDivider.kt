@@ -24,6 +24,10 @@ internal val UNREAD_DIVIDER_LIFETIME = UnreadDividerLifetime.UntilClose
  * Compares ranges rather than matching an id, so a read-through message that was deleted or never
  * stored does not matter. The rows of one message share a `messageId`, so the divider never lands
  * inside a message.
+ *
+ * An [older] row without a server id is a pending or failed send, stored as `-(now)` and sorted
+ * among the newest rows, so its id says nothing about the boundary. The gap above it never takes
+ * the divider; otherwise a transcript would draw a second one under the same fixed key.
  */
 internal fun unreadDividerBetween(
     newer: ChatListItem.ContentBubble,
@@ -31,6 +35,7 @@ internal fun unreadDividerBetween(
     boundary: UnreadBoundary,
 ): Boolean {
     if (boundary !is UnreadBoundary.At || newer.isFromSelf) return false
+    if (older != null && older.messageId < 1) return false
     val olderId = older?.messageId ?: Long.MIN_VALUE
     return olderId <= boundary.readThrough && boundary.readThrough < newer.messageId
 }

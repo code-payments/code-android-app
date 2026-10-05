@@ -63,6 +63,24 @@ class UnreadDividerPlacementTest {
     fun `own message first after pointer`() =
         assertEquals(3L, dividerAbove(UnreadBoundary.At(2, 1), row(1), row(2, self = true), row(3)))
 
+    /**
+     * A send that is pending or failed has no server id yet: its row carries `-(now)` and sorts
+     * among the newest. The gap above it is not the boundary, so the transcript keeps one divider.
+     */
+    @Test
+    fun `an unsent own row between unread rows draws one divider`() {
+        val boundary = UnreadBoundary.At(1, 2)
+        val unsent = row(-noon.toEpochMilliseconds(), self = true)
+        val newestFirst = listOf(row(3), unsent, row(2), row(1))
+
+        val above = newestFirst.indices.mapNotNull { i ->
+            val newer = newestFirst[i]
+            newer.messageId.takeIf { unreadDividerBetween(newer, newestFirst.getOrNull(i + 1), boundary) }
+        }
+
+        assertEquals(listOf(2L), above)
+    }
+
     @Test
     fun `resolving draws nothing`() = assertEquals(null, dividerAbove(UnreadBoundary.Resolving, row(1), row(2)))
 
