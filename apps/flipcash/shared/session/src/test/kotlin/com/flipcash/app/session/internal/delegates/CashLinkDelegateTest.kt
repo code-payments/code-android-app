@@ -292,6 +292,45 @@ class CashLinkDelegateTest {
     }
 
     @Test
+    fun `a re-tap during the collect-anyway reclaim does not start a second claim`() = runTest {
+        every { resources.getString(R.string.action_collect) } returns "Collect"
+        val delegate = createDelegate()
+
+        val onError = slot<(Throwable) -> Unit>()
+        delegate.openCashLink("ownEntropy")
+        verify {
+            billController.receiveGiftCard(
+                entropy = any(),
+                owner = any(),
+                claimIfOwned = false,
+                onReceived = any(),
+                onError = capture(onError),
+            )
+        }
+        onError.captured.invoke(ReceiveGiftTransactorError.UsersGiftCard())
+        runCurrent()
+
+        // "Collect" on the own-cash prompt starts the reclaim, and a second tap on the same link
+        // while it runs must not start another.
+        BottomBarManager.messages.value.single().actions
+            .single { it.text.text == "Collect" }
+            .onClick()
+        delegate.openCashLink("ownEntropy")
+
+        verify(exactly = 2) {
+            billController.receiveGiftCard(
+                entropy = any(),
+                owner = any(),
+                claimIfOwned = any(),
+                onReceived = any(),
+                onError = any(),
+            )
+        }
+        // Only the claim that started is on record as routed; the dropped tap is not.
+        assertEquals(1, analytics.events.count { it == DeeplinkEvents.routed("CashLink", error = null) })
+    }
+
+    @Test
     fun `openCashLink clears bottom bar before processing`() = runTest {
         // Add a message to BottomBarManager first
         BottomBarManager.showInfo(title = "existing", message = "message")

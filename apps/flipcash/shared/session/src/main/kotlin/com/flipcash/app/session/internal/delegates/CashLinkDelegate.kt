@@ -126,18 +126,23 @@ class CashLinkDelegate @Inject constructor(
             return
         }
 
-        if (giftCardClaimInProgress.value == null) {
-            giftCardClaimInProgress.value = entropy
+        if (claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)) {
             analytics.track(DeeplinkEvents.routed(DeeplinkType.CashLink().analytics, error = null))
-            claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
         }
     }
 
+    /**
+     * Starts a claim of [entropy] unless one is already running, and returns whether it started.
+     * Every way into a claim holds the slot, including the reclaim from the own-cash prompt, which
+     * runs after the first attempt has already cleared it.
+     */
     private fun claimGiftCard(
         owner: AccountCluster,
         entropy: String,
         claimIfOwned: Boolean
-    ) {
+    ): Boolean {
+        if (!giftCardClaimInProgress.compareAndSet(null, entropy)) return false
+
         trace(
             tag = "Session",
             message = "Claiming gift card: $entropy",
@@ -225,5 +230,6 @@ class CashLinkDelegate @Inject constructor(
                 }
             }
         )
+        return true
     }
 }
