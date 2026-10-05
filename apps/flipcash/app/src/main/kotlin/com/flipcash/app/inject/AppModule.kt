@@ -30,7 +30,9 @@ object AppModule {
     @Singleton
     fun providesAppVersion(): VersionInfo = VersionInfo(
         versionName = BuildConfig.VERSION_NAME,
-        versionCode = BuildConfig.VERSION_CODE
+        versionCode = BuildConfig.VERSION_CODE,
+        commitSha = BuildConfig.GIT_SHA,
+        isDirty = BuildConfig.GIT_DIRTY,
     )
 
     @Provides
