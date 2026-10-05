@@ -568,4 +568,17 @@ class SwapViewModelErrorTest {
             val purpose = assertIs<SwapPurpose.Convert>(vm.stateFlow.value.purpose)
             assertEquals(Mint.usdf, purpose.destinationMint)
         }
+
+    @Test
+    fun `confirming a conversion without a destination clears the loading state`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = convertFromDollars(listOf(held(Mint.usdf, 5.0)))
+            advanceUntilIdle()
+
+            vm.dispatchEvent(SwapViewModel.Event.OnConvertConfirmed)
+            advanceUntilIdle()
+
+            assertFalse(vm.stateFlow.value.sellProgress.loading)
+        }
 }

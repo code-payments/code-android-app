@@ -1191,11 +1191,16 @@ class SwapViewModel @Inject constructor(
             .filterIsInstance<Event.ProceedWithConversion>()
             .onEach { dispatchEvent(Event.UpdateSellState(loading = true)) }
             .mapNotNull { event ->
-                val owner = userManager.accountCluster ?: return@mapNotNull null
-                stateFlow.value.purpose as? SwapPurpose.Convert ?: return@mapNotNull null
-                val source = stateFlow.value.tokenWithBalance?.token ?: return@mapNotNull null
+                val owner = userManager.accountCluster
+                val source = stateFlow.value.tokenWithBalance?.token
                 val destination = stateFlow.value.destinationTokenWithBalance?.token
-                    ?: return@mapNotNull null
+                if (owner == null || stateFlow.value.purpose !is SwapPurpose.Convert ||
+                    source == null || destination == null
+                ) {
+                    // Nothing to submit; drop the spinner the confirm tap turned on.
+                    dispatchEvent(Event.UpdateSellState(loading = false))
+                    return@mapNotNull null
+                }
                 Triple(owner, source to destination, event.amount)
             }
             .onEach { (owner, tokens, amount) ->

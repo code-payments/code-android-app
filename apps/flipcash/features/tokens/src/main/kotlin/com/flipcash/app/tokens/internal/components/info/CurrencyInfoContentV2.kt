@@ -225,6 +225,7 @@ internal fun CurrencyInfoContentV2(
                         isHeld = isHeld,
                         tokenMint = token.address,
                         shortfall = shortfall,
+                        convertEnabled = state.canConvert,
                         dispatch = dispatch,
                     )
                 }
@@ -349,6 +350,7 @@ private fun CurrencyActionTiles(
     isHeld: Boolean,
     tokenMint: Mint,
     shortfall: Fiat?,
+    convertEnabled: Boolean,
     dispatch: (TokenInfoViewModel.Event) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -387,6 +389,7 @@ private fun CurrencyActionTiles(
                 )
             },
             onClick = { dispatch(TokenInfoViewModel.Event.OnConvert) },
+            enabled = convertEnabled,
         )
     }
 
@@ -462,19 +465,23 @@ private fun CurrencyActionTiles(
     }
 }
 
+private const val DisabledActionTileAlpha = 0.38f
+
 @Composable
 private fun ActionTile(
     label: String,
     icon: @Composable () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = modifier
+            .alpha(if (enabled) 1f else DisabledActionTileAlpha)
             .height(CodeTheme.dimens.staticGrid.x18)
             .clip(CodeTheme.shapes.extraSmall)
             .background(Color.White.copy(alpha = 0.1f))
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

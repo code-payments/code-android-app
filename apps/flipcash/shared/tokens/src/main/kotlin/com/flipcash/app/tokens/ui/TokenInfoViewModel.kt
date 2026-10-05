@@ -78,6 +78,15 @@ class TokenInfoViewModel @Inject constructor(
 
         val isCashReserve: Boolean
             get() = token.dataOrNull?.address == Mint.usdf
+
+        /**
+         * Whether Convert has somewhere to go. Out of any other currency, Dollars is always a valid
+         * destination. Out of Dollars, the user needs another currency with a displayable balance:
+         * the same `hasDisplayableValue` filter the swap screen uses to pick a default destination.
+         * [fundableBalanceMints] is empty until balances load, so Convert from Dollars starts off.
+         */
+        val canConvert: Boolean
+            get() = mint != Mint.usdf || hasFundableBalance
     }
 
     sealed interface Event {
@@ -341,8 +350,9 @@ class TokenInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OnConvert>()
             .onEach {
                 val mint = stateFlow.value.mint ?: return@onEach
-                // No gate, matching iOS: the tile only shows for a held currency, and the
-                // destination needs no balance of its own.
+                // The tile is disabled when this is false; checked again here so nothing else can
+                // open a Convert out of Dollars with no destination.
+                if (!stateFlow.value.canConvert) return@onEach
 
                 // Dollars is the default landing spot; when Dollars *is* the source the swap
                 // view model substitutes the user's largest other holding.
