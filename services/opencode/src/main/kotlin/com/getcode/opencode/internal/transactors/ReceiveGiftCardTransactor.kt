@@ -154,10 +154,15 @@ internal class ReceiveGiftCardTransactor(
                 },
                 onFailure = { error ->
                     onStep("intent")
-                    if (error is SubmitIntentError.StaleState && error.isGiftCardAlreadyClaimed) {
-                        Result.failure(error)
-                    } else {
-                        logAndFail(error)
+                    // The account query can report NOT_CLAIMED after another claim
+                    // has been accepted, so the pre-claim checks pass and the server
+                    // rejects at submit. Map those to the same errors the checks use.
+                    when {
+                        error is SubmitIntentError.StaleState && error.isGiftCardAlreadyClaimed ->
+                            Result.failure(ReceiveGiftTransactorError.AlreadyClaimed())
+                        error is SubmitIntentError.StaleState && error.isGiftCardExpired ->
+                            Result.failure(ReceiveGiftTransactorError.Expired())
+                        else -> logAndFail(error)
                     }
                 }
             )
