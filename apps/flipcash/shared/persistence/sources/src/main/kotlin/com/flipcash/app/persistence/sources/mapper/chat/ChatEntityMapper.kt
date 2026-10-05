@@ -87,6 +87,7 @@ class ChatEntityMapper @Inject constructor() {
             lastMessageId = metadata.lastMessage?.messageId,
             isHidden = metadata.isHidden,
             title = metadata.title,
+            description = metadata.description,
             pictureJson = metadata.picture,
             memberCount = metadata.rosterSummary.memberCount,
             rosterVersion = metadata.rosterSummary.version,
@@ -117,6 +118,7 @@ class ChatEntityMapper @Inject constructor() {
             latestEventSequence = 0,
             isHidden = entity.isHidden,
             title = entity.title,
+            description = entity.description,
             picture = entity.pictureJson,
             rosterSummary = RosterSummary(
                 memberCount = entity.memberCount,

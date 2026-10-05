@@ -190,6 +190,8 @@ internal class ChatService @Inject constructor(
                     RpcChatService.StartChatResponse.Result.DENIED -> Result.failure(StartChatError.Denied())
                     RpcChatService.StartChatResponse.Result.TITLE_MODERATED ->
                         Result.failure(StartChatError.TitleModerated(response.flaggedCategory.toFlaggedCategory()))
+                    RpcChatService.StartChatResponse.Result.DESCRIPTION_MODERATED ->
+                        Result.failure(StartChatError.DescriptionModerated(response.flaggedCategory.toFlaggedCategory()))
                     RpcChatService.StartChatResponse.Result.PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(StartChatError.PictureBlobNotAccepted())
                     RpcChatService.StartChatResponse.Result.INVALID_RULES -> Result.failure(StartChatError.InvalidRules())
                     RpcChatService.StartChatResponse.Result.RULES_NOT_SATISFIED -> Result.failure(StartChatError.RulesNotSatisfied())
@@ -218,6 +220,8 @@ internal class ChatService @Inject constructor(
                     RpcChatService.EditChatResponse.Result.NOT_FOUND -> Result.failure(EditChatError.NotFound())
                     RpcChatService.EditChatResponse.Result.TITLE_MODERATED ->
                         Result.failure(EditChatError.TitleModerated(response.flaggedCategory.toFlaggedCategory()))
+                    RpcChatService.EditChatResponse.Result.DESCRIPTION_MODERATED ->
+                        Result.failure(EditChatError.DescriptionModerated(response.flaggedCategory.toFlaggedCategory()))
                     RpcChatService.EditChatResponse.Result.PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(EditChatError.PictureBlobNotAccepted())
                     RpcChatService.EditChatResponse.Result.UNRECOGNIZED -> Result.failure(EditChatError.Unrecognized())
                     else -> Result.failure(EditChatError.Other())

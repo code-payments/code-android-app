@@ -11,4 +11,20 @@ data class EditChatParameters(
     // The already-uploaded-and-READY blob to use as the new picture. The client uploads only
     // the ORIGINAL rendition; the server derives the rest. Null leaves the picture unchanged.
     val picture: BlobId? = null,
+    // Null leaves the description unchanged; see [DescriptionEdit] for set vs clear.
+    val description: DescriptionEdit? = null,
 )
+
+/**
+ * An edit to a group's description, up to 160 characters, moderated the same way as the title.
+ * Modeled as two cases rather than a nullable string because the wire distinguishes "leave it"
+ * (wrapper unset) from "clear it" (wrapper set, empty value), and an empty string alone could not
+ * carry both.
+ */
+sealed interface DescriptionEdit {
+    /** Replaces the description with [value]. */
+    data class Set(val value: String) : DescriptionEdit
+
+    /** Removes the description. */
+    data object Clear : DescriptionEdit
+}

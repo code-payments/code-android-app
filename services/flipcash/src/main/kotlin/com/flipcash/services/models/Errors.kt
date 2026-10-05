@@ -455,6 +455,7 @@ sealed class StartChatError(
 ): CodeServerError(message, cause) {
     class Denied : StartChatError("Denied")
     class TitleModerated(val category: ModerationResult.FlaggedCategory) : StartChatError("Title flagged: $category")
+    class DescriptionModerated(val category: ModerationResult.FlaggedCategory) : StartChatError("Description flagged: $category")
     class PictureBlobNotAccepted : StartChatError("Picture blob not accepted")
     class InvalidRules : StartChatError("Invalid rules")
     // The caller does not meet the rules they are setting on the chat being created (e.g. a
@@ -472,6 +473,7 @@ sealed class EditChatError(
     class Denied : EditChatError("Denied")
     class NotFound : EditChatError("Not found")
     class TitleModerated(val category: ModerationResult.FlaggedCategory) : EditChatError("Title flagged: $category")
+    class DescriptionModerated(val category: ModerationResult.FlaggedCategory) : EditChatError("Description flagged: $category")
     class PictureBlobNotAccepted : EditChatError("Picture blob not accepted")
     class Unrecognized : EditChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : EditChatError(message = cause?.message, cause = cause), NotifiableError

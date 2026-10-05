@@ -152,6 +152,12 @@ class DomainModelsTest {
     }
 
     @Test
+    fun `MetadataUpdate DescriptionChanged holds the new description`() {
+        val update = MetadataUpdate.DescriptionChanged("New description")
+        assertEquals("New description", update.newDescription)
+    }
+
+    @Test
     fun `MetadataUpdate PictureChanged holds the new picture`() {
         val picture = MediaItem(renditions = emptyList())
         val update = MetadataUpdate.PictureChanged(picture)
@@ -182,5 +188,16 @@ class DomainModelsTest {
         val parameters = EditChatParameters()
         assertNull(parameters.title)
         assertNull(parameters.picture)
+        assertNull(parameters.description)
+    }
+
+    @Test
+    fun `EditChatParameters tells clearing a description apart from leaving it`() {
+        assertNull(EditChatParameters().description)
+        assertEquals(DescriptionEdit.Clear, EditChatParameters(description = DescriptionEdit.Clear).description)
+        assertEquals(
+            DescriptionEdit.Set("About"),
+            EditChatParameters(description = DescriptionEdit.Set("About")).description,
+        )
     }
 }

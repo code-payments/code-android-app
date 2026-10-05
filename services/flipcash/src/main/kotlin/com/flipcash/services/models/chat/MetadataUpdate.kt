@@ -10,6 +10,9 @@ sealed interface MetadataUpdate {
     // A group chat's title was edited. Best-effort delivery: applied as received, no ordering
     // guaranteed against other updates for the same chat.
     data class TitleChanged(val newTitle: String) : MetadataUpdate
+    // A group chat's description was edited; an empty string means it was cleared. Best-effort
+    // delivery, same caveat as TitleChanged.
+    data class DescriptionChanged(val newDescription: String) : MetadataUpdate
     // A group chat's picture was edited. Best-effort delivery, same caveat as TitleChanged.
     data class PictureChanged(val newPicture: MediaItem) : MetadataUpdate
 }

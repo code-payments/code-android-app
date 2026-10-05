@@ -160,6 +160,24 @@ class ChatMetadataEditStreamTest {
     }
 
     @Test
+    fun `a description change from the stream is stored`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+
+            chatUpdatesChannel.send(
+                ChatUpdate(
+                    chatId = chatId,
+                    metadataUpdates = listOf(MetadataUpdate.DescriptionChanged("New description")),
+                ),
+            )
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 1) { metadataDataSource.updateDescription(chatId, "New description") }
+        }
+    }
+
+    @Test
     fun `a picture change from the stream is stored`() = runTest(testDispatchers.dispatcher) {
         tornDown {
             triggerCollection()

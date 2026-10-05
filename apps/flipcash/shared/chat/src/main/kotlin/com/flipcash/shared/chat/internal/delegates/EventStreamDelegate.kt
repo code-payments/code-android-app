@@ -425,6 +425,10 @@ class EventStreamDelegate @Inject constructor(
                     // GetChat rather than waiting on a later update to correct it.
                     metadataDataSource.updateTitle(chatId, metaUpdate.newTitle)
                 }
+                is MetadataUpdate.DescriptionChanged -> {
+                    // Same best-effort contract as TitleChanged above. Empty means cleared.
+                    metadataDataSource.updateDescription(chatId, metaUpdate.newDescription)
+                }
                 is MetadataUpdate.PictureChanged -> {
                     // Same best-effort contract as TitleChanged above.
                     metadataDataSource.updatePicture(chatId, metaUpdate.newPicture)

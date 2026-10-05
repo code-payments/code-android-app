@@ -89,6 +89,7 @@ interface ChatMetadataDao {
             "THEN :lastMessageId ELSE last_message_id END, " +
             "is_hidden = :isHidden, " +
             "title = :title, " +
+            "description = :description, " +
             "picture_json = :pictureJson, " +
             "rules_json = :rulesJson, " +
             "is_member = :isMember, " +
@@ -102,6 +103,7 @@ interface ChatMetadataDao {
         lastMessageId: Long?,
         isHidden: Boolean,
         title: String?,
+        description: String?,
         pictureJson: MediaItem?,
         rulesJson: ChatRulesSerialized?,
         isMember: Boolean,
@@ -202,6 +204,7 @@ interface ChatMetadataDao {
             lastMessageId = entity.lastMessageId,
             isHidden = entity.isHidden,
             title = entity.title,
+            description = entity.description,
             pictureJson = entity.pictureJson,
             rulesJson = entity.rulesJson,
             isMember = entity.isMember,
@@ -310,6 +313,13 @@ interface ChatMetadataDao {
      */
     @Query("UPDATE chat_metadata SET title = :title WHERE chat_id_hex = :chatIdHex")
     suspend fun updateTitle(chatIdHex: String, title: String)
+
+    /**
+     * Unconditional, for the same reason as [updateTitle]: `MetadataUpdate.DescriptionChanged`
+     * carries no version. Null clears the column; the caller maps the wire's empty string to it.
+     */
+    @Query("UPDATE chat_metadata SET description = :description WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateDescription(chatIdHex: String, description: String?)
 
     /** Unconditional, for the same reason as [updateTitle]: `MetadataUpdate.PictureChanged` carries no version. */
     @Query("UPDATE chat_metadata SET picture_json = :pictureJson WHERE chat_id_hex = :chatIdHex")

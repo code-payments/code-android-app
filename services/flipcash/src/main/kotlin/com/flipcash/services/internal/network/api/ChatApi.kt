@@ -17,6 +17,7 @@ import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.DescriptionEdit
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.KeyEnvelope
@@ -110,6 +111,7 @@ internal class ChatApi @Inject constructor(
             is StartChatParameters.Group -> requestBuilder.setPublicGroup(
                 RpcChatService.StartChatRequest.PublicGroupChatParameters.newBuilder()
                     .setTitle(parameters.title)
+                    .apply { parameters.description?.let { setDescription(it) } }
                     .apply {
                         parameters.picture?.let {
                             setPicture(
@@ -123,6 +125,7 @@ internal class ChatApi @Inject constructor(
             is StartChatParameters.PrivateGroup -> requestBuilder.setPrivateGroup(
                 RpcChatService.StartChatRequest.PrivateGroupChatParameters.newBuilder()
                     .setTitle(parameters.title)
+                    .apply { parameters.description?.let { setDescription(it) } }
                     .apply {
                         parameters.picture?.let {
                             setPicture(
@@ -192,6 +195,17 @@ internal class ChatApi @Inject constructor(
                     setTitle(
                         RpcChatService.EditChatRequest.Title.newBuilder()
                             .setValue(it)
+                    )
+                }
+                parameters.description?.let { edit ->
+                    setDescription(
+                        RpcChatService.EditChatRequest.Description.newBuilder()
+                            .setValue(
+                                when (edit) {
+                                    is DescriptionEdit.Set -> edit.value
+                                    DescriptionEdit.Clear -> ""
+                                }
+                            )
                     )
                 }
                 parameters.picture?.let {

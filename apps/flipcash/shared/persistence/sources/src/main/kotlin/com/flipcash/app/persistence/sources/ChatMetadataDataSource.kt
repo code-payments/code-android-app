@@ -152,6 +152,14 @@ class ChatMetadataDataSource @Inject constructor(
         db?.chatMetadataDao()?.updateTitle(mapper.chatIdHex(chatId), title)
     }
 
+    /**
+     * Applies a `MetadataUpdate.DescriptionChanged` for [chatId]. An empty [description] clears
+     * it. See ChatMetadataDao.updateDescription.
+     */
+    suspend fun updateDescription(chatId: ChatId, description: String) {
+        db?.chatMetadataDao()?.updateDescription(mapper.chatIdHex(chatId), description.takeIf { it.isNotEmpty() })
+    }
+
     /** Applies a `MetadataUpdate.PictureChanged` for [chatId]. See ChatMetadataDao.updatePicture. */
     suspend fun updatePicture(chatId: ChatId, picture: MediaItem) {
         db?.chatMetadataDao()?.updatePicture(mapper.chatIdHex(chatId), picture)

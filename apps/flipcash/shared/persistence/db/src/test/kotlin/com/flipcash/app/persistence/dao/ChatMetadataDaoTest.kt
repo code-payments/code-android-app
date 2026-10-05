@@ -53,6 +53,7 @@ class ChatMetadataDaoTest {
         isHidden: Boolean = false,
         analyticsCountedThrough: Long = 0,
         title: String? = null,
+        description: String? = null,
         pictureJson: MediaItem? = null,
         memberCount: Long = 0,
         rosterVersion: Long = 0,
@@ -72,6 +73,7 @@ class ChatMetadataDaoTest {
         isHidden = isHidden,
         analyticsCountedThrough = analyticsCountedThrough,
         title = title,
+        description = description,
         pictureJson = pictureJson,
         memberCount = memberCount,
         rosterVersion = rosterVersion,
@@ -203,6 +205,34 @@ class ChatMetadataDaoTest {
         dao.updateTitle(CHAT_HEX, "New title")
 
         assertEquals("New title", dao.getById(CHAT_HEX)?.title)
+    }
+
+    /** Same unconditional contract as `updateTitle`, for `MetadataUpdate.DescriptionChanged`. */
+    @Test
+    fun `updateDescription overwrites the description unconditionally`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", description = "Old"))
+
+        dao.updateDescription(CHAT_HEX, "New")
+
+        assertEquals("New", dao.getById(CHAT_HEX)?.description)
+    }
+
+    @Test
+    fun `updateDescription with null clears the description`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", description = "Old"))
+
+        dao.updateDescription(CHAT_HEX, null)
+
+        assertEquals(null, dao.getById(CHAT_HEX)?.description)
+    }
+
+    @Test
+    fun `upsert refreshes the description of a stored chat`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", description = "Old"))
+
+        dao.upsert(entity(chatType = "GROUP", description = "Fetched"))
+
+        assertEquals("Fetched", dao.getById(CHAT_HEX)?.description)
     }
 
     /** Same unconditional contract as `updateTitle`, for `MetadataUpdate.PictureChanged`. */
