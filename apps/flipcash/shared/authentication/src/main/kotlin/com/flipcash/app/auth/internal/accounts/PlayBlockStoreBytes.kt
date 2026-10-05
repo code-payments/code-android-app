@@ -7,7 +7,10 @@ import com.google.android.gms.auth.blockstore.Blockstore
 import com.google.android.gms.auth.blockstore.DeleteBytesRequest
 import com.google.android.gms.auth.blockstore.RetrieveBytesRequest
 import com.google.android.gms.auth.blockstore.StoreBytesData
+import com.google.android.gms.common.api.UnsupportedApiCallException
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,7 +24,9 @@ import javax.inject.Singleton
  * leaving it unset deletes previously backed-up cloud data on the next sync.
  *
  * Every Play services failure is swallowed: no Play services means no durable list, not a broken
- * login.
+ * login. A Play services build too old for these calls is expected on some devices, so that case
+ * is left as a breadcrumb instead of being reported. Cancellation of the calling coroutine is not
+ * a failure and is rethrown.
  */
 @Singleton
 internal class PlayBlockStoreBytes @Inject constructor(
@@ -30,22 +35,40 @@ internal class PlayBlockStoreBytes @Inject constructor(
 
     private val client = Blockstore.getClient(context)
 
-    override suspend fun read(): ByteArray? = runCatching {
-        val request = RetrieveBytesRequest.Builder()
-            .setKeys(listOf(KEY))
-            .build()
-        client.retrieveBytes(request).await()
-            .blockstoreDataMap[KEY]
-            ?.bytes
-            ?: ByteArray(0)
-    }.getOrElse { error ->
-        trace(tag = TAG, message = "Block Store read failed", error = error, type = TraceType.Error)
-        null
+    /**
+     * Set once a read fails as unsupported, so the rest of the process skips the call. Play services
+     * gates the feature by rollout as well as version, so there is no reliable check up front. Writes
+     * and deletes use different features and are not gated by this.
+     */
+    @Volatile
+    private var readUnsupported = false
+
+    override suspend fun read(): ByteArray? {
+        if (readUnsupported) return null
+        return runCatching {
+            val request = RetrieveBytesRequest.Builder()
+                .setKeys(listOf(KEY))
+                .build()
+            client.retrieveBytes(request).await()
+                .blockstoreDataMap[KEY]
+                ?.bytes
+                ?: ByteArray(0)
+        }.getOrElse { error ->
+            currentCoroutineContext().ensureActive()
+            if (error is UnsupportedApiCallException) readUnsupported = true
+            traceFailure("Block Store read failed", error)
+            null
+        }
     }
 
     override suspend fun write(bytes: ByteArray): Boolean = runCatching {
+        // Without the cancellation check, a cancel here would fall through to storeBytes with backup
+        // off, and that starts in Play services before the await below can notice.
         val canEncrypt = runCatching { client.isEndToEndEncryptionAvailable.await() }
-            .getOrDefault(false)
+            .getOrElse {
+                currentCoroutineContext().ensureActive()
+                false
+            }
 
         val data = StoreBytesData.Builder()
             .setKey(KEY)
@@ -56,7 +79,8 @@ internal class PlayBlockStoreBytes @Inject constructor(
         client.storeBytes(data).await()
         true
     }.getOrElse { error ->
-        trace(tag = TAG, message = "Block Store write failed", error = error, type = TraceType.Error)
+        currentCoroutineContext().ensureActive()
+        traceFailure("Block Store write failed", error)
         false
     }
 
@@ -67,7 +91,16 @@ internal class PlayBlockStoreBytes @Inject constructor(
                 .build()
             client.deleteBytes(request).await()
         }.onFailure { error ->
-            trace(tag = TAG, message = "Block Store delete failed", error = error, type = TraceType.Error)
+            currentCoroutineContext().ensureActive()
+            traceFailure("Block Store delete failed", error)
+        }
+    }
+
+    private fun traceFailure(message: String, error: Throwable) {
+        if (error is UnsupportedApiCallException) {
+            trace(tag = TAG, message = "$message: unsupported by Play services", type = TraceType.Log)
+        } else {
+            trace(tag = TAG, message = message, error = error, type = TraceType.Error)
         }
     }
 
