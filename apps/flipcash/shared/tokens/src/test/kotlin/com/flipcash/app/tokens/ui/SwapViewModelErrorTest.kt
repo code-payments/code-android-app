@@ -518,4 +518,54 @@ class SwapViewModelErrorTest {
             // Rate.ignore would convert this to ~0 and clear every ceiling. Fail closed instead.
             assertTrue(vm.checkFundingAmount())
         }
+
+    private fun held(mint: Mint, usd: Double): TokenWithBalance {
+        val token = mockk<Token>(relaxed = true) { every { address } returns mint }
+        return mockk(relaxed = true) {
+            every { this@mockk.token } returns token
+            every { this@mockk.balance } returns Fiat(usd)
+        }
+    }
+
+    private fun convertFromDollars(balances: List<TokenWithBalance>): SwapViewModel {
+        every { tokenCoordinator.tokenBalances } returns MutableStateFlow(balances)
+        // The destination resolver waits on a rate; a relaxed mock's flow never emits.
+        every { exchange.observePreferredRate() } returns
+            MutableStateFlow(Rate(fx = 1.0, currency = CurrencyCode.USD))
+        val vm = createViewModel()
+        vm.dispatchEvent(
+            SwapViewModel.Event.OnPurposeChanged(
+                SwapPurpose.Convert(mint = Mint.usdf, destinationMint = Mint.usdf)
+            )
+        )
+        return vm
+    }
+
+    @Test
+    fun `converting from Dollars defaults to the largest other holding`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val small = Mint(ByteArray(32) { 2 }.toList())
+            val large = Mint(ByteArray(32) { 3 }.toList())
+            val vm = convertFromDollars(
+                listOf(held(Mint.usdf, 5.0), held(small, 1.0), held(large, 3.0))
+            )
+            advanceUntilIdle()
+
+            val purpose = assertIs<SwapPurpose.Convert>(vm.stateFlow.value.purpose)
+            assertEquals(large, purpose.destinationMint)
+        }
+
+    @Test
+    fun `converting from Dollars never defaults to an empty holding`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            // A zero-balance row the coordinator kept after the account left the server's list.
+            val stale = Mint(ByteArray(32) { 4 }.toList())
+            val vm = convertFromDollars(listOf(held(Mint.usdf, 5.0), held(stale, 0.0)))
+            advanceUntilIdle()
+
+            val purpose = assertIs<SwapPurpose.Convert>(vm.stateFlow.value.purpose)
+            assertEquals(Mint.usdf, purpose.destinationMint)
+        }
 }

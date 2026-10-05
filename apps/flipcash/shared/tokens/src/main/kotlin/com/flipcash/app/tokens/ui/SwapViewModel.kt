@@ -852,7 +852,12 @@ class SwapViewModel @Inject constructor(
                 ) { balances, rate ->
                     if (destination == source) {
                         val fallback = if (source == Mint.usdf) {
-                            balances.filter { it.token.address != source }
+                            // Same candidates as the destination picker: held currencies with a
+                            // displayable balance. The coordinator keeps zero-balance rows for
+                            // accounts it no longer sees, and the server rejects a buy into one.
+                            balances.filter {
+                                it.token.address != source && it.balance.hasDisplayableValue
+                            }
                                 .maxByOrNull { it.balance }?.token?.address
                         } else {
                             Mint.usdf
