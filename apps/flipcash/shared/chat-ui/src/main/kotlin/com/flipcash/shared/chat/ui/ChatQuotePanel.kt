@@ -1,5 +1,9 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.shared.chat.ui.media.QuotedPhotoThumbnail
+import com.flipcash.core.R
+import androidx.compose.ui.res.stringResource
+import com.flipcash.shared.chat.media.ChatMediaText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +55,7 @@ fun ChatQuotePanel(
 ) {
     val accent = quote.accent ?: CodeTheme.colors.tertiary
     val name = quote.nameAccent ?: accent
+    val photo = (quote.snippet as? ChatQuoteSnippet.Photo)?.takeIf { !it.redacted }
 
     Row(
         // Intrinsic minimum, so the rule can fill a height the text column decides. Without it a
@@ -86,11 +91,11 @@ fun ChatQuotePanel(
         Column(
             modifier = Modifier
                 .padding(
-                    end = QuotePanelDefaults.trailingPadding,
+                    // The thumbnail's own gap replaces the trailing one when it follows the text.
+                    end = if (photo != null) 0.dp else QuotePanelDefaults.trailingPadding,
                     top = QuotePanelDefaults.verticalPadding,
                     bottom = QuotePanelDefaults.verticalPadding,
                 ),
-            verticalArrangement = Arrangement.spacedBy(QuotePanelDefaults.nameGap),
         ) {
             Text(
                 text = quote.authorName,
@@ -106,6 +111,14 @@ fun ChatQuotePanel(
                     style = CodeTheme.typography.caption,
                     // White alphas rather than the theme's secondary, which is a blue-grey: the
                     // ground under this text is the author's colour, and a second hue muddies it.
+                    color = Color.White.copy(alpha = QuotePanelDefaults.snippetAlpha),
+                    maxLines = QuotePanelDefaults.snippetMaxLines,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                is ChatQuoteSnippet.Photo -> Text(
+                    text = ChatMediaText.preview(snippet.caption, stringResource(R.string.label_chat_media_photo)),
+                    style = CodeTheme.typography.caption,
                     color = Color.White.copy(alpha = QuotePanelDefaults.snippetAlpha),
                     maxLines = QuotePanelDefaults.snippetMaxLines,
                     overflow = TextOverflow.Ellipsis,
@@ -145,6 +158,11 @@ fun ChatQuotePanel(
                     }
                 }
             }
+        }
+
+        // At the trailing edge, centred on the panel, as iOS places it.
+        if (photo != null) {
+            QuotedPhotoThumbnail(photo, Modifier.padding(end = QuotePanelDefaults.cashGap))
         }
     }
 }
@@ -189,9 +207,11 @@ private object QuotePanelDefaults {
     val cashGap: Dp
         @Composable get() = CodeTheme.dimens.staticGrid.x1
 
-    val nameGap = 1.dp
-    val accentWidth = 3.dp
-    val flagSize = 14.dp
+    /** The accent bar is a rule, not a gutter, so it takes the theme's thick border. */
+    val accentWidth: Dp
+        @Composable get() = CodeTheme.dimens.thickBorder
+    val flagSize: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x3
     const val groundAlpha = 0.14f
     const val snippetAlpha = 0.55f
     const val amountAlpha = 0.75f

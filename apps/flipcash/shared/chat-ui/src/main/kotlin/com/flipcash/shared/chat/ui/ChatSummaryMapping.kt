@@ -7,6 +7,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.ChatSummary
+import com.flipcash.shared.chat.media.ChatMediaText
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
@@ -180,8 +181,16 @@ private fun MessageContent.previewText(
     is MessageContent.Deleted -> null
     is MessageContent.Encrypted -> null
 
-    // TODO:
-    is MessageContent.Media -> null
+    // The caption, else "Photo", behind the camera emoji; prefixed like a typed message.
+    is MessageContent.Media -> {
+        val message = ChatMediaText.preview(caption?.text, resources.getString(R.string.label_chat_media_photo))
+        when {
+            sentBySelf -> resources.getString(R.string.label_chat_preview_sentMessage, message)
+            senderName != null ->
+                resources.getString(R.string.label_chat_preview_senderMessage, senderName, message)
+            else -> message
+        }
+    }
     is MessageContent.System -> null
 
     // A widget this client can't draw previews as nothing, as an undecryptable message does.

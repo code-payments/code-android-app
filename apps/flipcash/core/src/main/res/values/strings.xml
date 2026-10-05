@@ -974,6 +974,8 @@
     <string name="label_chat_preview_receivedCash">You received %1$s</string>
     <string name="label_chat_preview_tippedCash">You tipped %1$s</string>
     <string name="label_chat_preview_receivedTip">Someone tipped you %1$s</string>
+    <string name="label_chat_media_photo">Photo</string>
+    <string name="label_chat_media_unavailable">This photo can’t be displayed</string>
     <string name="label_chat_preview_sentMessage">You: %1$s</string>
     <string name="label_chat_preview_senderMessage">%1$s: %2$s</string>
     <string name="label_chat_preview_sentCash_bySender">%1$s sent %2$s</string>
@@ -1367,4 +1369,27 @@
     <string name="label_shareOfMaxSupply">Share of max supply</string>
     <string name="label_yourCurrentAppreciation">Your current appreciation</string>
     <string name="label_marketCapChartAccessibility">Price curve for %1$s with %2$s purchased</string>
+    <!-- Chat photo messages -->
+    <string name="description_chatMediaClose">Close</string>
+    <string name="description_chatMediaShare">Share</string>
+    <string name="title_chatMediaShare">Share photo</string>
+    <string name="description_chatPhotoRemove">Remove photo</string>
+    <string name="description_chatPhotoRetry">Retry photo upload</string>
+    <string name="description_chatPhotoFailed">Photo can\'t be sent</string>
+    <string name="description_chatPhotoUploadProgress">Photo upload progress</string>
+    <string name="action_chatAttachCash">Cash</string>
+    <string name="action_chatAttachCamera">Camera</string>
+    <string name="action_chatAttachPhotos">Photos</string>
+    <string name="description_chatAttachMenu">Attach</string>
+    <string name="description_chatAttachBack">Back to attach menu</string>
+    <string name="action_chatTakePhoto">Take photo</string>
+    <string name="action_chatMoreCameraControls">More camera controls</string>
+    <string name="action_chatHideCameraControls">Hide camera controls</string>
+    <string name="action_chatFlashOn">Turn flash on</string>
+    <string name="action_chatFlashOff">Turn flash off</string>
+    <string name="action_chatUseFrontCamera">Use front camera</string>
+    <string name="action_chatUseBackCamera">Use back camera</string>
+    <string name="subtitle_chatCameraPermissionDenied">Turn on Camera in Settings to send photos</string>
+    <string name="action_chatOpenSettings">Open Settings</string>
+    <string name="subtitle_chatCameraUnavailable">Camera unavailable</string>
 </resources>

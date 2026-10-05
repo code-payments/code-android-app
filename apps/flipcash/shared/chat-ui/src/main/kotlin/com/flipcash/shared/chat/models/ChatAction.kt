@@ -8,6 +8,9 @@ import com.getcode.solana.keys.Mint
 
 sealed interface ChatAction {
     data class RetryMessage(val bubble: ChatListItem.ContentBubble) : ChatAction
+
+    /** Opens the full-screen viewer for the photo [bubble] carries. */
+    data class OpenPhoto(val bubble: ChatListItem.ContentBubble) : ChatAction
     data class AdvanceReadPointer(val messageId: Long) : ChatAction
     object RefreshContact : ChatAction
     /**

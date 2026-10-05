@@ -84,6 +84,10 @@ import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.shared.chat.media.ChatMediaUploadState
+import com.flipcash.shared.chat.media.ChatMediaUploads
+import com.flipcash.shared.chat.media.MediaSendProgress
+import com.flipcash.shared.chat.ui.media.MAX_STAGED_PHOTOS
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.shared.chat.GroupAccess
 import com.flipcash.shared.chat.SpeakerBlock
@@ -101,6 +105,9 @@ import com.flipcash.shared.chat.groupAccess
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
+import com.flipcash.shared.chat.models.PhotoMessageContext
+import com.flipcash.shared.chat.ui.media.photoBody
+import com.flipcash.shared.chat.ui.media.photoContext
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.ReceiptStatus
@@ -150,10 +157,14 @@ import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
+import android.graphics.Bitmap
+import android.net.Uri
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -198,6 +209,7 @@ data class TypingConstraints(
 @HiltViewModel
 internal class ChatViewModel @Inject constructor(
     private val chatCoordinator: ChatCoordinator,
+    private val mediaUploads: ChatMediaUploads,
     private val e2eePolicy: E2eePolicy,
     private val contactCoordinator: ContactCoordinator,
     private val contactPaymentDelegate: ContactPaymentDelegate,
@@ -228,6 +240,13 @@ internal class ChatViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
+
+    /**
+     * A photo in the composer: its id in [ChatMediaUploads] and where it came from, for the
+     * thumbnail. A camera shot staged at the shutter carries the frame taken then as [preview],
+     * since [source] is not written yet.
+     */
+    data class StagedPhoto(val id: String, val source: Uri, val preview: Bitmap? = null)
 
     sealed interface ResolveState {
         data object Pending : ResolveState
@@ -321,6 +340,10 @@ internal class ChatViewModel @Inject constructor(
          * emits, so a reducer that cleared it would empty it before the handler could read it.
          */
         val replyingTo: ChatQuote? = null,
+        /** Photos staged in the composer, in the order they were added. Hidden, not dropped, while editing. */
+        val stagedPhotos: List<StagedPhoto> = emptyList(),
+        /** Where each staged photo's upload is; a chip with no entry yet is still being picked up. */
+        val uploadStates: Map<String, ChatMediaUploadState> = emptyMap(),
         /**
          * Members matching the `@` word at the composer's cursor, for the mention picker. Empty
          * whenever the picker is closed: outside a group, with no `@` word at the cursor, or when
@@ -501,6 +524,22 @@ internal class ChatViewModel @Inject constructor(
         val replacesComposer: Boolean
             get() = joinProgress.success || isOutsideGroup
 
+        /** The staged photos the composer shows: none while editing, which is text only. */
+        val composerPhotos: List<StagedPhoto>
+            get() = if (editing != null) emptyList() else stagedPhotos
+
+        /** Whether the composer takes photos: the chat is known and no edit is in progress. */
+        val acceptsMedia: Boolean
+            get() = chatId != null && editing == null
+
+        /** A photo that failed to upload blocks sending until it is retried or removed. */
+        val hasFailedPhoto: Boolean
+            get() = composerPhotos.any { uploadStates[it.id] is ChatMediaUploadState.Failed }
+
+        /** Whether the send control does anything: text or a photo to send, and no failed photo. */
+        fun canSendComposer(hasText: Boolean): Boolean =
+            (hasText || composerPhotos.isNotEmpty()) && !hasFailedPhoto
+
         /**
          * What a tap on a cash card in this transcript does.
          *
@@ -631,6 +670,28 @@ internal class ChatViewModel @Inject constructor(
         data object ResolveFailed : Event
 
         data object SendMessage : Event
+
+        /** Stages [uris] as photos, up to [MAX_STAGED_PHOTOS] in all. [captured] ones are camera files to delete once safe. */
+        data class StagePhotos(val uris: List<Uri>, val captured: Boolean = false) : Event
+        data class PhotoStaged(val photo: StagedPhoto) : Event
+
+        /**
+         * The shutter was pressed: stage the shot now, as [preview], so its chip is there for the
+         * camera to land on; reading [uri] waits for [CaptureFinished].
+         */
+        data class CaptureStarted(val uri: Uri, val preview: Bitmap?) : Event
+
+        /** The shot for [uri] was written, or, when not [saved], failed and leaves the composer. */
+        data class CaptureFinished(val uri: Uri, val saved: Boolean) : Event
+        data class RemovePhoto(val id: String) : Event
+        data class RetryPhoto(val id: String) : Event
+        data class UploadStatesChanged(val states: Map<String, ChatMediaUploadState>) : Event
+
+        /** The staged photos went into a send; they leave the composer without being removed. */
+        data class PhotosSent(val ids: Set<String>) : Event
+
+        /** A send of [photos] did not go; they return to the composer. */
+        data class PhotosRestored(val photos: List<StagedPhoto>) : Event
         data class RetryMessage(val pendingId: String?, val content: MessageContent) : Event
 
         data object NavigateToAmountEntry : Event
@@ -818,6 +879,16 @@ internal class ChatViewModel @Inject constructor(
     /** Whether the speaker rules leave reactions open; wider than [viewerCanSpeak], see `speakerBlocksReactions`. */
     private val viewerCanReact = stateFlow.map { !it.speakerBlocksReactions }.distinctUntilChanged()
 
+    /** Whether the viewer is reading a group they have not joined, which shows its photos as BlurHash only. */
+    private val viewerPreviewing = stateFlow.map { it.isOutsideGroup }.distinctUntilChanged()
+
+    private data class ViewerGates(
+        val canPost: Boolean,
+        val canSpeak: Boolean,
+        val canReact: Boolean,
+        val previewing: Boolean,
+    )
+
     /**
      * Live reaction overrides for the open chat — see [ReactionOperations.observeChatReactions].
      * A message missing here falls back to `MessageReactions.from(message.reactions)` in
@@ -898,6 +969,11 @@ internal class ChatViewModel @Inject constructor(
      */
     private val claimReplyTargets = ClaimReplyTargets()
 
+    /** Progress of the photos this device is sending, for the transcript's overlays. */
+    val mediaSendProgress: StateFlow<Map<String, MediaSendProgress>> =
+        chatCoordinator.observeMediaSendProgress()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
     /**
      * The transcript's rows before separators. Cached so a change to the unread boundary or the
      * separator config re-runs only [messages]' separator pass, not the per-message lookups here.
@@ -909,8 +985,8 @@ internal class ChatViewModel @Inject constructor(
             pendingMutations,
             messagePolicy,
             senderProfiles,
-            combine(viewerCanPost, viewerCanSpeak, viewerCanReact, ::Triple),
-        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages) ->
+            combine(viewerCanPost, viewerCanSpeak, viewerCanReact, viewerPreviewing, ::ViewerGates),
+        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages, previewing) ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.flatMapIndexed { index, content ->
@@ -1028,6 +1104,8 @@ internal class ChatViewModel @Inject constructor(
                         reactionPills = storedReactions.pills,
                         selfReactions = storedReactions.selfReactions,
                         canReact = canReact(message, canSpeak = canPost && canReactToMessages),
+                        photo = stateFlow.value.chatId?.takeIf { content.photoBody() != null }
+                            ?.let { chatId -> message.photoContext(chatId, previewing) },
                         undecryptableHint = undecryptableHint(
                             encryption = message.encryption,
                             isFromSelf = message.isFromSelf,
@@ -1121,6 +1199,15 @@ internal class ChatViewModel @Inject constructor(
         }
     }
 
+    private fun MessageContent.Media.toPhotoSnippet(message: ChatMessage) = ChatQuoteSnippet.Photo(
+        caption = caption?.text?.takeIf { it.isNotBlank() },
+        rendition = items.firstOrNull()?.renditions?.firstOrNull(),
+        sealed = message.encryption != null,
+        redacted = message.redacted,
+        chatId = stateFlow.value.chatId,
+        senderId = message.senderId,
+    )
+
     private suspend fun ChatMessage.toQuote(): ChatQuote {
         val body = content.firstOrNull()
         val palette = senderId?.let { generateComplementaryColorPalette(it) }
@@ -1138,6 +1225,8 @@ internal class ChatViewModel @Inject constructor(
 
                 is MessageContent.Text -> ChatQuoteSnippet.Text(body.text)
 
+                is MessageContent.Media -> body.toPhotoSnippet(this)
+
                 // Named the way the chat list previews it, so a citation and its source agree.
                 is MessageContent.Widget -> ChatQuoteSnippet.Text(
                     when (body.widget) {
@@ -1148,10 +1237,13 @@ internal class ChatViewModel @Inject constructor(
                 )
 
                 // A reply to a reply cites the inner body, not the nested citation.
-                is MessageContent.Reply -> ChatQuoteSnippet.Text(
-                    body.content.filterIsInstance<MessageContent.Text>()
-                        .firstOrNull()?.text.orEmpty()
-                )
+                is MessageContent.Reply -> when (val inner = body.content.firstOrNull()) {
+                    is MessageContent.Media -> inner.toPhotoSnippet(this)
+                    else -> ChatQuoteSnippet.Text(
+                        body.content.filterIsInstance<MessageContent.Text>()
+                            .firstOrNull()?.text.orEmpty()
+                    )
+                }
 
                 else -> ChatQuoteSnippet.Text("")
             },
@@ -1281,6 +1373,13 @@ internal class ChatViewModel @Inject constructor(
         override fun onStop(owner: LifecycleOwner) = flushDraft()
     }
 
+    // Declared above init, whose photo handlers read them as soon as they start.
+    /** Camera files by chip id, deleted once the photo is encoded into the app's own storage. */
+    private val captureFiles = HashMap<String, File>()
+
+    /** Shots staged at the shutter and not yet written, by file: the chip id and its readiness. */
+    private val pendingCaptures = HashMap<Uri, Pair<String?, CompletableDeferred<Boolean>>>()
+
     init {
         // Essential — needed immediately for chat display
         initChatHandlers()
@@ -1295,6 +1394,7 @@ internal class ChatViewModel @Inject constructor(
             initTokenAndExchangeObservers()
             initTypingHandlers()
             initSendHandlers()
+            initPhotoHandlers()
             initMentionPicker()
             initMessageActionHandlers()
         }
@@ -2341,13 +2441,89 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    private fun initPhotoHandlers() {
+        eventFlow.filterIsInstance<Event.StagePhotos>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                if (stateFlow.value.editing != null) return@onEach
+                val room = MAX_STAGED_PHOTOS - stateFlow.value.stagedPhotos.size
+                event.uris.take(room.coerceAtLeast(0)).forEach { uri ->
+                    val id = mediaUploads.stage(chatId, uri)
+                    if (event.captured) uri.path?.let { captureFiles[id] = File(it) }
+                    dispatchEvent(Event.PhotoStaged(StagedPhoto(id, uri)))
+                }
+                // Anything over the limit is not staged, and a camera file for it has no use.
+                if (event.captured) event.uris.drop(room.coerceAtLeast(0)).forEach { it.path?.let { path -> File(path).delete() } }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.CaptureStarted>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId
+                val ready = CompletableDeferred<Boolean>()
+                val canStage = chatId != null && stateFlow.value.editing == null &&
+                    stateFlow.value.stagedPhotos.size < MAX_STAGED_PHOTOS
+                if (!canStage) {
+                    pendingCaptures[event.uri] = null to ready
+                    return@onEach
+                }
+                val id = mediaUploads.stage(chatId!!, event.uri, ready)
+                event.uri.path?.let { captureFiles[id] = File(it) }
+                pendingCaptures[event.uri] = id to ready
+                dispatchEvent(Event.PhotoStaged(StagedPhoto(id, event.uri, event.preview)))
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.CaptureFinished>()
+            .onEach { event ->
+                val (id, ready) = pendingCaptures.remove(event.uri) ?: return@onEach
+                ready.complete(event.saved)
+                val staged = id != null && stateFlow.value.stagedPhotos.any { it.id == id }
+                when {
+                    // Not staged (no room), or removed while it was being written: nothing uses it.
+                    !staged -> event.uri.path?.let { File(it).delete() }
+                    !event.saved -> dispatchEvent(Event.RemovePhoto(id!!))
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.RemovePhoto>()
+            .onEach { event ->
+                mediaUploads.remove(event.id)
+                captureFiles.remove(event.id)?.delete()
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.RetryPhoto>()
+            .onEach { event -> mediaUploads.retry(event.id) }
+            .launchIn(viewModelScope)
+
+        mediaUploads.allStates
+            .onEach { states ->
+                dispatchEvent(Event.UploadStatesChanged(states))
+                // Past encoding the app holds its own copy, so the camera's can go.
+                captureFiles.entries.removeAll { (id, file) ->
+                    val encoded = when (states[id]) {
+                        is ChatMediaUploadState.Uploading,
+                        is ChatMediaUploadState.Processing,
+                        is ChatMediaUploadState.Uploaded -> true
+                        else -> false
+                    }
+                    if (encoded) file.delete()
+                    encoded
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
     private fun initSendHandlers() {
         // Send text message
         eventFlow.filterIsInstance<Event.SendMessage>()
             .onEach {
                 val textToSend = stateFlow.value.chatInputState.text.toString()
                 val chatId = stateFlow.value.chatId ?: return@onEach
-                if (textToSend.isBlank()) return@onEach
+                val photos = stateFlow.value.composerPhotos
+                if (!stateFlow.value.canSendComposer(hasText = textToSend.isNotBlank())) return@onEach
                 val chatType = stateFlow.value.chatType
                 // Read here, not in the reducer: the reply strip comes down with the draft, and
                 // both are the composer emptying itself once the message is on its way.
@@ -2355,13 +2531,22 @@ internal class ChatViewModel @Inject constructor(
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
                 if (replyToMessageId != null) dispatchEvent(Event.CancelReply)
+                // The chips leave the composer now; the send owns them from here, and they come
+                // back below if it is refused.
+                if (photos.isNotEmpty()) dispatchEvent(Event.PhotosSent(photos.map { it.id }.toSet()))
                 // Now, not on delivery: the text is in the pending message from here on, and a
                 // send that fails leaves a "Not sent" bubble with a retry, which is the
                 // transcript's own record of it. Restoring a draft as well would duplicate it.
                 chatDraftStore.saveInBackground(chatId, ChatDraftSnapshot.Empty)
 
                 viewModelScope.launch {
-                    chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
+                    val sent = if (photos.isEmpty()) {
+                        chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
+                    } else {
+                        chatCoordinator.sendMedia(chatId, photos.map { it.id }, textToSend.trim(), replyToMessageId)
+                            .onFailure { dispatchEvent(Event.PhotosRestored(photos)) }
+                    }
+                    sent
                         .onSuccess {
                             trace("message sent successfully")
                             analytics.track(ChatEvents.sentMessage(chatType.analytics, null))
@@ -2389,9 +2574,15 @@ internal class ChatViewModel @Inject constructor(
                             text = resources.getString(R.string.action_retry),
                         ) {
                             viewModelScope.launch {
-                                chatCoordinator.retryMessage(chatId, pendingId, listOf(content))
-                                    .onSuccess { trace("retry message sent successfully") }
-                                    .onFailure { trace("retry message failed - ${it.localizedMessage}") }
+                                if (content.photoBody() != null) {
+                                    chatCoordinator.retryMedia(chatId, pendingId)
+                                        .onSuccess { trace("retry photo sent successfully") }
+                                        .onFailure { trace("retry photo failed - ${it.localizedMessage}") }
+                                } else {
+                                    chatCoordinator.retryMessage(chatId, pendingId, listOf(content))
+                                        .onSuccess { trace("retry message sent successfully") }
+                                        .onFailure { trace("retry message failed - ${it.localizedMessage}") }
+                                }
                             }
                         },
                     ),
@@ -2642,7 +2833,14 @@ internal class ChatViewModel @Inject constructor(
         withContext(Dispatchers.Main.immediate) {
             stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd(draft.text)
         }
-        draft.replyTarget?.let { dispatchEvent(Event.ReplyToMessage(it.toChatQuote())) }
+        val reply = draft.replyTarget ?: return
+        // The stored copy keeps a photo's words only. When the cited message is already on this
+        // device its quote is rebuilt from it, so the strip gets the thumbnail back.
+        val quote = runCatching { chatCoordinator.getMessage(chatId, reply.messageId) }.getOrNull()
+            ?.takeIf { it.content.firstOrNull() is MessageContent.Media }
+            ?.toQuote()
+            ?: reply.toChatQuote()
+        dispatchEvent(Event.ReplyToMessage(quote))
     }
 
     override fun onCleared() {
@@ -2653,6 +2851,12 @@ internal class ChatViewModel @Inject constructor(
         // unconditional clear would silence the chat the user just opened.
         chatCoordinator.clearActiveChat(stateFlow.value.chatId)
         linkCardResolver.dispose()
+        // Photos staged but never sent are not worth keeping upload state for. Sent ones have left
+        // this list already and belong to the send.
+        stateFlow.value.stagedPhotos.forEach {
+            mediaUploads.remove(it.id)
+            captureFiles.remove(it.id)?.delete()
+        }
     }
 
     private fun checkBalanceLimit(amount: Fiat): Boolean {
@@ -2908,6 +3112,27 @@ internal class ChatViewModel @Inject constructor(
                     if (clears) state.copy(unreadBoundary = UnreadBoundary.None) else state
                 }
                 is Event.RetryMessage -> { state -> state }
+                is Event.StagePhotos -> { state -> state }
+                is Event.CaptureStarted -> { state -> state }
+                is Event.CaptureFinished -> { state -> state }
+                is Event.RetryPhoto -> { state -> state }
+                is Event.PhotoStaged -> { state ->
+                    if (state.stagedPhotos.size >= MAX_STAGED_PHOTOS) state
+                    else state.copy(stagedPhotos = state.stagedPhotos + event.photo)
+                }
+                is Event.RemovePhoto -> { state ->
+                    state.copy(
+                        stagedPhotos = state.stagedPhotos.filterNot { it.id == event.id },
+                        uploadStates = state.uploadStates - event.id,
+                    )
+                }
+                is Event.UploadStatesChanged -> { state -> state.copy(uploadStates = event.states) }
+                is Event.PhotosSent -> { state ->
+                    state.copy(stagedPhotos = state.stagedPhotos.filterNot { it.id in event.ids })
+                }
+                is Event.PhotosRestored -> { state ->
+                    state.copy(stagedPhotos = (event.photos + state.stagedPhotos).take(MAX_STAGED_PHOTOS))
+                }
                 Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 Event.NavigateToInitPayment -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }

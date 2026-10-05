@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal
 import com.flipcash.shared.chat.ChatDraftReply
 import com.flipcash.shared.chat.ChatDraftSnippet
 import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.media.ChatMediaText
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -22,6 +23,9 @@ internal fun ChatQuote.toDraftReply(): ChatDraftReply = ChatDraftReply(
     senderIdHex = senderIdHex,
     snippet = when (val snippet = snippet) {
         is ChatQuoteSnippet.Text -> ChatDraftSnippet.Text(snippet.body)
+        // A stored draft carries words only; the thumbnail is not persisted with it.
+        is ChatQuoteSnippet.Photo ->
+            ChatDraftSnippet.Text(ChatMediaText.preview(snippet.caption, "Photo"))
         is ChatQuoteSnippet.Cash -> ChatDraftSnippet.Cash(
             quarks = snippet.amount.quarks,
             currencyCode = snippet.amount.currencyCode.name,

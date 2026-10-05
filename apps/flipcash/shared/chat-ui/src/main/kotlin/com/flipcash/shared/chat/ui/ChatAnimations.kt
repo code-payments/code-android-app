@@ -62,6 +62,10 @@ object ChatAnimations {
     // Action bar <-> composer swap — scale from 0.95 + opacity.
     val composerSwap: SpringSpec<Float> = spring(dampingRatio = 0.69f, stiffness = Spring.StiffnessHigh)
 
+    // Controls that pop in and out in place: the camera's ··· stack and the + returning after a
+    // capture. Scale from [reactionEnterScale] + opacity. iOS swap: .spring(duration: 0.27, bounce: 0.31).
+    val swap: SpringSpec<Float> = spring(dampingRatio = 0.69f, stiffness = 541f)
+
     // Delivered label appearance — scale from 0.95 + opacity.
     // Matches iOS deliveredSpring: .spring(duration: 0.4, bounce: 0.12).
     val delivered: SpringSpec<Float> = spring(dampingRatio = 0.88f, stiffness = 250f)

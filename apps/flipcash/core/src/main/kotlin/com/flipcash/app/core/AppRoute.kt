@@ -460,6 +460,15 @@ sealed interface AppRoute : NavKey, Parcelable {
             com.getcode.navigation.Sheet,
             com.getcode.navigation.WrapContentSheet
 
+        /**
+         * The full-screen viewer for the photo in message [messageId] of [chatId]. Carries the
+         * message's address rather than the photo, which is not something a back stack can hold; the
+         * viewer reads the message back to learn how to fetch and open it.
+         */
+        @Serializable
+        @Parcelize
+        data class PhotoViewer(val chatId: ChatId, val messageId: Long) : Messaging
+
         /** The group counterpart of [E2eeDmInfo], opened from Group Info's footer. */
         @Serializable
         @Parcelize

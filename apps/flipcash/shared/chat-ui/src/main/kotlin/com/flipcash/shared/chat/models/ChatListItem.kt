@@ -151,6 +151,8 @@ sealed interface ChatListItem {
          * [undecryptableHint][com.flipcash.shared.chat.ui.undecryptableHint].
          */
         val undecryptableHint: UndecryptableHint = UndecryptableHint.UpdateApp,
+        /** What a photo message needs beyond its content to load and gate its photo. */
+        val photo: PhotoMessageContext? = null,
     ) : ChatListItem {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the
@@ -322,3 +324,25 @@ private fun Char.isPunctuation(): Boolean = when (category) {
 
 /** Whether a text row would hold anything but whitespace and stray punctuation. */
 private fun String.saysSomething(): Boolean = any { !it.isWhitespace() && !it.isPunctuation() }
+
+/**
+ * What a photo bubble needs besides its [MessageContent.Media]: the chat the blob is fetched
+ * under, whether its bytes are sealed, and the two reasons to draw only its BlurHash.
+ *
+ * @property redacted the message was redacted, so its photo is never fetched.
+ * @property previewing the viewer is reading a group they have not joined, which may show the
+ * transcript but not its media.
+ */
+data class PhotoMessageContext(
+    val chatId: com.flipcash.services.models.chat.ChatId,
+    /**
+     * The author, own id included. [ChatListItem.Message.senderId] is null for own messages, but
+     * opening a sealed photo needs the real sender to pick the key roles.
+     */
+    val senderId: ID? = null,
+    val sealed: Boolean,
+    val redacted: Boolean,
+    val previewing: Boolean,
+) {
+    val blurhashOnly: Boolean get() = redacted || previewing
+}
