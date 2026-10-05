@@ -36,6 +36,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CashLinkDelegateTest {
@@ -237,6 +238,29 @@ class CashLinkDelegateTest {
             TransferEvents.receiveCashLink(State.SUCCESS, localFiat.analytics, error = null),
             analytics.events.single { it.name == "Receive Cash Link" },
         )
+    }
+
+    @Test
+    fun `the in-flight claim is published until it settles`() = runTest {
+        val delegate = createDelegate()
+        assertNull(delegate.claimInFlight.value)
+
+        val onReceived = slot<suspend (Token, LocalFiat) -> Unit>()
+        delegate.openCashLink("validEntropy123")
+        assertEquals("validEntropy123", delegate.claimInFlight.value)
+
+        verify {
+            billController.receiveGiftCard(
+                entropy = any(),
+                owner = any(),
+                claimIfOwned = any(),
+                onReceived = capture(onReceived),
+                onError = any(),
+            )
+        }
+        onReceived.captured.invoke(mockk(relaxed = true), localFiat)
+
+        assertNull(delegate.claimInFlight.value)
     }
 
     @Test
