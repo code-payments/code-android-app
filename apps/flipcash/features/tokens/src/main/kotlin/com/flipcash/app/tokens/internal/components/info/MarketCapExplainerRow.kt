@@ -31,6 +31,7 @@ import com.getcode.theme.extraSmall
 /** Entry point to the explainer: "Row / How price works" (design node 10761:1879). */
 @Composable
 internal fun MarketCapExplainerRow(
+    tokenName: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -61,7 +62,7 @@ internal fun MarketCapExplainerRow(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = stringResource(R.string.title_howMarketCapWorks),
+                text = stringResource(R.string.title_howTokenPriceWorks, tokenName),
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textMain,
             )
