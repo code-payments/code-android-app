@@ -32,17 +32,29 @@ internal class PlayBlockStoreBytes @Inject constructor(
 
     private val client = Blockstore.getClient(context)
 
-    override suspend fun read(): ByteArray? = runCatching {
-        val request = RetrieveBytesRequest.Builder()
-            .setKeys(listOf(KEY))
-            .build()
-        client.retrieveBytes(request).await()
-            .blockstoreDataMap[KEY]
-            ?.bytes
-            ?: ByteArray(0)
-    }.getOrElse { error ->
-        traceFailure("Block Store read failed", error)
-        null
+    /**
+     * Set once a read fails as unsupported, so the rest of the process skips the call. Play services
+     * gates the feature by rollout as well as version, so there is no reliable check up front. Writes
+     * and deletes use different features and are not gated by this.
+     */
+    @Volatile
+    private var readUnsupported = false
+
+    override suspend fun read(): ByteArray? {
+        if (readUnsupported) return null
+        return runCatching {
+            val request = RetrieveBytesRequest.Builder()
+                .setKeys(listOf(KEY))
+                .build()
+            client.retrieveBytes(request).await()
+                .blockstoreDataMap[KEY]
+                ?.bytes
+                ?: ByteArray(0)
+        }.getOrElse { error ->
+            if (error is UnsupportedApiCallException) readUnsupported = true
+            traceFailure("Block Store read failed", error)
+            null
+        }
     }
 
     override suspend fun write(bytes: ByteArray): Boolean = runCatching {
