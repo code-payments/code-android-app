@@ -5,6 +5,10 @@
 # updates .well-known/release-manifest.json in place, and bumps
 # Flipcash.patchVersion in Packaging.kt when production changes.
 #
+# FORCE_BUMP=true bumps the patch even when production is unchanged.
+# SKIP_BUMP=true records the tracks without bumping, for when Packaging.kt
+# is already ahead of the release being recorded. Setting both is an error.
+#
 # Env:
 #   SERVICE_ACCOUNT_KEY_JSON  — path to the Google service account JSON file
 #   PKG                       — package name (default: com.flipcash.app.android)
@@ -16,7 +20,8 @@
 # Outputs (written to $GITHUB_OUTPUT when running in CI):
 #   old_prod / new_prod       — previous and current production versionCode
 #   prod_changed              — "true" | "false"
-#   version                   — new versionName (only when prod_changed=true)
+#   version                   — new versionName (only when the patch was bumped)
+#   skipped                   — "true" when SKIP_BUMP suppressed a bump
 
 set -euo pipefail
 
@@ -33,6 +38,11 @@ PKG="${PKG:-com.flipcash.app.android}"
 MANIFEST_PATH="${MANIFEST_PATH:-.well-known/release-manifest.json}"
 TRACKS="${TRACKS:-production beta alpha internal}"
 FORCE_BUMP="${FORCE_BUMP:-false}"
+SKIP_BUMP="${SKIP_BUMP:-false}"
+
+if [ "$FORCE_BUMP" = "true" ] && [ "$SKIP_BUMP" = "true" ]; then
+  echo "FORCE_BUMP and SKIP_BUMP cannot both be set"; exit 1
+fi
 
 ALL_TRACKS="production beta alpha internal"
 
@@ -42,7 +52,7 @@ in_list() { [[ " $2 " == *" $1 "* ]]; }
 # --- helper: write to $GITHUB_OUTPUT when in CI, otherwise just print ---
 emit() {
   echo "$1=$2"
-  [ -n "${GITHUB_OUTPUT:-}" ] && echo "$1=$2" >> "$GITHUB_OUTPUT"
+  if [ -n "${GITHUB_OUTPUT:-}" ]; then echo "$1=$2" >> "$GITHUB_OUTPUT"; fi
 }
 
 # --- mint access token ---
@@ -162,6 +172,13 @@ if [ "$FORCE_BUMP" != "true" ] && [ "$PROD_CHANGED" != "true" ]; then
 fi
 
 emit "prod_changed" "$PROD_CHANGED"
+
+if [ "$SKIP_BUMP" = "true" ]; then
+  echo "skip_bump set, recording the manifest without a patch bump"
+  emit "skipped" "true"
+  exit 0
+fi
+
 emit "forced" "$FORCE_BUMP"
 echo "Bumping patch version (prod_changed=$PROD_CHANGED, forced=$FORCE_BUMP)"
 
