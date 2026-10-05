@@ -719,7 +719,10 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
     return { card ->
         when (card) {
             // The chat opens it, because only the chat knows whether this reader may collect it.
-            is LinkCard.Cash -> actionHandler(ChatAction.CashLinkOpened(card.entropy, card.url))
+            // A voucher already being claimed would only start the same claim again.
+            is LinkCard.Cash -> if ((card.state as? LinkCard.Cash.State.Resolved)?.claim != LinkCard.Cash.Claim.Claiming) {
+                actionHandler(ChatAction.CashLinkOpened(card.entropy, card.url))
+            }
             is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
             // Pushed over this chat rather than through the chat deep link, which replaces the
             // stack: Back has to return to the message that held the invite.

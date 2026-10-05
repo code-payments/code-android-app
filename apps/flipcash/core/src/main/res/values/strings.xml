@@ -1014,6 +1014,7 @@
     <string name="label_linkCard_cash">Cash</string>
     <string name="label_linkCard_claim">Tap to claim</string>
     <string name="label_linkCard_claimed">Claimed</string>
+    <string name="label_linkCard_claiming">Claiming…</string>
     <string name="label_linkCard_expired">Expired</string>
     <!-- Group invite link card. The untitled name is provisional, pending copy. -->
     <string name="label_linkCard_untitledGroup">Group Chat</string>

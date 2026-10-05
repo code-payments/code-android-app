@@ -71,7 +71,12 @@ sealed interface LinkCard {
             ) : State
         }
 
-        enum class Claim { Claimable, Claimed, Expired }
+        /**
+         * [Claiming] is never a lookup's answer. It is drawn over a [Claimable] voucher while this
+         * device's claim of it is running, so the card stops offering a claim that is already
+         * underway, and it goes back to whatever the lookup says once the claim settles.
+         */
+        enum class Claim { Claimable, Claiming, Claimed, Expired }
     }
 
     /**
