@@ -80,7 +80,11 @@ class CashLinkDelegate @Inject constructor(
     override val claimInFlight: StateFlow<String?> = giftCardClaimInProgress.asStateFlow()
 
     override fun openCashLink(cashLink: String?) {
-        BottomBarManager.clear()
+        // A link opened while a claim runs is dropped below, so it leaves whatever is on screen
+        // alone rather than dismissing an alert for nothing.
+        if (giftCardClaimInProgress.value == null) {
+            BottomBarManager.clear()
+        }
 
         val entropy = cashLink?.trim()?.replace("\n", "")
         if (entropy == null) {
@@ -158,8 +162,10 @@ class CashLinkDelegate @Inject constructor(
             claimIfOwned = claimIfOwned,
             onReceived = { token, amount ->
                 tokenCoordinator.add(token, amount)
-                giftCardClaimInProgress.value = null
+                // Settled before the slot clears, so a listener redrawing on both learns the claim
+                // landed before it would draw the link as claimable again.
                 _settledClaims.tryEmit(SettledClaim(entropy, collected = true))
+                giftCardClaimInProgress.value = null
                 analytics.track(TransferEvents.receiveCashLink(State.SUCCESS, amount.analytics, null))
                 val bill = Scannable.Payable.forToken(
                     amount = amount,
@@ -171,8 +177,8 @@ class CashLinkDelegate @Inject constructor(
                 _events.trySend(Event.RefreshFeed)
             },
             onError = { cause ->
-                giftCardClaimInProgress.value = null
                 _settledClaims.tryEmit(SettledClaim(entropy, collected = false))
+                giftCardClaimInProgress.value = null
                 if (cause !is ReceiveGiftTransactorError.UsersGiftCard) {
                     analytics.track(
                         TransferEvents.receiveCashLink(State.FAILURE, null, cause.analytics)
