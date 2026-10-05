@@ -5,7 +5,6 @@ import androidx.compose.ui.platform.UriHandler
 import com.flipcash.core.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.util.resources.R as ResourcesR
 import java.net.IDN
 
 /**
@@ -95,8 +94,8 @@ private fun asciiHost(host: String): String {
 }
 
 /**
- * Runs [open] straight away for a first-party link, and otherwise asks first: "You're leaving
- * Flipcash", naming the host, with Cancel as the primary button and Open Link as the secondary.
+ * Runs [open] straight away for a first-party link, and otherwise asks first: "You're Leaving
+ * Flipcash", naming the host, with Open Website as the primary button and Cancel as the secondary.
  *
  * Only for links someone else wrote, such as a chat message. A link the app opens on purpose
  * (terms, a token's socials) goes straight to the browser.
@@ -104,20 +103,16 @@ private fun asciiHost(host: String): String {
 fun openWithExternalLinkCheck(context: Context, url: String, open: () -> Unit) {
     when (val destination = classifyLink(url)) {
         LinkDestination.FirstParty -> open()
-        is LinkDestination.External -> BottomBarManager.showAlert(
+        is LinkDestination.External -> BottomBarManager.showInfo(
             title = context.getString(R.string.prompt_title_externalLink),
             message = context.getString(R.string.prompt_description_externalLink, destination.host),
             actions = listOf(
                 BottomBarAction(
-                    text = context.getString(ResourcesR.string.action_cancel),
-                    style = BottomBarManager.BottomBarButtonStyle.Filled,
-                ),
-                BottomBarAction(
-                    text = context.getString(R.string.action_openLink),
-                    style = BottomBarManager.BottomBarButtonStyle.Text,
+                    text = context.getString(R.string.action_openWebsite),
                     onClick = open,
                 ),
             ),
+            showCancel = true,
         )
     }
 }
