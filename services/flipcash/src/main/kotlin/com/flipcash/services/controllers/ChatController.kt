@@ -7,14 +7,19 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.KeyEnvelope
+import com.flipcash.services.models.chat.Lobby
+import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
+import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.model.core.ID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -132,5 +137,68 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.unmuteChat(owner, chatId)
+    }
+
+    /** Enters private group [chatId]'s lobby. See [ChatRepository.enterLobby]. */
+    suspend fun enterLobby(chatId: ChatId): Result<Lobby> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.enterLobby(owner, chatId)
+    }
+
+    /** Withdraws the caller from [chatId]'s lobby. */
+    suspend fun leaveLobby(chatId: ChatId): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.leaveLobby(owner, chatId)
+    }
+
+    /** One page of [chatId]'s lobby. Creator only. */
+    suspend fun getLobbyMembers(
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): Result<LobbyPage> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getLobbyMembers(owner, chatId, queryOptions)
+    }
+
+    /** Admits [userId] from [chatId]'s lobby with the chat key wrapped for them in [keyEnvelope]. */
+    suspend fun admitLobbyMember(
+        chatId: ChatId,
+        userId: ID,
+        keyEnvelope: KeyEnvelope,
+    ): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.admitLobbyMember(owner, chatId, userId, keyEnvelope)
+    }
+
+    /** Removes [userId] from [chatId]'s lobby without admitting them. */
+    suspend fun denyLobbyMember(chatId: ChatId, userId: ID): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.denyLobbyMember(owner, chatId, userId)
+    }
+
+    /** Stores the caller's own key envelope for [chatId]. */
+    suspend fun setKeyEnvelope(chatId: ChatId, keyEnvelope: KeyEnvelope): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.setKeyEnvelope(owner, chatId, keyEnvelope)
+    }
+
+    /** The caller's own key envelope for [chatId]. */
+    suspend fun getKeyEnvelope(chatId: ChatId): Result<StoredKeyEnvelope> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getKeyEnvelope(owner, chatId)
     }
 }

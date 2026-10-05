@@ -121,6 +121,48 @@ internal class ProfileApi @Inject constructor(
     }
 
     /**
+     * Sets the caller's cover picture to a blob they have already uploaded via BlobStorage,
+     * replacing any cover picture already set.
+     */
+    suspend fun setCoverPicture(
+        blobId: BlobId,
+        owner: Ed25519.KeyPair,
+    ): ProfileService.SetCoverPictureResponse {
+        val request = ProfileService.SetCoverPictureRequest.newBuilder()
+            .setBlobId(
+                com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
+                    .setValue(blobId.bytes.toByteString())
+            )
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.setCoverPicture(request)
+        }
+    }
+
+    /**
+     * Sets the caller's bio, replacing any bio already set. An empty bio clears it.
+     */
+    suspend fun setBio(
+        bio: String,
+        owner: Ed25519.KeyPair,
+    ): ProfileService.SetBioResponse {
+        val request = ProfileService.SetBioRequest.newBuilder()
+            .setBio(bio)
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.setBio(request)
+        }
+    }
+
+    /**
      * links a social account to a user
      */
     suspend fun linkSocialAccount(

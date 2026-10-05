@@ -8,6 +8,8 @@ import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.LinkSocialAccountError
 import com.flipcash.services.models.ProfileIdentifier
+import com.flipcash.services.models.SetBioError
+import com.flipcash.services.models.SetCoverPictureError
 import com.flipcash.services.models.SetDisplayNameError
 import com.flipcash.services.models.SetMinDmChatInitFeeError
 import com.flipcash.services.models.SetProfilePictureError
@@ -112,6 +114,49 @@ internal class ProfileService @Inject constructor(
                 }
             },
             onFailure = { Result.failure(it.toValidationOrElse { cause -> SetProfilePictureError.Other(cause) }) }
+        )
+    }
+
+    suspend fun setCoverPicture(
+        blobId: BlobId,
+        owner: Ed25519.KeyPair,
+    ): Result<MediaItem> {
+        return runCatching {
+            api.setCoverPicture(blobId, owner)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    ProfileService.SetCoverPictureResponse.Result.OK -> Result.success(response.coverPicture.toMediaItem())
+                    ProfileService.SetCoverPictureResponse.Result.DENIED -> Result.failure(SetCoverPictureError.Denied())
+                    ProfileService.SetCoverPictureResponse.Result.BLOB_NOT_FOUND -> Result.failure(SetCoverPictureError.BlobNotFound())
+                    ProfileService.SetCoverPictureResponse.Result.BLOB_NOT_READY -> Result.failure(SetCoverPictureError.BlobNotReady())
+                    ProfileService.SetCoverPictureResponse.Result.BLOB_REJECTED -> Result.failure(SetCoverPictureError.BlobRejected())
+                    ProfileService.SetCoverPictureResponse.Result.INVALID_BLOB -> Result.failure(SetCoverPictureError.InvalidBlob())
+                    ProfileService.SetCoverPictureResponse.Result.UNRECOGNIZED -> Result.failure(SetCoverPictureError.Unrecognized())
+                }
+            },
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> SetCoverPictureError.Other(cause) }) }
+        )
+    }
+
+    suspend fun setBio(
+        bio: String,
+        owner: Ed25519.KeyPair,
+    ): Result<Unit> {
+        return runCatching {
+            api.setBio(bio, owner)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    ProfileService.SetBioResponse.Result.OK -> Result.success(Unit)
+                    ProfileService.SetBioResponse.Result.INVALID_BIO -> Result.failure(SetBioError.InvalidBio())
+                    ProfileService.SetBioResponse.Result.DENIED -> Result.failure(SetBioError.Denied())
+                    ProfileService.SetBioResponse.Result.FAILED_MODERATED ->
+                        Result.failure(SetBioError.FailedModerated(response.flaggedCategory.toFlaggedCategory()))
+                    ProfileService.SetBioResponse.Result.UNRECOGNIZED -> Result.failure(SetBioError.Unrecognized())
+                }
+            },
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> SetBioError.Other(cause) }) }
         )
     }
 

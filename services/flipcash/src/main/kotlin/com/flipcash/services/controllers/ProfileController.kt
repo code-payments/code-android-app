@@ -165,6 +165,31 @@ class ProfileController @Inject constructor(
             .onSuccess { media -> mergeLocalProfile { it.copy(profilePicture = media) } }
     }
 
+    /**
+     * Sets the caller's cover picture to a blob already uploaded via BlobStorage.
+     * Returns the full set of renditions the server derived from it.
+     */
+    suspend fun setCoverPicture(
+        blobId: BlobId,
+    ): Result<MediaItem> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.setCoverPicture(blobId, owner)
+            .onSuccess { media -> mergeLocalProfile { it.copy(coverPicture = media) } }
+    }
+
+    /** Sets the caller's bio, up to 160 characters. An empty [bio] clears it. */
+    suspend fun setBio(
+        bio: String,
+    ): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.setBio(bio, owner)
+            .onSuccess { mergeLocalProfile { it.copy(bio = bio) } }
+    }
+
     // Applies [transform] to the locally cached profile (or a minimal one if none is cached yet)
     // and publishes it through UserManager.
     private fun mergeLocalProfile(transform: (UserProfile) -> UserProfile) {

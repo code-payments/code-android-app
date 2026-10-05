@@ -38,6 +38,10 @@ data class UserProfile(
     // own profile; false for anyone else's and when there is no username. Choosing
     // a different username clears it.
     val isUsernameAutoAssigned: Boolean = false,
+    // Free-text bio, up to 160 characters. Public. Empty when unset.
+    val bio: String = "",
+    // The user's cover picture, as the renditions it is stored as. Null when unset.
+    val coverPicture: MediaItem? = null,
 ): Parcelable {
     /** The phone number only when it has been verified — backwards-compatible accessor. */
     val verifiedPhoneNumber: String? get() = phoneNumber?.takeIf { it.verified }?.value

@@ -8,6 +8,10 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.KeyEnvelope
+import com.flipcash.services.models.chat.Lobby
+import com.flipcash.services.models.chat.LobbyPage
+import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.RosterSummary
@@ -20,6 +24,7 @@ import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.core.ID
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -386,6 +391,41 @@ class ChatControllerTest {
 
     // endregion
 
+    // region lobby and key envelope
+
+    @Test
+    fun `enterLobby fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+
+        assertTrue(controller.enterLobby(ChatId(ByteArray(32))).isFailure)
+    }
+
+    @Test
+    fun `admitLobbyMember forwards the envelope untouched`() = runTest {
+        stubOwner()
+        val chatId = ChatId(ByteArray(32) { 1 })
+        val envelope = KeyEnvelope(scheme = 1, nonce = ByteArray(24) { 2 }, ciphertext = ByteArray(48) { 3 })
+
+        val result = controller.admitLobbyMember(chatId, listOf(9), envelope)
+
+        assertTrue(result.isSuccess)
+        assertEquals(chatId, repository.lastChatId)
+        assertSame(envelope, repository.lastKeyEnvelope)
+    }
+
+    @Test
+    fun `setKeyEnvelope surfaces repository failures`() = runTest {
+        stubOwner()
+        val cause = RuntimeException("already set")
+        repository.setKeyEnvelopeResult = Result.failure(cause)
+
+        val result = controller.setKeyEnvelope(ChatId(ByteArray(32)), KeyEnvelope(1, ByteArray(24), ByteArray(48)))
+
+        assertSame(cause, result.exceptionOrNull())
+    }
+
+    // endregion
+
     // region leaveChat
 
     @Test
@@ -551,6 +591,66 @@ private class FakeChatRepository : ChatRepository {
     override suspend fun unmuteChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ViewerState> {
         lastChatId = chatId
         return unmuteChatResult
+    }
+
+    var enterLobbyResult: Result<Lobby> = Result.failure(RuntimeException("not configured"))
+    var leaveLobbyResult: Result<Unit> = Result.success(Unit)
+    var getLobbyMembersResult: Result<LobbyPage> = Result.failure(RuntimeException("not configured"))
+    var admitLobbyMemberResult: Result<Unit> = Result.success(Unit)
+    var denyLobbyMemberResult: Result<Unit> = Result.success(Unit)
+    var setKeyEnvelopeResult: Result<Unit> = Result.success(Unit)
+    var getKeyEnvelopeResult: Result<StoredKeyEnvelope> = Result.failure(RuntimeException("not configured"))
+    var lastKeyEnvelope: KeyEnvelope? = null
+
+    override suspend fun enterLobby(owner: Ed25519.KeyPair, chatId: ChatId): Result<Lobby> {
+        lastChatId = chatId
+        return enterLobbyResult
+    }
+
+    override suspend fun leaveLobby(owner: Ed25519.KeyPair, chatId: ChatId): Result<Unit> {
+        lastChatId = chatId
+        return leaveLobbyResult
+    }
+
+    override suspend fun getLobbyMembers(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+    ): Result<LobbyPage> {
+        lastChatId = chatId
+        lastQueryOptions = queryOptions
+        return getLobbyMembersResult
+    }
+
+    override suspend fun admitLobbyMember(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        userId: ID,
+        keyEnvelope: KeyEnvelope,
+    ): Result<Unit> {
+        lastChatId = chatId
+        lastKeyEnvelope = keyEnvelope
+        return admitLobbyMemberResult
+    }
+
+    override suspend fun denyLobbyMember(owner: Ed25519.KeyPair, chatId: ChatId, userId: ID): Result<Unit> {
+        lastChatId = chatId
+        return denyLobbyMemberResult
+    }
+
+    override suspend fun setKeyEnvelope(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        keyEnvelope: KeyEnvelope,
+    ): Result<Unit> {
+        lastChatId = chatId
+        lastKeyEnvelope = keyEnvelope
+        return setKeyEnvelopeResult
+    }
+
+    override suspend fun getKeyEnvelope(owner: Ed25519.KeyPair, chatId: ChatId): Result<StoredKeyEnvelope> {
+        lastChatId = chatId
+        return getKeyEnvelopeResult
     }
 }
 

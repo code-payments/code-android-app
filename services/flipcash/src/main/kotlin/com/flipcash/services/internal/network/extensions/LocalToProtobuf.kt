@@ -301,3 +301,11 @@ internal fun MuteState.asProtoMuteState(): ChatModel.MuteState {
         MuteState.Forever -> builder.setForever(ChatModel.MuteState.Forever.getDefaultInstance()).build()
     }
 }
+
+internal fun com.flipcash.services.models.chat.KeyEnvelope.asProtoKeyEnvelope(): com.codeinc.flipcash.gen.chat.v1.Model.KeyEnvelope {
+    return com.codeinc.flipcash.gen.chat.v1.Model.KeyEnvelope.newBuilder()
+        .setSchemeValue(scheme)
+        .setNonce(nonce.toByteString())
+        .setCiphertext(ciphertext.toByteString())
+        .build()
+}

@@ -1,19 +1,26 @@
 package com.flipcash.services.repository
 
+import com.flipcash.services.models.GetKeyEnvelopeError
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.SetKeyEnvelopeError
 import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.KeyEnvelope
+import com.flipcash.services.models.chat.Lobby
+import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
+import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ViewMode
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.model.core.ID
 
 interface ChatRepository {
     suspend fun getChat(
@@ -110,4 +117,44 @@ interface ChatRepository {
         owner: KeyPair,
         chatId: ChatId,
     ): Result<ViewerState>
+
+    /**
+     * Places the caller in private group [chatId]'s lobby, where the creator can admit or deny
+     * them. Returns the chat as a non-member sees it, with `inLobby` set.
+     */
+    suspend fun enterLobby(owner: KeyPair, chatId: ChatId): Result<Lobby>
+
+    /** Withdraws the caller from [chatId]'s lobby. */
+    suspend fun leaveLobby(owner: KeyPair, chatId: ChatId): Result<Unit>
+
+    /** One page of the users waiting in [chatId]'s lobby. Creator only. */
+    suspend fun getLobbyMembers(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): Result<LobbyPage>
+
+    /**
+     * Admits [userId] from [chatId]'s lobby, storing [keyEnvelope] (the chat key wrapped for that
+     * user's public key) as part of the same call. The envelope is carried as opaque bytes.
+     */
+    suspend fun admitLobbyMember(
+        owner: KeyPair,
+        chatId: ChatId,
+        userId: ID,
+        keyEnvelope: KeyEnvelope,
+    ): Result<Unit>
+
+    /** Removes [userId] from [chatId]'s lobby without admitting them. Creator only. */
+    suspend fun denyLobbyMember(owner: KeyPair, chatId: ChatId, userId: ID): Result<Unit>
+
+    /**
+     * Stores the caller's own key envelope for [chatId]. [SetKeyEnvelopeError.AlreadySet] means a
+     * different envelope already stands; it is surfaced rather than recovered because whether to
+     * adopt the stored one is the caller's decision.
+     */
+    suspend fun setKeyEnvelope(owner: KeyPair, chatId: ChatId, keyEnvelope: KeyEnvelope): Result<Unit>
+
+    /** The caller's own key envelope for [chatId], or [GetKeyEnvelopeError.NoEnvelope]. */
+    suspend fun getKeyEnvelope(owner: KeyPair, chatId: ChatId): Result<StoredKeyEnvelope>
 }

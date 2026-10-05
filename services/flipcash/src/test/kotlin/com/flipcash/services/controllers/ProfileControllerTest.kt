@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.models.GetUserProfileError
+import com.flipcash.services.models.SetBioError
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
@@ -259,6 +260,41 @@ class ProfileControllerTest {
         verify { userManager.set(match<UserProfile> { it.username == "chosen" && !it.isUsernameAutoAssigned }) }
     }
 
+    @Test
+    fun `setBio caches the bio on success`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile()
+
+        val result = controller.setBio("hello")
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(match<UserProfile> { it.bio == "hello" }) }
+    }
+
+    @Test
+    fun `setBio leaves the cached profile alone on failure`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile()
+        repository.setBioResult = Result.failure(SetBioError.InvalidBio())
+
+        val result = controller.setBio("hello")
+
+        assertTrue(result.isFailure)
+        verify(exactly = 0) { userManager.set(any<UserProfile>()) }
+    }
+
+    @Test
+    fun `setCoverPicture caches the returned media`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile()
+        val media = MediaItem(renditions = emptyList())
+        repository.setCoverPictureResult = Result.success(media)
+
+        controller.setCoverPicture(BlobId(byteArrayOf(1)))
+
+        verify { userManager.set(match<UserProfile> { it.coverPicture == media }) }
+    }
+
     // endregion
 
     // region linkTwitterXAccount
@@ -348,6 +384,8 @@ private class FakeProfileRepository : ProfileRepository {
     var setDisplayNameResult: Result<String?> = Result.success(null)
     var setUsernameResult: Result<Unit> = Result.success(Unit)
     var setProfilePictureResult: Result<MediaItem> = Result.failure(RuntimeException("not configured"))
+    var setCoverPictureResult: Result<MediaItem> = Result.failure(RuntimeException("not configured"))
+    var setBioResult: Result<Unit> = Result.success(Unit)
     var updateTipCardResult: Result<Unit> = Result.success(Unit)
     var setMinDmChatInitFeeResult: Result<Unit> = Result.success(Unit)
     var linkSocialAccountResult: Result<SocialAccount> = Result.failure(RuntimeException("not configured"))
@@ -357,6 +395,8 @@ private class FakeProfileRepository : ProfileRepository {
     override suspend fun setDisplayName(displayName: String, owner: Ed25519.KeyPair) = setDisplayNameResult
     override suspend fun setUsername(username: String, owner: Ed25519.KeyPair) = setUsernameResult
     override suspend fun setProfilePicture(blobId: BlobId, owner: Ed25519.KeyPair) = setProfilePictureResult
+    override suspend fun setCoverPicture(blobId: BlobId, owner: Ed25519.KeyPair) = setCoverPictureResult
+    override suspend fun setBio(bio: String, owner: Ed25519.KeyPair) = setBioResult
     override suspend fun updateTipCard(owner: Ed25519.KeyPair, hexColor: String) = updateTipCardResult
     override suspend fun setMinDmChatInitFee(owner: Ed25519.KeyPair, fee: Fiat) = setMinDmChatInitFeeResult
     override suspend fun linkSocialAccount(request: SocialAccountLinkRequest, owner: Ed25519.KeyPair) =
