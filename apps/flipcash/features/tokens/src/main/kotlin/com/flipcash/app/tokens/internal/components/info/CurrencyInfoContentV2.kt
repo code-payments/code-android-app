@@ -288,6 +288,7 @@ internal fun CurrencyInfoContentV2(
                                     .fillParentMaxWidth()
                                     .padding(horizontal = inset)
                                     .padding(top = grid.x3),
+                                tokenName = token.name,
                                 onClick = openExplainer,
                             )
                         }
