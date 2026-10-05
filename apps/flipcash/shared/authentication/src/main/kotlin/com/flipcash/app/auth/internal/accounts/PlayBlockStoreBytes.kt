@@ -7,6 +7,7 @@ import com.google.android.gms.auth.blockstore.Blockstore
 import com.google.android.gms.auth.blockstore.DeleteBytesRequest
 import com.google.android.gms.auth.blockstore.RetrieveBytesRequest
 import com.google.android.gms.auth.blockstore.StoreBytesData
+import com.google.android.gms.common.api.UnsupportedApiCallException
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -21,7 +22,8 @@ import javax.inject.Singleton
  * leaving it unset deletes previously backed-up cloud data on the next sync.
  *
  * Every Play services failure is swallowed: no Play services means no durable list, not a broken
- * login.
+ * login. A Play services build too old for these calls is expected on some devices, so that case
+ * is left as a breadcrumb instead of being reported.
  */
 @Singleton
 internal class PlayBlockStoreBytes @Inject constructor(
@@ -39,7 +41,7 @@ internal class PlayBlockStoreBytes @Inject constructor(
             ?.bytes
             ?: ByteArray(0)
     }.getOrElse { error ->
-        trace(tag = TAG, message = "Block Store read failed", error = error, type = TraceType.Error)
+        traceFailure("Block Store read failed", error)
         null
     }
 
@@ -56,7 +58,7 @@ internal class PlayBlockStoreBytes @Inject constructor(
         client.storeBytes(data).await()
         true
     }.getOrElse { error ->
-        trace(tag = TAG, message = "Block Store write failed", error = error, type = TraceType.Error)
+        traceFailure("Block Store write failed", error)
         false
     }
 
@@ -67,7 +69,15 @@ internal class PlayBlockStoreBytes @Inject constructor(
                 .build()
             client.deleteBytes(request).await()
         }.onFailure { error ->
-            trace(tag = TAG, message = "Block Store delete failed", error = error, type = TraceType.Error)
+            traceFailure("Block Store delete failed", error)
+        }
+    }
+
+    private fun traceFailure(message: String, error: Throwable) {
+        if (error is UnsupportedApiCallException) {
+            trace(tag = TAG, message = "$message: unsupported by Play services", type = TraceType.Log)
+        } else {
+            trace(tag = TAG, message = message, error = error, type = TraceType.Error)
         }
     }
 
