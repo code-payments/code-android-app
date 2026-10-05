@@ -5,6 +5,7 @@ import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.network.services.ProfileService
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.ProfileIdentifier
+import com.flipcash.services.models.SetBioError
 import com.flipcash.services.models.SetDisplayNameError
 import com.flipcash.services.models.SetUsernameError
 import com.flipcash.services.models.SocialAccount
@@ -77,6 +78,29 @@ internal class InternalProfileRepository(
     ): Result<MediaItem> {
         return service.setProfilePicture(blobId, owner)
             .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun setCoverPicture(
+        blobId: BlobId,
+        owner: Ed25519.KeyPair
+    ): Result<MediaItem> {
+        return service.setCoverPicture(blobId, owner)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun setBio(
+        bio: String,
+        owner: Ed25519.KeyPair
+    ): Result<Unit> {
+        return service.setBio(bio, owner)
+            .onFailure {
+                // The rejections below are the server answering a user's choice of bio, not a
+                // fault worth reporting.
+                val expected = it is SetBioError.InvalidBio || it is SetBioError.FailedModerated
+                if (!expected) {
+                    ErrorUtils.handleError(it)
+                }
+            }
     }
 
     override suspend fun updateTipCard(

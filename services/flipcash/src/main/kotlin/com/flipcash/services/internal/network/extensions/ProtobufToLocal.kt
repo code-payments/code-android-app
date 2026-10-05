@@ -26,6 +26,9 @@ import com.flipcash.services.models.chat.ChatMutation
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.Emoji
+import com.flipcash.services.models.chat.KeyEnvelope
+import com.flipcash.services.models.chat.LobbyMember
+import com.flipcash.services.models.chat.LobbyUpdate
 import com.flipcash.services.models.chat.EmojiReaction
 import com.flipcash.services.models.blob.ImageConstraints
 import com.flipcash.services.models.blob.MimeTypeConstraints
@@ -421,6 +424,8 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         creator = if (hasCreator()) creator.toId() else null,
         // Transitional flag (see chat/v1 model.proto doc); ignored behaviourally for now.
         useE2ee = useE2Ee,
+        isPrivate = isPrivate,
+        inLobby = inLobby,
     )
 }
 
@@ -452,25 +457,31 @@ internal fun ChatModel.MuteState.toMuteState(): MuteState {
 internal fun ChatModel.Member.toChatMember(): ChatMember {
     return ChatMember(
         userId = userId.toId(),
-        userProfile = with(userProfile) {
-            UserProfile(
-                displayName = displayName,
-                socialAccounts = emptyList(),
-                phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
-                email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
-                profilePicture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
-                // Falls back to the member's own id: the server sets it on the member but
-                // usually not again inside the nested profile, and this profile is by
-                // definition that member's. Dropping it here leaves callers unable to name
-                // the profile that authorizes re-minting the picture's download URL, so the
-                // avatar can never recover once the stored URL expires.
-                userId = if (hasUserId()) userId.toId() else this@toChatMember.userId.toId(),
-                username = if (hasUsername()) username.value else null,
-            )
-        },
+        // Falls back to the member's own id: the server sets it on the member but
+        // usually not again inside the nested profile, and this profile is by
+        // definition that member's. Dropping it here leaves callers unable to name
+        // the profile that authorizes re-minting the picture's download URL, so the
+        // avatar can never recover once the stored URL expires.
+        userProfile = userProfile.toMemberUserProfile(fallbackUserId = userId.toId()),
         pointers = pointersList.map { it.toPointer() },
         joinedAt = if (hasJoinedAt()) Instant.fromEpochSeconds(joinedAt.seconds, joinedAt.nanos) else null,
         version = version,
+    )
+}
+
+private fun com.codeinc.flipcash.gen.profile.v1.Model.UserProfile.toMemberUserProfile(
+    fallbackUserId: ID,
+): UserProfile {
+    return UserProfile(
+        displayName = displayName,
+        socialAccounts = emptyList(),
+        phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
+        email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
+        profilePicture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
+        userId = if (hasUserId()) userId.toId() else fallbackUserId,
+        username = if (hasUsername()) username.value else null,
+        bio = bio,
+        coverPicture = if (hasCoverPicture()) coverPicture.toMediaItem() else null,
     )
 }
 
@@ -567,7 +578,34 @@ internal fun EventModel.ChatUpdate.toChatUpdate(
         rosterUpdates = if (hasRosterUpdates()) {
             rosterUpdates.rosterUpdatesList.mapNotNull { it.toRosterChangeOrNull(metadataMapper) }
         } else emptyList(),
+        lobbyUpdates = if (hasLobbyUpdates()) {
+            lobbyUpdates.lobbyUpdatesList.mapNotNull { it.toLobbyUpdateOrNull() }
+        } else emptyList(),
     )
+}
+
+// -- Lobby / key envelope --
+
+internal fun ChatModel.KeyEnvelope.toKeyEnvelope(): KeyEnvelope = KeyEnvelope(
+    scheme = schemeValue,
+    nonce = nonce.toByteArray(),
+    ciphertext = ciphertext.toByteArray(),
+)
+
+internal fun ChatModel.LobbyMember.toLobbyMember(): LobbyMember = LobbyMember(
+    // The server always sets the id on a lobby member's profile.
+    userProfile = userProfile.toMemberUserProfile(fallbackUserId = userProfile.userId.toId()),
+    publicKey = publicKey.toPublicKey(),
+    enteredAt = Instant.fromEpochSeconds(enteredAt.seconds, enteredAt.nanos),
+)
+
+/** Null for a lobby update kind this client does not know, so the rest of the batch still applies. */
+internal fun ChatModel.LobbyUpdate.toLobbyUpdateOrNull(): LobbyUpdate? {
+    return when (kindCase) {
+        ChatModel.LobbyUpdate.KindCase.MEMBER_ENTERED -> LobbyUpdate.MemberEntered(memberEntered.member.toLobbyMember())
+        ChatModel.LobbyUpdate.KindCase.MEMBER_LEFT -> LobbyUpdate.MemberLeft(memberLeft.userId.toId())
+        else -> null
+    }
 }
 
 // -- EventModel.BlobUpdate --

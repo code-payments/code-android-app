@@ -10,4 +10,6 @@ data class ChatUpdate(
     // Convergent, like reactionUpdates and unlike events: applied by RosterSummary.version,
     // never gap-filled. See RosterChange.
     val rosterUpdates: List<RosterChange> = emptyList(),
+    // Creator-only, best-effort lobby changes for a private group. Unversioned; see LobbyUpdate.
+    val lobbyUpdates: List<LobbyUpdate> = emptyList(),
 )

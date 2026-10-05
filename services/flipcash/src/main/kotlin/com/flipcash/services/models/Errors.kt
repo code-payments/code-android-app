@@ -241,6 +241,34 @@ sealed class SetProfilePictureError(
     data class Other(override val cause: Throwable? = null) : SetProfilePictureError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class SetCoverPictureError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : SetCoverPictureError("Denied")
+    // No such blob, or it is not owned by the caller.
+    class BlobNotFound : SetCoverPictureError("Blob not found")
+    // Blob is still PENDING/PROCESSING; retry once READY.
+    class BlobNotReady : SetCoverPictureError("Blob not ready")
+    // Blob failed validation or moderation; terminal for this id, must upload again.
+    class BlobRejected : SetCoverPictureError("Blob rejected")
+    // Blob is READY but unusable as a picture (e.g. not an image).
+    class InvalidBlob : SetCoverPictureError("Invalid blob")
+    class Unrecognized : SetCoverPictureError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SetCoverPictureError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class SetBioError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class InvalidBio : SetBioError("Invalid bio")
+    class Denied : SetBioError("Denied")
+    class FailedModerated(val category: ModerationResult.FlaggedCategory) : SetBioError("Content flagged: $category")
+    class Unrecognized : SetBioError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SetBioError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class LinkSocialAccountError(
     override val message: String? = null,
     override val cause: Throwable? = null
@@ -483,6 +511,9 @@ sealed class SendMessageError(
     // encrypts in a DM, so this means the chat's type changed under us; the send fails and can
     // be retried.
     class EncryptionNotAllowed : SendMessageError("Encryption not allowed")
+    // Sender sent plaintext to a chat that requires encryption (a private group). Not retryable
+    // as-is: the content has to be sealed with the chat key first, which this client cannot do yet.
+    class EncryptionRequired : SendMessageError("Encryption required")
     class Unrecognized : SendMessageError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : SendMessageError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -547,6 +578,8 @@ sealed class EditMessageError(
     // Editor sent EncryptedContent to a chat that doesn't allow it (non-DM). See
     // SendMessageError.EncryptionNotAllowed.
     class EncryptionNotAllowed : EditMessageError("Encryption not allowed")
+    // Editor sent plaintext to a chat that requires encryption. See SendMessageError.EncryptionRequired.
+    class EncryptionRequired : EditMessageError("Encryption required")
     class Unrecognized : EditMessageError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : EditMessageError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -731,6 +764,88 @@ sealed class UnmuteChatError(
     class NotFound: UnmuteChatError("Not found")
     class Unrecognized : UnmuteChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : UnmuteChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class EnterLobbyError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    // Not a private group, or it has no key yet.
+    class Denied : EnterLobbyError("Denied")
+    class NotFound : EnterLobbyError("Not found")
+    class AlreadyMember : EnterLobbyError("Already a member")
+    class LobbyFull : EnterLobbyError("Lobby full")
+    // The caller is already waiting in as many lobbies as the server allows.
+    class TooManyLobbies : EnterLobbyError("Too many lobbies")
+    class Unrecognized : EnterLobbyError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : EnterLobbyError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class LeaveLobbyError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : LeaveLobbyError("Denied")
+    class NotFound : LeaveLobbyError("Not found")
+    class Unrecognized : LeaveLobbyError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : LeaveLobbyError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetLobbyMembersError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    // Caller is not the chat's creator, or the chat is not a private group.
+    class Denied : GetLobbyMembersError("Denied")
+    class NotFound : GetLobbyMembersError("Not found")
+    class Unrecognized : GetLobbyMembersError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetLobbyMembersError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class AdmitLobbyMemberError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : AdmitLobbyMemberError("Denied")
+    class NotFound : AdmitLobbyMemberError("Not found")
+    // The user is neither waiting in the lobby nor a member.
+    class NotInLobby : AdmitLobbyMemberError("Not in lobby")
+    class Unrecognized : AdmitLobbyMemberError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : AdmitLobbyMemberError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class DenyLobbyMemberError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : DenyLobbyMemberError("Denied")
+    class NotFound : DenyLobbyMemberError("Not found")
+    class Unrecognized : DenyLobbyMemberError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : DenyLobbyMemberError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class SetKeyEnvelopeError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : SetKeyEnvelopeError("Denied")
+    class NotFound : SetKeyEnvelopeError("Not found")
+    // The caller already stored a different envelope, which stands.
+    class AlreadySet : SetKeyEnvelopeError("Already set")
+    class Unrecognized : SetKeyEnvelopeError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SetKeyEnvelopeError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetKeyEnvelopeError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetKeyEnvelopeError("Denied")
+    class NotFound : GetKeyEnvelopeError("Not found")
+    // The caller is a member with no envelope stored.
+    class NoEnvelope : GetKeyEnvelopeError("No envelope")
+    class Unrecognized : GetKeyEnvelopeError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetKeyEnvelopeError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class ReportError(

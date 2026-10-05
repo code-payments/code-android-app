@@ -130,6 +130,7 @@ internal class ChatMessagingService @Inject constructor(
                     RpcMessagingService.SendMessageResponse.Result.OK -> Result.success(response.message)
                     RpcMessagingService.SendMessageResponse.Result.DENIED -> Result.failure(SendMessageError.Denied())
                     RpcMessagingService.SendMessageResponse.Result.ENCRYPTION_NOT_ALLOWED -> Result.failure(SendMessageError.EncryptionNotAllowed())
+                    RpcMessagingService.SendMessageResponse.Result.ENCRYPTION_REQUIRED -> Result.failure(SendMessageError.EncryptionRequired())
                     RpcMessagingService.SendMessageResponse.Result.UNRECOGNIZED -> Result.failure(SendMessageError.Unrecognized())
                     else -> Result.failure(SendMessageError.Other())
                 }
@@ -227,6 +228,7 @@ internal class ChatMessagingService @Inject constructor(
                     RpcMessagingService.EditMessageResponse.Result.CANNOT_EDIT -> Result.failure(EditMessageError.CannotEdit())
                     RpcMessagingService.EditMessageResponse.Result.CONFLICT -> Result.failure(EditMessageError.Conflict())
                     RpcMessagingService.EditMessageResponse.Result.ENCRYPTION_NOT_ALLOWED -> Result.failure(EditMessageError.EncryptionNotAllowed())
+                    RpcMessagingService.EditMessageResponse.Result.ENCRYPTION_REQUIRED -> Result.failure(EditMessageError.EncryptionRequired())
                     RpcMessagingService.EditMessageResponse.Result.UNRECOGNIZED -> Result.failure(EditMessageError.Unrecognized())
                     else -> Result.failure(EditMessageError.Other())
                 }

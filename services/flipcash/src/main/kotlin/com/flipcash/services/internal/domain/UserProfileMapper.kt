@@ -33,6 +33,8 @@ class UserProfileMapper @Inject constructor(
             username = from.usernameOrNull?.value,
             minDmChatInitFee = if (from.hasMinDmChatInitFee()) from.minDmChatInitFee.toFiat() else null,
             isUsernameAutoAssigned = from.isUsernameAutoAssigned,
+            bio = from.bio,
+            coverPicture = if (from.hasCoverPicture()) from.coverPicture.toMediaItem() else null,
         )
     }
 }

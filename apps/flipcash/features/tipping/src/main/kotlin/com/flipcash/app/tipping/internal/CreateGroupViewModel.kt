@@ -71,7 +71,7 @@ internal val BalancePresets: List<Fiat> = listOf(Fiat(10), Fiat(50), Fiat(100))
  * Two rules are enforced before the call rather than after it. The creator has to satisfy the rules
  * they are setting, so Create stays inert while the balance the rule measures is under the amount —
  * `StartChat` would answer `RULES_NOT_SATISFIED`, which is a worse way to learn it. And the picture
- * has to be uploaded and `READY` first, because `GroupChatParameters.picture` is a blob id, not
+ * has to be uploaded and `READY` first, because `PublicGroupChatParameters.picture` is a blob id, not
  * bytes. Both server results are still handled: a balance can move between the check and the call.
  */
 @HiltViewModel

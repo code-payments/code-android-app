@@ -10,6 +10,8 @@ import com.flipcash.services.internal.network.extensions.asProtoIdempotencyKey
 import com.flipcash.services.internal.network.extensions.asProtoMuteState
 import com.flipcash.services.internal.network.extensions.asProtoRules
 import com.flipcash.services.internal.network.extensions.asQueryOptions
+import com.flipcash.services.internal.network.extensions.asProtoKeyEnvelope
+import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.asViewMode
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
@@ -17,11 +19,13 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewMode
 import com.getcode.utils.toByteString
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.internal.network.core.GrpcApi
 import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
@@ -103,8 +107,8 @@ internal class ChatApi @Inject constructor(
     ): RpcChatService.StartChatResponse {
         val requestBuilder = RpcChatService.StartChatRequest.newBuilder()
         when (parameters) {
-            is StartChatParameters.Group -> requestBuilder.setGroup(
-                RpcChatService.StartChatRequest.GroupChatParameters.newBuilder()
+            is StartChatParameters.Group -> requestBuilder.setPublicGroup(
+                RpcChatService.StartChatRequest.PublicGroupChatParameters.newBuilder()
                     .setTitle(parameters.title)
                     .apply {
                         parameters.picture?.let {
@@ -115,6 +119,18 @@ internal class ChatApi @Inject constructor(
                         }
                     }
                     .apply { parameters.rules?.let { setRules(it.asProtoRules()) } }
+            )
+            is StartChatParameters.PrivateGroup -> requestBuilder.setPrivateGroup(
+                RpcChatService.StartChatRequest.PrivateGroupChatParameters.newBuilder()
+                    .setTitle(parameters.title)
+                    .apply {
+                        parameters.picture?.let {
+                            setPicture(
+                                com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
+                                    .setValue(it.bytes.toByteString())
+                            )
+                        }
+                    }
             )
         }
 
@@ -261,6 +277,128 @@ internal class ChatApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.unmuteChat(request)
+        }
+    }
+
+    suspend fun enterLobby(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.EnterLobbyResponse {
+        val request = RpcChatService.EnterLobbyRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.enterLobby(request)
+        }
+    }
+
+    suspend fun leaveLobby(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.LeaveLobbyResponse {
+        val request = RpcChatService.LeaveLobbyRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.leaveLobby(request)
+        }
+    }
+
+    suspend fun getLobbyMembers(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): RpcChatService.GetLobbyMembersResponse {
+        val request = RpcChatService.GetLobbyMembersRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setQueryOptions(queryOptions.asQueryOptions())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getLobbyMembers(request)
+        }
+    }
+
+    suspend fun admitLobbyMember(
+        owner: KeyPair,
+        chatId: ChatId,
+        userId: ID,
+        keyEnvelope: KeyEnvelope,
+    ): RpcChatService.AdmitLobbyMemberResponse {
+        val request = RpcChatService.AdmitLobbyMemberRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setUserId(userId.asUserId())
+            .setKeyEnvelope(keyEnvelope.asProtoKeyEnvelope())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.admitLobbyMember(request)
+        }
+    }
+
+    suspend fun denyLobbyMember(
+        owner: KeyPair,
+        chatId: ChatId,
+        userId: ID,
+    ): RpcChatService.DenyLobbyMemberResponse {
+        val request = RpcChatService.DenyLobbyMemberRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setUserId(userId.asUserId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.denyLobbyMember(request)
+        }
+    }
+
+    suspend fun setKeyEnvelope(
+        owner: KeyPair,
+        chatId: ChatId,
+        keyEnvelope: KeyEnvelope,
+    ): RpcChatService.SetKeyEnvelopeResponse {
+        val request = RpcChatService.SetKeyEnvelopeRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setKeyEnvelope(keyEnvelope.asProtoKeyEnvelope())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.setKeyEnvelope(request)
+        }
+    }
+
+    suspend fun getKeyEnvelope(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.GetKeyEnvelopeResponse {
+        val request = RpcChatService.GetKeyEnvelopeRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getKeyEnvelope(request)
         }
     }
 }

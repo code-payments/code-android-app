@@ -28,4 +28,9 @@ data class ChatMetadata(
     // Transitional E2EE flag (DMs only): true means clients should send new content as
     // EncryptedContent. Read only by E2eePolicy -- see chat/v1 model.proto.
     val useE2ee: Boolean = false,
+    // True for a private group: members are admitted from a lobby by the creator and messages
+    // are end-to-end encrypted. Fixed for the life of the chat.
+    val isPrivate: Boolean = false,
+    // Per-viewer: true while the viewer is waiting in this private group's lobby.
+    val inLobby: Boolean = false,
 )

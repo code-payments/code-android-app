@@ -53,6 +53,8 @@ class ChatMetadataMapper @Inject constructor(
             creator = if (from.hasCreator()) from.creator.toId() else null,
             // Transitional flag (see chat/v1 model.proto doc); ignored behaviourally for now.
             useE2ee = from.useE2Ee,
+            isPrivate = from.isPrivate,
+            inLobby = from.inLobby,
         )
     }
 }
