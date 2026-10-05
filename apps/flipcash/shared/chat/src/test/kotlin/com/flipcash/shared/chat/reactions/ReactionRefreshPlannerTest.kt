@@ -60,4 +60,20 @@ class ReactionRefreshPlannerTest {
         val chunks = ReactionRefreshPlanner.forLoadedPage(emptyList(), sourcedFromServer = false)
         assertEquals(emptyList<List<Long>>(), chunks)
     }
+
+    // A pending or failed send is stored as -(now) and sorts among the newest rows. The
+    // MessageId rule is >= 1, so one in a batch fails the whole request.
+
+    @Test
+    fun `initial window skips unsent ids and still fills the window`() {
+        val unsent = -1_700_000_000_000L
+        val window = ReactionRefreshPlanner.initialWindow(listOf(unsent, 5L, 4L, 3L), windowSize = 2)
+        assertEquals(listOf(5L, 4L), window)
+    }
+
+    @Test
+    fun `loaded page of only an unsent id yields no chunks`() {
+        val chunks = ReactionRefreshPlanner.forLoadedPage(listOf(-1_700_000_000_000L), sourcedFromServer = false)
+        assertEquals(emptyList<List<Long>>(), chunks)
+    }
 }

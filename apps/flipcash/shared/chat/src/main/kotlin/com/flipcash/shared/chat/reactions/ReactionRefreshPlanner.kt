@@ -13,6 +13,10 @@ package com.flipcash.shared.chat.reactions
  *    reaction state, so refreshing it again would be redundant.
  *
  * Both are pure: callers own the "already refreshed" bookkeeping and pass in what's still needed.
+ *
+ * Both drop ids below 1. A pending or failed send is stored as `-(now)`, has no reactions to fetch,
+ * and fails the `MessageId` rule (>= 1) for the whole batch it rides in. Its real id arrives with
+ * the server echo and pages in as a new id.
  */
 object ReactionRefreshPlanner {
 
@@ -30,6 +34,7 @@ object ReactionRefreshPlanner {
     ): List<Long> =
         newestFirstIds
             .asSequence()
+            .filter { it >= 1 }
             .take(windowSize)
             .filterNot { it in alreadyRefreshed }
             .toList()
@@ -47,7 +52,7 @@ object ReactionRefreshPlanner {
         chunkSize: Int = DEFAULT_CHUNK_SIZE,
     ): List<List<Long>> {
         if (sourcedFromServer) return emptyList()
-        val remaining = pageIds.filterNot { it in alreadyRefreshed }
+        val remaining = pageIds.filter { it >= 1 && it !in alreadyRefreshed }
         if (remaining.isEmpty()) return emptyList()
         return remaining.chunked(chunkSize)
     }
