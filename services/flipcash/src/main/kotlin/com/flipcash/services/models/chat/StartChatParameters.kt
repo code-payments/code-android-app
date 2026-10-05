@@ -11,6 +11,8 @@ sealed interface StartChatParameters {
     data class Group(
         /** Title for the chat. */
         val title: String,
+        /** Description for the chat, up to 160 characters. Optional; null or empty sets none. */
+        val description: String? = null,
         /** The blob holding the ORIGINAL picture the caller uploaded. Optional. */
         val picture: BlobId? = null,
         /**
@@ -30,6 +32,8 @@ sealed interface StartChatParameters {
     data class PrivateGroup(
         /** Title for the chat. */
         val title: String,
+        /** Description for the chat, up to 160 characters. Optional; null or empty sets none. */
+        val description: String? = null,
         /** The blob holding the ORIGINAL picture the caller uploaded. Optional. */
         val picture: BlobId? = null,
     ) : StartChatParameters

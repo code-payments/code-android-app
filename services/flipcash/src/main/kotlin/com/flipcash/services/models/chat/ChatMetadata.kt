@@ -13,6 +13,8 @@ data class ChatMetadata(
     val isHidden: Boolean = false,
     // Title for this chat. Only set for group chats.
     val title: String? = null,
+    // Description for this chat, up to 160 characters. Only set for group chats; null when unset.
+    val description: String? = null,
     // Picture for this chat. Only set for group chats.
     val picture: MediaItem? = null,
     // True roster size and staleness version. Server-authoritative; defaults to zero for

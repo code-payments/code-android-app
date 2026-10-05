@@ -388,6 +388,8 @@ internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
             MetadataUpdate.ViewerStateChanged(viewerStateChanged.viewerState.toViewerState())
         ChatModel.MetadataUpdate.KindCase.TITLE_CHANGED ->
             MetadataUpdate.TitleChanged(titleChanged.newTitle)
+        ChatModel.MetadataUpdate.KindCase.DESCRIPTION_CHANGED ->
+            MetadataUpdate.DescriptionChanged(descriptionChanged.newDescription)
         ChatModel.MetadataUpdate.KindCase.PICTURE_CHANGED ->
             MetadataUpdate.PictureChanged(pictureChanged.newPicture.toMediaItem())
         else -> MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(0))
@@ -417,6 +419,7 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         latestEventSequence = latestEventSequence,
         isHidden = isHidden,
         title = title.takeIf { it.isNotEmpty() },
+        description = description.takeIf { it.isNotEmpty() },
         picture = if (hasPicture()) picture.toMediaItem() else null,
         rosterSummary = rosterSummary.toRosterSummary(),
         rules = if (hasRules()) rules.toChatRules() else null,

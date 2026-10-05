@@ -46,6 +46,7 @@ class ChatMetadataMapper @Inject constructor(
             latestEventSequence = from.latestEventSequence,
             isHidden = from.isHidden,
             title = from.title.takeIf { it.isNotEmpty() },
+            description = from.description.takeIf { it.isNotEmpty() },
             picture = if (from.hasPicture()) from.picture.toMediaItem() else null,
             rosterSummary = from.rosterSummary.toRosterSummary(),
             rules = if (from.hasRules()) from.rules.toChatRules() else null,

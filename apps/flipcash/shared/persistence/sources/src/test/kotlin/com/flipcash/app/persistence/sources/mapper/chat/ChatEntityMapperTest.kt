@@ -277,6 +277,15 @@ class ChatEntityMapperTest {
     }
 
     @Test
+    fun `group description survives the round trip through the row`() {
+        val entity = mapper.toEntity(groupMetadata().copy(description = "Weekly tips"))
+        assertEquals("Weekly tips", entity.description)
+
+        val restored = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
+        assertEquals("Weekly tips", restored.description)
+    }
+
+    @Test
     fun `a chat with no creator and no e2ee round trips to null and false`() {
         val entity = mapper.toEntity(metadata(latestEventSequence = 0))
 

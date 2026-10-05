@@ -117,8 +117,9 @@ import com.getcode.utils.subByteArray
         // The chat_archive table. An AutoMigration rather than the fallbackToDestructiveMigration()
         // below, for the same reason as chat_draft: an archive set cannot be re-fetched.
         AutoMigration(from = 40, to = 41), // chat_archive table
+        AutoMigration(from = 41, to = 42), // chat_metadata.description (nullable)
     ],
-    version = 41,
+    version = 42,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
