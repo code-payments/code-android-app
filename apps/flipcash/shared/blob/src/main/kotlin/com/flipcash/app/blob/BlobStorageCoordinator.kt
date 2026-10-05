@@ -11,12 +11,15 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.BlobStorageController
 import com.flipcash.services.models.InitiateExternalUploadError
+import com.flipcash.services.models.blob.EncryptedConstraints
 import com.flipcash.services.models.blob.MimeTypeConstraints
 import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.ChatId
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -75,10 +78,73 @@ class BlobStorageCoordinator @Inject constructor(
      * poll are all handled inside the controller. A policy-driven rejection invalidates the cached
      * policy (the server echoes a newer policy version on such denials).
      */
-    suspend fun upload(bytes: ByteArray, mimeType: String): Result<BlobId> {
-        val result = blobStorageController.upload(bytes, mimeType)
+    suspend fun upload(
+        bytes: ByteArray,
+        mimeType: String,
+        onProgress: ((sentBytes: Long, totalBytes: Long) -> Unit)? = null,
+    ): Result<BlobId> {
+        val result = blobStorageController.upload(bytes, mimeType, onProgress)
         result.exceptionOrNull()?.let { refreshIfPolicyChanged(it) }
         return result
+    }
+
+    /**
+     * Stores an encoded chat photo and returns its READY [BlobId], retrying what a retry can fix.
+     *
+     * [jpeg] is the encoder's output. With [sealing] it is encrypted for that chat and uploaded as
+     * opaque bytes; without, it goes up as plain `image/jpeg` for the server to moderate. Each
+     * attempt reserves afresh, so a retry gets a new blob id and re-seals under it.
+     *
+     * Up to [ChatMediaRetry.BACKOFFS].size retries, 1 s, 2 s, then 4 s apart, for failures in
+     * transit or while finalizing; a refusal that repeating can't change (see
+     * [ChatMediaRetry.isRetryable]) is returned at once. [onProgress] restarts from zero on a retry.
+     */
+    suspend fun storeChatMedia(
+        jpeg: ByteArray,
+        sealing: ChatMediaSealing? = null,
+        onProgress: ((sentBytes: Long, totalBytes: Long) -> Unit)? = null,
+    ): Result<BlobId> = withStoreRetries { _ ->
+        if (sealing != null) {
+            blobStorageController.uploadSealed(jpeg, sealing.chatId, sealing.seal, onProgress)
+        } else {
+            blobStorageController.uploadChatMedia(jpeg, ChatMediaEncoder.UPLOAD_MIME_TYPE, onProgress)
+        }
+    }
+
+    /**
+     * [storeChatMedia] up to the point the bytes are in storage, without waiting for finalization.
+     * Retries only what happens before that, so a returned id means "stored": a caller that then
+     * fails to see it finalize re-polls it with [awaitChatMediaReady] instead of uploading again.
+     * [onAttempt] runs before each attempt, first included, so progress can restart with a retry.
+     */
+    suspend fun storeChatMediaUnfinalized(
+        jpeg: ByteArray,
+        sealing: ChatMediaSealing? = null,
+        onAttempt: (() -> Unit)? = null,
+        onProgress: ((sentBytes: Long, totalBytes: Long) -> Unit)? = null,
+    ): Result<BlobId> = withStoreRetries { _ ->
+        onAttempt?.invoke()
+        if (sealing != null) {
+            blobStorageController.storeSealed(jpeg, sealing.chatId, sealing.seal, onProgress)
+        } else {
+            blobStorageController.storeChatMedia(jpeg, ChatMediaEncoder.UPLOAD_MIME_TYPE, onProgress)
+        }
+    }
+
+    /** Waits for a blob [storeChatMediaUnfinalized] stored to finalize. */
+    suspend fun awaitChatMediaReady(blobId: BlobId): Result<BlobId> =
+        blobStorageController.awaitChatMediaReady(blobId)
+
+    private suspend fun withStoreRetries(attemptStore: suspend (attempt: Int) -> Result<BlobId>): Result<BlobId> {
+        var attempt = 0
+        while (true) {
+            val result = attemptStore(attempt)
+            val failure = result.exceptionOrNull() ?: return result
+
+            refreshIfPolicyChanged(failure)
+            if (!ChatMediaRetry.isRetryable(failure) || attempt >= ChatMediaRetry.BACKOFFS.size) return result
+            delay(ChatMediaRetry.BACKOFFS[attempt++])
+        }
     }
 
     suspend fun reset() {
@@ -128,14 +194,16 @@ class BlobStorageCoordinator @Inject constructor(
     private fun now(): Long = System.currentTimeMillis()
 
     companion object {
-        private val KEY_UPLOAD_POLICY = stringPreferencesKey("cached_upload_policy")
+        // v2: entries cached before the policy carried `encrypted` would read back as "encrypted
+        // uploads not allowed" for the rest of their ttl; a new key makes them refetch instead.
+        private val KEY_UPLOAD_POLICY = stringPreferencesKey("cached_upload_policy_v2")
     }
 }
 
 /**
  * On-disk form. [UploadPolicy.ttl] is a [kotlin.time.Duration] (not kotlinx-serializable) so it is
  * stored as milliseconds; [fetchedAtMillis] stamps when it was cached so freshness can be checked
- * against the ttl; [MimeTypeConstraints] is already `@Serializable` and stored as-is.
+ * against the ttl; [MimeTypeConstraints] and [EncryptedConstraints] are already `@Serializable` and stored as-is.
  */
 @kotlinx.serialization.Serializable
 private data class CachedUploadPolicy(
@@ -143,11 +211,15 @@ private data class CachedUploadPolicy(
     val ttlMillis: Long,
     val fetchedAtMillis: Long,
     val mimeTypeConstraints: List<MimeTypeConstraints>,
+    // Absent in entries cached before encrypted uploads existed, which read back as "not allowed"
+    // until the next refresh.
+    val encrypted: EncryptedConstraints? = null,
 ) {
     fun toDomain(): UploadPolicy = UploadPolicy(
         version = version,
         ttl = ttlMillis.milliseconds,
         mimeTypeConstraints = mimeTypeConstraints,
+        encrypted = encrypted,
     )
 
     companion object {
@@ -156,6 +228,7 @@ private data class CachedUploadPolicy(
             ttlMillis = policy.ttl.inWholeMilliseconds,
             fetchedAtMillis = fetchedAtMillis,
             mimeTypeConstraints = policy.mimeTypeConstraints,
+            encrypted = policy.encrypted,
         )
     }
 }

@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.BlobStorageController
 import com.flipcash.services.models.InitiateExternalUploadError
+import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.blob.MimeTypeConstraints
 import com.flipcash.services.models.blob.UploadPolicy
 import io.mockk.coEvery
@@ -98,5 +99,48 @@ class BlobStorageCoordinatorTest {
         coordinator.upload(byteArrayOf(1), "image/png")
 
         coVerify(exactly = 1) { controller.getUploadPolicy() }
+    }
+
+    @Test
+    fun `an unfinalized store retries transport failures on the backoff and announces each attempt`() = runTest {
+        val id = BlobId(ByteArray(16) { 1 })
+        coEvery { controller.storeChatMedia(any(), any(), any()) } returnsMany listOf(
+            Result.failure(RuntimeException("offline")),
+            Result.failure(RuntimeException("offline")),
+            Result.success(id),
+        )
+        var attempts = 0
+
+        val result = newCoordinator().storeChatMediaUnfinalized(byteArrayOf(1), onAttempt = { attempts++ })
+
+        assertEquals(id, result.getOrNull())
+        assertEquals(3, attempts)
+        assertEquals(3_000L, testScheduler.currentTime)
+        coVerify(exactly = 0) { controller.awaitChatMediaReady(any()) }
+    }
+
+    @Test
+    fun `an unfinalized store gives up after the third retry`() = runTest {
+        coEvery { controller.storeChatMedia(any(), any(), any()) } returns Result.failure(RuntimeException("offline"))
+
+        val result = newCoordinator().storeChatMediaUnfinalized(byteArrayOf(1))
+
+        assertEquals(true, result.isFailure)
+        coVerify(exactly = 4) { controller.storeChatMedia(any(), any(), any()) }
+        assertEquals(7_000L, testScheduler.currentTime)
+    }
+
+    @Test
+    fun `an unfinalized store does not retry a refusal`() = runTest {
+        coEvery { controller.getUploadPolicy() } returns Result.success(policy("v1", 1.hours))
+        coEvery { controller.storeChatMedia(any(), any(), any()) } returns
+            Result.failure(InitiateExternalUploadError.TooLarge(policyVersion = "v1"))
+        val coordinator = newCoordinator()
+        coordinator.reset()
+        coordinator.preloadPolicy()
+
+        coordinator.storeChatMediaUnfinalized(byteArrayOf(1))
+
+        coVerify(exactly = 1) { controller.storeChatMedia(any(), any(), any()) }
     }
 }

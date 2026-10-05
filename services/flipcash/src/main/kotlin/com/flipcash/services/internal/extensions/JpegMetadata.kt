@@ -26,7 +26,7 @@ private const val MARKER_COM = 0xFE
  * Must agree byte-for-byte with iOS's `JPEGMetadata.stripped`
  * (`FlipcashCore/Sources/FlipcashCore/Blob/JPEGMetadata.swift`).
  */
-internal fun ByteArray.withoutJpegMetadata(): ByteArray {
+fun ByteArray.withoutJpegMetadata(): ByteArray {
     val segments = privacySegments()
     if (segments.isNullOrEmpty()) return this
 

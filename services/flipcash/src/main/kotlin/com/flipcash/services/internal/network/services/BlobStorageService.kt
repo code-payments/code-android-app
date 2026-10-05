@@ -16,6 +16,7 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.models.chat.BlobStatus
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
@@ -47,8 +48,9 @@ internal class BlobStorageService @Inject constructor(
         mimeType: String,
         sizeBytes: Long,
         owner: Ed25519.KeyPair,
+        e2eeChat: ChatId? = null,
     ): Result<UploadReservation> {
-        return runCatching { api.initiateExternalUpload(mimeType, sizeBytes, owner) }
+        return runCatching { api.initiateExternalUpload(mimeType, sizeBytes, owner, e2eeChat) }
             .foldWithSuppression(
                 onSuccess = { response ->
                     when (response.result) {

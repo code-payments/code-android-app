@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.BlobUploader
+import com.flipcash.services.ForegroundGate
 import com.flipcash.services.internal.extensions.withoutJpegMetadata
 import com.flipcash.services.models.BlobNotReadyException
 import com.flipcash.services.models.BlobRejectedException
@@ -36,7 +37,8 @@ class BlobStorageControllerTest {
     private val repository = mockk<BlobStorageRepository>()
     private val uploader = mockk<BlobUploader>()
     private val userManager = mockk<UserManager>(relaxed = true)
-    private val controller = BlobStorageController(repository, uploader, userManager)
+    private val foreground = ForegroundGate { }
+    private val controller = BlobStorageController(repository, uploader, userManager, foreground)
 
     private val blobId = BlobId(ByteArray(16) { 1 })
     private val target = UploadTarget(

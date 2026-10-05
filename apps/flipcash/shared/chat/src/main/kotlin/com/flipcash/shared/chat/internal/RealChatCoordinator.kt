@@ -26,6 +26,7 @@ import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
 import com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate
 import com.flipcash.shared.chat.internal.delegates.DmChatResolverDelegate
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
+import com.flipcash.shared.chat.media.ChatMediaSending
 import com.flipcash.shared.chat.internal.delegates.ReactionsDelegate
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.providers.SessionListener
@@ -99,6 +100,7 @@ class RealChatCoordinator @Inject constructor(
     private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
     private val archiveStore: ChatArchiveStore = ChatArchiveStore.None,
+    private val mediaSender: ChatMediaSending = ChatMediaSending.None,
 ) : ChatCoordinator,
     SessionListener,
     DefaultLifecycleObserver,
@@ -107,7 +109,8 @@ class RealChatCoordinator @Inject constructor(
     DmChatResolver by dmChatResolverDelegate,
     MessagingOperations by messagingDelegate,
     GroupOperations by groupFeedDelegate,
-    ReactionOperations by reactionsDelegate {
+    ReactionOperations by reactionsDelegate,
+    ChatMediaSending by mediaSender {
 
     companion object {
         private const val TAG = "ChatCoordinator"
@@ -153,6 +156,8 @@ class RealChatCoordinator @Inject constructor(
         // was killed mid-flight has to be marked failed first or it is destroyed instead of
         // becoming retryable. See [MessagingDelegate.recoverInterruptedSends].
         messagingDelegate.recoverInterruptedSends()
+        // After the sweep, which leaves a stored photo sending; this resumes it.
+        scope.launch { mediaSender.reconcilePendingMedia() }
         feedDelegate.observeFeedFromDb()
         // The list the Chats tab opens on comes from this read, so let it finish before the sync
         // below starts competing with it for CPU (a cold-launch trace had the sync's gRPC work

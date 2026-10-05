@@ -500,4 +500,52 @@ class MessageCapabilityTest {
     fun `empty content is not reactable`() {
         assertEquals(false, canReact(message(emptyList())))
     }
+
+    private fun photo(isFromSelf: Boolean = true, eventSequence: Long = 4, redacted: Boolean = false, reply: Boolean = false): ChatMessage {
+        val media = MessageContent.Media(items = emptyList(), caption = MessageContent.Text("hi"))
+        return message(
+            listOf(if (reply) MessageContent.Reply(repliedMessageId = 2, content = listOf(media)) else media),
+            isFromSelf,
+            eventSequence,
+        ).copy(redacted = redacted)
+    }
+
+    @Test
+    fun `own confirmed photo can be replied to and deleted but not copied or edited`() {
+        assertEquals(
+            setOf(MessageCapability.Reply, MessageCapability.Delete),
+            resolveCapabilities(photo(), now = sentAt),
+        )
+        assertEquals(
+            setOf(MessageCapability.Reply, MessageCapability.Delete),
+            resolveCapabilities(photo(reply = true), now = sentAt),
+        )
+    }
+
+    @Test
+    fun `own photo past the delete window can only be replied to`() {
+        assertEquals(
+            setOf(MessageCapability.Reply),
+            resolveCapabilities(photo(), now = sentAt + 49.hours),
+        )
+    }
+
+    @Test
+    fun `another participant's photo can be replied to and reported`() {
+        assertEquals(
+            setOf(MessageCapability.Reply, MessageCapability.Report),
+            resolveCapabilities(photo(isFromSelf = false), now = sentAt),
+        )
+    }
+
+    @Test
+    fun `an unconfirmed photo has no actions`() {
+        assertEquals(emptySet(), resolveCapabilities(photo(eventSequence = 0), now = sentAt))
+    }
+
+    @Test
+    fun `a redacted photo takes no reactions`() {
+        assertEquals(true, canReact(photo(isFromSelf = false)))
+        assertEquals(false, canReact(photo(isFromSelf = false, redacted = true)))
+    }
 }

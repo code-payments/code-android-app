@@ -157,7 +157,12 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
             .setMedia(
                 MessagingModel.MediaContent.newBuilder()
                     .addAllItems(items.map { it.asMediaItem() })
-                    .apply { if (caption != null) setCaption(MessagingModel.TextContent.newBuilder().setText(caption.text)) }
+                    // `this@asContent`: bare `caption` here is the builder's own (always non-null) getter.
+                    .apply {
+                        this@asContent.caption
+                            ?.takeIf { it.text.isNotEmpty() }
+                            ?.let { setCaption(MessagingModel.TextContent.newBuilder().setText(it.text)) }
+                    }
             )
             .build()
         // Server-authored and receive-only: no client path builds one, so reaching this is a bug.
@@ -198,6 +203,45 @@ internal fun com.flipcash.services.models.chat.MediaItemRendition.asRendition():
             com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
                 .setValue(blobId.bytes.toByteString())
         )
+        .apply { this@asRendition.blob?.let { setBlob(it.asBlobMetadata()) } }
+        .build()
+}
+
+/**
+ * A sealed photo carries its metadata inline, since the server can't read it, and no download URL:
+ * there is nothing to download from until the recipient asks `GetBlobs`. A blank [BlobMetadata.downloadUrl]
+ * is therefore left off rather than written as an empty URL.
+ */
+internal fun com.flipcash.services.models.chat.BlobMetadata.asBlobMetadata(): com.codeinc.flipcash.gen.blob.v1.Model.BlobMetadata {
+    val metadata = this
+    return com.codeinc.flipcash.gen.blob.v1.Model.BlobMetadata.newBuilder()
+        .setMimeType(mimeType)
+        .setSizeBytes(sizeBytes)
+        .apply {
+            if (metadata.downloadUrl.isNotEmpty()) {
+                setDownloadUrl(
+                    com.codeinc.flipcash.gen.blob.v1.Model.DownloadUrl.newBuilder()
+                        .setUrl(metadata.downloadUrl)
+                        .apply {
+                            metadata.expiresAtMillis?.let {
+                                setExpiresAt(
+                                    com.google.protobuf.Timestamp.newBuilder()
+                                        .setSeconds(Math.floorDiv(it, 1_000L))
+                                        .setNanos((Math.floorMod(it, 1_000L) * 1_000_000L).toInt())
+                                )
+                            }
+                        }
+                )
+            }
+            metadata.image?.let {
+                setImage(
+                    com.codeinc.flipcash.gen.blob.v1.Model.ImageMetadata.newBuilder()
+                        .setWidth(it.width)
+                        .setHeight(it.height)
+                        .setBlurhash(it.blurhash)
+                )
+            }
+        }
         .build()
 }
 

@@ -21,6 +21,7 @@ import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.repository.ReactorsPage
+import com.flipcash.shared.chat.media.ChatMediaSending
 import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.SelfReaction
@@ -559,7 +560,8 @@ interface ChatCoordinator :
     DmChatResolver,
     MessagingOperations,
     GroupOperations,
-    ReactionOperations {
+    ReactionOperations,
+    ChatMediaSending {
     /** Full observable snapshot of chat state (feed, typing, reactions, active chat). */
     val state: StateFlow<ChatState>
 

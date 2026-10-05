@@ -136,6 +136,14 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex LIMIT 1")
     suspend fun getByClientId(chatIdHex: String, clientIdHex: String): ChatMessageEntity?
 
+    /** The newest [limit] confirmed messages [selfIdHex] sent in [chatIdHex]. */
+    @Query("""
+        SELECT * FROM chat_messages
+        WHERE chat_id_hex = :chatIdHex AND sender_id_hex = :selfIdHex AND message_id > 0
+        ORDER BY message_id DESC LIMIT :limit
+    """)
+    suspend fun getRecentSentBy(chatIdHex: String, selfIdHex: String, limit: Int): List<ChatMessageEntity>
+
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId LIMIT 1")
     suspend fun getMessage(chatIdHex: String, messageId: Long): ChatMessageEntity?
 
@@ -271,10 +279,25 @@ interface ChatMessageDao {
     @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex")
     suspend fun deletePending(chatIdHex: String, clientIdHex: String)
 
-    @Query("SELECT pending_client_id_hex FROM chat_messages WHERE chat_id_hex = :chatIdHex AND status = 'SENDING' AND pending_client_id_hex IS NOT NULL")
+    @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND message_id != :keepMessageId")
+    suspend fun deletePendingExcept(chatIdHex: String, clientIdHex: String, keepMessageId: Long)
+
+    // A queued photo is excluded from this and from [deleteAllPending]: it can sit in SENDING for as
+    // long as an upload takes, while a refresh triggered by an earlier photo of the same batch
+    // arrives. Deleting it would drop a photo whose upload is still running. Its own confirmation
+    // settles it, see [confirmPendingMessage].
+    @Query("""
+        SELECT pending_client_id_hex FROM chat_messages
+        WHERE chat_id_hex = :chatIdHex AND status = 'SENDING' AND pending_client_id_hex IS NOT NULL
+          AND pending_client_id_hex NOT IN (SELECT client_id_hex FROM pending_media)
+    """)
     suspend fun getPendingClientIds(chatIdHex: String): List<String>
 
-    @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND status = 'SENDING'")
+    @Query("""
+        DELETE FROM chat_messages
+        WHERE chat_id_hex = :chatIdHex AND status = 'SENDING'
+          AND (pending_client_id_hex IS NULL OR pending_client_id_hex NOT IN (SELECT client_id_hex FROM pending_media))
+    """)
     suspend fun deleteAllPending(chatIdHex: String)
 
     /**
@@ -293,8 +316,18 @@ interface ChatMessageDao {
      * the original rather than duplicating it.
      *
      * Deliberately not scoped to a chat: the caller runs at login, before it knows which chats exist.
+     *
+     * A photo whose `pending_media` entry says its bytes are already stored is left `SENDING`: what
+     * is left to do is poll and post, which the launch reconciliation does without being asked, and
+     * flipping the row to failed and back would flash a retry button at the viewer. A photo not yet
+     * stored is swept like any other, since its retry is the viewer's to ask for.
      */
-    @Query("UPDATE chat_messages SET status = 'FAILED' WHERE status = 'SENDING'")
+    @Query("""
+        UPDATE chat_messages SET status = 'FAILED'
+        WHERE status = 'SENDING'
+          AND (pending_client_id_hex IS NULL OR pending_client_id_hex NOT IN (
+                SELECT client_id_hex FROM pending_media WHERE stored_blob_id_hex IS NOT NULL))
+    """)
     suspend fun failInterruptedSends()
 
     /**
@@ -321,8 +354,26 @@ interface ChatMessageDao {
         newEventSequence: Long,
     )
 
+    /**
+     * Settles the pending row of [clientIdHex] as [serverMessage].
+     *
+     * [replaceContent] is for a photo, whose optimistic row carries the local file rather than the
+     * blob; the confirmed row takes the server's content. When the server's copy of the message
+     * already arrived over the event stream, which a long upload makes likely, the pending row is
+     * dropped in its favour instead of being renumbered onto an existing key.
+     */
     @Transaction
-    suspend fun confirmPendingMessage(chatIdHex: String, clientIdHex: String, serverMessage: ChatMessageEntity) {
+    suspend fun confirmPendingMessage(
+        chatIdHex: String,
+        clientIdHex: String,
+        serverMessage: ChatMessageEntity,
+        replaceContent: Boolean = false,
+    ) {
+        if (exists(chatIdHex, serverMessage.messageId)) {
+            // The stream's copy can carry the same client id, so only the pending row goes.
+            deletePendingExcept(chatIdHex, clientIdHex, serverMessage.messageId)
+            return
+        }
         updatePendingToConfirmed(
             chatIdHex = chatIdHex,
             clientIdHex = clientIdHex,
@@ -334,10 +385,11 @@ interface ChatMessageDao {
         // An encrypted send went out as ciphertext; the row keeps its plaintext and gains the
         // ciphertext beside it. Written as a row rather than in the UPDATE above, since Room would
         // expand a list parameter into an IN clause.
-        if (serverMessage.encryptionState != null) {
+        if (serverMessage.encryptionState != null || replaceContent) {
             val confirmed = getByClientId(chatIdHex, clientIdHex) ?: return
             insert(
                 confirmed.copy(
+                    contentJson = if (replaceContent) serverMessage.contentJson else confirmed.contentJson,
                     ciphertextJson = serverMessage.ciphertextJson,
                     encryptionState = serverMessage.encryptionState,
                 )

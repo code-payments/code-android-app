@@ -34,17 +34,21 @@ class ChatContentCrypto @Inject constructor(
     private val chatKeys = ConcurrentHashMap<CacheKey, ChatKeys>()
 
     /**
-     * Encrypts [content] from the viewer to [peerId]. Only Text, and a Reply whose body is Text,
-     * are sealed; media is not sent encrypted yet.
+     * Encrypts [content] from the viewer to [peerId]. Text, a photo that meets [SealedMediaContract],
+     * and a Reply around either are sealed; anything else fails.
+     *
+     * A photo's blob is sealed separately, see [sealBlob]; this only carries its id and metadata.
      */
     suspend fun seal(chatId: ChatId, peerId: ID, content: MessageContent): Result<MessageContent.Encrypted> {
-        if (!content.isSealable()) {
+        // A sealed photo has no download URL, whatever the caller's metadata carried.
+        val outbound = content.withoutDownloadUrls()
+        if (!outbound.isSealable()) {
             return Result.failure(IllegalArgumentException("Cannot encrypt ${content::class.simpleName}"))
         }
         val chatKeys = chatKeys(chatId, peerId).getOrElse { return Result.failure(it) }
         return runCatching {
             val payload = cipher.encrypt(
-                content = content.asContent().toByteArray(),
+                content = outbound.asContent().toByteArray(),
                 chatKey = chatKeys.chatKey,
                 senderPk = chatKeys.ownPk,
                 recipientPk = chatKeys.peerPk,
@@ -113,6 +117,64 @@ class ChatContentCrypto @Inject constructor(
         }
     }
 
+    /**
+     * Seals [plaintext], the stripped JPEG of the photo [blobId] names, from the viewer to
+     * [peerId]. Shaped to be the `seal` argument of `BlobStorageController.uploadSealed`.
+     */
+    suspend fun sealBlob(chatId: ChatId, peerId: ID, blobId: ByteArray, plaintext: ByteArray): Result<ByteArray> {
+        val chatKeys = chatKeys(chatId, peerId).getOrElse { return Result.failure(it) }
+        return runCatching {
+            cipher.encryptBlob(
+                image = plaintext,
+                chatKey = chatKeys.chatKey,
+                senderPk = chatKeys.ownPk,
+                recipientPk = chatKeys.peerPk,
+                chatId = chatId.bytes,
+                blobId = blobId,
+            )
+        }
+    }
+
+    /**
+     * Opens [sealed], the bytes of blob [blobId] that [senderId] uploaded in the DM between
+     * [selfId] and [peerId], and checks the result is [expectedSize] bytes, the `size_bytes` its
+     * message declared.
+     */
+    suspend fun openBlob(
+        chatId: ChatId,
+        selfId: ID,
+        peerId: ID,
+        senderId: ID?,
+        blobId: ByteArray,
+        expectedSize: Long,
+        sealed: ByteArray,
+    ): OpenedBlob {
+        val chatKeys = chatKeys(chatId, peerId).getOrElse { cause ->
+            return OpenedBlob.Failed(
+                if (cause is ChatCipherException) BlobOpenFailure.Authentication else BlobOpenFailure.KeyPending,
+            )
+        }
+        val (senderPk, recipientPk) = when (senderId) {
+            selfId -> chatKeys.ownPk to chatKeys.peerPk
+            peerId -> chatKeys.peerPk to chatKeys.ownPk
+            else -> return OpenedBlob.Failed(BlobOpenFailure.Authentication)
+        }
+        val plaintext = try {
+            cipher.decryptBlob(
+                blob = sealed,
+                chatKey = chatKeys.chatKey,
+                senderPk = senderPk,
+                recipientPk = recipientPk,
+                chatId = chatId.bytes,
+                blobId = blobId,
+            )
+        } catch (_: ChatCipherException) {
+            return OpenedBlob.Failed(BlobOpenFailure.Authentication)
+        }
+        if (plaintext.size.toLong() != expectedSize) return OpenedBlob.Failed(BlobOpenFailure.Length)
+        return OpenedBlob.Plaintext(plaintext)
+    }
+
     fun clear() {
         chatKeys.clear()
     }
@@ -139,20 +201,34 @@ class ChatContentCrypto @Inject constructor(
     }
 }
 
-private fun MessageContent.isSealable(): Boolean = when (this) {
+/** The result of [ChatContentCrypto.openBlob]. */
+sealed interface OpenedBlob {
+    class Plaintext(val bytes: ByteArray) : OpenedBlob
+    data class Failed(val reason: BlobOpenFailure) : OpenedBlob
+}
+
+internal fun MessageContent.isSealable(): Boolean = when (this) {
     is MessageContent.Text -> true
-    is MessageContent.Reply -> content.isNotEmpty() && content.all { it is MessageContent.Text }
+    is MessageContent.Media -> SealedMediaContract.isValid(asContent().media)
+    is MessageContent.Reply -> content.isNotEmpty() &&
+        (content.all { it is MessageContent.Text } || content.singleOrNull()?.let {
+            it is MessageContent.Media && it.isSealable()
+        } == true)
     else -> false
 }
 
 /**
- * The spec allows Text, Media, and a Reply of either. Media isn't rendered from an encrypted
- * message yet, so it takes the same "update" path as a type this client has never heard of.
+ * The spec allows Text, Media, and a Reply of either. Media must meet [SealedMediaContract];
+ * anything else takes the same "update" path as a type this client has never heard of.
  */
-private fun MessagingModel.Content.isRenderable(): Boolean = when (typeCase) {
+internal fun MessagingModel.Content.isRenderable(): Boolean = when (typeCase) {
     MessagingModel.Content.TypeCase.TEXT -> true
+    MessagingModel.Content.TypeCase.MEDIA -> SealedMediaContract.isValid(media)
     MessagingModel.Content.TypeCase.REPLY ->
         reply.contentCount > 0 &&
-            reply.contentList.all { it.typeCase == MessagingModel.Content.TypeCase.TEXT }
+            (reply.contentList.all { it.typeCase == MessagingModel.Content.TypeCase.TEXT } ||
+                (reply.contentCount == 1 &&
+                    reply.getContent(0).typeCase == MessagingModel.Content.TypeCase.MEDIA &&
+                    reply.getContent(0).isRenderable()))
     else -> false
 }

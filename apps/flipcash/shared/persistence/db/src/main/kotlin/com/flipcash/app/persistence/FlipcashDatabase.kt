@@ -28,6 +28,7 @@ import com.flipcash.app.persistence.dao.ContactDao
 import com.flipcash.app.persistence.dao.CurrencyCreatorDraftDao
 import com.flipcash.app.persistence.dao.LinkPreviewDao
 import com.flipcash.app.persistence.dao.MessageDao
+import com.flipcash.app.persistence.dao.PendingMediaDao
 import com.flipcash.app.persistence.dao.TokenDao
 import com.flipcash.app.persistence.dao.UserProfileDao
 import com.flipcash.app.persistence.entities.BlockedUserEntity
@@ -41,6 +42,7 @@ import com.flipcash.app.persistence.entities.ContactSyncStateEntity
 import com.flipcash.app.persistence.entities.CurrencyCreatorDraftEntity
 import com.flipcash.app.persistence.entities.LinkPreviewEntity
 import com.flipcash.app.persistence.entities.MessageEntity
+import com.flipcash.app.persistence.entities.PendingMediaEntity
 import com.flipcash.app.persistence.entities.SocialLinkEntity
 import com.flipcash.app.persistence.entities.TokenEntity
 import com.flipcash.app.persistence.entities.TokenValuationEntity
@@ -67,6 +69,7 @@ import com.getcode.utils.subByteArray
         BlockedUserEntity::class,
         UserProfileEntity::class,
         LinkPreviewEntity::class,
+        PendingMediaEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
@@ -118,8 +121,11 @@ import com.getcode.utils.subByteArray
         // below, for the same reason as chat_draft: an archive set cannot be re-fetched.
         AutoMigration(from = 40, to = 41), // chat_archive table
         AutoMigration(from = 41, to = 42), // chat_metadata.description (nullable)
+        // The pending_media table, an AutoMigration for the same reason as chat_draft: an entry
+        // dropped by the destructive fallback is a photo the viewer queued and never sent.
+        AutoMigration(from = 42, to = 43), // pending_media table
     ],
-    version = 42,
+    version = 43,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -136,6 +142,7 @@ abstract class FlipcashDatabase : RoomDatabase() {
     abstract fun blockedUserDao(): BlockedUserDao
     abstract fun userProfileDao(): UserProfileDao
     abstract fun linkPreviewDao(): LinkPreviewDao
+    abstract fun pendingMediaDao(): PendingMediaDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
