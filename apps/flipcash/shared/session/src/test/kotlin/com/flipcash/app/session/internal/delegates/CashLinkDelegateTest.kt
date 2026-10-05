@@ -11,7 +11,9 @@ import com.flipcash.app.session.SettledClaim
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
+import com.flipcash.core.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -265,6 +267,28 @@ class CashLinkDelegateTest {
             TransferEvents.receiveCashLink(State.FAILURE, amount = null, error = "already claimed"),
             analytics.events.single { it.name == "Receive Cash Link" },
         )
+    }
+
+    @Test
+    fun `a claim rejected as already claimed shows the already collected alert`() = runTest {
+        every { resources.getString(R.string.error_title_alreadyCollected) } returns "Already Collected"
+        val delegate = createDelegate()
+
+        val onError = slot<(Throwable) -> Unit>()
+        delegate.openCashLink("validEntropy123")
+        verify {
+            billController.receiveGiftCard(
+                entropy = any(),
+                owner = any(),
+                claimIfOwned = any(),
+                onReceived = any(),
+                onError = capture(onError),
+            )
+        }
+        onError.captured.invoke(ReceiveGiftTransactorError.AlreadyClaimed())
+        runCurrent()
+
+        assertEquals("Already Collected", BottomBarManager.messages.value.single().title)
     }
 
     @Test

@@ -21,6 +21,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.test.assertIs
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -70,20 +71,47 @@ class ReceiveGiftCardTransactorTest {
     // region intent submission
 
     @Test
-    fun `start fails with the stale state when the gift card was already claimed`() = runTest {
+    fun `start fails with AlreadyClaimed when the intent is rejected as already claimed`() = runTest {
+        // The account query can still report NOT_CLAIMED when another claim has
+        // just been accepted, so the pre-claim check passes and submit is rejected.
         setupWithOwner()
         setupClaimableGiftCard()
-        val alreadyClaimed = SubmitIntentError.StaleState(
-            listOf("gift card balance has already been claimed")
-        )
         coEvery {
             transactionController.receiveRemotely(any(), any(), any(), any())
-        } returns Result.failure(alreadyClaimed)
+        } returns Result.failure(
+            SubmitIntentError.StaleState(listOf("gift card balance has already been claimed"))
+        )
 
         val result = transactor.start(claimIfOwned = false)
 
-        assertTrue(result.isFailure)
-        assertSame(alreadyClaimed, result.exceptionOrNull())
+        assertIs<ReceiveGiftTransactorError.AlreadyClaimed>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `start fails with Expired when the intent is rejected as expired`() = runTest {
+        setupWithOwner()
+        setupClaimableGiftCard()
+        coEvery {
+            transactionController.receiveRemotely(any(), any(), any(), any())
+        } returns Result.failure(SubmitIntentError.StaleState(listOf("gift card is expired")))
+
+        val result = transactor.start(claimIfOwned = false)
+
+        assertIs<ReceiveGiftTransactorError.Expired>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `start passes through other stale state rejections`() = runTest {
+        setupWithOwner()
+        setupClaimableGiftCard()
+        val raced = SubmitIntentError.StaleState(listOf("race detected: nonce"))
+        coEvery {
+            transactionController.receiveRemotely(any(), any(), any(), any())
+        } returns Result.failure(raced)
+
+        val result = transactor.start(claimIfOwned = false)
+
+        assertSame(raced, result.exceptionOrNull())
     }
 
     @Test
