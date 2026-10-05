@@ -9,6 +9,8 @@ import com.google.android.gms.auth.blockstore.RetrieveBytesRequest
 import com.google.android.gms.auth.blockstore.StoreBytesData
 import com.google.android.gms.common.api.UnsupportedApiCallException
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,7 +25,8 @@ import javax.inject.Singleton
  *
  * Every Play services failure is swallowed: no Play services means no durable list, not a broken
  * login. A Play services build too old for these calls is expected on some devices, so that case
- * is left as a breadcrumb instead of being reported.
+ * is left as a breadcrumb instead of being reported. Cancellation of the calling coroutine is not
+ * a failure and is rethrown.
  */
 @Singleton
 internal class PlayBlockStoreBytes @Inject constructor(
@@ -51,6 +54,7 @@ internal class PlayBlockStoreBytes @Inject constructor(
                 ?.bytes
                 ?: ByteArray(0)
         }.getOrElse { error ->
+            currentCoroutineContext().ensureActive()
             if (error is UnsupportedApiCallException) readUnsupported = true
             traceFailure("Block Store read failed", error)
             null
@@ -58,8 +62,13 @@ internal class PlayBlockStoreBytes @Inject constructor(
     }
 
     override suspend fun write(bytes: ByteArray): Boolean = runCatching {
+        // Without the cancellation check, a cancel here would fall through to storeBytes with backup
+        // off, and that starts in Play services before the await below can notice.
         val canEncrypt = runCatching { client.isEndToEndEncryptionAvailable.await() }
-            .getOrDefault(false)
+            .getOrElse {
+                currentCoroutineContext().ensureActive()
+                false
+            }
 
         val data = StoreBytesData.Builder()
             .setKey(KEY)
@@ -70,6 +79,7 @@ internal class PlayBlockStoreBytes @Inject constructor(
         client.storeBytes(data).await()
         true
     }.getOrElse { error ->
+        currentCoroutineContext().ensureActive()
         traceFailure("Block Store write failed", error)
         false
     }
@@ -81,6 +91,7 @@ internal class PlayBlockStoreBytes @Inject constructor(
                 .build()
             client.deleteBytes(request).await()
         }.onFailure { error ->
+            currentCoroutineContext().ensureActive()
             traceFailure("Block Store delete failed", error)
         }
     }
