@@ -71,6 +71,45 @@ class LinkCardResolverTest {
     }
 
     @Test
+    fun `a claimable voucher reads as claiming while its claim is in flight`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.success(snapshot()) },
+            tokenMetadata = { Result.success(mock<Token>()) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
+        )
+        resolver.resolve(card)
+
+        val before = resolver.revision.value
+        resolver.markClaiming(card.entropy)
+
+        assertTrue(resolver.revision.value > before)
+        assertEquals(LinkCard.Cash.Claim.Claiming, (resolver.peek(card) as LinkCard.Cash).claim())
+        assertEquals(LinkCard.Cash.Claim.Claiming, (resolver.resolve(card) as LinkCard.Cash).claim())
+
+        resolver.markClaiming(null)
+        assertEquals(LinkCard.Cash.Claim.Claimable, (resolver.peek(card) as LinkCard.Cash).claim())
+    }
+
+    @Test
+    fun `a claim in flight for another link leaves this voucher claimable`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.success(snapshot()) },
+            tokenMetadata = { Result.success(mock<Token>()) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
+        )
+        resolver.resolve(card)
+        resolver.markClaiming("someOtherEntropy")
+
+        assertEquals(LinkCard.Cash.Claim.Claimable, (resolver.peek(card) as LinkCard.Cash).claim())
+    }
+
+    private fun LinkCard.Cash.claim() = (state as LinkCard.Cash.State.Resolved).claim
+
+    @Test
     fun `a resolved link is only looked up once`() = runTest {
         var calls = 0
         val resolver = LinkCardResolver(

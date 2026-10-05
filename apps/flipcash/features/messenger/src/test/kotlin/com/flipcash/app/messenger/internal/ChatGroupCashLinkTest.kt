@@ -91,7 +91,9 @@ class ChatGroupCashLinkTest {
     private val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
     private val linkCardClassifier = mockk<LinkCardClassifier>(relaxed = true)
     private val linkCardResolver = mockk<LinkCardResolver>(relaxed = true)
-    private val cashLinkClaims = mockk<CashLinkClaims>(relaxed = true)
+    private val cashLinkClaims = mockk<CashLinkClaims>(relaxed = true) {
+        every { claimInFlight } returns MutableStateFlow(null)
+    }
     private val chatCashLinks = mockk<ChatCashLinks>(relaxed = true)
     private val chatDraftStore = mockk<ChatDraftStore>(relaxed = true)
 

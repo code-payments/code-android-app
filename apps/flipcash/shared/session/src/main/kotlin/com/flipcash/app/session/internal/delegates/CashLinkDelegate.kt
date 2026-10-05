@@ -27,7 +27,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.consumeAsFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -75,9 +77,14 @@ class CashLinkDelegate @Inject constructor(
     override val settledClaims: Flow<SettledClaim> = _settledClaims.asSharedFlow()
 
     private val giftCardClaimInProgress = MutableStateFlow<String?>(null)
+    override val claimInFlight: StateFlow<String?> = giftCardClaimInProgress.asStateFlow()
 
     override fun openCashLink(cashLink: String?) {
-        BottomBarManager.clear()
+        // A link opened while a claim runs is dropped below, so it leaves whatever is on screen
+        // alone rather than dismissing an alert for nothing.
+        if (giftCardClaimInProgress.value == null) {
+            BottomBarManager.clear()
+        }
 
         val entropy = cashLink?.trim()?.replace("\n", "")
         if (entropy == null) {
@@ -126,18 +133,23 @@ class CashLinkDelegate @Inject constructor(
             return
         }
 
-        if (giftCardClaimInProgress.value == null) {
-            giftCardClaimInProgress.value = entropy
+        if (claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)) {
             analytics.track(DeeplinkEvents.routed(DeeplinkType.CashLink().analytics, error = null))
-            claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
         }
     }
 
+    /**
+     * Starts a claim of [entropy] unless one is already running, and returns whether it started.
+     * Every way into a claim holds the slot, including the reclaim from the own-cash prompt, which
+     * runs after the first attempt has already cleared it.
+     */
     private fun claimGiftCard(
         owner: AccountCluster,
         entropy: String,
         claimIfOwned: Boolean
-    ) {
+    ): Boolean {
+        if (!giftCardClaimInProgress.compareAndSet(null, entropy)) return false
+
         trace(
             tag = "Session",
             message = "Claiming gift card: $entropy",
@@ -150,8 +162,10 @@ class CashLinkDelegate @Inject constructor(
             claimIfOwned = claimIfOwned,
             onReceived = { token, amount ->
                 tokenCoordinator.add(token, amount)
-                giftCardClaimInProgress.value = null
+                // Settled before the slot clears, so a listener redrawing on both learns the claim
+                // landed before it would draw the link as claimable again.
                 _settledClaims.tryEmit(SettledClaim(entropy, collected = true))
+                giftCardClaimInProgress.value = null
                 analytics.track(TransferEvents.receiveCashLink(State.SUCCESS, amount.analytics, null))
                 val bill = Scannable.Payable.forToken(
                     amount = amount,
@@ -163,8 +177,8 @@ class CashLinkDelegate @Inject constructor(
                 _events.trySend(Event.RefreshFeed)
             },
             onError = { cause ->
-                giftCardClaimInProgress.value = null
                 _settledClaims.tryEmit(SettledClaim(entropy, collected = false))
+                giftCardClaimInProgress.value = null
                 if (cause !is ReceiveGiftTransactorError.UsersGiftCard) {
                     analytics.track(
                         TransferEvents.receiveCashLink(State.FAILURE, null, cause.analytics)
@@ -225,5 +239,6 @@ class CashLinkDelegate @Inject constructor(
                 }
             }
         )
+        return true
     }
 }

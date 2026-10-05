@@ -97,15 +97,30 @@ internal class LinkCardResolver(
     private val _revision = MutableStateFlow(0)
     override val revision: StateFlow<Int> = _revision.asStateFlow()
 
+    /** The entropy of this device's claim in flight, drawn as [LinkCard.Cash.Claim.Claiming]. */
+    @Volatile
+    private var claiming: String? = null
+
+    /**
+     * Draws [entropy]'s voucher as [LinkCard.Cash.Claim.Claiming] while its claim runs, or clears
+     * that with null. Only an overlay: the stored answer stays what the lookup said, so nothing
+     * here can outlive the claim or be mistaken for the server's view of it.
+     */
+    fun markClaiming(entropy: String?) {
+        if (claiming == entropy) return
+        claiming = entropy
+        _revision.update { it + 1 }
+    }
+
     override fun peek(card: LinkCard): LinkCard? = when (card) {
-        is LinkCard.Cash -> cashAnswers[card.entropy]?.let { card.copy(state = it) }
+        is LinkCard.Cash -> cashAnswers[card.entropy]?.let { card.copy(state = it.overlayClaiming(card.entropy)) }
         is LinkCard.TokenInfo -> tokenAnswers[card.mint]?.let { card.copy(state = it) }
         is LinkCard.GroupInvite -> groupAnswers[card.chatId]?.let { card.copy(state = it) }
         is LinkCard.User -> userAnswers[card.identity]?.let { card.copy(state = it) }
     }
 
     override suspend fun resolve(card: LinkCard): LinkCard = when (card) {
-        is LinkCard.Cash -> card.copy(state = cashState(card.entropy))
+        is LinkCard.Cash -> card.copy(state = cashState(card.entropy).overlayClaiming(card.entropy))
         is LinkCard.TokenInfo -> card.copy(state = tokenState(card.mint))
         is LinkCard.GroupInvite -> card.copy(state = groupState(card.chatId))
         is LinkCard.User -> card.copy(state = userState(card.identity))
@@ -172,6 +187,13 @@ internal class LinkCardResolver(
     }
 
     /** Ends the queries with the screen that asked for them. */
+    private fun LinkCard.Cash.State.overlayClaiming(entropy: String): LinkCard.Cash.State =
+        if (this is LinkCard.Cash.State.Resolved && claim == LinkCard.Cash.Claim.Claimable && entropy == claiming) {
+            copy(claim = LinkCard.Cash.Claim.Claiming)
+        } else {
+            this
+        }
+
     fun dispose() {
         scope.cancel()
     }

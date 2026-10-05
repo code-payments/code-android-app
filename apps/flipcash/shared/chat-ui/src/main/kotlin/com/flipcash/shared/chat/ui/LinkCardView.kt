@@ -267,6 +267,9 @@ private fun CashLinkCard(
                 // Off the paper: the stub this used to sit on left with whoever claimed it.
                 StubLabel(stringResource(R.string.label_linkCard_claimed), onPaper = false)
             LinkCard.Cash.Claim.Expired -> StubLabel(stringResource(R.string.label_linkCard_expired))
+            // A label rather than the pill: the claim is already running, so there is nothing
+            // left to offer, and the tap that would offer it again is ignored.
+            LinkCard.Cash.Claim.Claiming -> StubLabel(stringResource(R.string.label_linkCard_claiming))
             // The same voucher whoever is reading it. The transcript already says who sent the
             // link -- the bubble sits on the sender's side -- so a card that read differently for
             // the issuer would be saying it twice, and saying it in the one place both people are

@@ -1332,6 +1332,12 @@ internal class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        // The voucher being claimed reads as claiming until the claim settles, rather than offering
+        // the claim again for a re-tap to start a second one.
+        cashLinkClaims.claimInFlight
+            .onEach { linkCardResolver.markClaiming(it) }
+            .launchIn(viewModelScope)
+
         // STARTED rather than a timer of its own, which makes one construct cover both cases worth
         // covering: the first pass runs on every foreground edge, so a reader who put the phone
         // down and came back gets a fresh answer immediately, and the loop then carries the case

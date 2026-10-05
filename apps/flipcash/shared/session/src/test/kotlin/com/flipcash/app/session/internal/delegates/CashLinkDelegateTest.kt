@@ -28,6 +28,7 @@ import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -36,6 +37,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CashLinkDelegateTest {
@@ -240,6 +242,81 @@ class CashLinkDelegateTest {
     }
 
     @Test
+    fun `the in-flight claim is published until it settles`() = runTest {
+        val delegate = createDelegate()
+        assertNull(delegate.claimInFlight.value)
+
+        val onReceived = slot<suspend (Token, LocalFiat) -> Unit>()
+        delegate.openCashLink("validEntropy123")
+        assertEquals("validEntropy123", delegate.claimInFlight.value)
+
+        verify {
+            billController.receiveGiftCard(
+                entropy = any(),
+                owner = any(),
+                claimIfOwned = any(),
+                onReceived = capture(onReceived),
+                onError = any(),
+            )
+        }
+        onReceived.captured.invoke(mockk(relaxed = true), localFiat)
+
+        assertNull(delegate.claimInFlight.value)
+    }
+
+    @Test
+    fun `a claim is still in flight when its settlement is announced`() = runTest {
+        val delegate = createDelegate()
+        // Unconfined, so the collector reads claimInFlight at the moment of the emission. A
+        // listener that redraws on both must see the settlement first, or it draws the link as
+        // claimable again before it learns the claim landed.
+        val inFlightAtSettle = mutableListOf<String?>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            delegate.settledClaims.collect { inFlightAtSettle += delegate.claimInFlight.value }
+        }
+
+        val onReceived = slot<suspend (Token, LocalFiat) -> Unit>()
+        val onError = slot<(Throwable) -> Unit>()
+        delegate.openCashLink("first")
+        verify {
+            billController.receiveGiftCard(
+                entropy = "first",
+                owner = any(),
+                claimIfOwned = any(),
+                onReceived = capture(onReceived),
+                onError = any(),
+            )
+        }
+        onReceived.captured.invoke(mockk(relaxed = true), localFiat)
+
+        delegate.openCashLink("second")
+        verify {
+            billController.receiveGiftCard(
+                entropy = "second",
+                owner = any(),
+                claimIfOwned = any(),
+                onReceived = any(),
+                onError = capture(onError),
+            )
+        }
+        onError.captured.invoke(IllegalStateException("offline"))
+
+        assertEquals(listOf<String?>("first", "second"), inFlightAtSettle)
+        assertNull(delegate.claimInFlight.value)
+    }
+
+    @Test
+    fun `a link opened during a claim leaves the alert on screen`() = runTest {
+        val delegate = createDelegate()
+        delegate.openCashLink("first")
+        BottomBarManager.showInfo(title = "existing", message = "message")
+
+        delegate.openCashLink("second")
+
+        assertEquals("existing", BottomBarManager.messages.value.single().title)
+    }
+
+    @Test
     fun `a claim that fails settles as not collected`() = runTest {
         val delegate = createDelegate()
         val settled = mutableListOf<SettledClaim>()
@@ -289,6 +366,45 @@ class CashLinkDelegateTest {
         runCurrent()
 
         assertEquals("Already Collected", BottomBarManager.messages.value.single().title)
+    }
+
+    @Test
+    fun `a re-tap during the collect-anyway reclaim does not start a second claim`() = runTest {
+        every { resources.getString(R.string.action_collect) } returns "Collect"
+        val delegate = createDelegate()
+
+        val onError = slot<(Throwable) -> Unit>()
+        delegate.openCashLink("ownEntropy")
+        verify {
+            billController.receiveGiftCard(
+                entropy = any(),
+                owner = any(),
+                claimIfOwned = false,
+                onReceived = any(),
+                onError = capture(onError),
+            )
+        }
+        onError.captured.invoke(ReceiveGiftTransactorError.UsersGiftCard())
+        runCurrent()
+
+        // "Collect" on the own-cash prompt starts the reclaim, and a second tap on the same link
+        // while it runs must not start another.
+        BottomBarManager.messages.value.single().actions
+            .single { it.text.text == "Collect" }
+            .onClick()
+        delegate.openCashLink("ownEntropy")
+
+        verify(exactly = 2) {
+            billController.receiveGiftCard(
+                entropy = any(),
+                owner = any(),
+                claimIfOwned = any(),
+                onReceived = any(),
+                onError = any(),
+            )
+        }
+        // Only the claim that started is on record as routed; the dropped tap is not.
+        assertEquals(1, analytics.events.count { it == DeeplinkEvents.routed("CashLink", error = null) })
     }
 
     @Test

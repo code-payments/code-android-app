@@ -127,6 +127,12 @@ data class SettledClaim(
  */
 interface CashLinkClaims {
     val settledClaims: Flow<SettledClaim>
+
+    /**
+     * The entropy of the claim running now, or null. Claims run one at a time, so a surface can
+     * show this link as claiming and ignore taps on it until [settledClaims] names it.
+     */
+    val claimInFlight: StateFlow<String?>
 }
 
 /** One-shot signals from tip card resolution that only the UI can act on. */
