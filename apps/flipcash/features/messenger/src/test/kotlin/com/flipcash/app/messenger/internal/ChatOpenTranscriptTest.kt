@@ -98,7 +98,7 @@ class ChatOpenTranscriptTest {
         userFlags = mockk(relaxed = true),
         linkCardClassifier = mockk(relaxed = true),
         linkCardResolver = mockk(relaxed = true),
-        cashLinkClaims = mockk(relaxed = true),
+        cashLinkClaims = mockk(relaxed = true) { every { claimInFlight } returns MutableStateFlow(null) },
         chatCashLinks = mockk(relaxed = true),
         chatDraftStore = mockk(relaxed = true),
         recentReactionsStore = mockk(relaxed = true),
