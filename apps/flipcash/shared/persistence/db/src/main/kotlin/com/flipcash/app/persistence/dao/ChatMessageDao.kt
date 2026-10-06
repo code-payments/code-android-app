@@ -293,7 +293,8 @@ interface ChatMessageDao {
     @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex")
     suspend fun deletePending(chatIdHex: String, clientIdHex: String)
 
-    @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND message_id != :keepMessageId")
+    /** Spares `SENT` rows, for the reason given on [confirmPendingMessage]. */
+    @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND message_id != :keepMessageId AND status != 'SENT'")
     suspend fun deletePendingExcept(chatIdHex: String, clientIdHex: String, keepMessageId: Long)
 
     // A queued photo is excluded from this and from [deleteAllPending]: it can sit in SENDING for as
@@ -358,7 +359,7 @@ interface ChatMessageDao {
             unread_seq = :newUnreadSeq,
             event_sequence = :newEventSequence,
             status = 'SENT'
-        WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex
+        WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND status != 'SENT'
     """)
     suspend fun updatePendingToConfirmed(
         chatIdHex: String,
@@ -376,6 +377,13 @@ interface ChatMessageDao {
      * blob; the confirmed row takes the server's content. When the server's copy of the message
      * already arrived over the event stream, which a long upload makes likely, the pending row is
      * dropped in its favour instead of being renumbered onto an existing key.
+     *
+     * Only an unsent row is settled. The rescue in [upsertRescuingPending] can hand [clientIdHex]
+     * to the server's copy of a different message: a photo excluded from the pending rows leaves
+     * a text with no content match, and the oldest-first pass gives the text's id to the photo's
+     * copy. Matching that `SENT` row here would renumber the photo into the text's message, or
+     * delete it, and an encrypted send would pair the photo's plaintext with the text's
+     * ciphertext.
      */
     @Transaction
     suspend fun confirmPendingMessage(
@@ -401,7 +409,9 @@ interface ChatMessageDao {
         // ciphertext beside it. Written as a row rather than in the UPDATE above, since Room would
         // expand a list parameter into an IN clause.
         if (serverMessage.encryptionState != null || replaceContent) {
-            val confirmed = getByClientId(chatIdHex, clientIdHex) ?: return
+            // By message id, not client id: when the UPDATE matched nothing, the client id can
+            // still be on a sent row that isn't this message.
+            val confirmed = getMessage(chatIdHex, serverMessage.messageId) ?: return
             insert(
                 confirmed.copy(
                     contentJson = if (replaceContent) serverMessage.contentJson else confirmed.contentJson,

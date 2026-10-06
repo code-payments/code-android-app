@@ -493,6 +493,61 @@ class ChatMessageDaoTest {
 
     // endregion
 
+    // region Confirming after a mis-tagged rescue
+
+    /**
+     * Photo P, then text T. A refresh carries P's server copy but not T's; P's pending row is held
+     * back by its upload, T has no content match, so [ChatMessageDao.upsertRescuingPending]'s
+     * oldest-first pass gives T's client id to P's copy and drops T's pending row. Built here
+     * directly: P's copy at 5, holding T's id ([CLIENT_HEX]), and no row left for T.
+     */
+    private suspend fun storeMisTaggedPhoto() {
+        dao.insert(text(5, "photo").copy(pendingClientIdHex = CLIENT_HEX))
+    }
+
+    @Test
+    fun `confirming a text not yet stored leaves the photo that took its id`() = runTest {
+        storeMisTaggedPhoto()
+
+        dao.confirmPendingMessage(CHAT_HEX, CLIENT_HEX, text(6, "text"))
+
+        val photo = dao.getMessage(CHAT_HEX, 5)!!
+        assertEquals(listOf(MessageContentSerialized.Text("photo")), photo.contentJson)
+        assertEquals(CLIENT_HEX, photo.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 6))
+    }
+
+    @Test
+    fun `confirming an encrypted text not yet stored leaves the photo's content alone`() = runTest {
+        storeMisTaggedPhoto()
+
+        dao.confirmPendingMessage(
+            CHAT_HEX,
+            CLIENT_HEX,
+            text(6, "text").copy(ciphertextJson = cipherJson, encryptionState = EncryptionState.DECRYPTED),
+            replaceContent = true,
+        )
+
+        val photo = dao.getMessage(CHAT_HEX, 5)!!
+        assertEquals(listOf(MessageContentSerialized.Text("photo")), photo.contentJson)
+        assertNull(photo.ciphertextJson)
+        assertNull(photo.encryptionState)
+        assertNull(dao.getMessage(CHAT_HEX, 6))
+    }
+
+    @Test
+    fun `confirming a text already stored keeps the photo that took its id`() = runTest {
+        storeMisTaggedPhoto()
+        dao.insert(text(6, "text"))
+
+        dao.confirmPendingMessage(CHAT_HEX, CLIENT_HEX, text(6, "text"))
+
+        assertEquals(listOf(MessageContentSerialized.Text("photo")), dao.getMessage(CHAT_HEX, 5)?.contentJson)
+        assertEquals(listOf(MessageContentSerialized.Text("text")), dao.getMessage(CHAT_HEX, 6)?.contentJson)
+    }
+
+    // endregion
+
     // region Reactions
 
     private fun reactionsJson(vararg entries: Pair<String, Long>) = reactionJsonCodec.encodeToString(
