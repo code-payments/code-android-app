@@ -24,8 +24,10 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -114,6 +116,9 @@ internal class SettingsViewModel @Inject constructor(
         data object OnAccountDeleted : Event
 
         data object OnVersionInfoClicked : Event
+
+        /** Tapping the footer also asks for an app-update check, once the taps settle. */
+        data object CheckForUpdate : Event
         /**
          * A developer-mode unlock message (the tap countdown, then unlocked). The screen floats it
          * over the version row without taking taps, so the taps keep counting through it.
@@ -200,6 +205,13 @@ internal class SettingsViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
+        @OptIn(FlowPreview::class)
+        eventFlow
+            .filterIsInstance<Event.OnVersionInfoClicked>()
+            .debounce(UPDATE_CHECK_DEBOUNCE_MS)
+            .onEach { dispatchEvent(Event.CheckForUpdate) }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnAccessKeyClicked>()
             .onEach {
@@ -269,6 +281,7 @@ internal class SettingsViewModel @Inject constructor(
     }
 
     internal companion object {
+        private const val UPDATE_CHECK_DEBOUNCE_MS = 500L
         private const val TAP_THRESHOLD = 6
         private const val COUNTDOWN_START = 3
 
@@ -370,6 +383,7 @@ internal class SettingsViewModel @Inject constructor(
                 Event.OnLoggedOutCompletely,
                 Event.OnDeleteAccountClicked,
                 Event.OnAccountDeleted,
+                Event.CheckForUpdate,
                 is Event.ShowDevModeToast -> { state -> state }
             }
         }

@@ -34,6 +34,10 @@ import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -235,6 +239,25 @@ class SettingsViewModelTest {
         }
 
         verify(exactly = 0) { featureFlags.enableBetaFeatures() }
+    }
+
+    @Test
+    fun `a burst of footer taps asks for one update check once they settle`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        val checks = mutableListOf<SettingsViewModel.Event.CheckForUpdate>()
+        val job = launch {
+            vm.eventFlow.filterIsInstance<SettingsViewModel.Event.CheckForUpdate>().toList(checks)
+        }
+
+        repeat(3) {
+            vm.dispatchEvent(SettingsViewModel.Event.OnVersionInfoClicked)
+            advanceTimeBy(100)
+        }
+        assertTrue(checks.isEmpty())
+
+        advanceTimeBy(500)
+        assertEquals(1, checks.size)
+        job.cancel()
     }
 
     // endregion

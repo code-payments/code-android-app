@@ -28,14 +28,17 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -75,7 +78,7 @@ import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.navigation.HideTabBar
 import com.flipcash.app.core.navigation.LocalTabBarPadding
-import com.flipcash.app.menu.MenuList
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.TipCardState
 import com.flipcash.app.core.ui.onboarding.NewUserTutorial
@@ -84,7 +87,6 @@ import com.flipcash.app.core.util.abbreviatedLink
 import com.flipcash.app.menu.internal.components.UsernameProgress
 import com.flipcash.app.menu.internal.components.UsernameProgressCard
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.services.models.UserProfile
 import com.flipcash.core.R as CoreR
 import com.flipcash.features.menu.R
@@ -95,6 +97,8 @@ import com.getcode.theme.White08
 import com.getcode.theme.White50
 import com.getcode.theme.extraSmall
 import com.getcode.ui.core.noRippleClickable
+import com.getcode.ui.core.verticalScrollStateGradient
+import com.getcode.ui.utils.sheetResignmentBehavior
 import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
@@ -111,7 +115,6 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val appUpdater = LocalAppUpdater.current
 
     val listState = rememberLazyListState()
     // Full screen is a state of *this* screen, not a destination: the card grows into the middle of
@@ -129,15 +132,8 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     HideTabBar(hidden = cardExpanded)
     BackHandler(enabled = cardExpanded) { expansion.collapse() }
 
-    LaunchedEffect(Unit) {
-        viewModel.eventFlow
-            .filterIsInstance<Event.CheckForUpdate>()
-            .onEach { appUpdater.checkForUpdate() }
-            .launchIn(this)
-    }
-
-    // No app bar — the card is the first thing on the page (node 9276:4634). The version footer
-    // scrolls with the content (footer slot) rather than being pinned in a bottom bar.
+    // No app bar — the card is the first thing on the page (node 9276:4634). The only chrome is the
+    // settings gear, floated over the page's top trailing corner.
     CodeScaffold { padding ->
         BoxWithConstraints(
             modifier = Modifier
@@ -258,16 +254,20 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 },
             )
 
-            MenuList(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .verticalScrollStateGradient(scrollState = listState, isLongGradient = true)
+                    .sheetResignmentBehavior(listState)
                     .then(cardDrag),
                 state = listState,
-                items = state.items,
-                showChevrons = true,
+                contentPadding = PaddingValues(
+                    top = restingTop,
+                    bottom = bottomInset,
+                ),
                 userScrollEnabled = !cardExpanded,
-                itemModifier = slideAway,
-                header = {
+            ) {
+                item {
                     YouHeader(
                         tipCardState = state.tipCardState,
                         enabled = !cardExpanded,
@@ -292,32 +292,25 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                             viewModel.dispatchEvent(Event.SetMinimumTip)
                         },
                     )
-                },
-                footer = {
-                    // Scrolls with the list, so it needs its own breathing room off the last
-                    // row's divider. No navigationBarsPadding here — the reserved tab-bar inset
-                    // below already clears the system bar (the bar measures itself with that
-                    // padding in).
-                    VersionFooter(
-                        viewModel = viewModel,
-                        state = state,
-                        enabled = !cardExpanded,
-                        modifier = slideAway.padding(
-                            top = VersionFooterTopSpacing,
-                            bottom = CodeTheme.dimens.grid.x3,
-                        ),
-                    )
-                },
-                contentPadding = PaddingValues(
-                    top = restingTop,
-                    bottom = bottomInset,
-                ),
-                onItemClick = {
-                    // The faded-out rows are still laid out under the expanded card; don't let them
-                    // take a tap meant for the card.
-                    if (!cardExpanded) viewModel.dispatchEvent(it.action)
                 }
-            )
+            }
+
+            // Floated over the page's top trailing corner so it clears the status bar. It rides the
+            // same fade as the rest of the page, and takes no taps while the card is up.
+            IconButton(
+                onClick = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                enabled = !cardExpanded,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .then(slideAway),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_settings_outline),
+                    contentDescription = stringResource(CoreR.string.title_settings),
+                    tint = CodeTheme.colors.textMain,
+                )
+            }
 
             // Close sits at the foot of the display rather than under the card (node 9277:121410).
             // It fades on the same progress as everything else rather than on a transition of its
@@ -368,14 +361,6 @@ private val FullScreenCardWidth: Dp
 /** Gap between the Close row and the system nav bar (node 9277:121410). */
 private val CloseBottomSpacing: Dp
     @Composable get() = CodeTheme.dimens.grid.x2
-
-/**
- * Clearance between the last settings row's divider and the version footer. iOS spends 32 above the
- * footer plus 12 of the footer's own vertical padding on top of the row's 25 inset; the Android row
- * already pays that same 25, so the difference lands here.
- */
-private val VersionFooterTopSpacing: Dp
-    @Composable get() = CodeTheme.dimens.grid.x9
 
 /** How far the page's content slides down as it fades out under the expanding card. */
 private val ContentSlideDistance: Dp
@@ -966,36 +951,6 @@ private fun ShareTile(
             text = label,
             style = CodeTheme.typography.textSmall,
             color = White50,
-        )
-    }
-}
-
-/** The "Version … • Build …" footer; its repeated tap toggles beta access (see the ViewModel). */
-@Composable
-private fun VersionFooter(
-    viewModel: MenuScreenViewModel,
-    state: MenuScreenViewModel.State,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    Box(modifier = modifier.fillMaxWidth()) {
-        Text(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.Center)
-                .noRippleClickable(enabled = enabled) {
-                    viewModel.dispatchEvent(Event.OnVersionInfoClicked)
-                },
-            text = stringResource(
-                R.string.subtitle_appVersionInfoFooter,
-                state.appVersionInfo.versionName,
-                state.appVersionInfo.versionCode,
-                state.releaseTrack,
-            ),
-            color = CodeTheme.colors.textSecondary,
-            style = CodeTheme.typography.textSmall.copy(
-                textAlign = TextAlign.Center
-            ),
         )
     }
 }

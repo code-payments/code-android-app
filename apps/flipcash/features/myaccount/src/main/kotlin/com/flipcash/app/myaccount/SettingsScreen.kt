@@ -13,6 +13,7 @@ import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.myaccount.internal.settings.SettingsScreen
 import com.flipcash.app.myaccount.internal.settings.SettingsViewModel
+import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarDefaults
@@ -28,6 +29,7 @@ fun SettingsScreen() {
     val navigator = LocalCodeNavigator.current
     val billPlayground = LocalBillPlaygroundController.current
     val toasts = LocalFloatingToastHost.current
+    val appUpdater = LocalAppUpdater.current
 
     val viewModel = hiltViewModel<SettingsViewModel>()
 
@@ -58,6 +60,13 @@ fun SettingsScreen() {
                     )
                 )
             }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SettingsViewModel.Event.CheckForUpdate>()
+            .onEach { appUpdater.checkForUpdate() }
+            .launchIn(this)
     }
 
     LaunchedEffect(viewModel) {
