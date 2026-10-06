@@ -1,6 +1,8 @@
 package com.flipcash.shared.chat.ui.media
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -65,7 +67,10 @@ internal const val PHOTO_PROGRESS_TAG = "chat_photo_progress"
 internal const val PHOTO_PROGRESS_FILL_TAG = "chat_photo_progress_fill"
 
 private const val SEGMENT_FRACTION = 0.35f
-private const val FRACTION_MILLIS = 200
+// Longer than the gap between progress reports, so the fill never stops between them.
+private const val FRACTION_MILLIS = 450
+private const val FINISH_MILLIS = 300
+private const val FULL_HOLD_MILLIS = 150L
 private const val SENT_FADE_MILLIS = 250
 private const val SLIDE_MILLIS = 1100
 internal const val PHOTO_PROGRESS_MIN_VISIBLE_MILLIS = 600L
@@ -74,7 +79,9 @@ internal const val PHOTO_PROGRESS_MIN_VISIBLE_MILLIS = 600L
  * The capsule at the bottom-end of a photo bubble that shows an upload's progress. Fill the
  * bubble's box with it; it positions itself.
  *
- * [ChatPhotoPhase.Uploading] with bytes sent is a fill that follows the byte fraction. Every phase
+ * [ChatPhotoPhase.Uploading] with bytes sent is a fill that follows the byte fraction at a steady
+ * pace, trailing it slightly so it keeps moving between reports. When the bytes are done the fill
+ * runs to the end of the track before the next phase takes over. Every phase
  * without a byte count yet ([ChatPhotoPhase.Preparing], an upload before its first bytes,
  * [ChatPhotoPhase.Processing], [ChatPhotoPhase.Sending]) is a segment 35% of the track sliding
  * across it. [ChatPhotoPhase.Sent] fades the capsule out; [ChatPhotoPhase.Failed] removes it
@@ -105,6 +112,33 @@ fun ChatPhotoProgressOverlay(
     if (phase == ChatPhotoPhase.Failed || (sent && alpha == 0f)) return
 
     val bytes = (phase as? ChatPhotoPhase.Uploading)?.fraction?.coerceIn(0f, 1f)?.takeIf { it > 0f }
+    val fill = remember { Animatable(0f) }
+    // True from the first bytes until the fill has run to the end of the track.
+    var filling by remember { mutableStateOf(false) }
+    LaunchedEffect(bytes, phase) {
+        when {
+            bytes != null -> {
+                filling = true
+                // A restarted upload starts over rather than shrinking the bar.
+                if (reduceMotion || bytes < fill.value) {
+                    fill.snapTo(bytes)
+                } else {
+                    fill.animateTo(bytes, tween(FRACTION_MILLIS, easing = LinearEasing))
+                }
+            }
+
+            filling -> {
+                if (reduceMotion) {
+                    fill.snapTo(1f)
+                } else {
+                    fill.animateTo(1f, tween(FINISH_MILLIS, easing = LinearEasing))
+                }
+                // Let the full bar be seen before the next phase takes it over.
+                delay(FULL_HOLD_MILLIS)
+                filling = false
+            }
+        }
+    }
     val description = stringResource(R.string.description_chatPhotoUploadProgress)
     val grid = CodeTheme.dimens.staticGrid
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
@@ -121,20 +155,14 @@ fun ChatPhotoProgressOverlay(
                     contentDescription = description
                     progressBarRangeInfo = when {
                         bytes != null -> ProgressBarRangeInfo(bytes, 0f..1f)
+                        filling -> ProgressBarRangeInfo(1f, 0f..1f)
                         phase == ChatPhotoPhase.Sent -> ProgressBarRangeInfo(1f, 0f..1f)
                         else -> ProgressBarRangeInfo.Indeterminate
                     }
                 },
         ) {
             when {
-                bytes != null -> {
-                    val fraction by animateFloatAsState(
-                        targetValue = bytes,
-                        animationSpec = if (reduceMotion) snap() else tween(FRACTION_MILLIS),
-                        label = "photoProgressFraction",
-                    )
-                    Fill(widthFraction = { fraction }, offsetFraction = { 0f })
-                }
+                bytes != null || filling -> Fill(widthFraction = { fill.value }, offsetFraction = { 0f })
 
                 // Hold a full bar while the capsule fades.
                 phase == ChatPhotoPhase.Sent -> Fill(widthFraction = { 1f }, offsetFraction = { 0f })
@@ -169,7 +197,6 @@ private fun IndeterminateSegment(reduceMotion: Boolean) {
 private fun Fill(widthFraction: () -> Float, offsetFraction: () -> Float) {
     Box(
         modifier = Modifier
-            .testTag(PHOTO_PROGRESS_FILL_TAG)
             .layout { measurable, constraints ->
                 // Read in layout so a moving segment re-lays-out without recomposing.
                 val width = (constraints.maxWidth * widthFraction()).toInt().coerceAtLeast(0)
@@ -180,6 +207,8 @@ private fun Fill(widthFraction: () -> Float, offsetFraction: () -> Float) {
                     placeable.place((constraints.maxWidth * offsetFraction()).toInt(), 0)
                 }
             }
+            // After the layout, so the node's bounds are the drawn fill rather than the track.
+            .testTag(PHOTO_PROGRESS_FILL_TAG)
             .fillMaxSize()
             .background(ChatMediaBlue),
     )

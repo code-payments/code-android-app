@@ -104,6 +104,68 @@ class ChatPhotoMediaUiTest {
         }
     }
 
+    private fun setAnimatedOverlay(initial: ChatPhotoPhase): (ChatPhotoPhase) -> Unit {
+        var phase by mutableStateOf(initial)
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            DesignSystem {
+                Box(Modifier.size(200.dp)) { ChatPhotoProgressOverlay(phase, reduceMotion = false) }
+            }
+        }
+        return { phase = it }
+    }
+
+    private fun fillWidth(): Int =
+        rule.onNodeWithTag(PHOTO_PROGRESS_FILL_TAG, useUnmergedTree = true).fetchSemanticsNode().size.width
+
+    private fun trackWidth(): Int =
+        rule.onNodeWithTag(PHOTO_PROGRESS_TAG, useUnmergedTree = true).fetchSemanticsNode().size.width
+
+    @Test
+    fun byteFillKeepsMovingBetweenProgressReports() {
+        val setPhase = setAnimatedOverlay(ChatPhotoPhase.Uploading(0.2f))
+        advanceFramesFor(1_000)
+        setPhase(ChatPhotoPhase.Uploading(0.5f))
+        // A report every 300 ms: the fill must still be moving when the next one is due.
+        advanceFramesFor(200)
+        val at200 = fillWidth()
+        advanceFramesFor(100)
+        val at300 = fillWidth()
+        assertTrue(at300 > at200, "fill stalled between reports: $at200 -> $at300")
+    }
+
+    @Test
+    fun byteFillRunsToFullBeforeTheBarTurnsIndeterminate() {
+        val setPhase = setAnimatedOverlay(ChatPhotoPhase.Uploading(0.6f))
+        advanceFramesFor(1_000)
+        val beforeDone = fillWidth()
+        setPhase(ChatPhotoPhase.Processing)
+        advanceFramesFor(50)
+        rule.onNodeWithTag(PHOTO_PROGRESS_TAG)
+            .assert(hasProgressBarRangeInfo(ProgressBarRangeInfo(1f, 0f..1f)))
+        assertTrue(fillWidth() >= beforeDone, "fill went backwards: $beforeDone -> ${fillWidth()}")
+
+        advanceFramesFor(1_000)
+        rule.onNodeWithTag(PHOTO_PROGRESS_TAG)
+            .assert(hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate))
+    }
+
+    @Test
+    fun byteFillReachesTheFullTrack() {
+        val setPhase = setAnimatedOverlay(ChatPhotoPhase.Uploading(0.6f))
+        advanceFramesFor(1_000)
+        setPhase(ChatPhotoPhase.Processing)
+        var widest = 0
+        repeat(40) {
+            advanceFramesFor(16)
+            if (rule.onNodeWithTag(PHOTO_PROGRESS_TAG).fetchSemanticsNode().config
+                    .getOrElseNullable(androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo) { null }
+                    != ProgressBarRangeInfo.Indeterminate
+            ) widest = maxOf(widest, fillWidth())
+        }
+        assertEquals(trackWidth(), widest)
+    }
+
     @Test
     fun overlayHidesImmediatelyWhenFailed() {
         setOverlay(ChatPhotoPhase.Failed)
