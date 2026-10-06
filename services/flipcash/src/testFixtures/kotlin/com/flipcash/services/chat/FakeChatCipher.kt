@@ -43,7 +43,7 @@ object FakeChatCipher : ChatCipher {
         recipientPk: ByteArray,
         chatId: ByteArray,
         blobId: ByteArray,
-    ): ByteArray = throw UnsupportedOperationException()
+    ): ByteArray = chatKey + senderPk + recipientPk + blobId + image
 
     override fun decryptBlob(
         blob: ByteArray,
@@ -52,5 +52,11 @@ object FakeChatCipher : ChatCipher {
         recipientPk: ByteArray,
         chatId: ByteArray,
         blobId: ByteArray,
-    ): ByteArray = throw UnsupportedOperationException()
+    ): ByteArray {
+        val header = chatKey + senderPk + recipientPk + blobId
+        if (blob.size < header.size || !blob.copyOfRange(0, header.size).contentEquals(header)) {
+            throw ChatCipherException("authentication failed")
+        }
+        return blob.copyOfRange(header.size, blob.size)
+    }
 }

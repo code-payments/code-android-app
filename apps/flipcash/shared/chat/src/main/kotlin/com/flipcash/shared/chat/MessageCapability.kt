@@ -99,6 +99,8 @@ data class MessagePolicy(
  * | Own text, confirmed, past both windows | Copy, Reply |
  * | Own text, unconfirmed (`eventSequence == 0`) | none |
  * | Another participant's text | Copy, Reply, Report |
+ * | Own photo, confirmed, inside the delete window | Reply, Delete |
+ * | Another participant's photo | Reply, Report |
  * | Own cash or tip message | Reply |
  * | Another participant's cash or tip message | Reply, Report |
  * | A tombstone | none |
@@ -183,11 +185,12 @@ private fun resolveForParticipant(
         return if (canSpeak) setOf(MessageCapability.Reply) else emptySet()
     }
 
-    val hasText = contents.any { it is MessageContent.Text || it is MessageContent.Reply }
+    // A photo, bare or quoted in a reply, is never copied or edited: its caption rides with the
+    // image, and an edit would have to re-seal or replace the picture.
+    val isPhoto = contents.any { it.isPhoto() }
+    val hasText = !isPhoto && contents.any { it is MessageContent.Text || it is MessageContent.Reply }
 
     return buildSet {
-        // Media carries no text, and this change edits text only. Not covered by the shared table;
-        // revisit when media messages actually ship.
         if (hasText) add(MessageCapability.Copy)
         if (canSpeak) add(MessageCapability.Reply)
         if (message.isFromSelf) {
@@ -197,6 +200,12 @@ private fun resolveForParticipant(
             add(MessageCapability.Report)
         }
     }.withinWindows(message.timestamp, policy, now)
+}
+
+private fun MessageContent.isPhoto(): Boolean = when (this) {
+    is MessageContent.Media -> true
+    is MessageContent.Reply -> content.any { it is MessageContent.Media }
+    else -> false
 }
 
 /**
@@ -248,5 +257,7 @@ fun canReact(message: ChatMessage, canSpeak: Boolean = true): Boolean {
     if (contents.any { it is MessageContent.Deleted }) return false
     if (message.eventSequence == 0L) return false
     if (contents.all { it is MessageContent.System }) return false
+    // A redacted photo is hidden from everyone; there is nothing left to react to.
+    if (message.redacted) return false
     return canSpeak
 }

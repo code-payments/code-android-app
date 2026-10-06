@@ -7,6 +7,7 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.models.chat.BlobStatus
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.repository.BlobStorageRepository
 import com.getcode.ed25519.Ed25519
 import com.getcode.utils.ErrorUtils
@@ -23,7 +24,8 @@ internal class InternalBlobStorageRepository(
         mimeType: String,
         sizeBytes: Long,
         owner: Ed25519.KeyPair,
-    ): Result<UploadReservation> = service.initiateExternalUpload(mimeType, sizeBytes, owner)
+        e2eeChat: ChatId?,
+    ): Result<UploadReservation> = service.initiateExternalUpload(mimeType, sizeBytes, owner, e2eeChat)
         .onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun completeExternalUpload(

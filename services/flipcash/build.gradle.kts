@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.grpc.protobuf.lite)
     implementation(libs.protobuf.validate.runtime)
     implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.paging)

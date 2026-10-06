@@ -16,7 +16,12 @@ import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.SendMessageError
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.BlobMetadata
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ImageMetadata
+import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
@@ -175,6 +180,71 @@ class MessagingSendEncryptionTest {
             MessageContent.Reply(repliedMessageId = 4, content = listOf(MessageContent.Text("yes"))),
             openAsPeer(wires.single()),
         )
+    }
+
+    private val photo = MessageContent.Media(
+        items = listOf(
+            MediaItem(
+                listOf(
+                    MediaItemRendition(
+                        role = MediaItemRendition.Role.ORIGINAL,
+                        blobId = BlobId(ByteArray(16) { it.toByte() }),
+                        blob = BlobMetadata(
+                            mimeType = "image/jpeg",
+                            sizeBytes = 10,
+                            downloadUrl = "",
+                            image = ImageMetadata(width = 4, height = 3, blurhash = ""),
+                        ),
+                    )
+                )
+            )
+        ),
+        caption = null,
+    )
+
+    private fun outgoing() = DmOutgoingEncryption(
+        policy = E2eePolicy(),
+        crypto = ChatContentCrypto(FakeChatCipher, keys),
+        userManager = userManager,
+        chatController = chatController,
+        metadataDataSource = metadata,
+        memberDataSource = members,
+    )
+
+    @Test
+    fun `a photo sealed for this chat goes out sealed`() = runTest {
+        storedChat(chat())
+
+        val result = outgoing().prepare(chatId, listOf(photo), blobSealedFor = chatId).getOrThrow()
+
+        assertEquals(true, result.isSealed)
+        assertEquals(photo, openAsPeer(result.wire))
+    }
+
+    @Test
+    fun `a plain photo is refused in an encrypted chat`() = runTest {
+        storedChat(chat())
+
+        assertEquals(true, outgoing().prepare(chatId, listOf(photo), blobSealedFor = null).isFailure)
+    }
+
+    @Test
+    fun `a sealed photo is refused in a chat that does not encrypt, or sealed for another chat`() = runTest {
+        storedChat(chat(useE2ee = false))
+        assertEquals(true, outgoing().prepare(chatId, listOf(photo), blobSealedFor = chatId).isFailure)
+
+        storedChat(chat())
+        val other = ChatId(ByteArray(32) { 4 })
+        assertEquals(true, outgoing().prepare(chatId, listOf(photo), blobSealedFor = other).isFailure)
+    }
+
+    @Test
+    fun `a plain photo goes out plain in a chat that does not encrypt`() = runTest {
+        storedChat(chat(useE2ee = false))
+
+        val result = outgoing().prepare(chatId, listOf(photo), blobSealedFor = null).getOrThrow()
+
+        assertEquals(false, result.isSealed)
     }
 
     @Test

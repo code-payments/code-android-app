@@ -30,6 +30,7 @@ import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.services.models.chat.LobbyUpdate
 import com.flipcash.services.models.chat.EmojiReaction
+import com.flipcash.services.models.blob.EncryptedConstraints
 import com.flipcash.services.models.blob.ImageConstraints
 import com.flipcash.services.models.blob.MimeTypeConstraints
 import com.flipcash.services.models.blob.UploadPolicy
@@ -190,7 +191,8 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
         )
         MessagingModel.Content.TypeCase.MEDIA -> MessageContent.Media(
             items = media.itemsList.map { it.toMediaItem() },
-            caption = if (media.hasCaption()) MessageContent.Text(media.caption.text) else null,
+            // An empty caption is no caption.
+            caption = if (media.hasCaption() && media.caption.text.isNotEmpty()) MessageContent.Text(media.caption.text) else null,
         )
         MessagingModel.Content.TypeCase.SYSTEM -> MessageContent.System(system.fallbackText)
         MessagingModel.Content.TypeCase.DELETED -> MessageContent.Deleted(
@@ -661,6 +663,18 @@ internal fun com.codeinc.flipcash.gen.blob.v1.Model.UploadPolicy.toUploadPolicy(
                 } else null,
             )
         },
+        encrypted = if (hasEncrypted()) {
+            EncryptedConstraints(
+                maxSizeBytes = encrypted.maxSizeBytes,
+                image = if (encrypted.hasImage()) {
+                    ImageConstraints(
+                        maxWidth = encrypted.image.maxWidth,
+                        maxHeight = encrypted.image.maxHeight,
+                        maxPixels = encrypted.image.maxPixels,
+                    )
+                } else null,
+            )
+        } else null,
     )
 }
 

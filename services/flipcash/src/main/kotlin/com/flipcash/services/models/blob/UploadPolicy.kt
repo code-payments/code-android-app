@@ -14,6 +14,10 @@ data class UploadPolicy(
     val ttl: Duration,
     // Ordered most-specific-first: the first entry whose pattern matches wins.
     val mimeTypeConstraints: List<MimeTypeConstraints>,
+    // Constraints for end-to-end-encrypted uploads, whose bytes the server can't inspect: one size
+    // ceiling (on the sealed bytes) and image bounds for the plaintext. Null when the server
+    // doesn't accept encrypted uploads.
+    val encrypted: EncryptedConstraints? = null,
 ) {
     /** The constraints governing [mimeType], or null if the type is not accepted. */
     fun constraintsFor(mimeType: String): MimeTypeConstraints? =
@@ -44,6 +48,13 @@ data class MimeTypeConstraints(
     }
 }
 
+@Serializable
+data class EncryptedConstraints(
+    val maxSizeBytes: Long,
+    val image: ImageConstraints?,
+)
+
+// 0 means unbounded.
 @Serializable
 data class ImageConstraints(
     val maxWidth: Int,

@@ -215,14 +215,17 @@ class ChatEntityMapper @Inject constructor() {
         content: List<MessageContent>,
         senderId: ID,
         clientMessageId: ClientMessageId,
+        ordinal: Int = 0,
     ): ChatMessageEntity {
-        val now = Clock.System.now()
+        // [ordinal] separates rows inserted in the same millisecond, which a batch of photos is:
+        // the placeholder id is the key, and a collision would replace the earlier row.
+        val nowMs = Clock.System.now().toEpochMilliseconds() + ordinal
         return ChatMessageEntity(
             chatIdHex = chatIdHex,
-            messageId = -(now.toEpochMilliseconds()),
+            messageId = -nowMs,
             senderIdHex = senderId.hexEncodedString(),
             contentJson = content.map { it.toSerialized() },
-            timestampEpochMs = now.toEpochMilliseconds(),
+            timestampEpochMs = nowMs,
             unreadSeq = 0,
             status = MessageStatus.SENDING,
             pendingClientIdHex = clientMessageId.bytes.toList().hexEncodedString(),

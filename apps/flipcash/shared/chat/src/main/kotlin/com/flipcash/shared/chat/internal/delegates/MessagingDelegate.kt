@@ -43,6 +43,7 @@ import com.flipcash.shared.chat.PendingMutation
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.OutgoingEncryption
+import com.flipcash.shared.chat.media.ChatMediaText
 import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.MessageLinkPrefetch
@@ -319,10 +320,11 @@ class MessagingDelegate @Inject constructor(
         return opened.takeIf { it.encryption is MessageEncryption.Decrypted }
     }
 
-    /** Text and replies with text are what DMs encrypt; anything else keeps the server's body. */
+    /** Text, photos and replies to either are what DMs encrypt; anything else keeps the server's body. */
     private fun MessageContent.pushText(): String? = when (this) {
         is MessageContent.Text -> text
-        is MessageContent.Reply -> (content.singleOrNull() as? MessageContent.Text)?.text
+        is MessageContent.Media -> ChatMediaText.pushText(caption?.text)
+        is MessageContent.Reply -> content.singleOrNull()?.pushText()
         else -> null
     }
 

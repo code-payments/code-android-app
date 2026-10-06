@@ -24,6 +24,7 @@ dependencies {
 
     implementation(libs.androidx.paging.runtime)
 
+    implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:persistence:db"))
     implementation(project(":apps:flipcash:shared:contacts"))

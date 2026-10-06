@@ -124,6 +124,19 @@ class ChatMessageDataSource @Inject constructor(
             entities.map { toChatMessage(it) }
         } ?: emptyFlow()
 
+    /** The newest [limit] confirmed messages [selfId] sent in [chatId], newest first. */
+    suspend fun getRecentSentBy(chatId: ChatId, selfId: ID, limit: Int): List<ChatMessage> =
+        db?.chatMessageDao()
+            ?.getRecentSentBy(mapper.chatIdHex(chatId), selfId.hexEncodedString(), limit)
+            .orEmpty()
+            .map { toChatMessage(it) }
+
+    /** The optimistic row of [clientMessageId], whatever its status; null once it was confirmed or dropped. */
+    suspend fun getPending(chatId: ChatId, clientMessageId: ClientMessageId): ChatMessage? =
+        db?.chatMessageDao()
+            ?.getByClientId(mapper.chatIdHex(chatId), mapper.clientMessageIdHex(clientMessageId))
+            ?.let { toChatMessage(it) }
+
     suspend fun getLatest(chatIdHex: String): ChatMessage? =
         db?.chatMessageDao()?.getLatest(chatIdHex)?.let { toChatMessage(it) }
 
@@ -341,13 +354,22 @@ class ChatMessageDataSource @Inject constructor(
         chatId: ChatId,
         content: List<MessageContent>,
         senderId: ID,
+    ): PendingMessage = insertPending(chatId, content, senderId, ClientMessageId(RandomId.toByteArray()), ordinal = 0)
+
+    /** [insertPending] under a client id the caller already made, at [ordinal] among rows sent together. */
+    suspend fun insertPending(
+        chatId: ChatId,
+        content: List<MessageContent>,
+        senderId: ID,
+        clientMessageId: ClientMessageId,
+        ordinal: Int,
     ): PendingMessage {
-        val clientMessageId = ClientMessageId(RandomId.toByteArray())
         val entity = mapper.toPendingEntity(
             chatIdHex = mapper.chatIdHex(chatId),
             content = content,
             senderId = senderId,
             clientMessageId = clientMessageId,
+            ordinal = ordinal,
         )
         db?.chatMessageDao()?.upsert(entity)
         return PendingMessage(
@@ -356,12 +378,22 @@ class ChatMessageDataSource @Inject constructor(
         )
     }
 
-    suspend fun confirmPending(chatId: ChatId, clientMessageId: ClientMessageId, serverMessage: ChatMessage) {
+    /**
+     * [replaceContent] is for a photo, whose optimistic row holds the local file: the confirmed row
+     * takes [serverMessage]'s content instead of keeping what was written locally.
+     */
+    suspend fun confirmPending(
+        chatId: ChatId,
+        clientMessageId: ClientMessageId,
+        serverMessage: ChatMessage,
+        replaceContent: Boolean = false,
+    ) {
         val hex = mapper.chatIdHex(chatId)
         db?.chatMessageDao()?.confirmPendingMessage(
             hex,
             mapper.clientMessageIdHex(clientMessageId),
             mapper.toEntity(hex, serverMessage),
+            replaceContent,
         )
     }
 

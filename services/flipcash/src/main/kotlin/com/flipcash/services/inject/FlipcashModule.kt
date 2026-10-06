@@ -14,6 +14,8 @@ import com.flipcash.services.internal.domain.TextModerationResponseMapper
 import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.domain.ChatMetadataMapper
 import com.flipcash.services.BlobUploader
+import com.flipcash.services.ForegroundGate
+import com.flipcash.services.ProcessForegroundGate
 import com.flipcash.services.internal.network.HttpBlobUploader
 import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.internal.network.services.ActivityFeedService
@@ -194,6 +196,11 @@ internal object FlipcashModule {
     internal fun providesBlobUploader(
         uploader: HttpBlobUploader,
     ): BlobUploader = uploader
+
+    @Provides
+    internal fun providesForegroundGate(
+        gate: ProcessForegroundGate,
+    ): ForegroundGate = gate
 
     @Provides
     internal fun providesAccountRepository(

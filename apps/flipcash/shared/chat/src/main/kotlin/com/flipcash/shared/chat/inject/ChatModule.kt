@@ -12,6 +12,8 @@ import com.flipcash.shared.chat.internal.OutgoingEncryption
 import com.flipcash.shared.chat.internal.RealChatArchiveStore
 import com.flipcash.shared.chat.internal.RealChatCoordinator
 import com.flipcash.shared.chat.internal.RealChatDraftStore
+import com.flipcash.shared.chat.internal.delegates.MediaSendDelegate
+import com.flipcash.shared.chat.media.ChatMediaSending
 import com.getcode.opencode.providers.SessionListener
 import dagger.Binds
 import dagger.Module
@@ -41,6 +43,12 @@ abstract class ChatModule {
     abstract fun bindChatArchiveStore(
         impl: RealChatArchiveStore
     ): ChatArchiveStore
+
+    @Binds
+    @Singleton
+    abstract fun bindChatMediaSending(
+        impl: MediaSendDelegate
+    ): ChatMediaSending
 
     @Binds
     internal abstract fun bindOutgoingEncryption(

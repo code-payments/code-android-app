@@ -11,6 +11,7 @@ import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.utils.toByteString
@@ -18,23 +19,34 @@ import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Wraps the BlobStorage gRPC service — direct-to-storage uploads. The bytes never travel through
  * gRPC: [initiateExternalUpload] reserves a [Model.BlobId] and returns a presigned target the client
- * uploads to over plain HTTP, [completeExternalUpload] advises the server the upload finished, and
+ * uploads to over plain HTTP (naming the chat when the bytes are sealed for it), [completeExternalUpload] advises the server the upload finished, and
  * [getBlobs] resolves ids to their status + a fresh download URL.
  */
 @Singleton
-internal class BlobStorageApi @Inject constructor(
-    @FlipcashManagedChannel
+internal class BlobStorageApi(
     managedChannel: ManagedChannel,
+    private val unaryDeadline: Duration,
 ) : GrpcApi(managedChannel) {
 
-    private val api = BlobStorageGrpcKt.BlobStorageCoroutineStub(managedChannel)
+    @Inject
+    constructor(@FlipcashManagedChannel managedChannel: ManagedChannel) : this(managedChannel, UNARY_DEADLINE)
+
+    private val stub = BlobStorageGrpcKt.BlobStorageCoroutineStub(managedChannel)
         .withWaitForReady()
+
+    // Wait-for-ready queues a call until the channel connects, which offline is never: a photo
+    // send would sit at "Sending" with nothing to retry. The deadline, as on iOS, turns that into
+    // a failure the upload's own retries and the bubble's "Not sent" can act on.
+    private val api get() = stub.withDeadlineAfter(unaryDeadline.inWholeMilliseconds, TimeUnit.MILLISECONDS)
 
     suspend fun getUploadPolicy(owner: Ed25519.KeyPair): RpcBlobStorageService.GetUploadPolicyResponse {
         val request = RpcBlobStorageService.GetUploadPolicyRequest.newBuilder()
@@ -52,10 +64,13 @@ internal class BlobStorageApi @Inject constructor(
         mimeType: String,
         sizeBytes: Long,
         owner: Ed25519.KeyPair,
+        e2eeChat: ChatId? = null,
     ): RpcBlobStorageService.InitiateExternalUploadResponse {
         val request = RpcBlobStorageService.InitiateExternalUploadRequest.newBuilder()
             .setMimeType(mimeType)
             .setSizeBytes(sizeBytes)
+            // Before auth: the signature covers the message as built so far (see getBlobsRequest).
+            .apply { e2eeChat?.let { setChat(it.asChatId()) } }
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -94,6 +109,10 @@ internal class BlobStorageApi @Inject constructor(
         return withContext(Dispatchers.IO) {
             api.getBlobs(request)
         }
+    }
+
+    private companion object {
+        val UNARY_DEADLINE = 15.seconds
     }
 }
 

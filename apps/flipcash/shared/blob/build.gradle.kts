@@ -19,4 +19,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
+    // The BlurHash round-trip test decodes with the real decoder; common-ui is compose-versioned.
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(project(":apps:flipcash:shared:common-ui"))
 }

@@ -14,6 +14,8 @@ import coil3.request.crossfade
 import com.flipcash.app.auth.AuthManager
 import okio.Path.Companion.toOkioPath
 import com.flipcash.app.core.android.ActivityProvider
+import com.flipcash.shared.chat.media.ChatPhotoFetcher
+import com.flipcash.shared.chat.media.ChatPhotoKeyer
 import com.flipcash.app.currency.PreferredCurrencyController
 import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.getcode.opencode.repositories.EventRepository
@@ -50,6 +52,9 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
 
     @Inject
     lateinit var preferredCurrencyController: Lazy<PreferredCurrencyController>
+
+    @Inject
+    lateinit var chatPhotoFetcher: Lazy<ChatPhotoFetcher.Factory>
 
     @Inject
     lateinit var workerFactory: Lazy<HiltWorkerFactory>
@@ -109,6 +114,8 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
             // would flash the BlurHash again). The default strategy respects HTTP cache headers and
             // would revalidate/re-fetch the ephemeral, expiring download URLs; blobs are static.
             .components {
+                add(ChatPhotoKeyer())
+                add(chatPhotoFetcher.get())
                 add(OkHttpNetworkFetcherFactory(cacheStrategy = { ImmutableBlobCacheStrategy }))
             }
             .build()
