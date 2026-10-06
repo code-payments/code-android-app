@@ -82,6 +82,26 @@ class ChatPhotoTransitionTest {
     }
 
     @Test
+    fun `the transcript takes the photo over in the last stretch before the bubble`() {
+        val transcript = Rect(0f, 300f, 1200f, 2100f)
+        val corners = ChatPhotoCorners.uniform(48f)
+        fun handoff(p: Float) = ChatPhotoTransition.frame(bubble, corners, open, 0f, p, transcript, container).handoff
+        assertEquals(1f, handoff(0f))
+        assertEquals(0.5f, handoff(0.1f), absoluteTolerance = 0.001f)
+        assertEquals(0f, handoff(0.2f))
+        assertEquals(0f, handoff(0.6f))
+        assertEquals(0f, handoff(1f))
+    }
+
+    @Test
+    fun `nothing is handed to the transcript without one or without a bubble`() {
+        val corners = ChatPhotoCorners.uniform(48f)
+        assertEquals(0f, ChatPhotoTransition.frame(bubble, corners, open, 0f, 0f).handoff)
+        val transcript = Rect(0f, 300f, 1200f, 2100f)
+        assertEquals(0f, ChatPhotoTransition.frame(null, corners, open, 0f, 0f, transcript, container).handoff)
+    }
+
+    @Test
     fun `without a transcript or a bubble nothing is clipped`() {
         val corners = ChatPhotoCorners.uniform(48f)
         assertEquals(null, ChatPhotoTransition.frame(bubble, corners, open, 0f, 0f).clip)

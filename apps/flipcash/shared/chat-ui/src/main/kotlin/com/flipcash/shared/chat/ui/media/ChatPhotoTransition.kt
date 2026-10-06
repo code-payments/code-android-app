@@ -14,6 +14,10 @@ import androidx.compose.ui.util.lerp
  * @property contentAlpha opacity of the photo; below 1 only when there is no bubble to fly to or from.
  * @property backdrop opacity of the black behind it.
  * @property chromeAlpha opacity of the close and share buttons.
+ * @property clip where the overlay may draw the photo; null for anywhere.
+ * @property handoff how much of the photo the transcript draws instead of the overlay, from 0 to 1.
+ * The transcript's copy sits under the bars' blur and fade the way the bubble does, so the photo
+ * lands looking like the bubble rather than changing as the overlay goes.
  */
 data class ChatMediaFrame(
     val rect: Rect,
@@ -22,6 +26,7 @@ data class ChatMediaFrame(
     val backdrop: Float,
     val chromeAlpha: Float,
     val clip: Rect? = null,
+    val handoff: Float = 0f,
 ) {
     companion object {
         /** Nothing drawn: the overlay has no size yet. */
@@ -62,6 +67,15 @@ internal object ChatPhotoTransition {
     private const val CLIP_RELEASE = 0.2f
 
     private fun clipProgress(p: Float) = (1f - (1f - p) / CLIP_RELEASE).coerceIn(0f, 1f)
+
+    /**
+     * The first stretch of the open over which the transcript hands the photo to the overlay, and
+     * the last of the close over which it takes it back. Short, since the transcript's copy is
+     * under the backdrop, which is near clear only here.
+     */
+    private const val HANDOFF = 0.2f
+
+    private fun handoff(p: Float) = (1f - p / HANDOFF).coerceIn(0f, 1f)
 
     /** A pull of this fraction of the container's height takes the shrink and the fade to their ends. */
     const val DRAG_FULL_FRACTION = 0.5f
@@ -153,6 +167,7 @@ internal object ChatPhotoTransition {
                 backdrop = backdrop,
                 chromeAlpha = chrome,
                 clip = transcript?.let { lerp(it, Rect(Offset.Zero, container), clipProgress(p)) },
+                handoff = if (transcript != null) handoff(p) else 0f,
             )
         } else {
             ChatMediaFrame(

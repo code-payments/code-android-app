@@ -413,12 +413,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         .fillMaxSize()
                         .testTag("chat_message_list")
                         .softTopEdge(ChatTopEdge.blurHold(barHeight))
+                        .hazeSource(hazeState)
+                        // Inside the edge blur and the haze, so a photo landing under the bars
+                        // passes behind them the way its bubble does.
                         .chatPhotoTranscript(
                             sources = photoSources,
                             top = barHeight,
                             bottom = overlapPadding.calculateBottomPadding(),
-                        )
-                        .hazeSource(hazeState),
+                        ),
                     state = state,
                     contentPadding = overlapPadding,
                     messages = messages,
