@@ -4,6 +4,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.doubleClick
+import androidx.compose.ui.test.performTouchInput
 import com.flipcash.services.chat.BlobOpenFailure
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.BlobMetadata
@@ -74,6 +76,45 @@ class MediaMessageBubbleTest {
 
         composeTestRule.onNodeWithTag(PHOTO_BUBBLE_TAG).assertIsDisplayed()
         composeTestRule.onNodeWithText("sunset").assertIsDisplayed()
+    }
+
+    @Test
+    fun `double tapping a photo presents the reaction strip`() {
+        var doubleTaps = 0
+        composeTestRule.setContent {
+            DesignSystem {
+                ContentBubble(
+                    item = item(previewing = false),
+                    position = BubblePosition.Solo,
+                    onLongClick = {},
+                    onDoubleClick = { doubleTaps++ },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(PHOTO_BUBBLE_TAG, useUnmergedTree = true).performTouchInput { doubleClick() }
+        composeTestRule.waitForIdle()
+
+        assertEquals(1, doubleTaps)
+    }
+
+    @Test
+    fun `double tapping a photo with nothing else to do still presents the reaction strip`() {
+        var doubleTaps = 0
+        composeTestRule.setContent {
+            DesignSystem {
+                ContentBubble(
+                    item = item(previewing = false),
+                    position = BubblePosition.Solo,
+                    onDoubleClick = { doubleTaps++ },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(PHOTO_BUBBLE_TAG, useUnmergedTree = true).performTouchInput { doubleClick() }
+        composeTestRule.waitForIdle()
+
+        assertEquals(1, doubleTaps)
     }
 
     @Test
