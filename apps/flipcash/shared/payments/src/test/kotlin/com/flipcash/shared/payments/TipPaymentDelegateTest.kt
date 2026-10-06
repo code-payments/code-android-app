@@ -265,6 +265,33 @@ class TipPaymentDelegateTest {
     }
 
     @Test
+    fun `startChattingFee falls back to the regional minimum when the recipient set none`() = runTest {
+        every { userFlags.resolvedFlags } returns usdPresets()
+        every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
+
+        val fee = buildDelegate().startChattingFee(recipient(fee = null)).first { it != null }
+
+        assertEquals(1.0, fee!!.toDouble())
+        assertEquals(CurrencyCode.USD, fee.currencyCode)
+    }
+
+    @Test
+    fun `startChattingFee uses the recipient's fee converted to the preferred currency`() = runTest {
+        every { userFlags.resolvedFlags } returns usdPresets()
+        every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 2.0, currency = CurrencyCode.EUR))
+        every { exchange.rateToUsd(CurrencyCode.CAD) } returns Rate(fx = 0.5, currency = CurrencyCode.USD)
+        every { exchange.rateFor(CurrencyCode.EUR) } returns Rate(fx = 2.0, currency = CurrencyCode.EUR)
+
+        val fee = buildDelegate()
+            .startChattingFee(recipient(Fiat(10.0, CurrencyCode.CAD)))
+            .first { it != null }
+
+        // CAD 10 -> USD 5 -> EUR 10.
+        assertEquals(10.0, fee!!.toDouble())
+        assertEquals(CurrencyCode.EUR, fee.currencyCode)
+    }
+
+    @Test
     fun `minimumTipFor drops to the system minimum once a chat exists`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
