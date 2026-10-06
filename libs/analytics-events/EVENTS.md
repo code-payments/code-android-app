@@ -506,6 +506,56 @@ No properties.
 
 No properties.
 
+## Profile
+
+### Profile: Settings Viewed
+
+The Settings screen opened.
+
+No properties.
+
+### Profile: Edit Profile Viewed
+
+The Edit Profile screen opened.
+
+No properties.
+
+### Profile: Field Saved
+
+A profile field was saved.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Field | list | no | [ProfileField](#profilefield) |
+
+### Profile: Bio Moderation Failed
+
+A bio was rejected by moderation.
+
+No properties.
+
+### Profile: Menu Action
+
+An action was picked from another user's profile menu.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Action | list | no | [ProfileMenuAction](#profilemenuaction) |
+
+### Profile: Pinned Button Tapped
+
+The pinned button on another user's profile was tapped.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Action | list | no | [ProfilePinnedAction](#profilepinnedaction) |
+
+### Profile: Card Shown
+
+A profile card was shown.
+
+No properties.
+
 ## Button
 
 ### Button: {button}
@@ -574,6 +624,7 @@ The `Source` property on Add Money: Opened: where the user opened Add Money from
 | Chat | `CHAT` | |
 | Scanner | `SCANNER` | |
 | Balance | `BALANCE` | |
+| Profile | `PROFILE` | |
 
 ### AddMoneyMethod
 
@@ -703,6 +754,40 @@ The `Source` property on the Display Name events: the screen the name was set on
 | Onboarding | `ONBOARDING` | |
 | My Account | `MY_ACCOUNT` | |
 | Tip Card Setup | `TIP_CARD_SETUP` | |
+
+### ProfileField
+
+The `Field` property on Profile: Field Saved: the profile field that was saved.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Name | `NAME` | |
+| Username | `USERNAME` | |
+| Photo | `PHOTO` | |
+| Cover | `COVER` | |
+| Bio | `BIO` | |
+| Minimum | `MINIMUM` | |
+
+### ProfileMenuAction
+
+The `Action` property on Profile: Menu Action: the action picked from another user's profile menu.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Mute | `MUTE` | |
+| Report | `REPORT` | |
+| Block | `BLOCK` | |
+| Unblock | `UNBLOCK` | |
+
+### ProfilePinnedAction
+
+The `Action` property on Profile: Pinned Button Tapped: what the profile's pinned button does.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Start Chatting | `START_CHATTING` | |
+| Open Chat | `OPEN_CHAT` | |
+| Unblock | `UNBLOCK` | |
 
 ### Button
 

@@ -17,7 +17,7 @@ class AddMoneyEventsTest {
     @Test
     fun openedCarriesEverySourceByItsWireString() {
         assertEquals(
-            listOf("Menu", "Give Shortfall", "Buy Shortfall", "Username Shortfall", "Chat", "Scanner", "Balance"),
+            listOf("Menu", "Give Shortfall", "Buy Shortfall", "Username Shortfall", "Chat", "Scanner", "Balance", "Profile"),
             AddMoneySource.entries.map {
                 val event = AddMoneyEvents.opened(it)
                 assertEquals("Add Money: Opened", event.name)

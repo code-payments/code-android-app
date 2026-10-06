@@ -90,6 +90,7 @@ USERNAME_SHORTFALL = "Username Shortfall"
 CHAT = "Chat"
 SCANNER = "Scanner"
 BALANCE = "Balance"
+PROFILE = "Profile"
 
 [lists.AddMoneyMethod]
 description = "The `Method` property on the Add Money events: how the user adds money."
@@ -180,6 +181,31 @@ description = "The `Source` property on the Display Name events: the screen the 
 ONBOARDING = "Onboarding"
 MY_ACCOUNT = "My Account"
 TIP_CARD_SETUP = "Tip Card Setup"
+
+[lists.ProfileField]
+description = "The `Field` property on Profile: Field Saved: the profile field that was saved."
+[lists.ProfileField.values]
+NAME = "Name"
+USERNAME = "Username"
+PHOTO = "Photo"
+COVER = "Cover"
+BIO = "Bio"
+MINIMUM = "Minimum"
+
+[lists.ProfileMenuAction]
+description = "The `Action` property on Profile: Menu Action: the action picked from another user's profile menu."
+[lists.ProfileMenuAction.values]
+MUTE = "Mute"
+REPORT = "Report"
+BLOCK = "Block"
+UNBLOCK = "Unblock"
+
+[lists.ProfilePinnedAction]
+description = "The `Action` property on Profile: Pinned Button Tapped: what the profile's pinned button does."
+[lists.ProfilePinnedAction.values]
+START_CHATTING = "Start Chatting"
+OPEN_CHAT = "Open Chat"
+UNBLOCK = "Unblock"
 
 [lists.Button]
 description = "The button tapped, sent in the event name `Button: {button}`."
@@ -683,6 +709,53 @@ name = "Linked Phone Number"
 [[event]]
 domain = "Account"
 name = "Complete Onboarding"
+
+# Profile
+
+[[event]]
+domain = "Profile"
+name = "Profile: Settings Viewed"
+builder = "settingsViewed"
+description = "The Settings screen opened."
+
+[[event]]
+domain = "Profile"
+name = "Profile: Edit Profile Viewed"
+builder = "editProfileViewed"
+description = "The Edit Profile screen opened."
+
+[[event]]
+domain = "Profile"
+name = "Profile: Field Saved"
+builder = "fieldSaved"
+properties = [{ name = "Field", type = "ProfileField" }]
+description = "A profile field was saved."
+
+[[event]]
+domain = "Profile"
+name = "Profile: Bio Moderation Failed"
+builder = "bioModerationFailed"
+description = "A bio was rejected by moderation."
+
+[[event]]
+domain = "Profile"
+name = "Profile: Menu Action"
+builder = "menuAction"
+properties = [{ name = "Action", type = "ProfileMenuAction" }]
+description = "An action was picked from another user's profile menu."
+
+[[event]]
+domain = "Profile"
+name = "Profile: Pinned Button Tapped"
+builder = "pinnedButtonTapped"
+properties = [{ name = "Action", type = "ProfilePinnedAction" }]
+description = "The pinned button on another user's profile was tapped."
+
+[[event]]
+domain = "Profile"
+name = "Profile: Card Shown"
+builder = "cardShown"
+description = "A profile card was shown."
 
 # Buttons
 
