@@ -161,6 +161,11 @@ class MediaSendDelegate internal constructor(
             )
         }
         chips.update { it + queued.associate { q -> hex(q.clientMessageId) to q.message.chip } }
+        // A chip that failed before the send (offline, say) goes up again; its bubble waits on it.
+        for (q in queued) {
+            val state = uploads.current(q.message.chip)
+            if (state is ChatMediaUploadState.Failed && state.retryable) uploads.retry(q.message.chip)
+        }
         val hexes = queued.map { hex(it.clientMessageId) }
         synchronized(inFlight) { inFlight.addAll(hexes) }
 

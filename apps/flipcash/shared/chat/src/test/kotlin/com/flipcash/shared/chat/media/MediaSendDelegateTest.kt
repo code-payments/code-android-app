@@ -259,6 +259,22 @@ class MediaSendDelegateTest {
     }
 
     @Test
+    fun `sending a photo whose upload already failed uploads it again`() = runTest {
+        val (delegate, uploads) = delegate()
+        var attempts = 0
+        storeBehavior["a"] = { if (attempts++ == 0) Result.failure(IOException("offline")) else Result.success(BlobId("a".toByteArray())) }
+        val chip = stage(uploads, "a")
+        runCurrent()
+        assertTrue(uploads.current(chip) is ChatMediaUploadState.Failed)
+
+        delegate.sendMedia(chatId, listOf(chip), "", null).getOrThrow()
+        runCurrent()
+
+        assertEquals(1, sent.size)
+        coVerify(exactly = 0) { messageDataSource.failPending(any(), any()) }
+    }
+
+    @Test
     fun `retry uploads the stored file again when nothing reached storage`() = runTest {
         val (delegate, uploads) = delegate()
         var attempts = 0
