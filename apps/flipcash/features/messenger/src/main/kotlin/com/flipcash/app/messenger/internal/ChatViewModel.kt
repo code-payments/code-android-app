@@ -465,8 +465,9 @@ internal class ChatViewModel @Inject constructor(
          * for a group with no rules, where there is nothing to read.
          *
          * Every unknown answers no. A null [groupAccess] is the balance or the staff flag not having
-         * arrived, and a null membership is a group hydrated by id that GetChat could not place the
-         * viewer in; reading either as eligible would show a transcript the viewer may not be owed.
+         * arrived, [GroupAccess.Undetermined] is a balance rule waiting on an exchange rate, and a
+         * null membership is a group hydrated by id that GetChat could not place the viewer in;
+         * reading any of them as eligible would show a transcript the viewer may not be owed.
          */
         val readsFromOutside: Boolean
             get() = subject is ChatSubject.Group &&
@@ -1807,6 +1808,7 @@ internal class ChatViewModel @Inject constructor(
                         isMember = group.isMember == true,
                         rules = group.rules,
                         isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+                        rates = exchange.observeRates(),
                     )
                 }
             }
@@ -1831,6 +1833,7 @@ internal class ChatViewModel @Inject constructor(
                     tokenCoordinator.speakerBlock(
                         rules = rules,
                         isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+                        rates = exchange.observeRates(),
                         viewerId = userManager.accountId,
                         creatorId = rulesAndCreator.second,
                     )
@@ -2057,7 +2060,8 @@ internal class ChatViewModel @Inject constructor(
                 val access = when (state.groupAccess) {
                     GroupAccess.Eligible -> AnalyticsGroupAccess.ELIGIBLE
                     is GroupAccess.Blocked -> AnalyticsGroupAccess.BLOCKED
-                    GroupAccess.Membered, null -> return@mapNotNull null
+                    // Undetermined is a guess waiting on a rate; the view is logged once it settles.
+                    GroupAccess.Membered, GroupAccess.Undetermined, null -> return@mapNotNull null
                 }
                 GroupEvents.gateShown(access, group.rules.gateMint, group.memberCount.toInt())
             }
