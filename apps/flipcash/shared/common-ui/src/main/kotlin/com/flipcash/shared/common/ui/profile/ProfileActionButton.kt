@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White10
 
 private val ActionHeight = 38.dp
 private val ActionIconSize = 22.dp
@@ -91,7 +92,7 @@ private fun ActionCapsule(
         modifier = modifier
             .alpha(if (pressed) PressedAlpha else 1f)
             .clip(CircleShape)
-            .background(CodeTheme.colors.action.copy(alpha = 0.1f))
+            .background(White10)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
