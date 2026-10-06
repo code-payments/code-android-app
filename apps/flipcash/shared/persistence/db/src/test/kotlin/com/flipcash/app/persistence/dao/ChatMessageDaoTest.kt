@@ -20,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 /**
@@ -417,6 +418,79 @@ class ChatMessageDaoTest {
         assertEquals(CLIENT_HEX, dao.getMessage(OTHER_HEX, 1)?.pendingClientIdHex)
     }
 
+    /**
+     * A page carries old self-sent messages as well as the new send. Only one this device has not
+     * stored can be the pending row's server copy; a stored one was confirmed already.
+     */
+    @Test
+    fun `the rescue gives the pending id to the new copy, not a stored message`() = runTest {
+        dao.upsert(text(1, "old"))
+        dao.upsert(pending("new"))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(1, "old"), text(2, "new")))
+
+        assertNull(dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, -1), "the pending row is replaced by its server copy")
+    }
+
+    @Test
+    fun `the rescue pairs each send with the copy of the same content`() = runTest {
+        dao.upsert(pending("first"))
+        dao.upsert(pending("second").copy(messageId = -2, timestampEpochMs = 2, pendingClientIdHex = SECOND_CLIENT_HEX))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(5, "second"), text(6, "first")))
+
+        assertEquals(SECOND_CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 6)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `the rescue leaves another sender's message alone`() = runTest {
+        dao.upsert(pending("mine"))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(3, "theirs").copy(senderIdHex = "9999")))
+
+        assertNull(dao.getMessage(CHAT_HEX, 3)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `an unconfirmed newer send does not take the id of an older send's copy`() = runTest {
+        dao.upsert(pending("a"))
+        dao.upsert(pending("b").copy(messageId = -2, timestampEpochMs = 2, pendingClientIdHex = SECOND_CLIENT_HEX))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(5, "a")))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertNotEquals(SECOND_CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `content beats order when another device's message is on the page`() = runTest {
+        dao.upsert(pending("mine"))
+
+        dao.upsertRescuingPending(
+            CHAT_HEX,
+            SENDER_HEX,
+            listOf(text(4, "other device"), text(5, "mine"), text(6, "later other device")),
+        )
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 4)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 6)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `sends whose content differs pair oldest first`() = runTest {
+        dao.upsert(pending("local-a"))
+        dao.upsert(pending("local-b").copy(messageId = -2, timestampEpochMs = 2, pendingClientIdHex = SECOND_CLIENT_HEX))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(5, "server-a"), text(6, "server-b")))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertEquals(SECOND_CLIENT_HEX, dao.getMessage(CHAT_HEX, 6)?.pendingClientIdHex)
+    }
+
     // endregion
 
     // region Reactions
@@ -637,5 +711,6 @@ class ChatMessageDaoTest {
         const val SENDER_HEX = "1122"
         const val SELF_HEX = "3344"
         const val CLIENT_HEX = "eeff"
+        const val SECOND_CLIENT_HEX = "ef01"
     }
 }

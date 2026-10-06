@@ -301,11 +301,12 @@ interface ChatMessageDao {
     // arrives. Deleting it would drop a photo whose upload is still running. Its own confirmation
     // settles it, see [confirmPendingMessage].
     @Query("""
-        SELECT pending_client_id_hex FROM chat_messages
+        SELECT * FROM chat_messages
         WHERE chat_id_hex = :chatIdHex AND status = 'SENDING' AND pending_client_id_hex IS NOT NULL
           AND pending_client_id_hex NOT IN (SELECT client_id_hex FROM pending_media)
+        ORDER BY timestamp_epoch_ms ASC, message_id ASC
     """)
-    suspend fun getPendingClientIds(chatIdHex: String): List<String>
+    suspend fun getPendingRows(chatIdHex: String): List<ChatMessageEntity>
 
     @Query("""
         DELETE FROM chat_messages
@@ -415,6 +416,49 @@ interface ChatMessageDao {
     suspend fun upsertAndClearPending(chatIdHex: String, entities: List<ChatMessageEntity>) {
         deleteAllPending(chatIdHex)
         upsert(entities)
+    }
+
+    /**
+     * [upsertAndClearPending] for a write that carries the viewer's own messages. The ids of the
+     * pending rows it clears move onto the server copies that replace them, so a row keeps its
+     * item key from SENDING to SENT.
+     *
+     * The read and the write share this transaction. Read outside it, a send confirmed in between
+     * keeps its id on the confirmed row while the rescue hands the same id to a second message.
+     *
+     * Only a message this device has not stored can be a pending row's server copy; a stored one
+     * was confirmed already or came from another device. A pending row first takes the unstored
+     * message with the same content, which holds for text since both sides serialize the same
+     * content. Photos still sending are excluded from the pending rows by the `pending_media`
+     * filter, so a row left over is a text send whose content matched nothing: usually its own
+     * copy is not on this page, or the server normalised the text. Leftovers pair with the
+     * remaining unstored messages oldest first, because in-flight sends arrive in send order. That
+     * pass can hand the id to any of them, including another device's message, a photo's copy, or
+     * an encrypted copy still waiting for its key.
+     */
+    @Transaction
+    suspend fun upsertRescuingPending(chatIdHex: String, selfIdHex: String, entities: List<ChatMessageEntity>) {
+        val pendingRows = getPendingRows(chatIdHex)
+        val claimants = entities
+            .filter { it.senderIdHex == selfIdHex && it.pendingClientIdHex == null && !exists(chatIdHex, it.messageId) }
+            .sortedWith(compareBy<ChatMessageEntity> { it.timestampEpochMs }.thenBy { it.messageId })
+            .toMutableList()
+        val rescued = HashMap<Long, String>()
+        val unmatched = ArrayList<ChatMessageEntity>()
+        for (row in pendingRows) {
+            val match = claimants.firstOrNull { it.contentJson == row.contentJson }
+            if (match != null) {
+                claimants.remove(match)
+                rescued[match.messageId] = row.pendingClientIdHex!!
+            } else {
+                unmatched += row
+            }
+        }
+        unmatched.zip(claimants).forEach { (row, claimant) -> rescued[claimant.messageId] = row.pendingClientIdHex!! }
+        upsertAndClearPending(
+            chatIdHex,
+            entities.map { entity -> rescued[entity.messageId]?.let { entity.copy(pendingClientIdHex = it) } ?: entity },
+        )
     }
 
     @Query("UPDATE chat_messages SET status = :status WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex")

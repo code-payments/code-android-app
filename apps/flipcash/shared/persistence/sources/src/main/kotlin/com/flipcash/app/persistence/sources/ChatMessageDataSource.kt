@@ -287,27 +287,13 @@ class ChatMessageDataSource @Inject constructor(
 
     private suspend fun write(hex: String, messages: List<ChatMessage>) {
         val entities = messages.map { mapper.toEntity(hex, it) }
-        val selfId = userManager.accountId
-        val selfHex = selfId?.hexEncodedString()
-        val hasSelfMessage = selfHex != null && entities.any { it.senderIdHex == selfHex }
-        if (hasSelfMessage) {
-            val dao = db?.chatMessageDao() ?: return
-            // Rescue pendingClientIdHex from pending rows before they are deleted,
-            // so the UI item key stays stable across the SENDING→SENT transition.
-            val rescuedIds = dao.getPendingClientIds(hex).toMutableList()
-            val merged = if (rescuedIds.isNotEmpty()) {
-                entities.map { entity ->
-                    if (rescuedIds.isNotEmpty()
-                        && entity.senderIdHex == selfHex
-                        && entity.pendingClientIdHex == null
-                    ) {
-                        entity.copy(pendingClientIdHex = rescuedIds.removeAt(0))
-                    } else entity
-                }
-            } else entities
-            dao.upsertAndClearPending(hex, merged)
+        val selfHex = userManager.accountId?.hexEncodedString()
+        val dao = db?.chatMessageDao() ?: return
+        if (selfHex != null && entities.any { it.senderIdHex == selfHex }) {
+            // Carries pending ids onto their server copies, see ChatMessageDao.upsertRescuingPending.
+            dao.upsertRescuingPending(hex, selfHex, entities)
         } else {
-            db?.chatMessageDao()?.upsert(entities)
+            dao.upsert(entities)
         }
     }
 
