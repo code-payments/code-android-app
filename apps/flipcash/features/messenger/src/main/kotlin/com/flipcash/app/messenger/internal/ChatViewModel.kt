@@ -2149,7 +2149,9 @@ internal class ChatViewModel @Inject constructor(
             .onEach { event ->
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 if (event.messageIds.isEmpty()) return@onEach
-                chatCoordinator.refreshReactions(chatId, event.messageIds)
+                // Launched: offline the RPC doesn't return, and waiting on it here holds up every
+                // event after it on the shared bus.
+                viewModelScope.launch { chatCoordinator.refreshReactions(chatId, event.messageIds) }
             }
             .launchIn(viewModelScope)
 
