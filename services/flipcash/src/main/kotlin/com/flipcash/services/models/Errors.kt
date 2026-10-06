@@ -413,6 +413,39 @@ sealed class GetRosterError(
     data class Other(override val cause: Throwable? = null) : GetRosterError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class SampleChattersError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    // Not a public group (private group or DM).
+    class Denied : SampleChattersError("Denied")
+    class NotFound : SampleChattersError("Not found")
+    class Unrecognized : SampleChattersError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SampleChattersError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class SetFeaturedGroupsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    // A group in the request is private; nothing was written.
+    class Denied : SetFeaturedGroupsError("Denied")
+    // A group in the request does not exist; nothing was written.
+    class NotFound : SetFeaturedGroupsError("Not found")
+    class Unrecognized : SetFeaturedGroupsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SetFeaturedGroupsError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetFeaturedGroupsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    // No user holds the username.
+    class NotFound : GetFeaturedGroupsError("Not found")
+    class Unrecognized : GetFeaturedGroupsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetFeaturedGroupsError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class GetMentionSuggestionsError(
     override val message: String? = null,
     override val cause: Throwable? = null
@@ -457,6 +490,7 @@ sealed class StartChatError(
     class TitleModerated(val category: ModerationResult.FlaggedCategory) : StartChatError("Title flagged: $category")
     class DescriptionModerated(val category: ModerationResult.FlaggedCategory) : StartChatError("Description flagged: $category")
     class PictureBlobNotAccepted : StartChatError("Picture blob not accepted")
+    class CoverPictureBlobNotAccepted : StartChatError("Cover picture blob not accepted")
     class InvalidRules : StartChatError("Invalid rules")
     // The caller does not meet the rules they are setting on the chat being created (e.g. a
     // minimum balance requirement). Recoverable by the user, so deliberately not a
@@ -475,6 +509,7 @@ sealed class EditChatError(
     class TitleModerated(val category: ModerationResult.FlaggedCategory) : EditChatError("Title flagged: $category")
     class DescriptionModerated(val category: ModerationResult.FlaggedCategory) : EditChatError("Description flagged: $category")
     class PictureBlobNotAccepted : EditChatError("Picture blob not accepted")
+    class CoverPictureBlobNotAccepted : EditChatError("Cover picture blob not accepted")
     class Unrecognized : EditChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : EditChatError(message = cause?.message, cause = cause), NotifiableError
 }

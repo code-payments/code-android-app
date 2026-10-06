@@ -235,6 +235,10 @@ class GroupFeedDelegate @Inject constructor(
                     // of the chat, whether you left from this device or another one.
                     metadataDataSource.clearViewerState(chatId)
                 }
+
+                // No list-level meaning: it edits neither your membership nor the member list.
+                // The summary is applied by RosterStateHolder below.
+                is RosterChange.MembershipChanged -> Unit
             }
         }
         rosterStateHolder.apply(chatId, changes)

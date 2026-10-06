@@ -12,6 +12,7 @@ import com.flipcash.services.internal.network.extensions.asProtoRules
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.asProtoKeyEnvelope
 import com.flipcash.services.internal.network.extensions.asUserId
+import com.flipcash.services.internal.network.extensions.asUsername
 import com.flipcash.services.internal.network.extensions.asViewMode
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
@@ -114,7 +115,15 @@ internal class ChatApi @Inject constructor(
                     .apply { parameters.description?.let { setDescription(it) } }
                     .apply {
                         parameters.picture?.let {
-                            setPicture(
+                            setProfilePicture(
+                                com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
+                                    .setValue(it.bytes.toByteString())
+                            )
+                        }
+                    }
+                    .apply {
+                        parameters.coverPicture?.let {
+                            setCoverPicture(
                                 com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
                                     .setValue(it.bytes.toByteString())
                             )
@@ -128,7 +137,15 @@ internal class ChatApi @Inject constructor(
                     .apply { parameters.description?.let { setDescription(it) } }
                     .apply {
                         parameters.picture?.let {
-                            setPicture(
+                            setProfilePicture(
+                                com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
+                                    .setValue(it.bytes.toByteString())
+                            )
+                        }
+                    }
+                    .apply {
+                        parameters.coverPicture?.let {
+                            setCoverPicture(
                                 com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
                                     .setValue(it.bytes.toByteString())
                             )
@@ -164,6 +181,59 @@ internal class ChatApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.getRoster(request)
+        }
+    }
+
+    /**
+     * Public groups only. [owner] is optional: the sample is the same with or without auth, and
+     * a viewer who is not in the chat (preview) can call it unauthenticated.
+     */
+    suspend fun sampleChatters(
+        owner: KeyPair?,
+        chatId: ChatId,
+    ): RpcChatService.SampleChattersResponse {
+        val request = RpcChatService.SampleChattersRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { owner?.let { setAuth(authenticate(it)) } }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.sampleChatters(request)
+        }
+    }
+
+    suspend fun setFeaturedGroups(
+        owner: KeyPair,
+        chatIds: List<ChatId>,
+    ): RpcChatService.SetFeaturedGroupsResponse {
+        val request = RpcChatService.SetFeaturedGroupsRequest.newBuilder()
+            .addAllChatIds(chatIds.map { it.asChatId() })
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.setFeaturedGroups(request)
+        }
+    }
+
+    /** [owner] is optional: the list is the same with or without auth. */
+    suspend fun getFeaturedGroups(
+        owner: KeyPair?,
+        username: String,
+    ): RpcChatService.GetFeaturedGroupsResponse {
+        val request = RpcChatService.GetFeaturedGroupsRequest.newBuilder()
+            .setUsername(username.asUsername())
+            .apply { owner?.let { setAuth(authenticate(it)) } }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getFeaturedGroups(request)
         }
     }
 
@@ -209,8 +279,17 @@ internal class ChatApi @Inject constructor(
                     )
                 }
                 parameters.picture?.let {
-                    setPicture(
-                        RpcChatService.EditChatRequest.Picture.newBuilder()
+                    setProfilePicture(
+                        RpcChatService.EditChatRequest.ProfilePicture.newBuilder()
+                            .setBlobId(
+                                com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
+                                    .setValue(it.bytes.toByteString())
+                            )
+                    )
+                }
+                parameters.coverPicture?.let {
+                    setCoverPicture(
+                        RpcChatService.EditChatRequest.CoverPicture.newBuilder()
                             .setBlobId(
                                 com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
                                     .setValue(it.bytes.toByteString())

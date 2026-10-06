@@ -89,6 +89,7 @@ class ChatEntityMapper @Inject constructor() {
             title = metadata.title,
             description = metadata.description,
             pictureJson = metadata.picture,
+            coverPictureJson = metadata.coverPicture,
             memberCount = metadata.rosterSummary.memberCount,
             rosterVersion = metadata.rosterSummary.version,
             rulesJson = metadata.rules?.toSerialized(),
@@ -120,6 +121,7 @@ class ChatEntityMapper @Inject constructor() {
             title = entity.title,
             description = entity.description,
             picture = entity.pictureJson,
+            coverPicture = entity.coverPictureJson,
             rosterSummary = RosterSummary(
                 memberCount = entity.memberCount,
                 version = entity.rosterVersion,

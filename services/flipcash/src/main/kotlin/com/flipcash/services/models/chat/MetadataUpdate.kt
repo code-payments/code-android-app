@@ -15,4 +15,7 @@ sealed interface MetadataUpdate {
     data class DescriptionChanged(val newDescription: String) : MetadataUpdate
     // A group chat's picture was edited. Best-effort delivery, same caveat as TitleChanged.
     data class PictureChanged(val newPicture: MediaItem) : MetadataUpdate
+    // A group chat's cover picture was edited; replaces the cached cover. Best-effort delivery,
+    // same caveat as TitleChanged.
+    data class CoverPictureChanged(val newCoverPicture: MediaItem) : MetadataUpdate
 }

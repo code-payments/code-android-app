@@ -30,6 +30,10 @@ data class ChatMetadataEntity(
     val title: String? = null,
     @ColumnInfo(name = "picture_json")
     val pictureJson: MediaItem? = null,
+    // Group cover picture. Feed RPCs may omit it even when one is set, so only an explicit value
+    // (GetChat, a CoverPictureChanged update) writes it; an absent one never clears it.
+    @ColumnInfo(name = "cover_picture_json")
+    val coverPictureJson: MediaItem? = null,
     // The roster's true size and the version that decides whether a roster write applies.
     // Zero on a DM, and on any group whose metadata was rebuilt without a server round trip.
     @ColumnInfo(name = "member_count", defaultValue = "0")

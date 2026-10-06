@@ -20,7 +20,10 @@ import com.flipcash.services.models.GetRosterError
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.LeaveChatError
 import com.flipcash.services.models.MuteChatError
+import com.flipcash.services.models.GetFeaturedGroupsError
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.SampleChattersError
+import com.flipcash.services.models.SetFeaturedGroupsError
 import com.flipcash.services.models.StartChatError
 import com.flipcash.services.models.UnmuteChatError
 import com.flipcash.services.models.chat.ChatId
@@ -131,6 +134,71 @@ internal class ChatService @Inject constructor(
         )
     }
 
+    suspend fun sampleChatters(
+        owner: KeyPair?,
+        chatId: ChatId,
+    ): Result<RpcChatService.SampleChattersResponse> {
+        return runCatching {
+            api.sampleChatters(owner, chatId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.SampleChattersResponse.Result.OK -> Result.success(response)
+                    RpcChatService.SampleChattersResponse.Result.DENIED -> Result.failure(SampleChattersError.Denied())
+                    RpcChatService.SampleChattersResponse.Result.NOT_FOUND -> Result.failure(SampleChattersError.NotFound())
+                    RpcChatService.SampleChattersResponse.Result.UNRECOGNIZED -> Result.failure(SampleChattersError.Unrecognized())
+                    else -> Result.failure(SampleChattersError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { SampleChattersError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun setFeaturedGroups(
+        owner: KeyPair,
+        chatIds: List<ChatId>,
+    ): Result<RpcChatService.SetFeaturedGroupsResponse> {
+        return runCatching {
+            api.setFeaturedGroups(owner, chatIds)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.SetFeaturedGroupsResponse.Result.OK -> Result.success(response)
+                    RpcChatService.SetFeaturedGroupsResponse.Result.DENIED -> Result.failure(SetFeaturedGroupsError.Denied())
+                    RpcChatService.SetFeaturedGroupsResponse.Result.NOT_FOUND -> Result.failure(SetFeaturedGroupsError.NotFound())
+                    RpcChatService.SetFeaturedGroupsResponse.Result.UNRECOGNIZED -> Result.failure(SetFeaturedGroupsError.Unrecognized())
+                    else -> Result.failure(SetFeaturedGroupsError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { SetFeaturedGroupsError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun getFeaturedGroups(
+        owner: KeyPair?,
+        username: String,
+    ): Result<RpcChatService.GetFeaturedGroupsResponse> {
+        return runCatching {
+            api.getFeaturedGroups(owner, username)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.GetFeaturedGroupsResponse.Result.OK -> Result.success(response)
+                    RpcChatService.GetFeaturedGroupsResponse.Result.NOT_FOUND -> Result.failure(GetFeaturedGroupsError.NotFound())
+                    RpcChatService.GetFeaturedGroupsResponse.Result.UNRECOGNIZED -> Result.failure(GetFeaturedGroupsError.Unrecognized())
+                    else -> Result.failure(GetFeaturedGroupsError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetFeaturedGroupsError.Other(cause = it) })
+            }
+        )
+    }
+
     suspend fun getMentionSuggestions(
         owner: KeyPair,
         chatId: ChatId,
@@ -192,7 +260,8 @@ internal class ChatService @Inject constructor(
                         Result.failure(StartChatError.TitleModerated(response.flaggedCategory.toFlaggedCategory()))
                     RpcChatService.StartChatResponse.Result.DESCRIPTION_MODERATED ->
                         Result.failure(StartChatError.DescriptionModerated(response.flaggedCategory.toFlaggedCategory()))
-                    RpcChatService.StartChatResponse.Result.PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(StartChatError.PictureBlobNotAccepted())
+                    RpcChatService.StartChatResponse.Result.PROFILE_PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(StartChatError.PictureBlobNotAccepted())
+                    RpcChatService.StartChatResponse.Result.COVER_PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(StartChatError.CoverPictureBlobNotAccepted())
                     RpcChatService.StartChatResponse.Result.INVALID_RULES -> Result.failure(StartChatError.InvalidRules())
                     RpcChatService.StartChatResponse.Result.RULES_NOT_SATISFIED -> Result.failure(StartChatError.RulesNotSatisfied())
                     RpcChatService.StartChatResponse.Result.UNRECOGNIZED -> Result.failure(StartChatError.Unrecognized())
@@ -222,7 +291,8 @@ internal class ChatService @Inject constructor(
                         Result.failure(EditChatError.TitleModerated(response.flaggedCategory.toFlaggedCategory()))
                     RpcChatService.EditChatResponse.Result.DESCRIPTION_MODERATED ->
                         Result.failure(EditChatError.DescriptionModerated(response.flaggedCategory.toFlaggedCategory()))
-                    RpcChatService.EditChatResponse.Result.PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(EditChatError.PictureBlobNotAccepted())
+                    RpcChatService.EditChatResponse.Result.PROFILE_PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(EditChatError.PictureBlobNotAccepted())
+                    RpcChatService.EditChatResponse.Result.COVER_PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(EditChatError.CoverPictureBlobNotAccepted())
                     RpcChatService.EditChatResponse.Result.UNRECOGNIZED -> Result.failure(EditChatError.Unrecognized())
                     else -> Result.failure(EditChatError.Other())
                 }

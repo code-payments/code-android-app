@@ -433,6 +433,10 @@ class EventStreamDelegate @Inject constructor(
                     // Same best-effort contract as TitleChanged above.
                     metadataDataSource.updatePicture(chatId, metaUpdate.newPicture)
                 }
+                is MetadataUpdate.CoverPictureChanged -> {
+                    // Same best-effort contract as TitleChanged above. Replaces the cached cover.
+                    metadataDataSource.updateCoverPicture(chatId, metaUpdate.newCoverPicture)
+                }
             }
         }
 

@@ -11,6 +11,9 @@ data class EditChatParameters(
     // The already-uploaded-and-READY blob to use as the new picture. The client uploads only
     // the ORIGINAL rendition; the server derives the rest. Null leaves the picture unchanged.
     val picture: BlobId? = null,
+    // The already-uploaded-and-READY blob to use as the new cover picture. Null leaves the cover
+    // unchanged.
+    val coverPicture: BlobId? = null,
     // Null leaves the description unchanged; see [DescriptionEdit] for set vs clear.
     val description: DescriptionEdit? = null,
 )

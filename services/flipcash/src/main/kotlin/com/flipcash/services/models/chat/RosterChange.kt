@@ -38,4 +38,13 @@ sealed interface RosterChange {
         val userId: ID,
         override val rosterSummary: RosterSummary,
     ) : RosterChange
+
+    /**
+     * Membership changed in a way that needs no member list edit. Carries only the roster's
+     * summary after the change: apply its count and version, and leave the cached member list
+     * alone. Unlike a join or leave, it is never a version gap to repair with a refetch.
+     */
+    data class MembershipChanged(
+        override val rosterSummary: RosterSummary,
+    ) : RosterChange
 }

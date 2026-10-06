@@ -61,6 +61,45 @@ class RosterStateHolderTest {
     }
 
     @Test
+    fun `a membership change applies the summary and leaves the member list alone`() = runTest {
+        storedVersion(4)
+
+        subject.apply(
+            chatId,
+            listOf(RosterChange.MembershipChanged(RosterSummary(memberCount = 12, version = 5))),
+        )
+
+        coVerify { metadataDataSource.updateRoster(chatId, memberCount = 12, rosterVersion = 5) }
+        coVerify(exactly = 0) { memberDataSource.upsert(any(), any()) }
+        coVerify(exactly = 0) { memberDataSource.deleteMember(any(), any()) }
+    }
+
+    @Test
+    fun `a membership change that skips versions is applied without a refetch`() = runTest {
+        storedVersion(4)
+
+        subject.apply(
+            chatId,
+            listOf(RosterChange.MembershipChanged(RosterSummary(memberCount = 12, version = 9))),
+        )
+
+        coVerify(exactly = 0) { controller.getChat(any(), any()) }
+        coVerify { metadataDataSource.updateRoster(chatId, memberCount = 12, rosterVersion = 9) }
+    }
+
+    @Test
+    fun `a membership change at or below the stored version is dropped`() = runTest {
+        storedVersion(5)
+
+        subject.apply(
+            chatId,
+            listOf(RosterChange.MembershipChanged(RosterSummary(memberCount = 12, version = 5))),
+        )
+
+        coVerify(exactly = 0) { metadataDataSource.updateRoster(any(), any(), any()) }
+    }
+
+    @Test
     fun `a join one version ahead is applied`() = runTest {
         storedVersion(4)
 
