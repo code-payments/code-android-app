@@ -2,6 +2,9 @@ package com.flipcash.shared.chat.ui.media
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -55,6 +58,34 @@ class ChatPhotoMediaUiTest {
     fun overlayHidesWhenSent() {
         setOverlay(ChatPhotoPhase.Sent)
         rule.onNodeWithTag(PHOTO_PROGRESS_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun overlayStaysUpForAMinimumOnceDrawnEvenIfSentArrivesSoonAfter() {
+        var phase by mutableStateOf<ChatPhotoPhase>(ChatPhotoPhase.Sending)
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            DesignSystem {
+                Box(Modifier.size(200.dp)) { ChatPhotoProgressOverlay(phase, reduceMotion = true) }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        phase = ChatPhotoPhase.Sent
+        advanceFramesFor(PHOTO_PROGRESS_MIN_VISIBLE_MILLIS / 2)
+        rule.onNodeWithTag(PHOTO_PROGRESS_TAG).assertIsDisplayed()
+
+        advanceFramesFor(PHOTO_PROGRESS_MIN_VISIBLE_MILLIS)
+        rule.onNodeWithTag(PHOTO_PROGRESS_TAG).assertDoesNotExist()
+    }
+
+    // One frame at a time, idling between them so each state change recomposes before the clock
+    // moves on.
+    private fun advanceFramesFor(millis: Long) {
+        val end = rule.mainClock.currentTime + millis
+        while (rule.mainClock.currentTime < end) {
+            rule.waitForIdle()
+            rule.mainClock.advanceTimeByFrame()
+        }
     }
 
     @Test

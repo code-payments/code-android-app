@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -34,6 +38,7 @@ import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
+import kotlinx.coroutines.delay
 
 /** Where an outgoing photo is in its trip, as the progress capsule on the bubble shows it. */
 sealed interface ChatPhotoPhase {
@@ -63,6 +68,7 @@ private const val SEGMENT_FRACTION = 0.35f
 private const val FRACTION_MILLIS = 200
 private const val SENT_FADE_MILLIS = 250
 private const val SLIDE_MILLIS = 1100
+internal const val PHOTO_PROGRESS_MIN_VISIBLE_MILLIS = 600L
 
 /**
  * The capsule at the bottom-end of a photo bubble that shows an upload's progress. Fill the
@@ -80,7 +86,16 @@ fun ChatPhotoProgressOverlay(
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = rememberReducedMotion(),
 ) {
-    val sent = phase == ChatPhotoPhase.Sent
+    // The row can be drawn well after the send began (the list scrolls it in), so a quick send
+    // would fade the bar out before anyone sees it. Once drawn, it stays up for a minimum. A row
+    // first drawn already sent never shows it.
+    val drawnSent = remember { phase == ChatPhotoPhase.Sent }
+    var shownLongEnough by remember { mutableStateOf(drawnSent) }
+    LaunchedEffect(Unit) {
+        delay(PHOTO_PROGRESS_MIN_VISIBLE_MILLIS)
+        shownLongEnough = true
+    }
+    val sent = phase == ChatPhotoPhase.Sent && shownLongEnough
     val alpha by animateFloatAsState(
         targetValue = if (sent) 0f else 1f,
         animationSpec = if (reduceMotion) snap() else tween(SENT_FADE_MILLIS),
