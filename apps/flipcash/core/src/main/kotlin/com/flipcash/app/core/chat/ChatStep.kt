@@ -157,4 +157,20 @@ enum class ProfileOrigin {
      * somewhere new to go. iOS's `UserProfileOrigin.mention`.
      */
     Mention,
+
+    /** A `flipcash.com/...` link. The default for `AppRoute.Messaging.Profile`. Blocking pops back. */
+    Link,
+
+    /** A scanned profile card. Blocking resets to the chat list, which the scan came from. */
+    Scan,
+
+    /** A username search result. Blocking resets to the chat list, like a scan. */
+    UsernameLookup,
+
+    /** A transaction's counterparty. Blocking pops back to the transaction. */
+    Transaction;
+
+    /** Whether blocking from here leaves the stack to the chat list rather than popping one entry. */
+    val resetsToChatsAfterBlock: Boolean
+        get() = this == Scan || this == UsernameLookup
 }

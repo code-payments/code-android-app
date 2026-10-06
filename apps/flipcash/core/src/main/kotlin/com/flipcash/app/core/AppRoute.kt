@@ -5,6 +5,7 @@ import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ProfileAddress
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.reporting.ReportStep
 import com.flipcash.app.core.chat.NewGroupStep
@@ -400,7 +401,10 @@ sealed interface AppRoute : NavKey, Parcelable {
          */
         @Serializable
         @Parcelize
-        data class Profile(val address: ProfileAddress) : Messaging
+        data class Profile(
+            val address: ProfileAddress,
+            val origin: ProfileOrigin = ProfileOrigin.Link,
+        ) : Messaging
 
         /** Node 9442:5825 — starting a chat by typing someone's `@handle`. */
         @Serializable

@@ -2,6 +2,9 @@ package com.flipcash.app.transactions.internal
 
 import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.blocklist.DmDestinationResolver
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.feed.MessageMetadata
@@ -24,6 +27,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
@@ -49,6 +54,7 @@ class TransactionDetailsViewModel @Inject constructor(
     toastController: SystemToastController,
     userManager: UserManager,
     resources: ResourceHelper,
+    dmDestinations: DmDestinationResolver,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<TransactionDetailsViewModel.State, TransactionDetailsViewModel.Event>(
     initialState = State(),
@@ -63,11 +69,19 @@ class TransactionDetailsViewModel @Inject constructor(
     data class State(
         val id: ID? = null,
         val transaction: ResolvedTransaction? = null,
-    )
+        /**
+         * Where the counterparty button goes: their DM once it exists, their profile until then.
+         * Null until it has resolved, or when the entry has no counterparty.
+         */
+        val counterpartDestination: AppRoute? = null,
+    ) {
+        val viewsProfile: Boolean get() = counterpartDestination is AppRoute.Messaging.Profile
+    }
 
     sealed interface Event {
         data class OnIdProvided(val id: ID) : Event
         data class OnTransactionResolved(val transaction: ResolvedTransaction?) : Event
+        data class OnCounterpartDestinationResolved(val destination: AppRoute?) : Event
         data object CopyId : Event
         data object OnCancelRequested : Event
         data class CancelTransfer(val vault: PublicKey) : Event
@@ -78,6 +92,18 @@ class TransactionDetailsViewModel @Inject constructor(
             .distinctUntilChanged()
             .flatMapLatest { feedCoordinator.transactionDetails(it) }
             .onEach { dispatchEvent(Event.OnTransactionResolved(it)) }
+            .launchIn(viewModelScope)
+
+        stateFlow.map { it.transaction?.counterpartyId }
+            .distinctUntilChanged()
+            .flatMapLatest { userId ->
+                if (userId == null) {
+                    flowOf(null)
+                } else {
+                    dmDestinations.observeDmDestination(userId, ProfileOrigin.Transaction)
+                }
+            }
+            .onEach { dispatchEvent(Event.OnCounterpartDestinationResolved(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -159,6 +185,7 @@ class TransactionDetailsViewModel @Inject constructor(
             when (event) {
                 is Event.OnIdProvided -> { state -> state.copy(id = event.id) }
                 is Event.OnTransactionResolved -> { state -> state.copy(transaction = event.transaction) }
+                is Event.OnCounterpartDestinationResolved -> { state -> state.copy(counterpartDestination = event.destination) }
                 Event.CopyId -> { state -> state }
                 Event.OnCancelRequested -> { state -> state }
                 is Event.CancelTransfer -> { state -> state }

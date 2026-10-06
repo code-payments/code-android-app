@@ -123,7 +123,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Chat> { key ->
         ChatFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
-    annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address) }
+    annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address, key.origin) }
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
     annotatedEntry<AppRoute.Messaging.ArchivedChats> { ArchivedChatsScreen() }
     annotatedEntry<AppRoute.Messaging.FindByUsername> { FindByUsernameScreen() }
