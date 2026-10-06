@@ -158,18 +158,21 @@ fun ContactAvatar(
     )
 }
 
+/**
+ * The blob-backed picture surface behind every avatar, and behind the profile cover, which is why
+ * it takes the [background] shown while there is nothing to draw.
+ */
 @Composable
-private fun ProfileAvatar(
+internal fun ProfileAvatar(
     image: MediaItem?,
     access: BlobAccessContext,
     modifier: Modifier,
     blurred: Boolean = false,
+    background: Brush = Brush.linearGradient(CodeTheme.colors.contactAvatar.colors),
     fallback: @Composable BoxWithConstraintsScope.() -> Unit,
 ) {
     BoxWithConstraints(
-        modifier = modifier.background(
-            Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)
-        )
+        modifier = modifier.background(background)
     ) {
         // Decoded once for the whole avatar, not just the loading state: it is the placeholder
         // while the rendition downloads, what stays on screen while a stale URL is re-minted, and

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_profileMinimumToChat">Minimum to Chat</string>
+    <string name="title_profileDateJoined">Date Joined</string>
+    <string name="text_profileStatEmpty">—</string>
+</resources>
