@@ -20,6 +20,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -90,6 +91,17 @@ private val pushedTokenInfoEntries: List<String> =
  */
 private fun isGiveKey(key: Any?): Boolean =
     key?.toString()?.startsWith("Give(") == true
+
+/**
+ * True when a scene key is [AppRoute.Menu.ProfileCard]. Same stringified-key match as
+ * [isTokenInfoKey]; a `data object` prints its simple name.
+ */
+private fun isProfileCardKey(key: Any?): Boolean =
+    key?.toString() == "ProfileCard"
+
+/** The profile card's own fade; the screen's spring-in does the rest, so nothing slides. */
+private const val ProfileCardFadeMillis = 250
+private val EaseOutEasing = CubicBezierEasing(0f, 0f, 0.58f, 1f)
 
 @Composable
 internal fun AppContent(
@@ -201,6 +213,11 @@ internal fun AppContent(
                         // CardExpandTransition + TokenCardStack.
                         isTokenInfoKey(targetState.key) ->
                             CardExpandTransition.openEnter togetherWith CardExpandTransition.openExit
+                        // The card presents like a scanned bill: the backdrop fades up over the
+                        // You tab, which stays put beneath, and the screen pops the card itself.
+                        isProfileCardKey(targetState.key) ->
+                            fadeIn(tween(ProfileCardFadeMillis, easing = EaseOutEasing)) togetherWith
+                                    ExitTransition.None
                         landsOnTab ->
                             fadeIn(tween(300)) togetherWith fadeOut(tween(300))
                         else ->
@@ -221,6 +238,10 @@ internal fun AppContent(
                         // Swapping in a single frame keeps the scrim continuously up.
                         isGiveKey(initialState.key) ->
                             EnterTransition.None togetherWith ExitTransition.None
+                        // The whole screen fades out at full size, no slide.
+                        isProfileCardKey(initialState.key) ->
+                            EnterTransition.None togetherWith
+                                    fadeOut(tween(ProfileCardFadeMillis, easing = EaseOutEasing))
                         else ->
                             slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                     slideOutHorizontally(targetOffsetX = { it })
@@ -234,6 +255,9 @@ internal fun AppContent(
                         isTokenInfoKey(initialState.key) ->
                             CardExpandTransition.predictiveCloseEnter togetherWith
                                     CardExpandTransition.predictiveCloseExit
+                        isProfileCardKey(initialState.key) ->
+                            EnterTransition.None togetherWith
+                                    fadeOut(tween(ProfileCardFadeMillis, easing = EaseOutEasing))
                         else ->
                             slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                     slideOutHorizontally(targetOffsetX = { it })
