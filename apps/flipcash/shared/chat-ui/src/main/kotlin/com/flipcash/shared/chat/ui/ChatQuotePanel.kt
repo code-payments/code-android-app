@@ -52,6 +52,8 @@ fun ChatQuotePanel(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
+    /** A solid fill under the tint, for a panel that sits on a photo rather than a filled bubble. */
+    ground: Color? = null,
 ) {
     val accent = quote.accent ?: CodeTheme.colors.tertiary
     val name = quote.nameAccent ?: accent
@@ -62,6 +64,7 @@ fun ChatQuotePanel(
         // fillMaxHeight child in an unbounded Row measures to zero.
         modifier = modifier
             .clip(QuotePanelDefaults.shape)
+            .addIf(ground != null) { Modifier.background(ground!!) }
             // The author's own colour at low alpha rather than a neutral scrim: the panel sits on a
             // filled bubble, and tinting it to match the rule is what separates the two surfaces.
             .background(accent.copy(alpha = QuotePanelDefaults.groundAlpha))
