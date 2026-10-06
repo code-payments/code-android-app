@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.shared.chat.ui.media.ChatPhotoOverlay
 import com.flipcash.shared.chat.ui.media.ChatPhotoSources
+import com.flipcash.shared.chat.ui.media.chatPhotoTranscript
 import com.flipcash.shared.chat.ui.media.LocalChatMediaProgress
 import com.flipcash.shared.chat.ui.media.LocalChatPhotoSources
 import androidx.compose.runtime.LaunchedEffect
@@ -412,7 +413,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         .fillMaxSize()
                         .testTag("chat_message_list")
                         .softTopEdge(ChatTopEdge.blurHold(barHeight))
-                        .hazeSource(hazeState),
+                        .hazeSource(hazeState)
+                        // Inside the edge blur and the haze, so a photo landing under the bars
+                        // passes behind them the way its bubble does.
+                        .chatPhotoTranscript(
+                            sources = photoSources,
+                            top = barHeight,
+                            bottom = overlapPadding.calculateBottomPadding(),
+                        ),
                     state = state,
                     contentPadding = overlapPadding,
                     messages = messages,

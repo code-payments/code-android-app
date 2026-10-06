@@ -17,6 +17,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -48,7 +49,8 @@ private const val STIFFNESS = 439f
 internal class ChatPhotoPresentation(
     private val scope: CoroutineScope,
     private val lookup: () -> Rect?,
-    private val sourceRadiusPx: Float,
+    private val sourceCorners: ChatPhotoCorners,
+    private val transcript: () -> Rect?,
     private val content: () -> Size,
     private val density: Float,
     private val reduceMotion: Boolean,
@@ -95,7 +97,15 @@ internal class ChatPhotoPresentation(
             t = ChatPhotoTransition.dragProgress(offset, size.height)
             anchor = ChatPhotoTransition.draggedRect(open, offset, t)
         }
-        return ChatPhotoTransition.frame(source, sourceRadiusPx, anchor, t, progress.value)
+        return ChatPhotoTransition.frame(
+            source = source,
+            sourceCorners = sourceCorners,
+            anchor = anchor,
+            anchorPull = t,
+            progress = progress.value,
+            transcript = transcript()?.translate(-origin),
+            container = size,
+        )
     }
 
     suspend fun open() {
@@ -168,7 +178,8 @@ fun ChatPhotoOverlay(
         ChatPhotoPresentation(
             scope = scope,
             lookup = { source.boundsInRoot() },
-            sourceRadiusPx = source.radiusPx,
+            sourceCorners = source.corners,
+            transcript = { sources.transcript },
             content = {
                 source.imageSize
                     ?: zoomState.content.takeIf { it.width > 0f && it.height > 0f }
@@ -185,6 +196,12 @@ fun ChatPhotoOverlay(
     DisposableEffect(sources, messageId) {
         sources.hiddenId = messageId
         onDispose { if (sources.hiddenId == messageId) sources.hiddenId = null }
+    }
+    var painter by remember(messageId) { mutableStateOf<Painter?>(null) }
+    DisposableEffect(sources, presentation, painter) {
+        val landing = painter?.let { ChatPhotoLanding(it, presentation::frame) { presentation.origin } }
+        sources.landing = landing
+        onDispose { if (sources.landing === landing) sources.landing = null }
     }
     LaunchedEffect(presentation) { presentation.open() }
     BackHandler { presentation.dismiss() }
@@ -217,6 +234,7 @@ fun ChatPhotoOverlay(
             onPull = presentation::onPull,
             onPullEnd = presentation::onPullEnd,
             interactive = !presentation.closing,
+            onPainter = { painter = it },
         )
     }
 }

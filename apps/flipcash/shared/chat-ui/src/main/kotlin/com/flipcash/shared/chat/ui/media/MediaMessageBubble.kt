@@ -11,9 +11,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.max
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.flipcash.shared.chat.ui.BubbleDefaults
+import com.flipcash.shared.chat.ui.bubbleCorners
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.Dp
 import com.getcode.theme.CodeTheme
+import com.flipcash.shared.chat.ui.BubbleCorners
 import com.flipcash.services.chat.BlobOpenFailure
 import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.MessageContent
@@ -144,21 +153,7 @@ internal fun MediaMessageBubble(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
         horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
     ) {
-        if (quote != null) {
-            Bubble(
-                isFromSelf = item.isFromSelf,
-                position = position.withCaptionBelow(),
-                maxWidth = maxWidth,
-                onLongClick = onLongClick,
-            ) {
-                ChatQuotePanel(
-                    quote = quote,
-                    onClick = onQuoteClick,
-                    onLongClick = onLongClick,
-                    onDoubleClick = onDoubleClick,
-                )
-            }
-        }
+        Box {
         ChatPhotoBubble(
             isFromSelf = item.isFromSelf,
             maxWidth = maxWidth,
@@ -169,7 +164,7 @@ internal fun MediaMessageBubble(
             localModel = localUri,
             sentPreview = sentPreview,
             caption = body.caption?.text,
-            position = if (quote != null) position.withPhotoAbove() else position,
+            position = position,
             blurhashOnly = blurhashOnly,
             unavailable = unavailable,
             progress = progress?.let { p ->
@@ -181,7 +176,11 @@ internal fun MediaMessageBubble(
                 model = model,
                 imageWidth = image?.width,
                 imageHeight = image?.height,
-                radiusPx = bubblePhotoRadiusPx(),
+                corners = bubblePhotoCorners(
+                    position = position
+                        .let { if (body.caption?.text.isNullOrEmpty()) it else it.withCaptionBelow() },
+                    isFromSelf = item.isFromSelf,
+                ),
             ),
             onClick = onClick,
             onLongClick = onLongClick,
@@ -191,5 +190,59 @@ internal fun MediaMessageBubble(
                 loadError = it
             },
         )
+            // The citation rides on the photo rather than in a bubble of its own above it, so the
+            // reply reads as one message. Matched to the photo's box, not the row, so a long quote
+            // wraps inside the photo instead of measuring against the row's full width.
+            if (quote != null) {
+                Box(Modifier.matchParentSize()) {
+                    // Tighter than a text reply's surround: at the bubble's 12dp corner an 8dp gap
+                    // leaves the chip a 4dp corner, which reads as square rather than parallel.
+                    val inset = CodeTheme.dimens.staticGrid.x1
+                    val chip = photoQuoteCorners(
+                        photoTopStart = bubbleCorners(position, item.isFromSelf).topStart,
+                        large = BubbleDefaults.cornerLarge,
+                        small = BubbleDefaults.cornerSmall,
+                        inset = inset,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(PhotoQuoteDefaults.maxWidthFraction)
+                            .padding(inset),
+                    ) {
+                        ChatQuotePanel(
+                            modifier = Modifier.testTag(PHOTO_QUOTE_TAG),
+                            quote = quote,
+                            shape = RoundedCornerShape(chip.topStart, chip.topEnd, chip.bottomEnd, chip.bottomStart),
+                            // Near-opaque so the snippet reads on any photo, light or dark.
+                            ground = CodeTheme.colors.background.copy(alpha = PhotoQuoteDefaults.groundAlpha),
+                            onClick = onQuoteClick,
+                            onLongClick = onLongClick,
+                            onDoubleClick = onDoubleClick,
+                        )
+                    }
+                }
+            }
+        }
     }
+}
+
+/** The quote a photo reply carries, drawn over the photo's top corner. */
+internal const val PHOTO_QUOTE_TAG = "chat_photo_quote"
+
+private object PhotoQuoteDefaults {
+    /** The share of the photo's width a citation may take, so some of the photo always shows beside it. */
+    const val maxWidthFraction = 0.8f
+    const val groundAlpha = 0.85f
+}
+
+/**
+ * The chip's corners, concentric with the photo it sits on: the corner nested in the photo's
+ * top-start follows that corner less the inset, so the gap holds round the turn whether the photo
+ * is rounded or flattened by its group. The other three are free-standing and take the radius a
+ * rounded corner would give, so a solo photo's chip is uniform. Floored at the flattened radius,
+ * as the text reply's panel is.
+ */
+internal fun photoQuoteCorners(photoTopStart: Dp, large: Dp, small: Dp, inset: Dp): BubbleCorners {
+    val free = max(large - inset, small)
+    return BubbleCorners(max(photoTopStart - inset, small), free, free, free)
 }
