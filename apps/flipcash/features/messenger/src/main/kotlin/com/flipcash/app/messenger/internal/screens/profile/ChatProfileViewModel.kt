@@ -112,6 +112,11 @@ internal class ChatProfileViewModel @Inject constructor(
          * while it is in flight.
          */
         val paidRecipients: Set<ID> = emptySet(),
+        /**
+         * A start-chatting payment is out, or paid and waiting for its chat: the fee sheet stays up
+         * and cannot be dismissed until the chat is ready, or the payment fails.
+         */
+        val paymentInProgress: Boolean = false,
     ) {
         /** Null for your own profile, for anyone but a tip user, and until [profileSettled]. */
         val pinnedAction: ProfilePinnedAction?
@@ -169,6 +174,9 @@ internal class ChatProfileViewModel @Inject constructor(
         data class PaymentFailed(val recipient: ID) : Event
         data object ShowPaymentSheet : Event
         data object DismissPaymentSheet : Event
+
+        /** The paid chat is ready, or has been given up on: the sheet may go. */
+        data object PaymentFinished : Event
         data class PaymentProgress(
             val loading: Boolean = false,
             val success: Boolean = false,
@@ -427,13 +435,21 @@ internal class ChatProfileViewModel @Inject constructor(
             ).onSuccess { paidChatId ->
                 dispatchEvent(Event.PaymentProgress(success = true))
                 delay(SUCCESS_HOLD)
-                dispatchEvent(Event.DismissPaymentSheet)
-                val chatId = paidChatId ?: knownChatId ?: return@onSuccess
+                val chatId = paidChatId ?: knownChatId
+                if (chatId == null) {
+                    dispatchEvent(Event.PaymentFinished)
+                    dispatchEvent(Event.DismissPaymentSheet)
+                    return@onSuccess
+                }
                 // The server creates the DM from the payment, so its members arrive a moment
-                // after. If they never do, stay: the pinned action flips to Open Chat when they land.
+                // after. The sheet stays up, showing its success, until they do. If they never do
+                // (as on iOS) the sheet goes and the profile stays: the pinned action flips to Open
+                // Chat when they land.
                 val arrived = withTimeoutOrNull(MEMBERS_TIMEOUT) {
                     chatCoordinator.observeMembers(chatId).first { it.isNotEmpty() }
                 }
+                dispatchEvent(Event.PaymentFinished)
+                dispatchEvent(Event.DismissPaymentSheet)
                 // Not if the screen has moved on to someone else in the meantime.
                 val stillHere = (stateFlow.value.participant as? ChatParticipant.TipUser)?.userId == person.userId
                 if (arrived != null && stillHere) dispatchEvent(Event.OpenChat(chatId))
@@ -480,17 +496,27 @@ internal class ChatProfileViewModel @Inject constructor(
                 is Event.FeeLoaded -> { state -> state.copy(fee = event.fee) }
                 is Event.TokenUpdated -> { state -> state.copy(token = event.token) }
                 is Event.PaymentStarted -> { state ->
-                    state.copy(paidRecipients = state.paidRecipients.toMutableSet().apply { add(event.recipient) })
+                    state.copy(
+                        paidRecipients = state.paidRecipients.toMutableSet().apply { add(event.recipient) },
+                        paymentInProgress = true,
+                    )
                 }
                 is Event.PaymentFailed -> { state ->
-                    state.copy(paidRecipients = state.paidRecipients.toMutableSet().apply { remove(event.recipient) })
+                    state.copy(
+                        paidRecipients = state.paidRecipients.toMutableSet().apply { remove(event.recipient) },
+                        paymentInProgress = false,
+                    )
                 }
                 Event.ShowPaymentSheet -> { state ->
-                    state.copy(paymentSheetVisible = true, sendProgress = LoadingSuccessState())
+                    if (state.paymentInProgress) state
+                    else state.copy(paymentSheetVisible = true, sendProgress = LoadingSuccessState())
                 }
+                // Not while a payment is out: the sheet is the only place its progress shows.
                 Event.DismissPaymentSheet -> { state ->
-                    state.copy(paymentSheetVisible = false, sendProgress = LoadingSuccessState())
+                    if (state.paymentInProgress) state
+                    else state.copy(paymentSheetVisible = false, sendProgress = LoadingSuccessState())
                 }
+                Event.PaymentFinished -> { state -> state.copy(paymentInProgress = false) }
                 is Event.PaymentProgress -> { state ->
                     state.copy(sendProgress = LoadingSuccessState(event.loading, event.success))
                 }

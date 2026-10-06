@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -100,6 +101,9 @@ internal fun PersonProfileScreen(
             }
         }
     }
+
+    // Paying and waiting for the chat to open: there is no leaving until it has.
+    BackHandler(enabled = state.paymentInProgress) {}
 
     StartChattingSheet(
         state = state,

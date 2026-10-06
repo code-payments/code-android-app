@@ -325,8 +325,92 @@ class ChatProfileViewModelTest {
         advanceTimeBy(11_000)
 
         coVerify(exactly = 1) { payer.pay(any(), any(), any()) }
-        assertFalse(model.stateFlow.value.paymentSheetVisible)
         assertEquals(ProfilePinnedAction.OpeningChat, model.stateFlow.value.pinnedAction)
+    }
+
+    @Test
+    fun `the sheet stays up and locked after a successful payment until the members arrive`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        val model = viewModel()
+        openFull(model)
+        model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(5_000)
+
+        assertTrue(model.stateFlow.value.paymentSheetVisible)
+        assertTrue(model.stateFlow.value.paymentInProgress)
+        assertTrue(model.stateFlow.value.sendProgress.success)
+    }
+
+    @Test
+    fun `dismissing the sheet is ignored while a payment is out`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        val model = viewModel()
+        openFull(model)
+        model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(1_000)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.DismissPaymentSheet)
+
+        assertTrue(model.stateFlow.value.paymentSheetVisible)
+        assertTrue(model.stateFlow.value.sendProgress.success)
+    }
+
+    @Test
+    fun `members arriving hides the sheet and opens the chat`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        val model = viewModel()
+        openFull(model)
+        val seen = mutableListOf<ChatProfileViewModel.Event>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) { model.eventFlow.toList(seen) }
+        model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(2_000)
+        assertTrue(model.stateFlow.value.paymentSheetVisible)
+
+        members.value = listOf(mockk<ChatMember>())
+        advanceTimeBy(1_000)
+
+        assertFalse(model.stateFlow.value.paymentSheetVisible)
+        assertFalse(model.stateFlow.value.paymentInProgress)
+        assertTrue(seen.any { it is ChatProfileViewModel.Event.OpenChat })
+        job.cancel()
+    }
+
+    @Test
+    fun `members never arriving releases the sheet and stays on the profile`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        val model = viewModel()
+        openFull(model)
+        model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(11_000)
+
+        assertFalse(model.stateFlow.value.paymentSheetVisible)
+        assertFalse(model.stateFlow.value.paymentInProgress)
+        assertEquals(ProfilePinnedAction.OpeningChat, model.stateFlow.value.pinnedAction)
+    }
+
+    @Test
+    fun `a failed payment leaves the sheet dismissable`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any()) } returns Result.failure(Exception("nope"))
+        val model = viewModel()
+        openFull(model)
+        model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        assertFalse(model.stateFlow.value.paymentInProgress)
+        model.dispatchEvent(ChatProfileViewModel.Event.DismissPaymentSheet)
+
+        assertFalse(model.stateFlow.value.paymentSheetVisible)
     }
 
     @Test

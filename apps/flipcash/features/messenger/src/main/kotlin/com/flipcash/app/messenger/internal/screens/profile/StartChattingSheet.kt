@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.getcode.theme.CodeTheme
@@ -25,7 +26,13 @@ internal fun StartChattingSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Read at the time of each gesture or hide, not captured: the view model lifts the lock just
+    // before it asks the sheet to go.
+    val locked by rememberUpdatedState(state.paymentInProgress)
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { !locked },
+    )
     // The sheet stays composed until it has slid away, so a dismissal from the view model (a
     // payment that landed) animates out like a swipe does rather than vanishing.
     var composed by remember { mutableStateOf(false) }
@@ -39,7 +46,7 @@ internal fun StartChattingSheet(
     }
     if (!composed) return
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!locked) onDismiss() },
         sheetState = sheetState,
         containerColor = CodeTheme.colors.background,
     ) {
