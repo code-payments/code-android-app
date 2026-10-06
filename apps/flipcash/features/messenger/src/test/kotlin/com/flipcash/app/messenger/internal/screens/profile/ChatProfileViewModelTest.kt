@@ -88,6 +88,8 @@ class ChatProfileViewModelTest {
         tipPaymentDelegate = tipPaymentDelegate,
         e2eePolicy = mockk<E2eePolicy>(relaxed = true),
         startChattingPayer = payer,
+        clipboardManager = mockk<android.content.ClipboardManager>(relaxed = true),
+        toastController = mockk<com.flipcash.app.core.toast.SystemToastController>(relaxed = true),
     )
 
     private fun openFull(model: ChatProfileViewModel) =
@@ -165,6 +167,23 @@ class ChatProfileViewModelTest {
         model.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant(cachedJoin)))
 
         assertTrue(model.stateFlow.value.isFullProfileLoaded)
+    }
+
+    @Test
+    fun `opening the same person again from the same flow settles again`() = runTest {
+        coEvery { profiles.getProfileForUser(theirId) } returns
+            Result.success(participant(serverJoin).profile)
+        val model = viewModel()
+        val cached = ChatProfileViewModel.Event.OnParticipantSet(participant(cachedJoin))
+
+        // The chat's flow keeps one view model, so a second tap on the same avatar re-sets the
+        // same participant. The reducer resets the settled flag; the fetch has to run again.
+        model.dispatchEvent(cached)
+        model.dispatchEvent(cached)
+
+        assertTrue(model.stateFlow.value.profileSettled)
+        assertTrue(model.stateFlow.value.isFullProfileLoaded)
+        coVerify(exactly = 2) { profiles.getProfileForUser(theirId) }
     }
 
     @Test

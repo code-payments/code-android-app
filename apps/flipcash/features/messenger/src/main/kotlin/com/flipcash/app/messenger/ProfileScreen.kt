@@ -98,8 +98,6 @@ fun ProfileScreen(address: ProfileAddress) {
     } else {
         PersonProfileScreen(
             viewModel = viewModel,
-            chat = null,
-            cashSymbol = state.cashSymbol,
             onBack = { navigator.pop() },
             // Reached by link, so there is no chat underneath to return to.
             onOpenChat = { chatId ->

@@ -931,6 +931,7 @@
          options name the state they produce ("1 Week") rather than the act ("Mute for 1 week"),
          which is also what lets "Never" sit among them. -->
     <string name="title_muteChat">Mute Notifications</string>
+    <string name="title_unmuteChat">Unmute Notifications</string>
     <!-- Load-bearing rather than decorative: a muted chat still delivers the push, still stores the
          message and still counts it unread. Only the notification is held back. -->
     <string name="subtitle_muteChat">You\'ll still receive messages and see unread counts. Only notifications are silenced</string>
@@ -1281,6 +1282,13 @@
     <string name="prompt_title_blockUser">Block %1$s?</string>
     <string name="prompt_description_blockUser">You won’t see messages from them, but you will still receive cash they send you. Flipcash won’t tell them you blocked them</string>
     <string name="action_unblock">Unblock</string>
+    <!-- The chip under a blocked person's handle on their profile. -->
+    <string name="label_blocked">Blocked</string>
+    <!-- The pinned button on another person's profile when no start-chatting fee is known. -->
+    <string name="action_startChatting">Start Chatting</string>
+    <string name="action_openChat">Open Chat</string>
+    <!-- The top bar's overflow button on another person's profile. -->
+    <string name="action_moreProfileActions">More</string>
     <string name="prompt_title_unblockUser">Unblock %1$s?</string>
     <string name="prompt_description_unblockUser">The conversation with them will reappear in Tips</string>
     <string name="title_blocklistEmpty">No One Blocked</string>

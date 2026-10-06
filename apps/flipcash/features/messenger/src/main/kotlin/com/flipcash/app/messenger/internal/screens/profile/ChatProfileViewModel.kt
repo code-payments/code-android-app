@@ -1,10 +1,15 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.blocklist.BlocklistCoordinator
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.extensions.setText
+import com.flipcash.app.core.tipping.TipCardOwner
+import com.flipcash.app.core.toast.SystemToastController
+import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.features.messenger.R
@@ -58,6 +63,8 @@ internal class ChatProfileViewModel @Inject constructor(
     private val tipPaymentDelegate: TipPaymentDelegate,
     private val e2eePolicy: E2eePolicy,
     private val startChattingPayer: StartChattingPayer,
+    private val clipboardManager: ClipboardManager,
+    private val toastController: SystemToastController,
 ) : BaseViewModel<ChatProfileViewModel.State, ChatProfileViewModel.Event>(
     initialState = State(selfId = userManager.accountId),
     updateStateForEvent = updateStateForEvent,
@@ -164,11 +171,22 @@ internal class ChatProfileViewModel @Inject constructor(
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false) : Event
     }
 
+    /** Puts the person's profile link on the clipboard, the one Share hands out. */
+    fun copyLink() {
+        val person = stateFlow.value.participant as? ChatParticipant.TipUser ?: return
+        clipboardManager.setText(
+            text = Linkify.tipcard(TipCardOwner.preferringUsername(person.profile.username, person.userId)),
+            label = resources.getString(R.string.title_clipboardLabelTipCardLink),
+        )
+        toastController.showToast(R.string.action_copied, replacePrevious = true)
+    }
+
     init {
         eventFlow
             .filterIsInstance<Event.OnParticipantSet>()
             .filter { it.participant is ChatParticipant.TipUser }
-            .distinctUntilChanged()
+            // Not distinct: the reducer resets the settled flag on every set, so a repeat of the
+            // same participant (a second visit in a flow that keeps this view model) has to fetch.
             .onEach { event ->
                 val (userId, profile) = event.participant as ChatParticipant.TipUser
                 if (event.isFullProfile) {

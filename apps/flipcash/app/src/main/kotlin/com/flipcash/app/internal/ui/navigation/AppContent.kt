@@ -319,7 +319,11 @@ private fun AppToastHost(
     val gap = CodeTheme.dimens.grid.x2
     val systemBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottom by animateDpAsState(
-        targetValue = if (barVisibility.isVisible) barHeight() + gap else systemBottom + CodeTheme.dimens.grid.x3,
+        targetValue = maxOf(
+            if (barVisibility.isVisible) barHeight() + gap else systemBottom + CodeTheme.dimens.grid.x3,
+            // A screen with a button pinned to the bottom asks for the toast to rest above it.
+            hostState.bottomClearance.let { if (it > 0.dp) it + gap else 0.dp },
+        ),
         label = "toastBottom",
     )
     FloatingToastHost(

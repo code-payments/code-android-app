@@ -3,11 +3,8 @@ package com.flipcash.app.messenger.internal
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.messenger.internal.link.UserLinkLookup
-import com.flipcash.app.messenger.internal.screens.profile.profileShortcutRecipient
-import com.flipcash.app.messenger.internal.screens.profile.profileChat
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.UserProfile
-import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.models.LinkCard
 import java.io.IOException
 import kotlin.test.Test
@@ -78,13 +75,5 @@ class MentionDestinationTest {
             MentionDestination.LookupFailed,
             mentionDestination("satoshi", Result.failure(IOException()), counterpart = null),
         )
-    }
-
-    @Test
-    fun `a mention offers chat actions but not mute`() {
-        val other = ChatParticipant.TipUser(otherId, profile(otherId))
-        val chat = profileChat(ProfileOrigin.Mention, chatId = null, ChatType.TIP_DM, viewerState = null)
-        assertNull(chat)
-        assertEquals(other, profileShortcutRecipient(other, chat?.chatType, selfId))
     }
 }

@@ -1,4 +1,4 @@
-package com.flipcash.app.menu.internal
+package com.flipcash.shared.common.ui.profile
 
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner

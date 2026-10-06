@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import androidx.annotation.StringRes
+import com.flipcash.features.messenger.R
 import com.getcode.opencode.model.financial.Fiat
 
 /** The one primary action pinned to the bottom of another user's profile. */
@@ -40,3 +42,15 @@ internal fun profileMenuItems(isBlocked: Boolean, hasDm: Boolean): List<ChatProf
             add(ChatProfileAction.Block)
         }
     }
+
+/**
+ * The string behind the pinned button. Only [ProfilePinnedAction.StartChatting] with a known fee
+ * takes an argument, the formatted fee.
+ */
+@StringRes
+internal fun ProfilePinnedAction.labelRes(): Int = when (this) {
+    ProfilePinnedAction.Unblock -> R.string.action_unblock
+    ProfilePinnedAction.OpenChat -> R.string.action_openChat
+    is ProfilePinnedAction.StartChatting ->
+        if (fee != null) R.string.action_sendToStartChatting else R.string.action_startChatting
+}

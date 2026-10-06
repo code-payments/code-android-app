@@ -325,8 +325,6 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
 
     ChatProfileScreen(
         viewModel = viewModel,
-        chatViewModel = flowSharedViewModel<ChatViewModel>(),
-        origin = origin,
         onOpenChat = { chatId ->
             val chatState = chatViewModel.stateFlow.value
             if (origin == ProfileOrigin.Chat && chatState.chatId == chatId) {

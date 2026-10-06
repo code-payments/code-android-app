@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import com.flipcash.features.messenger.R
 import com.getcode.opencode.model.financial.Fiat
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -90,5 +91,25 @@ class ProfileActionsTest {
         assertTrue(ChatProfileAction.Block.isDestructive)
         assertFalse(ChatProfileAction.Mute.isDestructive)
         assertFalse(ChatProfileAction.Unblock.isDestructive)
+    }
+
+    // -- labelRes --
+
+    @Test
+    fun `the pinned button names what it does`() {
+        assertEquals(R.string.action_unblock, ProfilePinnedAction.Unblock.labelRes())
+        assertEquals(R.string.action_openChat, ProfilePinnedAction.OpenChat.labelRes())
+    }
+
+    @Test
+    fun `start chatting names the price only when there is one`() {
+        assertEquals(
+            R.string.action_sendToStartChatting,
+            ProfilePinnedAction.StartChatting(fee).labelRes(),
+        )
+        assertEquals(
+            R.string.action_startChatting,
+            ProfilePinnedAction.StartChatting(null).labelRes(),
+        )
     }
 }

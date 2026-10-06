@@ -1,4 +1,4 @@
-package com.flipcash.app.menu.internal
+package com.flipcash.shared.common.ui.profile
 
 import android.text.format.DateFormat
 import java.time.ZoneId
@@ -14,7 +14,7 @@ import kotlin.time.Instant
  * The pattern comes from [DateFormat.getBestDateTimePattern] for the `MMMMy` skeleton, so word
  * order and connectives follow [locale] ("octubre de 2026" in Spanish).
  */
-internal fun joinedLabel(
+fun joinedLabel(
     joinedAt: Instant?,
     locale: Locale = Locale.getDefault(),
     zone: ZoneId = ZoneId.systemDefault(),
