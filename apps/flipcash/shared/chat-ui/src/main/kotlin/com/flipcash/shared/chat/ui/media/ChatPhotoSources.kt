@@ -26,6 +26,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.platform.LocalDensity
 import com.flipcash.shared.chat.media.ChatPhoto
 import androidx.compose.ui.unit.Dp
@@ -42,9 +44,18 @@ class ChatPhotoSource internal constructor(
 ) {
     internal var coordinates: LayoutCoordinates? = null
 
-    /** The bubble's bounds in the root's coordinates, or null when it is not on screen. */
-    internal fun boundsInRoot(): Rect? = coordinates?.takeIf { it.isAttached }?.boundsInRoot()
+    /**
+     * The bubble's bounds in the root's coordinates, or null when it is not on screen. Unclipped:
+     * a bubble running under the top bar extends past the list's edge, and the photo lands on all of it.
+     */
+    internal fun boundsInRoot(): Rect? = coordinates?.takeIf { it.isAttached }?.unclippedBoundsInRoot()
 }
+
+/**
+ * This layout's own bounds in the root's coordinates. [boundsInRoot] clips them to every ancestor,
+ * so a bubble scrolled partly out of the list reports only its visible part.
+ */
+internal fun LayoutCoordinates.unclippedBoundsInRoot(): Rect = Rect(positionInRoot(), size.toSize())
 
 /**
  * The photo bubbles currently composed in the transcript, by message id. The overlay reads a
