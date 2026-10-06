@@ -10,26 +10,59 @@ import androidx.compose.ui.util.lerp
  * Where the photo is drawn at one instant of the overlay's open, drag and close, in the overlay's
  * own coordinates.
  *
- * @property radiusPx corner radius of [rect].
+ * @property corners corner radii of [rect].
  * @property contentAlpha opacity of the photo; below 1 only when there is no bubble to fly to or from.
  * @property backdrop opacity of the black behind it.
  * @property chromeAlpha opacity of the close and share buttons.
  */
 data class ChatMediaFrame(
     val rect: Rect,
-    val radiusPx: Float,
+    val corners: ChatPhotoCorners,
     val contentAlpha: Float,
     val backdrop: Float,
     val chromeAlpha: Float,
+    val clip: Rect? = null,
 ) {
     companion object {
         /** Nothing drawn: the overlay has no size yet. */
-        val Hidden = ChatMediaFrame(Rect.Zero, 0f, 0f, 0f, 0f)
+        val Hidden = ChatMediaFrame(Rect.Zero, ChatPhotoCorners.uniform(0f), 0f, 0f, 0f)
     }
 }
 
+/** A photo's corner radii in px, start and end following the layout direction like [androidx.compose.foundation.shape.RoundedCornerShape]. */
+data class ChatPhotoCorners(
+    val topStart: Float,
+    val topEnd: Float,
+    val bottomEnd: Float,
+    val bottomStart: Float,
+) {
+    val max: Float get() = maxOf(maxOf(topStart, topEnd), maxOf(bottomEnd, bottomStart))
+
+    val isSquare: Boolean get() = max <= 0f
+
+    companion object {
+        fun uniform(radius: Float) = ChatPhotoCorners(radius, radius, radius, radius)
+    }
+}
+
+internal fun lerp(start: ChatPhotoCorners, stop: ChatPhotoCorners, fraction: Float) = ChatPhotoCorners(
+    topStart = lerp(start.topStart, stop.topStart, fraction),
+    topEnd = lerp(start.topEnd, stop.topEnd, fraction),
+    bottomEnd = lerp(start.bottomEnd, stop.bottomEnd, fraction),
+    bottomStart = lerp(start.bottomStart, stop.bottomStart, fraction),
+)
+
 /** The pure parts of the photo overlay: the pull's geometry, the release decision, the rect blend. */
 internal object ChatPhotoTransition {
+    /**
+     * The last stretch of the open over which the clip widens from the transcript to the screen.
+     * Spread over the whole open, the clip trails a photo that crosses the bars early in its
+     * flight, and the photo is drawn over them until it nearly lands.
+     */
+    private const val CLIP_RELEASE = 0.2f
+
+    private fun clipProgress(p: Float) = (1f - (1f - p) / CLIP_RELEASE).coerceIn(0f, 1f)
+
     /** A pull of this fraction of the container's height takes the shrink and the fade to their ends. */
     const val DRAG_FULL_FRACTION = 0.5f
 
@@ -94,31 +127,37 @@ internal object ChatPhotoTransition {
      * mid-pull rect. One progress drives both directions, so the target ([source] or [anchor]) may
      * move while it runs. With no [source] the photo grows from, and shrinks to, its own center while fading.
      *
+     * @param sourceCorners the bubble's own corners, which can differ where it joins a run.
      * @param anchorPull how far into a pull [anchor] is; the corners round and the backdrop and buttons fade with it.
+     * @param transcript where the chat is not covered by its bars. The photo is clipped to it on
+     * the bubble, the way the bubble is, and to the whole [container] when open. Null clips nothing.
      */
     fun frame(
         source: Rect?,
-        sourceRadius: Float,
+        sourceCorners: ChatPhotoCorners,
         anchor: Rect,
         anchorPull: Float,
         progress: Float,
+        transcript: Rect? = null,
+        container: Size = Size.Zero,
     ): ChatMediaFrame {
         val p = progress.coerceIn(0f, 1f)
-        val anchorRadius = if (source != null) sourceRadius * anchorPull else 0f
+        val anchorCorners = ChatPhotoCorners.uniform(if (source != null) sourceCorners.max * anchorPull else 0f)
         val backdrop = dragBackdrop(anchorPull) * p
         val chrome = (1f - anchorPull) * p
         return if (source != null) {
             ChatMediaFrame(
                 rect = lerp(source, anchor, p),
-                radiusPx = lerp(sourceRadius, anchorRadius, p),
+                corners = lerp(sourceCorners, anchorCorners, p),
                 contentAlpha = 1f,
                 backdrop = backdrop,
                 chromeAlpha = chrome,
+                clip = transcript?.let { lerp(it, Rect(Offset.Zero, container), clipProgress(p)) },
             )
         } else {
             ChatMediaFrame(
                 rect = lerp(scaledAbout(anchor, DETACHED_SCALE), anchor, p),
-                radiusPx = anchorRadius,
+                corners = anchorCorners,
                 contentAlpha = p,
                 backdrop = backdrop,
                 chromeAlpha = chrome,

@@ -33,6 +33,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.layout
@@ -225,6 +227,16 @@ fun ChatMediaViewer(
         ) {
             Box(
                 modifier = Modifier
+                    .drawWithContent {
+                        // In the container's coordinates, before the photo is placed in it: keeps a
+                        // photo landing on a bubble under the chat's bars behind them, as the bubble is.
+                        val clip = frame?.invoke()?.clip
+                        if (clip == null) {
+                            drawContent()
+                        } else {
+                            clipRect(clip.left, clip.top, clip.right, clip.bottom) { this@drawWithContent.drawContent() }
+                        }
+                    }
                     .layout { measurable, constraints ->
                         // The photo's own frame inside the container, which a host animates; the
                         // whole container when it does not.
@@ -246,8 +258,9 @@ fun ChatMediaViewer(
                         if (frame != null) {
                             val f = frame()
                             alpha = f.contentAlpha
-                            shape = RoundedCornerShape(f.radiusPx)
-                            clip = f.radiusPx > 0f
+                            val c = f.corners
+                            shape = RoundedCornerShape(c.topStart, c.topEnd, c.bottomEnd, c.bottomStart)
+                            clip = !c.isSquare
                         }
                     },
             ) {

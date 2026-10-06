@@ -48,7 +48,8 @@ private const val STIFFNESS = 439f
 internal class ChatPhotoPresentation(
     private val scope: CoroutineScope,
     private val lookup: () -> Rect?,
-    private val sourceRadiusPx: Float,
+    private val sourceCorners: ChatPhotoCorners,
+    private val transcript: () -> Rect?,
     private val content: () -> Size,
     private val density: Float,
     private val reduceMotion: Boolean,
@@ -95,7 +96,15 @@ internal class ChatPhotoPresentation(
             t = ChatPhotoTransition.dragProgress(offset, size.height)
             anchor = ChatPhotoTransition.draggedRect(open, offset, t)
         }
-        return ChatPhotoTransition.frame(source, sourceRadiusPx, anchor, t, progress.value)
+        return ChatPhotoTransition.frame(
+            source = source,
+            sourceCorners = sourceCorners,
+            anchor = anchor,
+            anchorPull = t,
+            progress = progress.value,
+            transcript = transcript()?.translate(-origin),
+            container = size,
+        )
     }
 
     suspend fun open() {
@@ -168,7 +177,8 @@ fun ChatPhotoOverlay(
         ChatPhotoPresentation(
             scope = scope,
             lookup = { source.boundsInRoot() },
-            sourceRadiusPx = source.radiusPx,
+            sourceCorners = source.corners,
+            transcript = { sources.transcript },
             content = {
                 source.imageSize
                     ?: zoomState.content.takeIf { it.width > 0f && it.height > 0f }
