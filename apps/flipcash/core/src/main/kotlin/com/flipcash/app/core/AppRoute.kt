@@ -316,14 +316,12 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Menu : AppRoute {
         @Serializable
-        data object MyAccount : Menu
+        data object Settings : Menu
         @Serializable
         data object BackupKey : Menu
 
         @Serializable
         data object Blocklist: Menu
-        @Serializable
-        data object AdvancedFeatures : Menu
         @Serializable
         data object DeviceLogs : Menu
         @Serializable

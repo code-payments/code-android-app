@@ -66,7 +66,6 @@ private fun Fiat.formattedGate(): String =
 
 private val FullMenuList = buildList {
     add(MyAccount)
-    add(AdvancedFeatures)
 }
 
 @HiltViewModel

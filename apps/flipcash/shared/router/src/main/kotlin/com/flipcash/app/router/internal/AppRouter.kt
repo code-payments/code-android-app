@@ -282,9 +282,9 @@ internal class AppRouter(
             EmailDeeplinkOrigin.MyAccount ->
                 listOf(
                     AppRoute.Tabs.Menu,
-                    AppRoute.Menu.MyAccount
+                    AppRoute.Menu.Settings
                 ) + AppRoute.Verification(
-                    origin = AppRoute.Menu.MyAccount,
+                    origin = AppRoute.Menu.Settings,
                     includePhone = false,
                     email = type.email,
                     emailVerificationCode = type.code

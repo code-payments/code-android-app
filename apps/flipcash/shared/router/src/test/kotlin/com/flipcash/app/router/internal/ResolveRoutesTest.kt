@@ -32,7 +32,7 @@ class ResolveRoutesTest {
 
     @Test
     fun `non-sheet routes pass through unchanged`() {
-        val routes = listOf(AppRoute.Tabs.Scanner, AppRoute.Menu.MyAccount)
+        val routes = listOf(AppRoute.Tabs.Scanner, AppRoute.Menu.Settings)
         assertEquals(routes, resolveRoutes(routes))
     }
 
@@ -70,9 +70,9 @@ class ResolveRoutesTest {
     fun `sheet with multiple inner routes bundles all`() {
         val routes = listOf(
             AppRoute.Sheets.ActivityHistory,
-            AppRoute.Menu.MyAccount,
+            AppRoute.Menu.Settings,
             AppRoute.Verification(
-                origin = AppRoute.Menu.MyAccount,
+                origin = AppRoute.Menu.Settings,
                 includePhone = false,
                 email = "test@example.com",
                 emailVerificationCode = "123456",
@@ -85,7 +85,7 @@ class ResolveRoutesTest {
         assertIs<AppRoute.Main.Sheet>(sheet)
         assertEquals(AppRoute.Sheets.ActivityHistory, sheet.initialRoute)
         assertEquals(2, sheet.innerRoutes.size)
-        assertIs<AppRoute.Menu.MyAccount>(sheet.innerRoutes[0])
+        assertIs<AppRoute.Menu.Settings>(sheet.innerRoutes[0])
         assertIs<AppRoute.Verification>(sheet.innerRoutes[1])
     }
 
@@ -166,9 +166,9 @@ class ResolveRoutesTest {
     fun `menu tab stays flat with my account and verification pushed on top`() {
         val routes = listOf(
             AppRoute.Tabs.Menu,
-            AppRoute.Menu.MyAccount,
+            AppRoute.Menu.Settings,
             AppRoute.Verification(
-                origin = AppRoute.Menu.MyAccount,
+                origin = AppRoute.Menu.Settings,
                 includePhone = false,
                 email = "test@example.com",
                 emailVerificationCode = "123456",

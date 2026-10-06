@@ -60,7 +60,7 @@ class NavigateToTest {
             AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
         )
 
-        navigator.navigateAll(listOf(AppRoute.Menu.MyAccount), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Menu.Settings), options = quietOptions)
 
         assertNull(navigator.pendingSheetDismiss)
     }
@@ -195,7 +195,7 @@ class NavigateToTest {
         navigator.navigateAll(listOf(AppRoute.Sheets.ActivityHistory), options = quietOptions)
 
         // Simulate: a route is pushed during the dismiss animation
-        navigator.backStack.add(AppRoute.Menu.MyAccount)
+        navigator.backStack.add(AppRoute.Menu.Settings)
         // onBack() removes the last entry (MyAccount), NOT the old sheet
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
         // Old sheet is still on the backstack

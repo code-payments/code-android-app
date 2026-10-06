@@ -232,9 +232,9 @@ class BuildNavGraphForLaunchTest {
             DeeplinkAction.Navigate(
                 listOf(
                     AppRoute.Tabs.Menu,
-                    AppRoute.Menu.MyAccount,
+                    AppRoute.Menu.Settings,
                     AppRoute.Verification(
-                        origin = AppRoute.Menu.MyAccount,
+                        origin = AppRoute.Menu.Settings,
                         includePhone = false,
                         email = "test@example.com",
                         emailVerificationCode = "123456",

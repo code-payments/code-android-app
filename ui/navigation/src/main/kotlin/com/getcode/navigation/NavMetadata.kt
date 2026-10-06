@@ -29,7 +29,7 @@ enum class NavMetadataKeys(val key: String, ) {
  * Every destination is wrapped in a [Box] tagged with a stable screen-root id so the whole
  * screen is addressable as a single resource-id in UI tests (Maestro / UiAutomator, via
  * `testTagsAsResourceId`). The tag defaults to one derived from the route type name
- * ([screenRootTag], e.g. `AppRoute.Menu.MyAccount` → `my_account_screen`); pass an explicit
+ * ([screenRootTag], e.g. `AppRoute.Menu.Settings` → `settings_screen`); pass an explicit
  * [testTag] only when a route needs an id that differs from its type name.
  *
  * Keeping the tag here — at the one place every route is registered — means screen-root
