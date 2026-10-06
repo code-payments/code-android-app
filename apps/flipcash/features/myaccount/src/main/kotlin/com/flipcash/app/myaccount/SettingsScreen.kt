@@ -51,19 +51,6 @@ fun SettingsScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<SettingsViewModel.Event.OnEditProfile>()
-            .onEach {
-                navigator.push(
-                    AppRoute.UpdateUserProfile(
-                        origin = AppRoute.Menu.Settings,
-                        steps = listOf(it.step),
-                    )
-                )
-            }.launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
             .filterIsInstance<SettingsViewModel.Event.CheckForUpdate>()
             .onEach { appUpdater.checkForUpdate() }
             .launchIn(this)

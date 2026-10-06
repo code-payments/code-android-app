@@ -7,7 +7,6 @@ import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
-import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
@@ -18,7 +17,6 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.core.R
 import com.flipcash.features.myaccount.BuildConfig
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
@@ -47,7 +45,6 @@ internal class SettingsViewModel @Inject constructor(
     private val appSettings: AppSettingsCoordinator,
     private val featureFlags: FeatureFlagController,
     userFlags: UserFlagsCoordinator,
-    userManager: UserManager,
     versionInfo: VersionInfo,
     releaseStageProvider: ReleaseStageProvider,
     private val resources: ResourceHelper,
@@ -71,8 +68,6 @@ internal class SettingsViewModel @Inject constructor(
         // Whether the version-footer override specifically is on; staff don't count toward the
         // tap-to-unlock easter egg.
         val unlockedBetaFeaturesManually: Boolean = false,
-        // Whether the account holds a handle. Changing one presupposes having one.
-        val usernameClaimed: Boolean = false,
         val flags: List<BetaFeature> = emptyList(),
         val versionTapCount: Int = 0,
         val appVersionInfo: VersionInfo = VersionInfo(),
@@ -82,7 +77,6 @@ internal class SettingsViewModel @Inject constructor(
         val sections: List<SettingsSection> = buildSections(
             biometricsSupported = true,
             betaUnlocked = false,
-            usernameClaimed = false,
             flags = emptyList(),
         ),
     )
@@ -101,11 +95,9 @@ internal class SettingsViewModel @Inject constructor(
         ) : Event
         /** Dispatched only after the screen's biometric prompt succeeds. */
         data object OnBiometricsToggled : Event
-        data class OnUsernameClaimChanged(val claimed: Boolean) : Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnReleaseTrackDetermined(val track: String) : Event
 
-        data class OnEditProfile(val step: UpdateProfileStep) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object OpenBillPlayground : Event
         data object OnAccessKeyClicked : Event
@@ -138,13 +130,6 @@ internal class SettingsViewModel @Inject constructor(
 
         featureFlags.observe()
             .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
-            .launchIn(viewModelScope)
-
-        userManager.state
-            .map { it.userProfile?.username }
-            .map { username -> !username.isNullOrBlank() }
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(Event.OnUsernameClaimChanged(it)) }
             .launchIn(viewModelScope)
 
         appSettings.settings()
@@ -287,21 +272,16 @@ internal class SettingsViewModel @Inject constructor(
 
         /**
          * Biometrics drops out on hardware that can't offer it; Beta-badged rows need the beta
-         * unlock; changing a handle needs one to already be claimed; flag-gated rows additionally
+         * unlock; flag-gated rows additionally
          * need their flag switched on server-side. Bill Customizer stays out, as it did on the
          * Advanced screen.
          */
         internal fun buildSections(
             biometricsSupported: Boolean,
             betaUnlocked: Boolean,
-            usernameClaimed: Boolean,
             flags: List<BetaFeature>,
         ): List<SettingsSection> {
             val all = listOf(
-                SettingsSection(
-                    R.string.title_settingsSectionProfile,
-                    listOf(ChangeDisplayName, ChangeUsername, ProfilePicture, MinimumTip),
-                ),
                 SettingsSection(
                     R.string.title_settingsSectionSecurity,
                     listOf(AccessKey, RequireBiometrics),
@@ -321,7 +301,6 @@ internal class SettingsViewModel @Inject constructor(
                     section.copy(
                         items = section.items
                             .filterNot { it == RequireBiometrics && !biometricsSupported }
-                            .filterNot { it == ChangeUsername && !usernameClaimed }
                             .filter { it !is StaffMenuItem<*> || betaUnlocked }
                             .filter { item ->
                                 val flag = item.featureFlag ?: return@filter true
@@ -335,14 +314,12 @@ internal class SettingsViewModel @Inject constructor(
         private fun State.rebuilt(
             biometricsSupported: Boolean = this.biometricsSupported,
             betaUnlocked: Boolean = this.betaUnlocked,
-            usernameClaimed: Boolean = this.usernameClaimed,
             flags: List<BetaFeature> = this.flags,
         ) = copy(
             biometricsSupported = biometricsSupported,
             betaUnlocked = betaUnlocked,
-            usernameClaimed = usernameClaimed,
             flags = flags,
-            sections = buildSections(biometricsSupported, betaUnlocked, usernameClaimed, flags),
+            sections = buildSections(biometricsSupported, betaUnlocked, flags),
         )
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
@@ -353,10 +330,6 @@ internal class SettingsViewModel @Inject constructor(
                 }
 
                 is Event.OnFeatureFlagsUpdated -> { state -> state.rebuilt(flags = event.flags) }
-
-                is Event.OnUsernameClaimChanged -> { state ->
-                    state.rebuilt(usernameClaimed = event.claimed)
-                }
 
                 is Event.OnBiometricsSettingChanged -> { state ->
                     state.rebuilt(biometricsSupported = event.supported).copy(
@@ -374,7 +347,6 @@ internal class SettingsViewModel @Inject constructor(
                 is Event.OnReleaseTrackDetermined -> { state -> state.copy(releaseTrack = event.track) }
 
                 Event.OnBiometricsToggled,
-                is Event.OnEditProfile,
                 is Event.OpenScreen,
                 Event.OpenBillPlayground,
                 Event.OnAccessKeyClicked,

@@ -14,6 +14,7 @@ dependencies {
 
     implementation(libs.compose.paging)
 
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:authentication"))
@@ -22,7 +23,10 @@ dependencies {
     implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:funding"))
     implementation(project(":apps:flipcash:shared:menu"))
+    implementation(project(":apps:flipcash:shared:payments"))
+    implementation(project(":apps:flipcash:shared:tokens:core"))
     implementation(project(":apps:flipcash:shared:userflags"))
 
     implementation(project(":libs:datetime"))

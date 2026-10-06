@@ -3,8 +3,6 @@ package com.flipcash.app.myaccount.internal.settings
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContactMail
 import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.outlined.AlternateEmail
-import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Palette
@@ -15,54 +13,11 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.DisplayNameSource
-import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.core.R as CoreR
 import com.flipcash.features.myaccount.R
 import com.getcode.util.resources.icons.Delete
-
-/**
- * Each profile row lands straight on the one step it is about: [AppRoute.UpdateUserProfile] walks
- * name, username, then photo, and these are single-step edits.
- */
-internal data object ChangeDisplayName : FullMenuItem<SettingsViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.Badge)
-    override val name: String
-        @Composable get() = stringResource(CoreR.string.title_displayName)
-    override val action: SettingsViewModel.Event =
-        SettingsViewModel.Event.OnEditProfile(UpdateProfileStep.Name(DisplayNameSource.MyAccount))
-}
-
-/**
- * Shown only once a handle is claimed. Claiming the first one belongs to the You tab's card, which
- * carries the minimum-balance gate; an account holding a handle has already cleared it.
- */
-internal data object ChangeUsername : FullMenuItem<SettingsViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.AlternateEmail)
-    override val name: String
-        @Composable get() = stringResource(CoreR.string.title_username)
-    override val action: SettingsViewModel.Event = SettingsViewModel.Event.OnEditProfile(UpdateProfileStep.Username)
-}
-
-internal data object ProfilePicture : FullMenuItem<SettingsViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(CoreR.drawable.ic_profile_picture)
-    override val name: String
-        @Composable get() = stringResource(CoreR.string.title_profilePicture)
-    override val action: SettingsViewModel.Event = SettingsViewModel.Event.OnEditProfile(UpdateProfileStep.Photo)
-}
-
-internal data object MinimumTip : FullMenuItem<SettingsViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(CoreR.drawable.ic_coins)
-    override val name: String
-        @Composable get() = stringResource(CoreR.string.title_minimumToChat)
-    override val action: SettingsViewModel.Event = SettingsViewModel.Event.OnEditProfile(UpdateProfileStep.MinimumTip)
-}
 
 internal data object AccessKey : FullMenuItem<SettingsViewModel.Event>() {
     override val icon: Painter

@@ -13,6 +13,8 @@ import com.flipcash.app.menu.internal.components.UsernameProgress
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.core.TotalBalanceProvider
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.app.userflags.UsernameGate
+import com.flipcash.app.userflags.usernameGate
 import com.flipcash.features.menu.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.models.UserProfile

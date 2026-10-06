@@ -10,13 +10,9 @@ import com.flipcash.app.myaccount.internal.settings.AccessKey
 import com.flipcash.app.myaccount.internal.settings.AccountInfo
 import com.flipcash.app.myaccount.internal.settings.BetaFlags
 import com.flipcash.app.myaccount.internal.settings.Blocklist
-import com.flipcash.app.myaccount.internal.settings.ChangeDisplayName
-import com.flipcash.app.myaccount.internal.settings.ChangeUsername
 import com.flipcash.app.myaccount.internal.settings.DeleteAccount
 import com.flipcash.app.myaccount.internal.settings.DeviceLogs
 import com.flipcash.app.myaccount.internal.settings.LogOut
-import com.flipcash.app.myaccount.internal.settings.MinimumTip
-import com.flipcash.app.myaccount.internal.settings.ProfilePicture
 import com.flipcash.app.myaccount.internal.settings.RequireBiometrics
 import com.flipcash.app.myaccount.internal.settings.SettingsViewModel
 import com.flipcash.app.myaccount.internal.settings.SwitchAccount
@@ -26,7 +22,6 @@ import com.flipcash.app.userflags.ResolvedFlag
 import com.flipcash.app.userflags.ResolvedUserFlags
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.core.R
-import com.flipcash.services.user.UserManager
 import com.getcode.util.resources.FakeResourceHelper
 import io.mockk.every
 import io.mockk.mockk
@@ -69,7 +64,6 @@ class SettingsViewModelTest {
         val state = SettingsViewModel.State()
         assertEquals(
             listOf(
-                R.string.title_settingsSectionProfile,
                 R.string.title_settingsSectionSecurity,
                 R.string.title_settingsSectionPrivacy,
                 R.string.title_advancedFeatures,
@@ -79,7 +73,6 @@ class SettingsViewModelTest {
         )
         assertEquals(
             listOf(
-                ChangeDisplayName, ProfilePicture, MinimumTip,
                 AccessKey, RequireBiometrics,
                 Blocklist,
                 DeviceLogs, BetaFlags,
@@ -115,19 +108,6 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `username row is absent without a claimed handle`() {
-        assertFalse(ChangeUsername in SettingsViewModel.State().items())
-    }
-
-    @Test
-    fun `username row follows the claimed handle and sits after the display name`() {
-        val state = SettingsViewModel.State().after(SettingsViewModel.Event.OnUsernameClaimChanged(true))
-        val profile = state.sections.first().items
-        assertEquals(listOf(ChangeDisplayName, ChangeUsername, ProfilePicture, MinimumTip), profile)
-        assertFalse(ChangeUsername in state.after(SettingsViewModel.Event.OnUsernameClaimChanged(false)).items())
-    }
-
-    @Test
     fun `unsupported biometrics hides the row`() {
         val state = SettingsViewModel.State().after(
             SettingsViewModel.Event.OnBiometricsSettingChanged(required = false, supported = false, available = false),
@@ -140,11 +120,9 @@ class SettingsViewModelTest {
     fun `later events keep earlier conditions`() {
         val state = SettingsViewModel.State().after(
             SettingsViewModel.Event.OnBiometricsSettingChanged(required = true, supported = false, available = false),
-            SettingsViewModel.Event.OnUsernameClaimChanged(true),
             SettingsViewModel.Event.OnBetaFeaturesUnlocked(true, manual = true),
         )
         assertFalse(RequireBiometrics in state.items())
-        assertTrue(ChangeUsername in state.items())
         assertTrue(SwitchAccount in state.items())
     }
 
@@ -194,14 +172,11 @@ class SettingsViewModelTest {
         val appSettings = mockk<AppSettingsCoordinator>(relaxed = true)
         every { appSettings.settings() } returns emptyFlow()
 
-        val userManager = mockk<UserManager>(relaxed = true)
-        every { userManager.state } returns MutableStateFlow(UserManager.State())
 
         return SettingsViewModel(
             appSettings = appSettings,
             featureFlags = featureFlags,
             userFlags = userFlags,
-            userManager = userManager,
             versionInfo = VersionInfo("1.0", 1),
             releaseStageProvider = mockk<ReleaseStageProvider>(relaxed = true),
             resources = FakeResourceHelper(),

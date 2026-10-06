@@ -666,7 +666,6 @@
     <string name="title_settingsSectionContracts">Contracts</string>
     <string name="subtitle_settingsUserFlags">User Flags</string>
     <string name="title_settingsSectionAccount">Account</string>
-    <string name="title_settingsSectionProfile">Profile</string>
     <string name="title_settingsSectionSecurity">Security</string>
     <string name="title_settingsSectionPrivacy">Privacy</string>
     <string name="title_userFlags">User Flags</string>
@@ -1340,6 +1339,11 @@
     <!-- You tab (tip card) -->
     <string name="action_editProfile">Edit Profile</string>
     <string name="action_claimYourUsernameLink">Claim your username ›</string>
+    <string name="action_changePhoto">Change photo</string>
+    <string name="label_editProfileName">Name</string>
+    <string name="placeholder_editProfileName">Add a name</string>
+    <string name="action_claimUsername">Claim your username</string>
+    <string name="placeholder_minimumToChat">Not set</string>
     <string name="title_shareUserProfile">Share User Profile</string>
     <!-- Who the share sheet is for: display name, then @handle -->
     <string name="subtitle_shareUserProfile">%1$s · @%2$s</string>

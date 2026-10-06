@@ -1,4 +1,4 @@
-package com.flipcash.app.menu.internal
+package com.flipcash.app.userflags
 
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.minus
@@ -15,7 +15,7 @@ import com.getcode.opencode.model.financial.minus
  *
  * Mirrors iOS `usernameGate(session:minimum:)` in `UsernameGate.swift`.
  */
-internal sealed interface UsernameGate {
+sealed interface UsernameGate {
     /**
      * A handle the user chose is already claimed — the nudge is spent, and changing it lives in
      * My Account. A handle the server assigned does not count: the user hasn't picked it.
@@ -44,7 +44,7 @@ internal sealed interface UsernameGate {
  * @param minimum the balance the account must hold to claim, from the `usernameMinBalance` flag.
  * @param balance the account's total balance, in the same currency as [minimum].
  */
-internal fun usernameGate(
+fun usernameGate(
     username: String?,
     isAutoAssigned: Boolean,
     minimum: Fiat,
