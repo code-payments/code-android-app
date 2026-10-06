@@ -136,6 +136,12 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex LIMIT 1")
     suspend fun getByClientId(chatIdHex: String, clientIdHex: String): ChatMessageEntity?
 
+    @Query("""
+        SELECT EXISTS(SELECT 1 FROM chat_messages
+        WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND message_id != :messageId)
+    """)
+    suspend fun isClientIdHeldElsewhere(chatIdHex: String, clientIdHex: String, messageId: Long): Boolean
+
     /** The newest [limit] confirmed messages [selfIdHex] sent in [chatIdHex]. */
     @Query("""
         SELECT * FROM chat_messages
@@ -256,6 +262,14 @@ interface ChatMessageDao {
         var merged = if (existingPendingId != null && entity.pendingClientIdHex == null) {
             entity.copy(pendingClientIdHex = existingPendingId)
         } else entity
+
+        // One row per client id per chat. The id is the transcript's item key, and two rows under
+        // one key crash the list on every open. The write that would add a second holder keeps the
+        // row's own stored id, or none.
+        val claimedId = merged.pendingClientIdHex
+        if (claimedId != null && isClientIdHeldElsewhere(merged.chatIdHex, claimedId, merged.messageId)) {
+            merged = merged.copy(pendingClientIdHex = existingPendingId?.takeIf { it != claimedId })
+        }
 
         // Reactions: never let this write clobber a newer confirmed reaction with an older or
         // absent one. mergeReactionsJson keeps the stored side when entity carries none, and

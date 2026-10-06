@@ -372,6 +372,53 @@ class ChatMessageDaoTest {
         assertEquals(MessageStatus.SENT, dao.getMessage(CHAT_HEX, 1)?.status)
     }
 
+    // region One row per client id
+
+    /**
+     * The client id is the transcript's item key. A second row under it puts two items under one
+     * key in the LazyColumn, which throws on every open of the chat (Bugsnag 6ac2ccde).
+     */
+    @Test
+    fun `a write cannot give a client id to a second row`() = runTest {
+        dao.upsert(text(1, "confirmed send").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.upsert(text(2, "someone else's claim").copy(pendingClientIdHex = CLIENT_HEX))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `a refused claim leaves the row's own client id in place`() = runTest {
+        dao.upsert(text(1, "confirmed send").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.upsert(text(2, "other send").copy(pendingClientIdHex = "aaaa"))
+
+        dao.upsert(text(2, "edited").copy(pendingClientIdHex = CLIENT_HEX))
+
+        assertEquals("aaaa", dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `a row keeps its own client id when it is rewritten`() = runTest {
+        dao.upsert(text(1, "sent").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.upsert(text(1, "edited"))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `the same client id in another chat is not a conflict`() = runTest {
+        dao.upsert(text(1, "here").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.upsert(text(1, "there").copy(chatIdHex = OTHER_HEX, pendingClientIdHex = CLIENT_HEX))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(OTHER_HEX, 1)?.pendingClientIdHex)
+    }
+
+    // endregion
+
     // region Reactions
 
     private fun reactionsJson(vararg entries: Pair<String, Long>) = reactionJsonCodec.encodeToString(
