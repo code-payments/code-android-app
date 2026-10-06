@@ -14,4 +14,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":services:flipcash"))
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
 }

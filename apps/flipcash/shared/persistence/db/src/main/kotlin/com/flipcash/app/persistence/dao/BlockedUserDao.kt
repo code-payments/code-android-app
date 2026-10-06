@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import kotlinx.coroutines.flow.Flow
 import com.flipcash.app.persistence.entities.BlockedUserEntity
 import com.flipcash.app.persistence.entities.BlockedUserWithProfile
 
@@ -20,6 +21,10 @@ interface BlockedUserDao {
     @Transaction
     @Query("SELECT * FROM blocked_users ORDER BY blocked_at_epoch_ms DESC")
     suspend fun getAll(): List<BlockedUserWithProfile>
+
+    /** Emits whether [userIdHex] is on the cached blocklist, and again whenever that changes. */
+    @Query("SELECT EXISTS(SELECT 1 FROM blocked_users WHERE user_id_hex = :userIdHex)")
+    fun observeIsBlocked(userIdHex: String): Flow<Boolean>
 
     @Transaction
     @Insert(onConflict = OnConflictStrategy.REPLACE)

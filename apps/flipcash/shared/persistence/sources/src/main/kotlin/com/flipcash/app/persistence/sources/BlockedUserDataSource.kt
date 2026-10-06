@@ -4,6 +4,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.room.withTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.entities.BlockedUserEntity
 import com.flipcash.app.persistence.entities.BlockedUserWithProfile
 import com.flipcash.app.persistence.sources.mapper.blocklist.BlockedUserEntityToProfileMapper
 import com.flipcash.app.persistence.sources.mapper.blocklist.BlockedUserToEntityMapper
@@ -11,6 +12,8 @@ import com.flipcash.app.persistence.sources.mapper.blocklist.ResolvedBlockedUser
 import com.flipcash.app.core.blocklist.BlockedUserProfile
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.hexEncodedString
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,6 +34,10 @@ class BlockedUserDataSource @Inject constructor(
                 LoadResult.Error(IllegalStateException("Database not initialized"))
         }
     }
+
+    /** Whether [userId] is blocked; `false` until the database is initialized. */
+    fun observeIsBlocked(userId: ID): Flow<Boolean> =
+        db?.blockedUserDao()?.observeIsBlocked(userId.hexEncodedString()) ?: flowOf(false)
 
     fun toProfile(entity: BlockedUserWithProfile): BlockedUserProfile = toProfileMapper.map(entity)
 
@@ -53,6 +60,16 @@ class BlockedUserDataSource @Inject constructor(
 
     suspend fun clear() {
         db?.blockedUserDao()?.deleteAll()
+    }
+
+    /**
+     * Records a block the user just made, so [observeIsBlocked] flips without waiting for the next
+     * blocklist refresh. Only the blocklist row is written; the profile fills in on refresh.
+     */
+    suspend fun insert(userId: ID, blockedAtEpochMs: Long) {
+        db?.blockedUserDao()?.upsert(
+            listOf(BlockedUserEntity(userId.hexEncodedString(), blockedAtEpochMs))
+        )
     }
 
     suspend fun delete(userId: ID) {
