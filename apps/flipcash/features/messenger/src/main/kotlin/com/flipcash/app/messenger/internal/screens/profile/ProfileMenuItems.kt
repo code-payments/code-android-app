@@ -5,6 +5,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.flipcash.features.messenger.R
@@ -48,16 +49,17 @@ internal fun ProfileMenu(
     expanded: Boolean,
     items: List<ChatProfileAction>,
     isMuted: Boolean,
+    anchorHeight: Dp,
     onDismiss: () -> Unit,
     onItem: (ChatProfileAction) -> Unit,
 ) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        // Same surface as the chat's overflow menu, dropped clear of the button.
+        // Same surface as the chat's overflow menu, opened over the button that anchors it.
         containerColor = CodeTheme.colors.brandLight,
         shape = CodeTheme.shapes.extraLarge,
-        offset = DpOffset(x = 0.dp, y = CodeTheme.dimens.grid.x2),
+        offset = DpOffset(x = 0.dp, y = -anchorHeight),
     ) {
         items.forEach { item ->
             DropdownMenuItem(
@@ -65,7 +67,7 @@ internal fun ProfileMenu(
                     Text(
                         text = stringResource(item.labelRes(isMuted)),
                         style = CodeTheme.typography.textSmall,
-                        color = if (item.isDestructive) CodeTheme.colors.error else CodeTheme.colors.textMain,
+                        color = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain,
                     )
                 },
                 onClick = {

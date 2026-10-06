@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
@@ -193,7 +195,9 @@ internal fun PersonProfileScreen(
                 hazeState = hazeState,
                 endContent = {
                     if (person != null && !isSelf) {
-                        Box {
+                        val density = LocalDensity.current
+                        var menuAnchorHeight by remember { mutableStateOf(0.dp) }
+                        Box(modifier = Modifier.onSizeChanged { menuAnchorHeight = with(density) { it.height.toDp() } }) {
                             CircularIconButton(hazeState = hazeState, onClick = { menuOpen = true }) { size ->
                                 Icon(
                                     imageVector = Icons.Rounded.MoreVert,
@@ -206,6 +210,7 @@ internal fun PersonProfileScreen(
                                 expanded = menuOpen,
                                 items = state.menuItems,
                                 isMuted = state.isMuted,
+                                anchorHeight = menuAnchorHeight,
                                 onDismiss = { menuOpen = false },
                                 onItem = { item ->
                                     when (item) {
