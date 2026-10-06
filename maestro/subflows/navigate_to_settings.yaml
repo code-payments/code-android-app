@@ -1,0 +1,8 @@
+appId: com.flipcash.app.android
+---
+- runFlow: navigate_to_menu.yaml
+# The gear is the You tab's only route to Settings; its content description is "Settings".
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible:
+      id: settings_screen

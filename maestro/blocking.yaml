@@ -28,16 +28,12 @@ tags:
 - tapOn: { text: "^Block$" }
 - extendedWaitUntil: { visible: { id: chats_screen }, timeout: 8000 }
 
-# Verify they appear in My Account -> Blocked. Chats is a root tab, so the You tab is one tap
+# Verify they appear in Settings -> Blocked. Chats is a root tab, so the You tab is one tap
 # away rather than behind a sheet dismiss.
 - tapOn: { id: nav_tipcard }
 - extendedWaitUntil: { visible: { id: menu_screen }, timeout: 8000 }
-# The You tab leads with the tip card, so the list rows sit below the fold.
-- scrollUntilVisible:
-    element: "My Account"
-    direction: DOWN
-- tapOn: "My Account"
-- extendedWaitUntil: { visible: { id: my_account_screen }, timeout: 8000 }
+- tapOn: "Settings"
+- extendedWaitUntil: { visible: { id: settings_screen }, timeout: 8000 }
 - tapOn: "Blocked"
 - extendedWaitUntil: { visible: { id: blocklist_screen }, timeout: 8000 }
 - assertVisible: "${CONTACT_NAME}"

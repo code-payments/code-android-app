@@ -46,7 +46,7 @@ inline fun <reified T : NavKey> EntryProviderScope<NavKey>.annotatedEntry(
 
 /**
  * Derives a screen-root test id from a route's simple type name: CamelCase becomes
- * snake_case with a `_screen` suffix (e.g. `MyAccount` → `my_account_screen`,
+ * snake_case with a `_screen` suffix (e.g. `UserProfile` → `user_profile_screen`,
  * `Scanner` → `scanner_screen`).
  */
 fun screenRootTag(simpleName: String?): String {

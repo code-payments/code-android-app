@@ -1,31 +1,21 @@
 appId: com.flipcash.app.android
-name: "Screenshots: Advanced Features"
+name: "Screenshots: Settings (bottom)"
 tags:
   - screenshot
 ---
 - runFlow: ../../subflows/login_with_deeplink.yaml
 
-# Screenshot: Advanced Features
-- runFlow: ../../subflows/navigate_to_advanced_features.yaml
+# Screenshot: the lower half of Settings, past the account rows.
+- runFlow: ../../subflows/navigate_to_settings.yaml
+- scrollUntilVisible:
+    element:
+      text: "Version .*"
+    direction: DOWN
+    timeout: 20000
 - runFlow:
     file: ../../helpers/screenshot.yaml
     env:
-      SCREENSHOT_NAME: advanced_features_screen
-
-# Navigate to Deposit from Advanced Features
-- tapOn: Deposit Funds
-- extendedWaitUntil:
-    visible:
-      text: Select Currency
-- tapOn: Float
-- extendedWaitUntil:
-    visible:
-      id: deposit_screen
-- runFlow:
-    file: ../../helpers/screenshot.yaml
-    env:
-      SCREENSHOT_NAME: deposit_screen
+      SCREENSHOT_NAME: settings_bottom_screen
 
 # Return to scanner
-- back
 - runFlow: ../../subflows/return_to_scanner.yaml
