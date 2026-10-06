@@ -100,14 +100,19 @@ fun TokenCoordinator.groupAccess(
     .distinctUntilChanged()
 
 /**
- * Whether the viewer may speak here: every speaker rule holds, as measured by the same predicate
- * the listener gate uses.
+ * Whether the viewer may speak here: every listener rule and every speaker rule holds, as measured
+ * by the same predicate the listener gate uses.
+ *
+ * Speaking implies listening, so the listener bar applies to speaking too. A group with no speaker
+ * rules is gated by its listener rules alone, which the server treats as the speaker rules when
+ * none are set. This matches iOS's `ConversationGate`, whose speaker verdict is taken over the
+ * unmet listener and speaker rules together.
  *
  * Independent of [GroupAccess] on purpose. That type answers "may this viewer read and join", and
  * membership settles it before any rule is looked at; speaking is a second question asked of
- * someone already in the chat, and a member whose balance has dipped below a speaker bar is still a
- * member. [ChatRuleRequirement.Never] is never satisfied, so a chat with a `never` speaker rule is
- * read-only for everyone.
+ * someone already in the chat. A member whose balance has dipped below the listener or speaker bar
+ * is still a member and can still read, but may not post. [ChatRuleRequirement.Never] is never
+ * satisfied, so a chat with a `never` speaker rule is read-only for everyone.
  *
  * Callers combine this with membership themselves: a chat the viewer is outside of has no
  * composer to gate, and whether they may post there is already decided by `canPost`.
@@ -121,11 +126,11 @@ fun canSpeak(
 ): Boolean = unmetSpeakerRequirement(rules, balances, isStaff, viewerId, creatorId) == null
 
 /**
- * The speaker requirement to name when the viewer may not speak, or null when they may.
+ * The requirement to name when the viewer may not speak, or null when they may.
  *
- * Picks the way iOS's `ConversationGate` does: the first unmet minimum balance, since it is the
- * only requirement a viewer can act on, falling back to the first unmet rule. A met rule is never
- * named.
+ * Picks the way iOS's `ConversationGate` does: across the unmet listener rules then the unmet
+ * speaker rules, the first minimum balance, since it is the only requirement a viewer can act on,
+ * falling back to the first unmet rule. A met rule is never named.
  */
 fun unmetSpeakerRequirement(
     rules: ChatRules?,
@@ -140,16 +145,17 @@ fun unmetSpeakerRequirement(
  * rule also takes reactions away.
  *
  * Posting (the composer and Reply) is withheld whenever a block exists. Reactions are withheld
- * only when an unmet rule has [blocksReactions], so `creator` alone leaves them on while
- * `creator` + `staff` turns them off. [reactionsBlocked] looks at every unmet rule, not just the
- * named one, because the named one is chosen for what the viewer can act on.
+ * when any listener rule is unmet, or when an unmet speaker rule has [blocksReactions], so
+ * `creator` alone leaves them on while `creator` + `staff` turns them off. [reactionsBlocked]
+ * looks at every unmet rule, not just the named one, because the named one is chosen for what the
+ * viewer can act on.
  */
 data class SpeakerBlock(
     val requirement: ChatRuleRequirement,
     val reactionsBlocked: Boolean,
 )
 
-/** The [SpeakerBlock] for the viewer, or null when every speaker rule holds. */
+/** The [SpeakerBlock] for the viewer, or null when every listener and speaker rule holds. */
 fun resolveSpeakerBlock(
     rules: ChatRules?,
     balances: List<TokenWithBalance>,
@@ -157,10 +163,15 @@ fun resolveSpeakerBlock(
     viewerId: ID? = null,
     creatorId: ID? = null,
 ): SpeakerBlock? {
-    val unmet = rules?.speaker.orEmpty().filter { it.isUnmet(balances, isStaff, viewerId, creatorId) }
+    // Listener rules are measured without the ids, as the listener gate measures them.
+    val listenerUnmet = rules?.listener.orEmpty().filter { it.isUnmet(balances, isStaff) }
+    val speakerUnmet = rules?.speaker.orEmpty().filter { it.isUnmet(balances, isStaff, viewerId, creatorId) }
+    val unmet = listenerUnmet + speakerUnmet
     val named = unmet.firstOrNull { it is ChatRuleRequirement.MinimumBalance } ?: unmet.firstOrNull()
         ?: return null
-    return SpeakerBlock(requirement = named, reactionsBlocked = unmet.any { it.blocksReactions })
+    // As iOS: any unmet listener rule takes reactions away, whatever kind it is.
+    val reactionsBlocked = listenerUnmet.isNotEmpty() || speakerUnmet.any { it.blocksReactions }
+    return SpeakerBlock(requirement = named, reactionsBlocked = reactionsBlocked)
 }
 
 /**

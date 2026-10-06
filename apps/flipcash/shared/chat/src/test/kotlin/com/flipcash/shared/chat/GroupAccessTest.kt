@@ -345,11 +345,50 @@ class GroupAccessTest {
     fun `no speaker rules means the viewer may speak`() {
         assertEquals(true, canSpeak(rules = null, balances = emptyList(), isStaff = false))
         assertEquals(true, canSpeak(rules = speaker(), balances = emptyList(), isStaff = false))
-        // Listener rules are not speaker rules.
+    }
+
+    @Test
+    fun `with no speaker rules an unmet listener rule silences the viewer`() {
+        val bar = ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys))
+        val listenerOnly = rules(bar)
+
+        assertEquals(false, canSpeak(listenerOnly, listOf(held(1, "BadBoys", 100.0)), isStaff = false))
+        assertEquals(bar, unmetSpeakerRequirement(listenerOnly, listOf(held(1, "BadBoys", 100.0)), isStaff = false))
         assertEquals(
             true,
-            canSpeak(rules(ChatRuleRequirement.Staff), emptyList(), isStaff = false),
+            resolveSpeakerBlock(listenerOnly, listOf(held(1, "BadBoys", 100.0)), isStaff = false)?.reactionsBlocked,
         )
+    }
+
+    @Test
+    fun `with no speaker rules a met listener rule lets the viewer speak`() {
+        val listenerOnly = rules(ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys)))
+
+        assertEquals(true, canSpeak(listenerOnly, listOf(held(1, "BadBoys", 600.0)), isStaff = false))
+        assertEquals(null, resolveSpeakerBlock(listenerOnly, listOf(held(1, "BadBoys", 600.0)), isStaff = false))
+    }
+
+    @Test
+    fun `a met listener rule leaves the unmet speaker minimum to be named`() {
+        val listenerBar = ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))
+        val speakerBar = ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys))
+        val both = ChatRules(listener = listOf(listenerBar), speaker = listOf(speakerBar))
+
+        assertEquals(speakerBar, unmetSpeakerRequirement(both, listOf(held(1, "BadBoys", 200.0)), isStaff = false))
+    }
+
+    @Test
+    fun `an unmet listener rule takes reactions away even when it is not the named one`() {
+        // Staff withholds reactions anyway, so use a listener staff rule beside a speaker creator
+        // rule: creator alone would leave reactions on.
+        val rules = ChatRules(
+            listener = listOf(ChatRuleRequirement.Staff),
+            speaker = listOf(ChatRuleRequirement.Creator),
+        )
+        val block = resolveSpeakerBlock(rules, emptyList(), isStaff = false, viewerId = List(32) { 9 }, creatorId = List(32) { 7 })
+
+        assertEquals(ChatRuleRequirement.Staff, block?.requirement)
+        assertEquals(true, block?.reactionsBlocked)
     }
 
     @Test
