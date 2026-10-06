@@ -74,9 +74,10 @@ internal const val PHOTO_PROGRESS_MIN_VISIBLE_MILLIS = 600L
  * The capsule at the bottom-end of a photo bubble that shows an upload's progress. Fill the
  * bubble's box with it; it positions itself.
  *
- * [ChatPhotoPhase.Preparing] is an empty track, [ChatPhotoPhase.Uploading] a fill that follows the
- * byte fraction, [ChatPhotoPhase.Processing] and [ChatPhotoPhase.Sending] a segment 35% of the track
- * sliding across it. [ChatPhotoPhase.Sent] fades the capsule out; [ChatPhotoPhase.Failed] removes it
+ * [ChatPhotoPhase.Uploading] with bytes sent is a fill that follows the byte fraction. Every phase
+ * without a byte count yet ([ChatPhotoPhase.Preparing], an upload before its first bytes,
+ * [ChatPhotoPhase.Processing], [ChatPhotoPhase.Sending]) is a segment 35% of the track sliding
+ * across it. [ChatPhotoPhase.Sent] fades the capsule out; [ChatPhotoPhase.Failed] removes it
  * immediately. With [reduceMotion] nothing animates: the fill jumps, the indeterminate segment sits
  * still and the fade is a cut.
  */
@@ -103,6 +104,7 @@ fun ChatPhotoProgressOverlay(
     )
     if (phase == ChatPhotoPhase.Failed || (sent && alpha == 0f)) return
 
+    val bytes = (phase as? ChatPhotoPhase.Uploading)?.fraction?.coerceIn(0f, 1f)?.takeIf { it > 0f }
     val description = stringResource(R.string.description_chatPhotoUploadProgress)
     val grid = CodeTheme.dimens.staticGrid
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
@@ -117,29 +119,27 @@ fun ChatPhotoProgressOverlay(
                 .testTag(PHOTO_PROGRESS_TAG)
                 .semantics {
                     contentDescription = description
-                    if (phase is ChatPhotoPhase.Uploading) {
-                        progressBarRangeInfo =
-                            ProgressBarRangeInfo(phase.fraction.coerceIn(0f, 1f), 0f..1f)
+                    progressBarRangeInfo = when {
+                        bytes != null -> ProgressBarRangeInfo(bytes, 0f..1f)
+                        phase == ChatPhotoPhase.Sent -> ProgressBarRangeInfo(1f, 0f..1f)
+                        else -> ProgressBarRangeInfo.Indeterminate
                     }
                 },
         ) {
-            when (phase) {
-                is ChatPhotoPhase.Uploading -> {
+            when {
+                bytes != null -> {
                     val fraction by animateFloatAsState(
-                        targetValue = phase.fraction.coerceIn(0f, 1f),
+                        targetValue = bytes,
                         animationSpec = if (reduceMotion) snap() else tween(FRACTION_MILLIS),
                         label = "photoProgressFraction",
                     )
                     Fill(widthFraction = { fraction }, offsetFraction = { 0f })
                 }
 
-                ChatPhotoPhase.Processing, ChatPhotoPhase.Sending ->
-                    IndeterminateSegment(reduceMotion)
-
                 // Hold a full bar while the capsule fades.
-                ChatPhotoPhase.Sent -> Fill(widthFraction = { 1f }, offsetFraction = { 0f })
+                phase == ChatPhotoPhase.Sent -> Fill(widthFraction = { 1f }, offsetFraction = { 0f })
 
-                ChatPhotoPhase.Preparing, ChatPhotoPhase.Failed -> Unit
+                else -> IndeterminateSegment(reduceMotion)
             }
         }
     }

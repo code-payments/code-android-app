@@ -6,10 +6,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.doubleClick
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -41,17 +44,30 @@ class ChatPhotoMediaUiTest {
     }
 
     @Test
-    fun overlayShowsWhileUploading() {
+    fun overlayShowsByteProgressWhileUploading() {
         setOverlay(ChatPhotoPhase.Uploading(0.4f))
         rule.onNodeWithTag(PHOTO_PROGRESS_TAG).assertIsDisplayed()
+            .assert(hasProgressBarRangeInfo(ProgressBarRangeInfo(0.4f, 0f..1f)))
         rule.onNodeWithTag(PHOTO_PROGRESS_FILL_TAG).assertExists()
     }
 
     @Test
-    fun overlayShowsEmptyTrackWhilePreparing() {
-        setOverlay(ChatPhotoPhase.Preparing)
+    fun overlayIsIndeterminateWhilePreparing() = assertIndeterminate(ChatPhotoPhase.Preparing)
+
+    @Test
+    fun overlayIsIndeterminateBeforeTheFirstBytes() = assertIndeterminate(ChatPhotoPhase.Uploading(0f))
+
+    @Test
+    fun overlayIsIndeterminateWhileProcessing() = assertIndeterminate(ChatPhotoPhase.Processing)
+
+    @Test
+    fun overlayIsIndeterminateWhileSending() = assertIndeterminate(ChatPhotoPhase.Sending)
+
+    private fun assertIndeterminate(phase: ChatPhotoPhase) {
+        setOverlay(phase)
         rule.onNodeWithTag(PHOTO_PROGRESS_TAG).assertIsDisplayed()
-        rule.onNodeWithTag(PHOTO_PROGRESS_FILL_TAG).assertDoesNotExist()
+            .assert(hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate))
+        rule.onNodeWithTag(PHOTO_PROGRESS_FILL_TAG).assertExists()
     }
 
     @Test
