@@ -128,7 +128,7 @@ internal class AppRouter(
             is DeeplinkType.EmailVerification -> resolveEmailVerification(type)
 
             is DeeplinkType.TipChat -> DeeplinkAction.Navigate(
-                listOf(AppRoute.Tabs.Chats, AppRoute.Messaging.Chat(type.identifier))
+                listOf(AppRoute.Tabs.Chats, AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(type.chatId)))
             )
 
             // The same destination a group push tap resolves to (see ChatTapTargetPlanner): the
@@ -413,7 +413,7 @@ private fun DeepLink.handleTipChat(): DeeplinkType.TipChat? {
     val chatTarget = uri.pathSegments.getOrNull(2) ?: return null
     val chatId = ChatId(chatTarget.decodeBase64UrlSafe().toList())
 
-    return DeeplinkType.TipChat(ChatIdentifier.ByChatId(chatId))
+    return DeeplinkType.TipChat(chatId)
 }
 
 /**

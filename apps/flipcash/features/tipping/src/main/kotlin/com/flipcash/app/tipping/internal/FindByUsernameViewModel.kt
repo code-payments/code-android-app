@@ -7,6 +7,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.features.tipping.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.user.UserManager
@@ -44,9 +45,11 @@ internal class FindByUsernameViewModel @Inject constructor(
     private val userManager: UserManager,
     private val dmDestinations: DmDestinationResolver,
     private val resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel<FindByUsernameViewModel.State, FindByUsernameViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val usernameFieldState: TextFieldState = TextFieldState(),

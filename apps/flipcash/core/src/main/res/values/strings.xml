@@ -1263,9 +1263,6 @@
     <string name="action_showTipCard">Show My Tip Card</string>
     <string name="action_sendToStartChatting">Send %1$s to Start Chatting</string>
     <string name="action_swipeToTip">Swipe to Tip</string>
-    <string name="subtitle_tipHintMinimum">%1$s minimum</string>
-    <string name="error_title_tipMinimum">%1$s Minimum Tip</string>
-    <string name="error_description_tipMinimum">Please enter a higher amount</string>
     <string name="label_viaTipCard">via Tip Card</string>
 
     <!-- Minimum-to-chat entry (nodes 9541:10951, 9553:113170, 10074:18892). Backed by the

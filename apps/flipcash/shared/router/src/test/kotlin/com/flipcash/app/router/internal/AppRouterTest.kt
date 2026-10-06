@@ -356,9 +356,7 @@ class AppRouterTest {
     fun `classify recognizes tip chat deeplink and round-trips the chat id`() {
         val type = router.classify(DeepLink(Linkify.tipChatById(sampleChatId)))
         assertIs<DeeplinkType.TipChat>(type)
-        val identifier = type.identifier
-        assertIs<ChatIdentifier.ByChatId>(identifier)
-        assertEquals(sampleChatId, identifier.chatId)
+        assertEquals(sampleChatId, type.chatId)
     }
 
     @Test

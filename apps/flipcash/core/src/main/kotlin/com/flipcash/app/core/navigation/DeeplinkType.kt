@@ -19,7 +19,7 @@ sealed interface DeeplinkType: Parcelable {
 
     @Serializable data class TokenInfo(val mint: Mint): DeeplinkType, Navigatable
 
-    @Serializable data class TipChat(val identifier: ChatIdentifier): DeeplinkType, Navigatable
+    @Serializable data class TipChat(val chatId: ChatId): DeeplinkType, Navigatable
 
     /**
      * A group chat invite — `app.flipcash.com/chat/{uuid}`.

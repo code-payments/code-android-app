@@ -148,7 +148,7 @@ maestro/run.sh maestro/tipping_setup.yaml
   that is tappable
 - `blocking.yaml` — block a chat participant from their profile, verify in Settings →
   Blocked, then unblock (leaves the account clean)
-- `tip_deeplink.yaml` — open a tip-card deeplink (`TIPCARD_DEEPLINK`) → presents the tip flow
+- `tip_deeplink.yaml` — open a tip-card deeplink (`TIPCARD_DEEPLINK`) → lands on that person's profile
   (waits for balances to sync first, else the empty-cache state trips the add-money gate)
 - `vanity_deeplink_self.yaml` — `flipcash.com/{LOGIN_USERNAME}` followed by the account that owns
   that handle → the You tab, not a tip card. Opens from cold on purpose: the handle-based
