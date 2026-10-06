@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -95,6 +96,7 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  * @param frame the photo's rect, corners and the opacities, read at layout and draw time so a
  * host can animate them without recomposing. Null fills the container.
  * @param interactive false while the host is closing the viewer: touches and buttons do nothing.
+ * @param onPainter receives the painter the photo is drawn with, for a host that draws a copy of it.
  */
 @Composable
 fun ChatMediaViewer(
@@ -111,6 +113,7 @@ fun ChatMediaViewer(
     onPull: ((Offset) -> Unit)? = null,
     onPullEnd: ((Offset) -> Unit)? = null,
     interactive: Boolean = true,
+    onPainter: ((Painter) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val dragY = remember { Animatable(0f) }
@@ -130,6 +133,7 @@ fun ChatMediaViewer(
             }
         },
     )
+    if (onPainter != null) SideEffect { onPainter(painter) }
 
     Box(
         modifier = modifier
@@ -257,7 +261,8 @@ fun ChatMediaViewer(
                         translationY = zoomState.offset.y + if (frame == null) dragY.value else 0f
                         if (frame != null) {
                             val f = frame()
-                            alpha = f.contentAlpha
+                            // The transcript draws the rest, under the chat's bars.
+                            alpha = f.contentAlpha * (1f - f.handoff)
                             val c = f.corners
                             shape = RoundedCornerShape(c.topStart, c.topEnd, c.bottomEnd, c.bottomStart)
                             clip = !c.isSquare

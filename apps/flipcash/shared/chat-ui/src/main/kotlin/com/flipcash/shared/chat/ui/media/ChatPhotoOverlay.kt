@@ -17,6 +17,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -196,6 +197,12 @@ fun ChatPhotoOverlay(
         sources.hiddenId = messageId
         onDispose { if (sources.hiddenId == messageId) sources.hiddenId = null }
     }
+    var painter by remember(messageId) { mutableStateOf<Painter?>(null) }
+    DisposableEffect(sources, presentation, painter) {
+        val landing = painter?.let { ChatPhotoLanding(it, presentation::frame) { presentation.origin } }
+        sources.landing = landing
+        onDispose { if (sources.landing === landing) sources.landing = null }
+    }
     LaunchedEffect(presentation) { presentation.open() }
     BackHandler { presentation.dismiss() }
 
@@ -227,6 +234,7 @@ fun ChatPhotoOverlay(
             onPull = presentation::onPull,
             onPullEnd = presentation::onPullEnd,
             interactive = !presentation.closing,
+            onPainter = { painter = it },
         )
     }
 }
