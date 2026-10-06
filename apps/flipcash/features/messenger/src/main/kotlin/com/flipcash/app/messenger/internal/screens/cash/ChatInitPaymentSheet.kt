@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenSelectionPill
-import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.features.messenger.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.Token
@@ -25,7 +24,7 @@ import com.getcode.theme.White10
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -39,21 +38,23 @@ import kotlinx.coroutines.flow.onEach
  *
  * @param fee the fee, already formatted in the sender's preferred currency. Null while it resolves,
  * which the conversation gates on before opening this sheet.
+ * @param sendComplete emits once the send has finished, for a host that hears about it as an event
+ * and wants [onSendComplete] to follow. A host that already knows (the profile, which holds the
+ * sheet itself) leaves it empty.
  */
 @Composable
 internal fun ChatInitPaymentSheet(
     fee: String?,
     token: Token?,
     sendProgress: LoadingSuccessState,
-    eventFlow: Flow<ChatViewModel.Event>,
     onConfirm: () -> Unit,
     onSendComplete: () -> Unit,
+    sendComplete: Flow<Unit> = emptyFlow(),
 ) {
     val navigator = LocalCodeNavigator.current
 
-    LaunchedEffect(eventFlow) {
-        eventFlow
-            .filterIsInstance<ChatViewModel.Event.SendComplete>()
+    LaunchedEffect(sendComplete) {
+        sendComplete
             .onEach { onSendComplete() }
             .launchIn(this)
     }

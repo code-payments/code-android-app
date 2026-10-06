@@ -260,9 +260,11 @@ private fun FlowInitPaymentScreen() {
         fee = state.chatInitFee,
         token = state.token,
         sendProgress = state.sendProgress,
-        eventFlow = viewModel.eventFlow,
         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnInitPaymentConfirmed) },
         onSendComplete = { resultBack.returnValue(ChatSendResult) },
+        sendComplete = remember(viewModel) {
+            viewModel.eventFlow.filterIsInstance<ChatViewModel.Event.SendComplete>().map { }
+        },
     )
 }
 
@@ -313,13 +315,28 @@ private fun FlowGroupInviteSheet() {
 @Composable
 private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileOrigin) {
     val viewModel = flowSharedViewModel<ChatProfileViewModel>()
+    val chatViewModel = flowSharedViewModel<ChatViewModel>()
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val rootNavigator = LocalCodeNavigator.current
 
     LaunchedEffect(viewModel, participant) {
         viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant))
     }
 
-    ChatProfileScreen(viewModel, flowSharedViewModel<ChatViewModel>(), origin)
+    ChatProfileScreen(
+        viewModel = viewModel,
+        chatViewModel = flowSharedViewModel<ChatViewModel>(),
+        origin = origin,
+        onOpenChat = { chatId ->
+            val chatState = chatViewModel.stateFlow.value
+            if (origin == ProfileOrigin.Chat && chatState.chatId == chatId) {
+                // The chat is the one underneath: back to it rather than a second copy.
+                flowNavigator.back()
+            } else {
+                rootNavigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId)))
+            }
+        },
+    )
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow

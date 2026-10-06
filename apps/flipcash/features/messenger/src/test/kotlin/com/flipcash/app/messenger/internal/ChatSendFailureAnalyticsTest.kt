@@ -9,7 +9,7 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.contacts.DeviceContact
-import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
 import com.flipcash.app.session.CashLinkClaims
@@ -83,7 +83,10 @@ class ChatSendFailureAnalyticsTest {
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val exchange = mockk<Exchange>(relaxed = true)
     private val verifiedFiatCalculator = mockk<VerifiedFiatCalculator>(relaxed = true)
-    private val purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true)
+    private val startChattingPayer = mockk<StartChattingPayer>(relaxed = true) {
+        // The gate is the payer's now; these tests exercise what follows it.
+        coEvery { mayProceed(any(), any()) } returns true
+    }
     private val userManager = mockk<UserManager>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val analytics = RecordingAnalytics()
@@ -136,7 +139,7 @@ class ChatSendFailureAnalyticsTest {
         tokenCoordinator = tokenCoordinator,
         exchange = exchange,
         verifiedFiatCalculator = verifiedFiatCalculator,
-        purchaseMethodController = purchaseMethodController,
+        startChattingPayer = startChattingPayer,
         userManager = userManager,
         resources = resources,
         analytics = analytics,

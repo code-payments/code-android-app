@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +78,7 @@ internal fun ChatProfileScreen(
     viewModel: ChatProfileViewModel,
     chatViewModel: ChatViewModel,
     origin: ProfileOrigin = ProfileOrigin.Chat,
+    onOpenChat: (ChatId) -> Unit,
 ) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
@@ -92,6 +94,7 @@ internal fun ChatProfileScreen(
         ),
         cashSymbol = chatState.cashSymbol,
         onBack = { flowNavigator.back() },
+        onOpenChat = onOpenChat,
     )
 }
 
@@ -136,9 +139,30 @@ internal fun PersonProfileScreen(
     chat: ProfileChat?,
     cashSymbol: String,
     onBack: () -> Unit,
+    onOpenChat: (ChatId) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+    // The host decides what opening the chat means (pop back to it, or push it); everything else
+    // the profile can ask for is the same wherever it is.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow.collect { event ->
+            when (event) {
+                is ChatProfileViewModel.Event.OpenChat -> onOpenChat(event.chatId)
+                is ChatProfileViewModel.Event.OpenSendCash ->
+                    navigator.push(event.participant.dmRoute(openSendCash = true))
+                is ChatProfileViewModel.Event.OpenScreen -> navigator.push(event.route)
+                else -> Unit
+            }
+        }
+    }
+
+    StartChattingSheet(
+        state = state,
+        onConfirm = { viewModel.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting) },
+        onDismiss = { viewModel.dispatchEvent(ChatProfileViewModel.Event.DismissPaymentSheet) },
+    )
     val isTipDm = chat?.chatType == ChatType.TIP_DM
     val share = rememberProfileShare()
 
@@ -231,8 +255,8 @@ internal fun PersonProfileScreen(
                     // Not flowNavigator: Report is a top-level route rather than a step of
                     // this flow, and LocalCodeNavigator hands a non-FlowStep route up to its
                     // parent. So it opens over the chat rather than inside it.
-                    // Not a row yet: the profile screen rework adds the Unblock row and its handler.
-                    ChatProfileAction.Unblock -> Unit
+                    ChatProfileAction.Unblock ->
+                        viewModel.dispatchEvent(ChatProfileViewModel.Event.Unblock)
                     ChatProfileAction.Report ->
                         (state.participant as? ChatParticipant.TipUser)?.let { participant ->
                             navigator.push(
