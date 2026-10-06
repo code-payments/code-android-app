@@ -1356,6 +1356,14 @@
     <string name="title_displayName">Display Name</string>
     <string name="title_profilePicture">Profile Picture</string>
 
+    <!-- Bio editor. The count under the field is code points left of 160. -->
+    <string name="title_bio">Bio</string>
+    <string name="placeholder_bio">Add a bio</string>
+    <string name="error_bioNotAllowed">This bio isn\'t allowed. Try different wording</string>
+    <string name="error_bioInvalid">This bio isn\'t valid</string>
+    <string name="error_title_bioSaveFailed">Something Went Wrong</string>
+    <string name="error_description_bioSaveFailed">Please try again</string>
+
     <!-- Tab bar labels, in tab order (node 10642:1325). -->
     <string name="title_tabScan">Scan</string>
     <string name="title_tabChat">Chat</string>

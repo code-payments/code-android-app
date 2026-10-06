@@ -38,4 +38,9 @@ sealed interface UpdateProfileStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     object MinimumTip : UpdateProfileStep
+
+    /** The profile's free-text bio, up to 160 characters. */
+    @Parcelize
+    @Serializable
+    object Bio : UpdateProfileStep
 }

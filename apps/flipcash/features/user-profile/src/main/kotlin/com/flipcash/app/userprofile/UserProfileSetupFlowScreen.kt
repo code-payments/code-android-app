@@ -7,6 +7,7 @@ import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.userprofile.UpdateProfileResult
 import com.flipcash.app.core.userprofile.UpdateProfileStep
+import com.flipcash.app.userprofile.internal.bio.EditBioScreen
 import com.flipcash.app.userprofile.internal.mintip.MinimumTipEntryScreen
 import com.flipcash.app.userprofile.internal.name.NameEntryScreen
 import com.flipcash.app.userprofile.internal.photo.PhotoSelectionScreen
@@ -67,6 +68,9 @@ private fun profileUpdateProvider(
     }
     annotatedEntry<UpdateProfileStep.Photo> {
         PhotoSelectionScreen()
+    }
+    annotatedEntry<UpdateProfileStep.Bio> {
+        EditBioScreen()
     }
     annotatedEntry<UpdateProfileStep.MinimumTip> {
         MinimumTipEntryScreen(isLastStep = route.steps.lastOrNull() == UpdateProfileStep.MinimumTip)
