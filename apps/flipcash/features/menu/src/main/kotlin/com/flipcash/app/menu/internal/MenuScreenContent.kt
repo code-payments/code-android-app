@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.bills.components.cards.LocalTipCardColor
+import com.flipcash.app.bills.components.cards.TipCardFlattened
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.navigation.LocalTabBarPadding
@@ -320,7 +321,7 @@ private fun UnclaimedTipCardPrompt(
                 }
 
                 CompositionLocalProvider(
-                    LocalTipCardColor provides Color(0xFF101011),
+                    LocalTipCardColor provides TipCardFlattened,
                     // Fill off, so the placeholder ground behind it is what's frosted, not an opaque card.
                     LocalTipCardBaseAlpha provides 0f,
                 ) {

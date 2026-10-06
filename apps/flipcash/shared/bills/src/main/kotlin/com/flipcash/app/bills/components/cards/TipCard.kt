@@ -57,6 +57,12 @@ val LocalTipCardColor = staticCompositionLocalOf { TipCardOpaqueFallback }
 val TipCardOpaqueFallback = Color(0xFF1A1A1C)
 
 /**
+ * The card's flattened tone on a static backdrop (no camera behind it), as Figma flattens it.
+ * Pair with [LocalTipCardBaseAlpha] `1f` for an opaque card.
+ */
+val TipCardFlattened = Color(0xFF101011)
+
+/**
  * The card's height-to-width proportion, from Figma (269 x 333 dp).
  */
 private const val TipCardAspectRatio = 333f / 269f
