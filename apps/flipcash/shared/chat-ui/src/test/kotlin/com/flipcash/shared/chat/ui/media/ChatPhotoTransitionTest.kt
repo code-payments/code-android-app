@@ -15,48 +15,84 @@ class ChatPhotoTransitionTest {
 
     @Test
     fun `progress zero sits on the bubble and one on the anchor`() {
-        val start = ChatPhotoTransition.frame(bubble, 48f, open, anchorPull = 0f, progress = 0f)
+        val start = ChatPhotoTransition.frame(bubble, ChatPhotoCorners.uniform(48f), open, anchorPull = 0f, progress = 0f)
         assertEquals(bubble, start.rect)
-        assertEquals(48f, start.radiusPx)
+        assertEquals(ChatPhotoCorners.uniform(48f), start.corners)
         assertEquals(0f, start.backdrop)
-        val end = ChatPhotoTransition.frame(bubble, 48f, open, anchorPull = 0f, progress = 1f)
+        val end = ChatPhotoTransition.frame(bubble, ChatPhotoCorners.uniform(48f), open, anchorPull = 0f, progress = 1f)
         assertEquals(open, end.rect)
-        assertEquals(0f, end.radiusPx)
+        assertEquals(ChatPhotoCorners.uniform(0f), end.corners)
         assertEquals(1f, end.backdrop)
         assertEquals(1f, end.chromeAlpha)
     }
 
     @Test
     fun `halfway is the midpoint of both rects and corners`() {
-        val mid = ChatPhotoTransition.frame(bubble, 48f, open, anchorPull = 0f, progress = 0.5f)
+        val mid = ChatPhotoTransition.frame(bubble, ChatPhotoCorners.uniform(48f), open, anchorPull = 0f, progress = 0.5f)
         assertEquals(Rect(300f, 500f, 1150f, 1275f), mid.rect)
-        assertEquals(24f, mid.radiusPx)
+        assertEquals(ChatPhotoCorners.uniform(24f), mid.corners)
         assertEquals(0.5f, mid.backdrop)
     }
 
     @Test
     fun `a pulled anchor keeps its corners and dims the backdrop`() {
-        val pulled = ChatPhotoTransition.frame(bubble, 48f, open, anchorPull = 1f, progress = 1f)
-        assertEquals(48f, pulled.radiusPx)
+        val pulled = ChatPhotoTransition.frame(bubble, ChatPhotoCorners.uniform(48f), open, anchorPull = 1f, progress = 1f)
+        assertEquals(ChatPhotoCorners.uniform(48f), pulled.corners)
         assertEquals(ChatPhotoTransition.MIN_DRAG_BACKDROP, pulled.backdrop)
         assertEquals(0f, pulled.chromeAlpha)
     }
 
     @Test
     fun `without a bubble the photo fades and shrinks about its own center`() {
-        val gone = ChatPhotoTransition.frame(null, 48f, open, anchorPull = 0f, progress = 0f)
+        val gone = ChatPhotoTransition.frame(null, ChatPhotoCorners.uniform(48f), open, anchorPull = 0f, progress = 0f)
         assertEquals(0f, gone.contentAlpha)
         assertEquals(open.center, gone.rect.center)
         assertEquals(open.width * ChatPhotoTransition.DETACHED_SCALE, gone.rect.width)
-        val shown = ChatPhotoTransition.frame(null, 48f, open, anchorPull = 0f, progress = 1f)
+        val shown = ChatPhotoTransition.frame(null, ChatPhotoCorners.uniform(48f), open, anchorPull = 0f, progress = 1f)
         assertEquals(1f, shown.contentAlpha)
         assertEquals(open, shown.rect)
     }
 
     @Test
+    fun `each corner starts on the bubble's own corner and opens square`() {
+        val tail = ChatPhotoCorners(topStart = 48f, topEnd = 48f, bottomEnd = 12f, bottomStart = 48f)
+        val start = ChatPhotoTransition.frame(bubble, tail, open, anchorPull = 0f, progress = 0f)
+        assertEquals(tail, start.corners)
+        val mid = ChatPhotoTransition.frame(bubble, tail, open, anchorPull = 0f, progress = 0.5f)
+        assertEquals(ChatPhotoCorners(24f, 24f, 6f, 24f), mid.corners)
+        val end = ChatPhotoTransition.frame(bubble, tail, open, anchorPull = 0f, progress = 1f)
+        assertEquals(ChatPhotoCorners.uniform(0f), end.corners)
+    }
+
+    @Test
+    fun `the photo is clipped to the transcript at the bubble and to the screen when open`() {
+        val transcript = Rect(0f, 300f, 1200f, 2100f)
+        val screen = Rect(Offset.Zero, container)
+        val corners = ChatPhotoCorners.uniform(48f)
+        val start = ChatPhotoTransition.frame(bubble, corners, open, 0f, 0f, transcript, container)
+        assertEquals(transcript, start.clip)
+        val end = ChatPhotoTransition.frame(bubble, corners, open, 0f, 1f, transcript, container)
+        assertEquals(screen, end.clip)
+        // In flight the photo already passes under the bars, so it is behind them well before it lands.
+        val mid = ChatPhotoTransition.frame(bubble, corners, open, 0f, 0.5f, transcript, container)
+        assertEquals(transcript, mid.clip)
+        val leaving = ChatPhotoTransition.frame(bubble, corners, open, 0f, 0.9f, transcript, container)
+        assertEquals(150f, leaving.clip!!.top, absoluteTolerance = 0.5f)
+        assertEquals(2250f, leaving.clip!!.bottom, absoluteTolerance = 0.5f)
+    }
+
+    @Test
+    fun `without a transcript or a bubble nothing is clipped`() {
+        val corners = ChatPhotoCorners.uniform(48f)
+        assertEquals(null, ChatPhotoTransition.frame(bubble, corners, open, 0f, 0f).clip)
+        val transcript = Rect(0f, 300f, 1200f, 2100f)
+        assertEquals(null, ChatPhotoTransition.frame(null, corners, open, 0f, 0f, transcript, container).clip)
+    }
+
+    @Test
     fun `progress outside zero to one is clamped`() {
-        assertEquals(bubble, ChatPhotoTransition.frame(bubble, 0f, open, 0f, -0.2f).rect)
-        assertEquals(open, ChatPhotoTransition.frame(bubble, 0f, open, 0f, 1.3f).rect)
+        assertEquals(bubble, ChatPhotoTransition.frame(bubble, ChatPhotoCorners.uniform(0f), open, 0f, -0.2f).rect)
+        assertEquals(open, ChatPhotoTransition.frame(bubble, ChatPhotoCorners.uniform(0f), open, 0f, 1.3f).rect)
     }
 
     @Test

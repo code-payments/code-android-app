@@ -181,7 +181,11 @@ internal fun MediaMessageBubble(
                 model = model,
                 imageWidth = image?.width,
                 imageHeight = image?.height,
-                radiusPx = bubblePhotoRadiusPx(),
+                corners = bubblePhotoCorners(
+                    position = (if (quote != null) position.withPhotoAbove() else position)
+                        .let { if (body.caption?.text.isNullOrEmpty()) it else it.withCaptionBelow() },
+                    isFromSelf = item.isFromSelf,
+                ),
             ),
             onClick = onClick,
             onLongClick = onLongClick,

@@ -972,12 +972,25 @@ internal fun Bubble(
 
 @Composable
 fun bubbleShape(position: BubblePosition, isFromSelf: Boolean): RoundedCornerShape {
+    val cornerSpec = spring<Dp>(dampingRatio = 0.68f, stiffness = 500f)
+
+    val targets = bubbleCorners(position, isFromSelf)
+
+    val topStart by animateDpAsState(targets.topStart, cornerSpec, label = "cTS")
+    val topEnd by animateDpAsState(targets.topEnd, cornerSpec, label = "cTE")
+    val bottomEnd by animateDpAsState(targets.bottomEnd, cornerSpec, label = "cBE")
+    val bottomStart by animateDpAsState(targets.bottomStart, cornerSpec, label = "cBS")
+
+    return RoundedCornerShape(topStart, topEnd, bottomEnd, bottomStart)
+}
+
+/** The corners [bubbleShape] settles on for a bubble at [position]. */
+@Composable
+internal fun bubbleCorners(position: BubblePosition, isFromSelf: Boolean): BubbleCorners {
     val l = BubbleDefaults.cornerLarge
     val s = BubbleDefaults.cornerSmall
 
-    val cornerSpec = spring<Dp>(dampingRatio = 0.68f, stiffness = 500f)
-
-    val targets = when (position) {
+    return when (position) {
         BubblePosition.Solo -> BubbleCorners(l, l, l, l)
         BubblePosition.First -> if (isFromSelf) BubbleCorners(l, l, s, l) else BubbleCorners(
             l,
@@ -1000,16 +1013,9 @@ fun bubbleShape(position: BubblePosition, isFromSelf: Boolean): RoundedCornerSha
             l
         )
     }
-
-    val topStart by animateDpAsState(targets.topStart, cornerSpec, label = "cTS")
-    val topEnd by animateDpAsState(targets.topEnd, cornerSpec, label = "cTE")
-    val bottomEnd by animateDpAsState(targets.bottomEnd, cornerSpec, label = "cBE")
-    val bottomStart by animateDpAsState(targets.bottomStart, cornerSpec, label = "cBS")
-
-    return RoundedCornerShape(topStart, topEnd, bottomEnd, bottomStart)
 }
 
-private data class BubbleCorners(
+internal data class BubbleCorners(
     val topStart: Dp,
     val topEnd: Dp,
     val bottomEnd: Dp,
