@@ -6,6 +6,12 @@ import com.flipcash.app.blob.ImageUploadPreparer
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.services.controllers.ModerationController
+import com.flipcash.services.models.BlobRejectedException
+import com.flipcash.services.models.SetCoverPictureError
+import com.flipcash.services.models.chat.BlobRejection
+import com.flipcash.services.models.chat.RejectionReason
+import com.flipcash.services.models.ModerationResult
+import com.getcode.manager.BottomBarManager
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobId
@@ -72,8 +78,14 @@ class PhotoSelectionViewModelTest {
         every { MimeTypeMap.getSingleton() } returns map
     }
 
+    @Before
+    fun clearAlerts() {
+        BottomBarManager.clear()
+    }
+
     @After
     fun unstubMimeTypeMap() {
+        BottomBarManager.clear()
         unmockkStatic(MimeTypeMap::class)
     }
 
@@ -148,5 +160,78 @@ class PhotoSelectionViewModelTest {
 
         verify(profileController).setProfilePicture(blobId)
         verify(profileController, never()).setCoverPicture(any())
+    }
+
+    private fun rejection(reason: RejectionReason, category: ModerationResult.FlaggedCategory = ModerationResult.FlaggedCategory.NONE) =
+        BlobRejectedException(BlobRejection(reason, category))
+
+    /** Picks an image, fails the upload with [cause], and returns the title of the alert shown. */
+    private suspend fun TestScope.failUploadWith(slot: PhotoSelectionViewModel.Slot, cause: Throwable): String? {
+        whenever(blobStorage.upload(any(), any(), anyOrNull())).thenReturn(Result.failure(cause))
+        val vm = viewModel(slot)
+        advanceUntilIdle()
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.OnImageCached(pick, "image/jpeg"))
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.CheckImage)
+        advanceUntilIdle()
+        return BottomBarManager.messages.value.firstOrNull()?.title
+    }
+
+    @Test
+    fun `a cover blob rejected by the profile call shows the cover alert`() = runTest(mainCoroutineRule.dispatcher) {
+        stubUpload()
+        whenever(profileController.setCoverPicture(any())).thenReturn(Result.failure(SetCoverPictureError.BlobRejected()))
+        val vm = viewModel(PhotoSelectionViewModel.Slot.Cover)
+        advanceUntilIdle()
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.OnImageCached(pick, "image/jpeg"))
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.CheckImage)
+        advanceUntilIdle()
+
+        assertEquals("error_title_coverNotAllowed", BottomBarManager.messages.value.firstOrNull()?.title)
+    }
+
+    @Test
+    fun `a moderation rejection on a cover shows the cover alert`() = runTest(mainCoroutineRule.dispatcher) {
+        val title = failUploadWith(
+            PhotoSelectionViewModel.Slot.Cover,
+            rejection(RejectionReason.MODERATION, ModerationResult.FlaggedCategory.NSFW),
+        )
+        assertEquals("error_title_coverNotAllowed", title)
+    }
+
+    @Test
+    fun `an unclassified rejection on a cover shows the cover alert`() = runTest(mainCoroutineRule.dispatcher) {
+        assertEquals(
+            "error_title_coverNotAllowed",
+            failUploadWith(PhotoSelectionViewModel.Slot.Cover, rejection(RejectionReason.UNKNOWN)),
+        )
+    }
+
+    @Test
+    fun `a non-moderation rejection on a cover gets the generic wording`() = runTest(mainCoroutineRule.dispatcher) {
+        assertEquals(
+            "error_title_moderationFailed",
+            failUploadWith(PhotoSelectionViewModel.Slot.Cover, rejection(RejectionReason.TOO_LARGE)),
+        )
+    }
+
+    @Test
+    fun `a moderation rejection on an avatar keeps its per-category message`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = failUploadWith(
+            PhotoSelectionViewModel.Slot.Avatar,
+            rejection(RejectionReason.MODERATION, ModerationResult.FlaggedCategory.NSFW),
+        )
+        assertEquals("error_title_profilePhotoNotAllowed", vm)
+        assertEquals(
+            "error_description_profilePhotoNotAllowedFlaggedNsfw",
+            BottomBarManager.messages.value.firstOrNull()?.subtitle,
+        )
+    }
+
+    @Test
+    fun `an unclassified rejection on an avatar keeps the image-not-allowed message`() = runTest(mainCoroutineRule.dispatcher) {
+        assertEquals(
+            "error_title_imageNotAllowed",
+            failUploadWith(PhotoSelectionViewModel.Slot.Avatar, rejection(RejectionReason.UNKNOWN)),
+        )
     }
 }

@@ -147,4 +147,18 @@ class EditBioViewModelTest {
         verify(profileController).setBio("New bio")
         assertEquals(true, saved.any { it is EditBioViewModel.Event.OnBioSaved })
     }
+
+    @Test
+    fun `clearing a non-blank bio sends an empty bio`() = runTest(mainCoroutineRule.dispatcher) {
+        whenever(profileController.setBio(any())).thenReturn(Result.success(Unit))
+        val vm = viewModel("Hello")
+        advanceUntilIdle()
+        vm.type { replace(0, length, "") }
+        advanceUntilIdle()
+
+        vm.dispatchEvent(EditBioViewModel.Event.Save)
+        advanceUntilIdle()
+
+        verify(profileController).setBio("")
+    }
 }

@@ -37,7 +37,8 @@ enum class TipCodeExportFormat(val extension: String, val mimeType: String) {
  *
  * Separate directory from [TipCodePreviewStorage] so the preview cache's aggressive pruning can't
  * delete an export out from under a share in progress, and so the two can be tuned independently.
- * Files are named by the card's content [tipCodePreviewSignature], so re-exporting the same card
+ * Files are named by the caller's `baseName` when it sanitises to something usable, and by the
+ * card's content [tipCodePreviewSignature] otherwise, so re-exporting under the same name
  * overwrites rather than accumulates.
  */
 object TipCodeExportStorage {

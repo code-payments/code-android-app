@@ -10,6 +10,8 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(testFixtures(project(":ui:resources")))
 
     implementation(libs.bundles.haze)
 

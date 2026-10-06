@@ -1363,10 +1363,6 @@
     <string name="label_profileCardFileNameFallback">Profile Card</string>
     <string name="error_title_tipCardExportFailed">Couldn\'t Export</string>
     <string name="error_description_tipCardExportFailed">We were unable to export your tip code. Please try again</string>
-    <!-- My Account rows (node 9544:18478). Each names the thing it edits rather than the act of
-         editing it, so the list reads as an inventory of the profile. -->
-    <string name="title_displayName">Display Name</string>
-    <string name="title_profilePicture">Profile Picture</string>
 
     <!-- Bio editor. The count under the field is code points left of 160. -->
     <string name="title_bio">Bio</string>
