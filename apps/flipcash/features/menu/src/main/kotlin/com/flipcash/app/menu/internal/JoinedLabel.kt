@@ -1,5 +1,6 @@
 package com.flipcash.app.menu.internal
 
+import android.text.format.DateFormat
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -10,9 +11,8 @@ import kotlin.time.Instant
  * [locale]'s language and word order. Null when the account has no join date, which the card draws
  * as a dash.
  *
- * `L` rather than `M` for the month: it is the stand-alone form, which is the right one when the
- * month is not part of a longer date and differs from the in-sentence form in some languages.
- * [DateUtils.getDate] is not used because it pins the locale to English.
+ * The pattern comes from [DateFormat.getBestDateTimePattern] for the `MMMMy` skeleton, so word
+ * order and connectives follow [locale] ("octubre de 2026" in Spanish).
  */
 internal fun joinedLabel(
     joinedAt: Instant?,
@@ -20,7 +20,7 @@ internal fun joinedLabel(
     zone: ZoneId = ZoneId.systemDefault(),
 ): String? {
     joinedAt ?: return null
-    return DateTimeFormatter.ofPattern("LLLL y", locale)
+    return DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "MMMMy"), locale)
         .withZone(zone)
         .format(java.time.Instant.ofEpochMilli(joinedAt.toEpochMilliseconds()))
 }

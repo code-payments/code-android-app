@@ -118,7 +118,6 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         UnclaimedTipCardPrompt(
                             placeholder = profileState.placeholder,
                             cardWidth = YouCardWidth,
-                            enabled = true,
                             onClaim = { viewModel.dispatchEvent(Event.ClaimTipCard) },
                         )
                     }
@@ -267,7 +266,6 @@ private val UnclaimedTopSpacing: Dp
 private fun UnclaimedTipCardPrompt(
     placeholder: Scannable.TipCard?,
     cardWidth: Dp,
-    enabled: Boolean,
     onClaim: () -> Unit,
     blurEnabled: Boolean = HazeBlurDefaults.isBlurEnabledByDefault(),
 ) {
@@ -369,7 +367,7 @@ private fun UnclaimedTipCardPrompt(
                         .padding(top = CodeTheme.dimens.grid.x4)
                         .clip(CircleShape)
                         .background(CodeTheme.colors.textMain)
-                        .clickable(enabled = enabled, onClick = onClaim)
+                        .clickable(onClick = onClaim)
                         .padding(
                             horizontal = CodeTheme.dimens.grid.x5,
                             vertical = CodeTheme.dimens.grid.x2,
@@ -401,9 +399,8 @@ private val PromptInset: Dp
     @Composable get() = CodeTheme.dimens.grid.x2
 
 /**
- * Gap between the unclaimed stand-in and the first settings row. Wider than the claimed card's 19,
- * because the claimed card pays part of its clearance in the Share / Download tiles that the
- * unclaimed state doesn't draw (iOS `YouScreen`: `.padding(.top, displayName == nil ? 48 : 19)`).
+ * Gap below the unclaimed stand-in. Wider than the claimed card's 19, because the claimed
+ * card pays part of its clearance in the action buttons that the unclaimed state doesn't draw (iOS `YouScreen`: `.padding(.top, displayName == nil ? 48 : 19)`).
  */
 private val UnclaimedRowsGap: Dp
     @Composable get() = CodeTheme.dimens.grid.x10
@@ -424,7 +421,6 @@ private fun Preview_UnclaimedTipCardPrompt() {
     UnclaimedTipCardPrompt(
         placeholder = Scannable.TipCard(data = PreviewCodeData, user = UserProfile.Empty),
         cardWidth = YouCardWidth,
-        enabled = true,
         onClaim = {},
     )
 }
@@ -441,7 +437,6 @@ private fun Preview_UnclaimedTipCardPrompt_NoBlur() {
     UnclaimedTipCardPrompt(
         placeholder = Scannable.TipCard(data = PreviewCodeData, user = UserProfile.Empty),
         cardWidth = YouCardWidth,
-        enabled = true,
         onClaim = {},
         blurEnabled = false,
     )

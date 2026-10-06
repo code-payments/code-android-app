@@ -106,14 +106,17 @@ fun ProfileCardScreen() {
         }
 
         // Download stands where the You tab keeps its gear, so the gear reads as turning into it.
-        ProfileBarButton(
-            modifier = Modifier.align(Alignment.TopEnd),
-            icon = R.drawable.ic_file_download,
-            contentDescription = stringResource(R.string.action_download),
-            onClick = viewModel::download,
-            hazeState = hazeState,
-            testTag = "you-download-button",
-        )
+        // Nothing to export until the card resolves (or if it never does).
+        if (card != null) {
+            ProfileBarButton(
+                modifier = Modifier.align(Alignment.TopEnd),
+                icon = R.drawable.ic_file_download,
+                contentDescription = stringResource(R.string.action_download),
+                onClick = viewModel::download,
+                hazeState = hazeState,
+                testTag = "you-download-button",
+            )
+        }
 
         CodeButton(
             modifier = Modifier

@@ -46,6 +46,8 @@ fun ProfileShareScreen() {
         subtitle = subtitle,
         rows = rows,
         onRow = { row ->
+            // A second tap while the sheet animates out would replace the pending action and run both.
+            if (navigator.pendingSheetDismiss != null) return@ProfileShareSheet
             navigator.pendingSheetDismiss = {
                 when (row.id) {
                     RowShare -> viewModel.share()

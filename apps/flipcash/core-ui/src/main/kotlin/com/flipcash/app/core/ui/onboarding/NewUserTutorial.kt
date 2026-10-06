@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircleOutline
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,12 +25,9 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
-import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
@@ -39,9 +35,8 @@ import com.getcode.theme.extraSmall
 /**
  * A row in a "what's left to do" checklist.
  *
- * Split by the screen that owns it: [Wallet] and [Profile] are drawn by different tabs and share
- * nothing but the row layout, so each call site's `when` stays exhaustive over its own family and
- * cannot be handed an item it has no branch for.
+ * [Wallet] is the family the wallet tab draws, so its call site's `when` stays exhaustive over
+ * the milestones it owns.
  */
 sealed interface TutorialItem {
     val title: String
@@ -54,9 +49,6 @@ sealed interface TutorialItem {
 
     /** The wallet tab's new-user milestones. */
     sealed interface Wallet : TutorialItem
-
-    /** The "You" tab's profile-completion steps (node 9544:18140). */
-    sealed interface Profile : TutorialItem
 
     class AddMoney(override val isCompleted: Boolean) : Wallet {
         override val title: String
@@ -74,41 +66,6 @@ sealed interface TutorialItem {
             @Composable get() = stringResource(R.string.subtitle_scanTipCard)
         override val icon: Painter
             @Composable get() = painterResource(R.drawable.ic_nav_tipcard)
-    }
-
-    /**
-     * Accounts created before onboarding asked for a name have none, and chat shows them as
-     * "Flipcash User" until they set one.
-     */
-    class DisplayName(override val isCompleted: Boolean) : Profile {
-        override val title: String
-            @Composable get() = stringResource(R.string.title_addDisplayName)
-        override val description: String
-            @Composable get() = stringResource(R.string.subtitle_addDisplayName)
-        override val icon: Painter
-            @Composable get() = rememberVectorPainter(Icons.Outlined.Edit)
-    }
-
-    class ProfilePicture(override val isCompleted: Boolean) : Profile {
-        override val title: String
-            @Composable get() = stringResource(R.string.title_addProfilePicture)
-        override val description: String
-            @Composable get() = stringResource(R.string.subtitle_addProfilePicture)
-        override val icon: Painter
-            @Composable get() = painterResource(R.drawable.ic_people_circle)
-    }
-
-    /**
-     * The fee another user has to pay to open a DM, stored on the profile as `minDmChatInitFee`.
-     * Completes once one is set; the row stays outstanding while the server default applies.
-     */
-    class MinimumTip(override val isCompleted: Boolean = false) : Profile {
-        override val title: String
-            @Composable get() = stringResource(R.string.title_setMinimumTip)
-        override val description: String
-            @Composable get() = stringResource(R.string.subtitle_setMinimumTip)
-        override val icon: Painter
-            @Composable get() = painterResource(R.drawable.ic_coins)
     }
 }
 
@@ -209,34 +166,4 @@ private fun OnboardingItemRow(
             contentDescription = null
         )
     }
-}
-
-@Preview(name = "Finish Your Profile — nothing done")
-@PreviewWrapper(FlipcashThemeWrapper::class)
-@Composable
-private fun PreviewFinishProfileEmpty() {
-    NewUserTutorial(
-        title = stringResource(R.string.title_finishYourProfile),
-        items = listOf(
-            TutorialItem.DisplayName(isCompleted = false),
-            TutorialItem.ProfilePicture(isCompleted = false),
-            TutorialItem.MinimumTip(),
-        ),
-        onItemClicked = {},
-    )
-}
-
-@Preview(name = "Finish Your Profile — photo set")
-@PreviewWrapper(FlipcashThemeWrapper::class)
-@Composable
-private fun PreviewFinishProfilePhotoSet() {
-    NewUserTutorial(
-        title = stringResource(R.string.title_finishYourProfile),
-        items = listOf(
-            TutorialItem.DisplayName(isCompleted = true),
-            TutorialItem.ProfilePicture(isCompleted = true),
-            TutorialItem.MinimumTip(),
-        ),
-        onItemClicked = {},
-    )
 }

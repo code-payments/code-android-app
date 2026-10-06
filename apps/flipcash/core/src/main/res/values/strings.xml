@@ -552,7 +552,6 @@
     <string name="title_scanTipCard">Scan a Tip Card</string>
     <string name="subtitle_scanTipCard">Give your first tip</string>
 
-    <string name="title_finishYourProfile">Finish Your Profile</string>
 
     <!-- Copy matches iOS's "Finish Your Profile" display-name step. -->
     <string name="title_addDisplayName">Add your display name</string>
