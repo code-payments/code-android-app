@@ -525,6 +525,19 @@ internal class ChatViewModel @Inject constructor(
         val replacesComposer: Boolean
             get() = joinProgress.success || isOutsideGroup
 
+        /**
+         * Whether the join gate draws its panel where the composer was. False while the gate is
+         * [GroupAccess.Undetermined]: a panel would offer a Join the rate may yet take back, and
+         * the composer is still withheld by [replacesComposer], so the bar is simply empty until
+         * the rate settles it. A join already under way keeps its panel so its progress stays
+         * visible.
+         *
+         * Mirrors iOS `ConversationBottomBar`, which draws nothing for `.undetermined`.
+         */
+        val showsGatePanel: Boolean
+            get() = replacesComposer &&
+                !(groupAccess == GroupAccess.Undetermined && joinProgress.isIdle)
+
         /** The staged photos the composer shows: none while editing, which is text only. */
         val composerPhotos: List<StagedPhoto>
             get() = if (editing != null) emptyList() else stagedPhotos
