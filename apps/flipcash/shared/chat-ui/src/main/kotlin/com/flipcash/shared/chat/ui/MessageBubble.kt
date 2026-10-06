@@ -948,7 +948,7 @@ internal fun Bubble(
                     drawRect(Color.White, alpha = ATTENTION_SCRIM_ALPHA * strength)
                 }
             }
-            .addIf(onClick != null || onLongClick != null) {
+            .addIf(onClick != null || onLongClick != null || onDoubleClick != null) {
                 // combinedClickable rather than two modifiers: a bubble that takes the tap takes
                 // the long press with it, so both gestures are reported from the same target.
                 // A double tap here waits out the timeout before a single tap acts: that delay is
