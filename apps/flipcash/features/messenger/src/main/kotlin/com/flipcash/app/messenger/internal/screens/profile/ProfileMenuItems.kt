@@ -1,9 +1,17 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Feedback
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -43,6 +51,17 @@ internal fun ChatProfileAction.labelRes(isMuted: Boolean): Int = when (this) {
     ChatProfileAction.Unblock -> R.string.action_unblock
 }
 
+/**
+ * The row's glyph, matching iOS' `bell.slash`, `flag`, `nosign` and `checkmark.circle`. Muting
+ * shows the plain bell once the chat is muted, since the row then turns notifications back on.
+ */
+internal fun ChatProfileAction.icon(isMuted: Boolean): ImageVector = when (this) {
+    ChatProfileAction.Mute -> if (isMuted) Icons.Outlined.Notifications else Icons.Outlined.NotificationsOff
+    ChatProfileAction.Report -> Icons.Outlined.Feedback
+    ChatProfileAction.Block -> Icons.Outlined.Block
+    ChatProfileAction.Unblock -> Icons.Outlined.CheckCircle
+}
+
 /** The ⋯ button's menu, rows in [items]' order. */
 @Composable
 internal fun ProfileMenu(
@@ -62,12 +81,16 @@ internal fun ProfileMenu(
         offset = DpOffset(x = 0.dp, y = -anchorHeight),
     ) {
         items.forEach { item ->
+            val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
             DropdownMenuItem(
+                leadingIcon = {
+                    Icon(imageVector = item.icon(isMuted), contentDescription = null, tint = tint)
+                },
                 text = {
                     Text(
                         text = stringResource(item.labelRes(isMuted)),
                         style = CodeTheme.typography.textSmall,
-                        color = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain,
+                        color = tint,
                     )
                 },
                 onClick = {
