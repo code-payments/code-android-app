@@ -11,10 +11,13 @@ import com.flipcash.services.internal.network.extensions.toRosterSummary
 import com.flipcash.services.internal.network.extensions.toViewerState
 import com.flipcash.services.internal.network.services.ChatService
 import com.flipcash.services.models.LeaveChatError
+import com.flipcash.services.models.SampleChattersError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatterSample
+import com.flipcash.services.models.chat.SampledChatter
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
@@ -39,6 +42,40 @@ internal class InternalChatRepository(
     private val mapper: ChatMetadataMapper,
     private val userProfileMapper: UserProfileMapper,
 ) : ChatRepository {
+    override suspend fun sampleChatters(
+        owner: KeyPair?,
+        chatId: ChatId,
+    ): Result<ChatterSample> = service.sampleChatters(owner, chatId)
+        .onFailure { if (it !is SampleChattersError.Denied) ErrorUtils.handleError(it) }
+        .map { response ->
+            ChatterSample(
+                chatters = response.chattersList.map { chatter ->
+                    SampledChatter(
+                        userProfile = userProfileMapper.map(chatter.userProfile),
+                        lastSentAt = if (chatter.hasLastSentAt()) {
+                            Instant.fromEpochSeconds(chatter.lastSentAt.seconds, chatter.lastSentAt.nanos)
+                        } else null,
+                        isCreator = chatter.isCreator,
+                    )
+                },
+                hasMore = response.hasMore,
+            )
+        }
+
+    override suspend fun setFeaturedGroups(
+        owner: KeyPair,
+        chatIds: List<ChatId>,
+    ): Result<List<ChatMetadata>> = service.setFeaturedGroups(owner, chatIds)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { response -> response.featuredGroupsList.map { mapper.map(it) } }
+
+    override suspend fun getFeaturedGroups(
+        owner: KeyPair?,
+        username: String,
+    ): Result<List<ChatMetadata>> = service.getFeaturedGroups(owner, username)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { response -> response.featuredGroupsList.map { mapper.map(it) } }
+
     override suspend fun getChat(
         owner: KeyPair,
         chatId: ChatId,

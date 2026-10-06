@@ -165,6 +165,11 @@ class ChatMetadataDataSource @Inject constructor(
         db?.chatMetadataDao()?.updatePicture(mapper.chatIdHex(chatId), picture)
     }
 
+    /** Applies a `MetadataUpdate.CoverPictureChanged` for [chatId]. See ChatMetadataDao.updateCoverPicture. */
+    suspend fun updateCoverPicture(chatId: ChatId, coverPicture: MediaItem) {
+        db?.chatMetadataDao()?.updateCoverPicture(mapper.chatIdHex(chatId), coverPicture)
+    }
+
     suspend fun getAnalyticsCountedThrough(chatId: ChatId): Long =
         db?.chatMetadataDao()?.getAnalyticsCountedThrough(mapper.chatIdHex(chatId)) ?: 0L
 

@@ -17,6 +17,9 @@ data class ChatMetadata(
     val description: String? = null,
     // Picture for this chat. Only set for group chats.
     val picture: MediaItem? = null,
+    // Cover picture for this chat. Only set for group chats. Feed RPCs may leave it unset even
+    // when one exists, so a feed result must never clear a cached cover -- fetch with GetChat.
+    val coverPicture: MediaItem? = null,
     // True roster size and staleness version. Server-authoritative; defaults to zero for
     // metadata reconstructed without a server round trip.
     val rosterSummary: RosterSummary = RosterSummary(memberCount = 0, version = 0),

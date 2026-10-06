@@ -6,6 +6,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.KeyEnvelope
@@ -547,6 +548,21 @@ private class FakeChatRepository : ChatRepository {
         owner: Ed25519.KeyPair,
         chatId: ChatId,
     ): Result<List<MentionSuggestion>> = Result.success(emptyList())
+
+    override suspend fun sampleChatters(
+        owner: Ed25519.KeyPair?,
+        chatId: ChatId,
+    ): Result<ChatterSample> = Result.success(ChatterSample(emptyList(), hasMore = false))
+
+    override suspend fun setFeaturedGroups(
+        owner: Ed25519.KeyPair,
+        chatIds: List<ChatId>,
+    ): Result<List<ChatMetadata>> = Result.success(emptyList())
+
+    override suspend fun getFeaturedGroups(
+        owner: Ed25519.KeyPair?,
+        username: String,
+    ): Result<List<ChatMetadata>> = Result.success(emptyList())
 
     override suspend fun getRoster(
         owner: Ed25519.KeyPair,

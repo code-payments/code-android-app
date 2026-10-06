@@ -91,6 +91,7 @@ interface ChatMetadataDao {
             "title = :title, " +
             "description = :description, " +
             "picture_json = :pictureJson, " +
+            "cover_picture_json = COALESCE(:coverPictureJson, cover_picture_json), " +
             "rules_json = :rulesJson, " +
             "is_member = :isMember, " +
             "use_e2ee = :useE2ee " +
@@ -105,6 +106,7 @@ interface ChatMetadataDao {
         title: String?,
         description: String?,
         pictureJson: MediaItem?,
+        coverPictureJson: MediaItem?,
         rulesJson: ChatRulesSerialized?,
         isMember: Boolean,
         useE2ee: Boolean,
@@ -206,6 +208,7 @@ interface ChatMetadataDao {
             title = entity.title,
             description = entity.description,
             pictureJson = entity.pictureJson,
+            coverPictureJson = entity.coverPictureJson,
             rulesJson = entity.rulesJson,
             isMember = entity.isMember,
             useE2ee = entity.useE2ee,
@@ -324,6 +327,10 @@ interface ChatMetadataDao {
     /** Unconditional, for the same reason as [updateTitle]: `MetadataUpdate.PictureChanged` carries no version. */
     @Query("UPDATE chat_metadata SET picture_json = :pictureJson WHERE chat_id_hex = :chatIdHex")
     suspend fun updatePicture(chatIdHex: String, pictureJson: MediaItem)
+
+    /** Unconditional, like [updatePicture]: `MetadataUpdate.CoverPictureChanged` carries no version. */
+    @Query("UPDATE chat_metadata SET cover_picture_json = :coverPictureJson WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateCoverPicture(chatIdHex: String, coverPictureJson: MediaItem)
 
     @Query("DELETE FROM chat_metadata")
     suspend fun deleteAll()

@@ -124,6 +124,19 @@ class RosterUpdateExtensionTest {
     }
 
     @Test
+    fun `membership changed carries only the post-change summary`() {
+        val update = ChatModel.RosterUpdate.newBuilder()
+            .setMembershipChanged(ChatModel.RosterUpdate.MembershipChanged.newBuilder())
+            .setRosterSummary(rosterSummary(memberCount = 5, version = 11))
+            .build()
+
+        val change = assertIs<RosterChange.MembershipChanged>(update.toRosterChangeOrNull())
+
+        assertEquals(5L, change.rosterSummary.memberCount)
+        assertEquals(11L, change.rosterSummary.version)
+    }
+
+    @Test
     fun `chat update carries the roster batch`() {
         val update = EventModel.ChatUpdate.newBuilder()
             .setChat(chatId(1))

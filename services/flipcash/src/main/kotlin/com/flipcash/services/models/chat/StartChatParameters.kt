@@ -20,6 +20,8 @@ sealed interface StartChatParameters {
          * participation requirements. The caller must satisfy the rules for the chat to start.
          */
         val rules: ChatRules? = null,
+        /** The blob holding the ORIGINAL cover picture. Optional; must be owned by the caller and READY. */
+        val coverPicture: BlobId? = null,
     ) : StartChatParameters
 
     /**
@@ -36,5 +38,7 @@ sealed interface StartChatParameters {
         val description: String? = null,
         /** The blob holding the ORIGINAL picture the caller uploaded. Optional. */
         val picture: BlobId? = null,
+        /** The blob holding the ORIGINAL cover picture. Optional; must be owned by the caller and READY. */
+        val coverPicture: BlobId? = null,
     ) : StartChatParameters
 }

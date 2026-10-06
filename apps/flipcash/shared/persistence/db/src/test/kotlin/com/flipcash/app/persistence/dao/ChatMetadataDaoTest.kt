@@ -55,6 +55,7 @@ class ChatMetadataDaoTest {
         title: String? = null,
         description: String? = null,
         pictureJson: MediaItem? = null,
+        coverPictureJson: MediaItem? = null,
         memberCount: Long = 0,
         rosterVersion: Long = 0,
         rulesJson: ChatRulesSerialized? = null,
@@ -75,6 +76,7 @@ class ChatMetadataDaoTest {
         title = title,
         description = description,
         pictureJson = pictureJson,
+        coverPictureJson = coverPictureJson,
         memberCount = memberCount,
         rosterVersion = rosterVersion,
         rulesJson = rulesJson,
@@ -244,6 +246,37 @@ class ChatMetadataDaoTest {
         dao.updatePicture(CHAT_HEX, picture)
 
         assertEquals(picture, dao.getById(CHAT_HEX)?.pictureJson)
+    }
+
+    @Test
+    fun `updateCoverPicture overwrites the cover unconditionally`() = runTest {
+        dao.upsert(entity(chatType = "GROUP"))
+        val cover = MediaItem(renditions = emptyList())
+
+        dao.updateCoverPicture(CHAT_HEX, cover)
+
+        assertEquals(cover, dao.getById(CHAT_HEX)?.coverPictureJson)
+    }
+
+    /** Feed RPCs may omit the cover even when one is set, so an absent one must not clear it. */
+    @Test
+    fun `upsert without a cover keeps the cached cover`() = runTest {
+        val cover = MediaItem(renditions = emptyList())
+        dao.upsert(entity(chatType = "GROUP", coverPictureJson = cover))
+
+        dao.upsert(entity(chatType = "GROUP", coverPictureJson = null))
+
+        assertEquals(cover, dao.getById(CHAT_HEX)?.coverPictureJson)
+    }
+
+    @Test
+    fun `upsert with a cover replaces the cached cover`() = runTest {
+        val cover = MediaItem(renditions = emptyList())
+        dao.upsert(entity(chatType = "GROUP"))
+
+        dao.upsert(entity(chatType = "GROUP", coverPictureJson = cover))
+
+        assertEquals(cover, dao.getById(CHAT_HEX)?.coverPictureJson)
     }
 
     @Test

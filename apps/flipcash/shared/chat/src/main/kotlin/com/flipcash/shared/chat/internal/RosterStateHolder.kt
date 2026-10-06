@@ -49,6 +49,9 @@ class RosterStateHolder @Inject constructor(
 
             when {
                 incoming <= stored -> continue
+                // The summary is all a membership change carries and all it needs: it edits no
+                // member, so a skipped version here is not a hole in the cached list to repair.
+                change is RosterChange.MembershipChanged -> applyChange(chatId, change)
                 incoming > stored + 1 -> refetch(chatId, stored, incoming)
                 else -> applyChange(chatId, change)
             }
@@ -59,6 +62,8 @@ class RosterStateHolder @Inject constructor(
         when (change) {
             is RosterChange.MemberJoined -> memberDataSource.upsert(chatId, listOf(change.member))
             is RosterChange.MemberLeft -> memberDataSource.deleteMember(chatId, change.userId)
+            // Summary only; the cached member list stays as it is.
+            is RosterChange.MembershipChanged -> Unit
         }
         metadataDataSource.updateRoster(
             chatId = chatId,

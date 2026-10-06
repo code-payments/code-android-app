@@ -6,6 +6,7 @@ import com.flipcash.services.models.SetKeyEnvelopeError
 import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
@@ -23,6 +24,34 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 
 interface ChatRepository {
+    /**
+     * A sample of a public group's chatters. [owner] is optional: the sample is the same with or
+     * without it, so a viewer who is not a member (preview) can call it. Fails with
+     * `SampleChattersError.Denied` for a private group or DM.
+     */
+    suspend fun sampleChatters(
+        owner: KeyPair?,
+        chatId: ChatId,
+    ): Result<ChatterSample>
+
+    /**
+     * Replaces the caller's featured groups with [chatIds], in the order to show them (at most
+     * 10, all public groups, no repeats; empty clears). Returns the list as stored.
+     */
+    suspend fun setFeaturedGroups(
+        owner: KeyPair,
+        chatIds: List<ChatId>,
+    ): Result<List<ChatMetadata>>
+
+    /**
+     * [username]'s featured groups, in their order. [owner] is optional. The returned metadata is
+     * list-view shaped: no members, viewer state, last message or cover picture.
+     */
+    suspend fun getFeaturedGroups(
+        owner: KeyPair?,
+        username: String,
+    ): Result<List<ChatMetadata>>
+
     suspend fun getChat(
         owner: KeyPair,
         chatId: ChatId,

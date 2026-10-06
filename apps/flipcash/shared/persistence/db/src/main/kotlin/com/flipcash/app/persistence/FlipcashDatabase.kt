@@ -124,8 +124,9 @@ import com.getcode.utils.subByteArray
         // The pending_media table, an AutoMigration for the same reason as chat_draft: an entry
         // dropped by the destructive fallback is a photo the viewer queued and never sent.
         AutoMigration(from = 42, to = 43), // pending_media table
+        AutoMigration(from = 43, to = 44), // chat_metadata.cover_picture_json (nullable)
     ],
-    version = 43,
+    version = 44,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {

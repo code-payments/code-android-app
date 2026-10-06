@@ -392,8 +392,10 @@ internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
             MetadataUpdate.TitleChanged(titleChanged.newTitle)
         ChatModel.MetadataUpdate.KindCase.DESCRIPTION_CHANGED ->
             MetadataUpdate.DescriptionChanged(descriptionChanged.newDescription)
-        ChatModel.MetadataUpdate.KindCase.PICTURE_CHANGED ->
-            MetadataUpdate.PictureChanged(pictureChanged.newPicture.toMediaItem())
+        ChatModel.MetadataUpdate.KindCase.PROFILE_PICTURE_CHANGED ->
+            MetadataUpdate.PictureChanged(profilePictureChanged.newProfilePicture.toMediaItem())
+        ChatModel.MetadataUpdate.KindCase.COVER_PICTURE_CHANGED ->
+            MetadataUpdate.CoverPictureChanged(coverPictureChanged.newCoverPicture.toMediaItem())
         else -> MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(0))
     }
 }
@@ -422,7 +424,8 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         isHidden = isHidden,
         title = title.takeIf { it.isNotEmpty() },
         description = description.takeIf { it.isNotEmpty() },
-        picture = if (hasPicture()) picture.toMediaItem() else null,
+        picture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
+        coverPicture = if (hasCoverPicture()) coverPicture.toMediaItem() else null,
         rosterSummary = rosterSummary.toRosterSummary(),
         rules = if (hasRules()) rules.toChatRules() else null,
         viewerState = if (hasViewerState()) viewerState.toViewerState() else null,
@@ -518,6 +521,10 @@ internal fun ChatModel.RosterUpdate.toRosterChangeOrNull(
 
         ChatModel.RosterUpdate.KindCase.MEMBER_LEFT -> RosterChange.MemberLeft(
             userId = memberLeft.userId.toId(),
+            rosterSummary = rosterSummary.toRosterSummary(),
+        )
+
+        ChatModel.RosterUpdate.KindCase.MEMBERSHIP_CHANGED -> RosterChange.MembershipChanged(
             rosterSummary = rosterSummary.toRosterSummary(),
         )
 

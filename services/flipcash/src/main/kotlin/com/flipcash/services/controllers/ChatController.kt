@@ -5,6 +5,7 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.KeyEnvelope
@@ -88,6 +89,29 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.getRoster(owner, chatId, queryOptions)
+    }
+
+    /**
+     * A sample of [chatId]'s chatters; public groups only. Works without an account cluster, so a
+     * preview viewer can call it -- the sample is the same either way.
+     */
+    suspend fun sampleChatters(chatId: ChatId): Result<ChatterSample> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+        return repository.sampleChatters(owner, chatId)
+    }
+
+    /** Replaces the caller's featured groups. See [ChatRepository.setFeaturedGroups]. */
+    suspend fun setFeaturedGroups(chatIds: List<ChatId>): Result<List<ChatMetadata>> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.setFeaturedGroups(owner, chatIds)
+    }
+
+    /** [username]'s featured groups. See [ChatRepository.getFeaturedGroups]. */
+    suspend fun getFeaturedGroups(username: String): Result<List<ChatMetadata>> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+        return repository.getFeaturedGroups(owner, username)
     }
 
     /** The pool [chatId] offers for `@` mentions. See [ChatRepository.getMentionSuggestions]. */
