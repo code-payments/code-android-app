@@ -398,6 +398,11 @@ class ChatMessageDataSource @Inject constructor(
         db?.chatMessageDao()?.failInterruptedSends()
     }
 
+    /** Leaves one row per client id per chat. See [ChatMessageDao.clearDuplicateClientIds]. */
+    suspend fun clearDuplicateClientIds() {
+        db?.chatMessageDao()?.clearDuplicateClientIds()
+    }
+
     suspend fun retryPending(chatId: ChatId, pendingClientIdHex: String): ClientMessageId {
         val clientMessageId = mapper.clientMessageIdFromHex(pendingClientIdHex)
         db?.chatMessageDao()?.updatePendingStatus(

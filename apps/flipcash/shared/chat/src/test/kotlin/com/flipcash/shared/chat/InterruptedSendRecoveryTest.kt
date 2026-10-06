@@ -59,6 +59,7 @@ class InterruptedSendRecoveryTest {
     private lateinit var testDispatchers: TestDispatchers
 
     /** Set when the sweep returns; read by the feed fetch to report what it raced. */
+    private var repairFinished = false
     private var sweepFinished = false
     private var feedFetchSawFinishedSweep: Boolean? = null
 
@@ -89,9 +90,15 @@ class InterruptedSendRecoveryTest {
         // test cannot tell the fix from the bug: the refresh is a `launch`, so on a single-threaded
         // test dispatcher it could not start before a sweep that never suspends had already
         // returned, and a sweep placed after it would still appear to have gone first.
+        coEvery { messageDataSource.clearDuplicateClientIds() } coAnswers {
+            delay(1)
+            repairFinished = true
+        }
+        // The sweep only counts as finished once the repair has, so the feed-fetch check below
+        // also pins repair-then-sweep-then-refresh.
         coEvery { messageDataSource.failInterruptedSends() } coAnswers {
             delay(1)
-            sweepFinished = true
+            sweepFinished = repairFinished
         }
 
         val feedDelegate = FeedSyncDelegate(
@@ -191,6 +198,13 @@ class InterruptedSendRecoveryTest {
     fun `the sweep runs once per login`() = runTest(testDispatchers.dispatcher) {
         loggedIn {
             coVerify(exactly = 1) { messageDataSource.failInterruptedSends() }
+        }
+    }
+
+    @Test
+    fun `login repairs shared client ids once`() = runTest(testDispatchers.dispatcher) {
+        loggedIn {
+            coVerify(exactly = 1) { messageDataSource.clearDuplicateClientIds() }
         }
     }
 }

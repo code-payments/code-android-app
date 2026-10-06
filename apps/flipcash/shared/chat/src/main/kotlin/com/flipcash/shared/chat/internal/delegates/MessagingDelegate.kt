@@ -623,8 +623,14 @@ class MessagingDelegate @Inject constructor(
      * [com.flipcash.shared.chat.internal.RealChatCoordinator.onUserLoggedIn] rather than launched
      * from an `initialize(scope)` hook like the other delegates' — the refresh is itself a `launch`,
      * and two coroutines would leave the order to chance.
+     *
+     * It first repairs chats an older version left with two rows under one client id, which crash
+     * the transcript on open. A check that finds none costs one pass over the table.
      */
     internal suspend fun recoverInterruptedSends() {
+        // A chat holding two rows under one client id crashes the transcript on open; see
+        // ChatMessageDao.clearDuplicateClientIds.
+        messageDataSource.clearDuplicateClientIds()
         messageDataSource.failInterruptedSends()
     }
 

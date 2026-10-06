@@ -154,7 +154,8 @@ class RealChatCoordinator @Inject constructor(
         // Before the first refresh, and awaited rather than launched: a refresh that carries a
         // self-authored message deletes this chat's `SENDING` rows, so a send a previous process
         // was killed mid-flight has to be marked failed first or it is destroyed instead of
-        // becoming retryable. See [MessagingDelegate.recoverInterruptedSends].
+        // becoming retryable. It also repairs rows an older version stored under a shared client
+        // id, which crash the transcript. See [MessagingDelegate.recoverInterruptedSends].
         messagingDelegate.recoverInterruptedSends()
         // After the sweep, which leaves a stored photo sending; this resumes it.
         scope.launch { mediaSender.reconcilePendingMedia() }

@@ -491,6 +491,75 @@ class ChatMessageDaoTest {
         assertEquals(SECOND_CLIENT_HEX, dao.getMessage(CHAT_HEX, 6)?.pendingClientIdHex)
     }
 
+    @Test
+    fun `the repair keeps the id on the newer of two sent rows`() = runTest {
+        dao.insert(text(1, "misassigned").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(2, "the real send").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.clearDuplicateClientIds()
+
+        assertNull(dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `the repair leaves only the highest of three sent holders with the id`() = runTest {
+        dao.insert(text(1, "a").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(2, "b").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(3, "c").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.clearDuplicateClientIds()
+
+        assertNull(dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 3)?.pendingClientIdHex)
+    }
+
+    /** Retry re-sends under the client id, so a failed row losing it would lose the retry. */
+    @Test
+    fun `the repair keeps the id on a row still waiting to send`() = runTest {
+        dao.insert(text(5, "sent").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(pending("failed").copy(status = MessageStatus.FAILED))
+
+        dao.clearDuplicateClientIds()
+
+        assertNull(dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, -1)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `the repair leaves single holders alone, in this chat and others`() = runTest {
+        dao.insert(text(1, "here").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(1, "there").copy(chatIdHex = OTHER_HEX, pendingClientIdHex = CLIENT_HEX))
+
+        dao.clearDuplicateClientIds()
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(OTHER_HEX, 1)?.pendingClientIdHex)
+    }
+
+    /** The check gates the repair at every login, so it has to go quiet once the repair has run. */
+    @Test
+    fun `the check finds a shared id until the repair runs`() = runTest {
+        dao.insert(text(1, "misassigned").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(2, "the real send").copy(pendingClientIdHex = CLIENT_HEX))
+        assertEquals(true, dao.hasDuplicateClientIds())
+
+        dao.clearDuplicateClientIds()
+
+        assertEquals(false, dao.hasDuplicateClientIds())
+    }
+
+    @Test
+    fun `the check ignores one id held once in each of two chats`() = runTest {
+        dao.insert(text(1, "here").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(1, "there").copy(chatIdHex = OTHER_HEX, pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(2, "no id"))
+        dao.insert(text(3, "no id either"))
+
+        assertEquals(false, dao.hasDuplicateClientIds())
+    }
+
     // endregion
 
     // region Confirming after a mis-tagged rescue

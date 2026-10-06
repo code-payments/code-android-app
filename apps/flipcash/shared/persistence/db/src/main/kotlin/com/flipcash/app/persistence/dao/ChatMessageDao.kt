@@ -347,6 +347,59 @@ interface ChatMessageDao {
     suspend fun failInterruptedSends()
 
     /**
+     * Leaves one row per client id per chat, for installs that stored two before [upsert] refused
+     * to (Bugsnag 6ac2ccde: a rescue racing a confirm put one id on two messages, and the chat
+     * crashed on every open).
+     *
+     * A row still pending keeps the id, since its retry re-sends under it. Between two sent rows
+     * the higher `message_id` keeps it, since the misassigned row is the older message. Between two
+     * unsent rows, whose ids are `-nowMs`, it is only a deterministic pick: nothing on disk says
+     * which one the id belongs to. A sent row that loses the id gives up only its item key's
+     * stability across SENDING→SENT, which it is long past; an unsent row gives up its retry.
+     *
+     * Run once per process before the first refresh, beside [failInterruptedSends].
+     *
+     * Checked first with [hasDuplicateClientIds], because the repair's correlated subquery
+     * searches the whole chat for every row holding a client id, which is every message this
+     * device has sent: 40 chats of 1,000 rows took 1.1 s on the JVM's SQLite, against 8 ms for the
+     * check's one pass. Nothing writes a duplicate any more, so after the first login on this
+     * version only the check runs.
+     */
+    @Transaction
+    suspend fun clearDuplicateClientIds() {
+        if (hasDuplicateClientIds()) clearDuplicateClientIdsUnchecked()
+    }
+
+    /** Whether any chat holds two rows under one client id. See [clearDuplicateClientIds]. */
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM chat_messages
+            WHERE pending_client_id_hex IS NOT NULL
+            GROUP BY chat_id_hex, pending_client_id_hex
+            HAVING COUNT(*) > 1
+        )
+    """)
+    suspend fun hasDuplicateClientIds(): Boolean
+
+    /** The repair itself, without the check. Call [clearDuplicateClientIds]. */
+    @Query("""
+        UPDATE chat_messages SET pending_client_id_hex = NULL
+        WHERE pending_client_id_hex IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM chat_messages AS other
+            WHERE other.chat_id_hex = chat_messages.chat_id_hex
+              AND other.pending_client_id_hex = chat_messages.pending_client_id_hex
+              AND other.message_id != chat_messages.message_id
+              AND (
+                (other.status != 'SENT' AND chat_messages.status = 'SENT')
+                OR ((other.status != 'SENT') = (chat_messages.status != 'SENT')
+                    AND other.message_id > chat_messages.message_id)
+              )
+          )
+    """)
+    suspend fun clearDuplicateClientIdsUnchecked()
+
+    /**
      * The optimistic row is written before the server has stamped the message, so every
      * server-assigned field is written here — `event_sequence` included. Leaving it at the pending
      * row's 0 would keep a sent message looking unacknowledged until some later fetch of the chat
