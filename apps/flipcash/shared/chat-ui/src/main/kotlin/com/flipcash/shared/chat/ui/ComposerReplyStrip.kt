@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.shared.chat.ui.media.QuotedPhotoThumbnail
+import com.flipcash.shared.chat.media.ChatMediaText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,7 +32,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.flipcash.core.R
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
@@ -113,7 +115,6 @@ fun ComposerReplyStrip(
             modifier = Modifier
                 .weight(1f)
                 .padding(vertical = ComposerReplyStripDefaults.textPadding),
-            verticalArrangement = Arrangement.spacedBy(ComposerReplyStripDefaults.nameGap),
         ) {
             Text(
                 text = quote.authorName,
@@ -124,6 +125,11 @@ fun ComposerReplyStrip(
             )
             QuoteLine(quote.snippet)
         }
+
+        // After the text and before the way out, centred on the row, as iOS lays it. Nothing for a
+        // redacted photo or any other kind of quote.
+        val photo = quote.snippet as? ChatQuoteSnippet.Photo
+        if (photo != null && !photo.redacted) QuotedPhotoThumbnail(photo)
 
         // A disc rather than a bare ✕, in a hit target wider than the disc.
         Box(
@@ -170,6 +176,15 @@ private fun QuoteLine(snippet: ChatQuoteSnippet) {
             overflow = TextOverflow.Ellipsis,
         )
 
+        // Plain text: the thumbnail is its own item in the strip's row, not part of this line.
+        is ChatQuoteSnippet.Photo -> Text(
+            text = ChatMediaText.preview(snippet.caption, stringResource(R.string.label_chat_media_photo)),
+            style = style,
+            color = CodeTheme.colors.textMain,
+            maxLines = ComposerReplyStripDefaults.textMaxLines,
+            overflow = TextOverflow.Ellipsis,
+        )
+
         // A payment carries the flag and the mint's name the cash card leads with. The amount alone
         // reads as a number; with the flag beside it, it reads as the payment being answered.
         is ChatQuoteSnippet.Cash -> {
@@ -205,22 +220,31 @@ private fun QuoteLine(snippet: ChatQuoteSnippet) {
     }
 }
 
-/** Every measurement the strip makes, carried over from iOS. */
+/** Every measurement the strip makes, on the grid; iOS's values, to the nearest step. */
 private object ComposerReplyStripDefaults {
-    val ruleWidth = 6.dp
-    val gap = 9.dp
-    val nameGap = 2.dp
-    val cashGap = 6.dp
-    val textPadding = 8.dp
-    val trailingPadding = 8.dp
+    val ruleWidth: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x1
+    val gap: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
+    val cashGap: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x1
+    val textPadding: Dp
+        @Composable get() = ChatInputDefaults.FieldPadding
+    val trailingPadding: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
 
     /** The composer field's own height, so a one-line quote does not sit shorter than it. */
-    val minHeight = 50.dp
+    val minHeight: Dp
+        @Composable get() = ChatInputDefaults.OutsideSize
 
     /** Sized to the cap height of the amount beside it, so the flag reads as a mark on the line. */
-    val flagSize = 16.dp
-    val dismissTarget = 34.dp
-    val dismissDisc = 22.dp
-    val dismissGlyph = 11.dp
+    val flagSize: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x3
+    val dismissTarget: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x7
+    val dismissDisc: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x4
+    val dismissGlyph: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
     const val textMaxLines = 2
 }

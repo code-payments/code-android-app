@@ -17,6 +17,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.CircleShape
+import com.getcode.ui.components.chat.ChatInputDefaults
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
@@ -82,7 +84,7 @@ internal fun RowScope.SendCashButton(
     val colorSpec: AnimationSpec<Color> =
         if (hasSettled) tween(durationMillis = 350) else snap()
     val backgroundColor by animateColorAsState(
-        targetValue = if (isTyping) Color.Transparent else Color.White,
+        targetValue = if (isTyping) ChatInputDefaults.ContainerColor else Color.White,
         animationSpec = colorSpec,
         label = "send button background",
     )
@@ -92,7 +94,7 @@ internal fun RowScope.SendCashButton(
         label = "send button content",
     )
     val borderColor by animateColorAsState(
-        targetValue = if (isTyping) CodeTheme.colors.divider else Color.Transparent,
+        targetValue = if (isTyping) Color.White.copy(alpha = 0.1f) else Color.Transparent,
         animationSpec = colorSpec,
         label = "send button border",
     )
@@ -121,7 +123,7 @@ internal fun RowScope.SendCashButton(
         label = "send button symbol size",
     )
 
-    val shape = if (canType) CodeTheme.shapes.medium else CodeTheme.shapes.small
+    val shape = if (canType) CircleShape else CodeTheme.shapes.small
 
     Row(
         modifier = Modifier
@@ -129,17 +131,17 @@ internal fun RowScope.SendCashButton(
             // Match the chat input's single-line height (~54dp; driven by its trailing send-icon
             // stack). Equal min width keeps the collapsed "$" state a square with even padding
             // instead of a short rectangle; the expanded "Send $" content grows past it.
-            .defaultMinSize(minWidth = 54.dp, minHeight = 54.dp)
+            .defaultMinSize(minWidth = ChatInputDefaults.OutsideSize, minHeight = ChatInputDefaults.OutsideSize)
             .clip(shape)
             // Haze sits under the fill — hidden while the background is opaque white, revealed
             // naturally as the background eases to transparent when typing begins.
             .hazeBlur(HazeInput.Sources(hazeState), hazeMaterial)
             .background(backgroundColor, shape)
-            .border(CodeTheme.dimens.border, borderColor, shape)
+            .then(if (isTyping) Modifier.border(CodeTheme.dimens.border, ChatInputDefaults.RimBrush, shape) else Modifier)
             .clickable(onClick = onClick)
             .padding(
-                horizontal = CodeTheme.dimens.grid.x3,
-                vertical = CodeTheme.dimens.grid.x2,
+                horizontal = CodeTheme.dimens.staticGrid.x3,
+                vertical = CodeTheme.dimens.staticGrid.x2,
             ),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -188,7 +190,10 @@ internal fun RowScope.SendCashButton(
             color = contentColor,
             // Base style stays textMedium; the animated fontSize carries it up to textLarge in
             // the condensed state so the symbol matches the "Send " prefix when expanded.
-            style = CodeTheme.typography.textMedium.copy(fontSize = symbolFontSize.sp),
+            style = CodeTheme.typography.textMedium.copy(
+                fontSize = symbolFontSize.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            ),
             maxLines = 1,
             softWrap = false,
         )

@@ -5,4 +5,6 @@
     <cache-path name="share_previews" path="share_previews/" />
     <!-- Exported tip codes, PNG + SVG (cacheDir/share_exports/). -->
     <cache-path name="share_exports" path="share_exports/" />
+    <!-- Chat photos handed to the share sheet (cacheDir/chat_media/). -->
+    <cache-path name="chat_media" path="chat_media/" />
 </paths>

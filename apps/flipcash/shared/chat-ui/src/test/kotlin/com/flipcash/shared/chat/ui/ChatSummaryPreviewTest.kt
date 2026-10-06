@@ -342,13 +342,29 @@ class ChatSummaryPreviewTest {
     }
 
     @Test
-    fun `a chat whose newest message has no preview still counts as having messages`() {
-        // Media previews as nothing today, which is not the same as an empty chat — the row must
-        // not label it "Nothing yet".
-        val reference = groupReference(listOf(MessageContent.Media(items = emptyList(), caption = null)))
+    fun `a photo previews as its caption behind the camera`() {
+        every { resources.getString(R.string.label_chat_media_photo) } returns "Photo"
+        val bare = MessageContent.Media(items = emptyList(), caption = null)
+        val captioned = MessageContent.Media(items = emptyList(), caption = MessageContent.Text("sunset"))
 
-        assertTrue(reference.hasMessages)
-        assertNull(reference.lastMessagePreview)
+        assertEquals("📷 Photo", preview(listOf(bare)))
+        assertEquals("📷 sunset", preview(listOf(captioned)))
+    }
+
+    @Test
+    fun `a photo is prefixed like a typed message`() {
+        every { resources.getString(R.string.label_chat_media_photo) } returns "Photo"
+        every { resources.getString(R.string.label_chat_preview_sentMessage, "📷 Photo") } returns "You: 📷 Photo"
+        val bare = MessageContent.Media(items = emptyList(), caption = null)
+
+        every {
+            resources.getString(R.string.label_chat_preview_senderMessage, "Alice", "📷 Photo")
+        } returns "Alice: 📷 Photo"
+
+        assertEquals("You: 📷 Photo", preview(listOf(bare), senderId = self))
+        val group = groupReference(listOf(bare))
+        assertTrue(group.hasMessages)
+        assertEquals("Alice: 📷 Photo", group.lastMessagePreview)
     }
 
     @Test

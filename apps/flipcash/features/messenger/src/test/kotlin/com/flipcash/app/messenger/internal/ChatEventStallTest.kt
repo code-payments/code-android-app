@@ -42,13 +42,15 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -59,13 +61,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * A failed chat send used to report `State: Success` — the delegate failed, but the analytics
- * event said the payment went through. This pins the fixed behaviour: a failed [ContactPaymentDelegate.send]
- * or [TipPaymentDelegate.send] reports `State: Failure` with an `Error` on both "Sent Cash" and
- * "Sent Tip".
+ * Event handlers share one unbuffered bus, so a handler that suspends inline on the network
+ * blocks every event dispatched after it until that call returns.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class ChatSendFailureAnalyticsTest {
+class ChatEventStallTest {
 
     @get:Rule
     var instantExecutorRule = InstantTaskExecutorRule()
@@ -156,47 +156,19 @@ class ChatSendFailureAnalyticsTest {
     )
 
     @Test
-    fun `a failed cash send reports State Failure with an Error`() = runTest(mainCoroutineRule.dispatcher) {
-        coEvery {
-            contactPaymentDelegate.send(any(), any(), any(), any(), any())
-        } returns Result.failure(RuntimeException("network down"))
-
-        val contact = DeviceContact(
-            e164 = "+15551234567",
-            androidContactId = 1L,
-            displayName = "Ada Lovelace",
-            photoUri = null,
-            displayNumber = "(555) 123-4567",
-        )
+    fun `a reaction refresh that never returns does not hold up later events`() = runTest(mainCoroutineRule.dispatcher) {
+        // Offline, the refresh's RPC never returns. The event bus has no buffer, so a handler
+        // waiting on it inline stalls every event after it: picked photos never reached the composer.
+        coEvery { chatCoordinator.refreshReactions(any(), any()) } coAnswers { awaitCancellation() }
         val chatId = ChatId(UUID.randomUUID().bytes)
 
         val vm = createViewModel()
         vm.dispatchEvent(ChatViewModel.Event.ChatFound(chatId))
-        vm.dispatchEvent(ChatViewModel.Event.OnContactFound(contact))
-        vm.dispatchEvent(ChatViewModel.Event.OnSendRequested(amount, token))
-        advanceUntilIdle()
+        vm.dispatchEvent(ChatViewModel.Event.RefreshReactionIds(listOf(1L)))
+        vm.dispatchEvent(ChatViewModel.Event.RefreshReactionIds(listOf(2L)))
+        vm.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(3L))
+        advanceTimeBy(1_000)
 
-        val event = analytics.events.single { it.name == "Sent Cash" }
-        assertEquals(PropertyValue.Text(AnalyticsState.FAILURE.value), event.properties["State"])
-        assertTrue(event.properties.containsKey("Error"))
-    }
-
-    @Test
-    fun `a failed tip send reports State Failure with an Error`() = runTest(mainCoroutineRule.dispatcher) {
-        coEvery {
-            tipPaymentDelegate.send(any(), any(), any(), any(), any(), any())
-        } returns Result.failure(RuntimeException("network down"))
-
-        val userId: ID = UUID.randomUUID().bytes
-        val profile = mockk<UserProfile>(relaxed = true)
-
-        val vm = createViewModel()
-        vm.dispatchEvent(ChatViewModel.Event.OnTipUserResolved(userId, profile))
-        vm.dispatchEvent(ChatViewModel.Event.OnSendRequested(amount, token))
-        advanceUntilIdle()
-
-        val event = analytics.events.single { it.name == "Sent Tip" }
-        assertEquals(PropertyValue.Text(AnalyticsState.FAILURE.value), event.properties["State"])
-        assertTrue(event.properties.containsKey("Error"))
+        coVerify { chatCoordinator.advanceReadPointer(chatId, 3L) }
     }
 }

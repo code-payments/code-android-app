@@ -57,7 +57,9 @@ class ChatMentionPickerTest {
     @get:Rule
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
-    private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true)
+    private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
+    }
     private val userManager = mockk<UserManager>(relaxed = true)
     private val exchange = mockk<Exchange>(relaxed = true)
     private val transactionController = mockk<TransactionController>(relaxed = true)
@@ -84,6 +86,7 @@ class ChatMentionPickerTest {
 
     private fun createViewModel(): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
+        mediaUploads = noMediaUploads(),
         e2eePolicy = E2eePolicy(),
         contactCoordinator = mockk(relaxed = true),
         contactPaymentDelegate = mockk(relaxed = true),

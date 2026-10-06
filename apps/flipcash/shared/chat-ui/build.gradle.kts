@@ -27,6 +27,14 @@ dependencies {
     api(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:theme"))
 
+    // CameraX for ChatCameraPanel, the same artifacts :ui:scanner uses.
+    implementation(libs.androidx.camerax.core)
+    implementation(libs.androidx.camerax.camera2)
+    implementation(libs.androidx.camerax.lifecycle)
+    implementation(libs.androidx.camerax.view)
+    implementation(project(":libs:permissions:public"))
+    implementation(libs.compose.activities)
+
     testImplementation(libs.robolectric)
     testImplementation(libs.bundles.unit.testing)
 }

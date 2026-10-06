@@ -1,9 +1,32 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import android.net.Uri
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import com.flipcash.core.R as CoreR
+import com.flipcash.shared.chat.media.ChatMediaUploadState
+import com.flipcash.shared.chat.ui.media.AttachPhase
+import com.flipcash.shared.chat.ui.media.AttachSurface
+import com.flipcash.shared.chat.ui.media.AttachRow
+import com.flipcash.shared.chat.ui.media.ComposerPhotoChip
+import com.flipcash.shared.chat.ui.media.ComposerPhotoChipState
+import com.flipcash.shared.chat.ui.media.ComposerPhotoChips
+import com.flipcash.shared.chat.ui.media.MAX_STAGED_PHOTOS
+import com.flipcash.shared.chat.ui.media.attachRows
+import com.flipcash.shared.chat.ui.media.rememberChatPhotoPicker
+import com.flipcash.shared.chat.ui.media.deleteLeftoverCaptures
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,10 +63,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import com.getcode.ui.components.chat.ChatInputDefaults
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -51,6 +80,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import androidx.compose.ui.util.lerp
+import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.balanceRequirement
@@ -147,9 +178,56 @@ internal fun UserControlBottomBar(
     var mentionListHeight by remember { mutableStateOf(0.dp) }
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
 
+    // The attach menu and the camera are one surface over the keyboard, which stays up behind it.
+    var attachPhase by remember { mutableStateOf(AttachPhase.Collapsed) }
+    // The camera file staged at the shutter and not written yet, to drop its chip if the write fails.
+    var pendingCapture by remember { mutableStateOf<Uri?>(null) }
+    var plusCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    // While the attach surface is out it draws "+" itself; this one hides so the two never stack.
+    var plusCovered by remember { mutableStateOf(false) }
+    // A capture's card leaves the + for the chip, so the + is back as the landing starts, popping in
+    // on the swap spring. A closing menu hands the + back as it starts to close: this one is back at
+    // full strength under the shrinking surface, which stops drawing its own, so the two never stack.
+    val plusShown = !plusCovered || attachPhase == AttachPhase.Landing
+    val plusPresence = remember { Animatable(1f) }
+    LaunchedEffect(plusShown) {
+        when {
+            !plusShown -> plusPresence.snapTo(0f)
+            attachPhase == AttachPhase.Landing -> plusPresence.animateTo(1f, ChatAnimations.swap)
+            else -> plusPresence.snapTo(1f)
+        }
+    }
+    // The newest staged chip, which a capture shrinks onto.
+    var newestChipCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    // Picked photos are staged to go with a caption, so the composer takes focus once the picker
+    // sheet has handed the window back, as it does after a capture.
+    var focusAfterPick by remember { mutableStateOf(false) }
+    val pickPhotos = rememberChatPhotoPicker(
+        remaining = MAX_STAGED_PHOTOS - state.stagedPhotos.size,
+        onPicked = { uris ->
+            dispatch(ChatViewModel.Event.StagePhotos(uris))
+            if (uris.isNotEmpty()) focusAfterPick = true
+        },
+    )
+
+    val context = LocalContext.current
+    LaunchedEffect(Unit) { deleteLeftoverCaptures(context) }
+
     LaunchedEffect(keyboard.visible) {
         if (!keyboard.visible) {
+            // Back with the keyboard up goes to the keyboard, not the menu: closing the keyboard
+            // closes the menu with it rather than leaving it floating over the bar. The camera card
+            // stays: asking for the camera permission takes the keyboard down for a moment.
+            if (attachPhase == AttachPhase.Menu) attachPhase = AttachPhase.Collapsed
             dispatch(ChatViewModel.Event.OnStopMessageInput)
+        }
+    }
+
+    // Edit mode is text only, and a send ends the staging: the panel and menu have nothing to do.
+    LaunchedEffect(state.acceptsMedia) {
+        if (!state.acceptsMedia) {
+            attachPhase = AttachPhase.Collapsed
         }
     }
 
@@ -172,9 +250,9 @@ internal fun UserControlBottomBar(
             // doesn't move anything, since nothing here animates on its own.
             val keyboardOpen = keyboardOpenFraction()
             val hasComposer = state.typingConstraints.enabled
-            val compactInset = CodeTheme.dimens.grid.x6.coerceAtLeast(CodeTheme.dimens.inset)
+            val compactInset = CodeTheme.dimens.staticGrid.x6.coerceAtLeast(CodeTheme.dimens.inset)
             val sideInset = if (hasComposer) lerp(compactInset, CodeTheme.dimens.inset, keyboardOpen) else CodeTheme.dimens.inset
-            val restingDrop = if (hasComposer) lerp(CodeTheme.dimens.grid.x2, 0.dp, keyboardOpen) else 0.dp
+            val restingDrop = if (hasComposer) lerp(CodeTheme.dimens.staticGrid.x2, 0.dp, keyboardOpen) else 0.dp
             // The part of the navigation bar's inset the keyboard isn't covering, so the bar only sinks
             // into it once the keyboard has cleared it.
             val restingRoom = WindowInsets.navigationBars.exclude(WindowInsets.ime)
@@ -209,7 +287,7 @@ internal fun UserControlBottomBar(
                                 placeable.place(0, 0)
                             }
                         }
-                        .padding(vertical = CodeTheme.dimens.grid.x3)
+                        .padding(vertical = CodeTheme.dimens.staticGrid.x3)
                         .navigationBarsPadding()
                         // typingConstraints.enabled starts false and only resolves a frame or two after
                         // open, once Room confirms whether the chat has a cash message. Rendering the
@@ -265,50 +343,173 @@ internal fun UserControlBottomBar(
                             dispatch = dispatch,
                             mentionListModifier = Modifier.measured { mentionListHeight = it.height },
                         )
+                        // Editing swaps the leading control rather than adding a banner above the bar:
+                        // send-cash is not reachable mid-edit anyway, and cancel is what the slot is
+                        // for while the edit is open.
+                        val outsideControl: @Composable () -> Unit = {
+                            Row {
+                                if (state.editing != null) {
+                                    CancelEditButton(
+                                        onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
+                                    )
+                                } else {
+                                    SendCashButton(
+                                        state = state,
+                                        hazeState = hazeState,
+                                        hazeMaterial = material,
+                                        onClick = {
+                                            keyboard.hideIfVisible {
+                                                dispatch(ChatViewModel.Event.OnSendCash)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        // Without a composer the send-cash button is the whole bar.
+                        if (!canType) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = sideInset),
+                            ) { outsideControl() }
+                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = sideInset),
-                            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                            verticalAlignment = Alignment.Bottom,
                         ) {
-                            // Editing swaps the leading control rather than adding a banner above the bar:
-                            // send-cash is not reachable mid-edit anyway, and cancel is what the slot is
-                            // for while the edit is open.
-                            if (state.editing != null) {
-                                CancelEditButton(
-                                    onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
-                                )
-                            } else {
-                                SendCashButton(
-                                    state = state,
-                                    hazeState = hazeState,
-                                    hazeMaterial = material,
-                                    onClick = {
-                                        keyboard.hideIfVisible {
-                                            dispatch(ChatViewModel.Event.OnSendCash)
-                                        }
-                                    }
-                                )
-                            }
-
                             if (canType) {
+                                val chips = remember(state.composerPhotos, state.uploadStates) {
+                                    state.composerPhotos.map { photo ->
+                                        ComposerPhotoChip(
+                                            id = photo.id,
+                                            model = photo.preview ?: photo.source,
+                                            state = when (val upload = state.uploadStates[photo.id]) {
+                                                is ChatMediaUploadState.Failed -> ComposerPhotoChipState.Failed(upload.retryable)
+                                                is ChatMediaUploadState.Uploading -> ComposerPhotoChipState.Uploading
+                                                is ChatMediaUploadState.Processing,
+                                                is ChatMediaUploadState.Uploaded -> ComposerPhotoChipState.Uploaded
+                                                is ChatMediaUploadState.Preparing, null -> ComposerPhotoChipState.Preparing
+                                            },
+                                        )
+                                    }
+                                }
                                 ChatInput(
                                     modifier = Modifier
                                         .testTag("chat_message_input")
-                                        .weight(1f)
-                                        .border(
-                                            CodeTheme.dimens.border,
-                                            CodeTheme.colors.divider,
-                                            CodeTheme.shapes.medium,
-                                        )
                                         .hazeBlur(HazeInput.Sources(hazeState), material),
+                                    outside = outsideControl,
+                                    outsideCollapses = state.editing == null,
                                     focusRequester = focusRequester,
                                     hint = stringResource(
                                         if (state.replyingTo != null) R.string.hint_chatReply
                                         else R.string.hint_chatMessage
                                     ),
                                     state = state.chatInputState,
+                                    hasAttachments = chips.isNotEmpty(),
+                                    sendEnabled = !state.hasFailedPhoto,
+                                    leading = if (state.editing == null && state.chatId != null) {
+                                        {
+                                            Box {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .testTag("chat_attach_button")
+                                                        .size(ChatInputDefaults.AccessorySize)
+                                                        // Measured outside the hide/pop scale below, so the
+                                                        // surface always collapses onto the full-size "+".
+                                                        .onGloballyPositioned { plusCoordinates = it }
+                                                        .graphicsLayer {
+                                                            val p = plusPresence.value
+                                                            alpha = p.coerceIn(0f, 1f)
+                                                            val scale = lerp(ChatAnimations.reactionEnterScale, 1f, p)
+                                                            scaleX = scale
+                                                            scaleY = scale
+                                                        }
+                                                        .clip(CircleShape)
+                                                        .background(Color.White.copy(alpha = 0.1f), CircleShape)
+                                                        .clickable {
+                                                            attachPhase = if (attachPhase == AttachPhase.Menu) {
+                                                                AttachPhase.Collapsed
+                                                            } else {
+                                                                AttachPhase.Menu
+                                                            }
+                                                        },
+                                                    contentAlignment = Alignment.Center,
+                                                ) {
+                                                    Icon(
+                                                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                                                        imageVector = Icons.Outlined.Add,
+                                                        contentDescription = stringResource(CoreR.string.description_chatAttachMenu),
+                                                        tint = CodeTheme.colors.textMain,
+                                                    )
+                                                }
+                                                AttachSurface(
+                                                    phase = attachPhase,
+                                                    plus = { plusCoordinates },
+                                                    landing = { newestChipCoordinates },
+                                                    // The $ button beside the field stays the way to send cash.
+                                                    rows = attachRows(
+                                                        cashOffered = false,
+                                                        acceptsMedia = state.acceptsMedia,
+                                                        stagedCount = state.stagedPhotos.size,
+                                                    ),
+                                                    onRowClick = { row ->
+                                                        when (row) {
+                                                            AttachRow.Camera -> attachPhase = AttachPhase.Camera
+                                                            AttachRow.Photos -> {
+                                                                attachPhase = AttachPhase.Collapsed
+                                                                pickPhotos()
+                                                            }
+                                                            AttachRow.Cash -> attachPhase = AttachPhase.Collapsed
+                                                        }
+                                                    },
+                                                    // Back steps out: the camera to the menu, the menu to the field.
+                                                    onBack = {
+                                                        attachPhase = if (attachPhase == AttachPhase.Camera) {
+                                                            AttachPhase.Menu
+                                                        } else {
+                                                            AttachPhase.Collapsed
+                                                        }
+                                                    },
+                                                    onDismissRequest = { attachPhase = AttachPhase.Collapsed },
+                                                    // The shot is staged at the shutter, so its chip is there to
+                                                    // land on while the file is still being written.
+                                                    onShutter = { preview, uri ->
+                                                        pendingCapture = uri
+                                                        dispatch(ChatViewModel.Event.CaptureStarted(uri, preview?.asAndroidBitmap()))
+                                                        attachPhase = AttachPhase.Landing
+                                                        focusRequester.requestFocus()
+                                                        keyboard.show()
+                                                    },
+                                                    onCaptured = { uri ->
+                                                        if (pendingCapture == uri) pendingCapture = null
+                                                        dispatch(ChatViewModel.Event.CaptureFinished(uri, saved = true))
+                                                    },
+                                                    onCameraError = {
+                                                        pendingCapture?.let { dispatch(ChatViewModel.Event.CaptureFinished(it, saved = false)) }
+                                                        pendingCapture = null
+                                                        attachPhase = AttachPhase.Collapsed
+                                                    },
+                                                    onCoverChange = { plusCovered = it },
+                                                    onGone = {
+                                                        if (attachPhase == AttachPhase.Landing) attachPhase = AttachPhase.Collapsed
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    } else null,
+                                    header = if (chips.isNotEmpty()) {
+                                        {
+                                            ComposerPhotoChips(
+                                                chips = chips,
+                                                onRemove = { dispatch(ChatViewModel.Event.RemovePhoto(it)) },
+                                                onRetry = { dispatch(ChatViewModel.Event.RetryPhoto(it)) },
+                                                modifier = Modifier,
+                                                newestChipModifier = Modifier.onGloballyPositioned { newestChipCoordinates = it },
+                                            )
+                                        }
+                                    } else null,
                                     // One read of the edit state decides both the glyph and what the tap
                                     // does, so the composer cannot show a checkmark and send a new message.
                                     submit = if (state.editing != null) {
@@ -347,6 +548,14 @@ internal fun UserControlBottomBar(
                                 // post-tip open), focus the input and show the keyboard. Co-located with
                                 // ChatInput so focusRequester is guaranteed attached; consumes the request so
                                 // it fires once and a later manual dismiss doesn't re-open it.
+                                LaunchedEffect(focusAfterPick) {
+                                    if (focusAfterPick) {
+                                        focusRequester.requestFocus()
+                                        keyboard.show()
+                                        focusAfterPick = false
+                                    }
+                                }
+
                                 LaunchedEffect(state.messageInputRequested) {
                                     if (state.messageInputRequested) {
                                         focusRequester.requestFocus()
@@ -366,13 +575,13 @@ internal fun UserControlBottomBar(
 /** Leaves edit mode. Sized to the send-cash button it stands in for so the bar doesn't reflow. */
 @Composable
 private fun CancelEditButton(onClick: () -> Unit) {
-    val shape = CodeTheme.shapes.medium
+    val shape = CircleShape
     Box(
         modifier = Modifier
-            .defaultMinSize(minWidth = 54.dp, minHeight = 54.dp)
+            .size(ChatInputDefaults.OutsideSize)
             .clip(shape)
-            .background(Color.White.copy(alpha = 0.1f), shape)
-            .border(CodeTheme.dimens.border, CodeTheme.colors.divider, shape)
+            .background(ChatInputDefaults.ContainerColor, shape)
+            .border(CodeTheme.dimens.border, ChatInputDefaults.RimBrush, shape)
             .clickable(onClick = onClick)
             .testTag("chat_cancel_edit"),
         contentAlignment = Alignment.Center,
@@ -393,7 +602,7 @@ private fun DeactivatedChatBottomBar() {
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(vertical = CodeTheme.dimens.grid.x3),
+            .padding(vertical = CodeTheme.dimens.staticGrid.x3),
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import com.flipcash.shared.chat.ui.media.ChatPhotoOverlay
+import com.flipcash.shared.chat.ui.media.ChatPhotoSources
+import com.flipcash.shared.chat.ui.media.LocalChatMediaProgress
+import com.flipcash.shared.chat.ui.media.LocalChatPhotoSources
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,6 +67,8 @@ import kotlinx.coroutines.flow.filterIsInstance
 internal fun MessengerScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val messages = viewModel.messages.collectAsLazyPagingItems()
+    val mediaProgress = viewModel.mediaSendProgress.collectAsStateWithLifecycle()
+    val mediaProgressOf = remember(mediaProgress) { { mediaProgress.value } }
     val otherReadPointer by viewModel.otherReadPointer.collectAsStateWithLifecycle(null)
     val navigator = LocalCodeNavigator.current
     val uriHandler = LocalUriHandler.current
@@ -82,6 +88,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // height, which the selection and editing modes change.
     var barHeight by remember { mutableStateOf(0.dp) }
     val keyboard = rememberKeyboardController()
+    // The photo bubbles on screen, and the photo opened over them. The overlay sits above the whole
+    // screen rather than being a route, so it can grow out of and shrink back into its bubble.
+    val photoSources = remember { ChatPhotoSources() }
+    var openPhotoId by remember { mutableStateOf<Long?>(null) }
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
@@ -112,6 +122,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             ChatAction.RefreshContact -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
+            }
+
+            is ChatAction.OpenPhoto -> {
+                // After the keyboard is down, so the bubble the photo grows from has settled.
+                keyboard.hideIfVisible { openPhotoId = action.bubble.messageId }
             }
 
             is ChatAction.RetryMessage -> {
@@ -323,6 +338,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     CodeScaffold(
         // The input bar rides the keyboard; the message list is inset by it either way.
         modifier = Modifier.imePadding(),
@@ -386,7 +402,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             modifier = Modifier.fillMaxSize(),
             enabled = state.obscuresTranscript,
         ) {
-            CompositionLocalProvider(LocalUriHandler provides transcriptUriHandler) {
+            CompositionLocalProvider(
+                LocalUriHandler provides transcriptUriHandler,
+                LocalChatMediaProgress provides mediaProgressOf,
+                LocalChatPhotoSources provides photoSources,
+            ) {
                 MessageList(
                     modifier = Modifier
                         .fillMaxSize()
@@ -406,5 +426,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 )
             }
         }
+    }
+
+    openPhotoId?.let { id ->
+        ChatPhotoOverlay(
+            messageId = id,
+            sources = photoSources,
+            onClosed = { openPhotoId = null },
+        )
+    }
     }
 }

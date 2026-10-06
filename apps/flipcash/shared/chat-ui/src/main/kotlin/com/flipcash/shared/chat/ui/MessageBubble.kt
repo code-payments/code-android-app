@@ -70,6 +70,8 @@ import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
+import com.flipcash.shared.chat.ui.media.MediaMessageBubble
+import com.flipcash.shared.chat.ui.media.photoBody
 import com.flipcash.shared.chat.models.MessagePart
 import com.flipcash.shared.chat.models.splitAroundLinkCard
 import kotlin.time.Instant
@@ -242,7 +244,20 @@ fun ContentBubble(
                 // A reply is a text bubble with a citation above the body. Routing it through
                 // the same composable keeps its grouping, edited marker and link handling
                 // identical to any other message, which is what it is.
-                is MessageContent.Reply -> TextBubble(
+                is MessageContent.Reply -> content.photoBody()?.let { photo ->
+                    MediaMessageBubble(
+                        item = item,
+                        body = photo,
+                        position = position,
+                        maxWidth = bubbleMaxWidth,
+                        modifier = modifier,
+                        quote = quote,
+                        onQuoteClick = onQuoteClick,
+                        interactive = interactive,
+                        onLongClick = onLongClick?.takeIf { interactive },
+                        onDoubleClick = onDoubleClick?.takeIf { interactive },
+                    )
+                } ?: TextBubble(
                     modifier = modifier,
                     text = item.partText ?: content.linkableText().orEmpty(),
                     mentions = item.mentions,
@@ -268,8 +283,16 @@ fun ContentBubble(
                     hint = item.undecryptableHint,
                 )
 
-                // TODO
-                is MessageContent.Media -> Unit
+                is MessageContent.Media -> MediaMessageBubble(
+                    item = item,
+                    body = content,
+                    position = position,
+                    maxWidth = bubbleMaxWidth,
+                    modifier = modifier,
+                    interactive = interactive,
+                    onLongClick = onLongClick?.takeIf { interactive },
+                    onDoubleClick = onDoubleClick?.takeIf { interactive },
+                )
                 is MessageContent.System -> Unit
                 // A widget variant this client doesn't know draws as any message it can't show.
                 is MessageContent.Widget -> when (val widget = content.widget) {

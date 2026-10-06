@@ -78,7 +78,9 @@ class ChatGroupAnalyticsTest {
     @get:Rule
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
-    private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true)
+    private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
+    }
     private val contactCoordinator = mockk<ContactCoordinator>(relaxed = true)
     private val contactPaymentDelegate = mockk<ContactPaymentDelegate>(relaxed = true)
     private val tipPaymentDelegate = mockk<TipPaymentDelegate>(relaxed = true)
@@ -133,6 +135,7 @@ class ChatGroupAnalyticsTest {
 
     private fun createViewModel(): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
+        mediaUploads = noMediaUploads(),
         e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
         contactPaymentDelegate = contactPaymentDelegate,
