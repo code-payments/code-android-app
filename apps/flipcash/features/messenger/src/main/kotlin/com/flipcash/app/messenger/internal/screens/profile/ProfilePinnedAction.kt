@@ -12,12 +12,14 @@ internal sealed interface ProfilePinnedAction {
     /** The fee is paid and the DM has not appeared yet; shown disabled, so it cannot be paid twice. */
     data object OpeningChat : ProfilePinnedAction
 
-    /** A null [fee] means "Start Chatting" opens the amount entry rather than a confirmation. */
-    data class StartChatting(val fee: Fiat?) : ProfilePinnedAction
+    data class StartChatting(val fee: Fiat) : ProfilePinnedAction
 }
 
 /**
- * Null for your own profile. Blocked wins over an existing DM, because a blocked DM is hidden.
+ * Null for your own profile, and for a person with no DM while [fee] is still null. The fee falls
+ * back to the regional default, so null only means it has not loaded yet; the button waits for it
+ * rather than offer a payment with no amount to confirm. Blocked wins over an existing DM, because
+ * a blocked DM is hidden.
  */
 internal fun resolvePinnedAction(
     isSelf: Boolean,
@@ -30,7 +32,7 @@ internal fun resolvePinnedAction(
     isBlocked -> ProfilePinnedAction.Unblock
     dmExists -> ProfilePinnedAction.OpenChat
     paid -> ProfilePinnedAction.OpeningChat
-    else -> ProfilePinnedAction.StartChatting(fee)
+    else -> fee?.let(ProfilePinnedAction::StartChatting)
 }
 
 /**
@@ -49,13 +51,12 @@ internal fun profileMenuItems(isBlocked: Boolean, hasDm: Boolean): List<ChatProf
     }
 
 /**
- * The string behind the pinned button. Only [ProfilePinnedAction.StartChatting] with a known fee
- * takes an argument, the formatted fee.
+ * The string behind the pinned button. Only [ProfilePinnedAction.StartChatting] takes an argument,
+ * the formatted fee.
  */
 @StringRes
 internal fun ProfilePinnedAction.labelRes(): Int = when (this) {
     ProfilePinnedAction.Unblock -> R.string.action_unblock
     ProfilePinnedAction.OpenChat, ProfilePinnedAction.OpeningChat -> R.string.action_openChat
-    is ProfilePinnedAction.StartChatting ->
-        if (fee != null) R.string.action_sendToStartChatting else R.string.action_startChatting
+    is ProfilePinnedAction.StartChatting -> R.string.action_sendToStartChatting
 }

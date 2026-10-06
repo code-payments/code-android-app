@@ -99,8 +99,6 @@ internal fun PersonProfileScreen(
         viewModel.eventFlow.collect { event ->
             when (event) {
                 is ChatProfileViewModel.Event.OpenChat -> currentOnOpenChat(event.chatId)
-                is ChatProfileViewModel.Event.OpenSendCash ->
-                    navigator.push(event.participant.dmRoute(openSendCash = true))
                 is ChatProfileViewModel.Event.OpenScreen -> navigator.push(event.route)
                 else -> Unit
             }
@@ -278,7 +276,6 @@ internal fun PersonProfileScreen(
 
 @Composable
 private fun ProfilePinnedAction.label(): String = when (this) {
-    is ProfilePinnedAction.StartChatting ->
-        if (fee != null) stringResource(labelRes(), fee.formatted()) else stringResource(labelRes())
+    is ProfilePinnedAction.StartChatting -> stringResource(labelRes(), fee.formatted())
     else -> stringResource(labelRes())
 }

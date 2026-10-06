@@ -53,10 +53,19 @@ class ProfileActionsTest {
     }
 
     @Test
-    fun `no DM and no fee starts chatting without a fee`() {
+    fun `no DM and the fee still loading pins nothing`() {
+        assertNull(resolvePinnedAction(isSelf = false, isBlocked = false, dmExists = false, fee = null))
+    }
+
+    @Test
+    fun `an existing DM or a block does not wait for the fee`() {
         assertEquals(
-            ProfilePinnedAction.StartChatting(null),
-            resolvePinnedAction(isSelf = false, isBlocked = false, dmExists = false, fee = null),
+            ProfilePinnedAction.OpenChat,
+            resolvePinnedAction(isSelf = false, isBlocked = false, dmExists = true, fee = null),
+        )
+        assertEquals(
+            ProfilePinnedAction.Unblock,
+            resolvePinnedAction(isSelf = false, isBlocked = true, dmExists = false, fee = null),
         )
     }
 
@@ -102,14 +111,10 @@ class ProfileActionsTest {
     }
 
     @Test
-    fun `start chatting names the price only when there is one`() {
+    fun `start chatting names the price`() {
         assertEquals(
             R.string.action_sendToStartChatting,
             ProfilePinnedAction.StartChatting(fee).labelRes(),
-        )
-        assertEquals(
-            R.string.action_startChatting,
-            ProfilePinnedAction.StartChatting(null).labelRes(),
         )
     }
 }

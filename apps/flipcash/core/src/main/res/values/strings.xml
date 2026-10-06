@@ -1287,8 +1287,6 @@
     <string name="action_unblock">Unblock</string>
     <!-- The chip under a blocked person's handle on their profile. -->
     <string name="label_blocked">Blocked</string>
-    <!-- The pinned button on another person's profile when no start-chatting fee is known. -->
-    <string name="action_startChatting">Start Chatting</string>
     <string name="action_openChat">Open Chat</string>
     <!-- The top bar's overflow button on another person's profile. -->
     <string name="action_moreProfileActions">More</string>

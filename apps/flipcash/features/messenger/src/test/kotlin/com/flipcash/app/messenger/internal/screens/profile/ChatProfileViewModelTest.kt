@@ -207,7 +207,7 @@ class ChatProfileViewModelTest {
         assertNull(model.stateFlow.value.pinnedAction)
 
         openFull(model)
-        assertEquals(ProfilePinnedAction.StartChatting(fee.value), model.stateFlow.value.pinnedAction)
+        assertEquals(ProfilePinnedAction.StartChatting(Fiat(1, CurrencyCode.USD)), model.stateFlow.value.pinnedAction)
 
         members.value = listOf(mockk<ChatMember>())
         assertEquals(ProfilePinnedAction.OpenChat, model.stateFlow.value.pinnedAction)
@@ -225,16 +225,18 @@ class ChatProfileViewModelTest {
     }
 
     @Test
-    fun `tapping start chatting with no fee asks for the keypad`() = runTest {
+    fun `no fee yet pins no button, and a tap does nothing`() = runTest {
         val model = viewModel()
         openFull(model)
+        assertNull(model.stateFlow.value.pinnedAction)
 
         model.eventFlow.test {
             model.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped)
             assertIs<ChatProfileViewModel.Event.PinnedActionTapped>(awaitItem())
-            assertIs<ChatProfileViewModel.Event.OpenSendCash>(awaitItem())
+            expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
+        assertFalse(model.stateFlow.value.paymentSheetVisible)
     }
 
     @Test

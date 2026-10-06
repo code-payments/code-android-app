@@ -193,12 +193,6 @@ internal class ChatProfileViewModel @Inject constructor(
 
         /** Outgoing: the host decides whether that is a pop back to the chat or a push. */
         data class OpenChat(val chatId: ChatId) : Event
-        /**
-         * Outgoing: no fee is known, so the amount is entered on the chat's keypad.
-         *
-         * TODO(profile-refresh slice 5): this route goes away when the chat becomes by-chat-id only.
-         */
-        data class OpenSendCash(val participant: ChatParticipant.TipUser) : Event
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false) : Event
     }
 
@@ -372,7 +366,7 @@ internal class ChatProfileViewModel @Inject constructor(
                 when (val action = state.pinnedAction) {
                     ProfilePinnedAction.Unblock -> dispatchEvent(Event.Unblock)
                     ProfilePinnedAction.OpenChat -> state.dmChatId?.let { dispatchEvent(Event.OpenChat(it)) }
-                    is ProfilePinnedAction.StartChatting -> startChatting(action.fee)
+                    is ProfilePinnedAction.StartChatting -> startChatting()
                     ProfilePinnedAction.OpeningChat, null -> Unit
                 }
             }
@@ -404,9 +398,8 @@ internal class ChatProfileViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    /** The gate first, then the fee sheet when the fee is known and the chat's keypad when not. */
-    private suspend fun startChatting(fee: Fiat?) {
-        val person = stateFlow.value.participant as? ChatParticipant.TipUser ?: return
+    /** The gate first, then the fee sheet. */
+    private suspend fun startChatting() {
         val mayProceed = startChattingPayer.mayProceed(
             onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
             onDiscoverCurrencies = {
@@ -414,11 +407,7 @@ internal class ChatProfileViewModel @Inject constructor(
             },
         )
         if (!mayProceed) return
-        if (fee != null) {
-            dispatchEvent(Event.ShowPaymentSheet)
-        } else {
-            dispatchEvent(Event.OpenSendCash(person))
-        }
+        dispatchEvent(Event.ShowPaymentSheet)
     }
 
     /**
@@ -550,7 +539,6 @@ internal class ChatProfileViewModel @Inject constructor(
                 Event.ConfirmStartChatting,
                 Event.PresentDepositOptions,
                 is Event.OpenChat,
-                is Event.OpenSendCash,
                 is Event.OpenScreen -> { state -> state }
             }
         }
