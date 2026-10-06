@@ -66,10 +66,20 @@ class ChatComposerPhotosTest {
     }
 
     @Test
-    fun failedChipDisablesSend() {
+    fun retryableFailedChipStillSends() {
+        // An upload that failed offline is sent anyway; the bubble retries it from the transcript.
         val state = reduce(
             stage(base, "a", "b"),
             ChatViewModel.Event.UploadStatesChanged(mapOf("a" to failed)),
+        )
+        assertTrue(state.canSendComposer(hasText = true))
+    }
+
+    @Test
+    fun unretryableFailedChipDisablesSend() {
+        val state = reduce(
+            stage(base, "a", "b"),
+            ChatViewModel.Event.UploadStatesChanged(mapOf("a" to failed.copy(retryable = false))),
         )
         assertFalse(state.canSendComposer(hasText = true))
         // Removing the failed chip frees the send.

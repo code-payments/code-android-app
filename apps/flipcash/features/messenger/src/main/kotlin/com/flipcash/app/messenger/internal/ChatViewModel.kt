@@ -532,9 +532,13 @@ internal class ChatViewModel @Inject constructor(
         val acceptsMedia: Boolean
             get() = chatId != null && editing == null
 
-        /** A photo that failed to upload blocks sending until it is retried or removed. */
+        /**
+         * A photo whose upload failed for good (one a retry can't fix) blocks sending until it is
+         * removed. A retryable failure, such as being offline, is sent anyway: the send uploads it
+         * again and the bubble shows the result.
+         */
         val hasFailedPhoto: Boolean
-            get() = composerPhotos.any { uploadStates[it.id] is ChatMediaUploadState.Failed }
+            get() = composerPhotos.any { (uploadStates[it.id] as? ChatMediaUploadState.Failed)?.retryable == false }
 
         /** Whether the send control does anything: text or a photo to send, and no failed photo. */
         fun canSendComposer(hasText: Boolean): Boolean =
