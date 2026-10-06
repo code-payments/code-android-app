@@ -32,7 +32,6 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.getcode.theme.CodeTheme
 
 private val ActionHeight = 38.dp
-private val ActionTextPadding = 18.dp
 private val ActionIconSize = 22.dp
 private const val PressedAlpha = 0.7f
 
@@ -46,7 +45,7 @@ fun ProfileActionButton(
     ActionCapsule(
         onClick = onClick,
         modifier = modifier.height(ActionHeight),
-        contentPadding = ActionTextPadding,
+        contentPadding = CodeTheme.dimens.staticGrid.x4,
     ) {
         Text(
             text = text,

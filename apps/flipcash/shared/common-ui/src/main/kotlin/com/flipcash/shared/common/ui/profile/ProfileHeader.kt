@@ -30,7 +30,6 @@ import com.getcode.theme.CodeTheme
 private val AvatarSize = 84.dp
 private val AvatarRing = 5.dp
 private val AvatarOverlap = 42.dp
-private val ActionsTopPadding = 20.dp
 
 /**
  * The top of a profile: [cover], an avatar overlapping it, the actions beside the avatar, and the
@@ -75,7 +74,7 @@ fun ProfileHeader(
                 Row(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(top = AvatarOverlap + ActionsTopPadding),
+                        .padding(top = AvatarOverlap + CodeTheme.dimens.staticGrid.x4),
                     horizontalArrangement = Arrangement.spacedBy(
                         CodeTheme.dimens.staticGrid.x3,
                         Alignment.End,

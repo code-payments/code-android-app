@@ -26,8 +26,6 @@ import com.getcode.theme.White05
 private val StatsCardHeight = 84.dp
 private val LeadingStatWidth = 176.dp
 private val StatsDividerHeight = 48.dp
-private val StatPadding = 16.dp
-private val StatCaptionGap = 6.dp
 
 /**
  * The two facts under a profile header: what it costs to start a chat, and when the subject
@@ -74,8 +72,8 @@ private fun Stat(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.padding(start = StatPadding, top = StatPadding),
-        verticalArrangement = Arrangement.spacedBy(StatCaptionGap),
+        modifier = modifier.padding(start = CodeTheme.dimens.staticGrid.x3, top = CodeTheme.dimens.staticGrid.x3),
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
     ) {
         Text(
             text = caption,
