@@ -554,13 +554,7 @@
 
 
     <!-- Copy matches iOS's "Finish Your Profile" display-name step. -->
-    <string name="title_addDisplayName">Add your display name</string>
-    <string name="subtitle_addDisplayName">Choose the name people see in chat</string>
-    <string name="title_addProfilePicture">Add a profile picture</string>
-    <string name="subtitle_addProfilePicture">Select a photo from your gallery</string>
 
-    <string name="title_setMinimumTip">Set your minimum tip amount</string>
-    <string name="subtitle_setMinimumTip">Decide what size tip matters to you</string>
 
     <string name="title_amountToBuy">Amount to Buy</string>
     <string name="title_amountToSell">Amount to Sell</string>
