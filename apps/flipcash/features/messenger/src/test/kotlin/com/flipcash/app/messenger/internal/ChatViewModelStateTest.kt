@@ -109,6 +109,41 @@ class ChatViewModelStateTest {
     }
 
     @Test
+    fun `an undetermined non-member sees neither the transcript nor a gate panel`() {
+        val state = ChatViewModel.State(
+            subject = group(isMember = false),
+            groupAccess = GroupAccess.Undetermined,
+        )
+        assertTrue(state.obscuresTranscript)
+        assertFalse(state.readsFromOutside)
+        // The composer is still withheld; the panel just is not drawn in its place.
+        assertTrue(state.replacesComposer)
+        assertFalse(state.showsGatePanel)
+    }
+
+    @Test
+    fun `the gate panel is drawn once the rate settles the access`() {
+        val undetermined = ChatViewModel.State(
+            subject = group(isMember = false),
+            groupAccess = GroupAccess.Undetermined,
+        )
+        assertTrue(undetermined.copy(groupAccess = GroupAccess.Eligible).showsGatePanel)
+        assertTrue(undetermined.copy(groupAccess = GroupAccess.Blocked(unmet)).showsGatePanel)
+        // Unchanged for the frames before any access arrives.
+        assertTrue(undetermined.copy(groupAccess = null).showsGatePanel)
+    }
+
+    @Test
+    fun `a join under way keeps its panel even if the access turns undetermined`() {
+        val state = ChatViewModel.State(
+            subject = group(isMember = false),
+            groupAccess = GroupAccess.Undetermined,
+            joinProgress = LoadingSuccessState(loading = true),
+        )
+        assertTrue(state.showsGatePanel)
+    }
+
+    @Test
     fun `the blur is on before the gate has decided anything`() {
         // Access arrives through the balance and staff flows, so it is null for their first frames,
         // while the info card draws as soon as the subject resolves. Unblurring on anything short of

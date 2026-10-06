@@ -142,6 +142,8 @@ internal fun UserControlBottomBar(
     // group — including an eligible one reading the transcript sharp, and the frames before the gate
     // has decided anything — and for as long as the gate holds its join confirmation.
     if (state.replacesComposer) {
+        // Undetermined draws nothing: no composer, and no panel naming a verdict that is a guess.
+        if (!state.showsGatePanel) return
         GroupGateBar(
             access = state.groupAccess,
             // The chat's own rule, read the same way the info card at the head of the transcript

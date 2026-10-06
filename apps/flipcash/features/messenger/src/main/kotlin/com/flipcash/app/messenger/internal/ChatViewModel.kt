@@ -465,8 +465,9 @@ internal class ChatViewModel @Inject constructor(
          * for a group with no rules, where there is nothing to read.
          *
          * Every unknown answers no. A null [groupAccess] is the balance or the staff flag not having
-         * arrived, and a null membership is a group hydrated by id that GetChat could not place the
-         * viewer in; reading either as eligible would show a transcript the viewer may not be owed.
+         * arrived, [GroupAccess.Undetermined] is a balance rule waiting on an exchange rate, and a
+         * null membership is a group hydrated by id that GetChat could not place the viewer in;
+         * reading any of them as eligible would show a transcript the viewer may not be owed.
          */
         val readsFromOutside: Boolean
             get() = subject is ChatSubject.Group &&
@@ -523,6 +524,19 @@ internal class ChatViewModel @Inject constructor(
          */
         val replacesComposer: Boolean
             get() = joinProgress.success || isOutsideGroup
+
+        /**
+         * Whether the join gate draws its panel where the composer was. False while the gate is
+         * [GroupAccess.Undetermined]: a panel would offer a Join the rate may yet take back, and
+         * the composer is still withheld by [replacesComposer], so the bar is simply empty until
+         * the rate settles it. A join already under way keeps its panel so its progress stays
+         * visible.
+         *
+         * Mirrors iOS `ConversationBottomBar`, which draws nothing for `.undetermined`.
+         */
+        val showsGatePanel: Boolean
+            get() = replacesComposer &&
+                !(groupAccess == GroupAccess.Undetermined && joinProgress.isIdle)
 
         /** The staged photos the composer shows: none while editing, which is text only. */
         val composerPhotos: List<StagedPhoto>
@@ -1807,6 +1821,7 @@ internal class ChatViewModel @Inject constructor(
                         isMember = group.isMember == true,
                         rules = group.rules,
                         isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+                        rates = exchange.observeRates(),
                     )
                 }
             }
@@ -1831,6 +1846,7 @@ internal class ChatViewModel @Inject constructor(
                     tokenCoordinator.speakerBlock(
                         rules = rules,
                         isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+                        rates = exchange.observeRates(),
                         viewerId = userManager.accountId,
                         creatorId = rulesAndCreator.second,
                     )
@@ -2057,7 +2073,8 @@ internal class ChatViewModel @Inject constructor(
                 val access = when (state.groupAccess) {
                     GroupAccess.Eligible -> AnalyticsGroupAccess.ELIGIBLE
                     is GroupAccess.Blocked -> AnalyticsGroupAccess.BLOCKED
-                    GroupAccess.Membered, null -> return@mapNotNull null
+                    // Undetermined is a guess waiting on a rate; the view is logged once it settles.
+                    GroupAccess.Membered, GroupAccess.Undetermined, null -> return@mapNotNull null
                 }
                 GroupEvents.gateShown(access, group.rules.gateMint, group.memberCount.toInt())
             }

@@ -2,9 +2,11 @@ package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.solana.keys.Mint
@@ -524,5 +526,73 @@ class GroupAccessTest {
         assertEquals(true, block(speaker(ChatRuleRequirement.Never))?.reactionsBlocked)
         val balance = ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))
         assertEquals(true, block(speaker(balance))?.reactionsBlocked)
+    }
+
+    // -- Requirements in another currency: restated through the rate, provisional without one --
+
+    /** €100, at 0.5 EUR per USD, is $200. */
+    private val euroBar = ChatRuleRequirement.MinimumBalance(Fiat(100.0, CurrencyCode.EUR), listOf(badBoys))
+    private val euroRates = mapOf(CurrencyCode.EUR to Rate(fx = 0.5, currency = CurrencyCode.EUR))
+
+    private fun outside(rules: ChatRules, dollars: Double, rates: Map<CurrencyCode, Rate>, isStaff: Boolean = false) =
+        GroupAccess.evaluate(
+            isMember = false,
+            rules = rules,
+            balances = listOf(held(1, "BadBoys", dollars)),
+            isStaff = isStaff,
+            rates = rates,
+        )
+
+    @Test
+    fun `a requirement in another currency is measured in USD through its rate`() {
+        assertEquals(GroupAccess.Blocked(euroBar), outside(rules(euroBar), dollars = 150.0, rates = euroRates))
+        assertEquals(GroupAccess.Eligible, outside(rules(euroBar), dollars = 200.0, rates = euroRates))
+    }
+
+    @Test
+    fun `a requirement with no rate is a provisional yes`() {
+        assertEquals(GroupAccess.Undetermined, outside(rules(euroBar), dollars = 0.0, rates = emptyMap()))
+    }
+
+    @Test
+    fun `a rule that is unmet regardless of the rate still blocks`() {
+        val rules = rules(euroBar, ChatRuleRequirement.Staff)
+
+        assertEquals(
+            GroupAccess.Blocked(ChatRuleRequirement.Staff),
+            outside(rules, dollars = 0.0, rates = emptyMap()),
+        )
+    }
+
+    @Test
+    fun `a member is in whether or not the rate has arrived`() {
+        val access = GroupAccess.evaluate(
+            isMember = true,
+            rules = rules(euroBar),
+            balances = emptyList(),
+            isStaff = false,
+            rates = emptyMap(),
+        )
+
+        assertEquals(GroupAccess.Membered, access)
+    }
+
+    @Test
+    fun `a USD requirement needs no rate`() {
+        val bar = ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))
+
+        assertEquals(GroupAccess.Eligible, outside(rules(bar), dollars = 100.0, rates = emptyMap()))
+        assertEquals(GroupAccess.Blocked(bar), outside(rules(bar), dollars = 50.0, rates = emptyMap()))
+    }
+
+    @Test
+    fun `the speaker gate counts a requirement with no rate as met`() {
+        val rules = ChatRules(listener = listOf(euroBar), speaker = listOf(euroBar))
+
+        assertEquals(null, resolveSpeakerBlock(rules, emptyList(), isStaff = false, rates = emptyMap()))
+        assertEquals(
+            euroBar,
+            resolveSpeakerBlock(rules, listOf(held(1, "BadBoys", 150.0)), isStaff = false, rates = euroRates)?.requirement,
+        )
     }
 }

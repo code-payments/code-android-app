@@ -5,7 +5,9 @@ import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.blocksReactions
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.sum
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +37,16 @@ sealed interface GroupAccess {
     /** Not in the chat, and [unmet] is what is standing in the way. */
     data class Blocked(val unmet: ChatRuleRequirement) : GroupAccess
 
+    /**
+     * Not in the chat, and nothing is known to stand in the way, but only because a minimum
+     * balance is in a currency with no rate to restate it in USD. The answer is a guess, so the
+     * transcript stays blurred until a rate arrives and turns this into [Eligible] or [Blocked].
+     *
+     * Mirrors iOS's `ConversationGate.isProvisional` and the `.undetermined` presentation it
+     * leads to.
+     */
+    data object Undetermined : GroupAccess
+
     companion object {
         /**
          * The gate, as a pure function of the three things that decide it.
@@ -55,31 +67,43 @@ sealed interface GroupAccess {
          * unrelated $60 positions are not that. An empty `mints` names no token in particular and
          * is measured against everything held, added up, as iOS's `ConversationGate.unmetBalance`
          * does with `totalBalance`.
+         *
+         * A minimum balance in a currency other than USD is restated in USD through [rates]. With
+         * no rate for it, the rule counts as met (see [isUnmet]) and the answer is [Undetermined]
+         * rather than [Eligible], unless another rule already blocks. [Blocked] wins because it is
+         * known without the missing rate.
          */
         fun evaluate(
             isMember: Boolean,
             rules: ChatRules?,
             balances: List<TokenWithBalance>,
             isStaff: Boolean,
+            rates: Map<CurrencyCode, Rate> = emptyMap(),
         ): GroupAccess {
             if (isMember) return Membered
             val listener = rules?.listener.orEmpty()
             if (listener.isEmpty()) return Eligible
 
-            val unmet = listener.firstOrNull { it.isUnmet(balances, isStaff) }
+            val unmet = listener.firstOrNull { it.isUnmet(balances, isStaff, rates) }
+            if (unmet != null) return Blocked(unmet)
 
-            return if (unmet == null) Eligible else Blocked(unmet)
+            val provisional = listener.any {
+                it is ChatRuleRequirement.MinimumBalance && it.amount.usdValue(rates) == null
+            }
+            return if (provisional) Undetermined else Eligible
         }
     }
 }
 
 /**
- * [GroupAccess.evaluate] over the live balance and the live staff flag.
+ * [GroupAccess.evaluate] over the live balance, the live staff flag and the live exchange rates.
  *
  * [isStaff] arrives as a flow rather than a value because it resolves after the screen does — the
  * flags are fetched, so a snapshot read taken while the gate is first decided would say no and
  * never correct itself. A plain `Flow<Boolean>` rather than the flags coordinator keeps this module
  * off `shared:userflags`; callers pass `resolvedFlags.map { it.isStaff.effectiveValue }`.
+ *
+ * [rates] is `Exchange.observeRates()`. A rate arriving is what settles [GroupAccess.Undetermined].
  *
  * `distinctUntilChanged` because `tokenBalances` re-emits on every price tick, and the gate only
  * ever has three answers — without it the transcript's blur would recompose several times a second
@@ -89,12 +113,14 @@ fun TokenCoordinator.groupAccess(
     isMember: Boolean,
     rules: ChatRules?,
     isStaff: Flow<Boolean>,
-): Flow<GroupAccess> = combine(tokenBalances, isStaff) { balances, staff ->
+    rates: Flow<Map<CurrencyCode, Rate>>,
+): Flow<GroupAccess> = combine(tokenBalances, isStaff, rates) { balances, staff, rates ->
     GroupAccess.evaluate(
         isMember = isMember,
         rules = rules,
         balances = balances,
         isStaff = staff,
+        rates = rates,
     )
 }
     .distinctUntilChanged()
@@ -123,7 +149,8 @@ fun canSpeak(
     isStaff: Boolean,
     viewerId: ID? = null,
     creatorId: ID? = null,
-): Boolean = unmetSpeakerRequirement(rules, balances, isStaff, viewerId, creatorId) == null
+    rates: Map<CurrencyCode, Rate> = emptyMap(),
+): Boolean = unmetSpeakerRequirement(rules, balances, isStaff, viewerId, creatorId, rates) == null
 
 /**
  * The requirement to name when the viewer may not speak, or null when they may.
@@ -138,7 +165,8 @@ fun unmetSpeakerRequirement(
     isStaff: Boolean,
     viewerId: ID? = null,
     creatorId: ID? = null,
-): ChatRuleRequirement? = resolveSpeakerBlock(rules, balances, isStaff, viewerId, creatorId)?.requirement
+    rates: Map<CurrencyCode, Rate> = emptyMap(),
+): ChatRuleRequirement? = resolveSpeakerBlock(rules, balances, isStaff, viewerId, creatorId, rates)?.requirement
 
 /**
  * What stands between the viewer and speaking: the requirement to name, and whether any unmet
@@ -155,17 +183,24 @@ data class SpeakerBlock(
     val reactionsBlocked: Boolean,
 )
 
-/** The [SpeakerBlock] for the viewer, or null when every listener and speaker rule holds. */
+/**
+ * The [SpeakerBlock] for the viewer, or null when every listener and speaker rule holds.
+ *
+ * A minimum balance with no rate to restate it counts as met here too, and nothing marks the
+ * answer provisional: as on iOS, only the listener gate waits for the rate. A member who is let
+ * through on a guess finds out from the server on send.
+ */
 fun resolveSpeakerBlock(
     rules: ChatRules?,
     balances: List<TokenWithBalance>,
     isStaff: Boolean,
     viewerId: ID? = null,
     creatorId: ID? = null,
+    rates: Map<CurrencyCode, Rate> = emptyMap(),
 ): SpeakerBlock? {
     // Listener rules are measured without the ids, as the listener gate measures them.
-    val listenerUnmet = rules?.listener.orEmpty().filter { it.isUnmet(balances, isStaff) }
-    val speakerUnmet = rules?.speaker.orEmpty().filter { it.isUnmet(balances, isStaff, viewerId, creatorId) }
+    val listenerUnmet = rules?.listener.orEmpty().filter { it.isUnmet(balances, isStaff, rates) }
+    val speakerUnmet = rules?.speaker.orEmpty().filter { it.isUnmet(balances, isStaff, rates, viewerId, creatorId) }
     val unmet = listenerUnmet + speakerUnmet
     val named = unmet.firstOrNull { it is ChatRuleRequirement.MinimumBalance } ?: unmet.firstOrNull()
         ?: return null
@@ -175,7 +210,8 @@ fun resolveSpeakerBlock(
 }
 
 /**
- * [resolveSpeakerBlock] over the live balance and the live staff flag, de-duplicated like [groupAccess].
+ * [resolveSpeakerBlock] over the live balance, the live staff flag and the live exchange rates,
+ * de-duplicated like [groupAccess].
  *
  * [viewerId] and [creatorId] are plain values: who the viewer is and who made the chat do not
  * change while the chat is open. A null [creatorId] (the chat's metadata did not carry one) leaves
@@ -184,10 +220,18 @@ fun resolveSpeakerBlock(
 fun TokenCoordinator.speakerBlock(
     rules: ChatRules?,
     isStaff: Flow<Boolean>,
+    rates: Flow<Map<CurrencyCode, Rate>>,
     viewerId: ID? = null,
     creatorId: ID? = null,
-): Flow<SpeakerBlock?> = combine(tokenBalances, isStaff) { balances, staff ->
-    resolveSpeakerBlock(rules = rules, balances = balances, isStaff = staff, viewerId = viewerId, creatorId = creatorId)
+): Flow<SpeakerBlock?> = combine(tokenBalances, isStaff, rates) { balances, staff, rates ->
+    resolveSpeakerBlock(
+        rules = rules,
+        balances = balances,
+        isStaff = staff,
+        viewerId = viewerId,
+        creatorId = creatorId,
+        rates = rates,
+    )
 }
     .distinctUntilChanged()
 
@@ -198,6 +242,7 @@ fun TokenCoordinator.speakerBlock(
 private fun ChatRuleRequirement.isUnmet(
     balances: List<TokenWithBalance>,
     isStaff: Boolean,
+    rates: Map<CurrencyCode, Rate>,
     viewerId: ID? = null,
     creatorId: ID? = null,
 ): Boolean {
@@ -209,6 +254,13 @@ private fun ChatRuleRequirement.isUnmet(
 
     return when (this) {
         is ChatRuleRequirement.MinimumBalance -> {
+            // Balances are held in USD; a requirement in another currency is restated through
+            // its rate first. With no rate it counts as met: deliberately fail-open, as iOS's
+            // `ConversationGate.unmetBalance` is. The server enforces the same rule, so a wrong
+            // guess costs one denied read, while failing closed would lock out a viewer who
+            // qualifies for as long as the rate table lacks that currency.
+            // [GroupAccess.Undetermined] is how the listener gate admits it is guessing.
+            val required = amount.usdValue(rates) ?: return false
             val held = if (mints.isEmpty()) {
                 byMint.values.sum()
             } else {
@@ -222,7 +274,7 @@ private fun ChatRuleRequirement.isUnmet(
             // server enforces the rule against its own supply, so admitting half a cent
             // too generously costs one denied join. iOS's `ConversationGate.unmetBalance`
             // rounds the same way; keep the two in step.
-            held == null || held.toDouble() < amount.decimalValue
+            held == null || held.toDouble() < required
         }
         // `UserFlags.is_staff` is the same field the rule is written against, and the
         // client already has it — so staff are eligible for a staff chat and can rejoin
@@ -239,4 +291,14 @@ private fun ChatRuleRequirement.isUnmet(
         // A rule this build cannot read: unmet for everyone, staff included.
         ChatRuleRequirement.UnsupportedSpeakerRule -> true
     }
+}
+
+/**
+ * This amount in USD, or null when it is in another currency with no usable rate. A [Rate]'s `fx`
+ * is units of its currency per US dollar, so the USD worth is the amount divided by it.
+ */
+private fun Fiat.usdValue(rates: Map<CurrencyCode, Rate>): Double? {
+    if (currencyCode == CurrencyCode.USD) return decimalValue
+    val fx = rates[currencyCode]?.takeIf { it.isUsable() }?.fx?.takeIf { it > 0.0 } ?: return null
+    return decimalValue / fx
 }
