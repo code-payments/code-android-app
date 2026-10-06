@@ -231,6 +231,8 @@ internal fun PersonProfileScreen(
                     // Not flowNavigator: Report is a top-level route rather than a step of
                     // this flow, and LocalCodeNavigator hands a non-FlowStep route up to its
                     // parent. So it opens over the chat rather than inside it.
+                    // Not a row yet: the profile screen rework adds the Unblock row and its handler.
+                    ChatProfileAction.Unblock -> Unit
                     ChatProfileAction.Report ->
                         (state.participant as? ChatParticipant.TipUser)?.let { participant ->
                             navigator.push(

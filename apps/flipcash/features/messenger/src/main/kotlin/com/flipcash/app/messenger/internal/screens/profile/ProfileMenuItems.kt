@@ -23,7 +23,12 @@ internal sealed interface ChatProfileAction {
     data object Block : ChatProfileAction
     data object Mute : ChatProfileAction
     data object Report : ChatProfileAction
+    data object Unblock : ChatProfileAction
 }
+
+/** Report and Block render in the destructive colour. */
+internal val ChatProfileAction.isDestructive: Boolean
+    get() = this == ChatProfileAction.Report || this == ChatProfileAction.Block
 
 internal data object ReportUser : FullMenuItem<ChatProfileAction>() {
     override val icon: Painter
