@@ -69,6 +69,7 @@ import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.sheetResignmentBehavior
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
@@ -174,8 +175,11 @@ private fun OwnProfileHeader(
     onShare: () -> Unit,
     onSettings: () -> Unit,
 ) {
+    // The header is what scrolls under the gear, so it is the gear's frosting source.
+    val hazeState = rememberHazeState()
     Box {
         ProfileHeader(
+            modifier = Modifier.hazeSource(hazeState),
             cover = profile.coverPicture,
             // The viewer's own blobs, so no profile id is needed to authorize re-minting them.
             access = BlobAccessContext.Owned,
@@ -207,29 +211,30 @@ private fun OwnProfileHeader(
         SettingsGear(
             modifier = Modifier.align(Alignment.TopEnd),
             onClick = onSettings,
+            hazeState = hazeState,
         )
     }
 }
 
-/** The settings gear, clear of the status bar. */
+/**
+ * The settings gear, clear of the status bar. Over the cover it frosts the picture behind it
+ * ([hazeState]); with no cover to frost (an account still loading or unnamed) it falls back to the
+ * flat translucent fill.
+ */
 @Composable
-private fun SettingsGear(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding(),
-    ) {
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier.align(Alignment.TopEnd),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_settings_outline),
-                contentDescription = stringResource(CoreR.string.title_settings),
-                tint = CodeTheme.colors.textMain,
-            )
-        }
-    }
+private fun SettingsGear(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
+) {
+    ProfileBarButton(
+        icon = R.drawable.ic_settings_outline,
+        contentDescription = stringResource(CoreR.string.title_settings),
+        onClick = onClick,
+        modifier = modifier,
+        hazeState = hazeState,
+        testTag = "you-settings",
+    )
 }
 
 /**

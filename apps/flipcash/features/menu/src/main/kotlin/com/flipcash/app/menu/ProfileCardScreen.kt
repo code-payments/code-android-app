@@ -1,5 +1,8 @@
 package com.flipcash.app.menu
 
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
+import com.flipcash.app.menu.internal.ProfileBarButton
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -10,9 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -71,43 +72,48 @@ fun ProfileCardScreen() {
         label = "profile card scale",
     )
 
+    // Everything under the Download button is its frosting source, as the cover is for the You tab's gear.
+    val hazeState = rememberHazeState()
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(CodeTheme.colors.background),
     ) {
-        IconButton(
-            onClick = viewModel::download,
+        Box(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding(),
+                .fillMaxSize()
+                .hazeSource(hazeState),
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_file_download),
-                contentDescription = stringResource(R.string.action_download),
-                tint = CodeTheme.colors.textMain,
-            )
-        }
-
-        if (card != null) {
-            // Static backdrop, so draw the card opaque at its flattened tone, as the You tab did.
-            CompositionLocalProvider(
-                LocalTipCardColor provides TipCardFlattened,
-                LocalTipCardBaseAlpha provides 1f,
-            ) {
-                ScannableRenderer(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .graphicsLayer {
-                            alpha = fade
-                            scaleX = cardScale
-                            scaleY = cardScale
-                        },
-                    scannable = card,
-                    tipCardWidth = CodeTheme.dimens.screenWidth * CardWidthFraction,
-                )
+            if (card != null) {
+                // Static backdrop, so draw the card opaque at its flattened tone, as the You tab did.
+                CompositionLocalProvider(
+                    LocalTipCardColor provides TipCardFlattened,
+                    LocalTipCardBaseAlpha provides 1f,
+                ) {
+                    ScannableRenderer(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .graphicsLayer {
+                                alpha = fade
+                                scaleX = cardScale
+                                scaleY = cardScale
+                            },
+                        scannable = card,
+                        tipCardWidth = CodeTheme.dimens.screenWidth * CardWidthFraction,
+                    )
+                }
             }
         }
+
+        // Download stands where the You tab keeps its gear, so the gear reads as turning into it.
+        ProfileBarButton(
+            modifier = Modifier.align(Alignment.TopEnd),
+            icon = R.drawable.ic_file_download,
+            contentDescription = stringResource(R.string.action_download),
+            onClick = viewModel::download,
+            hazeState = hazeState,
+            testTag = "you-download-button",
+        )
 
         CodeButton(
             modifier = Modifier
