@@ -31,12 +31,11 @@ import com.getcode.util.resources.FakeResourceHelper
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import app.cash.turbine.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -99,18 +98,18 @@ class SettingsViewModelTest {
 
     @Test
     fun `staff rows appear once beta unlocks and leave again when it locks`() {
-        val unlocked = SettingsViewModel.State().after(SettingsViewModel.Event.OnBetaFeaturesUnlocked(true))
+        val unlocked = SettingsViewModel.State().after(SettingsViewModel.Event.OnBetaFeaturesUnlocked(true, manual = true))
         assertTrue(SwitchAccount in unlocked.items())
         assertTrue(AccountInfo in unlocked.items())
 
-        val relocked = unlocked.after(SettingsViewModel.Event.OnBetaFeaturesUnlocked(false))
+        val relocked = unlocked.after(SettingsViewModel.Event.OnBetaFeaturesUnlocked(false, manual = false))
         assertFalse(SwitchAccount in relocked.items())
         assertFalse(AccountInfo in relocked.items())
     }
 
     @Test
     fun `account info sits first in the account section`() {
-        val state = SettingsViewModel.State().after(SettingsViewModel.Event.OnBetaFeaturesUnlocked(true))
+        val state = SettingsViewModel.State().after(SettingsViewModel.Event.OnBetaFeaturesUnlocked(true, manual = true))
         val account = state.sections.last { it.title == R.string.title_settingsSectionAccount }
         assertEquals(listOf(AccountInfo, LogOut, DeleteAccount), account.items)
     }
@@ -142,7 +141,7 @@ class SettingsViewModelTest {
         val state = SettingsViewModel.State().after(
             SettingsViewModel.Event.OnBiometricsSettingChanged(required = true, supported = false, available = false),
             SettingsViewModel.Event.OnUsernameClaimChanged(true),
-            SettingsViewModel.Event.OnBetaFeaturesUnlocked(true),
+            SettingsViewModel.Event.OnBetaFeaturesUnlocked(true, manual = true),
         )
         assertFalse(RequireBiometrics in state.items())
         assertTrue(ChangeUsername in state.items())
@@ -233,9 +232,19 @@ class SettingsViewModelTest {
         vm.dispatchEvent(SettingsViewModel.Event.OnBetaFeaturesUnlocked(unlocked = true, manual = true))
         advanceUntilIdle()
 
-        repeat(10) {
-            vm.dispatchEvent(SettingsViewModel.Event.OnVersionInfoClicked)
-            advanceUntilIdle()
+        vm.eventFlow.filterIsInstance<SettingsViewModel.Event.ShowDevModeToast>().test {
+            // The toast only starts once the taps run well past the unlock threshold.
+            repeat(10) {
+                vm.dispatchEvent(SettingsViewModel.Event.OnVersionInfoClicked)
+                advanceUntilIdle()
+            }
+
+            assertEquals(
+                FakeResourceHelper().getString(R.string.toast_betaOverrideAlready),
+                awaitItem().message,
+            )
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
         }
 
         verify(exactly = 0) { featureFlags.enableBetaFeatures() }
@@ -244,20 +253,19 @@ class SettingsViewModelTest {
     @Test
     fun `a burst of footer taps asks for one update check once they settle`() = runTest(mainCoroutineRule.dispatcher) {
         val vm = createViewModel()
-        val checks = mutableListOf<SettingsViewModel.Event.CheckForUpdate>()
-        val job = launch {
-            vm.eventFlow.filterIsInstance<SettingsViewModel.Event.CheckForUpdate>().toList(checks)
-        }
 
-        repeat(3) {
-            vm.dispatchEvent(SettingsViewModel.Event.OnVersionInfoClicked)
-            advanceTimeBy(100)
-        }
-        assertTrue(checks.isEmpty())
+        vm.eventFlow.filterIsInstance<SettingsViewModel.Event.CheckForUpdate>().test {
+            repeat(3) {
+                vm.dispatchEvent(SettingsViewModel.Event.OnVersionInfoClicked)
+                advanceTimeBy(100)
+            }
+            expectNoEvents()
 
-        advanceTimeBy(500)
-        assertEquals(1, checks.size)
-        job.cancel()
+            advanceTimeBy(500)
+            awaitItem()
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     // endregion

@@ -90,7 +90,7 @@ internal class SettingsViewModel @Inject constructor(
     internal sealed interface Event {
         data class OnBetaFeaturesUnlocked(
             val unlocked: Boolean,
-            val manual: Boolean = unlocked,
+            val manual: Boolean,
         ) : Event
         data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>) : Event
         data class OnBiometricsSettingChanged(

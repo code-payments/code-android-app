@@ -108,9 +108,6 @@ import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
@@ -142,8 +139,10 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
         ) {
             // No app bar in v2, so the page owns its own status-bar clearance; the design puts the
             // card 74dp below it (node 9278:7301).
-            val restingTop = WindowInsets.statusBars.asPaddingValues()
-                .calculateTopPadding() + CardTopSpacing
+            // The settings gear is the first thing in the list, so it scrolls away with the page.
+            // The row it sits in takes the status-bar clearance plus the button's own height out of
+            // the card's resting offset, which leaves the card exactly where it was.
+            val restingTop = (CardTopSpacing - SettingsButtonSize).coerceAtLeast(0.dp)
             // The design's width, narrowed only if the display can't hold it inside the page's
             // margins — same rule iOS applies.
             val expandedCardWidth = minOf(
@@ -267,6 +266,28 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 ),
                 userScrollEnabled = !cardExpanded,
             ) {
+                item(key = "settings_gear", contentType = "settings_gear") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .then(slideAway),
+                    ) {
+                        IconButton(
+                            onClick = {
+                                viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings))
+                            },
+                            enabled = !cardExpanded,
+                            modifier = Modifier.align(Alignment.TopEnd),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_settings_outline),
+                                contentDescription = stringResource(CoreR.string.title_settings),
+                                tint = CodeTheme.colors.textMain,
+                            )
+                        }
+                    }
+                }
                 item {
                     YouHeader(
                         tipCardState = state.tipCardState,
@@ -295,23 +316,6 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 }
             }
 
-            // Floated over the page's top trailing corner so it clears the status bar. It rides the
-            // same fade as the rest of the page, and takes no taps while the card is up.
-            IconButton(
-                onClick = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
-                enabled = !cardExpanded,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .then(slideAway),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_settings_outline),
-                    contentDescription = stringResource(CoreR.string.title_settings),
-                    tint = CodeTheme.colors.textMain,
-                )
-            }
-
             // Close sits at the foot of the display rather than under the card (node 9277:121410).
             // It fades on the same progress as everything else rather than on a transition of its
             // own, so a swipe held half-way leaves it half-faded instead of fully drawn.
@@ -338,6 +342,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
         }
     }
 }
+
+/** The settings gear's touch target, which the card's resting offset is measured past. */
+private val SettingsButtonSize: Dp = 48.dp
 
 /** Distance from the status bar to the top of the tip card (node 9278:7301: 74). */
 private val CardTopSpacing: Dp

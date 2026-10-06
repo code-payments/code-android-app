@@ -1,6 +1,9 @@
 package com.flipcash.app.myaccount.internal.settings
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -56,7 +59,11 @@ private fun SettingsScreenContent(
         Unit
     }
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        // The version footer is the last row; without this it scrolls under the gesture bar.
+        contentPadding = WindowInsets.navigationBars.asPaddingValues(),
+    ) {
         state.sections.forEach { section ->
             item(key = section.title, contentType = "header") {
                 SectionHeader(
