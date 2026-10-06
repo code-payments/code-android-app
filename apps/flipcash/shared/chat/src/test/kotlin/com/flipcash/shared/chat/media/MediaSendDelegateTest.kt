@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -188,6 +189,21 @@ class MediaSendDelegateTest {
         assertEquals(ids, sent.map { hex(it.first) })
         assertTrue(records.isEmpty())
         coVerify(exactly = 3) { messageDataSource.confirmPending(any(), any(), any(), true) }
+    }
+
+    @Test
+    fun `a send that confirms at once holds its progress until the row has been seen`() = runTest {
+        val (delegate, uploads) = delegate()
+        val chip = stage(uploads, "a")
+        runCurrent() // uploaded before the send, so the post confirms straight away
+        val ids = delegate.sendMedia(chatId, listOf(chip), "", null).getOrThrow()
+        runCurrent()
+
+        assertEquals(1, sent.size)
+        assertEquals(MediaSendProgress.Sending, delegate.progressOf(ids[0]))
+        advanceTimeBy(MediaSendDelegate.SENDING_VISIBLE_MILLIS)
+        runCurrent()
+        assertEquals(MediaSendProgress.Sent, delegate.progressOf(ids[0]))
     }
 
     @Test

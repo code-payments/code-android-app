@@ -32,6 +32,7 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -318,7 +319,13 @@ class MediaSendDelegate internal constructor(
                 metadataDataSource.updateLastMessageId(chatId, serverMessage.messageId)
                 metadataDataSource.updateLastActivity(chatId, serverMessage.timestamp.toEpochMilliseconds())
                 discard(record, keepAs = ChatPhoto.cacheKeyOf(photo.blobId))
-                stages.update { it + (hex to Stage.Sent) }
+                // A photo uploaded while it sat in the composer confirms before Room has drawn its
+                // row, so the bar would fade out unseen. Hold it until the row has been on screen.
+                val hold = SENDING_VISIBLE_MILLIS - (now() - record.createdAt)
+                scope.launch {
+                    delay(hold)
+                    stages.update { it + (hex to Stage.Sent) }
+                }
             }
             .onFailure { cause ->
                 // A chat that stopped taking ciphertext won't take this blob on a retry either.
@@ -453,11 +460,14 @@ class MediaSendDelegate internal constructor(
 
     // endregion
 
-    private companion object {
-        const val TAG = "MediaSendDelegate"
-        const val JPEG = "image/jpeg"
+    internal companion object {
+        private const val TAG = "MediaSendDelegate"
+        private const val JPEG = "image/jpeg"
 
         /** How far back a launch looks for the message a queued photo may already have become. */
-        const val RECENT_WINDOW = 50
+        private const val RECENT_WINDOW = 50
+
+        /** How long a sent photo's progress bar stays up, counted from when its row was inserted. */
+        internal const val SENDING_VISIBLE_MILLIS = 800L
     }
 }
