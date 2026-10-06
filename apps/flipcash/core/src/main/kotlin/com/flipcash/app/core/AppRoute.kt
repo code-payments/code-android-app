@@ -328,6 +328,20 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object AccountSelection : Menu
         @Serializable
         data object UserProfile : Menu
+
+        /**
+         * What to do with your own profile: share it, show its card, copy its link. A
+         * [com.getcode.navigation.WrapContentSheet], for the reason [Messaging.MuteChat] is one.
+         */
+        @Serializable
+        data object ShareProfile :
+            Menu,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.WrapContentSheet
+
+        /** Your profile card, full screen, with its Download action. */
+        @Serializable
+        data object ProfileCard : Menu
         @Serializable
         data class Lab(val onboarding: Boolean = false) : Menu
     }

@@ -1333,8 +1333,13 @@
     <string name="title_tipOnboarding">Send Your First Tip</string>
 
     <!-- You tab (tip card) -->
-    <string name="action_viewFullScreen">Full Screen</string>
-    <string name="action_closeFullScreen">Close</string>
+    <string name="action_editProfile">Edit Profile</string>
+    <string name="title_shareUserProfile">Share User Profile</string>
+    <!-- Who the share sheet is for: display name, then @handle -->
+    <string name="subtitle_shareUserProfile">%1$s · @%2$s</string>
+    <string name="action_shareProfileLink">Share Profile</string>
+    <string name="action_showProfileCard">Show Profile Card</string>
+    <string name="action_copyLink">Copy Link</string>
     <string name="action_download">Download</string>
     <string name="title_clipboardLabelTipCardLink">Tip Card Link</string>
     <string name="title_clipboardLabelGroupInviteLink">Group Invite Link</string>

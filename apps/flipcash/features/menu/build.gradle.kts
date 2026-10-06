@@ -15,7 +15,9 @@ dependencies {
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:shared:bills"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:funding"))
+    implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tipping"))
     // Balance for the username gate only — :shared:tokens:core is the narrow half, so the
