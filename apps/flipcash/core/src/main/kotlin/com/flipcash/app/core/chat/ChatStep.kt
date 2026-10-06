@@ -45,18 +45,6 @@ sealed interface ChatStep : FlowStep, Parcelable {
     data object AmountEntry : ChatStep, NavigationRetVal<ChatSendResult>, Sheet
 
     /**
-     * The payment that opens a tip DM, at the fee the recipient charges.
-     *
-     * Separate from [AmountEntry] because there is nothing to enter: the fee is the price of the
-     * conversation, so the sheet states it and asks only for the swipe. A [WrapContentSheet] for
-     * the same reason — three lines of content shouldn't claim the screen.
-     */
-    @Parcelize
-    @Serializable
-    data object InitPayment :
-        ChatStep, NavigationRetVal<ChatSendResult>, Sheet, WrapContentSheet
-
-    /**
      * Nodes 10329:12104 and 10330:19549 — share or copy a group's invite link, or send it to
      * recent 1:1 chats.
      *

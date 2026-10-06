@@ -203,7 +203,6 @@ class ChatGroupCashLinkTest {
         advanceUntilIdle()
 
         assertTrue(ChatViewModel.Event.NavigateToAmountEntry in events)
-        assertTrue(ChatViewModel.Event.NavigateToInitPayment !in events)
     }
 
     @Test

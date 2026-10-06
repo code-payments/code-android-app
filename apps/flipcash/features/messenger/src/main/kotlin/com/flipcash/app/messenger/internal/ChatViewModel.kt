@@ -289,22 +289,6 @@ internal class ChatViewModel @Inject constructor(
         val limits: Limits? = null,
         val isAnonymous: Boolean = false,
         val cashSymbol: String = "$",
-        /**
-         * The recipient's fee to open a DM with them, already formatted, or null when there is no
-         * such fee to name — a contact DM, a tip DM that already exists, or the moment before the
-         * profile has resolved. The call-to-action pill renders on the chat's first frame and this
-         * arrives over the network, so "no fee yet" and "no fee at all" are deliberately the same
-         * value: both mean the pill falls back to its unpriced label.
-         */
-        val chatInitFee: String? = null,
-        /**
-         * Whether [Event.OnSendCash] would now take the path it will keep: the fee sheet for the
-         * payment that opens a tip DM, the keypad for any other. See [isSendCashReady].
-         *
-         * Only a chat opened with send cash already started reads it. [chatInitFee] can't answer
-         * this, because it is null both before the fee resolves and when there is no fee at all.
-         */
-        val sendCashReady: Boolean = false,
         // Transient "focus the message input" request. Set by OnStartMessageInput (dispatched when
         // returning from amount entry after a send, and on a post-tip chat open) and cleared by
         // OnMessageInputConsumed once the bottom bar has focused the field and shown the keyboard.
@@ -672,8 +656,6 @@ internal class ChatViewModel @Inject constructor(
         data class OnEncryptionResolved(val isEncrypted: Boolean) : Event
 
         data class OnCurrencySymbolUpdated(val symbol: String): Event
-        data class OnChatInitFeeUpdated(val formatted: String?) : Event
-        data class OnSendCashReadinessChanged(val ready: Boolean) : Event
         data object RefreshContact : Event
         data class ChatFound(val chatId: ChatId) : Event
         data object OnSendCash: Event
@@ -712,8 +694,6 @@ internal class ChatViewModel @Inject constructor(
 
         data object NavigateToAmountEntry : Event
 
-        /** Open the fixed-fee sheet that pays for the DM, instead of the keypad. */
-        data object NavigateToInitPayment : Event
         data object PresentDepositOptions : Event
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
 
@@ -727,8 +707,6 @@ internal class ChatViewModel @Inject constructor(
         data class OpenMention(val destination: MentionDestination) : Event
         data object OnConfirmRequested : Event
 
-        /** Confirm the DM-opening fee. The amount comes from the fee, not from the keypad. */
-        data object OnInitPaymentConfirmed : Event
         data class OnSendRequested(
             val amount: Fiat,
             val token: Token,
@@ -1282,91 +1260,19 @@ internal class ChatViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     }
 
-    // Only the payment that opens a tip DM is a tip — it buys the conversation, and it is the one
-    // the recipient's fee applies to. Everything after it, and every contact DM, is a plain send.
-    private fun amountStyle(isTip: Boolean) = AmountEntryStyle(
+    // Every payment from the conversation is a plain send. The one that opens a tip DM is paid from
+    // the person's profile, which is where the recipient's fee applies.
+    private fun amountStyle() = AmountEntryStyle(
         // One label for both kinds of payment. The chat above the keypad already says who this is
         // going to and why; the slider only has to say what the gesture does.
         actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_swipeToSend)),
         actionStyle = ConfirmationStyle.Slide,
         infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
         overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
-        belowMinHint = if (isTip) {
-            { min -> resources.getString(R.string.subtitle_tipHintMinimum, min) }
-        } else null,
-        // A tip's ceiling is only the sender's own balance; the minimum is the recipient's rule
-        // and the one worth stating up front, so it holds the hint line for the whole entry.
-        standingHint = if (isTip) {
-            AmountEntryStyle.StandingHint.Floor
-        } else {
-            AmountEntryStyle.StandingHint.Ceiling
-        },
+        standingHint = AmountEntryStyle.StandingHint.Ceiling,
     )
 
-    // The counterparty of a tip DM, whose server profile carries the fee they charge to open a DM.
-    // Null for a contact DM: it is addressed by phone number and there is no profile to read one off.
-    private val tipRecipientFlow = stateFlow
-        .map { it.participant as? ChatParticipant.TipUser }
-        .distinctUntilChanged()
-
-    private val amountStyleFlow by lazy {
-        openingTipRecipientFlow
-            .map { amountStyle(isTip = it != null) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), amountStyle(isTip = false))
-    }
-
-    /**
-     * Whether this conversation already exists. Members are the same signal
-     * [com.flipcash.shared.chat.DmChatResolver.getChatId] calls initialized: a chat the server has
-     * created has a member row, one derived from a user id alone does not. Null until the member
-     * store has answered; [isChatInitialized] reads that as false.
-     */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val chatExistence by lazy {
-        stateFlow.mapNotNull { it.chatId }
-            .distinctUntilChanged()
-            .flatMapLatest { chatCoordinator.observeMembers(it) }
-            .map { it.isNotEmpty() }
-            .distinctUntilChanged()
-            // Null until the member store has answered, which is not the same as "doesn't exist".
-            .stateIn<Boolean?>(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    }
-
-    private val isChatInitialized by lazy {
-        chatExistence.map { it == true }
-            .distinctUntilChanged()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-    }
-
-    /**
-     * The user this payment would open a tip DM with — null once the conversation exists, and null
-     * for a contact DM. It decides both the floor and the word the entry uses: the fee, and calling
-     * the payment a tip, belong to the one that opens the chat.
-     */
-    private val openingTipRecipientFlow by lazy {
-        combine(tipRecipientFlow, isChatInitialized) { recipient, initialized ->
-            recipient?.takeUnless { initialized }
-        }
-            .distinctUntilChanged()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    }
-
-    /**
-     * The floor the entry enforces, and only for the payment that opens a tip DM.
-     *
-     * What the recipient sets is the fee to *open* a DM with them, so it gates that first payment
-     * and nothing after it: once the conversation exists, sending cash in it has no minimum at all.
-     * A contact DM never has one.
-     */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val minAmountFlow by lazy {
-        openingTipRecipientFlow
-            .flatMapLatest { recipient ->
-                if (recipient == null) flowOf(null)
-                else tipPaymentDelegate.startChattingFee(recipient.profile)
-            }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    }
+    private val amountStyleFlow by lazy { MutableStateFlow(amountStyle()) }
 
     val amountDelegate by lazy {
         AmountEntryDelegate(
@@ -1376,7 +1282,6 @@ internal class ChatViewModel @Inject constructor(
             loadingState = stateFlow.map { it.sendProgress }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
             maxAmount = maxAmountFlow,
-            minimumAmount = minAmountFlow,
             tokenChanges = tokenCoordinator.observeSelectedTokenMint(),
         )
     }
@@ -1920,21 +1825,6 @@ internal class ChatViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        // The same floor the amount entry enforces, said out loud on the button that has to charge
-        // it. Formatted here rather than in the composable so the button has no currency logic.
-        minAmountFlow
-            .onEach { dispatchEvent(Event.OnChatInitFeeUpdated(it?.formatted())) }
-            .launchIn(viewModelScope)
-
-        combine(
-            stateFlow.map { it.participant }.distinctUntilChanged(),
-            chatExistence,
-            minAmountFlow,
-        ) { participant, exists, fee -> isSendCashReady(participant, exists, fee) }
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(Event.OnSendCashReadinessChanged(it)) }
-            .launchIn(viewModelScope)
-
         transactionController.limits
             .onEach { dispatchEvent(Event.LimitsChanged(it)) }
             .launchIn(viewModelScope)
@@ -2030,18 +1920,20 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.TypingAvatarsUpdated(it)) }
             .launchIn(viewModelScope)
 
-        // A DM opens its composer once a payment has been exchanged. A group has no such
-        // exchange to wait for: its own rules say who may post, and [GroupAccess] has already
-        // applied them — a group that reaches the composer at all is [GroupAccess.Membered], and
-        // one that has not is showing the gate bar instead. Letting a group fall through to the
-        // DM rule left it unable to type until someone tipped into it.
+        // A contact DM opens its composer once a payment has been exchanged. A tip DM has no such
+        // wait: the payment that creates it is made from the profile, so the chat only exists
+        // once it has been paid, and it opens ready to type. A group has no exchange to wait for
+        // either: its own rules say who may post, and [GroupAccess] has already applied them — a
+        // group that reaches the composer at all is [GroupAccess.Membered], and one that has not
+        // is showing the gate bar instead.
         combine(
             stateFlow.mapNotNull { it.chatId }.distinctUntilChanged(),
-            stateFlow.map { it.subject is ChatSubject.Group }.distinctUntilChanged(),
+            stateFlow.map { it.subject is ChatSubject.Group || it.chatType == ChatType.TIP_DM }
+                .distinctUntilChanged(),
             ::Pair,
         )
-            .flatMapLatest { (chatId, isGroup) ->
-                if (isGroup) {
+            .flatMapLatest { (chatId, alwaysOpen) ->
+                if (alwaysOpen) {
                     flowOf(true)
                 } else {
                     chatCoordinator.observeMessages(chatId)
@@ -2617,12 +2509,6 @@ internal class ChatViewModel @Inject constructor(
             .onEach { onConfirmRequested() }
             .launchIn(viewModelScope)
 
-        // Duplicates StartChattingPayer.pay (minus its send-limit check); this fee-payment path goes
-        // away with the paid-DM gate in profile-refresh slice 5.
-        eventFlow.filterIsInstance<Event.OnInitPaymentConfirmed>()
-            .onEach { onConfirmRequested(fixedAmount = minAmountFlow.value) }
-            .launchIn(viewModelScope)
-
         eventFlow.filterIsInstance<Event.OnSendCash>()
             // Contact DMs and tip DMs send to whichever participant backs the chat; a group has no
             // participant and sends a cash link instead. The final send branches on that type (see
@@ -2636,17 +2522,8 @@ internal class ChatViewModel @Inject constructor(
                 ) {
                     return@onEach
                 }
-                // The payment that opens a tip DM costs exactly the recipient's fee, so there is
-                // nothing to enter — send it straight to the sheet that states the fee. Every
-                // other send, including the moment before the fee resolves, keeps the keypad. A
-                // group has no one to charge a fee, so it always gets the keypad.
-                val fee = minAmountFlow.value.takeUnless { stateFlow.value.chatType == ChatType.GROUP }
-                if (fee != null) {
-                    dispatchEvent(Event.NavigateToInitPayment)
-                } else {
-                    amountDelegate.reset()
-                    dispatchEvent(Event.NavigateToAmountEntry)
-                }
+                amountDelegate.reset()
+                dispatchEvent(Event.NavigateToAmountEntry)
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -2674,18 +2551,6 @@ internal class ChatViewModel @Inject constructor(
 
                     val balance = tokenCoordinator.balanceForToken(token)
 
-                    val minimum = minAmountFlow.value
-                    if (minimum != null && amount.valueLessThan(minimum)) {
-                        dispatchEvent(Event.SendStateUpdated())
-                        // Info, not alert: nothing has failed and nothing is being destroyed —
-                        // the entry is just under the recipient's floor and needs raising.
-                        BottomBarManager.showInfo(
-                            title = resources.getString(R.string.error_title_tipMinimum, minimum.formatted()),
-                            message = resources.getString(R.string.error_description_tipMinimum),
-                        )
-                        return@launch
-                    }
-
                     val verifiedFiat = verifiedFiatCalculator.compute(
                         amount = amount,
                         token = token,
@@ -2710,28 +2575,6 @@ internal class ChatViewModel @Inject constructor(
 
                     val chatId = stateFlow.value.chatId
 
-                    // A tip DM's first payment comes from the "Send Tip" call to action, which is
-                    // the whole bottom bar until that payment unlocks typing. It says tip, so it
-                    // sends one. Every later send comes from the money button beside a composer
-                    // that only exists once the thread is unlocked, and stays a plain send.
-                    //
-                    // This is the one place that decides it, and both `TipDmPayment.action` (the
-                    // verb the server renders — "Tipped" vs "Sent") and the analytics event below
-                    // are read off this single value rather than each re-deriving "is this a tip."
-                    // `origin`/`location` keeps being computed off the same condition as before —
-                    // this change doesn't touch what byte it sends. The server reads it in exactly
-                    // one place, as the fallback when `action` is `DEFAULT`, so leaving it alone is
-                    // what keeps a server that predates `action` resolving the same verb as one
-                    // that reads it.
-                    val tipAction = if (
-                        stateFlow.value.chatType == ChatType.TIP_DM &&
-                        !stateFlow.value.typingConstraints.enabled
-                    ) {
-                        TipAction.TIP
-                    } else {
-                        TipAction.SEND
-                    }
-
                     val result = when (val participant = stateFlow.value.participant) {
                         is ChatParticipant.Contact -> contactPaymentDelegate.send(
                             contact = participant.contact,
@@ -2745,8 +2588,8 @@ internal class ChatViewModel @Inject constructor(
                             verifiedFiat = verifiedFiat,
                             token = token,
                             source = source,
-                            origin = if (tipAction == TipAction.TIP) TipOrigin.TIPCARD else TipOrigin.CHAT,
-                            action = tipAction,
+                            origin = TipOrigin.CHAT,
+                            action = TipAction.SEND,
                         )
                         // A group has no one participant to pay, so the cash goes in as a link
                         // that the first member to tap claims.
@@ -2764,18 +2607,14 @@ internal class ChatViewModel @Inject constructor(
                         }
                     }
 
-                    // Report what was sent. A group's send is a cash link. Otherwise the tip call
-                    // to action above is a tip, and every other send from this screen (contact DM
-                    // or unlocked tip DM) is a plain cash send. Same `tipAction` the wire `action`
-                    // above was set from, not a second "is this a tip" check that could drift
-                    // from it.
+                    // Report what was sent. A group's send is a cash link; every other send from
+                    // this screen is a plain cash send. The tip that opens a DM is paid from the
+                    // profile, not here.
                     val isCashLink = stateFlow.value.participant == null
-                    val isTip = tipAction == TipAction.TIP
                     val sent = { state: AnalyticsState, error: String? ->
                         val sentAmount = verifiedFiat.localFiat.analytics
                         when {
                             isCashLink -> TransferEvents.sendCashLink(state, sentAmount, CashLinkChoice.GROUP_CHAT, null, error)
-                            isTip -> TransferEvents.sentTip(state, sentAmount, error)
                             else -> TransferEvents.sentCash(state, sentAmount, error)
                         }
                     }
@@ -3063,8 +2902,6 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 is Event.OnCurrencySymbolUpdated -> { state -> state.copy(cashSymbol = event.symbol) }
-                is Event.OnChatInitFeeUpdated -> { state -> state.copy(chatInitFee = event.formatted) }
-                is Event.OnSendCashReadinessChanged -> { state -> state.copy(sendCashReady = event.ready) }
                 is Event.RefreshContact -> { state -> state }
                 is Event.ChatFound -> { state -> state.copy(chatId = event.chatId) }
                 Event.OnSendCash -> { state -> state }
@@ -3107,13 +2944,11 @@ internal class ChatViewModel @Inject constructor(
                     state.copy(stagedPhotos = (event.photos + state.stagedPhotos).take(MAX_STAGED_PHOTOS))
                 }
                 Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
-                Event.NavigateToInitPayment -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.MentionTapped -> { state -> state }
                 is Event.OpenMention -> { state -> state }
                 is Event.OnConfirmRequested -> { state -> state }
-                is Event.OnInitPaymentConfirmed -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }
                 is Event.SendStateUpdated -> { state ->
                     state.copy(

@@ -1261,7 +1261,6 @@
     <string name="title_shareProfile">Chat with %1$s on Flipcash</string>
     <string name="subtitle_myTipCard">Share Your Tip Card to Get Tipped</string>
     <string name="action_showTipCard">Show My Tip Card</string>
-    <string name="title_sendTip">Send a Tip</string>
     <string name="action_sendToStartChatting">Send %1$s to Start Chatting</string>
     <string name="action_swipeToTip">Swipe to Tip</string>
     <string name="subtitle_tipHintMinimum">%1$s minimum</string>

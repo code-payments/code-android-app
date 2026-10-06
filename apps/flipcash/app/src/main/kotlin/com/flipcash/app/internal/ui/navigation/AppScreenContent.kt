@@ -31,6 +31,9 @@ import com.flipcash.app.tipping.NewGroupFlowScreen
 import com.flipcash.app.tipping.ChatsScreen
 import com.flipcash.shared.transactionhistory.ActivityHistoryScreen
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ProfileAddress
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
@@ -121,7 +124,14 @@ fun appEntryProvider(
 
     // Messaging
     annotatedEntry<AppRoute.Messaging.Chat> { key ->
-        ChatFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+        // A chat is never opened by user id any more; the profile is where a person without a DM
+        // is reached. A saved route that still carries one lands there instead of on a gated chat.
+        val identifier = key.identifier
+        if (identifier is ChatIdentifier.ByUser) {
+            ProfileScreen(ProfileAddress.ById(identifier.userId), ProfileOrigin.Link)
+        } else {
+            ChatFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+        }
     }
     annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address, key.origin) }
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }

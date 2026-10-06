@@ -1,5 +1,5 @@
 appId: com.flipcash.app.android
-name: "Tip deeplink — lands in the recipient's chat"
+name: "Profile card deeplink — lands on the person's profile"
 tags:
   - tipping
 ---
@@ -12,11 +12,10 @@ tags:
 - runFlow: subflows/navigate_to_wallet.yaml
 - assertVisible: { id: wallet_screen }
 
-# Open the tip card deeplink -> the card holds for its reveal beat, then the chat takes over.
-# Wait on the chat rather than on the card, and anchor on the route's own id rather than on the
-# call-to-action copy, which the chat changes as the conversation progresses.
+# Open the profile card deeplink -> the card holds for its reveal beat, then the person's profile
+# takes over (a DM is only opened from the profile, whether or not one exists yet). Wait on the
+# name rather than on the card, which shows it too, with a timeout that clears the reveal.
 - openLink: ${TIPCARD_DEEPLINK}
 - extendedWaitUntil:
-    visible: { id: chat_screen }
+    visible: "Brandon McAnsh"
     timeout: 12000
-- assertVisible: "Brandon McAnsh"
