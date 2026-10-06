@@ -50,8 +50,12 @@ object TipCodeExportStorage {
      * Name is user-visible in some share targets ("save to Files"), hence the readable prefix
      * rather than a bare hash.
      */
-    fun file(context: Context, signature: String, format: TipCodeExportFormat): File =
-        File(dir(context), "flipcash-code-$signature.${format.extension}")
+    fun file(
+        context: Context,
+        signature: String,
+        format: TipCodeExportFormat,
+        baseName: String? = null,
+    ): File = File(dir(context), "${exportFileBaseName(baseName) ?: "flipcash-code-$signature"}.${format.extension}")
 
     fun uriFor(context: Context, file: File): Uri =
         FileProvider.getUriForFile(context, TipCodePreviewStorage.authority(context), file)
@@ -66,4 +70,20 @@ object TipCodeExportStorage {
 
     private const val DEFAULT_MAX_TOTAL_BYTES = 8L * 1024 * 1024 // 8 MiB
     private const val DEFAULT_MAX_AGE_MILLIS = 24L * 60 * 60 * 1000 // 1 day
+}
+
+private const val MaxBaseNameLength = 80
+private val HostileFileNameChars = Regex("[\\\\/:*?\"<>|\\p{Cntrl}]")
+
+/**
+ * [raw] made safe to use as a file name, or null when nothing usable is left. Drops path separators
+ * and the characters common file systems reject, trims, and caps the length without splitting a
+ * surrogate pair.
+ */
+fun exportFileBaseName(raw: String?): String? {
+    val cleaned = raw.orEmpty().replace(HostileFileNameChars, "").trim()
+    if (cleaned.isEmpty()) return null
+    var end = minOf(cleaned.length, MaxBaseNameLength)
+    if (end < cleaned.length && Character.isHighSurrogate(cleaned[end - 1])) end--
+    return cleaned.substring(0, end).trim().ifEmpty { null }
 }

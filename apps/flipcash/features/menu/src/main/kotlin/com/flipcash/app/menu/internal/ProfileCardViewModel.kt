@@ -52,7 +52,13 @@ internal class ProfileCardViewModel @Inject constructor(
     private fun export(format: TipCodeExportFormat) {
         val card = card ?: return
         viewModelScope.launch {
-            val export = tipCodeExporter.export(card, format)
+            val name = card.user.displayName.trim()
+            val baseName = if (name.isEmpty()) {
+                resources.getString(R.string.label_profileCardFileNameFallback)
+            } else {
+                resources.getString(R.string.label_profileCardFileName, name)
+            }
+            val export = tipCodeExporter.export(card, format, baseName = baseName)
             if (export == null) {
                 BottomBarManager.showMessage(
                     title = resources.getString(R.string.error_title_tipCardExportFailed),

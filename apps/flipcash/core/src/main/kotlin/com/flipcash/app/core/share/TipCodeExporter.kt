@@ -37,11 +37,15 @@ class TipCodeExporter @Inject constructor(
      * Writes [card]'s code in [format] and returns a `content://` handle to it, or `null` if the
      * write failed — callers should degrade (share the URL alone) rather than surface an error.
      *
+     * [baseName] names the file (the extension is added) where the share target shows it; without one
+     * the file is named from the card's signature.
+     *
      * [sizePx] applies to [TipCodeExportFormat.Png] only; the SVG carries a `viewBox` and scales.
      */
     suspend fun export(
         card: Scannable.TipCard,
         format: TipCodeExportFormat,
+        baseName: String? = null,
         sizePx: Int = DEFAULT_PNG_SIZE_PX,
     ): TipCodeExport? = withContext(dispatchers.IO) {
         val payload = card.data.toByteArray()
@@ -52,6 +56,7 @@ class TipCodeExporter @Inject constructor(
                 context = context,
                 signature = tipCodePreviewSignature(card),
                 format = format,
+                baseName = baseName,
             )
             when (format) {
                 TipCodeExportFormat.Png -> writePng(payload, sizePx, file)

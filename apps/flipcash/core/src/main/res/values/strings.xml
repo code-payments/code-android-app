@@ -1359,6 +1359,8 @@
     <string name="label_exportSvg">SVG</string>
     <string name="subtitle_exportSvg">Stays sharp at any size</string>
     <string name="title_shareTipCode">My Flipcash Code</string>
+    <string name="label_profileCardFileName">Chat with %1$s</string>
+    <string name="label_profileCardFileNameFallback">Profile Card</string>
     <string name="error_title_tipCardExportFailed">Couldn\'t Export</string>
     <string name="error_description_tipCardExportFailed">We were unable to export your tip code. Please try again</string>
     <!-- My Account rows (node 9544:18478). Each names the thing it edits rather than the act of
