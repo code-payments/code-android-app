@@ -1365,7 +1365,7 @@ internal class ChatViewModel @Inject constructor(
         openingTipRecipientFlow
             .flatMapLatest { recipient ->
                 if (recipient == null) flowOf(null)
-                else tipPaymentDelegate.minimumToOpenDmWith(recipient.profile)
+                else tipPaymentDelegate.startChattingFee(recipient.profile)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     }

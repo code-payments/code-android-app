@@ -73,7 +73,7 @@ class ChatOpenTranscriptTest {
         every { userManager.accountCluster } returns mockk<AccountCluster>(relaxed = true)
         every { exchange.preferredRate } returns Rate.oneToOne
         every { transactionController.limits } returns MutableStateFlow(null)
-        every { tipPaymentDelegate.minimumToOpenDmWith(any()) } returns flowOf(null)
+        every { tipPaymentDelegate.startChattingFee(any()) } returns flowOf(null)
         coEvery { chatCoordinator.generateChatId(userId) } returns Result.success(chatId)
     }
 

@@ -78,7 +78,7 @@ class ChatMentionPickerTest {
         every { transactionController.limits } returns MutableStateFlow(null)
         every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(999.0)
         every { tokenCoordinator.observeTokenCache() } returns flowOf(emptyMap())
-        every { tipPaymentDelegate.minimumToOpenDmWith(any()) } returns flowOf(null)
+        every { tipPaymentDelegate.startChattingFee(any()) } returns flowOf(null)
         coEvery { tokenCoordinator.getTokenMetadata(any()) } returns Result.failure(RuntimeException())
         coEvery { rosterSearch.search(any(), any(), any()) } returns listOf(erica, eric)
         coEvery { chatCoordinator.sendMessage(any(), any(), any()) } returns Result.success(mockk<ChatMessage>(relaxed = true))

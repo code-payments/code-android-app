@@ -139,19 +139,19 @@ class TipPaymentDelegate @Inject constructor(
      * to the currency the sender is entering in. A missing rate for either side falls back to the
      * preset rather than stating a floor in a currency the entry isn't using.
      */
-    fun minimumToOpenDmWith(recipient: UserProfile?): Flow<Fiat?> =
+    fun startChattingFee(recipient: UserProfile?): Flow<Fiat?> =
         combine(minTipAmount, exchange.observePreferredRate()) { preset, rate ->
             recipient?.minDmChatInitFee?.inCurrency(rate.currency) ?: preset
         }
 
     /**
      * The floor for a tip to [userId]. The fee buys the conversation, so only the tip that opens it
-     * pays [minimumToOpenDmWith]; once a DM with them exists, every tip after it sits on the system
+     * pays [startChattingFee]; once a DM with them exists, every tip after it sits on the system
      * [minTipAmount] like any other.
      */
     fun minimumTipFor(userId: ID, recipient: UserProfile?): Flow<Fiat?> = flow {
         val opensTheChat = chatCoordinator.getChatId(userId).isFailure
-        emitAll(if (opensTheChat) minimumToOpenDmWith(recipient) else minTipAmount)
+        emitAll(if (opensTheChat) startChattingFee(recipient) else minTipAmount)
     }
 
     /**

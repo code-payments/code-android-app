@@ -155,19 +155,19 @@ class TipPaymentDelegateTest {
     }
 
     @Test
-    fun `minimumToOpenDmWith is the recipient's own fee, not the regional preset`() = runTest {
+    fun `startChattingFee is the recipient's own fee, not the regional preset`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
 
         val recipient = recipient(Fiat(5.0, CurrencyCode.USD))
-        val min = buildDelegate().minimumToOpenDmWith(recipient).first { it != null }
+        val min = buildDelegate().startChattingFee(recipient).first { it != null }
 
         assertEquals(5.0, min!!.toDouble())
         assertEquals(CurrencyCode.USD, min.currencyCode)
     }
 
     @Test
-    fun `minimumToOpenDmWith converts the recipient's fee into the currency being entered`() = runTest {
+    fun `startChattingFee converts the recipient's fee into the currency being entered`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 2.0, currency = CurrencyCode.EUR))
         // The fee was set in CAD at half a dollar to the dollar; the sender enters in EUR at two.
@@ -175,7 +175,7 @@ class TipPaymentDelegateTest {
         every { exchange.rateFor(CurrencyCode.EUR) } returns Rate(fx = 2.0, currency = CurrencyCode.EUR)
 
         val recipient = recipient(Fiat(10.0, CurrencyCode.CAD))
-        val min = buildDelegate().minimumToOpenDmWith(recipient).first { it != null }
+        val min = buildDelegate().startChattingFee(recipient).first { it != null }
 
         // CAD 10 → USD 5 → EUR 10.
         assertEquals(10.0, min!!.toDouble())
@@ -183,25 +183,25 @@ class TipPaymentDelegateTest {
     }
 
     @Test
-    fun `minimumToOpenDmWith falls back to the preset when the recipient charges nothing`() = runTest {
+    fun `startChattingFee falls back to the preset when the recipient charges nothing`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
 
         val delegate = buildDelegate()
 
-        assertEquals(1.0, delegate.minimumToOpenDmWith(recipient(fee = null)).first { it != null }!!.toDouble())
-        assertEquals(1.0, delegate.minimumToOpenDmWith(null).first { it != null }!!.toDouble())
+        assertEquals(1.0, delegate.startChattingFee(recipient(fee = null)).first { it != null }!!.toDouble())
+        assertEquals(1.0, delegate.startChattingFee(null).first { it != null }!!.toDouble())
     }
 
     @Test
-    fun `minimumToOpenDmWith falls back to the preset rather than state a floor in another currency`() = runTest {
+    fun `startChattingFee falls back to the preset rather than state a floor in another currency`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
         // No rate for the currency the recipient set their fee in.
         every { exchange.rateToUsd(CurrencyCode.CAD) } returns null
 
         val recipient = recipient(Fiat(10.0, CurrencyCode.CAD))
-        val min = buildDelegate().minimumToOpenDmWith(recipient).first { it != null }
+        val min = buildDelegate().startChattingFee(recipient).first { it != null }
 
         assertEquals(1.0, min!!.toDouble())
         assertEquals(CurrencyCode.USD, min.currencyCode)
@@ -223,7 +223,7 @@ class TipPaymentDelegateTest {
     }
 
     @Test
-    fun `minimumToOpenDmWith rounds the converted fee up so it can't be undercut`() = runTest {
+    fun `startChattingFee rounds the converted fee up so it can't be undercut`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
         // 600 INR at 95.95 INR/USD is 6.2533... USD — half-up rounding states it as $6.25, which is
@@ -232,34 +232,34 @@ class TipPaymentDelegateTest {
         every { exchange.rateToUsd(CurrencyCode.INR) } returns Rate(fx = 1 / 95.95, currency = CurrencyCode.USD)
 
         val recipient = recipient(Fiat(600.0, CurrencyCode.INR))
-        val min = buildDelegate().minimumToOpenDmWith(recipient).first { it != null }
+        val min = buildDelegate().startChattingFee(recipient).first { it != null }
 
         assertEquals(6.26, min!!.toDouble())
         assertTrue(min.toDouble() * 95.95 >= 600.0)
     }
 
     @Test
-    fun `minimumToOpenDmWith rounds another currency's converted fee up too`() = runTest {
+    fun `startChattingFee rounds another currency's converted fee up too`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
         // 1500 NGN at 1326 NGN/USD is 1.1312... USD, which rounds up to $1.14 (not the half-up $1.13).
         every { exchange.rateToUsd(CurrencyCode.NGN) } returns Rate(fx = 1 / 1326.0, currency = CurrencyCode.USD)
 
         val recipient = recipient(Fiat(1500.0, CurrencyCode.NGN))
-        val min = buildDelegate().minimumToOpenDmWith(recipient).first { it != null }
+        val min = buildDelegate().startChattingFee(recipient).first { it != null }
 
         assertEquals(1.14, min!!.toDouble())
     }
 
     @Test
-    fun `minimumToOpenDmWith does not bump a fee that converts exactly`() = runTest {
+    fun `startChattingFee does not bump a fee that converts exactly`() = runTest {
         every { userFlags.resolvedFlags } returns usdPresets()
         every { exchange.observePreferredRate() } returns flowOf(Rate(fx = 1.0, currency = CurrencyCode.USD))
         // 600 INR at an even 100 INR/USD is exactly $6.00 — rounding up must not bump an exact value.
         every { exchange.rateToUsd(CurrencyCode.INR) } returns Rate(fx = 1 / 100.0, currency = CurrencyCode.USD)
 
         val recipient = recipient(Fiat(600.0, CurrencyCode.INR))
-        val min = buildDelegate().minimumToOpenDmWith(recipient).first { it != null }
+        val min = buildDelegate().startChattingFee(recipient).first { it != null }
 
         assertEquals(6.00, min!!.toDouble())
     }

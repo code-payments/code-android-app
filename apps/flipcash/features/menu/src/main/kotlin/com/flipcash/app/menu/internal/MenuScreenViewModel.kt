@@ -18,7 +18,6 @@ import com.flipcash.services.user.AuthState
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.TipPaymentDelegate
-import com.flipcash.shared.payments.startChattingFee
 import com.flipcash.shared.tipping.TippingCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarAction

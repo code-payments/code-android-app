@@ -119,7 +119,7 @@ class ChatGroupAnalyticsTest {
         every { exchange.preferredRate } returns Rate.oneToOne
         every { transactionController.limits } returns MutableStateFlow(null)
         every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(999.0)
-        every { tipPaymentDelegate.minimumToOpenDmWith(any()) } returns flowOf(null)
+        every { tipPaymentDelegate.startChattingFee(any()) } returns flowOf(null)
         // The gate's rule currency is looked up by mint; the name it resolves to is not under test.
         coEvery { tokenCoordinator.getTokenMetadata(any()) } returns Result.failure(RuntimeException())
         every { tokenCoordinator.observeTokenCache() } returns flowOf(emptyMap())
