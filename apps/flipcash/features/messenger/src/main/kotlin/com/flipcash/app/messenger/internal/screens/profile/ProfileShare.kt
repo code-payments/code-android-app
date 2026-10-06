@@ -66,6 +66,7 @@ internal fun ProfileShareSheetHost(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = CodeTheme.colors.background,
     ) {
+        LightStatusBarIcons()
         ProfileShareSheet(
             title = stringResource(R.string.title_shareUserProfile),
             subtitle = if (handle.isNullOrEmpty()) {

@@ -50,6 +50,7 @@ internal fun StartChattingSheet(
         sheetState = sheetState,
         containerColor = CodeTheme.colors.background,
     ) {
+        LightStatusBarIcons()
         ChatInitPaymentSheet(
             fee = state.fee?.formatted(),
             token = state.token,
