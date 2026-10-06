@@ -30,7 +30,11 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
@@ -101,6 +105,13 @@ internal class ChatProfileViewModel @Inject constructor(
         val token: Token? = null,
         val paymentSheetVisible: Boolean = false,
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
+        /**
+         * People whose fee was paid, or is being paid, from this view model. The fee sheet's own
+         * show and dismiss reset [sendProgress], so this is what remembers that a payment is out:
+         * a payment can only be repeated once the DM it bought has had time to appear, and never
+         * while it is in flight.
+         */
+        val paidRecipients: Set<ID> = emptySet(),
     ) {
         /** Null for your own profile, for anyone but a tip user, and until [profileSettled]. */
         val pinnedAction: ProfilePinnedAction?
@@ -112,6 +123,7 @@ internal class ChatProfileViewModel @Inject constructor(
                     isBlocked = isBlocked,
                     dmExists = dmExists,
                     fee = fee,
+                    paid = person.userId in paidRecipients,
                 )
             }
 
@@ -151,6 +163,10 @@ internal class ChatProfileViewModel @Inject constructor(
         data object Unblock : Event
         /** The slide on the fee sheet was confirmed. */
         data object ConfirmStartChatting : Event
+        /** The fee for [recipient] is out; nothing may pay it again until the DM shows or it fails. */
+        data class PaymentStarted(val recipient: ID) : Event
+        /** The payment for [recipient] did not go through, so it may be tried again. */
+        data class PaymentFailed(val recipient: ID) : Event
         data object ShowPaymentSheet : Event
         data object DismissPaymentSheet : Event
         data class PaymentProgress(
@@ -185,13 +201,14 @@ internal class ChatProfileViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnParticipantSet>()
             .filter { it.participant is ChatParticipant.TipUser }
-            // Not distinct: the reducer resets the settled flag on every set, so a repeat of the
-            // same participant (a second visit in a flow that keeps this view model) has to fetch.
-            .onEach { event ->
+            // Not distinct: a repeat of the same participant (a second visit in a flow that keeps
+            // this view model) has to fetch. Latest: a fetch for someone the screen has moved on
+            // from is dropped rather than landing on the next person.
+            .collectLatestIn(viewModelScope) { event ->
                 val (userId, profile) = event.participant as ChatParticipant.TipUser
                 if (event.isFullProfile) {
                     dispatchEvent(Event.JoinDateLoaded(profile.joinedAt))
-                    return@onEach
+                    return@collectLatestIn
                 }
                 // The participant came from the cache, which carries no join date and may carry a
                 // roster page's blank name. The server profile replaces it whole; the cached one
@@ -204,7 +221,6 @@ internal class ChatProfileViewModel @Inject constructor(
                 }
                 dispatchEvent(Event.JoinDateLoaded(fetched?.joinedAt ?: profile.joinedAt))
             }
-            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnParticipantSet>()
@@ -282,27 +298,39 @@ internal class ChatProfileViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.BlockedChanged(it)) }
             .launchIn(viewModelScope)
 
-        val chatIds = stateFlow.map { it.dmChatId }.filterNotNull().distinctUntilChanged()
+        // Nullable on purpose: moving to a person with no DM yet has to end the last person's
+        // subscriptions, and coming back to one has to start them again.
+        val chatIds = stateFlow.map { it.dmChatId }.distinctUntilChanged()
 
         // A block hides the DM but leaves its members, so this stays true through one; the pinned
         // action puts blocked first for that reason.
         chatIds
-            .flatMapLatest { chatCoordinator.observeMembers(it) }
-            .map { it.isNotEmpty() }
-            .distinctUntilChanged()
+            .flatMapLatest { chatId ->
+                if (chatId == null) {
+                    emptyFlow()
+                } else {
+                    chatCoordinator.observeMembers(chatId).map { it.isNotEmpty() }.distinctUntilChanged()
+                }
+            }
             .onEach { dispatchEvent(Event.DmExistsChanged(it)) }
             .launchIn(viewModelScope)
 
         chatIds
-            .flatMapLatest { chatCoordinator.observeMetadata(it) }
-            .map { membership ->
-                Event.ChatStateChanged(
-                    // Evaluated on emission; a timed mute that lapses has no event of its own.
-                    isMuted = membership?.metadata?.viewerState.isMutedAt(),
-                    isEncrypted = membership?.metadata?.let(e2eePolicy::shouldEncrypt) ?: false,
-                )
+            .flatMapLatest { chatId ->
+                if (chatId == null) {
+                    emptyFlow()
+                } else {
+                    chatCoordinator.observeMetadata(chatId)
+                        .map { membership ->
+                            Event.ChatStateChanged(
+                                // Evaluated on emission; a timed mute that lapses has no event of its own.
+                                isMuted = membership?.metadata?.viewerState.isMutedAt(),
+                                isEncrypted = membership?.metadata?.let(e2eePolicy::shouldEncrypt) ?: false,
+                            )
+                        }
+                        .distinctUntilChanged()
+                }
             }
-            .distinctUntilChanged()
             .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
 
@@ -329,7 +357,7 @@ internal class ChatProfileViewModel @Inject constructor(
                     ProfilePinnedAction.Unblock -> dispatchEvent(Event.Unblock)
                     ProfilePinnedAction.OpenChat -> state.dmChatId?.let { dispatchEvent(Event.OpenChat(it)) }
                     is ProfilePinnedAction.StartChatting -> startChatting(action.fee)
-                    null -> Unit
+                    ProfilePinnedAction.OpeningChat, null -> Unit
                 }
             }
             .launchIn(viewModelScope)
@@ -377,36 +405,48 @@ internal class ChatProfileViewModel @Inject constructor(
         }
     }
 
-    private suspend fun confirmStartChatting() {
+    /**
+     * Pays, then waits for the DM to appear, all off the event collector: the wait can run to
+     * [MEMBERS_TIMEOUT], and a collector held that long stalls every other event, including a
+     * second tap that would pay again. The person and chat are read once, up front.
+     */
+    private fun confirmStartChatting() {
         val state = stateFlow.value
         val person = state.participant as? ChatParticipant.TipUser ?: return
         val fee = state.fee ?: return
-        if (!state.sendProgress.isIdle) return
+        if (!state.sendProgress.isIdle || person.userId in state.paidRecipients) return
+        val knownChatId = state.dmChatId
 
+        dispatchEvent(Event.PaymentStarted(person.userId))
         dispatchEvent(Event.PaymentProgress(loading = true))
-        startChattingPayer.pay(
-            recipient = person.userId,
-            fee = fee,
-            onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
-        ).onSuccess { paidChatId ->
-            dispatchEvent(Event.PaymentProgress(success = true))
-            delay(SUCCESS_HOLD)
-            dispatchEvent(Event.DismissPaymentSheet)
-            val chatId = paidChatId ?: stateFlow.value.dmChatId ?: return@onSuccess
-            // The server creates the DM from the payment, so its members arrive a moment after.
-            // If they never do, stay: the pinned action flips to Open Chat when they land.
-            val arrived = withTimeoutOrNull(MEMBERS_TIMEOUT) {
-                chatCoordinator.observeMembers(chatId).first { it.isNotEmpty() }
-            }
-            if (arrived != null) dispatchEvent(Event.OpenChat(chatId))
-        }.onFailure { cause ->
-            dispatchEvent(Event.PaymentProgress())
-            // A blocked payment has said why already.
-            if (cause !is StartChattingPayer.PaymentBlocked) {
-                BottomBarManager.showError(
-                    title = resources.getString(R.string.error_title_cashFailedToSend),
-                    message = resources.getString(R.string.error_description_cashFailedToSend),
-                )
+        viewModelScope.launch {
+            startChattingPayer.pay(
+                recipient = person.userId,
+                fee = fee,
+                onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
+            ).onSuccess { paidChatId ->
+                dispatchEvent(Event.PaymentProgress(success = true))
+                delay(SUCCESS_HOLD)
+                dispatchEvent(Event.DismissPaymentSheet)
+                val chatId = paidChatId ?: knownChatId ?: return@onSuccess
+                // The server creates the DM from the payment, so its members arrive a moment
+                // after. If they never do, stay: the pinned action flips to Open Chat when they land.
+                val arrived = withTimeoutOrNull(MEMBERS_TIMEOUT) {
+                    chatCoordinator.observeMembers(chatId).first { it.isNotEmpty() }
+                }
+                // Not if the screen has moved on to someone else in the meantime.
+                val stillHere = (stateFlow.value.participant as? ChatParticipant.TipUser)?.userId == person.userId
+                if (arrived != null && stillHere) dispatchEvent(Event.OpenChat(chatId))
+            }.onFailure { cause ->
+                dispatchEvent(Event.PaymentFailed(person.userId))
+                dispatchEvent(Event.PaymentProgress())
+                // A blocked payment has said why already.
+                if (cause !is StartChattingPayer.PaymentBlocked) {
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_cashFailedToSend),
+                        message = resources.getString(R.string.error_description_cashFailedToSend),
+                    )
+                }
             }
         }
     }
@@ -418,16 +458,13 @@ internal class ChatProfileViewModel @Inject constructor(
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnParticipantSet -> { state ->
-                    state.copy(
-                        participant = event.participant,
-                        isFullProfileLoaded = event.isFullProfile,
-                        profileSettled = event.isFullProfile,
-                    )
-                }
+                is Event.OnParticipantSet -> { state -> state.withParticipantSet(event) }
                 is Event.JoinDateLoaded -> { state -> state.copy(joinDate = event.joinDate) }
                 is Event.ProfileLoaded -> { state ->
-                    state.copy(
+                    // A fetch that lands after the screen moved on is someone else's.
+                    if ((state.participant as? ChatParticipant.TipUser)?.userId != event.participant.userId) {
+                        state
+                    } else state.copy(
                         participant = event.participant,
                         isFullProfileLoaded = true,
                         profileSettled = true,
@@ -442,6 +479,12 @@ internal class ChatProfileViewModel @Inject constructor(
                 }
                 is Event.FeeLoaded -> { state -> state.copy(fee = event.fee) }
                 is Event.TokenUpdated -> { state -> state.copy(token = event.token) }
+                is Event.PaymentStarted -> { state ->
+                    state.copy(paidRecipients = state.paidRecipients.toMutableSet().apply { add(event.recipient) })
+                }
+                is Event.PaymentFailed -> { state ->
+                    state.copy(paidRecipients = state.paidRecipients.toMutableSet().apply { remove(event.recipient) })
+                }
                 Event.ShowPaymentSheet -> { state ->
                     state.copy(paymentSheetVisible = true, sendProgress = LoadingSuccessState())
                 }
@@ -473,4 +516,37 @@ internal class ChatProfileViewModel @Inject constructor(
             }
         }
     }
+}
+
+/**
+ * Another person resets everything that was the last one's; the same person again keeps what is
+ * known, so the pinned button and bio do not vanish while the background refetch lands.
+ */
+private fun ChatProfileViewModel.State.withParticipantSet(
+    event: ChatProfileViewModel.Event.OnParticipantSet,
+): ChatProfileViewModel.State {
+    val incoming = event.participant
+    val sameUser = incoming is ChatParticipant.TipUser &&
+        (participant as? ChatParticipant.TipUser)?.userId == incoming.userId
+    if (sameUser) {
+        return copy(
+            // The server's profile stays rather than being swapped for the cached one.
+            participant = if (isFullProfileLoaded && !event.isFullProfile) participant else incoming,
+            isFullProfileLoaded = isFullProfileLoaded || event.isFullProfile,
+            profileSettled = profileSettled || event.isFullProfile,
+        )
+    }
+    return ChatProfileViewModel.State(
+        participant = incoming,
+        selfId = selfId,
+        isFullProfileLoaded = event.isFullProfile,
+        profileSettled = event.isFullProfile,
+        // Not per person: the selected token, and who has been paid.
+        token = token,
+        paidRecipients = paidRecipients,
+    )
+}
+
+private fun <T> Flow<T>.collectLatestIn(scope: CoroutineScope, block: suspend (T) -> Unit) {
+    scope.launch { collectLatest(block) }
 }

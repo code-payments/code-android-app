@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,10 +95,11 @@ internal fun PersonProfileScreen(
 
     // The host decides what opening the chat means (pop back to it, or push it); everything else
     // the profile can ask for is the same wherever it is.
+    val currentOnOpenChat by rememberUpdatedState(onOpenChat)
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
-                is ChatProfileViewModel.Event.OpenChat -> onOpenChat(event.chatId)
+                is ChatProfileViewModel.Event.OpenChat -> currentOnOpenChat(event.chatId)
                 is ChatProfileViewModel.Event.OpenSendCash ->
                     navigator.push(event.participant.dmRoute(openSendCash = true))
                 is ChatProfileViewModel.Event.OpenScreen -> navigator.push(event.route)
@@ -122,7 +124,7 @@ internal fun PersonProfileScreen(
     val density = LocalDensity.current
     var pinnedHeight by remember { mutableStateOf(0.dp) }
     // Nothing is pinned, so nothing for a toast to clear.
-    val clearance = if (pinned != null || (state.dmExists && state.isEncrypted)) pinnedHeight else 0.dp
+    val clearance = if (pinned != null) pinnedHeight else 0.dp
     ToastBottomClearance(clearance)
 
     val hazeState = rememberHazeState()
@@ -249,17 +251,16 @@ internal fun PersonProfileScreen(
                             clearNavigationBar = false,
                         )
                     }
-                    if (pinned != null) {
-                        CodeButton(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = CodeTheme.dimens.inset)
-                                .padding(bottom = CodeTheme.dimens.grid.x3),
-                            buttonState = ButtonState.Filled,
-                            text = pinned.label(),
-                            onClick = { viewModel.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped) },
-                        )
-                    }
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(bottom = CodeTheme.dimens.grid.x3),
+                        buttonState = ButtonState.Filled,
+                        text = pinned.label(),
+                        isLoading = pinned == ProfilePinnedAction.OpeningChat,
+                        onClick = { viewModel.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped) },
+                    )
                 }
             }
         }

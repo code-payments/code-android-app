@@ -9,6 +9,9 @@ internal sealed interface ProfilePinnedAction {
     data object Unblock : ProfilePinnedAction
     data object OpenChat : ProfilePinnedAction
 
+    /** The fee is paid and the DM has not appeared yet; shown disabled, so it cannot be paid twice. */
+    data object OpeningChat : ProfilePinnedAction
+
     /** A null [fee] means "Start Chatting" opens the amount entry rather than a confirmation. */
     data class StartChatting(val fee: Fiat?) : ProfilePinnedAction
 }
@@ -21,10 +24,12 @@ internal fun resolvePinnedAction(
     isBlocked: Boolean,
     dmExists: Boolean,
     fee: Fiat?,
+    paid: Boolean = false,
 ): ProfilePinnedAction? = when {
     isSelf -> null
     isBlocked -> ProfilePinnedAction.Unblock
     dmExists -> ProfilePinnedAction.OpenChat
+    paid -> ProfilePinnedAction.OpeningChat
     else -> ProfilePinnedAction.StartChatting(fee)
 }
 
@@ -50,7 +55,7 @@ internal fun profileMenuItems(isBlocked: Boolean, hasDm: Boolean): List<ChatProf
 @StringRes
 internal fun ProfilePinnedAction.labelRes(): Int = when (this) {
     ProfilePinnedAction.Unblock -> R.string.action_unblock
-    ProfilePinnedAction.OpenChat -> R.string.action_openChat
+    ProfilePinnedAction.OpenChat, ProfilePinnedAction.OpeningChat -> R.string.action_openChat
     is ProfilePinnedAction.StartChatting ->
         if (fee != null) R.string.action_sendToStartChatting else R.string.action_startChatting
 }

@@ -95,15 +95,19 @@ class ChatProfileViewModelTest {
     private fun openFull(model: ChatProfileViewModel) =
         model.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant(serverJoin), isFullProfile = true))
 
-    private fun participant(joinedAt: Instant?, displayName: String = "Sally") = ChatParticipant.TipUser(
-        userId = theirId,
+    private fun participant(
+        joinedAt: Instant?,
+        displayName: String = "Sally",
+        id: List<Byte> = theirId,
+    ) = ChatParticipant.TipUser(
+        userId = id,
         profile = UserProfile(
             displayName = displayName,
             socialAccounts = emptyList(),
             phoneNumber = null,
             email = null,
             joinedAt = joinedAt,
-            userId = theirId,
+            userId = id,
             username = "sally_streamer",
         ),
     )
@@ -286,5 +290,170 @@ class ChatProfileViewModelTest {
         model.dispatchEvent(ChatProfileViewModel.Event.Unblock)
 
         coVerify(exactly = 1) { blocklist.unblock(theirId) }
+    }
+
+    @Test
+    fun `other events are not stalled while a paid chat waits for its members`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        coEvery { blocklist.unblock(any()) } returns Result.success(Unit)
+        val model = viewModel()
+        openFull(model)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(1_000)
+        model.dispatchEvent(ChatProfileViewModel.Event.Unblock)
+
+        coVerify(exactly = 1) { blocklist.unblock(theirId) }
+    }
+
+    @Test
+    fun `a paid chat waiting for its members cannot be paid for again`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        val model = viewModel()
+        openFull(model)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(1_000)
+        // The sheet's own show and dismiss both reset the sheet's progress; neither may reopen payment.
+        model.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped)
+        model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        model.dispatchEvent(ChatProfileViewModel.Event.DismissPaymentSheet)
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(11_000)
+
+        coVerify(exactly = 1) { payer.pay(any(), any(), any()) }
+        assertFalse(model.stateFlow.value.paymentSheetVisible)
+        assertEquals(ProfilePinnedAction.OpeningChat, model.stateFlow.value.pinnedAction)
+    }
+
+    @Test
+    fun `a failed payment can be tried again`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any()) } returns Result.failure(Exception("nope"))
+        val model = viewModel()
+        openFull(model)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+
+        coVerify(exactly = 2) { payer.pay(any(), any(), any()) }
+        assertTrue(model.stateFlow.value.pinnedAction is ProfilePinnedAction.StartChatting)
+    }
+
+    @Test
+    fun `a generic payment failure is reported, a blocked one is not`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        val model = viewModel()
+        openFull(model)
+        com.getcode.manager.BottomBarManager.clear()
+
+        coEvery { payer.pay(any(), any(), any()) } returns
+            Result.failure(StartChattingPayer.PaymentBlocked())
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        assertTrue(com.getcode.manager.BottomBarManager.messages.value.isEmpty())
+
+        coEvery { payer.pay(any(), any(), any()) } returns Result.failure(Exception("nope"))
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        assertEquals(1, com.getcode.manager.BottomBarManager.messages.value.size)
+        com.getcode.manager.BottomBarManager.clear()
+    }
+
+    // The reducer, for the flow-shared view model that is reused across people.
+
+    private fun reduce(state: ChatProfileViewModel.State, event: ChatProfileViewModel.Event) =
+        ChatProfileViewModel.updateStateForEvent(event)(state)
+
+    private val otherId: List<Byte> = List(16) { 3 }
+
+    @Test
+    fun `opening a different person clears everything that was the last one's`() {
+        val dirty = ChatProfileViewModel.State(
+            selfId = List(16) { 1 },
+            participant = participant(serverJoin),
+            joinDate = serverJoin,
+            isFullProfileLoaded = true,
+            profileSettled = true,
+            dmChatId = dmChatId,
+            dmExists = true,
+            isBlocked = true,
+            isMuted = true,
+            fee = Fiat(1, CurrencyCode.USD),
+            isEncrypted = true,
+            paymentSheetVisible = true,
+            sendProgress = com.getcode.view.LoadingSuccessState(loading = true),
+        )
+
+        val next = reduce(
+            dirty,
+            ChatProfileViewModel.Event.OnParticipantSet(participant(null, "Bo", otherId)),
+        )
+
+        assertEquals(otherId, (next.participant as ChatParticipant.TipUser).userId)
+        assertNull(next.joinDate)
+        assertFalse(next.isFullProfileLoaded)
+        assertFalse(next.profileSettled)
+        assertNull(next.dmChatId)
+        assertFalse(next.dmExists)
+        assertFalse(next.isBlocked)
+        assertFalse(next.isMuted)
+        assertNull(next.fee)
+        assertFalse(next.isEncrypted)
+        assertFalse(next.paymentSheetVisible)
+        assertTrue(next.sendProgress.isIdle)
+        assertEquals(dirty.selfId, next.selfId)
+    }
+
+    @Test
+    fun `opening a different person keeps what they have paid for`() {
+        val paid = ChatProfileViewModel.State(
+            participant = participant(serverJoin),
+            paidRecipients = setOf(theirId),
+        )
+
+        val next = reduce(
+            paid,
+            ChatProfileViewModel.Event.OnParticipantSet(participant(null, "Bo", otherId)),
+        )
+
+        assertEquals(setOf(theirId), next.paidRecipients)
+    }
+
+    @Test
+    fun `opening the same person again keeps the profile settled`() {
+        val settled = ChatProfileViewModel.State(
+            participant = participant(serverJoin),
+            joinDate = serverJoin,
+            isFullProfileLoaded = true,
+            profileSettled = true,
+            dmExists = true,
+            fee = Fiat(1, CurrencyCode.USD),
+        )
+
+        val next = reduce(
+            settled,
+            ChatProfileViewModel.Event.OnParticipantSet(participant(cachedJoin)),
+        )
+
+        assertTrue(next.isFullProfileLoaded)
+        assertTrue(next.profileSettled)
+        assertEquals(serverJoin, next.joinDate)
+        assertTrue(next.dmExists)
+        // The server's profile is not swapped back for the cached one the host handed over.
+        assertEquals(serverJoin, (next.participant as ChatParticipant.TipUser).profile.joinedAt)
+    }
+
+    @Test
+    fun `a profile that arrives for the person who was left is ignored`() {
+        val onBo = ChatProfileViewModel.State(participant = participant(null, "Bo", otherId))
+
+        val next = reduce(
+            onBo,
+            ChatProfileViewModel.Event.ProfileLoaded(participant(serverJoin)),
+        )
+
+        assertEquals(onBo, next)
     }
 }

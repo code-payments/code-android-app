@@ -2617,6 +2617,8 @@ internal class ChatViewModel @Inject constructor(
             .onEach { onConfirmRequested() }
             .launchIn(viewModelScope)
 
+        // Duplicates StartChattingPayer.pay (minus its send-limit check); this fee-payment path goes
+        // away with the paid-DM gate in profile-refresh slice 5.
         eventFlow.filterIsInstance<Event.OnInitPaymentConfirmed>()
             .onEach { onConfirmRequested(fixedAmount = minAmountFlow.value) }
             .launchIn(viewModelScope)
