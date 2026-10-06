@@ -1,12 +1,9 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.rememberScrollState
@@ -27,8 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
@@ -43,6 +38,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.common.ui.profile.ProfileActionButton
 import com.flipcash.shared.common.ui.profile.ProfileHeader
+import com.flipcash.shared.common.ui.profile.ProfilePinnedActionBar
 import com.flipcash.shared.common.ui.profile.ProfileStatsCard
 import com.flipcash.shared.common.ui.profile.ProfileStatusChip
 import com.flipcash.shared.common.ui.profile.joinedLabel
@@ -51,9 +47,6 @@ import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
-import com.getcode.ui.components.toast.ToastBottomClearance
-import com.getcode.ui.theme.ButtonState
-import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -121,11 +114,10 @@ internal fun PersonProfileScreen(
     var shareOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
 
-    val density = LocalDensity.current
     var pinnedHeight by remember { mutableStateOf(0.dp) }
-    // Nothing is pinned, so nothing for a toast to clear.
+    // Nothing is pinned, so nothing for the content to leave room for. The bar registers its own
+    // toast clearance while it is shown.
     val clearance = if (pinned != null) pinnedHeight else 0.dp
-    ToastBottomClearance(clearance)
 
     val hazeState = rememberHazeState()
 
@@ -234,34 +226,23 @@ internal fun PersonProfileScreen(
                 },
             )
 
-            val showFooter = pinned != null && state.dmExists && state.isEncrypted
             if (pinned != null) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .onSizeChanged { pinnedHeight = with(density) { it.height.toDp() } }
-                        .background(CodeTheme.colors.background)
-                        .navigationBarsPadding(),
-                ) {
-                    if (showFooter) {
-                        E2eeFooter(
-                            isEncrypted = true,
-                            onLearnMore = { navigator.push(AppRoute.Messaging.E2eeDmInfo) },
-                            clearNavigationBar = false,
-                        )
-                    }
-                    CodeButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(bottom = CodeTheme.dimens.grid.x3),
-                        buttonState = ButtonState.Filled,
-                        text = pinned.label(),
-                        isLoading = pinned == ProfilePinnedAction.OpeningChat,
-                        onClick = { viewModel.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped) },
-                    )
-                }
+                ProfilePinnedActionBar(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    text = pinned.label(),
+                    isLoading = pinned == ProfilePinnedAction.OpeningChat,
+                    onClick = { viewModel.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped) },
+                    above = if (state.dmExists && state.isEncrypted) {
+                        {
+                            E2eeFooter(
+                                isEncrypted = true,
+                                onLearnMore = { navigator.push(AppRoute.Messaging.E2eeDmInfo) },
+                                clearNavigationBar = false,
+                            )
+                        }
+                    } else null,
+                    onHeightChanged = { pinnedHeight = it },
+                )
             }
         }
     }
