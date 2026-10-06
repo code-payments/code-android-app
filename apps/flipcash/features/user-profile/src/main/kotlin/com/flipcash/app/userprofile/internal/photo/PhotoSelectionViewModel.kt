@@ -17,7 +17,9 @@ import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.ModerationResult
+import com.flipcash.services.models.SetCoverPictureError
 import com.flipcash.services.models.TextModerationError
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.services.user.UserManager
@@ -29,6 +31,9 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.uploadMimeFor
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -44,8 +49,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
-@HiltViewModel
-class PhotoSelectionViewModel @Inject constructor(
+/**
+ * Backs one picture step of the profile editor. The [slot] says which picture the step edits, so a
+ * cover step seeds from, uploads to and reports on the cover only — never the avatar — and an avatar
+ * step the reverse. Each step gets its own instance.
+ */
+@HiltViewModel(assistedFactory = PhotoSelectionViewModel.Factory::class)
+class PhotoSelectionViewModel @AssistedInject constructor(
     dispatchers: DispatcherProvider,
     userManager: UserManager,
     private val moderationController: ModerationController,
@@ -54,16 +64,27 @@ class PhotoSelectionViewModel @Inject constructor(
     private val imagePreparer: ImageUploadPreparer,
     private val resources: ResourceHelper,
     val contentReader: ContentReader,
+    @Assisted val slot: Slot,
 ) : BaseViewModel<PhotoSelectionViewModel.State, PhotoSelectionViewModel.Event>(
     initialState = State(
         name = userManager.profile?.displayName.orEmpty(),
-        savedPicture = userManager.profile?.profilePicture,
+        savedPicture = userManager.profile?.pictureFor(slot),
+        slot = slot,
     ),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
+    /** Which of the profile's two pictures a step edits. */
+    enum class Slot { Avatar, Cover }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(slot: Slot): PhotoSelectionViewModel
+    }
+
     data class State(
         val name: String,
+        val slot: Slot = Slot.Avatar,
         /**
          * The stored profile picture, shown until a pick replaces it and again if that pick is
          * discarded. Display only: it is a server-side [MediaItem], never a local [Uri], so it
@@ -117,7 +138,7 @@ class PhotoSelectionViewModel @Inject constructor(
         // Keeps the seeded avatar current: a save merges the server's renditions back into the
         // profile, so this is also what swaps the stored picture in once an upload lands.
         userManager.state
-            .map { it.userProfile?.profilePicture }
+            .map { it.userProfile?.pictureFor(slot) }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnSavedPictureLoaded(it)) }
             .launchIn(viewModelScope)
@@ -138,10 +159,18 @@ class PhotoSelectionViewModel @Inject constructor(
                     return@onEach
                 }
                 BottomBarManager.showMessage(
-                    title = resources.getString(R.string.prompt_title_changeProfilePicture),
-                    message = resources.getString(R.string.prompt_description_changeProfilePicture),
+                    title = resources.getString(
+                        if (slot == Slot.Cover) R.string.prompt_title_changeCover else R.string.prompt_title_changeProfilePicture
+                    ),
+                    message = resources.getString(
+                        if (slot == Slot.Cover) R.string.prompt_description_changeCover else R.string.prompt_description_changeProfilePicture
+                    ),
                     actions = listOf(
-                        BottomBarAction(resources.getString(R.string.action_changeProfilePicture)) {
+                        BottomBarAction(
+                            resources.getString(
+                                if (slot == Slot.Cover) R.string.action_changeCover else R.string.action_changeProfilePicture
+                            )
+                        ) {
                             dispatchEvent(Event.CheckImage)
                         }
                     ),
@@ -195,7 +224,10 @@ class PhotoSelectionViewModel @Inject constructor(
                 blobStorage.upload(bytes = bytes, mimeType = stateFlow.value.imageMimeType)
             }
             .flatMapResult { blobId ->
-                profileController.setProfilePicture(blobId)
+                when (slot) {
+                    Slot.Avatar -> profileController.setProfilePicture(blobId)
+                    Slot.Cover -> profileController.setCoverPicture(blobId)
+                }
             }
             .onResult(
                 onSuccess = { _ ->
@@ -246,6 +278,13 @@ class PhotoSelectionViewModel @Inject constructor(
     }
 
     private fun handleUploadFailure(cause: Throwable) {
+        if (slot == Slot.Cover && cause.isCoverRejection()) {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_coverNotAllowed),
+                message = resources.getString(R.string.error_description_coverNotAllowed),
+            )
+            return
+        }
         when (cause) {
             is BlobRejectedException -> {
                 when (cause.rejection.reason) {
@@ -355,6 +394,20 @@ class PhotoSelectionViewModel @Inject constructor(
     }
 
     companion object {
+
+        private fun UserProfile.pictureFor(slot: Slot): MediaItem? = when (slot) {
+            Slot.Avatar -> profilePicture
+            Slot.Cover -> coverPicture
+        }
+
+        // Moderation and unclassified refusals are the ones a different image can fix; transport
+        // and format failures keep the generic wording.
+        private fun Throwable.isCoverRejection(): Boolean = when (this) {
+            is SetCoverPictureError.BlobRejected -> true
+            is BlobRejectedException -> rejection.reason == RejectionReason.MODERATION ||
+                rejection.reason == RejectionReason.UNKNOWN
+            else -> false
+        }
 
         internal val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -28,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,6 +45,8 @@ import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.core.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.common.ui.ContactAvatar
+import com.flipcash.shared.common.ui.profile.ProfileCover
+import com.flipcash.shared.common.ui.profile.ProfileCoverAspectRatio
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
@@ -58,17 +62,21 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun PhotoSelectionScreen() {
+internal fun PhotoSelectionScreen(slot: PhotoSelectionViewModel.Slot = PhotoSelectionViewModel.Slot.Avatar) {
     val flowNavigator = rememberFlowNavigator<UpdateProfileStep, UpdateProfileResult>()
 
-    val viewModel = hiltViewModel<PhotoSelectionViewModel>()
+    val viewModel = hiltViewModel<PhotoSelectionViewModel, PhotoSelectionViewModel.Factory>(
+        creationCallback = { factory -> factory.create(slot) },
+    )
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     val keyboard = rememberKeyboardController()
 
     Column {
         AppBarWithTitle(
-            title = stringResource(R.string.title_setProfilePicture),
+            title = stringResource(
+                if (slot == PhotoSelectionViewModel.Slot.Cover) R.string.title_setCover else R.string.title_setProfilePicture
+            ),
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = {
                 keyboard.hideIfVisible {
@@ -141,16 +149,26 @@ private fun PhotoSelectionScreenContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
             ) {
+                // The avatar is a circle that shares its bounds with the name step; the cover is
+                // previewed at the banner's own aspect so the crop matches what the profile shows.
+                val isCover = state.slot == PhotoSelectionViewModel.Slot.Cover
+                val pictureShape = if (isCover) CodeTheme.shapes.medium else CircleShape
                 Box(
-                    modifier = Modifier
-                        .size(150.dp)
-                        .sharedBoundsTransition(
-                            transition = SharedTransition.CurrencyIcon,
-                        )
+                    modifier = (if (isCover) {
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(ProfileCoverAspectRatio)
+                    } else {
+                        Modifier
+                            .size(150.dp)
+                            .sharedBoundsTransition(
+                                transition = SharedTransition.CurrencyIcon,
+                            )
+                    })
                         .background(
                             color = CodeTheme.colors.divider,
-                            shape = CircleShape,
-                        ).clip(CircleShape)
+                            shape = pictureShape,
+                        ).clip(pictureShape)
                         .clickable {
                             pickMedia.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
                         },
@@ -180,6 +198,14 @@ private fun PhotoSelectionScreenContent(
                             // step opens on the current avatar rather than an empty well. It is a
                             // server-side MediaItem, so it can't be mistaken for a pick — Save
                             // stays disabled until one is made.
+                            state.savedPicture != null && isCover -> {
+                                ProfileCover(
+                                    image = state.savedPicture,
+                                    access = BlobAccessContext.Owned,
+                                    modifier = Modifier.fillMaxSize(),
+                                    height = Dp.Unspecified,
+                                )
+                            }
                             state.savedPicture != null -> {
                                 ContactAvatar(
                                     image = state.savedPicture,
@@ -203,14 +229,16 @@ private fun PhotoSelectionScreenContent(
                 }
 
 
-                Text(
-                    modifier = Modifier.sharedBoundsTransition(
-                        transition = SharedTransition.CurrencyName,
-                    ),
-                    text = state.name.ifBlank { stringResource(R.string.placeholder_profileDisplayName) },
-                    style = CodeTheme.typography.displaySmall,
-                    color = Color.White,
-                )
+                if (!isCover) {
+                    Text(
+                        modifier = Modifier.sharedBoundsTransition(
+                            transition = SharedTransition.CurrencyName,
+                        ),
+                        text = state.name.ifBlank { stringResource(R.string.placeholder_profileDisplayName) },
+                        style = CodeTheme.typography.displaySmall,
+                        color = Color.White,
+                    )
+                }
             }
         }
     }

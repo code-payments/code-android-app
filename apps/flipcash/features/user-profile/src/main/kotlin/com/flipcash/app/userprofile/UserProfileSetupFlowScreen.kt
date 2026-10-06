@@ -11,6 +11,7 @@ import com.flipcash.app.userprofile.internal.bio.EditBioScreen
 import com.flipcash.app.userprofile.internal.mintip.MinimumTipEntryScreen
 import com.flipcash.app.userprofile.internal.name.NameEntryScreen
 import com.flipcash.app.userprofile.internal.photo.PhotoSelectionScreen
+import com.flipcash.app.userprofile.internal.photo.PhotoSelectionViewModel
 import com.flipcash.app.userprofile.internal.username.UsernameEntryScreen
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -68,6 +69,9 @@ private fun profileUpdateProvider(
     }
     annotatedEntry<UpdateProfileStep.Photo> {
         PhotoSelectionScreen()
+    }
+    annotatedEntry<UpdateProfileStep.Cover> {
+        PhotoSelectionScreen(slot = PhotoSelectionViewModel.Slot.Cover)
     }
     annotatedEntry<UpdateProfileStep.Bio> {
         EditBioScreen()

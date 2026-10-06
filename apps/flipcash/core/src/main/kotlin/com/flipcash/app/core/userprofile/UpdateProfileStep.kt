@@ -31,6 +31,11 @@ sealed interface UpdateProfileStep : FlowStep, Parcelable {
     @Serializable
     object Photo : UpdateProfileStep
 
+    /** The banner at the top of the profile, picked and uploaded the way [Photo] is. */
+    @Parcelize
+    @Serializable
+    object Cover : UpdateProfileStep
+
     /**
      * The fee another user has to pay to open a DM, which the profile carries as
      * `minDmChatInitFee`.
