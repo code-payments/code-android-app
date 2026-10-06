@@ -42,6 +42,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.toSize
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.CompositionContext
@@ -601,7 +603,11 @@ private fun AttachSurfaceWindow(
 
             val now = currentPhase
             val plusRadius = plusRect.height / 2f
-            val chip = currentLanding()?.takeIf { it.isAttached }?.boundsInRoot()?.translate(shift)
+            // Unclipped bounds: the first chip's header row eases in from behind the field's clip, and
+            // boundsInRoot() reports a fully clipped chip as Rect.Zero, the window's top-left corner.
+            val chip = currentLanding()?.takeIf { it.isAttached }
+                ?.let { Rect(it.positionInRoot(), it.size.toSize()) }
+                ?.translate(shift)
             // From the shutter on, the card shrinks the taken frame toward the chip. The photo is
             // still being saved, so until its chip lays out it heads for where the chip will be,
             // beside "+" and above it, and retargets onto the chip once there is one.

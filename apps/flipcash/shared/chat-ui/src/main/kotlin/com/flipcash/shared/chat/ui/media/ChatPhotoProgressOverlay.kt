@@ -166,9 +166,12 @@ private fun Fill(widthFraction: () -> Float, offsetFraction: () -> Float) {
                 }
             }
             .fillMaxSize()
-            .background(CodeTheme.colors.brand),
+            .background(ChatMediaBlue),
     )
 }
+
+// UIKit's systemBlue in dark mode, which iOS uses for the upload fill and the camera's more dot.
+internal val ChatMediaBlue = Color(0xFF0A84FF)
 
 @Preview(widthDp = 200, heightDp = 100)
 @PreviewWrapper(FlipcashThemeWrapper::class)

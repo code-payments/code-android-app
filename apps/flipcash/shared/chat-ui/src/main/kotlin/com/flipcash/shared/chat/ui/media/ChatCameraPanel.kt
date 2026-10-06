@@ -388,7 +388,7 @@ private fun CameraPreview(
                         .offset(x = -CodeTheme.dimens.staticGrid.x1 / 2, y = CodeTheme.dimens.staticGrid.x1 / 2)
                         .size(CodeTheme.dimens.staticGrid.x2)
                         .graphicsLayer { alpha = dot.coerceIn(0f, 1f) }
-                        .background(MoreDotColor, CircleShape),
+                        .background(ChatMediaBlue, CircleShape),
                 )
             }
         }
@@ -433,9 +433,6 @@ private val StackExit = scaleOut(
     targetScale = ChatAnimations.reactionEnterScale,
     transformOrigin = StackOrigin,
 ) + fadeOut(ChatAnimations.swap)
-
-// SwiftUI's Color.blue in dark mode.
-private val MoreDotColor = Color(0xFF0A84FF)
 
 private fun ChatCameraLens.selector(): CameraSelector = when (this) {
     ChatCameraLens.Back -> CameraSelector.DEFAULT_BACK_CAMERA
