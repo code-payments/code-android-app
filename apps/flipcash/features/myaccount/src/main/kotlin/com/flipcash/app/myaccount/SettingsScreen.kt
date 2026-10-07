@@ -1,7 +1,8 @@
 package com.flipcash.app.myaccount
 
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -18,7 +19,12 @@ import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.TopScrollEdge
 import com.getcode.ui.components.toast.LocalFloatingToastHost
+import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.theme.ScaffoldBarPlacement
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -33,20 +39,35 @@ fun SettingsScreen() {
 
     val viewModel = hiltViewModel<SettingsViewModel>()
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        AppBarWithTitle(
-            title = {
-                AppBarDefaults.Title(
-                    text = stringResource(R.string.title_settings),
-                )
-            },
-            titleAlignment = Alignment.CenterHorizontally,
-            leftIcon = { AppBarDefaults.UpNavigation { navigator.pop() } },
-        )
-        SettingsScreen(viewModel)
+    val listState = rememberLazyListState()
+    val hazeState = rememberHazeState()
+
+    // The list runs under the app bar and blurs into it (TopScrollEdge), as iOS's soft scroll edge
+    // does, rather than stopping at the bar's bottom edge.
+    CodeScaffold(
+        barPlacement = ScaffoldBarPlacement.Overlay,
+        topBar = {
+            AppBarWithTitle(
+                title = {
+                    AppBarDefaults.Title(
+                        text = stringResource(R.string.title_settings),
+                    )
+                },
+                titleAlignment = Alignment.CenterHorizontally,
+                leftIcon = { AppBarDefaults.UpNavigation { navigator.pop() } },
+            )
+        },
+    ) { barPadding ->
+        val topPadding = barPadding.calculateTopPadding()
+        Box(modifier = Modifier.fillMaxSize()) {
+            SettingsScreen(
+                viewModel = viewModel,
+                listState = listState,
+                topPadding = topPadding,
+                modifier = Modifier.hazeSource(hazeState),
+            )
+            TopScrollEdge(hazeState = hazeState, listState = listState, height = topPadding)
+        }
     }
 
     LaunchedEffect(viewModel) {

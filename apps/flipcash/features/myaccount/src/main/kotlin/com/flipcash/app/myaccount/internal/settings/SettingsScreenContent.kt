@@ -1,6 +1,7 @@
 package com.flipcash.app.myaccount.internal.settings
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.core.R
 import com.getcode.libs.biometrics.Biometrics
@@ -32,16 +35,30 @@ import com.getcode.ui.core.noRippleClickable
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun SettingsScreen(viewModel: SettingsViewModel) {
+internal fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    listState: LazyListState,
+    topPadding: Dp,
+    modifier: Modifier = Modifier,
+) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
-    SettingsScreenContent(state = state, dispatch = viewModel::dispatchEvent)
+    SettingsScreenContent(
+        state = state,
+        dispatch = viewModel::dispatchEvent,
+        listState = listState,
+        topPadding = topPadding,
+        modifier = modifier,
+    )
 }
 
 @Composable
 private fun SettingsScreenContent(
     state: SettingsViewModel.State,
     dispatch: (SettingsViewModel.Event) -> Unit,
+    listState: LazyListState,
+    topPadding: Dp,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -60,9 +77,14 @@ private fun SettingsScreenContent(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        // The version footer is the last row; without this it scrolls under the gesture bar.
-        contentPadding = WindowInsets.navigationBars.asPaddingValues(),
+        modifier = modifier.fillMaxSize(),
+        state = listState,
+        contentPadding = PaddingValues(
+            // Rows scroll under the app bar but come to rest clear of it.
+            top = topPadding,
+            // The version footer is the last row; without this it scrolls under the gesture bar.
+            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+        ),
     ) {
         state.sections.forEach { section ->
             item(key = section.title, contentType = "header") {

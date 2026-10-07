@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.WindowInsets
 import com.getcode.ui.components.glass.floatingGlass
+import com.getcode.ui.components.TopScrollEdge
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.runtime.setValue
@@ -13,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -33,8 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -59,15 +57,8 @@ import kotlinx.coroutines.flow.onEach
 /** A group past the limit is shown, but not offered, while the selection is full. */
 private const val DisabledAlpha = 0.4f
 
-/** How far below the search field the header's fade runs. */
-private val ScrimTail = 32.dp
-
-/** How far up from the header's bottom the fade starts: about half the search field. */
-private val SearchFadeInset = 24.dp
-
 /** Save's height: the list starts to fade from the button's top edge. */
 private val FadeAboveSaveBottom = 60.dp
-
 
 @Composable
 internal fun EditFeaturedGroupsScreen() {
@@ -97,7 +88,6 @@ private fun EditFeaturedGroupsScreenContent(
     dispatchEvent: (EditFeaturedGroupsViewModel.Event) -> Unit,
 ) {
     val density = LocalDensity.current
-    val scrimColor = CodeTheme.colors.background
     var headerHeight by remember { mutableStateOf(0.dp) }
     var barHeight by remember { mutableStateOf(0.dp) }
     val hazeState = rememberHazeState()
@@ -112,7 +102,7 @@ private fun EditFeaturedGroupsScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(scrimColor)
+            .background(CodeTheme.colors.background)
     ) {
         if (loading) {
             CircularProgressIndicator(
@@ -207,26 +197,14 @@ private fun EditFeaturedGroupsScreenContent(
             }
         }
 
+        // Rows blur in as they pass under the header (as iOS's soft scroll edge does) rather than
+        // meeting a hard edge or a fade.
+        TopScrollEdge(hazeState = hazeState, listState = listState, height = headerHeight)
+
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                // Solid down to the middle of the search field, then fading out a little below it,
-                // so rows fade in under the glass rather than meeting a hard edge.
-                .drawBehind {
-                    val solidEnd = size.height - SearchFadeInset.toPx()
-                    val fadeEnd = size.height + ScrimTail.toPx()
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            0f to scrimColor,
-                            solidEnd / fadeEnd to scrimColor,
-                            1f to Color.Transparent,
-                            startY = 0f,
-                            endY = fadeEnd,
-                        ),
-                        size = size.copy(height = fadeEnd),
-                    )
-                }
                 .onSizeChanged { headerHeight = with(density) { it.height.toDp() } },
         ) {
             AppBarWithTitle(
