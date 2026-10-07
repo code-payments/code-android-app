@@ -488,7 +488,7 @@ private fun OutsideSlot(
 
 /**
  * The control after the field. The row gives its width up to the field as [fraction] falls, but the
- * control stays where it is: it fades out and grows slightly while the field, drawn above it,
+ * control stays where it is: it fades out and shrinks in place while the field, drawn above it,
  * widens across it, and plays the same in reverse as [fraction] rises.
  */
 @Composable
@@ -507,7 +507,7 @@ private fun TrailingOutsideSlot(
             layout(width, sizePx) {
                 // Pinned to the row's trailing edge however much width the slot reports.
                 p.placeWithLayer(width - sizePx, 0) {
-                    val k = 1f + 0.15f * (1f - f.coerceIn(0f, 1f))
+                    val k = 0.5f + 0.5f * f.coerceIn(0f, 1f)
                     scaleX = k
                     scaleY = k
                     alpha = f.coerceIn(0f, 1f)
