@@ -1131,39 +1131,53 @@
     <string name="error_title_groupCreateFailed">Something Went Wrong</string>
     <string name="error_description_groupCreateFailed">We couldn\'t create this group. Please try again.</string>
 
-    <!-- Editing a group (node 10187:110373). The design titles this "Edit Community"; the app
-         calls the same thing a Group everywhere else (see title_newPublicGroup, hint_groupName),
-         so it is a Group here too rather than introducing a second word for one concept.
-
-         The node lists four rows — Icon, Membership Card, Description, Social Links. Only the
-         first ships, as Picture: that is the field it writes (EditChatRequest.picture) and the
-         word the rest of the app uses. The other three have no field on EditChatRequest in
-         flipcash2 0.11.0. Name is not in the node at all and takes the first row's styling. -->
+    <!-- Editing a group. Titled "Edit Group" rather than the design's "Edit Community": the app
+         calls the same thing a Group everywhere else (see title_newPublicGroup, hint_groupName). -->
     <string name="title_editGroup">Edit Group</string>
-    <string name="title_editGroupPicture">Picture</string>
-    <string name="title_editGroupName">Name</string>
-    <!-- Each edit screen's own title. The row above says what it changes; this says what to do.
-         They are placed differently because the account flow places them differently for the same
-         two edits: PhotoSelectionScreen titles its app bar, NameEntryScreen leaves the bar bare and
-         heads the field itself. The name screen also borrows that screen's phrasing — it heads a
-         focused field, so it asks for the value the way title_profileNameSelection does. -->
-    <string name="title_setGroupPicture">Set Picture</string>
+    <string name="label_editGroupName">Group name</string>
+    <string name="placeholder_editGroupName">Add a name</string>
+    <string name="label_editGroupDescription">Description</string>
+    <string name="placeholder_editGroupDescription">Add a description</string>
+    <string name="footer_groupBalanceRequirements">People keep their balance. These amounts determine who can join and send messages.</string>
+    <!-- Each edit screen's own title. The name screen leaves the app bar bare and heads the field
+         itself, as NameEntryScreen does for the profile name. -->
+    <string name="title_setGroupPicture">Picture</string>
+    <string name="title_setGroupDescription">Description</string>
     <string name="title_setGroupName">What\'s the group name?</string>
+    <string name="hint_groupNameEdit">Group Name</string>
+    <string name="hint_groupDescription">Add a description</string>
+    <string name="label_groupNameRemaining">%1$d characters</string>
+    <string name="error_groupDescriptionNotAllowed">This description isn\'t allowed. Try different wording</string>
 
-    <!-- Both edits are confirmed before the call: a rename or a new picture is visible to the whole
-         group, so Save opens the prompt and the prompt's action is what sends it. -->
+    <!-- Every edit is confirmed before the call: a change to the name, picture, cover or description
+         is visible to the whole group, so Save opens the prompt and the prompt's action is what
+         sends it. -->
     <string name="prompt_title_changeGroupName">Change Group Name?</string>
     <string name="prompt_description_changeGroupName">This will change the group name for everyone in it</string>
-    <string name="action_changeGroupName">Change Name</string>
+    <string name="action_changeGroupName">Change Group Name</string>
     <string name="prompt_title_changeGroupPicture">Change Group Picture?</string>
     <string name="prompt_description_changeGroupPicture">This will change the group picture for everyone in it</string>
-    <string name="action_changeGroupPicture">Change Picture</string>
-    <!-- EditChat answered DENIED: canEdit was false, or stopped being true since the menu was drawn. -->
-    <string name="error_title_groupEditDenied">Can\'t Edit This Group</string>
-    <string name="error_description_groupEditDenied">You don\'t have permission to edit this group</string>
+    <string name="action_changeGroupPicture">Change Group Picture</string>
+    <string name="prompt_title_changeGroupCover">Change Group Cover?</string>
+    <string name="prompt_description_changeGroupCover">This will change the group cover for everyone in it</string>
+    <string name="action_changeGroupCover">Change Group Cover</string>
+    <string name="prompt_title_changeGroupDescription">Change Group Description?</string>
+    <string name="prompt_description_changeGroupDescription">This will change the group description for everyone in it</string>
+    <string name="action_changeGroupDescription">Change Group Description</string>
+    <!-- EditChat answered DENIED: canEdit was false, or stopped being true since the screen was drawn. -->
+    <string name="error_title_groupEditDenied">You Can\'t Edit This Group</string>
+    <string name="error_description_groupEditDenied">Try again later</string>
+    <string name="error_title_groupEditNotFound">This Group No Longer Exists</string>
+    <string name="error_description_groupEditNotFound">It may have been deleted</string>
+    <string name="error_title_groupNameNotAllowed">This Name is Not Allowed</string>
+    <string name="error_description_groupNameNotAllowed">Try a different group name</string>
+    <string name="error_title_groupPhotoNotAllowed">This Photo Isn\'t Allowed</string>
+    <string name="error_description_groupPhotoNotAllowed">Try a different photo</string>
     <!-- Anything EditChat can fail on that the screen cannot explain, including the transport. -->
-    <string name="error_title_groupEditFailed">Something Went Wrong</string>
-    <string name="error_description_groupEditFailed">We couldn\'t save your changes. Please try again.</string>
+    <string name="error_title_groupNameSaveFailed">Couldn\'t Save This Name</string>
+    <string name="error_title_groupPhotoSaveFailed">Couldn\'t Save This Photo</string>
+    <string name="error_title_groupDescriptionSaveFailed">Couldn\'t Save the Description</string>
+    <string name="error_description_groupEditFailed">Try again</string>
 
     <!-- Handing out the group's invite link, straight after it is created (node 10127:118315). -->
     <string name="title_inviteToJoinGroup">Invite to Join Group</string>

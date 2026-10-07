@@ -35,6 +35,8 @@ import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
+import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupCoverScreen
+import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupDescriptionScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupNameScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupPictureScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupScreen
@@ -109,13 +111,19 @@ private fun chatEntryProvider(
         FlowGroupProfileScreen()
     }
     annotatedEntry<ChatStep.EditGroup> {
-        EditGroupScreen()
+        FlowEditGroupScreen()
     }
     annotatedEntry<ChatStep.EditGroupName> {
         FlowEditGroupNameScreen()
     }
     annotatedEntry<ChatStep.EditGroupPicture> {
         FlowEditGroupPictureScreen()
+    }
+    annotatedEntry<ChatStep.EditGroupCover> {
+        FlowEditGroupCoverScreen()
+    }
+    annotatedEntry<ChatStep.EditGroupDescription> {
+        FlowEditGroupDescriptionScreen()
     }
 
     annotatedEntry<ChatStep.ReactionPicker> { step ->
@@ -306,9 +314,24 @@ private fun FlowGroupProfileScreen() {
     GroupProfileScreen(flowSharedViewModel<ChatViewModel>())
 }
 
-// Both edit steps read the chat they are editing off the flow's shared ChatViewModel, the same way
+// The edit steps read the chat they are editing off the flow's shared ChatViewModel, the same way
 // the profile above them does, and keep the edit itself in their own nav-entry-scoped view model.
-// EditGroupScreen needs neither and is registered directly.
+// The list itself holds no edit, but reads the group and its permissions the same way.
+@Composable
+private fun FlowEditGroupScreen() {
+    EditGroupScreen(flowSharedViewModel<ChatViewModel>())
+}
+
+@Composable
+private fun FlowEditGroupCoverScreen() {
+    EditGroupCoverScreen(flowSharedViewModel<ChatViewModel>())
+}
+
+@Composable
+private fun FlowEditGroupDescriptionScreen() {
+    EditGroupDescriptionScreen(flowSharedViewModel<ChatViewModel>())
+}
+
 @Composable
 private fun FlowEditGroupNameScreen() {
     EditGroupNameScreen(flowSharedViewModel<ChatViewModel>())

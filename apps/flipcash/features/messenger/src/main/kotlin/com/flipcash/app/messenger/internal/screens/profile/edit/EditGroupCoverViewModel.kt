@@ -2,8 +2,6 @@ package com.flipcash.app.messenger.internal.screens.profile.edit
 
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
-import com.flipcash.analytics.GroupField
-import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.blob.ImageUploadPreparer
 import com.flipcash.app.core.data.Loadable
@@ -36,7 +34,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 /**
- * The group-picture edit behind node 10187:110373's Icon row.
+ * The group-cover edit: the banner on Edit Group is the picker.
  *
  * The pick-prepare-upload path is `CreateGroupViewModel`'s, because group creation already
  * collects a group picture and the two have to produce the same thing: an ORIGINAL rendition
@@ -48,15 +46,14 @@ import kotlinx.coroutines.launch
  * the edit call below is through a successful `upload`.
  */
 @HiltViewModel
-class EditGroupPictureViewModel @Inject constructor(
+class EditGroupCoverViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     private val chatCoordinator: ChatCoordinator,
     private val blobStorage: BlobStorageCoordinator,
     private val imagePreparer: ImageUploadPreparer,
     private val contentReader: ContentReader,
     private val resources: ResourceHelper,
-    private val analytics: FlipcashAnalytics,
-) : BaseViewModel<EditGroupPictureViewModel.State, EditGroupPictureViewModel.Event>(
+) : BaseViewModel<EditGroupCoverViewModel.State, EditGroupCoverViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     // The base hops to Dispatchers.Default to publish events. Taking it from the injected
@@ -65,16 +62,15 @@ class EditGroupPictureViewModel @Inject constructor(
 ) {
     data class State(
         val chatId: ChatId? = null,
-        /** The group's stored picture — what the well shows until a pick replaces it. */
-        val savedPicture: MediaItem? = null,
-        val groupTitle: String = "",
+        /** The group's stored cover — what the banner shows until a pick replaces it. */
+        val savedCover: MediaItem? = null,
         /** The pending pick, re-encoded and cached on disk. Null until one is made. */
         val image: Loadable<Uri> = Loadable.Loading(),
         val mimeType: String? = null,
         val uploadPolicy: UploadPolicy? = null,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
     ) {
-        /** Only a fresh pick can be saved; the stored picture is not a change to itself. */
+        /** Only a fresh pick can be saved; the stored cover is not a change to itself. */
         val isChanged: Boolean
             get() = image.dataOrNull != null
 
@@ -85,8 +81,7 @@ class EditGroupPictureViewModel @Inject constructor(
     sealed interface Event {
         data class Initialize(
             val chatId: ChatId,
-            val picture: MediaItem?,
-            val title: String,
+            val cover: MediaItem?,
         ) : Event
 
         data class OnImageSelected(val image: Uri) : Event
@@ -94,19 +89,19 @@ class EditGroupPictureViewModel @Inject constructor(
         data object DiscardPendingImage : Event
         data class UploadPolicyLoaded(val policy: UploadPolicy) : Event
         /**
-         * Save, pressed. The new picture is only proposed here: what uploads and sends it is
-         * [SubmitPicture], dispatched by the confirmation's own action.
+         * Save, pressed. The new cover is only proposed here: what uploads and sends it is
+         * [SubmitCover], dispatched by the confirmation's own action.
          */
         data object SaveClicked : Event
 
         /** The confirmed change. Reachable only through the prompt [SaveClicked] raises. */
-        data object SubmitPicture : Event
+        data object SubmitCover : Event
         data class UpdateProcessingState(
             val loading: Boolean = false,
             val success: Boolean = false,
         ) : Event
 
-        data object OnPictureAccepted : Event
+        data object OnCoverAccepted : Event
     }
 
     init {
@@ -123,7 +118,7 @@ class EditGroupPictureViewModel @Inject constructor(
                 when (val outcome = imagePreparer.prepare(
                     uri = event.image,
                     policy = stateFlow.value.uploadPolicy,
-                    fileNamePrefix = "group_picture",
+                    fileNamePrefix = "group_cover",
                 )) {
                     is ImageUploadPreparer.Outcome.Prepared -> outcome.uri to outcome.mimeType
                     ImageUploadPreparer.Outcome.Unsupported -> {
@@ -155,18 +150,18 @@ class EditGroupPictureViewModel @Inject constructor(
             .onEach {
                 if (!stateFlow.value.canSubmit) return@onEach
 
-                showGroupChangeConfirmation(resources, GroupChangeField.Picture) {
+                showGroupChangeConfirmation(resources, GroupChangeField.Cover) {
                     viewModelScope.launch {
                         // The bar dismisses on an animation, and the upload's spinner
                         // belongs to the screen behind it — it would start underneath.
                         delay(150.milliseconds)
-                        dispatchEvent(Event.SubmitPicture)
+                        dispatchEvent(Event.SubmitCover)
                     }
                 }
             }.launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.SubmitPicture>()
+            .filterIsInstance<Event.SubmitCover>()
             .onEach { submit() }
             .launchIn(viewModelScope)
     }
@@ -185,14 +180,14 @@ class EditGroupPictureViewModel @Inject constructor(
             return
         }
 
-        // Picture only. The title field stays unset so the server leaves the title alone.
+        // Cover only: every other field stays unset so the server leaves it alone.
         chatCoordinator.editChat(
             chatId = chatId,
-            parameters = pictureOnly(blobId),
-        ).also { analytics.trackEdited(GroupField.PICTURE, it) }.onSuccess {
+            parameters = coverOnly(blobId),
+        ).onSuccess {
             dispatchEvent(Event.UpdateProcessingState(success = true))
             delay(500.milliseconds)
-            dispatchEvent(Event.OnPictureAccepted)
+            dispatchEvent(Event.OnCoverAccepted)
             dispatchEvent(Event.UpdateProcessingState())
         }.onFailure { cause ->
             dispatchEvent(Event.UpdateProcessingState())
@@ -237,8 +232,8 @@ class EditGroupPictureViewModel @Inject constructor(
     private fun announceEditFailure(cause: Throwable) {
         // Storage took the blob and EditChat would not have it, so the pick is what has to
         // change — it is dropped rather than left on screen inviting the same upload again.
-        if (cause is EditChatError.PictureBlobNotAccepted) dispatchEvent(Event.DiscardPendingImage)
-        showGroupEditAlert(resources, groupEditAlert(cause, GroupChangeField.Picture))
+        if (cause is EditChatError.CoverPictureBlobNotAccepted) dispatchEvent(Event.DiscardPendingImage)
+        showGroupEditAlert(resources, groupEditAlert(cause, GroupChangeField.Cover))
     }
 
     private fun rejectImage(title: Int, message: Int) {
@@ -254,8 +249,7 @@ class EditGroupPictureViewModel @Inject constructor(
                 is Event.Initialize -> { state ->
                     state.copy(
                         chatId = event.chatId,
-                        savedPicture = event.picture,
-                        groupTitle = event.title,
+                        savedCover = event.cover,
                     )
                 }
 
@@ -278,8 +272,8 @@ class EditGroupPictureViewModel @Inject constructor(
 
                 is Event.UploadPolicyLoaded -> { state -> state.copy(uploadPolicy = event.policy) }
                 Event.SaveClicked -> { state -> state }
-                Event.SubmitPicture -> { state -> state }
-                Event.OnPictureAccepted -> { state -> state }
+                Event.SubmitCover -> { state -> state }
+                Event.OnCoverAccepted -> { state -> state }
                 is Event.UpdateProcessingState -> { state ->
                     state.copy(
                         processingState = state.processingState.copy(

@@ -345,28 +345,6 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     }
 }
 
-/**
- * A rule's amount as the profile writes it: "$10", "$2.50", and "$10 of NYC" for a token other
- * than USDF whose name is known. A rule naming no mint, or the reserve, states the amount alone.
- */
-@Composable
-private fun holdingLabel(
-    rule: ChatRuleRequirement.MinimumBalance,
-    tokens: Map<List<Byte>, com.flipcash.app.messenger.internal.RuleCurrency>,
-): String = holdingLabel(rule.amount, rule.mints.firstOrNull()?.let { Mint(it.bytes) }, tokens)
-
-@Composable
-private fun holdingLabel(
-    amount: Fiat,
-    mint: Mint?,
-    tokens: Map<List<Byte>, com.flipcash.app.messenger.internal.RuleCurrency>,
-): String {
-    val formatted = amount.formatted(Fiat.FormattingRule.Truncated)
-    val name = mint?.takeUnless { it == Mint.usdf }?.let { tokens[it.bytes] }?.name
-        ?: return formatted
-    return stringResource(R.string.label_chat_preview_cash_suffix, formatted, name)
-}
-
 /** The ⋯ button's menu: Encryption and Mute, then a divider and the red Report. */
 @Composable
 private fun GroupProfileMenu(
