@@ -34,9 +34,8 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials
  * under it. Given an [above] line, the line and the button sit together on a panel.
  *
  * Given the [hazeState] the screen's scroll content draws into, the bar is see-through: the content
- * runs on under it and blurs in over a short band above the bar's content, as iOS's soft scroll edge
- * does. The band sits above [above] so that line always reads on full blur, not over the clear top
- * of the fade. Without a [hazeState] the bar sits on the screen's background.
+ * runs on under it and blurs in over the gap above the bar's first row, as iOS's soft scroll edge
+ * does, so [above] reads on full blur. Without a [hazeState] the bar sits on the screen's background.
  *
  * The bar clears the navigation bar and measures itself,
  * system bar included. While it is composed it asks the root toast host to rest toasts above that
@@ -64,8 +63,10 @@ fun ProfilePinnedActionBar(
     val material = HazeMaterials.ultraThin(containerColor = background)
 
     val density = LocalDensity.current
-    val fadeBand = CodeTheme.dimens.staticGrid.x4
-    val fadeBandPx = with(density) { fadeBand.toPx() }
+    // The blur ramps in over the gap above the first row, so it is full where that row starts and
+    // nothing blurs visibly above it.
+    val topGap = CodeTheme.dimens.staticGrid.x2
+    val topGapPx = with(density) { topGap.toPx() }
     var height by remember { mutableStateOf(0.dp) }
     ToastBottomClearance(height)
 
@@ -87,14 +88,12 @@ fun ProfilePinnedActionBar(
                                 HazeProgressive.verticalGradient(
                                     startY = 0f,
                                     startIntensity = 0f,
-                                    endY = fadeBandPx,
+                                    endY = topGapPx,
                                     endIntensity = 1f,
                                 ),
                             )
                         },
                     )
-                        // The fade runs over this band, clear of the content below it.
-                        .padding(top = fadeBand)
                 } else {
                     Modifier.background(background)
                 },
