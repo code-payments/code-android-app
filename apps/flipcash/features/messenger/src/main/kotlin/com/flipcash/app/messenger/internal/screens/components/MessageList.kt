@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
@@ -62,7 +64,6 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
-import com.flipcash.app.messenger.internal.toGroupInviteCard
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessagePointer
@@ -105,7 +106,6 @@ internal fun MessageList(
     otherReadPointer: MessagePointer? = null,
     onAction: ChatActionHandler,
     linkCardResolution: LinkCardResolution,
-    canViewProfile: Boolean,
     onJumpConsumed: () -> Unit = {},
     topBarBottom: Dp = 0.dp,
 ) {
@@ -164,10 +164,10 @@ internal fun MessageList(
         val animatedKeys = remember { mutableSetOf<Any>() }
         val settlingKey = rememberSettlingSend(messages)
 
-        // The backdrop, read once for everything it covers: the rows, the bubbles' own targets,
-        // and the contact card at the start of history all stop taking taps together.
+        // The backdrop, read once for everything it covers: the rows and the bubbles' own targets
+        // stop taking taps together.
         val selecting = state.selection != null || state.editing != null
-        // The items past the oldest message (its date, the info or invite card) are not rows, so
+        // The items past the oldest message (its date) are not rows, so
         // they take the rows' backdrop dim and blur here; nothing among them can be the focus.
         val trailingDimAlpha by animateFloatAsState(
             targetValue = if (selecting) 0.4f else 1f,
@@ -188,8 +188,8 @@ internal fun MessageList(
         // so the key doesn't change across that step and the row isn't scrolled twice.
         //
         // A message that takes reactions comes down further, far enough for the quick strip to sit
-        // above it: the strip is always above, and there's always room to make, since the info card
-        // at the start of history sits over the oldest message.
+        // above it: the strip is always above, and there's always room to make, since the
+        // history-start spacer sits over the oldest message.
         val focusedMessageId = state.editing?.messageId ?: state.selection?.messageId
         val stripRoom = with(LocalDensity.current) {
             (QuickReactionStripPlacement.StripHeight + QuickReactionStripPlacement.Gap + STRIP_BAR_GAP)
@@ -643,67 +643,11 @@ internal fun MessageList(
                     }
                 }
 
-                // Chat start shows contact info container. A group shows its invite card there
-                // instead (node 10330:19164): the same card a DM transcript renders for the link,
-                // with a different CTA and destination. "Invite People" rides on it in every group
-                // the viewer has joined; a group they haven't has no invite to share, so its card
-                // has no button.
-                val inviteGroup = state.subject as? ChatSubject.Group
-                if (inviteGroup != null) {
-                    item(key = "group-invite-card") {
-                        val inviteUrl = state.groupInviteUrl
-                        val card = remember(inviteGroup, inviteUrl, state.ruleCurrency) {
-                            inviteGroup.toGroupInviteCard(
-                                inviteUrl = inviteUrl,
-                                currencyName = state.ruleCurrency?.nameInRequirement,
-                            )
-                        }
-                        BoxWithConstraints(
-                            modifier = Modifier.fillParentMaxWidth().then(behindBackdrop),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            // The width a link card gets in a DM transcript, so this reads as the
-                            // same card sent there (iOS sizes both the same way).
-                            val cardWidth = transcriptBubbleMaxWidth(
-                                rowWidth = maxWidth,
-                                rowInset = CodeTheme.dimens.inset,
-                            )
-                            Box(Modifier.width(cardWidth)) {
-                                GroupInviteLinkCard(
-                                    card = card,
-                                    minHeight = cardWidth * GroupInviteCardDefaults.ASPECT,
-                                    ctaLabel = stringResource(R.string.action_linkCard_invitePeople)
-                                        .takeIf { state.offersGroupInvite },
-                                    onStart = { onAction(ChatAction.InviteToGroup) }
-                                        .takeIf { !selecting },
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillParentMaxWidth()
-                                .then(behindBackdrop),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            ChatInfoCard(
-                                subject = state.subject,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.63f),
-                                onRefreshContact = { onAction(ChatAction.RefreshContact) },
-                                // null hides the chevron and makes the card non-tappable when the
-                                // profile isn't viewable (non-tip-DM chats).
-                                onOpenProfile = if (canViewProfile && !selecting) {
-                                    { onAction(ChatAction.ViewProfile) }
-                                } else {
-                                    null
-                                },
-                                currencyName = state.ruleCurrency?.nameInRequirement,
-                            )
-                        }
-                    }
+                // Room at the start of history for the quick reaction strip: the oldest message can
+                // be long-pressed with nothing above it to scroll into, and the strip sits above
+                // the message it acts on.
+                item(key = "history-start") {
+                    Spacer(Modifier.height(with(LocalDensity.current) { stripRoom.toDp() }))
                 }
             }
         }

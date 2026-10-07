@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.messenger.internal.screens.components.ChatInfoCard
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.GroupGateBar
 import com.flipcash.app.theme.FlipcashPreview
@@ -155,40 +154,6 @@ class GroupChromeScreenshotTest {
         repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
 
         capture("group_top_bar_long_title.png")
-    }
-
-    @Test
-    fun rendersGroupInfoCard() {
-        composeRule.mainClock.autoAdvance = false
-        composeRule.setContent {
-            FlipcashPreview(showBackground = true) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    val cardWidth = Modifier.width(300.dp)
-                    ChatInfoCard(subject = memberedGroup, modifier = cardWidth)
-                    // The currency resolved, as it is once the token cache fills in.
-                    ChatInfoCard(
-                        subject = gatedGroup,
-                        modifier = cardWidth,
-                        currencyName = "Bad Boys",
-                    )
-                    // The currency not yet resolved — the frame the card renders first.
-                    ChatInfoCard(subject = gatedGroup, modifier = cardWidth)
-                    // A staff-only group, and one asking for both: the card states each rule it has.
-                    ChatInfoCard(subject = staffGroup, modifier = cardWidth)
-                    ChatInfoCard(
-                        subject = staffGroup.copy(rules = bothRules),
-                        modifier = cardWidth,
-                        currencyName = "Bad Boys",
-                    )
-                }
-            }
-        }
-        repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
-
-        capture("group_info_card.png")
     }
 
     @Test

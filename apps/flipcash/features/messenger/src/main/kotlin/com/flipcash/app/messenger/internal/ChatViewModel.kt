@@ -603,30 +603,10 @@ internal class ChatViewModel @Inject constructor(
             }
 
         /**
-         * The link that invites someone into this group, or `null` when there is nobody to invite:
-         * a DM, or a group this viewer has not joined.
-         *
-         * Built from the chat's id — there is no invite RPC, and [Linkify] is the one place that
-         * decides the link's shape, so what the empty state shares is what the create flow shares.
-         */
-        val groupInviteUrl: String?
-            get() = (subject as? ChatSubject.Group)
-                ?.takeIf { it.isMember == true }
-                ?.let { Linkify.groupChatInvite(it.chatId) }
-
-        /**
-         * Whether the invite card heading a group's transcript offers "Invite People": any group the
-         * viewer has joined, however many members it has (node 10330:19164). A group the viewer
-         * hasn't joined still gets the card, without the button, since it has no invite to share.
-         */
-        val offersGroupInvite: Boolean
-            get() = groupInviteUrl != null
-
-        /**
-         * The same link without the membership check, for the profile's Share, which is offered to
-         * anyone looking at the group: the link is the chat's id and gives a recipient nothing the
-         * chat's own page would not. [groupInviteUrl] stays member-only, since it decides whether the
-         * transcript offers its own invite.
+         * The link that invites someone into this group, or `null` for a DM. Built from the chat's
+         * id — there is no invite RPC, and [Linkify] is the one place that decides the link's shape.
+         * Offered to anyone looking at the group, member or not: the link is the chat's id and gives
+         * a recipient nothing the chat's own page would not.
          */
         val shareableGroupInviteUrl: String?
             get() = (subject as? ChatSubject.Group)?.let { Linkify.groupChatInvite(it.chatId) }
@@ -715,7 +695,6 @@ internal class ChatViewModel @Inject constructor(
         data class OnEncryptionResolved(val isEncrypted: Boolean) : Event
 
         data class OnCurrencySymbolUpdated(val symbol: String): Event
-        data object RefreshContact : Event
         data class ChatFound(val chatId: ChatId) : Event
         data object OnSendCash: Event
         data object OnStartMessageInput: Event
@@ -1680,20 +1659,6 @@ internal class ChatViewModel @Inject constructor(
                         .onFailure { dispatchEvent(Event.ResolveFailed) }
                 }
             }.launchIn(viewModelScope)
-
-        // Re-resolve the contact from the device (e.g. after adding via system contacts)
-        eventFlow
-            .filterIsInstance<Event.RefreshContact>()
-            .mapNotNull { (stateFlow.value.participant as? ChatParticipant.Contact)?.contact?.e164 }
-            .onEach { e164 ->
-                viewModelScope.launch {
-                    val refreshed = contactCoordinator.refreshContact(e164)
-                    if (refreshed != null) {
-                        dispatchEvent(Event.OnContactFound(refreshed))
-                    }
-                }
-            }
-            .launchIn(viewModelScope)
 
         // Resolve the tip counterparty reactively from the chat members. Tip DMs have no device
         // contact, so identity (name + avatar + user id) comes from the other member's server
@@ -3059,7 +3024,6 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 is Event.OnCurrencySymbolUpdated -> { state -> state.copy(cashSymbol = event.symbol) }
-                is Event.RefreshContact -> { state -> state }
                 is Event.ChatFound -> { state -> state.copy(chatId = event.chatId) }
                 Event.OnSendCash -> { state -> state }
                 Event.OnStartMessageInput -> { state -> state.copy(messageInputRequested = true) }
