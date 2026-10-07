@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -89,6 +90,8 @@ fun ProfilePinnedActionBar(
             // iOS: 12 above, 8 below and 8 between, on the 5dp grid.
             .padding(vertical = CodeTheme.dimens.staticGrid.x2),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
+        // iOS stacks these in a VStack, which centres a line narrower than the buttons.
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         above?.invoke()
         CodeButton(

@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
@@ -359,7 +360,8 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     above = if (bar != null) {
                         {
                             Text(
-                                modifier = Modifier.padding(bottom = CodeTheme.dimens.staticGrid.x2),
+                                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                                textAlign = TextAlign.Center,
                                 text = stringResource(
                                     if (isJoin) R.string.label_groupRequiredToJoin else R.string.label_groupRequiredToChat,
                                     holdingLabel(bar, tokens),
