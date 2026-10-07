@@ -63,6 +63,7 @@ import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.common.ui.profile.FeaturedGroupsSection
 import com.flipcash.shared.common.ui.profile.ProfileActionButton
 import com.flipcash.shared.common.ui.profile.ProfileHeader
+import com.flipcash.shared.common.ui.profile.ProfileTopScrollEdge
 import com.flipcash.shared.common.ui.profile.ProfileStatsCard
 import com.flipcash.shared.common.ui.profile.rememberFeaturedGroupItems
 import com.getcode.theme.CodeTheme
@@ -95,89 +96,96 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
 
     // No app bar: the cover is the first thing on the page, and reaches the top of the display. It
     // is not padded for the status bar, so the gear takes that clearance for itself.
+    // The whole list is the blur source, so the top edge frosts whatever scrolls under it.
+    val hazeState = rememberHazeState()
     CodeScaffold { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScrollStateGradient(scrollState = listState, isLongGradient = true)
-                .sheetResignmentBehavior(listState),
-            state = listState,
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset),
-        ) {
-            when (val profileState = state.profileState) {
-                // A named account resolves in a frame or two, and a prompt that flashed at it would
-                // be a lie. The gear is still there, so Settings is never out of reach.
-                ProfileState.Unknown -> item(key = "settings_gear") {
-                    SettingsGear(onClick = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) })
-                }
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    // The top edge blurs rather than fades (ProfileTopScrollEdge below); the bottom
+                    // still fades into the tab bar.
+                    .verticalScrollStateGradient(scrollState = listState, isLongGradient = true, showAtStart = false)
+                    .sheetResignmentBehavior(listState),
+                state = listState,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset),
+            ) {
+                when (val profileState = state.profileState) {
+                    // A named account resolves in a frame or two, and a prompt that flashed at it would
+                    // be a lie. The gear is still there, so Settings is never out of reach.
+                    ProfileState.Unknown -> item(key = "settings_gear") {
+                        SettingsGear(onClick = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) })
+                    }
 
-                is ProfileState.Unclaimed -> {
-                    // As on iOS: the header keeps its cover, avatar and Edit Profile, with no Share
-                    // (there is nothing to share yet), and the claim prompt takes the stats' place.
-                    item(key = "profile_header") {
-                        OwnProfileHeader(
-                            profile = profileState.profile,
-                            onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
-                            onShare = null,
-                            onClaimUsername = state.usernameProgress?.let {
-                                { viewModel.dispatchEvent(Event.ClaimUsername) }
-                            },
-                            onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
-                        )
+                    is ProfileState.Unclaimed -> {
+                        // As on iOS: the header keeps its cover, avatar and Edit Profile, with no Share
+                        // (there is nothing to share yet), and the claim prompt takes the stats' place.
+                        item(key = "profile_header") {
+                            OwnProfileHeader(
+                                profile = profileState.profile,
+                                onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
+                                onShare = null,
+                                onClaimUsername = state.usernameProgress?.let {
+                                    { viewModel.dispatchEvent(Event.ClaimUsername) }
+                                },
+                                onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                            )
+                        }
+                        item(key = "claim_prompt") {
+                            Spacer(Modifier.height(UnclaimedTopSpacing))
+                            UnclaimedTipCardPrompt(
+                                placeholder = profileState.placeholder,
+                                cardWidth = YouCardWidth,
+                                onClaim = { viewModel.dispatchEvent(Event.ClaimTipCard) },
+                            )
+                        }
                     }
-                    item(key = "claim_prompt") {
-                        Spacer(Modifier.height(UnclaimedTopSpacing))
-                        UnclaimedTipCardPrompt(
-                            placeholder = profileState.placeholder,
-                            cardWidth = YouCardWidth,
-                            onClaim = { viewModel.dispatchEvent(Event.ClaimTipCard) },
-                        )
-                    }
-                }
 
-                is ProfileState.Named -> {
-                    item(key = "profile_header") {
-                        OwnProfileHeader(
-                            profile = profileState.profile,
-                            onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
-                            onShare = { viewModel.dispatchEvent(Event.ShareProfile) },
-                            onClaimUsername = state.usernameProgress?.let {
-                                { viewModel.dispatchEvent(Event.ClaimUsername) }
-                            },
-                            onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
-                        )
-                    }
-                    item(key = "stats") {
-                        ProfileStatsCard(
-                            modifier = Modifier
-                                .padding(horizontal = CodeTheme.dimens.inset)
-                                .padding(top = CodeTheme.dimens.staticGrid.x4),
-                            minimumToChat = state.minimumToChat,
-                            joined = profileState.joined,
-                        )
-                    }
-                    item(key = "featured_groups") {
-                        FeaturedGroupsSection(
-                            modifier = Modifier
-                                .padding(horizontal = CodeTheme.dimens.inset)
-                                .padding(top = CodeTheme.dimens.staticGrid.x4),
-                            groups = rememberFeaturedGroupItems(state.featuredGroups),
-                            onOpen = { chatId ->
-                                viewModel.dispatchEvent(
-                                    Event.OpenScreen(
-                                        AppRoute.Messaging.Chat(
-                                            identifier = ChatIdentifier.ByChatId(chatId),
-                                            openOnProfile = true,
+                    is ProfileState.Named -> {
+                        item(key = "profile_header") {
+                            OwnProfileHeader(
+                                profile = profileState.profile,
+                                onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
+                                onShare = { viewModel.dispatchEvent(Event.ShareProfile) },
+                                onClaimUsername = state.usernameProgress?.let {
+                                    { viewModel.dispatchEvent(Event.ClaimUsername) }
+                                },
+                                onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                            )
+                        }
+                        item(key = "stats") {
+                            ProfileStatsCard(
+                                modifier = Modifier
+                                    .padding(horizontal = CodeTheme.dimens.inset)
+                                    .padding(top = CodeTheme.dimens.staticGrid.x4),
+                                minimumToChat = state.minimumToChat,
+                                joined = profileState.joined,
+                            )
+                        }
+                        item(key = "featured_groups") {
+                            FeaturedGroupsSection(
+                                modifier = Modifier
+                                    .padding(horizontal = CodeTheme.dimens.inset)
+                                    .padding(top = CodeTheme.dimens.staticGrid.x4),
+                                groups = rememberFeaturedGroupItems(state.featuredGroups),
+                                onOpen = { chatId ->
+                                    viewModel.dispatchEvent(
+                                        Event.OpenScreen(
+                                            AppRoute.Messaging.Chat(
+                                                identifier = ChatIdentifier.ByChatId(chatId),
+                                                openOnProfile = true,
+                                            )
                                         )
                                     )
-                                )
-                            },
-                        )
+                                },
+                            )
+                        }
+                        item(key = "bottom_spacer") { Spacer(Modifier.height(CodeTheme.dimens.grid.x4)) }
                     }
-                    item(key = "bottom_spacer") { Spacer(Modifier.height(CodeTheme.dimens.grid.x4)) }
                 }
             }
+            ProfileTopScrollEdge(hazeState = hazeState, listState = listState)
         }
     }
 }

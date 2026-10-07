@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -39,9 +40,33 @@ fun ProfileTopScrollEdge(
     scrollState: ScrollState,
     modifier: Modifier = Modifier,
 ) {
-    val density = LocalDensity.current
-    val threshold = with(density) { (ProfileCoverHeight / 2).toPx() }
+    val threshold = with(LocalDensity.current) { (ProfileCoverHeight / 2).toPx() }
     val visible by remember(threshold) { derivedStateOf { scrollState.value > threshold } }
+    ProfileTopScrollEdge(hazeState = hazeState, visible = visible, modifier = modifier)
+}
+
+/** [ProfileTopScrollEdge] for a profile in a lazy list whose first item is the header. */
+@Composable
+fun ProfileTopScrollEdge(
+    hazeState: HazeState,
+    listState: LazyListState,
+    modifier: Modifier = Modifier,
+) {
+    val threshold = with(LocalDensity.current) { (ProfileCoverHeight / 2).toPx() }
+    val visible by remember(threshold) {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > threshold
+        }
+    }
+    ProfileTopScrollEdge(hazeState = hazeState, visible = visible, modifier = modifier)
+}
+
+@Composable
+private fun ProfileTopScrollEdge(
+    hazeState: HazeState,
+    visible: Boolean,
+    modifier: Modifier,
+) {
     // The status bar and the app bar's row of buttons.
     val height = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
