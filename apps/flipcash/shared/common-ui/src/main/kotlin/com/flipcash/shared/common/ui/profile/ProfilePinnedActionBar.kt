@@ -13,28 +13,29 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White05
 import com.getcode.ui.components.toast.ToastBottomClearance
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /**
  * The one action a profile pins to the bottom of its screen: a filled button, with an optional
- * [above] line over it (a footer, a shortfall) and an optional text action ([secondaryText])
- * under it. Given an [above] line, the line and the button sit together on a panel.
+ * [above] line over it and an optional text action ([secondaryText]) under it.
  *
- * Given the [hazeState] the screen's scroll content draws into, the bar is see-through: the content
- * runs on under it and blurs from the bar's first row down, so nothing blurs above that row and
- * [above] reads on full blur. Without a [hazeState] the bar sits on the screen's background.
+ * Given the [hazeState] the screen's scroll content draws into, the content runs on under the bar
+ * and fades off the bottom of the screen: it blurs in and dims to the background from the bar's top
+ * edge down over [FadeHeight], so by the first row it is gone and [above] reads clear of it. Without a [hazeState] the
+ * bar sits on the screen's background.
  *
  * The bar clears the navigation bar and measures itself,
  * system bar included. While it is composed it asks the root toast host to rest toasts above that
@@ -62,6 +63,7 @@ fun ProfilePinnedActionBar(
     val material = HazeMaterials.ultraThin(containerColor = background)
 
     val density = LocalDensity.current
+    val fadePx = with(density) { FadeHeight.toPx() }
     var height by remember { mutableStateOf(0.dp) }
     ToastBottomClearance(height)
 
@@ -74,53 +76,47 @@ fun ProfilePinnedActionBar(
                 height = measured
                 onHeightChanged(measured)
             }
-            .then(if (hazeState == null) Modifier.background(background) else Modifier)
-            // iOS: 12 above, 8 below and 8 between, on the 5dp grid. The gap above sits outside
-            // the blur, so the blur starts where the first row does.
-            .padding(top = CodeTheme.dimens.staticGrid.x2)
             .then(
                 if (hazeState != null) {
-                    Modifier.hazeBlur(HazeInput.Sources(hazeState), material)
-                } else {
                     Modifier
+                        .hazeBlur(
+                            HazeInput.Sources(hazeState),
+                            material.then {
+                                progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
+                            },
+                        )
+                        // The blur alone leaves shapes showing through; the dim takes them off.
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(background.copy(alpha = 0f), background),
+                                startY = 0f,
+                                endY = fadePx,
+                            ),
+                        )
+                } else {
+                    Modifier.background(background)
                 },
             )
+            // The fade, then iOS's 12 above, 8 below and 8 between, on the 5dp grid.
+            .then(if (hazeState != null) Modifier.padding(top = FadeHeight) else Modifier)
+            .padding(top = CodeTheme.dimens.staticGrid.x2)
             .navigationBarsPadding()
             .padding(bottom = CodeTheme.dimens.staticGrid.x2),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
         // iOS stacks these in a VStack, which centres a line narrower than the buttons.
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        val primary = @Composable { buttonModifier: Modifier ->
-            CodeButton(
-                modifier = buttonModifier.fillMaxWidth(),
-                buttonState = ButtonState.Filled,
-                text = text,
-                enabled = enabled,
-                isLoading = isLoading,
-                onClick = onClick,
-            )
-        }
-        if (above != null) {
-            // The line and the button it explains share one panel, as the gate that stands in for
-            // a locked chat's composer does (GroupGateBar): without a surface, the line reads as
-            // part of the content blurring behind it.
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .background(White05, CodeTheme.shapes.medium)
-                    .padding(horizontal = CodeTheme.dimens.grid.x1)
-                    .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x1),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-            ) {
-                above()
-                primary(Modifier)
-            }
-        } else {
-            primary(Modifier.padding(horizontal = CodeTheme.dimens.inset))
-        }
+        above?.invoke()
+        CodeButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CodeTheme.dimens.inset),
+            buttonState = ButtonState.Filled,
+            text = text,
+            enabled = enabled,
+            isLoading = isLoading,
+            onClick = onClick,
+        )
         if (secondaryText != null && onSecondaryClick != null) {
             CodeButton(
                 modifier = Modifier
@@ -135,3 +131,6 @@ fun ProfilePinnedActionBar(
         }
     }
 }
+
+/** The band over the bar's first row in which the content fades off; iOS fades over 56pt. */
+private val FadeHeight = 40.dp

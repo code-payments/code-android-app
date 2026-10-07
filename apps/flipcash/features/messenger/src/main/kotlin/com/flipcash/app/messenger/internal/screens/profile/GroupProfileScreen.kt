@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,14 +13,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,8 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
@@ -54,7 +48,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatParticipant
@@ -79,6 +72,7 @@ import com.flipcash.shared.common.ui.profile.ProfileActionButton
 import com.flipcash.shared.common.ui.profile.ProfileHeader
 import com.flipcash.shared.common.ui.profile.ProfilePinnedActionBar
 import com.flipcash.shared.common.ui.profile.ProfileStatusChip
+import com.flipcash.shared.common.ui.profile.ProfileTopScrollEdge
 import com.flipcash.shared.common.ui.profile.chatterName
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -88,7 +82,6 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.hazeSource
@@ -140,19 +133,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
         }
     }
 
-    // A join that went through lands on the chat.
-    // The success flag is sticky on the view model, so only a join started from this screen counts:
-    // someone who joined from the gate and opens the profile afterwards must not be bounced.
-    var joinedHere by remember { mutableStateOf(false) }
-    LaunchedEffect(state.joinProgress.loading) {
-        if (state.joinProgress.loading) joinedHere = true
-    }
-    LaunchedEffect(state.joinProgress.success, joinedHere) {
-        if (state.joinProgress.success && joinedHere) openChat()
-    }
-
     val standing = state.profileStanding
-    val cta = standing?.cta ?: GroupProfileCta.None
     val requirements = remember(group?.rules) { GroupBalanceRequirements.from(group?.rules) }
     val tokens = state.ruleTokens
     // The amounts read "$1 of Moony" once the token is named; held back until then so they don't
@@ -171,8 +152,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
     var menuOpen by remember { mutableStateOf(false) }
     var pinnedHeight by remember { mutableStateOf(0.dp) }
-    val hasPinned = cta != GroupProfileCta.None || isMember
-    val clearance = if (hasPinned) pinnedHeight else 0.dp
+    val clearance = pinnedHeight
     val hazeState = rememberHazeState()
 
     CodeScaffold { padding ->
@@ -185,13 +165,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // The page fades out under the app bar. At the bottom it runs on under the pinned
-                    // bar, which blurs it, as on iOS.
-                    .verticalScrollStateGradient(
-                        scrollState = scrollState,
-                        showAtEnd = false,
-                        startInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                    )
+                    // The whole page, so the pinned bar and the top edge blur whatever scrolls under them.
                     .hazeSource(hazeState)
                     .verticalScroll(scrollState)
                     .padding(bottom = clearance),
@@ -320,6 +294,8 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 Box(modifier = Modifier.padding(bottom = CodeTheme.dimens.staticGrid.x6))
             }
 
+            ProfileTopScrollEdge(hazeState = hazeState, scrollState = scrollState)
+
             AppBarWithTitle(
                 onBackIconClicked = { flowNavigator.back() },
                 hazeState = hazeState,
@@ -359,64 +335,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 },
             )
 
-            if (hasPinned) {
-                val bar = (cta as? GroupProfileCta.BuyToJoin)?.requirement
-                    ?: (cta as? GroupProfileCta.BuyToChat)?.requirement
-                val buyMint = bar?.mints?.firstOrNull()?.let { Mint(it.bytes) }?.takeUnless { it == Mint.usdf }
-                // What the button buys, named the way the line above it names the requirement.
-                val shortfall = (standing?.shortfall ?: bar?.amount)?.let { holdingLabel(it, buyMint, tokens) }
-                val isJoin = cta is GroupProfileCta.BuyToJoin
-
-                ProfilePinnedActionBar(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    text = when (cta) {
-                        GroupProfileCta.Join -> stringResource(R.string.action_join)
-                        GroupProfileCta.OpenChat, GroupProfileCta.None -> stringResource(R.string.action_openChat)
-                        is GroupProfileCta.BuyToJoin -> stringResource(R.string.action_buyToJoin, shortfall.orEmpty())
-                        is GroupProfileCta.BuyToChat -> stringResource(R.string.action_buyToChat, shortfall.orEmpty())
-                    },
-                    // A member whose standing has not arrived has nothing to open yet.
-                    enabled = cta != GroupProfileCta.None && !state.joinProgress.loading,
-                    isLoading = state.joinProgress.loading,
-                    onClick = {
-                        when (cta) {
-                            GroupProfileCta.Join -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)
-                            GroupProfileCta.OpenChat -> openChat()
-                            is GroupProfileCta.BuyToJoin, is GroupProfileCta.BuyToChat -> {
-                                if (buyMint == null) {
-                                    viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.ADD_CASH))
-                                    viewModel.dispatchEvent(ChatViewModel.Event.PresentDepositOptions)
-                                } else {
-                                    viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.BUY_TOKEN))
-                                    navigator.push(AppRoute.Token.Info(buyMint, TokenInfoEntry.ChatGate))
-                                }
-                            }
-                            GroupProfileCta.None -> Unit
-                        }
-                    },
-                    above = if (bar != null) {
-                        {
-                            // Space held while the token is unnamed, so the button doesn't move.
-                            val nameAlpha by animateFloatAsState(if (namesReady) 1f else 0f, label = "requirementLine")
-                            Text(
-                                modifier = Modifier.graphicsLayer { alpha = nameAlpha },
-                                textAlign = TextAlign.Center,
-                                text = stringResource(
-                                    if (isJoin) R.string.label_groupRequiredToJoin else R.string.label_groupRequiredToChat,
-                                    holdingLabel(bar, tokens),
-                                ),
-                                style = CodeTheme.typography.textSmall,
-                                color = CodeTheme.colors.textSecondary,
-                            )
-                        }
-                    } else null,
+            // Open Chat in every standing, as in the design: a viewer short of a minimum is told
+            // so, and buys, on the chat's own gate.
+            ProfilePinnedActionBar(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                text = stringResource(R.string.action_openChat),
+                onClick = { openChat() },
                     secondaryText = if (isMember) stringResource(R.string.action_leaveChat) else null,
                     onSecondaryClick = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
                     isSecondaryLoading = state.leaving,
                     hazeState = hazeState,
                     onHeightChanged = { pinnedHeight = it },
                 )
-            }
         }
     }
 }
