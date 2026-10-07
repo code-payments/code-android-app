@@ -17,9 +17,9 @@ tags:
 
 # The display name is captured during onboarding, so tip setup lands directly on the
 # Tips list — no name step here. Open the tip card from the list.
-- tapOn: "Show My Tip Card"
+- tapOn: "Show My Profile Card"
 
 # The tip card renders with the display name set during onboarding.
 - extendedWaitUntil: { visible: { id: tip_card_screen }, timeout: 8000 }
-- assertVisible: "My Tip Card"
+- assertVisible: "My Profile Card"
 - assertVisible: "Tip Test User"

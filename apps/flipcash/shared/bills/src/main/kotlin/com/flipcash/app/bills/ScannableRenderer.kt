@@ -27,7 +27,7 @@ fun ScannableRenderer(
     // bottom modal; ignored by bill types that always center.
     contentAlignment: Alignment = Alignment.Center,
     // Explicit tip-card width. Null lets the card size itself off the available canvas (the
-    // scanner/camera); the "My Tip Card" screen pins a fixed, device-independent width. Ignored by
+    // scanner/camera); the "My Profile Card" screen pins a fixed, device-independent width. Ignored by
     // non-tip-card scannables.
     tipCardWidth: Dp? = null,
 ) {
