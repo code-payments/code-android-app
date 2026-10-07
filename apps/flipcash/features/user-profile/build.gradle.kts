@@ -13,6 +13,7 @@ dependencies {
     testImplementation(libs.mockito.kotlin)
 
     implementation(libs.bundles.kotlinx.serialization)
+    implementation(libs.bundles.haze)
 
     implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:analytics"))

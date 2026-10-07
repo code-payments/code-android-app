@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -98,7 +98,7 @@ fun FeaturedGroupRow(
             access = BlobAccessContext.ChatProfile(group.chatId),
             modifier = Modifier
                 .requiredSize(PictureSize)
-                .clip(RoundedCornerShape(CodeTheme.dimens.staticGrid.x3)),
+                .clip(CircleShape),
         )
         Column(
             modifier = Modifier.weight(1f),
