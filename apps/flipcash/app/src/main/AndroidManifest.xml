@@ -99,6 +99,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!--
+                 Image share target. An image shared to Flipcash is scanned by the same path a
+                 picked one takes — see `Scanner.onImagePicked`, which runs the Kik ladder, then
+                 QR, then `DeeplinkType.isScannable`. The allowlist matters more here than it does
+                 for the gallery: a shared image is one somebody else put in front of the user,
+                 which is the shape of a phishing attempt against the login route.
+
+                 SEND_MULTIPLE is declared because some senders use it for a single image, and
+                 being absent from the sheet for those is worse than taking the first item of a
+                 multi-select and dropping the rest.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+
             <!-- app.flipcash.com App Links -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
