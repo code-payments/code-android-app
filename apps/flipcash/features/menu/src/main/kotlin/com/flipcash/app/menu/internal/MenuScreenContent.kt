@@ -115,7 +115,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     item(key = "profile_header") {
                         OwnProfileHeader(
                             profile = profileState.profile,
-                            onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                            onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
                             onShare = null,
                             onClaimUsername = state.usernameProgress?.let {
                                 { viewModel.dispatchEvent(Event.ClaimUsername) }
