@@ -43,6 +43,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
@@ -361,11 +362,13 @@ fun ChatInput(
         verticalAlignment = Alignment.Bottom,
     ) {
         if (outside != null) {
-            OutsideSlot(outsideFraction, outsideSize, metrics.outsideSpacing, gapAtStart = false, outside)
+            OutsideSlot(outsideFraction, outsideSize, metrics.outsideSpacing, outside)
         }
         Layout(
             modifier = Modifier
                 .weight(1f)
+                // Above the trailing control, which the field slides over as it widens.
+                .zIndex(1f)
                 .onSizeChanged { fieldWidth = it.width }
                 .clip(shape)
                 .then(modifier)
@@ -449,22 +452,20 @@ fun ChatInput(
             },
         )
         if (trailingOutside != null) {
-            OutsideSlot(trailingOutsideFraction, outsideSize, metrics.outsideSpacing, gapAtStart = true, trailingOutside)
+            TrailingOutsideSlot(trailingOutsideFraction, outsideSize, metrics.outsideSpacing, trailingOutside)
         }
     }
 }
 
 /**
- * A control beside the field that scales and fades in with [fraction] and takes its width, and the
- * [spacing] between it and the field, from the row as it does. The gap sits on the field's side:
- * after the control, or before it when [gapAtStart].
+ * The control before the field. It scales and fades in with [fraction] and takes its width, and
+ * the [spacing] between it and the field, from the row as it does.
  */
 @Composable
 private fun OutsideSlot(
     fraction: Float,
     size: Dp,
     spacing: Dp,
-    gapAtStart: Boolean,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -474,8 +475,39 @@ private fun OutsideSlot(
             val p = measurable.measure(Constraints.fixed(sizePx, sizePx))
             val gap = (spacing.roundToPx() * f).roundToInt()
             layout(((sizePx * f).roundToInt() + gap).coerceAtLeast(0), sizePx) {
-                p.placeWithLayer(if (gapAtStart) gap else 0, 0) {
+                p.placeWithLayer(0, 0) {
                     val k = 0.4f + 0.6f * f.coerceAtMost(1f)
+                    scaleX = k
+                    scaleY = k
+                    alpha = f.coerceIn(0f, 1f)
+                }
+            }
+        },
+    ) { content() }
+}
+
+/**
+ * The control after the field. The row gives its width up to the field as [fraction] falls, but the
+ * control stays where it is: it fades out and grows slightly while the field, drawn above it,
+ * widens across it, and plays the same in reverse as [fraction] rises.
+ */
+@Composable
+private fun TrailingOutsideSlot(
+    fraction: Float,
+    size: Dp,
+    spacing: Dp,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier.layout { measurable, _ ->
+            val sizePx = size.roundToPx()
+            val f = fraction.coerceAtLeast(0f)
+            val p = measurable.measure(Constraints.fixed(sizePx, sizePx))
+            val width = ((sizePx + spacing.roundToPx()) * f).roundToInt().coerceAtLeast(0)
+            layout(width, sizePx) {
+                // Pinned to the row's trailing edge however much width the slot reports.
+                p.placeWithLayer(width - sizePx, 0) {
+                    val k = 1f + 0.15f * (1f - f.coerceIn(0f, 1f))
                     scaleX = k
                     scaleY = k
                     alpha = f.coerceIn(0f, 1f)
