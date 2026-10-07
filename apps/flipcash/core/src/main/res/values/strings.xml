@@ -673,6 +673,9 @@
     <string name="title_settingsSectionContracts">Contracts</string>
     <string name="subtitle_settingsUserFlags">User Flags</string>
     <string name="title_settingsSectionAccount">Account</string>
+    <string name="title_settingsSectionProfile">Profile</string>
+    <string name="title_settingsSectionSecurity">Security</string>
+    <string name="title_settingsSectionPrivacy">Privacy</string>
     <string name="title_userFlags">User Flags</string>
 
     <string name="title_purchase">Purchase</string>

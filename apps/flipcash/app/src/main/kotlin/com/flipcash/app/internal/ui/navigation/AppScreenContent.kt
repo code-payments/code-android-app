@@ -18,7 +18,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
-import com.flipcash.app.advanced.AdvancedFeaturesScreen
 import com.flipcash.app.devicelogs.DeviceLogsScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.WalletScreen
@@ -50,7 +49,7 @@ import com.flipcash.app.login.OnboardingFlowScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.BlocklistScreen
 import com.flipcash.app.myaccount.UserProfileScreen
-import com.flipcash.app.myaccount.MyAccountScreen
+import com.flipcash.app.myaccount.SettingsScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
 import com.flipcash.app.tokens.SwapFlowScreen
@@ -169,10 +168,9 @@ fun appEntryProvider(
     // Menu
     annotatedEntry<AppRoute.Menu.Lab> { key -> LabsScreen(onboarding = key.onboarding) }
     annotatedEntry<AppRoute.Menu.UserProfile> { UserProfileScreen() }
-    annotatedEntry<AppRoute.Menu.MyAccount> { MyAccountScreen() }
+    annotatedEntry<AppRoute.Menu.Settings> { SettingsScreen() }
     annotatedEntry<AppRoute.Menu.Blocklist> { BlocklistScreen() }
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
-    annotatedEntry<AppRoute.Menu.AdvancedFeatures> { AdvancedFeaturesScreen() }
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }
     annotatedEntry<AppRoute.Menu.AccountSelection> { AccountSelectionScreen() }
 

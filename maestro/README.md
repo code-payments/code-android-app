@@ -72,7 +72,7 @@ Every routed screen is addressable by a stable `<name>_screen` resource-id. Thes
 `AppScreenContent.kt` — not scattered across screen composables:
 
 - The tag defaults to one **derived from the route type name** (`screenRootTag` in
-  `NavMetadata.kt`): `AppRoute.Menu.MyAccount` → `my_account_screen`,
+  `NavMetadata.kt`): `AppRoute.Menu.Settings` → `settings_screen`,
   `AppRoute.Tabs.Scanner` → `scanner_screen`.
 - Pass an explicit `testTag` only when a route needs a different id than its type name, e.g.
   `annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { ... }`.
@@ -129,8 +129,8 @@ maestro/run.sh maestro/tipping_setup.yaml
 ## Coverage
 
 **Verified green** (run any of these with `maestro/run.sh`):
-- `login_logout.yaml` — real seed-login UI + logout (Log Out lives on My Account)
-- `account_navigation.yaml` — You tab → My Account, then Advanced
+- `login_logout.yaml` — real seed-login UI + logout (Log Out lives on Settings)
+- `account_navigation.yaml` — You tab → Settings (the gear)
 - `wallet_token_info.yaml` — wallet → token info + market-cap chart
 - `discovery_leaderboard.yaml` — wallet → Discover Currencies → leaderboard → token info
 - `withdraw.yaml` — menu → Withdraw Money → USDC → amount entry (fund-safe)
@@ -146,7 +146,7 @@ maestro/run.sh maestro/tipping_setup.yaml
 - `chat_message_reply.yaml` — reply from the selection bar and from a trailing-ward swipe: the
   strip leaves the draft alone where an edit stashes it, and the sent bubble carries a citation
   that is tappable
-- `blocking.yaml` — block a chat participant from their profile, verify in My Account →
+- `blocking.yaml` — block a chat participant from their profile, verify in Settings →
   Blocked, then unblock (leaves the account clean)
 - `tip_deeplink.yaml` — open a tip-card deeplink (`TIPCARD_DEEPLINK`) → presents the tip flow
   (waits for balances to sync first, else the empty-cache state trips the add-money gate)

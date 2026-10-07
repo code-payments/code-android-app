@@ -176,7 +176,6 @@ include(
     ":apps:flipcash:features:lab",
     ":apps:flipcash:features:appupdates",
     ":apps:flipcash:features:deposit",
-    ":apps:flipcash:features:advanced",
     ":apps:flipcash:features:currency-creator",
     ":apps:flipcash:features:messenger",
     ":apps:flipcash:features:invite",

@@ -7,7 +7,6 @@ import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.bill.Scannable
@@ -16,20 +15,14 @@ import com.flipcash.app.core.share.TipCodeExportFormat
 import com.flipcash.app.core.share.TipCodeExporter
 import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.app.core.util.Linkify
-import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.core.tipping.TipCardOwner
-import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.internal.components.UsernameProgress
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
-import com.flipcash.app.updates.ReleaseStage
-import com.flipcash.app.updates.ReleaseStageProvider
 import com.flipcash.app.tokens.core.TotalBalanceProvider
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.features.menu.BuildConfig
 import com.flipcash.features.menu.R
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.AuthState
@@ -43,18 +36,14 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -64,20 +53,12 @@ import javax.inject.Inject
 private fun Fiat.formattedGate(): String =
     formatted(rule = Fiat.FormattingRule.Truncated, suffix = currencyCode.name)
 
-private val FullMenuList = buildList {
-    add(MyAccount)
-    add(AdvancedFeatures)
-}
-
 @HiltViewModel
 internal class MenuScreenViewModel @Inject constructor(
     userManager: UserManager,
     userFlags: UserFlagsCoordinator,
-    versionInfo: VersionInfo,
-    featureFlags: FeatureFlagController,
     private val toastController: SystemToastController,
     dispatchers: DispatcherProvider,
-    releaseStageProvider: ReleaseStageProvider,
     purchaseMethodController: PurchaseMethodController,
     totalBalance: TotalBalanceProvider,
     analytics: FlipcashAnalytics,
@@ -94,13 +75,6 @@ internal class MenuScreenViewModel @Inject constructor(
         defaultDispatcher = dispatchers.Default,
     ) {
     data class State(
-        val items: List<MenuItem<Event>> = FullMenuList,
-        val logoTapCount: Int = 0,
-        val isStaff: Boolean = false,
-        val flags: List<BetaFeature> = emptyList(),
-        val unlockedBetaFeaturesManually: Boolean = false,
-        val appVersionInfo: VersionInfo = VersionInfo(),
-        val releaseTrack: String = "",
         // The viewer's own tip card, shown at the top of the v2 "You" tab.
         val tipCardState: TipCardState = TipCardState.Unknown,
         // The nudge toward claiming a `@handle`, or null when there is nothing to nudge about — a
@@ -144,13 +118,6 @@ internal class MenuScreenViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data object OnVersionInfoClicked: Event
-        data object CheckForUpdate: Event
-        data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
-        data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>): Event
-        data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
-        data class OnReleaseTrackDetermined(val stage: String): Event
-        data class OnStaffUserDetermined(val staff: Boolean) : Event
         /**
          * Add money, tagged with what prompted it. The default covers the menu's own row; the
          * username gate passes its own source so a shortfall-driven deposit isn't reported as a
@@ -161,11 +128,6 @@ internal class MenuScreenViewModel @Inject constructor(
         ) : Event
         data class OpenScreen(val screen: AppRoute) : Event
 
-        /**
-         * A developer-mode unlock message (the tap countdown, then unlocked). The screen floats it
-         * over the version row without taking taps, so the taps keep counting through it.
-         */
-        data class ShowDevModeToast(val message: String) : Event
         data class OnTipCardStateChanged(val tipCardState: TipCardState) : Event
         data class OnUsernameProgressChanged(
             val progress: UsernameProgress?,
@@ -190,70 +152,6 @@ internal class MenuScreenViewModel @Inject constructor(
     }
 
     init {
-        dispatchEvent(Event.OnAppVersionUpdated(versionInfo))
-        dispatchEvent(Event.OnStaffUserDetermined(false))
-
-        userManager.state
-            .filter { it.authState is AuthState.Ready }
-            .flatMapLatest { userFlags.resolvedFlags }
-            .mapNotNull { it.isStaff.effectiveValue }
-            .onEach {
-                dispatchEvent(Event.OnStaffUserDetermined(it))
-            }.launchIn(viewModelScope)
-
-        featureFlags.observeOverride()
-            .onEach { dispatchEvent(Event.OnBetaFeaturesUnlocked(it)) }
-            .launchIn(viewModelScope)
-
-        featureFlags.observe()
-            .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
-            .launchIn(viewModelScope)
-
-        viewModelScope.launch {
-            val resolvedStage = releaseStageProvider.resolvedStage
-            val label = when {
-                BuildConfig.DEBUG -> "development"
-                resolvedStage == null || resolvedStage == ReleaseStage.Production -> null
-                else -> resolvedStage.name.lowercase()
-            }
-
-            val formattedLabel = if (label != null) { " • $label" } else ""
-            dispatchEvent(Event.OnReleaseTrackDetermined(formattedLabel))
-        }
-
-        eventFlow
-            .filterIsInstance<Event.OnVersionInfoClicked>()
-            .onEach {
-                if (stateFlow.value.unlockedBetaFeaturesManually) {
-                    if (stateFlow.value.logoTapCount - TAP_THRESHOLD > COUNTDOWN_START) {
-                        dispatchEvent(Event.ShowDevModeToast(resources.getString(R.string.toast_betaOverrideAlready)))
-                    }
-                    return@onEach
-                }
-                val remaining = TAP_THRESHOLD - stateFlow.value.logoTapCount + 1
-                when {
-                    remaining <= 0 -> {
-                        featureFlags.enableBetaFeatures()
-                        dispatchEvent(Event.ShowDevModeToast(resources.getString(R.string.toast_betaOverrideEnabled)))
-                    }
-                    remaining <= COUNTDOWN_START -> {
-                        dispatchEvent(
-                            Event.ShowDevModeToast(
-                                resources.getQuantityString(R.plurals.toast_betaOverrideCountdown, remaining, remaining)
-                            )
-                        )
-                    }
-                }
-            }
-            .launchIn(viewModelScope)
-
-        @OptIn(FlowPreview::class)
-        eventFlow
-            .filterIsInstance<Event.OnVersionInfoClicked>()
-            .debounce(500)
-            .onEach { dispatchEvent(Event.CheckForUpdate) }
-            .launchIn(viewModelScope)
-
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull { event ->
@@ -496,75 +394,8 @@ internal class MenuScreenViewModel @Inject constructor(
         userId?.let { Linkify.tipcard(TipCardOwner.preferringUsername(profile.username, it)) }
 
     internal companion object {
-        private const val TAP_THRESHOLD = 6
-        private const val COUNTDOWN_START = 3
-
-        private fun buildItemList(
-            isStaff: Boolean,
-            overrode: Boolean,
-            flags: List<BetaFeature> = emptyList(),
-        ): List<MenuItem<Event>> {
-            return if (isStaff || overrode) {
-                FullMenuList
-                    .filter { item ->
-                        val flagForItem = item.featureFlag
-                        if (flagForItem != null) {
-                            val match = flags.find { it.flag.key == flagForItem.key }
-                            match?.enabled == true
-                        } else {
-                            true
-                        }
-                    }
-            } else {
-                FullMenuList.filterNot { it.isStaffOnly }
-                    .filter { item ->
-                        val flagForItem = item.featureFlag
-                        if (flagForItem != null) {
-                            val match = flags.find { it.flag.key == flagForItem.key }
-                            match?.enabled == true
-                        } else {
-                            true
-                        }
-                    }
-            }
-        }
-
         private val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                Event.OnVersionInfoClicked -> { state ->
-                    state.copy(logoTapCount = state.logoTapCount + 1)
-                }
-
-                is Event.OnBetaFeaturesUnlocked -> { state ->
-                    state.copy(
-                        unlockedBetaFeaturesManually = event.unlocked,
-                        items = buildItemList(
-                            isStaff = state.isStaff,
-                            overrode = event.unlocked,
-                            flags = state.flags
-                        )
-                    )
-                }
-
-                is Event.OnAppVersionUpdated -> { state ->
-                    state.copy(appVersionInfo = event.versionInfo)
-                }
-
-                is Event.OnReleaseTrackDetermined -> { state ->
-                    state.copy(releaseTrack = event.stage)
-                }
-
-                is Event.OnStaffUserDetermined -> { state ->
-                    state.copy(
-                        isStaff = event.staff,
-                        items = buildItemList(
-                            isStaff = event.staff,
-                            overrode = state.unlockedBetaFeaturesManually,
-                            flags = state.flags,
-                        ),
-                    )
-                }
-
                 is Event.OnTipCardStateChanged -> { state ->
                     state.copy(tipCardState = event.tipCardState)
                 }
@@ -581,7 +412,6 @@ internal class MenuScreenViewModel @Inject constructor(
                 }
 
                 is Event.PresentDepositOptions,
-                Event.CheckForUpdate,
                 Event.ClaimTipCard,
                 Event.ClaimUsername,
                 Event.SetProfilePicture,
@@ -590,19 +420,7 @@ internal class MenuScreenViewModel @Inject constructor(
                 Event.CopyTipLink,
                 Event.DownloadTipCard,
                 is Event.ExportTipCard,
-                is Event.ShowDevModeToast,
                 is Event.OpenScreen -> { state -> state }
-
-                is Event.OnFeatureFlagsUpdated -> { state ->
-                    state.copy(
-                        items = buildItemList(
-                            isStaff = state.isStaff,
-                            overrode = state.unlockedBetaFeaturesManually,
-                            flags = event.flags
-                        ),
-                        flags = event.flags,
-                    )
-                }
             }
         }
     }

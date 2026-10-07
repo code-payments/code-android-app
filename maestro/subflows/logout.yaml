@@ -1,7 +1,7 @@
-# Reusable Logout flow. Log Out lives on the Advanced screen.
+# Reusable Logout flow. Log Out lives on the Settings screen.
 appId: com.flipcash.app.android
 ---
-- runFlow: navigate_to_advanced_features.yaml
+- runFlow: navigate_to_settings.yaml
 - tapOn: Log Out
 - assertVisible: Log Out
 - assertVisible: Cancel

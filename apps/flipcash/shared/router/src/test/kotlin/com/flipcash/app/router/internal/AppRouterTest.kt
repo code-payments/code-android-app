@@ -239,7 +239,7 @@ class AppRouterTest {
         val action = router.dispatch(DeepLink(verifyUrl("myaccount")))
         assertIs<DeeplinkAction.Navigate>(action)
         assertEquals(AppRoute.Tabs.Menu, action.routes[0])
-        assertIs<AppRoute.Menu.MyAccount>(action.routes[1])
+        assertIs<AppRoute.Menu.Settings>(action.routes[1])
         assertIs<AppRoute.Verification>(action.routes[2])
     }
 
@@ -749,7 +749,7 @@ class AppRouterTest {
         assertIs<DeeplinkAction.Navigate>(action)
         assertEquals(3, action.routes.size)
         assertIs<AppRoute.Tabs.Menu>(action.routes[0])
-        assertIs<AppRoute.Menu.MyAccount>(action.routes[1])
+        assertIs<AppRoute.Menu.Settings>(action.routes[1])
         val verification = action.routes[2]
         assertIs<AppRoute.Verification>(verification)
         assertEquals("test@example.com", verification.email)

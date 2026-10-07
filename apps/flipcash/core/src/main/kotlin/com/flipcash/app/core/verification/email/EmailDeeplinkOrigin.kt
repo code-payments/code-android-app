@@ -38,7 +38,7 @@ sealed class EmailDeeplinkOrigin {
         fun fromRoute(route: AppRoute?): EmailDeeplinkOrigin? {
             return when (route) {
                 is AppRoute.Token.Swap -> OnRamp(route)
-                is AppRoute.Menu.MyAccount -> MyAccount
+                is AppRoute.Menu.Settings -> MyAccount
                 else -> null
             }
         }

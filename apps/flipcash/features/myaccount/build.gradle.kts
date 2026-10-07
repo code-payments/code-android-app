@@ -10,11 +10,14 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.bundles.compose.ui.testing)
+    testImplementation(testFixtures(project(":ui:resources")))
 
     implementation(libs.compose.paging)
 
     implementation(project(":apps:flipcash:shared:appsettings"))
+    implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:authentication"))
+    implementation(project(":apps:flipcash:shared:bill-customization"))
     implementation(project(":apps:flipcash:shared:blocklist"))
     implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:contacts"))
