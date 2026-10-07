@@ -362,8 +362,8 @@ sealed interface AppRoute : NavKey, Parcelable {
             val openKeyboard: Boolean = false,
             // Open on the group's profile instead of the transcript. Set where a group is shown as
             // something to look at rather than a chat to resume: a profile's featured groups. The
-            // profile is the flow's root, so back returns to wherever the tap came from and Open
-            // Chat swaps the transcript in.
+            // profile is the flow's root, so back returns to wherever the tap came from, and Open
+            // Chat pushes the transcript on top of it.
             val openOnProfile: Boolean = false,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>

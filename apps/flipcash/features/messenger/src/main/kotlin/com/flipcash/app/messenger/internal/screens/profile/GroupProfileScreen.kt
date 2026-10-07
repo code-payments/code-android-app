@@ -120,13 +120,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     }
 
     // The chat is usually the screen underneath. A flow opened on the profile
-    // (AppRoute.Messaging.Chat.openOnProfile) has nothing underneath, so the transcript takes the
-    // profile's place and back from it leaves the flow, as it would from any chat.
+    // (AppRoute.Messaging.Chat.openOnProfile) has nothing underneath, so the transcript is pushed on
+    // top and back from it returns here, as iOS does.
     fun openChat() {
         if (flowNavigator.canGoBack) {
             flowNavigator.back()
         } else {
-            flowNavigator.navigateTo(ChatStep.Conversation, popCurrent = true)
+            flowNavigator.navigateTo(ChatStep.Conversation)
         }
     }
 
