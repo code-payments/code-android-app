@@ -24,6 +24,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 
 private val RowHeight = 56.dp
+private val CompactRowHeight = 48.dp
 private val CardRadius = 12.dp
 private val RowInset = 16.dp
 
@@ -33,6 +34,9 @@ private val RowInset = 16.dp
  *
  * Values arrive formatted, since the caller owns currency and token naming: "$10", "$10 of NYC".
  * A null [join] or [chat] reads "None", so a group that only gates speaking still shows a Join row.
+ *
+ * [compact] is the read-only form on Edit Group: a 16 header, shorter rows with their labels in
+ * the same 16 as the values, and the [footnote] beneath. The profile's own is the default.
  */
 @Composable
 fun BalanceRequirementsCard(
@@ -40,14 +44,16 @@ fun BalanceRequirementsCard(
     chat: String?,
     yourBalance: String?,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    footnote: String? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 16.dp),
     ) {
         Text(
             text = stringResource(R.string.title_balanceRequirements),
-            style = CodeTheme.typography.textLarge,
+            style = if (compact) CodeTheme.typography.textMedium else CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textMain,
         )
         Column(
@@ -59,6 +65,7 @@ fun BalanceRequirementsCard(
             RequirementRow(
                 label = stringResource(R.string.label_balanceRequirementJoin),
                 value = join ?: stringResource(R.string.label_balanceRequirementNone),
+                compact = compact,
             )
             Box(
                 modifier = Modifier
@@ -69,6 +76,14 @@ fun BalanceRequirementsCard(
             RequirementRow(
                 label = stringResource(R.string.label_balanceRequirementChat),
                 value = chat ?: stringResource(R.string.label_balanceRequirementNone),
+                compact = compact,
+            )
+        }
+        if (footnote != null) {
+            Text(
+                text = footnote,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
             )
         }
         if (yourBalance != null) {
@@ -94,18 +109,18 @@ fun BalanceRequirementsCard(
 }
 
 @Composable
-private fun RequirementRow(label: String, value: String) {
+private fun RequirementRow(label: String, value: String, compact: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(RowHeight)
+            .height(if (compact) CompactRowHeight else RowHeight)
             .padding(horizontal = RowInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = label,
-            style = CodeTheme.typography.textSmall,
+            style = if (compact) CodeTheme.typography.textMedium else CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
         )
         Text(
