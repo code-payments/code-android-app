@@ -314,6 +314,7 @@ internal class ChatProfileViewModel @Inject constructor(
                     .onSuccess {
                         featuredGroupsStore.remember(it)
                         dispatchEvent(Event.FeaturedGroupsLoaded(it))
+                        featuredGroupsStore.fetchCovers(it)
                     }
             }
 

@@ -57,7 +57,9 @@ class ChatProfileViewModelTest {
     private val serverJoin = Instant.fromEpochSeconds(1_710_000_000)
 
     private val profiles = mockk<ProfileController>()
-    private val featuredGroupsStore = FeaturedGroupsStore(mockk(relaxed = true))
+    private val featuredGroupsStore = FeaturedGroupsStore(
+        mockk { coEvery { getChat(any(), any()) } returns Result.failure(Throwable("not stubbed")) }
+    )
 
     private val chatController = mockk<ChatController> {
         coEvery { getFeaturedGroups(any()) } returns Result.success(emptyList())

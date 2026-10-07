@@ -4,9 +4,11 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,6 +46,7 @@ class FeaturedGroupsStore @Inject constructor(
             .onSuccess {
                 _groups.value = it
                 remember(it)
+                fetchCovers(it)
             }
             .isSuccess
 
@@ -59,8 +62,23 @@ class FeaturedGroupsStore @Inject constructor(
     }
 
     /**
+     * Fills in the covers GetFeaturedGroups leaves out, so a tapped group's profile draws its
+     * cover (or at least the cover's blurhash) at once instead of after its own GetChat. One
+     * GetChat per group, in parallel; a failure leaves that group without a cover, as before.
+     */
+    suspend fun fetchCovers(groups: List<ChatMetadata>) = coroutineScope {
+        groups.filter { it.coverPicture == null }.forEach { group ->
+            launch {
+                val cover = chatController.getChat(group.chatId).getOrNull()?.coverPicture ?: return@launch
+                seen.computeIfPresent(group.chatId) { _, held -> held.copy(coverPicture = cover) }
+            }
+        }
+    }
+
+    /**
      * The list-view metadata of a featured group seen this session, or null. A placeholder until
-     * GetChat answers, not a substitute for it: list-view rows can lack the cover.
+     * GetChat answers, not a substitute for it: its cover is there only once [fetchCovers] has
+     * answered for it.
      */
     fun peek(chatId: ChatId): ChatMetadata? = seen[chatId]
 
