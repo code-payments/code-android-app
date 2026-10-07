@@ -26,6 +26,9 @@ public typealias GroupInviteMethod = SharedCore.GroupInviteMethod
 public typealias GroupInviteSource = SharedCore.GroupInviteSource
 public typealias GroupAccess = SharedCore.GroupAccess
 public typealias GroupGateFunding = SharedCore.GroupGateFunding
+public typealias ProfileField = SharedCore.ProfileField
+public typealias ProfileMenuAction = SharedCore.ProfileMenuAction
+public typealias ProfilePinnedAction = SharedCore.ProfilePinnedAction
 public typealias AnalyticsButton = SharedCore.Button
 public typealias AnalyticsAmount = SharedCore.Amount
 public typealias PeopleCounter = SharedCore.PeopleCounter
@@ -45,6 +48,7 @@ public typealias ErrorModalEvents = SharedCore.ErrorModalEvents
 public typealias AccountEvents = SharedCore.AccountEvents
 public typealias ButtonEvents = SharedCore.ButtonEvents
 public typealias GroupEvents = SharedCore.GroupEvents
+public typealias ProfileEvents = SharedCore.ProfileEvents
 
 /// A property value as the iOS sender needs it. Mixpanel is not a dependency of this
 /// package, so the app maps these to `MixpanelType` itself.
