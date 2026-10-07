@@ -30,8 +30,6 @@ import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.GroupAccess
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.internal.extensions.fractionDigits
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
@@ -511,21 +509,10 @@ internal class CreateGroupViewModel @Inject constructor(
     }
 
     companion object {
-        /**
-         * The stored requirement for a keypad [entered] amount, or null when it falls below the
-         * currency's minimum transfer value (one unit of its last decimal place).
-         *
-         * The keypad enters in the preferred currency; the rule is compared against a USD balance,
-         * so it is stored in USD rather than in whatever was typed, rounded to USD's decimals
-         * (cents) so the server never sees a fraction of one.
-         */
+        /** The stored requirement for a keypad [entered] amount; see [com.flipcash.shared.chat.minimumBalanceFor]. */
         @VisibleForTesting
-        internal fun minimumBalanceFor(entered: Double, rate: Rate): Fiat? {
-            if (entered <= 0.0) return null
-            val usd = Fiat(entered, rate.currency).convertingToUsdIfNeeded(rate)
-            val rounded = usd.rounded(CurrencyCode.USD.fractionDigits)
-            return rounded.takeIf { it.decimalValue > 0.0 }
-        }
+        internal fun minimumBalanceFor(entered: Double, rate: Rate): Fiat? =
+            com.flipcash.shared.chat.minimumBalanceFor(entered, rate)
 
         /** One listener minimum balance of [amount], in whatever [currency] names. */
         private fun rulesFor(currency: GroupCurrency, amount: Fiat) = ChatRules(

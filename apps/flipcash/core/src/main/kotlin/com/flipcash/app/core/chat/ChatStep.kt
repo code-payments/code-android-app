@@ -2,6 +2,7 @@ package com.flipcash.app.core.chat
 
 import android.os.Parcelable
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.GroupBalanceRole
 import com.getcode.navigation.HalfSheet
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.WrapContentSheet
@@ -96,7 +97,8 @@ sealed interface ChatStep : FlowStep, Parcelable {
      *
      * The design node lists four rows; only [EditGroupPicture] and [EditGroupName] are built.
      * Membership card, description and social links have no field on `EditChatRequest` in
-     * flipcash2 0.11.0, so there is nothing for them to write.
+     * flipcash2 0.11.0, so there is nothing for them to write. Under the rows sits the Balance
+     * Requirements card, whose rows open [EditGroupBalanceRequirement].
      */
     @Parcelize
     @Serializable
@@ -111,6 +113,15 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object EditGroupPicture : ChatStep
+
+    /**
+     * One of the group's minimum balances, on the shared amount keypad — pushed from a row of
+     * [EditGroup]'s Balance Requirements card. [role] picks the listener (Join) or speaker (Chat)
+     * rule.
+     */
+    @Parcelize
+    @Serializable
+    data class EditGroupBalanceRequirement(val role: GroupBalanceRole) : ChatStep
 
     /**
      * The full emoji picker for a message's reaction, opened from the pill row's "+" or the

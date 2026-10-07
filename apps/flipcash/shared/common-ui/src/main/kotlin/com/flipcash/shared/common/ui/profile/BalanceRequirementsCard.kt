@@ -4,10 +4,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,6 +32,7 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.shared.common.ui.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
+import com.getcode.ui.components.ListItemDefaults
 
 private val RowHeight = 56.dp
 private val CardRadius = 12.dp
@@ -40,6 +44,9 @@ private val RowInset = 16.dp
  *
  * Values arrive formatted, since the caller owns currency and token naming: "$10", "$10 of NYC".
  * A null [join] or [chat] reads "None", so a group that only gates speaking still shows a Join row.
+ *
+ * [onJoinClick] and [onChatClick] make their row tappable and give it a trailing chevron — Edit
+ * Group passes them to open the requirement's editor; the read-only profile passes neither.
  */
 @Composable
 fun BalanceRequirementsCard(
@@ -47,6 +54,8 @@ fun BalanceRequirementsCard(
     chat: String?,
     yourBalance: String?,
     modifier: Modifier = Modifier,
+    onJoinClick: (() -> Unit)? = null,
+    onChatClick: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -66,6 +75,7 @@ fun BalanceRequirementsCard(
             RequirementRow(
                 label = stringResource(R.string.label_balanceRequirementJoin),
                 value = join ?: stringResource(R.string.label_balanceRequirementNone),
+                onClick = onJoinClick,
             )
             Box(
                 modifier = Modifier
@@ -76,6 +86,7 @@ fun BalanceRequirementsCard(
             RequirementRow(
                 label = stringResource(R.string.label_balanceRequirementChat),
                 value = chat ?: stringResource(R.string.label_balanceRequirementNone),
+                onClick = onChatClick,
             )
         }
         // The balance resolves after the rules; it fades in rather than popping, and keeps its
@@ -109,11 +120,12 @@ fun BalanceRequirementsCard(
 }
 
 @Composable
-private fun RequirementRow(label: String, value: String) {
+private fun RequirementRow(label: String, value: String, onClick: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(RowHeight)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = RowInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -123,11 +135,17 @@ private fun RequirementRow(label: String, value: String) {
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
         )
-        Text(
-            text = value,
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = value,
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
+            if (onClick != null) {
+                Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
+                ListItemDefaults.Chevron()
+            }
+        }
     }
 }
 
@@ -138,5 +156,6 @@ private fun Preview_BalanceRequirementsCard() {
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         BalanceRequirementsCard(join = "$10 of NYC", chat = "$25 of NYC", yourBalance = "$4.50 of NYC")
         BalanceRequirementsCard(join = null, chat = "$2.50", yourBalance = null)
+        BalanceRequirementsCard(join = "$10", chat = "$10", yourBalance = null, onJoinClick = {}, onChatClick = {})
     }
 }

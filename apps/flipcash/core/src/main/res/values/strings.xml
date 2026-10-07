@@ -1172,6 +1172,24 @@
     <string name="error_title_groupEditFailed">Something Went Wrong</string>
     <string name="error_description_groupEditFailed">We couldn\'t save your changes. Please try again.</string>
 
+    <!-- Replacing a group's join or chat minimum balance from Edit Group's Balance Requirements
+         card. Entered on the shared amount keypad; confirmed before the call like the edits above. -->
+    <string name="title_groupJoinRequirement">Join Requirement</string>
+    <string name="title_groupChatRequirement">Chat Requirement</string>
+    <string name="description_groupJoinRequirement">People won\'t be able to join this group if their balance is less than this amount</string>
+    <string name="description_groupChatRequirement">People won\'t be able to send messages in this group if their balance is less than this amount</string>
+    <string name="prompt_title_changeGroupJoinRequirement">Change Join Requirement?</string>
+    <string name="prompt_description_changeGroupJoinRequirement">This will change who can join the group</string>
+    <string name="action_changeGroupJoinRequirement">Change Join Requirement</string>
+    <string name="prompt_title_changeGroupChatRequirement">Change Chat Requirement?</string>
+    <string name="prompt_description_changeGroupChatRequirement">This will change who can send messages in the group</string>
+    <string name="action_changeGroupChatRequirement">Change Chat Requirement</string>
+    <!-- No RPC changes a group's rules yet, so every save ends here. -->
+    <string name="error_title_groupRequirementUnavailable">Not Available Yet</string>
+    <string name="error_description_groupRequirementUnavailable">Balance requirements can\'t be changed yet</string>
+    <string name="error_title_groupRequirementFailed">Couldn\'t Save the Requirement</string>
+    <string name="error_description_groupRequirementFailed">Try again</string>
+
     <!-- Handing out the group's invite link, straight after it is created (node 10127:118315). -->
     <string name="title_inviteToJoinGroup">Invite to Join Group</string>
     <string name="action_sendInviteLink">Send Invite Link</string>
