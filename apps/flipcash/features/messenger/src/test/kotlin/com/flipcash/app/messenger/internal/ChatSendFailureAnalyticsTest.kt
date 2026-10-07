@@ -111,7 +111,7 @@ class ChatSendFailureAnalyticsTest {
         every { exchange.preferredRate } returns Rate.oneToOne
         every { transactionController.limits } returns MutableStateFlow(null)
         every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(999.0)
-        every { tipPaymentDelegate.minimumToOpenDmWith(any()) } returns flowOf(null)
+        every { tipPaymentDelegate.startChattingFee(any()) } returns flowOf(null)
         coEvery {
             verifiedFiatCalculator.compute(any(), any(), any(), any(), any())
         } returns Result.success(verifiedFiat)

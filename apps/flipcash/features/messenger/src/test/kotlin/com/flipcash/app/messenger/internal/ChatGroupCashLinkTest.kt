@@ -116,7 +116,7 @@ class ChatGroupCashLinkTest {
         coEvery { tokenCoordinator.hasGiveableBalance(any()) } returns true
         coEvery { tokenCoordinator.getTokenMetadata(any()) } returns Result.failure(RuntimeException())
         every { tokenCoordinator.observeTokenCache() } returns flowOf(emptyMap())
-        every { tipPaymentDelegate.minimumToOpenDmWith(any()) } returns flowOf(null)
+        every { tipPaymentDelegate.startChattingFee(any()) } returns flowOf(null)
         coEvery {
             verifiedFiatCalculator.compute(any(), any(), any(), any(), any())
         } returns Result.success(verifiedFiat)

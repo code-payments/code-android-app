@@ -6,17 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.NotificationsOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,7 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ViewerState
-import com.getcode.theme.CodeTheme
+import com.flipcash.shared.common.ui.profile.ProfileStatusChip
 
 /**
  * What the chat's mute currently is, drawn under the title on both chat settings surfaces —
@@ -103,29 +95,9 @@ private fun Chip(
     label: String,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .background(
-                color = CodeTheme.colors.warning.copy(alpha = 0.1f),
-                shape = CircleShape,
-            )
-            .padding(
-                horizontal = CodeTheme.dimens.staticGrid.x2,
-                vertical = CodeTheme.dimens.staticGrid.x1,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
-    ) {
-        Icon(
-            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
-            imageVector = Icons.Outlined.NotificationsOff,
-            contentDescription = null,
-            tint = CodeTheme.colors.warning,
-        )
-        Text(
-            text = label,
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.warning,
-        )
-    }
+    ProfileStatusChip(
+        icon = Icons.Outlined.NotificationsOff,
+        text = label,
+        modifier = modifier,
+    )
 }

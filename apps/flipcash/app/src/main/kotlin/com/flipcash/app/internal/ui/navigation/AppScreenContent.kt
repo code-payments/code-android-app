@@ -47,6 +47,8 @@ import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.login.AccountSelectionScreen
 import com.flipcash.app.login.OnboardingFlowScreen
 import com.flipcash.app.menu.MenuScreen
+import com.flipcash.app.menu.ProfileCardScreen
+import com.flipcash.app.menu.ProfileShareScreen
 import com.flipcash.app.myaccount.BlocklistScreen
 import com.flipcash.app.myaccount.UserProfileScreen
 import com.flipcash.app.myaccount.SettingsScreen
@@ -169,6 +171,8 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.Lab> { key -> LabsScreen(onboarding = key.onboarding) }
     annotatedEntry<AppRoute.Menu.UserProfile> { UserProfileScreen() }
     annotatedEntry<AppRoute.Menu.Settings> { SettingsScreen() }
+    annotatedEntry<AppRoute.Menu.ShareProfile> { ProfileShareScreen() }
+    annotatedEntry<AppRoute.Menu.ProfileCard> { ProfileCardScreen() }
     annotatedEntry<AppRoute.Menu.Blocklist> { BlocklistScreen() }
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }

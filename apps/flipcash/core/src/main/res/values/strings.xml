@@ -552,16 +552,9 @@
     <string name="title_scanTipCard">Scan a Tip Card</string>
     <string name="subtitle_scanTipCard">Give your first tip</string>
 
-    <string name="title_finishYourProfile">Finish Your Profile</string>
 
     <!-- Copy matches iOS's "Finish Your Profile" display-name step. -->
-    <string name="title_addDisplayName">Add your display name</string>
-    <string name="subtitle_addDisplayName">Choose the name people see in chat</string>
-    <string name="title_addProfilePicture">Add a profile picture</string>
-    <string name="subtitle_addProfilePicture">Select a photo from your gallery</string>
 
-    <string name="title_setMinimumTip">Set your minimum tip amount</string>
-    <string name="subtitle_setMinimumTip">Decide what size tip matters to you</string>
 
     <string name="title_amountToBuy">Amount to Buy</string>
     <string name="title_amountToSell">Amount to Sell</string>
@@ -1206,8 +1199,6 @@
     <!-- The "You" tab's username progress card (nodes 9536:4336 / 9537:1845). -->
     <string name="title_usernameUpsell">Get a custom @username</string>
     <string name="subtitle_usernameUpsellLocked">Get your balance to %1$s or more to unlock</string>
-    <string name="subtitle_usernameUpsellUnlocked">Tap to select your username now</string>
-    <string name="label_usernameAmountToGo">%1$s to go</string>
     <string name="error_title_usernameTaken">Username Taken</string>
     <string name="error_description_usernameTaken">Please try a different username</string>
     <!-- Moderation rejections reuse the display-name descriptions above, per the design. -->
@@ -1333,8 +1324,14 @@
     <string name="title_tipOnboarding">Send Your First Tip</string>
 
     <!-- You tab (tip card) -->
-    <string name="action_viewFullScreen">Full Screen</string>
-    <string name="action_closeFullScreen">Close</string>
+    <string name="action_editProfile">Edit Profile</string>
+    <string name="action_claimYourUsernameLink">Claim your username ›</string>
+    <string name="title_shareUserProfile">Share User Profile</string>
+    <!-- Who the share sheet is for: display name, then @handle -->
+    <string name="subtitle_shareUserProfile">%1$s · @%2$s</string>
+    <string name="action_shareProfileLink">Share Profile</string>
+    <string name="action_showProfileCard">Show Profile Card</string>
+    <string name="action_copyLink">Copy Link</string>
     <string name="action_download">Download</string>
     <string name="title_clipboardLabelTipCardLink">Tip Card Link</string>
     <string name="title_clipboardLabelGroupInviteLink">Group Invite Link</string>

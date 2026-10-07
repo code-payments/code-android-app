@@ -1,625 +1,270 @@
 package com.flipcash.app.menu.internal
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.EaseInOut
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalViewConfiguration
-import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.bills.components.cards.LocalTipCardColor
-import com.flipcash.app.core.bill.Scannable
-import com.flipcash.app.core.navigation.HideTabBar
-import com.flipcash.app.core.navigation.LocalTabBarPadding
+import com.flipcash.app.bills.components.cards.TipCardFlattened
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
-import com.flipcash.app.menu.internal.MenuScreenViewModel.TipCardState
-import com.flipcash.app.core.ui.onboarding.NewUserTutorial
-import com.flipcash.app.core.ui.onboarding.TutorialItem
-import com.flipcash.app.core.util.abbreviatedLink
-import com.flipcash.app.menu.internal.components.UsernameProgress
-import com.flipcash.app.menu.internal.components.UsernameProgressCard
+import com.flipcash.app.menu.internal.MenuScreenViewModel.ProfileState
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.services.models.UserProfile
 import com.flipcash.core.R as CoreR
 import com.flipcash.features.menu.R
+import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.shared.common.ui.ContactAvatar
+import com.flipcash.shared.common.ui.profile.ProfileActionButton
+import com.flipcash.shared.common.ui.profile.ProfileHeader
+import com.flipcash.shared.common.ui.profile.ProfileStatsCard
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.theme.White05
 import com.getcode.theme.White08
-import com.getcode.theme.White50
-import com.getcode.theme.extraSmall
-import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.core.verticalScrollStateGradient
-import com.getcode.ui.utils.sheetResignmentBehavior
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.sheetResignmentBehavior
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import kotlinx.coroutines.delay
 
+/**
+ * The "You" tab: the viewer's own profile, in the same layout other people's profiles use. The
+ * settings gear floats over the cover's top trailing corner and scrolls away with the page.
+ */
 @Composable
 internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-
     val listState = rememberLazyListState()
-    // Full screen is a state of *this* screen, not a destination: the card grows into the middle of
-    // the display and everything else — rows, footer, tab bar — animates out from under it
-    // (node 9277:121410). Pushing a route would cross-fade a second copy of the card in instead.
-    val expansion = rememberTipCardExpansion()
-    val cardExpanded = expansion.isExpanded
-    // Only a claimed card expands — the unclaimed stand-in is decoration behind the prompt.
-    val canExpand = state.tipCard != null
+    // v2's tab bar is a hoisted overlay drawn ABOVE this content, so reserve its height as bottom
+    // content padding — the list then scrolls clear of the bar instead of running under it. Per-entry
+    // via LocalTabBarPadding, which is only non-zero for tab homes. v1 has no such bar.
+    val bottomInset = LocalTabBarPadding.current.calculateBottomPadding()
 
-    LaunchedEffect(canExpand) {
-        // Losing the card (sign-out) must not strand the page expanded.
-        if (!canExpand) expansion.collapse()
-    }
-    HideTabBar(hidden = cardExpanded)
-    BackHandler(enabled = cardExpanded) { expansion.collapse() }
-
-    // No app bar — the card is the first thing on the page (node 9276:4634). The only chrome is the
-    // settings gear, floated over the page's top trailing corner.
+    // No app bar: the cover is the first thing on the page, and reaches the top of the display. It
+    // is not padded for the status bar, so the gear takes that clearance for itself.
     CodeScaffold { padding ->
-        BoxWithConstraints(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .verticalScrollStateGradient(scrollState = listState, isLongGradient = true)
+                .sheetResignmentBehavior(listState),
+            state = listState,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset),
         ) {
-            // No app bar in v2, so the page owns its own status-bar clearance; the design puts the
-            // card 74dp below it (node 9278:7301).
-            // The settings gear is the first thing in the list, so it scrolls away with the page.
-            // The row it sits in takes the status-bar clearance plus the button's own height out of
-            // the card's resting offset, which leaves the card exactly where it was.
-            val restingTop = (CardTopSpacing - SettingsButtonSize).coerceAtLeast(0.dp)
-            // The design's width, narrowed only if the display can't hold it inside the page's
-            // margins — same rule iOS applies.
-            val expandedCardWidth = minOf(
-                FullScreenCardWidth,
-                maxWidth - CodeTheme.dimens.inset * 2,
-            )
-            // How far into the expansion we are. One progress drives all of it — the card's
-            // size and position, the page fading out beneath it, the Close row — so a swipe that
-            // stops part-way is as legal a state as either end, and none of it can drift out of
-            // step with the rest.
-            //
-            // Handed down as a lambda and never read here: every consumer below reads it inside a
-            // graphicsLayer block, which the frame re-runs on its own when the value changes.
-            // Reading it in composition instead recomposed this entire page — settings list
-            // included — on every frame of the animation.
-            val progress = remember(expansion) { { expansion.progress } }
-            // The card is scaled, not re-laid-out. Animating its width made every frame re-measure
-            // the card and everything inside it: a new corner radius to clip to, a new font size
-            // for the name (a full text re-layout), and a new size for the interop View that draws
-            // the code, which re-derives the code's geometry from scratch on each draw. That is
-            // work for the UI thread, and there is more of it than a frame has time for. iOS hit
-            // the same wall and settled on one scale over a card drawn once: laid out, each of the
-            // card's metrics is a separate animatable value — and the name's font size is not
-            // animatable at all — so the parts arrive at their new sizes at different moments and
-            // overlap mid-flight. Scaled, the card travels as one figure.
-            //
-            // The card is drawn at [FullScreenCardWidth], the widest it ever gets, so the scale
-            // only ever samples the drawing down.
-            //
-            // Both widths are read here rather than inside the lambda: they are theme-backed now,
-            // and the lambda the frame calls is not a composable scope.
-            val restingCardWidth = YouCardWidth
-            val drawnCardWidth = FullScreenCardWidth
-            val cardScale = remember(expandedCardWidth, restingCardWidth, drawnCardWidth) {
-                { lerp(restingCardWidth, expandedCardWidth, progress()) / drawnCardWidth }
-            }
-            // v2's tab bar is a hoisted overlay drawn ABOVE this content, so reserve its height as
-            // bottom content padding — the list then scrolls clear of the bar instead of running
-            // under it (the version footer was landing behind it). Per-entry via LocalTabBarPadding,
-            // which is only non-zero for tab homes. v1 has no such bar.
-            //
-            // It does not animate away with the expansion. It is content padding, so every frame of
-            // it relaid the whole list — and by the time the released space could be seen, the list
-            // has already faded out and slid away under the card.
-            val bottomInset = LocalTabBarPadding.current.calculateBottomPadding()
-            // Everything but the card fades out on the expansion and slides down out of the way,
-            // rather than being removed. Keeping the rows in the layout means nothing reflows on
-            // the way back (iOS does the same with opacity + offset).
-            val slideDistance = ContentSlideDistance
-            val slideAway = remember(progress, slideDistance) {
-                Modifier.graphicsLayer {
-                    val fraction = progress()
-                    // A settled flick overshoots its end a little, so keep the fade in a legal
-                    // alpha range rather than assuming the progress is one.
-                    alpha = (1f - fraction).coerceIn(0f, 1f)
-                    translationY = slideDistance.toPx() * fraction
+            when (val profileState = state.profileState) {
+                // A named account resolves in a frame or two, and a prompt that flashed at it would
+                // be a lie. The gear is still there, so Settings is never out of reach.
+                ProfileState.Unknown -> item(key = "settings_gear") {
+                    SettingsGear(onClick = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) })
                 }
-            }
 
-            // The card doesn't hand off to a second copy of itself: the one in the list keeps its
-            // slot and is drawn travelling out of it, the way iOS offsets the card from its own
-            // measured frame. Measuring the slot (which never carries the offset) rather than the
-            // card keeps the measurement out of its own feedback loop.
-            //
-            // The slot keeps its resting size for the whole expansion: it is what the card scales
-            // out of, not something that grows with it. A slot that grew would move its own centre
-            // mid-flight, and that centre is what the shift measures from, so the card would travel
-            // against itself — a frame behind its own size the whole way.
-            var cardSlotCenterY by remember { mutableFloatStateOf(0f) }
-            val displayCenterY = LocalWindowInfo.current.containerSize.height / 2f
-            val cardShift = remember(displayCenterY, expansion) {
-                {
-                    if (cardSlotCenterY <= 0f) 0f
-                    // The overdrag rides on the card's position alone: pushed down past full
-                    // screen the card has nowhere left to go, so it gives a little where it
-                    // stands while its size and every fade hold where the expansion left them.
-                    else (displayCenterY - cardSlotCenterY) * (progress() + expansion.overdrag)
-                }
-            }
-
-            // Swiping the expanded card back up puts it away. The card's own travel is the
-            // gesture's travel: expanding walks the card DOWN out of its slot into the middle of
-            // the display — which is what the "Full Screen" chevron points at, and why "Close"
-            // points back up — so the way out is up, and a finger that covers the distance the card
-            // has left to go closes it exactly. The card stays under the finger the whole way and
-            // springs to whichever end the release picks.
-            //
-            // It goes on the page rather than on the card, as iOS's does: expanded, the card IS the
-            // page, and a pull that has to land on the card exactly is a pull that misses — the
-            // card is 302dp of a display wider than that, with live margin either side. Nothing
-            // here scrolls while the card is up (see userScrollEnabled below), so there is no
-            // scroll for the drag to take events from.
-            val density = LocalDensity.current
-            val minTravel = with(density) { MinDragTravel.toPx() }
-            val flingVelocity = with(density) { MinFlingVelocity.toPx() }
-            val touchSlop = LocalViewConfiguration.current.touchSlop
-            // The same distance cardShift moves the card, so the card keeps pace with the finger
-            // exactly. It holds still for the length of the gesture without having to be pinned:
-            // the slot it measures from no longer grows with the card.
-            val dragTravel = (displayCenterY - cardSlotCenterY).coerceAtLeast(minTravel)
-            val cardDrag = Modifier.draggable(
-                state = rememberDraggableState { delta -> expansion.dragBy(delta / dragTravel) },
-                orientation = Orientation.Vertical,
-                enabled = cardExpanded,
-                onDragStarted = { expansion.startDrag(touchSlop / dragTravel) },
-                onDragStopped = { velocity ->
-                    expansion.settle(velocity / dragTravel, flingVelocity / dragTravel)
-                },
-            )
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScrollStateGradient(scrollState = listState, isLongGradient = true)
-                    .sheetResignmentBehavior(listState)
-                    .then(cardDrag),
-                state = listState,
-                contentPadding = PaddingValues(
-                    top = restingTop,
-                    bottom = bottomInset,
-                ),
-                userScrollEnabled = !cardExpanded,
-            ) {
-                item(key = "settings_gear", contentType = "settings_gear") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .then(slideAway),
-                    ) {
-                        IconButton(
-                            onClick = {
-                                viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings))
+                is ProfileState.Unclaimed -> {
+                    // As on iOS: the header keeps its cover, avatar and Edit Profile, with no Share
+                    // (there is nothing to share yet), and the claim prompt takes the stats' place.
+                    item(key = "profile_header") {
+                        OwnProfileHeader(
+                            profile = profileState.profile,
+                            onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                            onShare = null,
+                            onClaimUsername = state.usernameProgress?.let {
+                                { viewModel.dispatchEvent(Event.ClaimUsername) }
                             },
-                            enabled = !cardExpanded,
-                            modifier = Modifier.align(Alignment.TopEnd),
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_settings_outline),
-                                contentDescription = stringResource(CoreR.string.title_settings),
-                                tint = CodeTheme.colors.textMain,
-                            )
-                        }
+                            onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                        )
+                    }
+                    item(key = "claim_prompt") {
+                        Spacer(Modifier.height(UnclaimedTopSpacing))
+                        UnclaimedTipCardPrompt(
+                            placeholder = profileState.placeholder,
+                            cardWidth = YouCardWidth,
+                            onClaim = { viewModel.dispatchEvent(Event.ClaimTipCard) },
+                        )
                     }
                 }
-                item {
-                    YouHeader(
-                        tipCardState = state.tipCardState,
-                        enabled = !cardExpanded,
-                        expansion = progress,
-                        slideAway = slideAway,
-                        cardScale = cardScale,
-                        cardShift = cardShift,
-                        onCardSlotPositioned = { cardSlotCenterY = it },
-                        onToggleFullScreen = { expansion.toggle() },
-                        onCopyLink = { viewModel.dispatchEvent(Event.CopyTipLink) },
-                        onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
-                        onDownload = { viewModel.dispatchEvent(Event.DownloadTipCard) },
-                        onClaim = { viewModel.dispatchEvent(Event.ClaimTipCard) },
-                        usernameProgress = state.usernameProgress,
-                        usernameMinimumBalance = state.usernameMinimumBalance,
-                        onClaimUsername = { viewModel.dispatchEvent(Event.ClaimUsername) },
-                        profileTutorial = state.profileTutorial,
-                        onSetProfilePicture = {
-                            viewModel.dispatchEvent(Event.SetProfilePicture)
-                        },
-                        onSetMinimumTip = {
-                            viewModel.dispatchEvent(Event.SetMinimumTip)
-                        },
-                    )
-                }
-            }
 
-            // Close sits at the foot of the display rather than under the card (node 9277:121410).
-            // It fades on the same progress as everything else rather than on a transition of its
-            // own, so a swipe held half-way leaves it half-faded instead of fully drawn.
-            // Gated on a derived boolean rather than on the progress itself: the row has to leave
-            // the layout when the card is down (nothing invisible left at the foot of the page for
-            // a tap or TalkBack to find), but reading the progress here would recompose the page
-            // every frame. Derived, it only recomposes when the answer flips.
-            val closeVisible by remember { derivedStateOf { expansion.progress > 0f } }
-            if (closeVisible) {
-                FullScreenToggle(
-                    label = stringResource(R.string.action_closeFullScreen),
-                    chevronRotation = 180f,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        // Drawn over the list, so it needs the pull too — a hand reaching for
-                        // "Close" and pulling instead is the likeliest place to start one.
-                        .then(cardDrag)
-                        .graphicsLayer { alpha = progress().coerceIn(0f, 1f) }
-                        .navigationBarsPadding()
-                        .padding(bottom = CloseBottomSpacing)
-                        .noRippleClickable(enabled = cardExpanded) { expansion.collapse() },
-                )
+                is ProfileState.Named -> {
+                    item(key = "profile_header") {
+                        OwnProfileHeader(
+                            profile = profileState.profile,
+                            onEdit = {
+                                // Slice 4 gives this its own screen; Settings is where profile
+                                // editing lives until then.
+                                viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings))
+                            },
+                            onShare = { viewModel.dispatchEvent(Event.ShareProfile) },
+                            onClaimUsername = state.usernameProgress?.let {
+                                { viewModel.dispatchEvent(Event.ClaimUsername) }
+                            },
+                            onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                        )
+                    }
+                    item(key = "stats") {
+                        ProfileStatsCard(
+                            modifier = Modifier
+                                .padding(horizontal = CodeTheme.dimens.inset)
+                                .padding(top = CodeTheme.dimens.staticGrid.x4),
+                            minimumToChat = state.minimumToChat,
+                            joined = profileState.joined,
+                        )
+                    }
+                    item(key = "bottom_spacer") { Spacer(Modifier.height(CodeTheme.dimens.grid.x4)) }
+                }
             }
         }
     }
 }
 
-/** The settings gear's touch target, which the card's resting offset is measured past. */
-private val SettingsButtonSize: Dp = 48.dp
-
-/** Distance from the status bar to the top of the tip card (node 9278:7301: 74). */
-private val CardTopSpacing: Dp
-    @Composable get() = CodeTheme.dimens.grid.x15
+/** The viewer's profile header with the settings gear over the cover's top trailing corner. */
+@Composable
+private fun OwnProfileHeader(
+    profile: UserProfile?,
+    onEdit: () -> Unit,
+    onShare: (() -> Unit)?,
+    onClaimUsername: (() -> Unit)?,
+    onSettings: () -> Unit,
+) {
+    // The header is what scrolls under the gear, so it is the gear's frosting source.
+    val hazeState = rememberHazeState()
+    Box {
+        ProfileHeader(
+            modifier = Modifier.hazeSource(hazeState),
+            cover = profile?.coverPicture,
+            // The viewer's own blobs, so no profile id is needed to authorize re-minting them.
+            access = BlobAccessContext.Owned,
+            avatar = { modifier ->
+                ContactAvatar(
+                    image = profile?.profilePicture,
+                    displayName = profile?.displayName.orEmpty(),
+                    access = BlobAccessContext.Owned,
+                    modifier = modifier,
+                )
+            },
+            title = profile?.displayName?.ifEmpty { null },
+            subtitle = profile?.username?.takeIf { it.isNotEmpty() }?.let { "@$it" },
+            body = profile?.bio?.ifEmpty { null },
+            // As on iOS: a one-line offer under the handle while there is no handle, or only an
+            // auto-assigned one. The tap goes through the balance gate like the old progress card.
+            underSubtitle = {
+                if (onClaimUsername != null) {
+                    Text(
+                        modifier = Modifier
+                            .padding(top = CodeTheme.dimens.staticGrid.x1)
+                            .clickable(onClick = onClaimUsername)
+                            .padding(vertical = CodeTheme.dimens.staticGrid.x1)
+                            .testTag("you-claim-username"),
+                        text = stringResource(R.string.action_claimYourUsernameLink),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textMain,
+                    )
+                }
+            },
+            actions = {
+                ProfileActionButton(
+                    text = stringResource(R.string.action_editProfile),
+                    onClick = onEdit,
+                )
+                // Only a named profile has something to share.
+                if (onShare != null) {
+                    ProfileActionButton(
+                        icon = ImageVector.vectorResource(R.drawable.ic_share_os),
+                        contentDescription = stringResource(R.string.action_share),
+                        onClick = onShare,
+                    )
+                }
+            },
+        )
+        SettingsGear(
+            modifier = Modifier.align(Alignment.TopEnd),
+            onClick = onSettings,
+            hazeState = hazeState,
+        )
+    }
+}
 
 /**
- * The card at rest (node 9278:7301: 241.636) and expanded (node 9277:121410: 302.21), both measured
- * on a 402-wide frame and kept here as the fraction of the display they were drawn at rather than
- * the dp they happened to measure on it. iOS pins 302 outright; as a fraction the card holds its
- * proportion of a narrower or wider display instead of crowding one and stranding the other.
+ * The settings gear, clear of the status bar. Over the cover it frosts the picture behind it
+ * ([hazeState]); with no cover to frost (an account still loading or unnamed) it falls back to the
+ * flat translucent fill.
+ */
+@Composable
+private fun SettingsGear(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
+) {
+    ProfileBarButton(
+        icon = R.drawable.ic_settings_outline,
+        contentDescription = stringResource(CoreR.string.title_settings),
+        onClick = onClick,
+        modifier = modifier,
+        hazeState = hazeState,
+        testTag = "you-settings",
+    )
+}
+
+/**
+ * The resting card's width (node 9278:7301: 241.636), kept as the fraction of a 402-wide display it
+ * was drawn at rather than the dp it happened to measure on it.
  */
 private const val YouCardWidthFraction = 0.60f
-private const val FullScreenCardWidthFraction = 0.75f
 
 private val YouCardWidth: Dp
     @Composable get() = CodeTheme.dimens.screenWidth * YouCardWidthFraction
 
-private val FullScreenCardWidth: Dp
-    @Composable get() = CodeTheme.dimens.screenWidth * FullScreenCardWidthFraction
-
-/** Gap between the Close row and the system nav bar (node 9277:121410). */
-private val CloseBottomSpacing: Dp
-    @Composable get() = CodeTheme.dimens.grid.x2
-
-/** How far the page's content slides down as it fades out under the expanding card. */
-private val ContentSlideDistance: Dp
-    @Composable get() = CodeTheme.dimens.grid.x12
-
-/**
- * How much of the expansion the "Full Screen" caption has to be gone within — a fraction of the
- * progress, not of the duration, so a slow drag fades it on exactly the terms a spring does.
- *
- * It is short because the card is chasing it. The card's lower edge travels down from the slot at
- * the sum of its own growth and its shift to the middle of the display — about 224dp of travel per
- * unit of progress on a 1080x2424 screen, and more on a taller one — against the 24dp of clearance
- * between the two. So the card is over this spot by a tenth of the way out, and the caption cannot
- * still be legible when it gets there.
- */
-private const val CaptionFadeTravel = 0.08f
-
-/**
- * The "You" tab header (node 9276:4634): the viewer's own tip card with a "Full Screen" affordance,
- * the copyable tip link, and the Share / Download tiles.
- *
- * An account with no display name has no card yet, and gets [UnclaimedTipCardPrompt] in its place
- * rather than an empty page. Nothing is drawn while the state is still [TipCardState.Unknown] — a
- * named account resolves in a frame or two, and a prompt that flashed at it would be a lie.
- */
-@Composable
-private fun YouHeader(
-    tipCardState: TipCardState,
-    enabled: Boolean,
-    expansion: () -> Float,
-    slideAway: Modifier,
-    cardScale: () -> Float,
-    cardShift: () -> Float,
-    onCardSlotPositioned: (Float) -> Unit,
-    onToggleFullScreen: () -> Unit,
-    onCopyLink: () -> Unit,
-    onShare: () -> Unit,
-    onDownload: () -> Unit,
-    onClaim: () -> Unit,
-    usernameProgress: UsernameProgress?,
-    usernameMinimumBalance: String,
-    onClaimUsername: () -> Unit,
-    profileTutorial: List<TutorialItem.Profile>?,
-    onSetProfilePicture: () -> Unit,
-    onSetMinimumTip: () -> Unit,
-) {
-    when (tipCardState) {
-        TipCardState.Unknown -> Unit
-        is TipCardState.Unclaimed -> UnclaimedTipCardPrompt(
-            placeholder = tipCardState.placeholder,
-            // An unclaimed stand-in never expands, so it is only ever the resting card.
-            cardWidth = YouCardWidth,
-            enabled = enabled,
-            onClaim = onClaim,
-            profileTutorial = profileTutorial,
-            onSetProfilePicture = onSetProfilePicture,
-            onSetMinimumTip = onSetMinimumTip,
-        )
-        is TipCardState.Claimed -> ClaimedTipCard(
-            card = tipCardState.card,
-            link = tipCardState.link,
-            enabled = enabled,
-            expansion = expansion,
-            slideAway = slideAway,
-            cardScale = cardScale,
-            cardShift = cardShift,
-            onCardSlotPositioned = onCardSlotPositioned,
-            onToggleFullScreen = onToggleFullScreen,
-            onCopyLink = onCopyLink,
-            onShare = onShare,
-            onDownload = onDownload,
-            usernameProgress = usernameProgress,
-            usernameMinimumBalance = usernameMinimumBalance,
-            onClaimUsername = onClaimUsername,
-            profileTutorial = profileTutorial,
-            onSetDisplayName = onClaim,
-            onSetProfilePicture = onSetProfilePicture,
-            onSetMinimumTip = onSetMinimumTip,
-        )
-    }
-}
-
-/**
- * The claimed card and everything that hangs off it.
- *
- * The caller drives the full-screen state: it scales the card ([cardScale]) and draws it out of its
- * slot towards the middle of the display ([cardShift], off the slot position reported by
- * [onCardSlotPositioned]). It also hands down [slideAway] — the fade-and-slide every non-card
- * element shares — plus [expansion] for the caption, which iOS fades in place rather than sliding.
- *
- * All four arrive as lambdas so they are read inside the graphics layers that use them, off the
- * composition. Read as values, the whole page would recompose on every frame of the animation.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ClaimedTipCard(
-    card: Scannable.TipCard,
-    link: String?,
-    enabled: Boolean,
-    expansion: () -> Float,
-    slideAway: Modifier,
-    cardScale: () -> Float,
-    cardShift: () -> Float,
-    onCardSlotPositioned: (Float) -> Unit,
-    onToggleFullScreen: () -> Unit,
-    onCopyLink: () -> Unit,
-    onShare: () -> Unit,
-    onDownload: () -> Unit,
-    usernameProgress: UsernameProgress?,
-    usernameMinimumBalance: String,
-    onClaimUsername: () -> Unit,
-    profileTutorial: List<TutorialItem.Profile>?,
-    onSetDisplayName: () -> Unit,
-    onSetProfilePicture: () -> Unit,
-    onSetMinimumTip: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Static display (no camera behind the card): render it opaque at the design's flattened
-        // colour rather than the translucent frosted fill. Figma flattens the card to rgb(16,16,17).
-        CompositionLocalProvider(
-            LocalTipCardColor provides Color(0xFF101011),
-            LocalTipCardBaseAlpha provides 1f,
-        ) {
-            Box(
-                modifier = Modifier
-                    // The card pads itself off the status bar for the full-screen overlay; here the
-                    // list's content padding already owns that clearance, so consume the inset
-                    // rather than paying it twice.
-                    .consumeWindowInsets(WindowInsets.statusBarsIgnoringVisibility)
-                    // The slot is the card at rest, pinned: the card grows by scaling out of it,
-                    // so the slot's centre — which cardShift measures from — has to hold still.
-                    .size(YouCardWidth, YouCardWidth * TipCardAspectRatio)
-                    .onGloballyPositioned { onCardSlotPositioned(it.boundsInRoot().center.y) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        // Measured unbounded so the card can be drawn at its full width inside the
-                        // smaller slot; the slot's constraints would otherwise squeeze it back down
-                        // to the resting size and there would be nothing to scale up to.
-                        .wrapContentSize(unbounded = true)
-                        // Ahead of the gesture modifiers, so the drag and the tap travel with the
-                        // card rather than staying behind at the slot it left. Both reads happen
-                        // here rather than in composition: the layer re-runs this block by itself
-                        // when they change, which is a render-node transform and no relayout.
-                        .graphicsLayer {
-                            val scale = cardScale()
-                            scaleX = scale
-                            scaleY = scale
-                            translationY = cardShift()
-                        }
-                        .noRippleClickable { onToggleFullScreen() },
-                ) {
-                    ScannableRenderer(scannable = card, tipCardWidth = FullScreenCardWidth)
-                }
-            }
-        }
-
-        Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
-
-        // The caption belongs to the card, so it fades where it stands instead of sliding off with
-        // the rest of the page — and it is gone well before the card is over it. The caption is a
-        // later sibling than the card and so paints on top of it, while the card grows and travels
-        // down across this very spot; faded over the whole expansion it would still be legible at
-        // the point it ends up printed across the card's face. See [CaptionFadeTravel].
-        FullScreenToggle(
-            label = stringResource(R.string.action_viewFullScreen),
-            chevronRotation = 0f,
-            modifier = Modifier
-                .graphicsLayer { alpha = (1f - expansion() / CaptionFadeTravel).coerceIn(0f, 1f) }
-                .noRippleClickable { onToggleFullScreen() },
-        )
-
-        // Everything under the card gets out of the way so the card can own the display.
-        Column(
-            modifier = slideAway.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.grid.x5),
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-            ) {
-                // Node 9641:17031 puts the checklist directly under the caption, above the
-                // link row. Null while the profile is unresolved so it never draws against a
-                // guess.
-                if (profileTutorial != null) {
-                    ProfileTutorial(
-                        items = profileTutorial,
-                        onSetDisplayName = onSetDisplayName,
-                        onSetProfilePicture = onSetProfilePicture,
-                        onSetMinimumTip = onSetMinimumTip,
-                    )
-
-                    // Node 9641:17048 separates the checklist from the link row. The column
-                    // already spaces siblings by 10dp; the rest of the 20dp gap on each side is
-                    // the divider's own padding.
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
-                        color = CodeTheme.colors.divider,
-                        thickness = CodeTheme.dimens.border,
-                    )
-                }
-
-                if (link != null) {
-                    TipLinkRow(link = link, enabled = enabled, onCopy = onCopyLink)
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(CodeTheme.dimens.grid.x18),
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                ) {
-                    ShareTile(
-                        modifier = Modifier.weight(1f),
-                        icon = R.drawable.ic_share_os,
-                        label = stringResource(R.string.action_share),
-                        enabled = enabled,
-                        onClick = onShare,
-                    )
-                    ShareTile(
-                        modifier = Modifier.weight(1f),
-                        icon = R.drawable.ic_file_download,
-                        label = stringResource(R.string.action_download),
-                        enabled = enabled,
-                        onClick = onDownload,
-                    )
-                }
-
-                // Only under a claimed card: an account with no display name is already being asked
-                // for one, and a second nudge under the blurred stand-in isn't in the design. Gone
-                // entirely once a handle exists — the caller nulls it out.
-                if (usernameProgress != null) {
-                    UsernameProgressCard(
-                        progress = usernameProgress,
-                        minimumBalance = usernameMinimumBalance,
-                        onClick = onClaimUsername,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(CodeTheme.dimens.grid.x4))
-        }
-    }
-}
+/** Gap between the header and the unclaimed stand-in (iOS 24). */
+private val UnclaimedTopSpacing: Dp
+    @Composable get() = CodeTheme.dimens.staticGrid.x5
 
 /**
  * What the "You" tab shows before the account has a display name: the card it *would* have, blurred
@@ -627,8 +272,8 @@ private fun ClaimedTipCard(
  *
  * The stand-in is the account's real scannable payload drawn over an unnamed profile, with the
  * card's own fill turned off so the 8% ground shows through — the same construction iOS uses. It is
- * decoration: not tappable, not expandable, not shareable, and the tip link and Share / Download
- * tiles are absent entirely, because there is nothing yet to link to or share.
+ * decoration: not tappable, not expandable, not shareable. It takes the stats card's place under the
+ * header, and the header drops its Share button, because there is nothing yet to share.
  *
  * [blurEnabled] is haze's own API-31 gate, surfaced so a preview can render what an API 29/30
  * device draws (see `Preview_UnclaimedTipCardPrompt_NoBlur`). Leave it at the default in app code.
@@ -638,11 +283,7 @@ private fun ClaimedTipCard(
 private fun UnclaimedTipCardPrompt(
     placeholder: Scannable.TipCard?,
     cardWidth: Dp,
-    enabled: Boolean,
     onClaim: () -> Unit,
-    profileTutorial: List<TutorialItem.Profile>?,
-    onSetProfilePicture: () -> Unit,
-    onSetMinimumTip: () -> Unit,
     blurEnabled: Boolean = HazeBlurDefaults.isBlurEnabledByDefault(),
 ) {
     val shape = RoundedCornerShape(cardWidth * TipCardCornerFraction)
@@ -700,7 +341,7 @@ private fun UnclaimedTipCardPrompt(
                 }
 
                 CompositionLocalProvider(
-                    LocalTipCardColor provides Color(0xFF101011),
+                    LocalTipCardColor provides TipCardFlattened,
                     // Fill off, so the placeholder ground behind it is what's frosted, not an opaque card.
                     LocalTipCardBaseAlpha provides 0f,
                 ) {
@@ -743,7 +384,7 @@ private fun UnclaimedTipCardPrompt(
                         .padding(top = CodeTheme.dimens.grid.x4)
                         .clip(CircleShape)
                         .background(CodeTheme.colors.textMain)
-                        .clickable(enabled = enabled, onClick = onClaim)
+                        .clickable(onClick = onClaim)
                         .padding(
                             horizontal = CodeTheme.dimens.grid.x5,
                             vertical = CodeTheme.dimens.grid.x2,
@@ -755,44 +396,7 @@ private fun UnclaimedTipCardPrompt(
             }
         }
 
-        // No link row or Share / Download to sit above here, so the checklist goes straight under
-        // the stand-in, with the display-name step first.
-        if (profileTutorial != null) {
-            ProfileTutorial(
-                modifier = Modifier
-                    .padding(top = CodeTheme.dimens.grid.x6)
-                    .padding(horizontal = CodeTheme.dimens.grid.x5),
-                items = profileTutorial,
-                // The same destination as "Start Receiving Tips": the name is what claims the card.
-                onSetDisplayName = onClaim,
-                onSetProfilePicture = onSetProfilePicture,
-                onSetMinimumTip = onSetMinimumTip,
-            )
-        }
-
         Spacer(Modifier.height(UnclaimedRowsGap))
-    }
-}
-
-/** The "Finish Your Profile" checklist, drawn under whichever card the tab is showing. */
-@Composable
-private fun ProfileTutorial(
-    items: List<TutorialItem.Profile>,
-    onSetDisplayName: () -> Unit,
-    onSetProfilePicture: () -> Unit,
-    onSetMinimumTip: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    NewUserTutorial(
-        modifier = modifier.fillMaxWidth(),
-        title = stringResource(R.string.title_finishYourProfile),
-        items = items,
-    ) { item ->
-        when (item) {
-            is TutorialItem.DisplayName -> onSetDisplayName()
-            is TutorialItem.ProfilePicture -> onSetProfilePicture()
-            is TutorialItem.MinimumTip -> onSetMinimumTip()
-        }
     }
 }
 
@@ -812,155 +416,11 @@ private val PromptInset: Dp
     @Composable get() = CodeTheme.dimens.grid.x2
 
 /**
- * Gap between the unclaimed stand-in and the first settings row. Wider than the claimed card's 19,
- * because the claimed card pays part of its clearance in the Share / Download tiles that the
- * unclaimed state doesn't draw (iOS `YouScreen`: `.padding(.top, displayName == nil ? 48 : 19)`).
+ * Gap below the unclaimed stand-in. Wider than the claimed card's 19, because the claimed
+ * card pays part of its clearance in the action buttons that the unclaimed state doesn't draw (iOS `YouScreen`: `.padding(.top, displayName == nil ? 48 : 19)`).
  */
 private val UnclaimedRowsGap: Dp
     @Composable get() = CodeTheme.dimens.grid.x10
-
-/**
- * The label + chevron that toggles the card's full-screen state — "Full Screen" pointing down under
- * the resting card (node 9276:4634), "Close" pointing up at the foot of the expanded one
- * (node 9277:121410). One glyph, flipped, so the two read as the same control.
- */
-@Composable
-private fun FullScreenToggle(
-    label: String,
-    chevronRotation: Float,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-    ) {
-        Text(
-            text = label,
-            style = CodeTheme.typography.textSmall,
-            color = White50,
-        )
-        Icon(
-            modifier = Modifier
-                .size(16.dp)
-                .rotate(chevronRotation),
-            painter = painterResource(R.drawable.ic_chevron_down_medium),
-            contentDescription = null,
-            tint = White50,
-        )
-    }
-}
-
-/** The tip link, tap-to-copy (node 9276:4748). Shown short — the full URL goes to the clipboard. */
-@Composable
-private fun TipLinkRow(link: String, enabled: Boolean, onCopy: () -> Unit) {
-    // Bumped rather than latched so a second tap restarts the hold instead of being swallowed.
-    var copyToken by remember { mutableIntStateOf(0) }
-    val copied = copyToken > 0
-
-    LaunchedEffect(copyToken) {
-        if (copyToken > 0) {
-            delay(CopyConfirmationMillis)
-            copyToken = 0
-        }
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(CodeTheme.dimens.grid.x8)
-            .clip(CodeTheme.shapes.extraSmall)
-            .background(White05)
-            .clickable(enabled = enabled) {
-                onCopy()
-                copyToken++
-            }
-            .padding(horizontal = CodeTheme.dimens.grid.x3),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Row(
-            modifier = Modifier.weight(1f, fill = false),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-        ) {
-            Icon(
-                modifier = Modifier.size(20.dp),
-                painter = painterResource(R.drawable.ic_chain_link),
-                contentDescription = null,
-                tint = White,
-            )
-            Text(
-                text = link.abbreviatedLink(),
-                style = CodeTheme.typography.textSmall.copy(fontSize = 15.sp),
-                color = White.copy(alpha = 0.7f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        // Confirms the copy landed, then hands the row back to the copy glyph (mirrors iOS
-        // TipCardLinkRow) — the clipboard gives no feedback of its own.
-        Crossfade(
-            targetState = copied,
-            animationSpec = tween(CopyIconFadeMillis, easing = EaseInOut),
-            label = "copyConfirmation",
-        ) { showCheck ->
-            Icon(
-                modifier = Modifier.size(20.dp),
-                painter = painterResource(
-                    if (showCheck) R.drawable.ic_check_circle else R.drawable.ic_copy
-                ),
-                contentDescription = null,
-                tint = White,
-            )
-        }
-    }
-}
-
-/** How long the copy button holds the checkmark before reverting (iOS: 1.5s). */
-private const val CopyConfirmationMillis = 1_500L
-
-/** Cross-fade between the copy and confirmation glyphs (iOS: 0.15s ease-in-out). */
-private const val CopyIconFadeMillis = 150
-
-/**
- * One of the two square-ish actions under the link (node 9276:4756). The tile's height is fixed by
- * the parent row and the arrangement centres its contents, so it takes no vertical padding of its
- * own: 20dp of it on each side left the label a 14dp box for a 16dp line and clipped its descenders.
- */
-@Composable
-private fun ShareTile(
-    modifier: Modifier = Modifier,
-    icon: Int,
-    label: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .clip(CodeTheme.shapes.extraSmall)
-            .background(White05)
-            .clickable(enabled = enabled) { onClick() },
-        verticalArrangement = Arrangement.spacedBy(
-            CodeTheme.dimens.grid.x1,
-            Alignment.CenterVertically,
-        ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            modifier = Modifier.size(28.dp),
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = White,
-        )
-        Text(
-            text = label,
-            style = CodeTheme.typography.textSmall,
-            color = White50,
-        )
-    }
-}
 
 private val PreviewCodeData = listOf(
     0xA5, 0x3C, 0xD7, 0x8B, 0x14, 0xE9, 0x62, 0xF0,
@@ -978,12 +438,7 @@ private fun Preview_UnclaimedTipCardPrompt() {
     UnclaimedTipCardPrompt(
         placeholder = Scannable.TipCard(data = PreviewCodeData, user = UserProfile.Empty),
         cardWidth = YouCardWidth,
-        enabled = true,
         onClaim = {},
-        // What a nameless account sees: the display-name step first, nothing done yet.
-        profileTutorial = profileTutorialItems(UserProfile.Empty),
-        onSetProfilePicture = {},
-        onSetMinimumTip = {},
     )
 }
 
@@ -999,11 +454,7 @@ private fun Preview_UnclaimedTipCardPrompt_NoBlur() {
     UnclaimedTipCardPrompt(
         placeholder = Scannable.TipCard(data = PreviewCodeData, user = UserProfile.Empty),
         cardWidth = YouCardWidth,
-        enabled = true,
         onClaim = {},
-        profileTutorial = null,
-        onSetProfilePicture = {},
-        onSetMinimumTip = {},
         blurEnabled = false,
     )
 }
