@@ -228,7 +228,7 @@ internal data class AttachMetrics(
     val menuCorner: Dp,
     /** The composer field's padding: the menu's leading edge sits this far out from "+"'s. */
     val fieldPadding: Dp,
-    /** The menu reaches out past the field to this inset from the screen's edge, over the "$" button. */
+    /** The menu reaches out past the field to this inset from the screen's edge. */
     val menuLeadingInset: Dp,
     /** Height of a one-line composer field plus its padding: iOS `BarMetrics.contentHeight`. */
     val barContentHeight: Dp,
