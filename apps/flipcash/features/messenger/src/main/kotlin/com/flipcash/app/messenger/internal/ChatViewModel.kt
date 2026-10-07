@@ -57,6 +57,9 @@ import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.JoinChatError
+import com.flipcash.services.models.chat.SampledChatter
+import com.flipcash.app.messenger.internal.screens.profile.GroupBalanceRequirements
+import com.flipcash.app.messenger.internal.screens.profile.GroupProfileStanding
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
@@ -183,6 +186,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -398,6 +402,24 @@ internal class ChatViewModel @Inject constructor(
          * the whole round trip and read as dead — which is what it looked like before it had one.
          */
         val joinProgress: LoadingSuccessState = LoadingSuccessState(),
+        /** A leave is out, so the profile's Leave Chat shows a spinner and cannot be tapped again. */
+        val leaving: Boolean = false,
+        /**
+         * What the group's profile pins and states about the viewer's balance, decided with the
+         * live balance and rates. Null until they arrive, and for anything that is not a group.
+         */
+        val profileStanding: GroupProfileStanding? = null,
+        /**
+         * The name of each token a balance rule on the profile names, by the mint's bytes: the join
+         * and chat rows can name different ones, so the single [ruleCurrency] is not enough. A mint
+         * the cache has not resolved is absent.
+         */
+        val ruleTokens: Map<List<Byte>, RuleCurrency> = emptyMap(),
+        /**
+         * Who has been chatting in a public group, as of the last time its profile opened. Empty for
+         * a private group and when the sample could not be had.
+         */
+        val chatters: List<SampledChatter> = emptyList(),
         /**
          * The quick strip's entries for [selection], recomposed whenever the selected message
          * changes — empty while nothing is selected, while the selected message can't be reacted
@@ -580,6 +602,15 @@ internal class ChatViewModel @Inject constructor(
          */
         val offersGroupInvite: Boolean
             get() = groupInviteUrl != null
+
+        /**
+         * The same link without the membership check, for the profile's Share, which is offered to
+         * anyone looking at the group: the link is the chat's id and gives a recipient nothing the
+         * chat's own page would not. [groupInviteUrl] stays member-only, since it decides whether the
+         * transcript offers its own invite.
+         */
+        val shareableGroupInviteUrl: String?
+            get() = (subject as? ChatSubject.Group)?.let { Linkify.groupChatInvite(it.chatId) }
     }
 
     /**
@@ -649,6 +680,15 @@ internal class ChatViewModel @Inject constructor(
 
         /** The leave went through, so whatever is showing the group's profile should close. */
         data object LeftChat : Event
+
+        /** The leave did not go through; the profile stays up and the button comes back. */
+        data object LeaveFailed : Event
+
+        /** The group's profile came on screen: sample its chatters and fill in a missing cover. */
+        data object GroupProfileOpened : Event
+        data class OnChattersLoaded(val chatters: List<SampledChatter>) : Event
+        data class OnProfileStandingResolved(val standing: GroupProfileStanding?) : Event
+        data class OnRuleTokensResolved(val tokens: Map<List<Byte>, RuleCurrency>) : Event
 
         /** This chat's viewer state moved, from the stream or from the viewer's own request. */
         data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
@@ -1704,6 +1744,98 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnRuleCurrencyResolved(it)) }
             .launchIn(viewModelScope)
 
+        // The profile names the token behind both the join and the chat row, which may differ.
+        // Each is fetched like the gate's, and a mint that never resolves does not hold the others
+        // back: it simply stays unnamed.
+        stateFlow.map { state ->
+            GroupBalanceRequirements.from((state.subject as? ChatSubject.Group)?.rules)
+                ?.let { listOfNotNull(it.join, it.chat) }.orEmpty()
+                .mapNotNull { it.mints.firstOrNull()?.let { mint -> Mint(mint.bytes) } }
+                .distinct()
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { mints ->
+                if (mints.isEmpty()) {
+                    flowOf(emptyMap())
+                } else {
+                    combine(
+                        mints.map { mint ->
+                            tokenCoordinator.observeRuleToken(mint)
+                                .map<Token, Pair<List<Byte>, RuleCurrency>?> {
+                                    mint.bytes to RuleCurrency(it.brandedName(resources), it.isReserve)
+                                }
+                                .onStart { emit(null) }
+                        }
+                    ) { named -> named.filterNotNull().toMap() }
+                }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnRuleTokensResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // What the profile's pinned button does and says, re-decided as the balance and rates move.
+        stateFlow.map { it.subject as? ChatSubject.Group }
+            .distinctUntilChanged()
+            .flatMapLatest { group ->
+                if (group == null) {
+                    flowOf(null)
+                } else {
+                    combine(
+                        tokenCoordinator.tokenBalances,
+                        userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+                        exchange.observeRates(),
+                    ) { balances, staff, rates ->
+                        GroupProfileStanding.of(
+                            isMember = group.isMember == true,
+                            rules = group.rules,
+                            balances = balances,
+                            isStaff = staff,
+                            rates = rates,
+                            viewerId = userManager.accountId,
+                            creatorId = group.creator,
+                        )
+                    }
+                }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnProfileStandingResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // Sampled as soon as a public group resolves, so the profile has its grid on the way in
+        // rather than popping it in after the push, and again each time the profile opens: this
+        // view model outlives the screen, and who is chatting is a thing that moves. The list on
+        // screen stays until the new one lands. A private group's sampling is denied, so it is
+        // not asked; a failure reads as nobody to show.
+        merge(
+            stateFlow.map { (it.subject as? ChatSubject.Group)?.takeUnless { group -> group.isPrivate }?.chatId }
+                .filterNotNull()
+                .distinctUntilChanged(),
+            eventFlow.filterIsInstance<Event.GroupProfileOpened>().mapNotNull { stateFlow.value.chatId },
+        ).onEach { chatId ->
+            val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+            if (group.isPrivate) {
+                dispatchEvent(Event.OnChattersLoaded(emptyList()))
+                return@onEach
+            }
+            val chatters = chatCoordinator.sampleChatters(chatId)
+                .onFailure { trace("failed to sample chatters - ${it.localizedMessage}") }
+                .getOrNull()?.chatters
+            // A failed refresh keeps what is already showing; only a first failure hides the grid.
+            if (chatters != null || stateFlow.value.chatters.isEmpty()) {
+                dispatchEvent(Event.OnChattersLoaded(chatters.orEmpty()))
+            }
+        }.launchIn(viewModelScope)
+
+        // A row that came from the feed can lack the cover the profile shows; GetChat has it. The
+        // stored metadata updates and OnGroupResolved carries it into the subject.
+        eventFlow.filterIsInstance<Event.GroupProfileOpened>()
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+                if (group.coverPicture == null) chatCoordinator.refreshCover(chatId)
+            }
+            .launchIn(viewModelScope)
+
         // Re-resolved whenever membership or the rules move, and internally whenever the balance
         // does. flatMapLatest rather than combine because the balance flow is the inner one: a new
         // subject must cancel the gate it was deciding, not race it.
@@ -2070,9 +2202,9 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         // Read off the state rather than carried on the event, so the row that copies the link and
-        // the row that shares it are handing out the one url [State.groupInviteUrl] builds.
+        // the row that shares it are handing out the one url [State.shareableGroupInviteUrl] builds.
         eventFlow.filterIsInstance<Event.CopyInviteLink>()
-            .mapNotNull { stateFlow.value.groupInviteUrl }
+            .mapNotNull { stateFlow.value.shareableGroupInviteUrl }
             .onEach { url ->
                 clipboardManager.setText(
                     text = url,
@@ -2211,7 +2343,7 @@ internal class ChatViewModel @Inject constructor(
         eventFlow.filterIsInstance<Event.LeaveChat>()
             .mapNotNull { stateFlow.value.subject as? ChatSubject.Group }
             .onEach { group ->
-                BottomBarManager.showAlert(
+                BottomBarManager.showInfo(
                     title = resources.getString(
                         R.string.prompt_title_leaveChat,
                         group.title,
@@ -2238,6 +2370,7 @@ internal class ChatViewModel @Inject constructor(
                     .onSuccess { dispatchEvent(Event.LeftChat) }
                     .onFailure {
                         trace("failed to leave chat - ${it.localizedMessage}")
+                        dispatchEvent(Event.LeaveFailed)
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_failedToLeave),
                             message = resources.getString(R.string.error_description_failedToLeave),
@@ -2834,6 +2967,9 @@ internal class ChatViewModel @Inject constructor(
                             rules = metadata.rules,
                             isMember = event.membership.isMember,
                             creator = metadata.creator,
+                            description = metadata.description,
+                            coverPicture = metadata.coverPicture,
+                            isPrivate = metadata.isPrivate,
                         ),
                         chatType = ChatType.GROUP,
                         resolveState = ResolveState.Resolved,
@@ -2868,9 +3004,12 @@ internal class ChatViewModel @Inject constructor(
                 is Event.GateFundingTapped,
                 Event.GroupInfoOpened,
                 Event.InviteCardFollowed,
-                Event.LeaveChat,
-                Event.LeaveConfirmed,
-                Event.LeftChat -> { state -> state }
+                Event.LeaveChat, Event.GroupProfileOpened -> { state -> state }
+                is Event.OnChattersLoaded -> { state -> state.copy(chatters = event.chatters) }
+                is Event.OnProfileStandingResolved -> { state -> state.copy(profileStanding = event.standing) }
+                is Event.OnRuleTokensResolved -> { state -> state.copy(ruleTokens = event.tokens) }
+                Event.LeaveConfirmed -> { state -> state.copy(leaving = true) }
+                Event.LeftChat, Event.LeaveFailed -> { state -> state.copy(leaving = false) }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the

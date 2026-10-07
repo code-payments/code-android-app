@@ -160,11 +160,13 @@ internal fun PersonProfileScreen(
                     subtitle = state.participant?.handle?.takeIf { it != state.participant?.name },
                     // Until the whole profile is here a missing bio means nothing, so it is not shown.
                     body = person?.profile?.bio?.takeIf { state.isFullProfileLoaded },
-                    actions = {
-                        // As on iOS: "Muted until 5:56 PM" for a timed mute, and gone once it lapses.
+                    // On the cover's bottom edge beside the avatar: the cover is a fixed height, so
+                    // a mute state that arrives late never shifts the header, and Share keeps the row.
+                    onCover = {
+                        // "Muted until 5:56 PM" for a timed mute, and gone once it lapses.
                         val mutedLabel = rememberMutedLabel(state.viewerState)
-                        // iOS spaces the chips 8 apart and keeps the row's 12 before Share.
-                        if (state.isBlocked || mutedLabel != null) Row(
+                        Row(
+                            modifier = Modifier.weight(1f, fill = false),
                             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -172,15 +174,21 @@ internal fun PersonProfileScreen(
                                 ProfileStatusChip(
                                     icon = Icons.Outlined.Block,
                                     text = stringResource(R.string.label_blocked),
+                                    overCover = true,
                                 )
                             }
                             if (mutedLabel != null) {
                                 ProfileStatusChip(
+                                    modifier = Modifier.weight(1f, fill = false),
                                     icon = Icons.Outlined.NotificationsOff,
                                     text = mutedLabel,
+                                    compactText = stringResource(R.string.label_muted),
+                                    overCover = true,
                                 )
                             }
                         }
+                    },
+                    actions = {
                         if (person != null) {
                             ProfileActionButton(
                                 icon = ImageVector.vectorResource(R.drawable.ic_share_os),

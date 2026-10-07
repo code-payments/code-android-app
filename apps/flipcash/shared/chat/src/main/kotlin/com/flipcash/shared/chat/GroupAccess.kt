@@ -10,6 +10,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.sum
+import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -246,12 +247,6 @@ private fun ChatRuleRequirement.isUnmet(
     viewerId: ID? = null,
     creatorId: ID? = null,
 ): Boolean {
-    // Keyed by bytes, not by the key object: `class Mint(bytes) : PublicKey(bytes)`
-    // (libs/encryption/keys/.../Mint.kt), so the `PublicKey`s in `mints` are not `Mint`s and
-    // a map keyed by `Mint` would miss every one of them.
-    val byMint: Map<List<Byte>, Fiat> =
-        balances.associate { it.token.address.bytes to it.balance }
-
     return when (this) {
         is ChatRuleRequirement.MinimumBalance -> {
             // Balances are held in USD; a requirement in another currency is restated through
@@ -261,11 +256,7 @@ private fun ChatRuleRequirement.isUnmet(
             // qualifies for as long as the rate table lacks that currency.
             // [GroupAccess.Undetermined] is how the listener gate admits it is guessing.
             val required = amount.usdValue(rates) ?: return false
-            val held = if (mints.isEmpty()) {
-                byMint.values.sum()
-            } else {
-                mints.mapNotNull { byMint[it.bytes] }.maxOrNull()
-            }
+            val held = heldAgainst(mints, balances)
             // Compared at display precision, the held side rounded half-up to cents
             // (`Fiat.toDouble`), and a total rounded once, after adding: a balance the wallet shows as $5.00 meets a $5 bar even
             // when its exact worth is $4.998, and $4.995 passes too. A launchpad
@@ -294,10 +285,52 @@ private fun ChatRuleRequirement.isUnmet(
 }
 
 /**
+ * What the viewer holds toward a minimum balance naming [mints], in USD, or null when [mints] is
+ * non-empty and none of them is held.
+ *
+ * The largest single balance among the named mints, not their sum: the requirement is "hold $100 of
+ * this", and two unrelated $60 positions are not that. An empty [mints] names no token in
+ * particular and is measured against everything held, added up. This is the one measurement the
+ * gate ([isUnmet]) and a screen that shows the viewer's own balance both read.
+ */
+fun heldAgainst(mints: List<PublicKey>, balances: List<TokenWithBalance>): Fiat? {
+    // Keyed by bytes, not by the key object: `class Mint(bytes) : PublicKey(bytes)`
+    // (libs/encryption/keys/.../Mint.kt), so the `PublicKey`s in `mints` are not `Mint`s and
+    // a map keyed by `Mint` would miss every one of them.
+    val byMint: Map<List<Byte>, Fiat> =
+        balances.associate { it.token.address.bytes to it.balance }
+    return if (mints.isEmpty()) {
+        byMint.values.sum()
+    } else {
+        mints.mapNotNull { byMint[it.bytes] }.maxOrNull()
+    }
+}
+
+/**
+ * Every unmet rule in the order iOS's speaker verdict lists them: the listener rules first, then
+ * the speaker rules. Empty when the viewer may speak.
+ *
+ * [resolveSpeakerBlock] names the first minimum balance for the composer; a caller that needs the
+ * last one (the chat's own bar, which also covers the join bar) reads it from here.
+ */
+fun unmetRequirements(
+    rules: ChatRules?,
+    balances: List<TokenWithBalance>,
+    isStaff: Boolean,
+    viewerId: ID? = null,
+    creatorId: ID? = null,
+    rates: Map<CurrencyCode, Rate> = emptyMap(),
+): List<ChatRuleRequirement> {
+    val listenerUnmet = rules?.listener.orEmpty().filter { it.isUnmet(balances, isStaff, rates) }
+    val speakerUnmet = rules?.speaker.orEmpty().filter { it.isUnmet(balances, isStaff, rates, viewerId, creatorId) }
+    return listenerUnmet + speakerUnmet
+}
+
+/**
  * This amount in USD, or null when it is in another currency with no usable rate. A [Rate]'s `fx`
  * is units of its currency per US dollar, so the USD worth is the amount divided by it.
  */
-private fun Fiat.usdValue(rates: Map<CurrencyCode, Rate>): Double? {
+fun Fiat.usdValue(rates: Map<CurrencyCode, Rate>): Double? {
     if (currencyCode == CurrencyCode.USD) return decimalValue
     val fx = rates[currencyCode]?.takeIf { it.isUsable() }?.fx?.takeIf { it > 0.0 } ?: return null
     return decimalValue / fx

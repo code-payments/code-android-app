@@ -44,6 +44,7 @@ fun ProfilePinnedActionBar(
     above: (@Composable () -> Unit)? = null,
     secondaryText: String? = null,
     onSecondaryClick: (() -> Unit)? = null,
+    isSecondaryLoading: Boolean = false,
     onHeightChanged: (Dp) -> Unit = {},
 ) {
     val density = LocalDensity.current
@@ -83,6 +84,8 @@ fun ProfilePinnedActionBar(
                     .padding(horizontal = CodeTheme.dimens.inset),
                 buttonState = ButtonState.Subtle,
                 text = secondaryText,
+                isLoading = isSecondaryLoading,
+                enabled = !isSecondaryLoading,
                 onClick = onSecondaryClick,
             )
         }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -39,7 +40,9 @@ private val AvatarOverlap = 42.dp
  * It renders a subject, not a user — a person today, a group next — so callers map their model to
  * these inputs. [avatar] receives the size, clip and ring to draw with, which keeps the avatar the
  * caller's (a user's picture, a group's) while the overlap stays the header's. [underSubtitle]
- * holds anything that belongs between the handle and the bio, such as a status chip.
+ * holds anything that belongs between the handle and the bio. [onCover] sits on the cover's
+ * bottom edge beside the avatar; the cover is a fixed height, so content there (a status chip that
+ * arrives late) never moves the rest of the header.
  *
  * [cover] is laid out edge to edge from the top of its parent and is not padded for the status
  * bar; the page gutter applies to everything below it.
@@ -55,10 +58,23 @@ fun ProfileHeader(
     actions: @Composable RowScope.() -> Unit,
     modifier: Modifier = Modifier,
     underSubtitle: @Composable () -> Unit = {},
+    onCover: @Composable RowScope.() -> Unit = {},
 ) {
     val inset = CodeTheme.dimens.inset
     Box(modifier = modifier.fillMaxWidth()) {
         ProfileCover(image = cover, access = access)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ProfileCoverHeight)
+                .padding(
+                    start = inset + AvatarSize + CodeTheme.dimens.staticGrid.x3,
+                    end = inset,
+                    bottom = CodeTheme.dimens.staticGrid.x2,
+                ),
+            verticalAlignment = Alignment.Bottom,
+            content = onCover,
+        )
         Column(modifier = Modifier.padding(top = ProfileCoverHeight - AvatarOverlap)) {
             Row(
                 modifier = Modifier

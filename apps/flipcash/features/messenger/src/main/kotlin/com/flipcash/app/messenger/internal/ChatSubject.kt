@@ -86,6 +86,15 @@ sealed interface ChatSubject {
         val isMember: Boolean?,
         /** The group's creator (`ChatMetadata.creator`); null when the metadata did not carry one. */
         val creator: ID? = null,
+        /** The group's description (`ChatMetadata.description`); null when unset. */
+        val description: String? = null,
+        /**
+         * The banner above the group's profile. A feed row may carry none even when the group has
+         * one; the profile asks `GetChat` once when it opens on a group without one.
+         */
+        val coverPicture: MediaItem? = null,
+        /** A private group's roster is not sampled for the profile, which the server denies. */
+        val isPrivate: Boolean = false,
     ) : ChatSubject {
         override val title: String get() = groupTitle.orEmpty()
         override val subtitle: String? get() = null

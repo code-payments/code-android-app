@@ -10,6 +10,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
@@ -552,6 +553,22 @@ interface GroupOperations {
      * fails.
      */
     suspend fun leave(chatId: ChatId): Result<Unit>
+
+    /**
+     * A sample of [chatId]'s recent chatters, in the order the server returns them. Denied for a
+     * private group, which is the caller's to skip. Nothing is stored: the profile that asks
+     * reads it fresh each time it opens.
+     */
+    suspend fun sampleChatters(chatId: ChatId): Result<ChatterSample>
+
+    /**
+     * Stores the cover picture `GetChat` holds for [chatId], when it holds one.
+     *
+     * The feed RPCs may leave a cover unset even when one exists, so a row that arrived through
+     * them can lack the cover its profile shows. Writes only a cover that came back, so a failed
+     * or cover-less answer leaves whatever is stored alone.
+     */
+    suspend fun refreshCover(chatId: ChatId)
 }
 
 interface ChatCoordinator :

@@ -58,6 +58,7 @@ class ChatMentionPickerTest {
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        coEvery { sampleChatters(any()) } returns Result.failure(IllegalStateException("not sampled"))
         every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
     }
     private val userManager = mockk<UserManager>(relaxed = true)

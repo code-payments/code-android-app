@@ -4,31 +4,17 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.View
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.flipcash.app.core.chat.ChatParticipant
-import com.flipcash.app.menu.MenuList
 import com.flipcash.app.messenger.internal.screens.E2eeLearnMoreSheet
 import com.flipcash.app.messenger.internal.screens.E2eeSheetKind
-import com.flipcash.app.messenger.internal.screens.profile.E2eeFooter
-import com.flipcash.app.messenger.internal.screens.profile.GroupProfileHeader
-import com.flipcash.app.messenger.internal.screens.profile.InviteToGroup
-import com.flipcash.app.messenger.internal.screens.profile.LeaveChat
-import com.flipcash.app.messenger.internal.screens.profile.MuteChat
-import com.flipcash.app.messenger.internal.screens.profile.ReportGroup
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.UserProfile
-import com.flipcash.services.models.chat.ChatId
-import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.theme.CodeScaffold
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,7 +25,7 @@ import java.io.File
 
 /**
  * Renders the end-to-end encryption surfaces to PNGs for comparison with the design: the DM
- * profile with its footer on, Group Info, and both learn-more sheets. Not an assertion test — it
+ * profile with its footer on and both learn-more sheets. Not an assertion test — it
  * writes to `build/screenshots/`, with the same mechanics as `ChatIdentityScreenshotTest`.
  *
  * The profiles are assembled from the screens' own pieces rather than the screens themselves,
@@ -52,36 +38,6 @@ class E2eeScreenshotTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
-
-    @Test
-    fun rendersGroupInfo() = render("e2ee_group_info.png") {
-        val group = ChatSubject.Group(
-            chatId = ChatId(listOf(1.toByte())),
-            groupTitle = "Ballers",
-            picture = null,
-            memberCount = 3,
-            rules = null,
-            isMember = true,
-        )
-        CodeScaffold(
-            topBar = { AppBarWithTitle(onBackIconClicked = {}) },
-            bottomBar = { E2eeFooter(isEncrypted = false, onLearnMore = {}) },
-        ) { innerPadding ->
-            MenuList(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                items = listOf(InviteToGroup, MuteChat, ReportGroup, LeaveChat),
-                header = {
-                    GroupProfileHeader(
-                        group = group,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = CodeTheme.dimens.grid.x7, bottom = CodeTheme.dimens.grid.x8),
-                    )
-                },
-                onItemClick = {},
-            )
-        }
-    }
 
     @Test
     fun rendersDmSheet() = render("e2ee_sheet_dm.png") {

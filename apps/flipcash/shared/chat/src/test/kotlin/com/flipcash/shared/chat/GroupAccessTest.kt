@@ -363,6 +363,28 @@ class GroupAccessTest {
     }
 
     @Test
+    fun `unmet requirements list the listener rules before the speaker rules`() {
+        val listenerBar = ChatRuleRequirement.MinimumBalance(Fiat(100.0), listOf(badBoys))
+        val speakerBar = ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys))
+        val both = ChatRules(listener = listOf(listenerBar), speaker = listOf(speakerBar))
+
+        assertEquals(listOf(listenerBar, speakerBar), unmetRequirements(both, emptyList(), isStaff = false))
+        assertEquals(listOf(speakerBar), unmetRequirements(both, listOf(held(1, "BadBoys", 200.0)), isStaff = false))
+        assertEquals(emptyList(), unmetRequirements(both, listOf(held(1, "BadBoys", 600.0)), isStaff = false))
+        // The composer still names the first one.
+        assertEquals(listenerBar, unmetSpeakerRequirement(both, emptyList(), isStaff = false))
+    }
+
+    @Test
+    fun `held against named mints is the largest, against none the total`() {
+        val balances = listOf(held(1, "BadBoys", 60.0), held(2, "Other", 60.0))
+
+        assertEquals(60.0, heldAgainst(listOf(badBoys), balances)?.toDouble())
+        assertEquals(120.0, heldAgainst(emptyList(), balances)?.toDouble())
+        assertEquals(null, heldAgainst(listOf(badBoys), emptyList()))
+    }
+
+    @Test
     fun `with no speaker rules a met listener rule lets the viewer speak`() {
         val listenerOnly = rules(ChatRuleRequirement.MinimumBalance(Fiat(500.0), listOf(badBoys)))
 

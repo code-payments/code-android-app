@@ -76,6 +76,7 @@ class ChatGroupCashLinkTest {
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        coEvery { sampleChatters(any()) } returns Result.failure(IllegalStateException("not sampled"))
         every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
     }
     private val contactCoordinator = mockk<ContactCoordinator>(relaxed = true)

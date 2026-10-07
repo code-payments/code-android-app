@@ -3,4 +3,11 @@
     <string name="title_profileMinimumToChat">Minimum to Chat</string>
     <string name="title_profileDateJoined">Date Joined</string>
     <string name="text_profileStatEmpty">—</string>
+    <string name="title_chatting">Chatting</string>
+    <string name="label_chatterHost">%1$s, host</string>
+    <string name="title_balanceRequirements">Balance Requirements</string>
+    <string name="label_balanceRequirementJoin">Join</string>
+    <string name="label_balanceRequirementChat">Chat</string>
+    <string name="label_balanceRequirementNone">None</string>
+    <string name="label_yourBalance">Your Balance</string>
 </resources>

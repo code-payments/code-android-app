@@ -53,6 +53,8 @@ fun ProfileActionButton(
             text = text,
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textMain,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }
