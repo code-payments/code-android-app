@@ -11,7 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -28,12 +30,12 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /**
  * The one action a profile pins to the bottom of its screen: a filled button, with an optional
- * [above] line over it (a footer, a shortfall) and an optional text action ([secondaryText])
- * under it.
+ * [above] line over it and an optional text action ([secondaryText]) under it.
  *
- * Given the [hazeState] the screen's scroll content draws into, the bar is see-through: the content
- * runs on under it and blurs in from clear at its top edge, as iOS's soft scroll edge does. Without
- * one it sits on the screen's background.
+ * Given the [hazeState] the screen's scroll content draws into, the content runs on under the bar
+ * and fades off the bottom of the screen: it blurs in and dims to the background from the bar's top
+ * edge down over [FadeHeight], so by the first row it is gone and [above] reads clear of it. Without a [hazeState] the
+ * bar sits on the screen's background.
  *
  * The bar clears the navigation bar and measures itself,
  * system bar included. While it is composed it asks the root toast host to rest toasts above that
@@ -61,6 +63,7 @@ fun ProfilePinnedActionBar(
     val material = HazeMaterials.ultraThin(containerColor = background)
 
     val density = LocalDensity.current
+    val fadePx = with(density) { FadeHeight.toPx() }
     var height by remember { mutableStateOf(0.dp) }
     ToastBottomClearance(height)
 
@@ -75,20 +78,33 @@ fun ProfilePinnedActionBar(
             }
             .then(
                 if (hazeState != null) {
-                    Modifier.hazeBlur(
-                        HazeInput.Sources(hazeState),
-                        material.then {
-                            progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
-                        },
-                    )
+                    Modifier
+                        .hazeBlur(
+                            HazeInput.Sources(hazeState),
+                            material.then {
+                                progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
+                            },
+                        )
+                        // The blur alone leaves shapes showing through; the dim takes them off.
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(background.copy(alpha = 0f), background),
+                                startY = 0f,
+                                endY = fadePx,
+                            ),
+                        )
                 } else {
                     Modifier.background(background)
                 },
             )
+            // The fade, then iOS's 12 above, 8 below and 8 between, on the 5dp grid.
+            .then(if (hazeState != null) Modifier.padding(top = FadeHeight) else Modifier)
+            .padding(top = CodeTheme.dimens.staticGrid.x2)
             .navigationBarsPadding()
-            // iOS: 12 above, 8 below and 8 between, on the 5dp grid.
-            .padding(vertical = CodeTheme.dimens.staticGrid.x2),
+            .padding(bottom = CodeTheme.dimens.staticGrid.x2),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
+        // iOS stacks these in a VStack, which centres a line narrower than the buttons.
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         above?.invoke()
         CodeButton(
@@ -115,3 +131,6 @@ fun ProfilePinnedActionBar(
         }
     }
 }
+
+/** The band over the bar's first row in which the content fades off; iOS fades over 56pt. */
+private val FadeHeight = 40.dp

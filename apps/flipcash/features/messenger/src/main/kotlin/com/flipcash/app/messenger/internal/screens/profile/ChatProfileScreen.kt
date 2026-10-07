@@ -49,6 +49,7 @@ import com.flipcash.shared.common.ui.profile.ProfileHeader
 import com.flipcash.shared.common.ui.profile.ProfilePinnedActionBar
 import com.flipcash.shared.common.ui.profile.ProfileStatsCard
 import com.flipcash.shared.common.ui.profile.ProfileStatusChip
+import com.flipcash.shared.common.ui.profile.ProfileTopScrollEdge
 import com.flipcash.shared.common.ui.profile.joinedLabel
 import com.flipcash.shared.common.ui.profile.rememberFeaturedGroupItems
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -135,12 +136,13 @@ internal fun PersonProfileScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // The whole page, so the pinned bar blurs whatever scrolls under it.
+                    // The whole page, so the pinned bar and the top edge blur whatever scrolls under them.
                     .hazeSource(hazeState)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(bottom = clearance),
             ) {
                 ProfileHeader(
@@ -224,10 +226,17 @@ internal fun PersonProfileScreen(
                         .padding(top = CodeTheme.dimens.staticGrid.x4),
                     groups = rememberFeaturedGroupItems(state.featuredGroups),
                     onOpen = { chatId ->
-                        navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId)))
+                        navigator.push(
+                            AppRoute.Messaging.Chat(
+                                identifier = ChatIdentifier.ByChatId(chatId),
+                                openOnProfile = true,
+                            )
+                        )
                     },
                 )
             }
+
+            ProfileTopScrollEdge(hazeState = hazeState, scrollState = scrollState)
 
             AppBarWithTitle(
                 onBackIconClicked = onBack,

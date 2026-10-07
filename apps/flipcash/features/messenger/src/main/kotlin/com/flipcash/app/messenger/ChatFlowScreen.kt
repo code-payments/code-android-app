@@ -106,7 +106,7 @@ private fun chatEntryProvider(
         FlowChatProfileScreen(step.contact, step.origin)
     }
     annotatedEntry<ChatStep.GroupProfile> {
-        FlowGroupProfileScreen()
+        FlowGroupProfileScreen(identifier)
     }
     annotatedEntry<ChatStep.EditGroup> {
         EditGroupScreen()
@@ -302,8 +302,15 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
  * view model is already open on this group, so there is nothing to hand it.
  */
 @Composable
-private fun FlowGroupProfileScreen() {
-    GroupProfileScreen(flowSharedViewModel<ChatViewModel>())
+private fun FlowGroupProfileScreen(identifier: ChatIdentifier) {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    // A flow opened on the profile (AppRoute.Messaging.Chat.openOnProfile) has no conversation
+    // under it, so nothing else has opened the chat yet. Re-opening the chat that is
+    // already open is a no-op, so the usual push from the transcript is unaffected.
+    LaunchedEffect(viewModel, identifier) {
+        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
+    }
+    GroupProfileScreen(viewModel)
 }
 
 // Both edit steps read the chat they are editing off the flow's shared ChatViewModel, the same way

@@ -10,19 +10,26 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.flipcash.shared.chat.GroupAccess
 import com.flipcash.app.messenger.internal.RuleCurrency
+import com.flipcash.app.messenger.internal.screens.profile.GateFunding
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.ui.theme.CodeButton
 import com.getcode.view.LoadingSuccessState
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /**
  * What stands where the composer does for someone who is not in the group.
@@ -55,82 +62,43 @@ internal fun GroupGateBar(
     onAction: ChatActionHandler,
     /** The Join button's loading/success state, straight off the screen's own. */
     joinProgress: LoadingSuccessState = LoadingSuccessState(),
+    /** What the viewer is short of the unmet balance rule, for the buy button; null when it can't be stated. */
+    shortfall: Fiat? = null,
+    /** Where Buy goes: the buy screen, or Add Money when nothing held can pay for it. */
+    funding: GateFunding = GateFunding.Buy,
+    /** The transcript behind the panel, which the panel frosts. Null draws it flat. */
+    hazeState: HazeState? = null,
     modifier: Modifier = Modifier,
 ) {
     val unmet = (access as? GroupAccess.Blocked)?.unmet
     val unmetBalance = unmet as? ChatRuleRequirement.MinimumBalance
 
-    // The caption and the button sit on one panel (node 10125:19197), not loose over the
-    // transcript: the transcript behind them is the group's own, blurred, and without a surface to
-    // stand on the gate reads as part of it rather than as the thing standing in for the composer.
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(vertical = CodeTheme.dimens.grid.x2)
-            .background(White05, CodeTheme.shapes.medium)
-            .padding(horizontal = CodeTheme.dimens.grid.x1)
-            .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x1),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
+    GatePanel(modifier, hazeState) {
         // Both rules can be set on one chat, so both are stated. Each line is the group's own
         // standing requirement, read from the rules rather than from the gate: staff see the
         // staff-only line over a Join that works, the same way an eligible viewer already sees the
         // balance line. A group with no rules states nothing above a button that is already open.
         val captions = buildList {
-            // The reserve falls to the amount-only line rather than to a named one: "$100 of
-            // Dollars" says dollars twice. Same reason the token is still named on the button
-            // below — that is a thing to buy, not a restatement of the figure.
-            val requirementCurrency = currency?.nameInRequirement
             if (requirement != null) {
                 add(
-                    if (requirementCurrency != null) {
-                        stringResource(
-                            R.string.subtitle_chatGate_minimumBalance,
-                            requirement.amount.formatted(),
-                            requirementCurrency,
-                        )
-                    } else {
-                        stringResource(
-                            R.string.subtitle_chatGate_minimumBalance_anyToken,
-                            requirement.amount.formatted(),
-                        )
-                    }
+                    stringResource(
+                        R.string.label_groupRequiredToJoin,
+                        ruleAmountLabel(requirement.amount, currency?.nameInRequirement),
+                    )
                 )
             }
             if (staffOnly) add(stringResource(R.string.subtitle_chatGate_staffOnly))
         }
-
-        captions.forEach { caption ->
-            Text(
-                text = caption,
-                style = CodeTheme.typography.textSmall,
-                color = CodeTheme.colors.textSecondary,
-                textAlign = TextAlign.Center,
-            )
-        }
+        captions.forEach { GateCaption(it) }
 
         if (unmetBalance != null) {
-            // Always enabled, as iOS's ConversationGatePanel is. A rule any holding satisfies, or
-            // one on the reserve, has no other token to buy, so it adds cash. A named mint buys
-            // that mint even before its name loads; the label just can't say which yet.
-            val mint = unmetBalance.mints.firstOrNull()?.let { Mint(it.bytes) }
-            val tokenToBuy = mint?.takeUnless { it == Mint.usdf }
-            CodeButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = when {
-                    tokenToBuy == null -> stringResource(R.string.action_addCash)
-                    currency == null -> stringResource(R.string.action_buyMore)
-                    else -> stringResource(R.string.action_buyMoreToken, currency.name)
-                },
-                onClick = {
-                    onAction(
-                        if (tokenToBuy == null) ChatAction.AddCash
-                        else ChatAction.ViewToken(tokenToBuy, returnAfterBuy = true)
-                    )
-                },
+            BuyButton(
+                rule = unmetBalance,
+                shortfall = shortfall,
+                currency = currency,
+                toJoin = true,
+                funding = funding,
+                onAction = onAction,
             )
         } else {
             CodeButton(
@@ -152,4 +120,123 @@ internal fun GroupGateBar(
             )
         }
     }
+}
+
+/**
+ * What stands where the composer does for a member below the group's minimum to chat: the
+ * requirement, and a button to buy what they are short of it (Figma "Buy $90.00 of NYC to Chat").
+ */
+@Composable
+internal fun ChatMinimumGateBar(
+    requirement: ChatRuleRequirement.MinimumBalance,
+    /** The token the rule names, when it is the one [requirement] is about. */
+    currency: RuleCurrency?,
+    /** What the viewer is short of [requirement]; null when it can't be stated. */
+    shortfall: Fiat?,
+    onAction: ChatActionHandler,
+    funding: GateFunding = GateFunding.Buy,
+    hazeState: HazeState? = null,
+    modifier: Modifier = Modifier,
+) {
+    GatePanel(modifier, hazeState) {
+        GateCaption(
+            stringResource(
+                R.string.label_groupRequiredToChat,
+                ruleAmountLabel(requirement.amount, currency?.nameInRequirement),
+            )
+        )
+        BuyButton(
+            rule = requirement,
+            shortfall = shortfall,
+            currency = currency,
+            toJoin = false,
+            funding = funding,
+            onAction = onAction,
+        )
+    }
+}
+
+// The caption and the button sit on one panel (node 10125:19197), not loose over the transcript:
+// the transcript behind them is the group's own, blurred, and without a surface to stand on the
+// gate reads as part of it rather than as the thing standing in for the composer.
+@Composable
+private fun GatePanel(modifier: Modifier, hazeState: HazeState?, content: @Composable () -> Unit) {
+    val shape = CodeTheme.shapes.medium
+    // Frosted, as iOS's gate card is: the transcript blurred behind it, the screen's background
+    // over that at 30%, then the row tint, so it stays a little see-through.
+    val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .padding(vertical = CodeTheme.dimens.grid.x2)
+            .clip(shape)
+            .then(if (hazeState != null) Modifier.hazeBlur(HazeInput.Sources(hazeState), material) else Modifier)
+            .background(CodeTheme.colors.background.copy(alpha = 0.3f))
+            .background(White05)
+            .padding(horizontal = CodeTheme.dimens.grid.x1)
+            .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x1),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun GateCaption(text: String) {
+    Text(
+        text = text,
+        style = CodeTheme.typography.textSmall,
+        color = CodeTheme.colors.textSecondary,
+        textAlign = TextAlign.Center,
+    )
+}
+
+/**
+ * "Buy $3.67 of NYC to Join": what the viewer is short of [rule], not the rule's whole amount
+ * (Figma Iteration 10 "Access action", as iOS's ConversationGatePanel). A rule any holding
+ * satisfies, or one on the reserve, has no other token to buy, so it adds cash: "Add $3.67 to
+ * Join". With no rate to state the shortfall, it falls back to "Buy More NYC" or "Add Cash".
+ * Always enabled.
+ *
+ * [funding] sends a buy nothing held can pay for straight to Add Money rather than to a buy
+ * screen that would only offer Add Money one step later.
+ */
+@Composable
+private fun BuyButton(
+    rule: ChatRuleRequirement.MinimumBalance,
+    shortfall: Fiat?,
+    currency: RuleCurrency?,
+    toJoin: Boolean,
+    funding: GateFunding,
+    onAction: ChatActionHandler,
+) {
+    val mint = rule.mints.firstOrNull()?.let { Mint(it.bytes) }
+    val tokenToBuy = mint?.takeUnless { it == Mint.usdf }
+    val name = currency?.nameInRequirement
+    val text = when {
+        tokenToBuy == null && shortfall != null -> stringResource(
+            if (toJoin) R.string.action_addToJoin else R.string.action_addToChat,
+            ruleAmountLabel(shortfall, null),
+        )
+        tokenToBuy == null -> stringResource(R.string.action_addCash)
+        shortfall != null -> stringResource(
+            if (toJoin) R.string.action_buyToJoin else R.string.action_buyToChat,
+            ruleAmountLabel(shortfall, name),
+        )
+        name != null -> stringResource(R.string.action_buyMoreToken, name)
+        else -> stringResource(R.string.action_buyMore)
+    }
+    CodeButton(
+        modifier = Modifier.fillMaxWidth(),
+        text = text,
+        onClick = {
+            onAction(
+                if (tokenToBuy == null || funding == GateFunding.AddMoney) ChatAction.AddCash
+                else ChatAction.BuyGateToken(tokenToBuy)
+            )
+        },
+    )
 }

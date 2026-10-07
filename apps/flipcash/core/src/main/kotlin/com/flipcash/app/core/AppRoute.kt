@@ -360,9 +360,14 @@ sealed interface AppRoute : NavKey, Parcelable {
             // Open straight into composing a reply with the keyboard up. Only the post-tip
             // hand-off (see TipCardDecorator) sets this; normal opens default to keyboard-closed.
             val openKeyboard: Boolean = false,
+            // Open on the group's profile instead of the transcript. Set where a group is shown as
+            // something to look at rather than a chat to resume: a profile's featured groups. The
+            // profile is the flow's root, so back returns to wherever the tap came from, and Open
+            // Chat pushes the transcript on top of it.
+            val openOnProfile: Boolean = false,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
-                get() = listOf(ChatStep.Conversation)
+                get() = listOf(if (openOnProfile) ChatStep.GroupProfile else ChatStep.Conversation)
         }
 
         /**

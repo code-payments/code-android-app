@@ -33,6 +33,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
@@ -57,6 +59,8 @@ import com.flipcash.app.shareable.Shareable
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.results.NavResultOrCanceled
+import com.getcode.navigation.results.navigateForResult
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
 import com.getcode.ui.utils.rememberKeyboardController
@@ -142,22 +146,30 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.ViewToken -> {
-                // Only the gate asks to come back after a buy, so that flag is what marks its tap.
-                if (action.returnAfterBuy) {
-                    viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.BUY_TOKEN))
-                }
                 keyboard.hideIfVisible {
                     viewModel.dispatchEvent(
                         ChatViewModel.Event.OpenScreen(
                             // A drill-in from the transcript, so push it: the fade-in-place
                             // expand is the wallet card growing into its own detail, and there
                             // is no card here for it to grow from.
-                            AppRoute.Token.Info(
-                                action.mint,
-                                if (action.returnAfterBuy) TokenInfoEntry.ChatGate else TokenInfoEntry.Chat,
-                            )
+                            AppRoute.Token.Info(action.mint, TokenInfoEntry.Chat)
                         )
                     )
+                }
+            }
+
+            is ChatAction.BuyGateToken -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.BUY_TOKEN))
+                keyboard.hideIfVisible {
+                    // Straight to the buy screen, as iOS's gate does. Finishing the buy lands back
+                    // on this chat, in front of Join.
+                    navigator.navigateForResult<SwapResult>(
+                        AppRoute.Token.Swap(SwapPurpose.Buy(action.mint))
+                    ) { result ->
+                        if (result is NavResultOrCanceled.ReturnValue && result.value == SwapResult.OpenDeposit) {
+                            navigator.push(AppRoute.Transfers.Deposit(showOtherOptions = false))
+                        }
+                    }
                 }
             }
 
