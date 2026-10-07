@@ -55,11 +55,16 @@ sealed interface ChatStep : FlowStep, Parcelable {
      *
      * Not a [WrapContentSheet]: the chat list can run past the screen, and a wrap-content body is
      * measured at its full height and then clipped, taking the message bar under it off the bottom.
-     * A full sheet bounds the body, so the list scrolls and the bar stays on screen.
+     * A full sheet bounds the body, so the list scrolls and the bar stays on screen. Full screen,
+     * as on iOS, which presents it as a cover.
      */
     @Parcelize
     @Serializable
-    data object InviteToGroup : ChatStep, NavigationRetVal<GroupInviteResult>, Sheet
+    data object InviteToGroup :
+        ChatStep,
+        NavigationRetVal<GroupInviteResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
 
     @Parcelize
     @Serializable

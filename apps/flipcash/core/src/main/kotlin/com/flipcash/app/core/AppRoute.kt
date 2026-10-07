@@ -474,6 +474,8 @@ sealed interface AppRoute : NavKey, Parcelable {
          * @param directChatId the viewer's DM with the person, left out of the picker so nobody is
          * sent their own profile. Null for the viewer's own profile, and for a person with no DM
          * yet.
+         *
+         * Full screen, as iOS presents it as a cover.
          */
         @Serializable
         @Parcelize
@@ -482,7 +484,7 @@ sealed interface AppRoute : NavKey, Parcelable {
             val username: String?,
             val displayName: String?,
             val directChatId: ChatId?,
-        ) : Messaging, com.getcode.navigation.Sheet
+        ) : Messaging, com.getcode.navigation.Sheet, com.getcode.navigation.FullscreenSheet
 
         /**
          * What end-to-end encryption covers in a DM, opened from the DM profile's footer. A
