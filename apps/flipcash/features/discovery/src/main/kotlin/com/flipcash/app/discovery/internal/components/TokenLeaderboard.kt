@@ -27,6 +27,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
@@ -44,29 +45,30 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.sheetResignmentBehavior
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.HazeState
 
 @Composable
 internal fun TokenLeaderboard(
     category: DiscoverCategory?,
     tokens: Loadable<List<LeaderboardEntry>>,
     state: LazyListState,
+    hazeState: HazeState,
+    topPadding: Dp,
     dispatch: (TokenDiscoveryViewModel.Event) -> Unit
 ) {
     val reduceBottomPadding = CodeTheme.dimens.grid.x4
-    // Currency creation is surfaced as a Wallet action tile, so Discover carries no promo of its
-    // own. The haze source stays wired for the scroll gradient's benefit.
-    val hazeState = rememberHazeState()
     CodeScaffold { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
                 .testTag("discovery_leaderboard")
+                // Bottom edge only: the top edge blurs under the app bar (TopScrollEdge).
                 .verticalScrollStateGradient(
                     state,
                     color = CodeTheme.colors.background,
                     isLongGradient = true,
+                    showAtStart = false,
                     showAtEnd = true,
                 )
                 .addIf(tokens.isLoaded()) {
@@ -76,7 +78,7 @@ internal fun TokenLeaderboard(
             contentPadding = PaddingValues(
                 start = CodeTheme.dimens.inset,
                 end = CodeTheme.dimens.inset,
-                top = CodeTheme.dimens.grid.x2,
+                top = topPadding + CodeTheme.dimens.grid.x2,
                 bottom = (CodeTheme.dimens.grid.x2 + padding.calculateBottomPadding() - reduceBottomPadding).coerceAtLeast(0.dp)
             )
         ) {

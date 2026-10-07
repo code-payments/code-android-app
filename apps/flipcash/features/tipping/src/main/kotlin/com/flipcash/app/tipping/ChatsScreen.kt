@@ -57,9 +57,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -70,7 +67,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
@@ -88,6 +84,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.toast.LocalFloatingToastHost
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.TopScrollEdge
 import com.getcode.ui.components.SwipeAction
 import com.getcode.ui.components.SwipeActionRow
 import com.getcode.ui.components.SwipeRevealGroup
@@ -95,6 +92,8 @@ import com.getcode.ui.components.rememberSwipeRevealGroup
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 /**
  * The "Chats" root tab: tip DMs and groups under the standard centred screen title, with no dismiss
@@ -154,28 +153,14 @@ fun ChatsScreen() {
     val undoLabel = stringResource(R.string.action_undo)
     val tabBarPadding = LocalTabBarPadding.current.calculateBottomPadding()
 
+    val hazeState = rememberHazeState()
+
     CodeScaffold(
-        // The list runs the full height and passes under the title bar, which fades it out against
-        // the background at its own edge — the same treatment the chat screen gives its message
-        // list, rather than cutting the list off at the bar.
+        // The list runs the full height and passes under the title bar, where it blurs into the bar
+        // (TopScrollEdge) as iOS's soft scroll edge does, rather than being cut off at the bar.
         barPlacement = ScaffoldBarPlacement.Overlay,
         topBar = {
-            val backgroundColor = CodeTheme.colors.background
             AppBarWithTitle(
-                // Drawn behind the bar rather than as a box sized to it, so the scrim's reach past
-                // the bar's bottom edge stays out of the bar's own measurement — which is what the
-                // list is padded by.
-                modifier = Modifier.drawBehind {
-                    val scrimHeight = size.height + ScrimTail.toPx()
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(backgroundColor, Color.Transparent),
-                            startY = 0f,
-                            endY = scrimHeight,
-                        ),
-                        size = size.copy(height = scrimHeight),
-                    )
-                },
                 title = stringResource(R.string.title_tabChat),
                 // Centred rather than flush-start: an empty leading slot reserves no width, so a
                 // Start title sits at the inset and reads as off-centre against the Add button.
@@ -189,143 +174,144 @@ fun ChatsScreen() {
             )
         },
     ) { barPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                // Scroll anchor for UI tests: `send_contact_row` addresses a single row, this
-                // addresses the scrollable list itself.
-                .testTag("chat_list")
-                // Holds the chips out of view until a pull from the top brings them on.
-                .chipReveal(chipRevealConnection)
-                // End edge only — the start edge is the bar's scrim now, and a second fade there
-                // would darken rows twice over as they pass under the title.
-                .verticalScrollStateGradient(scrollState = listState, showAtStart = false),
-            state = listState,
-            flingBehavior = flingBehavior,
-            contentPadding = PaddingValues(
-                // The bar's height as content padding rather than as a layout inset: the viewport
-                // runs the full height and rows scroll under the bar, but at rest the first row
-                // still sits clear of it.
-                top = barPadding.calculateTopPadding(),
-                // Clears the hoisted tab bar: keeps the last row reachable. Both paddings are
-                // measured out of `fillParentMaxSize`, so the empty states stay centered in the
-                // space the two bars leave visible.
-                bottom = tabBarPadding,
-            ),
-        ) {
-            item(key = "chips", contentType = "chips") {
-                ChatFilterRow(
-                    modifier = Modifier
-                        .blockTouchesWhile { !state.showsChips && listState.chipVisibleFraction() == 0f }
-                        .graphicsLayer {
-                            // Fades in with the pull. Read here, in the draw phase, so following
-                            // the finger never recomposes the row.
-                            alpha = if (state.showsChips) 1f else listState.chipVisibleFraction()
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    // Scroll anchor for UI tests: `send_contact_row` addresses a single row, this
+                    // addresses the scrollable list itself.
+                    .testTag("chat_list")
+                    // Holds the chips out of view until a pull from the top brings them on.
+                    .chipReveal(chipRevealConnection)
+                    // End edge only — the start edge is the TopScrollEdge blur under the bar.
+                    .verticalScrollStateGradient(scrollState = listState, showAtStart = false),
+                state = listState,
+                flingBehavior = flingBehavior,
+                contentPadding = PaddingValues(
+                    // The bar's height as content padding rather than as a layout inset: the viewport
+                    // runs the full height and rows scroll under the bar, but at rest the first row
+                    // still sits clear of it.
+                    top = barPadding.calculateTopPadding(),
+                    // Clears the hoisted tab bar: keeps the last row reachable. Both paddings are
+                    // measured out of `fillParentMaxSize`, so the empty states stay centered in the
+                    // space the two bars leave visible.
+                    bottom = tabBarPadding,
+                ),
+            ) {
+                item(key = "chips", contentType = "chips") {
+                    ChatFilterRow(
+                        modifier = Modifier
+                            .blockTouchesWhile { !state.showsChips && listState.chipVisibleFraction() == 0f }
+                            .graphicsLayer {
+                                // Fades in with the pull. Read here, in the draw phase, so following
+                                // the finger never recomposes the row.
+                                alpha = if (state.showsChips) 1f else listState.chipVisibleFraction()
+                            },
+                        selected = state.filter,
+                        unreadCount = state.projection.unreadChipCount,
+                        groupsCount = state.projection.groupsChipCount,
+                        onSelect = { filter ->
+                            if (!state.showsChips && listState.chipVisibleFraction() < 1f) {
+                                // Hidden under the bar (a stray tap, or a screen reader reaching it):
+                                // bring the row on rather than switching filters out of sight.
+                                viewModel.revealChips()
+                                scope.launch { listState.animateScrollToItem(0) }
+                            } else if (filter != state.filter) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                viewModel.selectFilter(filter)
+                            }
                         },
-                    selected = state.filter,
-                    unreadCount = state.projection.unreadChipCount,
-                    groupsCount = state.projection.groupsChipCount,
-                    onSelect = { filter ->
-                        if (!state.showsChips && listState.chipVisibleFraction() < 1f) {
-                            // Hidden under the bar (a stray tap, or a screen reader reaching it):
-                            // bring the row on rather than switching filters out of sight.
-                            viewModel.revealChips()
-                            scope.launch { listState.animateScrollToItem(0) }
-                        } else if (filter != state.filter) {
-                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                            viewModel.selectFilter(filter)
-                        }
-                    },
-                )
-            }
+                    )
+                }
 
-            // Always emitted, so item 1 exists from the first composition (including while
-            // loading) and the parked position has a stable anchor; empty when there is no row.
-            // Its key never leaves the list, so animateItem only moves it; the row itself fades in
-            // and out inside the slot, while the rows below slide to make room or close the gap.
-            item(key = "archived", contentType = "archived") {
-                Box(Modifier.animateItem().then(parkFiller.tracked("archived"))) {
-                    AnimatedVisibility(
-                        visible = state.showsArchivedRow,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
-                    ) {
-                        ArchivedRow(
-                            count = state.projection.archivedRowCount,
-                            onClick = { navigator.push(AppRoute.Messaging.ArchivedChats) },
-                        )
+                // Always emitted, so item 1 exists from the first composition (including while
+                // loading) and the parked position has a stable anchor; empty when there is no row.
+                // Its key never leaves the list, so animateItem only moves it; the row itself fades in
+                // and out inside the slot, while the rows below slide to make room or close the gap.
+                item(key = "archived", contentType = "archived") {
+                    Box(Modifier.animateItem().then(parkFiller.tracked("archived"))) {
+                        AnimatedVisibility(
+                            visible = state.showsArchivedRow,
+                            enter = fadeIn(),
+                            exit = fadeOut(),
+                        ) {
+                            ArchivedRow(
+                                count = state.projection.archivedRowCount,
+                                onClick = { navigator.push(AppRoute.Messaging.ArchivedChats) },
+                            )
+                        }
                     }
                 }
-            }
 
-            when {
-                // A full-height spacer: with only the chips and an empty Archived slot the content
-                // is shorter than the viewport, the list fills backward to index 0, and the chips
-                // would show once rows arrive.
-                !chats.isLoaded() -> item(key = "loading") {
-                    Spacer(parkFiller.tracked("loading").fillParentMaxSize())
-                }
-                // The empty states fade like the rows do, so a filter or archive that empties the
-                // list doesn't drop the message on top of rows still fading out.
-                state.hasNoChatsAtAll -> item(key = "empty") {
-                    NoChatsYet(
-                        Modifier.animateItem().then(parkFiller.tracked("empty")).fillParentMaxSize()
-                    )
-                }
-                visible.isEmpty() -> item(key = "empty_filter") {
-                    EmptyFilterState(
-                        modifier = Modifier.animateItem()
-                            .then(parkFiller.tracked("empty_filter"))
-                            .fillParentMaxSize(),
-                        message = when (state.filter) {
-                            ChatListFilter.Unread -> R.string.title_noUnreadChats
-                            ChatListFilter.Groups -> R.string.title_noGroupChats
-                            ChatListFilter.All -> R.string.title_allChatsArchived
-                        },
-                    )
-                }
-                else -> tipChatItems(
-                    chats = visible,
-                    onClick = { chat ->
-                        navigator.push(
-                            AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chat.chatId))
+                when {
+                    // A full-height spacer: with only the chips and an empty Archived slot the content
+                    // is shorter than the viewport, the list fills backward to index 0, and the chips
+                    // would show once rows arrive.
+                    !chats.isLoaded() -> item(key = "loading") {
+                        Spacer(parkFiller.tracked("loading").fillParentMaxSize())
+                    }
+                    // The empty states fade like the rows do, so a filter or archive that empties the
+                    // list doesn't drop the message on top of rows still fading out.
+                    state.hasNoChatsAtAll -> item(key = "empty") {
+                        NoChatsYet(
+                            Modifier.animateItem().then(parkFiller.tracked("empty")).fillParentMaxSize()
                         )
-                    },
-                    // The same sheet the chat and group profiles open, so the list offers exactly
-                    // the durations they do, and unmuting is its "Never" row rather than a toggle.
-                    onMute = { chat -> navigator.push(AppRoute.Messaging.MuteChat(chat.chatId, chat.chatType)) },
-                    onArchive = { chat ->
-                        viewModel.archive(chat.chatId)
-                        // The row leaves the list at once, so offer to put it back.
-                        if (toasts != null) {
-                            scope.launch {
-                                val result = toasts.show(
-                                    message = archivedMessage,
-                                    icon = Icons.Outlined.Archive,
-                                    actionLabel = undoLabel,
-                                )
-                                if (result == SnackbarResult.ActionPerformed) viewModel.unarchive(chat.chatId)
+                    }
+                    visible.isEmpty() -> item(key = "empty_filter") {
+                        EmptyFilterState(
+                            modifier = Modifier.animateItem()
+                                .then(parkFiller.tracked("empty_filter"))
+                                .fillParentMaxSize(),
+                            message = when (state.filter) {
+                                ChatListFilter.Unread -> R.string.title_noUnreadChats
+                                ChatListFilter.Groups -> R.string.title_noGroupChats
+                                ChatListFilter.All -> R.string.title_allChatsArchived
+                            },
+                        )
+                    }
+                    else -> tipChatItems(
+                        chats = visible,
+                        onClick = { chat ->
+                            navigator.push(
+                                AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chat.chatId))
+                            )
+                        },
+                        // The same sheet the chat and group profiles open, so the list offers exactly
+                        // the durations they do, and unmuting is its "Never" row rather than a toggle.
+                        onMute = { chat -> navigator.push(AppRoute.Messaging.MuteChat(chat.chatId, chat.chatType)) },
+                        onArchive = { chat ->
+                            viewModel.archive(chat.chatId)
+                            // The row leaves the list at once, so offer to put it back.
+                            if (toasts != null) {
+                                scope.launch {
+                                    val result = toasts.show(
+                                        message = archivedMessage,
+                                        icon = Icons.Outlined.Archive,
+                                        actionLabel = undoLabel,
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) viewModel.unarchive(chat.chatId)
+                                }
                             }
-                        }
-                    },
-                    revealGroup = revealGroup,
-                    parkFiller = parkFiller,
-                )
-            }
+                        },
+                        revealGroup = revealGroup,
+                        parkFiller = parkFiller,
+                    )
+                }
 
-            // Makes up a list shorter than the viewport, so it can still park; see [ParkFiller].
-            item(key = "park_filler", contentType = "park_filler") {
-                Spacer(with(parkFiller) { filler(parkKeys) })
+                // Makes up a list shorter than the viewport, so it can still park; see [ParkFiller].
+                item(key = "park_filler", contentType = "park_filler") {
+                    Spacer(with(parkFiller) { filler(parkKeys) })
+                }
             }
+            TopScrollEdge(
+                hazeState = hazeState,
+                listState = listState,
+                height = barPadding.calculateTopPadding(),
+            )
         }
     }
 }
-
-/**
- * How far past the bar's bottom edge the scrim reaches before it is fully transparent. Rows begin
- * dissolving this far below the title rather than only once they meet it.
- */
-private val ScrimTail = 48.dp
 
 /**
  * The "Chats" tab empty state (node 9340:2746) — bubble mark, title and prompt, centered in the

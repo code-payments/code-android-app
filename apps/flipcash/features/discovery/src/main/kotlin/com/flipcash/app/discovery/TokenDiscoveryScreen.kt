@@ -1,7 +1,8 @@
 package com.flipcash.app.discovery
 
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -17,6 +18,10 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.TopScrollEdge
+import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.theme.ScaffoldBarPlacement
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -27,17 +32,32 @@ fun TokenDiscoveryScreen() {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<TokenDiscoveryViewModel>()
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Sheet-aware app bar: a Close (✕) at the sheet root, a back arrow when pushed deeper.
-        AppBarWithTitle(
-            title = stringResource(R.string.title_discoverCurrencies),
-            titleAlignment = Alignment.CenterHorizontally,
-            onBackIconClicked = { navigator.navigateBack() },
-        )
-        TokenDiscoveryScreen(viewModel)
+    val listState = rememberLazyListState()
+    val hazeState = rememberHazeState()
+
+    // The leaderboard runs under the app bar and blurs into it (TopScrollEdge), as iOS's soft
+    // scroll edge does, rather than fading out at the bar's bottom edge.
+    CodeScaffold(
+        barPlacement = ScaffoldBarPlacement.Overlay,
+        topBar = {
+            // Sheet-aware app bar: a Close (✕) at the sheet root, a back arrow when pushed deeper.
+            AppBarWithTitle(
+                title = stringResource(R.string.title_discoverCurrencies),
+                titleAlignment = Alignment.CenterHorizontally,
+                onBackIconClicked = { navigator.navigateBack() },
+            )
+        },
+    ) { barPadding ->
+        val topPadding = barPadding.calculateTopPadding()
+        Box(modifier = Modifier.fillMaxSize()) {
+            TokenDiscoveryScreen(
+                viewModel = viewModel,
+                listState = listState,
+                hazeState = hazeState,
+                topPadding = topPadding,
+            )
+            TopScrollEdge(hazeState = hazeState, listState = listState, height = topPadding)
+        }
     }
 
     TokenDiscoveryEventHandler(viewModel, navigator)

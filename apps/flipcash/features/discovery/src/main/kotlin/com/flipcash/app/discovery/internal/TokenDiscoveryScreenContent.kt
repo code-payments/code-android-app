@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -24,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.data.Loadable
@@ -48,19 +50,34 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.CodeSegmentedControl
 import com.getcode.util.resources.LocalResources
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.rememberHazeState
 
 @Composable
-internal fun TokenDiscoveryScreen(viewModel: TokenDiscoveryViewModel) {
+internal fun TokenDiscoveryScreen(
+    viewModel: TokenDiscoveryViewModel,
+    listState: LazyListState,
+    hazeState: HazeState,
+    topPadding: Dp,
+) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    TokenDiscoveryScreenContent(state, viewModel::dispatchEvent)
+    TokenDiscoveryScreenContent(
+        state = state,
+        listState = listState,
+        hazeState = hazeState,
+        topPadding = topPadding,
+        dispatch = viewModel::dispatchEvent,
+    )
 }
 
 @Composable
 private fun TokenDiscoveryScreenContent(
     state: TokenDiscoveryViewModel.State,
+    listState: LazyListState = rememberLazyListState(),
+    hazeState: HazeState = rememberHazeState(),
+    topPadding: Dp = 0.dp,
     dispatch: (TokenDiscoveryViewModel.Event) -> Unit
 ) {
-    val listState = rememberLazyListState()
     AnimatedContent(
         targetState = state.tokens,
         transitionSpec = { fadeIn(tween()) togetherWith fadeOut(tween()) },
@@ -69,6 +86,8 @@ private fun TokenDiscoveryScreenContent(
         TokenLeaderboard(
             category = state.category,
             state = listState,
+            hazeState = hazeState,
+            topPadding = topPadding,
             tokens = tokens,
             dispatch = dispatch
         )

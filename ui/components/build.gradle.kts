@@ -44,5 +44,6 @@ dependencies {
     implementation(libs.compose.accompanist)
     implementation(libs.compose.paging)
     api(libs.vico.compose)
-    implementation(libs.bundles.haze)
+    // api: TopScrollEdge and the app bar take a HazeState, so callers need the type.
+    api(libs.bundles.haze)
 }
