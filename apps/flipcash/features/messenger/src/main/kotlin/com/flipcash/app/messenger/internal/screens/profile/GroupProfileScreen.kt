@@ -150,18 +150,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // The page fades out under the app bar and into the pinned bar, as on iOS.
+                    // The page fades out under the app bar. At the bottom it runs on under the pinned
+                    // bar, which blurs it, as on iOS.
                     .verticalScrollStateGradient(
                         scrollState = scrollState,
-                        showAtEnd = hasPinned,
+                        showAtEnd = false,
                         startInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                        endInset = clearance,
                     )
+                    .hazeSource(hazeState)
                     .verticalScroll(scrollState)
                     .padding(bottom = clearance),
             ) {
                 ProfileHeader(
-                    modifier = Modifier.hazeSource(hazeState),
                     cover = group?.coverPicture,
                     access = group?.let { BlobAccessContext.ChatProfile(it.chatId) } ?: BlobAccessContext.Owned,
                     avatar = { modifier ->
@@ -361,6 +361,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     secondaryText = if (isMember) stringResource(R.string.action_leaveChat) else null,
                     onSecondaryClick = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
                     isSecondaryLoading = state.leaving,
+                    hazeState = hazeState,
                     onHeightChanged = { pinnedHeight = it },
                 )
             }

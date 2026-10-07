@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:theme"))
 
     implementation(libs.compose.material)
+    implementation(libs.bundles.haze)
     api(libs.compose.material.icons.extended)
     testImplementation(libs.robolectric)
 }
