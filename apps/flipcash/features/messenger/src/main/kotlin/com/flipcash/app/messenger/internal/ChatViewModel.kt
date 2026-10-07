@@ -238,7 +238,7 @@ internal class ChatViewModel @Inject constructor(
     private val userProfileDataSource: UserProfileDataSource,
     private val rosterSearch: RosterSearchSource,
     private val featuredGroups: FeaturedGroupsStore,
-    dispatchers: DispatcherProvider,
+    private val dispatchers: DispatcherProvider,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -2129,7 +2129,7 @@ internal class ChatViewModel @Inject constructor(
     private suspend fun loadQuickReactionInputs(): QuickReactionInputs {
         val catalog = emojiCatalogLoader.load()
         val fill = catalog.firstCategoryEntries.map { it.emoji }
-        val undrawable = withContext(Dispatchers.Default) {
+        val undrawable = withContext(dispatchers.Default) {
             fill.filterNot { EmojiDrawability.isDrawable(it) }.toSet()
         }
         return QuickReactionInputs(
