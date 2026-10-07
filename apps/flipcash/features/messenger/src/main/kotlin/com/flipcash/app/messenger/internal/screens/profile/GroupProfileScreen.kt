@@ -3,6 +3,12 @@ package com.flipcash.app.messenger.internal.screens.profile
 import android.os.Parcelable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -234,7 +240,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         )
                     }
                 }
-                if (group != null && isChattingGridVisible(group.isPrivate, state.chatters)) {
+                // The sample lands after the header; opening the grid in place moves the
+                // requirements card down with it rather than jumping it.
+                AnimatedVisibility(
+                    visible = group != null && isChattingGridVisible(group.isPrivate, state.chatters),
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+                ) {
                     GroupChattingGrid(
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
@@ -271,9 +283,11 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
                 if (requirements != null) {
                     BalanceRequirementsCard(
+                        // "Your Balance" arrives with the standing, after the rules.
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(top = CodeTheme.dimens.staticGrid.x6),
+                            .padding(top = CodeTheme.dimens.staticGrid.x6)
+                            .animateContentSize(),
                         join = requirements.join?.let { holdingLabel(it, tokens) },
                         chat = requirements.chat?.let { holdingLabel(it, tokens) },
                         yourBalance = (requirements.join ?: requirements.chat)?.let { rule ->
