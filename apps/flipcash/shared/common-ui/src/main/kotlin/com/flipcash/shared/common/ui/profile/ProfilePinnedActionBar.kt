@@ -20,13 +20,22 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.toast.ToastBottomClearance
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /**
  * The one action a profile pins to the bottom of its screen: a filled button, with an optional
  * [above] line over it (a footer, a shortfall) and an optional text action ([secondaryText])
  * under it.
  *
- * The bar sits on the screen's background, clears the navigation bar, and measures itself,
+ * Given the [hazeState] the screen's scroll content draws into, the bar is see-through: the content
+ * runs on under it and blurs in from clear at its top edge, as iOS's soft scroll edge does. Without
+ * one it sits on the screen's background.
+ *
+ * The bar clears the navigation bar and measures itself,
  * system bar included. While it is composed it asks the root toast host to rest toasts above that
  * height, and withdraws the request when it leaves, so show it only when something is pinned. The
  * same height goes to [onHeightChanged] for the caller's scroll content to leave room for; it is
@@ -45,8 +54,12 @@ fun ProfilePinnedActionBar(
     secondaryText: String? = null,
     onSecondaryClick: (() -> Unit)? = null,
     isSecondaryLoading: Boolean = false,
+    hazeState: HazeState? = null,
     onHeightChanged: (Dp) -> Unit = {},
 ) {
+    val background = CodeTheme.colors.background
+    val material = HazeMaterials.ultraThin(containerColor = background)
+
     val density = LocalDensity.current
     var height by remember { mutableStateOf(0.dp) }
     ToastBottomClearance(height)
@@ -60,7 +73,18 @@ fun ProfilePinnedActionBar(
                 height = measured
                 onHeightChanged(measured)
             }
-            .background(CodeTheme.colors.background)
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeBlur(
+                        HazeInput.Sources(hazeState),
+                        material.then {
+                            progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
+                        },
+                    )
+                } else {
+                    Modifier.background(background)
+                },
+            )
             .navigationBarsPadding()
             // iOS: 12 above, 8 below and 8 between, on the 5dp grid.
             .padding(vertical = CodeTheme.dimens.staticGrid.x2),

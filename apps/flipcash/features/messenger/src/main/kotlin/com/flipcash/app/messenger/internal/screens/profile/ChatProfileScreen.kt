@@ -138,11 +138,12 @@ internal fun PersonProfileScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    // The whole page, so the pinned bar blurs whatever scrolls under it.
+                    .hazeSource(hazeState)
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = clearance),
             ) {
                 ProfileHeader(
-                    modifier = Modifier.hazeSource(hazeState),
                     cover = person?.profile?.coverPicture,
                     access = person?.let { BlobAccessContext.profile(it.userId) } ?: BlobAccessContext.Owned,
                     avatar = { modifier ->
@@ -287,6 +288,7 @@ internal fun PersonProfileScreen(
                             )
                         }
                     } else null,
+                    hazeState = hazeState,
                     onHeightChanged = { pinnedHeight = it },
                 )
             }
