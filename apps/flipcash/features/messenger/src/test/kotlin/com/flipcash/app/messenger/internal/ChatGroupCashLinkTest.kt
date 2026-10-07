@@ -24,6 +24,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarManager
@@ -168,6 +169,7 @@ class ChatGroupCashLinkTest {
         toastController = mockk(relaxed = true),
         userProfileDataSource = mockk(relaxed = true),
         rosterSearch = mockk(relaxed = true),
+        featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 

@@ -41,9 +41,9 @@ import kotlinx.coroutines.flow.onEach
 /**
  * Node 9442:5825 — start a chat with someone by their public `@handle`.
  *
- * Reached from "Find by Username" on the New Chat chooser, and left by becoming the person's DM if
- * one exists, or their profile if not. That destination takes the place of this screen and of the
- * chooser above the list, so backing out lands on the Chats list — both have done their job by then,
+ * Reached from "Find by Username" on the New Chat chooser, and left by becoming the person's
+ * profile. That profile takes the place of this screen and of the chooser above the list, so
+ * backing out lands on the Chats list — both have done their job by then,
  * and re-showing them would put two screens between it and the list it belongs to.
  */
 @Composable

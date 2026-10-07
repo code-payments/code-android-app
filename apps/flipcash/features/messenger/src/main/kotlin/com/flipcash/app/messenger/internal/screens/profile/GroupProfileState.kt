@@ -173,6 +173,8 @@ internal data class GroupProfileStanding(
     val shortfall: Fiat?,
     /** The "Your Balance" line, when it can be stated. */
     val yourBalance: Fiat?,
+    /** Where the gate's Buy goes: the buy screen, or straight to Add Money. */
+    val funding: GateFunding = GateFunding.Buy,
 ) {
     companion object {
         fun of(
@@ -196,9 +198,39 @@ internal data class GroupProfileStanding(
                 cta = cta,
                 shortfall = bar?.let { balanceShortfall(it, balances, rates) },
                 yourBalance = GroupBalanceRequirements.from(rules)?.let { yourBalance(it, balances, rates) },
+                funding = bar?.let { gateFunding(it, balances, rates) } ?: GateFunding.Buy,
             )
         }
     }
+}
+
+/** Where the gate's Buy goes. */
+internal enum class GateFunding { Buy, AddMoney }
+
+/**
+ * Whether a buy of [requirement]'s token can be paid for, mirroring iOS
+ * `ConversationScreen.addFunds()`. The buy flow pays from one balance, so it can only go ahead
+ * when a single held balance covers the shortfall; otherwise the viewer is sent to Add Money
+ * instead of finding out on the buy screen. Payment sources are the buy flow's: displayable
+ * balances, minus the gated token itself (the server rejects a same-mint swap). Both sides are
+ * in USD. With no rate to state the shortfall, it falls back to the buy screen's own rule: any
+ * spendable source at all.
+ *
+ * A rule on dollars, or on no single mint, has no token to buy and always adds cash; this is
+ * only consulted for a named token.
+ */
+internal fun gateFunding(
+    requirement: ChatRuleRequirement.MinimumBalance,
+    balances: List<TokenWithBalance>,
+    rates: Map<CurrencyCode, Rate>,
+): GateFunding {
+    val gated = requirement.mints.firstOrNull()?.bytes
+    val sources = balances.filter { it.balance.hasDisplayableValue && it.token.address.bytes != gated }
+    val required = requirement.amount.usdValue(rates)
+        ?: return if (sources.isEmpty()) GateFunding.AddMoney else GateFunding.Buy
+    val held = heldAgainst(requirement.mints, balances)?.toDouble() ?: 0.0
+    val shortUsd = (required - held).coerceAtLeast(0.0)
+    return if (sources.any { it.balance.toDouble() >= shortUsd }) GateFunding.Buy else GateFunding.AddMoney
 }
 
 private const val MICRO_SCALE = 6

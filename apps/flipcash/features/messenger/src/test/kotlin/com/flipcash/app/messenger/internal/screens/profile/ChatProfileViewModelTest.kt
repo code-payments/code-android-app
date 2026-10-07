@@ -15,6 +15,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.opencode.model.financial.Fiat
 import app.cash.turbine.test
@@ -56,6 +57,10 @@ class ChatProfileViewModelTest {
     private val serverJoin = Instant.fromEpochSeconds(1_710_000_000)
 
     private val profiles = mockk<ProfileController>()
+    private val featuredGroupsStore = FeaturedGroupsStore(
+        mockk { coEvery { getChat(any(), any()) } returns Result.failure(Throwable("not stubbed")) }
+    )
+
     private val chatController = mockk<ChatController> {
         coEvery { getFeaturedGroups(any()) } returns Result.success(emptyList())
     }
@@ -95,6 +100,7 @@ class ChatProfileViewModelTest {
         e2eePolicy = mockk<E2eePolicy>(relaxed = true),
         startChattingPayer = payer,
         chatController = chatController,
+        featuredGroupsStore = featuredGroupsStore,
     )
 
     private fun openFull(model: ChatProfileViewModel) =

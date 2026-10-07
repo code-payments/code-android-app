@@ -15,6 +15,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
@@ -27,12 +28,16 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -63,6 +68,7 @@ class ChatOpenTranscriptTest {
     private val chatId = ChatId(UUID.randomUUID().bytes)
     private val contactCoordinator = mockk<ContactCoordinator>(relaxed = true)
     private val openChat = ChatViewModel.Event.OnChatOpened(ChatIdentifier.ByChatId(chatId))
+    private val featuredGroups = FeaturedGroupsStore(mockk(relaxed = true))
 
     @Before
     fun setUp() {
@@ -74,6 +80,7 @@ class ChatOpenTranscriptTest {
         every { tipPaymentDelegate.startChattingFee(any()) } returns flowOf(null)
         every { chatCoordinator.observeMetadata(chatId) } returns flowOf(null)
         coEvery { contactCoordinator.lookupContactByDmChatId(any()) } returns null
+        coEvery { chatCoordinator.sampleChatters(any()) } returns Result.failure(Exception("offline"))
     }
 
     @After
@@ -108,6 +115,7 @@ class ChatOpenTranscriptTest {
         emojiCatalogLoader = mockk(relaxed = true),
         userProfileDataSource = mockk(relaxed = true),
         rosterSearch = mockk(relaxed = true),
+        featuredGroups = featuredGroups,
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 
@@ -156,5 +164,43 @@ class ChatOpenTranscriptTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { chatCoordinator.loadMessages(chatId) }
+    }
+
+    @Test
+    fun `a featured group draws from the row that was tapped before GetChat answers`() = runTest {
+        featuredGroups.remember(
+            listOf(
+                mockk<ChatMetadata>(relaxed = true) {
+                    every { this@mockk.chatId } returns this@ChatOpenTranscriptTest.chatId
+                    every { type } returns ChatType.GROUP
+                    every { title } returns "Moony"
+                },
+            ),
+        )
+        coEvery { chatCoordinator.hydrateChat(chatId) } coAnswers { awaitCancellation() }
+
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(openChat)
+        runCurrent()
+
+        coVerify { chatCoordinator.sampleChatters(chatId) }
+        val group = viewModel.stateFlow.value.subject as ChatSubject.Group
+        assertEquals("Moony", group.groupTitle)
+        assertNull(group.isMember)
+    }
+
+    @Test
+    fun `a stored chat is not drawn from the featured row`() = runTest {
+        featuredGroups.remember(
+            listOf(mockk<ChatMetadata>(relaxed = true) { every { this@mockk.chatId } returns this@ChatOpenTranscriptTest.chatId }),
+        )
+        every { chatCoordinator.observeMetadata(chatId) } returns flowOf(mockk(relaxed = true))
+        coEvery { chatCoordinator.hydrateChat(chatId) } coAnswers { awaitCancellation() }
+
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(openChat)
+        runCurrent()
+
+        assertNull(viewModel.stateFlow.value.subject as? ChatSubject.Group)
     }
 }

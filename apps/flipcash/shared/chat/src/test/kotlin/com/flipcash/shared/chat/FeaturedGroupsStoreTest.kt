@@ -4,6 +4,7 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MediaItem
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -15,7 +16,9 @@ import kotlin.time.Instant
 
 class FeaturedGroupsStoreTest {
 
-    private val chatController = mockk<ChatController>()
+    private val chatController = mockk<ChatController> {
+        coEvery { getChat(any(), any()) } returns Result.failure(Throwable("not stubbed"))
+    }
     private val store = FeaturedGroupsStore(chatController)
 
     private fun group(hex: String) = ChatMetadata(
@@ -52,6 +55,20 @@ class FeaturedGroupsStoreTest {
 
         assertFalse(store.load("me"))
         assertEquals(held, store.groups.value)
+    }
+
+    @Test
+    fun `a load fills in the covers the featured list leaves out`() = runTest {
+        val cover = mockk<MediaItem>()
+        coEvery { chatController.getFeaturedGroups("me") } returns Result.success(listOf(group("aa"), group("bb")))
+        coEvery { chatController.getChat(ChatId("aa"), any()) } returns Result.success(group("aa").copy(coverPicture = cover))
+
+        store.load("me")
+
+        assertEquals(cover, store.peek(ChatId("aa"))?.coverPicture)
+        // A group whose GetChat failed is still there, without a cover.
+        assertEquals(null, store.peek(ChatId("bb"))?.coverPicture)
+        assertEquals(group("bb"), store.peek(ChatId("bb")))
     }
 
     @Test

@@ -16,6 +16,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
@@ -116,6 +117,7 @@ class ChatTypingGateTest {
         emojiCatalogLoader = mockk(relaxed = true),
         userProfileDataSource = mockk(relaxed = true),
         rosterSearch = mockk(relaxed = true),
+        featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 

@@ -2,8 +2,8 @@ package com.flipcash.app.tipping.internal
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.blocklist.DmDestinationResolver
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.features.tipping.R
@@ -33,8 +33,9 @@ internal const val MaxHandleLength = 15
 /**
  * Turning a typed `@handle` into somewhere to go.
  *
- * One round trip: the profile fetch answers with the user's id. The destination is their DM when one
- * exists and they are not blocked, and their profile until then.
+ * One round trip: the profile fetch answers with the user's id. The destination is always their
+ * profile, whether or not a DM exists: a looked-up handle is someone to look at first, and the
+ * profile's own button opens the DM when there is one.
  *
  * A handle nobody has claimed is informational, not an error: the user typed it and can retype it.
  * Only a failed lookup is ours to apologise for.
@@ -43,7 +44,6 @@ internal const val MaxHandleLength = 15
 internal class FindByUsernameViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val userManager: UserManager,
-    private val dmDestinations: DmDestinationResolver,
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<FindByUsernameViewModel.State, FindByUsernameViewModel.Event>(
@@ -75,7 +75,7 @@ internal class FindByUsernameViewModel @Inject constructor(
             val success: Boolean = false,
         ) : Event
 
-        /** The handle resolved; [destination] is their DM if one exists, else their profile. */
+        /** The handle resolved; [destination] is their profile. */
         data class UserResolved(val destination: AppRoute) : Event
     }
 
@@ -110,7 +110,7 @@ internal class FindByUsernameViewModel @Inject constructor(
                 // from a handle that doesn't exist — so it reads as one.
                 val userId = profile.userId ?: throw GetUserProfileError.NotFound()
                 if (userId == userManager.accountId) throw OwnHandle(username)
-                dmDestinations.dmDestination(userId, ProfileOrigin.UsernameLookup)
+                AppRoute.Messaging.Profile(ProfileAddress.ById(userId), ProfileOrigin.UsernameLookup)
             }
 
     private fun announceUnresolvable(cause: Throwable) {

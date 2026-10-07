@@ -88,6 +88,7 @@ import com.flipcash.app.messenger.internal.balanceRequirement
 import com.flipcash.app.messenger.internal.mention.mentionListHeight
 import com.flipcash.app.messenger.internal.mention.mentionRowCap
 import com.flipcash.app.messenger.internal.requiresStaff
+import com.flipcash.app.messenger.internal.screens.profile.GateFunding
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.models.ChatActionHandler
@@ -151,6 +152,9 @@ internal fun UserControlBottomBar(
             requirement = (state.subject as? ChatSubject.Group)?.rules.balanceRequirement(),
             staffOnly = (state.subject as? ChatSubject.Group)?.rules.requiresStaff() == true,
             currency = state.ruleCurrency,
+            shortfall = state.profileStanding?.shortfall,
+            funding = state.profileStanding?.funding ?: GateFunding.Buy,
+            hazeState = hazeState,
             onAction = onAction,
             joinProgress = state.joinProgress,
         )
@@ -163,14 +167,26 @@ internal fun UserControlBottomBar(
         val rules = (state.subject as? ChatSubject.Group)?.rules
         val ruleMint = rules.balanceRequirement()?.mints?.firstOrNull()
         val blockMint = (block as? ChatRuleRequirement.MinimumBalance)?.mints?.firstOrNull()
-        SpeakerGateBar(
-            requirement = block,
-            hazeState = hazeState,
-            // The resolved currency describes the chat's stated balance rule; only name it when
-            // that is the mint this requirement is about.
-            currencyName = state.ruleCurrency?.nameInRequirement
-                ?.takeIf { blockMint != null && ruleMint?.bytes == blockMint.bytes },
-        )
+        // The resolved currency describes the chat's stated balance rule; only name it when
+        // that is the mint this requirement is about.
+        val currency = state.ruleCurrency
+            ?.takeIf { blockMint != null && ruleMint?.bytes == blockMint.bytes }
+        if (block is ChatRuleRequirement.MinimumBalance) {
+            ChatMinimumGateBar(
+                requirement = block,
+                currency = currency,
+                shortfall = state.profileStanding?.shortfall,
+                funding = state.profileStanding?.funding ?: GateFunding.Buy,
+                hazeState = hazeState,
+                onAction = onAction,
+            )
+        } else {
+            SpeakerGateBar(
+                requirement = block,
+                hazeState = hazeState,
+                currencyName = currency?.nameInRequirement,
+            )
+        }
         return
     }
 

@@ -185,6 +185,9 @@
     <!-- Shown when a non-member reading a group taps a cash link in it. The link is not opened. -->
     <string name="title_joinToCollect">Join to Collect</string>
     <string name="description_joinToCollect">Join this chat to collect cash sent in it.</string>
+    <!-- Shown when a member an unmet rule keeps from chatting taps a cash link. The link is not opened. -->
+    <string name="title_chatToCollect">Chat to Collect</string>
+    <string name="description_chatToCollect">Only people who can chat here can collect cash sent in it.</string>
 
     <string name="title_enterAddress">Enter Solana address</string>
     <!-- v2 app-bar title for the withdrawal destination step; title_enterAddress stays the field placeholder. -->
@@ -923,6 +926,8 @@
     <string name="label_groupRequiredToChat">%1$s Required to Chat</string>
     <string name="action_buyToJoin">Buy %1$s to Join</string>
     <string name="action_buyToChat">Buy %1$s to Chat</string>
+    <string name="action_addToJoin">Add %1$s to Join</string>
+    <string name="action_addToChat">Add %1$s to Chat</string>
     <string name="action_leaveChat">Leave Chat</string>
     <string name="prompt_title_leaveChat">Leave %1$s?</string>
     <string name="prompt_description_leaveChat">You won’t receive messages from this group any more. You can join again with an invite link</string>
@@ -1023,7 +1028,6 @@
     <!-- Group invite link card. The untitled name is provisional, pending copy. -->
     <string name="label_linkCard_untitledGroup">Group Chat</string>
     <string name="action_linkCard_view">View</string>
-    <string name="action_linkCard_invitePeople">Invite People</string>
     <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
 
     <!-- Chat message selection bar and its actions -->
@@ -1395,6 +1399,7 @@
 
 
     <string name="title_howTokenPriceWorks">How %1$s\'s Price Works</string>
+    <string name="error_marketCapExplainerUnavailable">Unable to load</string>
     <string name="subtitle_howMarketCapWorksRow">See what moves market cap · 1 min</string>
     <string name="title_marketCapExplainerHeadline">The more people buy %1$s, the more valuable %1$s becomes.</string>
     <string name="label_marketCapAmountPurchased">Amount of %1$s purchased by the community</string>

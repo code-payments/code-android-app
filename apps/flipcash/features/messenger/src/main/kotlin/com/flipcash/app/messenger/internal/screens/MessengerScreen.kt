@@ -33,6 +33,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
@@ -57,6 +59,8 @@ import com.flipcash.app.shareable.Shareable
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.results.NavResultOrCanceled
+import com.getcode.navigation.results.navigateForResult
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
 import com.getcode.ui.utils.rememberKeyboardController
@@ -121,10 +125,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(action.messageId))
             }
 
-            ChatAction.RefreshContact -> {
-                viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
-            }
-
             is ChatAction.OpenPhoto -> {
                 // After the keyboard is down, so the bubble the photo grows from has settled.
                 keyboard.hideIfVisible { openPhotoId = action.bubble.messageId }
@@ -142,22 +142,30 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.ViewToken -> {
-                // Only the gate asks to come back after a buy, so that flag is what marks its tap.
-                if (action.returnAfterBuy) {
-                    viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.BUY_TOKEN))
-                }
                 keyboard.hideIfVisible {
                     viewModel.dispatchEvent(
                         ChatViewModel.Event.OpenScreen(
                             // A drill-in from the transcript, so push it: the fade-in-place
                             // expand is the wallet card growing into its own detail, and there
                             // is no card here for it to grow from.
-                            AppRoute.Token.Info(
-                                action.mint,
-                                if (action.returnAfterBuy) TokenInfoEntry.ChatGate else TokenInfoEntry.Chat,
-                            )
+                            AppRoute.Token.Info(action.mint, TokenInfoEntry.Chat)
                         )
                     )
+                }
+            }
+
+            is ChatAction.BuyGateToken -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.BUY_TOKEN))
+                keyboard.hideIfVisible {
+                    // Straight to the buy screen, as iOS's gate does. Finishing the buy lands back
+                    // on this chat, in front of Join.
+                    navigator.navigateForResult<SwapResult>(
+                        AppRoute.Token.Swap(SwapPurpose.Buy(action.mint))
+                    ) { result ->
+                        if (result is NavResultOrCanceled.ReturnValue && result.value == SwapResult.OpenDeposit) {
+                            navigator.push(AppRoute.Transfers.Deposit(showOtherOptions = false))
+                        }
+                    }
                 }
             }
 
@@ -242,8 +250,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.CancelReply)
             }
 
-            is ChatAction.CashLinkOpened -> when (state.cashCardTap) {
-                CashCardTap.JoinToCollect -> viewModel.dispatchEvent(ChatViewModel.Event.CashLinkRefused)
+            is ChatAction.CashLinkOpened -> when (val tap = state.cashCardTap) {
+                CashCardTap.JoinToCollect,
+                CashCardTap.ChatToCollect -> viewModel.dispatchEvent(ChatViewModel.Event.CashLinkRefused(tap))
                 // Reported before the link leaves, so the tap is on record by the time the claim
                 // can come back.
                 is CashCardTap.Collect -> {
@@ -270,16 +279,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             ChatAction.JoinChat -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)
 
-            ChatAction.InviteToGroup -> {
-                // The sheet, not the share sheet: copying the link is the other way to hand it out,
-                // and going straight to the system share picker would bury it. The sheet reads the
-                // url off the same state the CTA that got here is gated on.
-                viewModel.dispatchEvent(ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT))
-                keyboard.hideIfVisible { navigator.openGroupInvite() }
-            }
-
             is ChatAction.ViewProfile -> {
-                // The triggers (top-bar tap, info-card chevron) are only clickable for subjects
+                // The trigger (the top-bar tap) is only clickable for subjects
                 // that have a profile (see State.canViewProfile), so no gating is needed here.
                 // Which profile depends on the subject: a DM's is its counterparty's, and a group
                 // is its own — it has no participant to open one on.
@@ -428,7 +429,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     otherReadPointer = otherReadPointer,
                     onAction = chatActionHandler,
                     linkCardResolution = viewModel.linkCardResolution,
-                    canViewProfile = state.canViewProfile,
                     onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
                     topBarBottom = barHeight,
                 )

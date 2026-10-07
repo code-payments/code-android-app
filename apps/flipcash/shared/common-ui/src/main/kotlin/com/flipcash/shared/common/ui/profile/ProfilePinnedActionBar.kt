@@ -11,7 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -20,13 +22,23 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.toast.ToastBottomClearance
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /**
  * The one action a profile pins to the bottom of its screen: a filled button, with an optional
- * [above] line over it (a footer, a shortfall) and an optional text action ([secondaryText])
- * under it.
+ * [above] line over it and an optional text action ([secondaryText]) under it.
  *
- * The bar sits on the screen's background, clears the navigation bar, and measures itself,
+ * Given the [hazeState] the screen's scroll content draws into, the content runs on under the bar
+ * and fades off the bottom of the screen: it blurs in and dims from the bar's top edge down over
+ * [FadeHeight], then stays blurred under a [FrostAlpha] dim, so it still shows through behind the
+ * buttons while [above] reads clear of it. Without a [hazeState] the bar sits on the screen's
+ * background.
+ *
+ * The bar clears the navigation bar and measures itself,
  * system bar included. While it is composed it asks the root toast host to rest toasts above that
  * height, and withdraws the request when it leaves, so show it only when something is pinned. The
  * same height goes to [onHeightChanged] for the caller's scroll content to leave room for; it is
@@ -45,9 +57,14 @@ fun ProfilePinnedActionBar(
     secondaryText: String? = null,
     onSecondaryClick: (() -> Unit)? = null,
     isSecondaryLoading: Boolean = false,
+    hazeState: HazeState? = null,
     onHeightChanged: (Dp) -> Unit = {},
 ) {
+    val background = CodeTheme.colors.background
+    val material = HazeMaterials.ultraThin(containerColor = background)
+
     val density = LocalDensity.current
+    val fadePx = with(density) { FadeHeight.toPx() }
     var height by remember { mutableStateOf(0.dp) }
     ToastBottomClearance(height)
 
@@ -60,11 +77,36 @@ fun ProfilePinnedActionBar(
                 height = measured
                 onHeightChanged(measured)
             }
-            .background(CodeTheme.colors.background)
+            .then(
+                if (hazeState != null) {
+                    Modifier
+                        .hazeBlur(
+                            HazeInput.Sources(hazeState),
+                            material.then {
+                                progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
+                            },
+                        )
+                        // The blur alone leaves shapes sharp enough to fight the text; the dim
+                        // softens them without hiding them.
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(background.copy(alpha = 0f), background.copy(alpha = FrostAlpha)),
+                                startY = 0f,
+                                endY = fadePx,
+                            ),
+                        )
+                } else {
+                    Modifier.background(background)
+                },
+            )
+            // The fade, then iOS's 12 above, 8 below and 8 between, on the 5dp grid.
+            .then(if (hazeState != null) Modifier.padding(top = FadeHeight) else Modifier)
+            .padding(top = CodeTheme.dimens.staticGrid.x2)
             .navigationBarsPadding()
-            // iOS: 12 above, 8 below and 8 between, on the 5dp grid.
-            .padding(vertical = CodeTheme.dimens.staticGrid.x2),
+            .padding(bottom = CodeTheme.dimens.staticGrid.x2),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
+        // iOS stacks these in a VStack, which centres a line narrower than the buttons.
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         above?.invoke()
         CodeButton(
@@ -91,3 +133,9 @@ fun ProfilePinnedActionBar(
         }
     }
 }
+
+/** The band over the bar's first row in which the content fades off; iOS fades over 56pt. */
+private val FadeHeight = 40.dp
+
+/** How much of the background lies over the blurred content under the buttons. */
+private const val FrostAlpha = 0.6f

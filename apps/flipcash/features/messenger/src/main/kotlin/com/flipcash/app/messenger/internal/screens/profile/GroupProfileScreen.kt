@@ -1,16 +1,19 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -38,7 +41,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatParticipant
@@ -63,6 +65,7 @@ import com.flipcash.shared.common.ui.profile.ProfileActionButton
 import com.flipcash.shared.common.ui.profile.ProfileHeader
 import com.flipcash.shared.common.ui.profile.ProfilePinnedActionBar
 import com.flipcash.shared.common.ui.profile.ProfileStatusChip
+import com.flipcash.shared.common.ui.profile.ProfileTopScrollEdge
 import com.flipcash.shared.common.ui.profile.chatterName
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -71,12 +74,13 @@ import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The group's own profile, reached from the info card at the head of its transcript.
@@ -110,26 +114,37 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             .collect { flowNavigator.exitCanceled() }
     }
 
-    // A join that went through lands on the chat, which is the screen underneath.
-    // The success flag is sticky on the view model, so only a join started from this screen counts:
-    // someone who joined from the gate and opens the profile afterwards must not be bounced.
-    var joinedHere by remember { mutableStateOf(false) }
-    LaunchedEffect(state.joinProgress.loading) {
-        if (state.joinProgress.loading) joinedHere = true
-    }
-    LaunchedEffect(state.joinProgress.success, joinedHere) {
-        if (state.joinProgress.success && joinedHere) flowNavigator.back()
+    // The chat is usually the screen underneath. A flow opened on the profile
+    // (AppRoute.Messaging.Chat.openOnProfile) has nothing underneath, so the transcript is pushed on
+    // top and back from it returns here, as iOS does.
+    fun openChat() {
+        if (flowNavigator.canGoBack) {
+            flowNavigator.back()
+        } else {
+            flowNavigator.navigateTo(ChatStep.Conversation)
+        }
     }
 
     val standing = state.profileStanding
-    val cta = standing?.cta ?: GroupProfileCta.None
     val requirements = remember(group?.rules) { GroupBalanceRequirements.from(group?.rules) }
     val tokens = state.ruleTokens
+    // The amounts read "$1 of Moony" once the token is named; held back until then so they don't
+    // read "$1" first and change under the reader. A token that never resolves stops holding
+    // them after a moment, and they read as a bare amount, as they did before.
+    var namesTimedOut by remember(requirements) { mutableStateOf(false) }
+    LaunchedEffect(requirements) {
+        delay(RuleNameHold)
+        namesTimedOut = true
+    }
+    val namesReady = namesTimedOut || requirements == null ||
+        listOfNotNull(requirements.join, requirements.chat)
+            .mapNotNull { it.mints.firstOrNull()?.let { m -> Mint(m.bytes) } }
+            .filterNot { it == Mint.usdf }
+            .all { tokens.containsKey(it.bytes) }
 
     var menuOpen by remember { mutableStateOf(false) }
     var pinnedHeight by remember { mutableStateOf(0.dp) }
-    val hasPinned = cta != GroupProfileCta.None || isMember
-    val clearance = if (hasPinned) pinnedHeight else 0.dp
+    val clearance = pinnedHeight
     val hazeState = rememberHazeState()
 
     CodeScaffold { padding ->
@@ -142,18 +157,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // The page fades out under the app bar and into the pinned bar, as on iOS.
-                    .verticalScrollStateGradient(
-                        scrollState = scrollState,
-                        showAtEnd = hasPinned,
-                        startInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                        endInset = clearance,
-                    )
+                    // The whole page, so the pinned bar and the top edge blur whatever scrolls under them.
+                    .hazeSource(hazeState)
                     .verticalScroll(scrollState)
                     .padding(bottom = clearance),
             ) {
                 ProfileHeader(
-                    modifier = Modifier.hazeSource(hazeState),
                     cover = group?.coverPicture,
                     access = group?.let { BlobAccessContext.ChatProfile(it.chatId) } ?: BlobAccessContext.Owned,
                     avatar = { modifier ->
@@ -214,7 +223,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         )
                     }
                 }
-                if (group != null && isChattingGridVisible(group.isPrivate, state.chatters)) {
+                // The sample lands after the header; opening the grid in place moves the
+                // requirements card down with it rather than jumping it.
+                AnimatedVisibility(
+                    visible = group != null && isChattingGridVisible(group.isPrivate, state.chatters),
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+                ) {
                     GroupChattingGrid(
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
@@ -235,15 +250,22 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     )
                 }
 
-                if (requirements != null) {
+                AnimatedVisibility(
+                    visible = requirements != null && namesReady,
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+                ) {
+                    requirements ?: return@AnimatedVisibility
                     val soleToken = requirements.soleToken
                     val soleTokenCurrency = soleToken?.let { tokens[it.bytes] }
                     // With the token named in its own row, Join and Chat state bare amounts.
                     val namesToken = soleTokenCurrency == null
                     BalanceRequirementsCard(
+                        // "Your Balance" arrives with the standing, after the rules.
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(top = CodeTheme.dimens.staticGrid.x6),
+                            .padding(top = CodeTheme.dimens.staticGrid.x6)
+                            .animateContentSize(),
                         communityCurrency = soleTokenCurrency?.let { currency ->
                             {
                                 TokenIconWithName(
@@ -269,6 +291,8 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 }
                 Box(modifier = Modifier.padding(bottom = CodeTheme.dimens.staticGrid.x6))
             }
+
+            ProfileTopScrollEdge(hazeState = hazeState, scrollState = scrollState)
 
             AppBarWithTitle(
                 onBackIconClicked = { flowNavigator.back() },
@@ -309,59 +333,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 },
             )
 
-            if (hasPinned) {
-                val bar = (cta as? GroupProfileCta.BuyToJoin)?.requirement
-                    ?: (cta as? GroupProfileCta.BuyToChat)?.requirement
-                val buyMint = bar?.mints?.firstOrNull()?.let { Mint(it.bytes) }?.takeUnless { it == Mint.usdf }
-                val shortfall = (standing?.shortfall ?: bar?.amount)?.formatted(Fiat.FormattingRule.Truncated)
-                val isJoin = cta is GroupProfileCta.BuyToJoin
-
-                ProfilePinnedActionBar(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    text = when (cta) {
-                        GroupProfileCta.Join -> stringResource(R.string.action_join)
-                        GroupProfileCta.OpenChat, GroupProfileCta.None -> stringResource(R.string.action_openChat)
-                        is GroupProfileCta.BuyToJoin -> stringResource(R.string.action_buyToJoin, shortfall.orEmpty())
-                        is GroupProfileCta.BuyToChat -> stringResource(R.string.action_buyToChat, shortfall.orEmpty())
-                    },
-                    // A member whose standing has not arrived has nothing to open yet.
-                    enabled = cta != GroupProfileCta.None && !state.joinProgress.loading,
-                    isLoading = state.joinProgress.loading,
-                    onClick = {
-                        when (cta) {
-                            GroupProfileCta.Join -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)
-                            GroupProfileCta.OpenChat -> flowNavigator.back()
-                            is GroupProfileCta.BuyToJoin, is GroupProfileCta.BuyToChat -> {
-                                if (buyMint == null) {
-                                    viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.ADD_CASH))
-                                    viewModel.dispatchEvent(ChatViewModel.Event.PresentDepositOptions)
-                                } else {
-                                    viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.BUY_TOKEN))
-                                    navigator.push(AppRoute.Token.Info(buyMint, TokenInfoEntry.ChatGate))
-                                }
-                            }
-                            GroupProfileCta.None -> Unit
-                        }
-                    },
-                    above = if (bar != null) {
-                        {
-                            Text(
-                                modifier = Modifier.padding(bottom = CodeTheme.dimens.staticGrid.x2),
-                                text = stringResource(
-                                    if (isJoin) R.string.label_groupRequiredToJoin else R.string.label_groupRequiredToChat,
-                                    holdingLabel(bar, tokens),
-                                ),
-                                style = CodeTheme.typography.textSmall,
-                                color = CodeTheme.colors.textSecondary,
-                            )
-                        }
-                    } else null,
-                    secondaryText = if (isMember) stringResource(R.string.action_leaveChat) else null,
-                    onSecondaryClick = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
-                    isSecondaryLoading = state.leaving,
-                    onHeightChanged = { pinnedHeight = it },
-                )
-            }
+            // Open Chat in every standing, as in the design: a viewer short of a minimum is told
+            // so, and buys, on the chat's own gate.
+            ProfilePinnedActionBar(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                text = stringResource(R.string.action_openChat),
+                onClick = { openChat() },
+                secondaryText = if (isMember) stringResource(R.string.action_leaveChat) else null,
+                onSecondaryClick = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
+                isSecondaryLoading = state.leaving,
+                hazeState = hazeState,
+                onHeightChanged = { pinnedHeight = it },
+            )
         }
     }
 }
@@ -428,3 +411,6 @@ private fun GroupProfileMenu(
         }
     }
 }
+
+/** How long the requirement amounts wait for their token's name before showing without it. */
+private val RuleNameHold = 1500.milliseconds

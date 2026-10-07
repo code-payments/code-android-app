@@ -13,6 +13,7 @@ import com.flipcash.shared.chat.ChatDraftReply
 import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftSnippet
 import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.SpeakerBlock
 import com.flipcash.shared.chat.resolveSpeakerBlock
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
@@ -252,13 +253,6 @@ class ChatViewModelStateTest {
     }
 
     @Test
-    fun `an unknown membership has no invite to share`() {
-        // The link is an action, not a view: offering it would invite people into a group this
-        // device cannot yet say the viewer belongs to.
-        assertNull(ChatViewModel.State(subject = group(isMember = null)).groupInviteUrl)
-    }
-
-    @Test
     fun `a DM has no gate to render`() {
         // The null access is the whole point: a default would blur every contact conversation.
         for (state in listOf(ChatViewModel.State(subject = dm, groupAccess = null), ChatViewModel.State())) {
@@ -269,25 +263,13 @@ class ChatViewModelStateTest {
     }
 
     @Test
-    fun `only a group the viewer has joined has an invite to share`() {
+    fun `any group has an invite to share, a DM has none`() {
         assertEquals(
             "https://app.flipcash.com/chat/$groupUuid",
-            ChatViewModel.State(subject = group(isMember = true)).groupInviteUrl,
+            ChatViewModel.State(subject = group(isMember = false)).shareableGroupInviteUrl,
         )
-        assertNull(ChatViewModel.State(subject = group(isMember = false)).groupInviteUrl)
-        assertNull(ChatViewModel.State(subject = dm).groupInviteUrl)
-        assertNull(ChatViewModel.State().groupInviteUrl)
-    }
-
-    @Test
-    fun `the group header offers an invite in every group the viewer has joined`() {
-        assertTrue(ChatViewModel.State(subject = group(isMember = true)).offersGroupInvite)
-        assertTrue(
-            ChatViewModel.State(subject = group(isMember = true, memberCount = 2L)).offersGroupInvite,
-        )
-        assertFalse(ChatViewModel.State(subject = group(isMember = false)).offersGroupInvite)
-        assertFalse(ChatViewModel.State(subject = group(isMember = null)).offersGroupInvite)
-        assertFalse(ChatViewModel.State(subject = dm).offersGroupInvite)
+        assertNull(ChatViewModel.State(subject = dm).shareableGroupInviteUrl)
+        assertNull(ChatViewModel.State().shareableGroupInviteUrl)
     }
 
     @Test
@@ -302,7 +284,7 @@ class ChatViewModelStateTest {
             rules = null,
             isMember = true,
         )
-        assertNull(ChatViewModel.State(subject = hashed).groupInviteUrl)
+        assertNull(ChatViewModel.State(subject = hashed).shareableGroupInviteUrl)
     }
 
     @Test
@@ -473,6 +455,7 @@ class ChatViewModelStateTest {
         val state = ChatViewModel.State(
             subject = group(isMember = true),
             groupAccess = GroupAccess.Membered,
+            speakerBlockResolved = true,
         )
         assertEquals(CashCardTap.Collect(thanks = true), state.cashCardTap)
         assertEquals(
@@ -517,6 +500,7 @@ class ChatViewModelStateTest {
             subject = group(isMember = true),
             groupAccess = GroupAccess.Membered,
             joinProgress = LoadingSuccessState(success = true),
+            speakerBlockResolved = true,
         )
         assertEquals(CashCardTap.Collect(thanks = false), justJoined.cashCardTap)
     }
@@ -598,7 +582,45 @@ class ChatViewModelStateTest {
             subject = group(isMember = true, rules = null),
             speakerBlock = block?.requirement,
             speakerBlocksReactions = block?.reactionsBlocked == true,
+            speakerBlockResolved = true,
         )
+    }
+
+    // Built through the resolver, so the cash gate tracks which rules take reactions away.
+    @Test
+    fun `a member the rules keep from chatting is told they must chat to collect`() {
+        for (state in listOf(
+            stateFor(unmet),
+            stateFor(ChatRuleRequirement.Staff),
+            stateFor(ChatRuleRequirement.Never),
+            stateFor(ChatRuleRequirement.Creator, ChatRuleRequirement.Staff),
+        )) {
+            assertEquals(CashCardTap.ChatToCollect, state.cashCardTap)
+        }
+        // A DM's rules count too: the Flipcash account's DM carries `never`.
+        val flipcashDm = ChatViewModel.updateStateForEvent(
+            ChatViewModel.Event.OnSpeakerBlockResolved(SpeakerBlock(ChatRuleRequirement.Never, reactionsBlocked = true))
+        )(ChatViewModel.State(subject = dm))
+        assertEquals(CashCardTap.ChatToCollect, flipcashDm.cashCardTap)
+    }
+
+    @Test
+    fun `a member is refused until the group's rules resolve`() {
+        // A claim cannot be taken back once the rules arrive and say no.
+        val loading = ChatViewModel.State(subject = group(isMember = true), groupAccess = GroupAccess.Membered)
+        assertEquals(CashCardTap.ChatToCollect, loading.cashCardTap)
+
+        val resolved = ChatViewModel.updateStateForEvent(ChatViewModel.Event.OnSpeakerBlockResolved(null))(loading)
+        assertEquals(CashCardTap.Collect(thanks = true), resolved.cashCardTap)
+
+        // A DM is not held for it.
+        assertEquals(CashCardTap.Collect(thanks = true), ChatViewModel.State(subject = dm).cashCardTap)
+    }
+
+    @Test
+    fun `a member of a creator-only group collects without a thank-you`() {
+        // Cash the creator posts to a broadcast group is for its members, who cannot reply to it.
+        assertEquals(CashCardTap.Collect(thanks = false), stateFor(ChatRuleRequirement.Creator).cashCardTap)
     }
 
     @Test

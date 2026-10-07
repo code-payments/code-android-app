@@ -6,12 +6,14 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.libs.currency.math.CurveTestInitializer
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.DataSource
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.LaunchpadMetadata
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenResult
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -19,6 +21,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -29,8 +32,10 @@ import org.junit.Test
 import java.math.BigDecimal
 import java.math.MathContext
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MarketCapExplainerViewModelTest {
@@ -85,10 +90,17 @@ class MarketCapExplainerViewModelTest {
     private fun kotlinx.coroutines.test.TestScope.newVm(
         cache: Map<Mint, Token> = mapOf(mint to token),
         held: Long? = 12_400L * WHOLE_TOKEN,
+        fetched: Token? = null,
+        fetch: (suspend () -> Result<TokenResult>)? = null,
     ): MarketCapExplainerViewModel {
         val coordinator = mockk<TokenCoordinator>(relaxed = true)
         every { coordinator.observeTokenCache() } returns MutableStateFlow(cache)
-        coEvery { coordinator.getTokenMetadata(any()) } returns Result.failure(IllegalStateException("cache only"))
+        coEvery { coordinator.getTokenMetadata(any()) } coAnswers {
+            fetch?.invoke() ?: when (fetched) {
+                null -> Result.failure(IllegalStateException("cache only"))
+                else -> Result.success(TokenResult(fetched, DataSource.Network))
+            }
+        }
         every { coordinator.heldQuarksForToken(any()) } returns MutableStateFlow(held)
         every { coordinator.balanceForToken(any<Mint>()) } returns MutableStateFlow(Fiat.Zero)
         every { coordinator.appreciationForToken(any()) } returns appreciation
@@ -111,13 +123,74 @@ class MarketCapExplainerViewModelTest {
         }
 
     @Test
-    fun `a token that is not cached leaves the projection null`() =
+    fun `a token that is neither cached nor fetchable is unavailable`() =
         runTest(mainCoroutineRule.dispatcher) {
             val vm = newVm(cache = emptyMap())
             vm.dispatchEvent(MarketCapExplainerViewModel.Event.OnMintProvided(mint))
             advanceUntilIdle()
 
-            assertNull(vm.stateFlow.value.projection)
+            val state = vm.stateFlow.value
+            assertNull(state.projection)
+            assertTrue(state.unavailable)
+            assertFalse(state.isLoading)
+        }
+
+    @Test
+    fun `an uncached token is loading while its fetch is in flight`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val vm = newVm(cache = emptyMap(), fetch = { awaitCancellation() })
+            vm.dispatchEvent(MarketCapExplainerViewModel.Event.OnMintProvided(mint))
+            advanceUntilIdle()
+
+            val state = vm.stateFlow.value
+            assertTrue(state.isLoading)
+            assertFalse(state.unavailable)
+        }
+
+    @Test
+    fun `a token without a bonding supply is unavailable`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val unlaunched = (token as MintMetadata).copy(launchpadMetadata = null)
+            val vm = newVm(cache = mapOf(mint to unlaunched))
+            vm.dispatchEvent(MarketCapExplainerViewModel.Event.OnMintProvided(mint))
+            advanceUntilIdle()
+
+            assertTrue(vm.stateFlow.value.unavailable)
+        }
+
+    @Test
+    fun `a fetched token that the coordinator does not cache still loads a projection`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            // The coordinator only caches network tokens the user has an account for, so a token
+            // opened from Discovery arrives through getTokenMetadata alone.
+            val vm = newVm(cache = emptyMap(), held = null, fetched = token)
+            vm.dispatchEvent(MarketCapExplainerViewModel.Event.OnMintProvided(mint))
+            advanceUntilIdle()
+
+            val state = vm.stateFlow.value
+            assertEquals(token, state.token)
+            assertNotNull(state.projection)
+            assertNotNull(state.labels)
+        }
+
+    @Test
+    fun `a user with tokens held is a holder`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val vm = newVm()
+            vm.dispatchEvent(MarketCapExplainerViewModel.Event.OnMintProvided(mint))
+            advanceUntilIdle()
+
+            assertTrue(vm.stateFlow.value.holdsToken)
+        }
+
+    @Test
+    fun `a known zero balance is not a holder`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val vm = newVm(held = null)
+            vm.dispatchEvent(MarketCapExplainerViewModel.Event.OnMintProvided(mint))
+            advanceUntilIdle()
+
+            assertFalse(vm.stateFlow.value.holdsToken)
         }
 
     @Test

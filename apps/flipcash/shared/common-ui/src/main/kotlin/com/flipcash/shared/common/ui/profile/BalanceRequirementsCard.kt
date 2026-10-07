@@ -1,5 +1,8 @@
 package com.flipcash.shared.common.ui.profile
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +17,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,7 +87,15 @@ fun BalanceRequirementsCard(
                 value = chat ?: stringResource(R.string.label_balanceRequirementNone),
             )
         }
-        if (yourBalance != null) {
+        // The balance resolves after the rules; it fades in rather than popping, and keeps its
+        // last value while fading out.
+        var shownBalance by remember { mutableStateOf(yourBalance) }
+        if (yourBalance != null) shownBalance = yourBalance
+        AnimatedVisibility(
+            visible = yourBalance != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -93,7 +108,7 @@ fun BalanceRequirementsCard(
                     color = CodeTheme.colors.textSecondary,
                 )
                 Text(
-                    text = yourBalance,
+                    text = shownBalance.orEmpty(),
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
                 )

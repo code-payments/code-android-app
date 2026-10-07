@@ -23,6 +23,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
@@ -155,6 +156,7 @@ class ChatSendFailureAnalyticsTest {
         emojiCatalogLoader = emojiCatalogLoader,
         userProfileDataSource = userProfileDataSource,
         rosterSearch = mockk(relaxed = true),
+        featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 
