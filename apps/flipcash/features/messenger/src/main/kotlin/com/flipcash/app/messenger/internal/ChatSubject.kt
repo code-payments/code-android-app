@@ -164,6 +164,8 @@ internal data class RuleCurrency(
     val name: String,
     /** The reserve, which an amount in dollars has already named. */
     val isReserve: Boolean,
+    /** The token's icon, for the group profile's Token card. Null where nothing shows it. */
+    val imageUrl: String? = null,
 ) {
     /** The token to name in the requirement line, or `null` to state the amount alone. */
     val nameInRequirement: String?

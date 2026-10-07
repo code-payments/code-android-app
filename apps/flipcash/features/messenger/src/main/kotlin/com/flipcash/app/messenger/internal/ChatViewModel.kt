@@ -1746,7 +1746,7 @@ internal class ChatViewModel @Inject constructor(
 
         // The profile names the token behind both the join and the chat row, which may differ.
         // Each is fetched like the gate's, and a mint that never resolves does not hold the others
-        // back: it simply stays unnamed.
+        // back: it simply stays unnamed. The icon rides along for the profile's Token card.
         stateFlow.map { state ->
             GroupBalanceRequirements.from((state.subject as? ChatSubject.Group)?.rules)
                 ?.let { listOfNotNull(it.join, it.chat) }.orEmpty()
@@ -1762,7 +1762,7 @@ internal class ChatViewModel @Inject constructor(
                         mints.map { mint ->
                             tokenCoordinator.observeRuleToken(mint)
                                 .map<Token, Pair<List<Byte>, RuleCurrency>?> {
-                                    mint.bytes to RuleCurrency(it.brandedName(resources), it.isReserve)
+                                    mint.bytes to RuleCurrency(it.brandedName(resources), it.isReserve, it.imageUrl)
                                 }
                                 .onStart { emit(null) }
                         }
