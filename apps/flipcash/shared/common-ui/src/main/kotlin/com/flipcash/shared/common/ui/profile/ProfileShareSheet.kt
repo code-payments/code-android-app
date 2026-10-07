@@ -1,6 +1,7 @@
 package com.flipcash.shared.common.ui.profile
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,6 +51,8 @@ fun ProfileShareSheet(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // The Add Money sheet's colour, as iOS draws this sheet.
+            .background(CodeTheme.colors.bannerThemed)
             .navigationBarsPadding(),
     ) {
         AppBarWithTitle(title = title)
