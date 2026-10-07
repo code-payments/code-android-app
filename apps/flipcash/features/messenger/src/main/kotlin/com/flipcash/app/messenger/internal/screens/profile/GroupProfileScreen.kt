@@ -162,19 +162,19 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     // No member count under the name; the avatar row and body carry the group.
                     subtitle = null,
                     body = group?.description?.takeIf { it.isNotBlank() },
-                    // A timed mute ("Muted until 12:15 PM") beside Edit Group and Share is wider than
-                    // the space next to the avatar, so the chip sits under the title instead.
-                    underSubtitle = {
+                    actions = {
                         val mutedLabel = rememberMutedLabel(state.viewerState)
                         if (isMember && mutedLabel != null) {
+                            // A timed mute ("Muted until 12:15 PM") can be wider than the space left
+                            // by Edit Group and Share; the chip gives up width and falls back to
+                            // "Muted" rather than wrapping the buttons or moving below the title.
                             ProfileStatusChip(
-                                modifier = Modifier.padding(top = CodeTheme.dimens.staticGrid.x2),
+                                modifier = Modifier.weight(1f, fill = false),
                                 icon = Icons.Outlined.NotificationsOff,
                                 text = mutedLabel,
+                                compactText = stringResource(R.string.label_muted),
                             )
                         }
-                    },
-                    actions = {
                         // Server-computed, and absent for a non-member, so an unresolved viewer
                         // state reads as "may not edit" rather than a permission re-derived here.
                         if (state.viewerState?.permissions?.canEdit == true) {
