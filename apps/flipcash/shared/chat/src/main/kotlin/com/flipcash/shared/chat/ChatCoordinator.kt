@@ -10,9 +10,11 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
+import com.flipcash.services.models.chat.GroupBalanceRole
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
@@ -543,6 +545,20 @@ interface GroupOperations {
     suspend fun editChat(
         chatId: ChatId,
         parameters: EditChatParameters,
+    ): Result<ChatMetadata>
+
+    /**
+     * Replaces the minimum balance [role] requires in [chatId] with [requirement] and returns the
+     * post-edit metadata: the listener rule for [GroupBalanceRole.Join], the speaker rule for
+     * [GroupBalanceRole.Chat].
+     *
+     * Fails with [com.flipcash.services.models.SetGroupMinimumBalanceError.Unavailable] until the
+     * contract can change a group's rules after `StartChat`.
+     */
+    suspend fun setMinimumBalance(
+        chatId: ChatId,
+        role: GroupBalanceRole,
+        requirement: ChatRuleRequirement.MinimumBalance,
     ): Result<ChatMetadata>
 
     /** Joins [chatId], caching the chat so it is in the list before the next sync. */

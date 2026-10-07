@@ -35,11 +35,13 @@ import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
+import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupBalanceRequirementScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupNameScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupPictureScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupScreen
 import com.getcode.navigation.annotatedEntry
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.GroupBalanceRole
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -109,13 +111,16 @@ private fun chatEntryProvider(
         FlowGroupProfileScreen(identifier)
     }
     annotatedEntry<ChatStep.EditGroup> {
-        EditGroupScreen()
+        FlowEditGroupScreen()
     }
     annotatedEntry<ChatStep.EditGroupName> {
         FlowEditGroupNameScreen()
     }
     annotatedEntry<ChatStep.EditGroupPicture> {
         FlowEditGroupPictureScreen()
+    }
+    annotatedEntry<ChatStep.EditGroupBalanceRequirement> { step ->
+        FlowEditGroupBalanceRequirementScreen(step.role)
     }
 
     annotatedEntry<ChatStep.ReactionPicker> { step ->
@@ -313,9 +318,14 @@ private fun FlowGroupProfileScreen(identifier: ChatIdentifier) {
     GroupProfileScreen(viewModel)
 }
 
-// Both edit steps read the chat they are editing off the flow's shared ChatViewModel, the same way
+// The edit steps read the chat they are editing off the flow's shared ChatViewModel, the same way
 // the profile above them does, and keep the edit itself in their own nav-entry-scoped view model.
-// EditGroupScreen needs neither and is registered directly.
+// EditGroupScreen reads it too, for the Balance Requirements card, and has no edit of its own.
+@Composable
+private fun FlowEditGroupScreen() {
+    EditGroupScreen(flowSharedViewModel<ChatViewModel>())
+}
+
 @Composable
 private fun FlowEditGroupNameScreen() {
     EditGroupNameScreen(flowSharedViewModel<ChatViewModel>())
@@ -324,6 +334,11 @@ private fun FlowEditGroupNameScreen() {
 @Composable
 private fun FlowEditGroupPictureScreen() {
     EditGroupPictureScreen(flowSharedViewModel<ChatViewModel>())
+}
+
+@Composable
+private fun FlowEditGroupBalanceRequirementScreen(role: GroupBalanceRole) {
+    EditGroupBalanceRequirementScreen(flowSharedViewModel<ChatViewModel>(), role)
 }
 
 /**

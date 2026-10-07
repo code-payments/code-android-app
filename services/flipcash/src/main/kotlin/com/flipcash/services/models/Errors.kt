@@ -514,6 +514,21 @@ sealed class EditChatError(
     data class Other(override val cause: Throwable? = null) : EditChatError(message = cause?.message, cause = cause), NotifiableError
 }
 
+/**
+ * Why a group's minimum balance could not be replaced.
+ *
+ * Client-side only for now: no RPC changes a group's rules after `StartChat`, so [Unavailable] is
+ * what every attempt fails with. An [UnreportedError] rather than a [NotifiableError]: it is
+ * expected on every save.
+ */
+sealed class SetGroupMinimumBalanceError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    /** The contract has no way to change a group's rules yet. */
+    class Unavailable : SetGroupMinimumBalanceError("Changing a group's rules is not supported"), UnreportedError
+}
+
 sealed class GetMessageError(
     override val message: String? = null,
     override val cause: Throwable? = null

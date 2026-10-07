@@ -356,13 +356,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
  * than USDF whose name is known. A rule naming no mint, or the reserve, states the amount alone.
  */
 @Composable
-private fun holdingLabel(
+internal fun holdingLabel(
     rule: ChatRuleRequirement.MinimumBalance,
     tokens: Map<List<Byte>, com.flipcash.app.messenger.internal.RuleCurrency>,
 ): String = holdingLabel(rule.amount, rule.mints.firstOrNull()?.let { Mint(it.bytes) }, tokens)
 
 @Composable
-private fun holdingLabel(
+internal fun holdingLabel(
     amount: Fiat,
     mint: Mint?,
     tokens: Map<List<Byte>, com.flipcash.app.messenger.internal.RuleCurrency>,
