@@ -61,6 +61,9 @@ sealed interface ChatRuleRequirement {
  * [ChatRuleRequirement.Creator] and [ChatRuleRequirement.UnsupportedSpeakerRule] gate posting (the
  * composer and Reply) and nothing else: any member can still react, copy and report. The rest also
  * withhold reactions.
+ *
+ * Collecting a cash link from a chat follows this too: a member blocked by a rule that withholds
+ * reactions is refused the claim (the messenger's `ChatViewModel.State.cashCardTap`).
  */
 val ChatRuleRequirement.blocksReactions: Boolean
     get() = when (this) {
