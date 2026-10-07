@@ -199,7 +199,7 @@ internal class WalletViewModel @Inject constructor(
             // `isTipMilestoneResolved` rather than by withholding the emission: the other
             // milestone and the action tiles are answerable from local state immediately, and
             // holding them back put the chat backfill on the critical path for the whole tab.
-            // "Scan a Tip Card" is still never drawn as outstanding to someone who already did it
+            // "Scan a Profile Card" is still never drawn as outstanding to someone who already did it
             // — [State.isNewUserTutorialComplete] reads complete until this resolves.
             Event.OnOnboardingItemsUpdated(
                 items = listOf(

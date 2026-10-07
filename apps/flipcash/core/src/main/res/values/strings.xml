@@ -549,8 +549,8 @@
     <string name="title_addMoney">Add Money</string>
     <string name="subtitle_addMoney">Add money to your account</string>
 
-    <string name="title_scanTipCard">Scan a Tip Card</string>
-    <string name="subtitle_scanTipCard">Give your first tip</string>
+    <string name="title_scanTipCard">Scan a Profile Card</string>
+    <string name="subtitle_scanTipCard">Send your first message</string>
 
 
     <!-- Copy matches iOS's "Finish Your Profile" display-name step. -->
@@ -1238,7 +1238,7 @@
     <!-- A tapped `flipcash.com/{username}` link that resolves to nothing. -->
     <string name="error_title_usernameNotFound">No Such Account</string>
     <string name="error_description_usernameNotFound">Nobody has claimed \@%1$s</string>
-    <string name="error_title_tipCardUnavailable">Couldn\'t Open Tip Card</string>
+    <string name="error_title_tipCardUnavailable">Couldn\'t Open Profile Card</string>
     <string name="error_description_tipCardUnavailable">Please check your connection and try again</string>
     <!-- A tapped `flipcash.com/{username}` or `flipcash.com/{uuid}` link whose profile couldn't be fetched. -->
     <string name="error_title_profileUnavailable">Couldn\'t Open Profile</string>
@@ -1257,13 +1257,13 @@
     <string name="error_description_coverNotAllowed">This image isn\'t allowed as a cover. Please try a different image. If you think it was rejected in error please DM @flipcash on X</string>
     <string name="placeholder_profileDisplayName">Your Name</string>
     <string name="subtitle_profileImageRecommended">500x500 Recommended</string>
-    <string name="title_myTipCard">My Tip Card</string>
+    <string name="title_myTipCard">My Profile Card</string>
     <string name="title_shareProfile">Chat with %1$s on Flipcash</string>
-    <string name="subtitle_myTipCard">Share Your Tip Card to Get Tipped</string>
-    <string name="action_showTipCard">Show My Tip Card</string>
+    <string name="subtitle_myTipCard">Share Your Profile Card to Get Tipped</string>
+    <string name="action_showTipCard">Show My Profile Card</string>
     <string name="action_sendToStartChatting">Send %1$s to Start Chatting</string>
     <string name="action_swipeToTip">Swipe to Tip</string>
-    <string name="label_viaTipCard">via Tip Card</string>
+    <string name="label_viaTipCard">via Profile Card</string>
 
     <!-- Minimum-to-chat entry (nodes 9541:10951, 9553:113170, 10074:18892). Backed by the
          profile's min_dm_chat_init_fee: paying is what opens a DM, so this is the price of
@@ -1343,7 +1343,7 @@
     <string name="action_showProfileCard">Show Profile Card</string>
     <string name="action_copyLink">Copy Link</string>
     <string name="action_download">Download</string>
-    <string name="title_clipboardLabelTipCardLink">Tip Card Link</string>
+    <string name="title_clipboardLabelTipCardLink">Profile Card Link</string>
     <string name="title_clipboardLabelGroupInviteLink">Group Invite Link</string>
     <string name="title_downloadTipCardAs">Download As</string>
     <string name="label_exportPng">PNG</string>
