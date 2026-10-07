@@ -33,7 +33,8 @@ private val AvatarOverlap = 42.dp
 
 /**
  * The top of a profile: [cover], an avatar overlapping it, the actions beside the avatar, and the
- * subject's [title], [subtitle] and [body].
+ * subject's [title], [subtitle] and [body]. A null [title] (an account with no name yet) draws
+ * nothing in its place.
  *
  * It renders a subject, not a user — a person today, a group next — so callers map their model to
  * these inputs. [avatar] receives the size, clip and ring to draw with, which keeps the avatar the
@@ -48,7 +49,7 @@ fun ProfileHeader(
     cover: MediaItem?,
     access: BlobAccessContext,
     avatar: @Composable (Modifier) -> Unit,
-    title: String,
+    title: String?,
     subtitle: String?,
     body: String?,
     actions: @Composable RowScope.() -> Unit,
@@ -83,16 +84,20 @@ fun ProfileHeader(
                     content = actions,
                 )
             }
+            // iOS sets the text 8pt below the action row.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = inset),
+                    .padding(horizontal = inset)
+                    .padding(top = CodeTheme.dimens.staticGrid.x2),
             ) {
-                Text(
-                    text = title,
-                    style = CodeTheme.typography.displaySmall,
-                    color = CodeTheme.colors.textMain,
-                )
+                if (!title.isNullOrBlank()) {
+                    Text(
+                        text = title,
+                        style = CodeTheme.typography.displaySmall,
+                        color = CodeTheme.colors.textMain,
+                    )
+                }
                 if (!subtitle.isNullOrBlank()) {
                     Text(
                         text = subtitle,

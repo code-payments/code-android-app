@@ -89,10 +89,14 @@ internal class MenuScreenViewModel @Inject constructor(
         data object Unknown : ProfileState
 
         /**
-         * The account has no display name, so it has no profile worth showing yet. [placeholder] is
-         * a real scannable stand-in drawn blurred behind the claim prompt; it is never shareable.
+         * The account has no display name yet. [placeholder] is a real scannable stand-in drawn
+         * blurred behind the claim prompt; it is never shareable. [profile] is whatever the server
+         * already holds (a cover, say), or null for an account it has never seen.
          */
-        data class Unclaimed(val placeholder: Scannable.TipCard?) : ProfileState
+        data class Unclaimed(
+            val placeholder: Scannable.TipCard?,
+            val profile: UserProfile? = null,
+        ) : ProfileState
 
         /** The viewer's own profile, with [joined] already formatted for the stats card. */
         data class Named(val profile: UserProfile, val joined: String?) : ProfileState
@@ -146,12 +150,12 @@ internal class MenuScreenViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach { profile ->
                 if (profile == null || profile.displayName.isEmpty()) {
-                    // No name means nothing to show yet — the tab prompts to claim one instead.
-                    // Built locally, so an account whose profile the server has never seen still
+                    // No name yet: the header still draws (cover, avatar, Edit Profile) with the claim
+                    // prompt under it, as on iOS. The placeholder is built locally, so an account whose profile the server has never seen still
                     // gets it.
                     dispatchEvent(
                         Event.OnProfileStateChanged(
-                            ProfileState.Unclaimed(tippingCoordinator.unclaimedTipCard())
+                            ProfileState.Unclaimed(tippingCoordinator.unclaimedTipCard(), profile)
                         )
                     )
                 } else {

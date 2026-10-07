@@ -110,8 +110,15 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 }
 
                 is ProfileState.Unclaimed -> {
-                    item(key = "settings_gear") {
-                        SettingsGear(onClick = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) })
+                    // As on iOS: the header keeps its cover, avatar and Edit Profile, with no Share
+                    // (there is nothing to share yet), and the claim prompt takes the stats' place.
+                    item(key = "profile_header") {
+                        OwnProfileHeader(
+                            profile = profileState.profile,
+                            onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                            onShare = null,
+                            onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                        )
                     }
                     item(key = "claim_prompt") {
                         Spacer(Modifier.height(UnclaimedTopSpacing))
@@ -169,9 +176,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
 /** The viewer's profile header with the settings gear over the cover's top trailing corner. */
 @Composable
 private fun OwnProfileHeader(
-    profile: UserProfile,
+    profile: UserProfile?,
     onEdit: () -> Unit,
-    onShare: () -> Unit,
+    onShare: (() -> Unit)?,
     onSettings: () -> Unit,
 ) {
     // The header is what scrolls under the gear, so it is the gear's frosting source.
@@ -179,32 +186,33 @@ private fun OwnProfileHeader(
     Box {
         ProfileHeader(
             modifier = Modifier.hazeSource(hazeState),
-            cover = profile.coverPicture,
+            cover = profile?.coverPicture,
             // The viewer's own blobs, so no profile id is needed to authorize re-minting them.
             access = BlobAccessContext.Owned,
             avatar = { modifier ->
                 ContactAvatar(
-                    image = profile.profilePicture,
-                    displayName = profile.displayName,
+                    image = profile?.profilePicture,
+                    displayName = profile?.displayName.orEmpty(),
                     access = BlobAccessContext.Owned,
                     modifier = modifier,
                 )
             },
-            title = profile.displayName,
-            subtitle = profile.username?.takeIf { it.isNotEmpty() }?.let { "@$it" },
-            body = profile.bio.ifEmpty { null },
+            title = profile?.displayName?.ifEmpty { null },
+            subtitle = profile?.username?.takeIf { it.isNotEmpty() }?.let { "@$it" },
+            body = profile?.bio?.ifEmpty { null },
             actions = {
                 ProfileActionButton(
                     text = stringResource(R.string.action_editProfile),
                     onClick = onEdit,
                 )
-                // A named profile is the only one that gets here, which is exactly when there is
-                // something to share.
-                ProfileActionButton(
-                    icon = ImageVector.vectorResource(R.drawable.ic_share_os),
-                    contentDescription = stringResource(R.string.action_share),
-                    onClick = onShare,
-                )
+                // Only a named profile has something to share.
+                if (onShare != null) {
+                    ProfileActionButton(
+                        icon = ImageVector.vectorResource(R.drawable.ic_share_os),
+                        contentDescription = stringResource(R.string.action_share),
+                        onClick = onShare,
+                    )
+                }
             },
         )
         SettingsGear(
@@ -245,9 +253,9 @@ private const val YouCardWidthFraction = 0.60f
 private val YouCardWidth: Dp
     @Composable get() = CodeTheme.dimens.screenWidth * YouCardWidthFraction
 
-/** Gap between the gear and the unclaimed stand-in. */
+/** Gap between the header and the unclaimed stand-in (iOS 24). */
 private val UnclaimedTopSpacing: Dp
-    @Composable get() = CodeTheme.dimens.grid.x6
+    @Composable get() = CodeTheme.dimens.staticGrid.x5
 
 /**
  * What the "You" tab shows before the account has a display name: the card it *would* have, blurred
@@ -255,8 +263,8 @@ private val UnclaimedTopSpacing: Dp
  *
  * The stand-in is the account's real scannable payload drawn over an unnamed profile, with the
  * card's own fill turned off so the 8% ground shows through — the same construction iOS uses. It is
- * decoration: not tappable, not expandable, not shareable, and the header, stats and Share button are
- * absent entirely, because there is nothing yet to show or share.
+ * decoration: not tappable, not expandable, not shareable. It takes the stats card's place under the
+ * header, and the header drops its Share button, because there is nothing yet to share.
  *
  * [blurEnabled] is haze's own API-31 gate, surfaced so a preview can render what an API 29/30
  * device draws (see `Preview_UnclaimedTipCardPrompt_NoBlur`). Leave it at the default in app code.
