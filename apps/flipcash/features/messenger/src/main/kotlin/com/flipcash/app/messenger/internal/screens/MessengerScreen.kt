@@ -125,10 +125,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(action.messageId))
             }
 
-            ChatAction.RefreshContact -> {
-                viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
-            }
-
             is ChatAction.OpenPhoto -> {
                 // After the keyboard is down, so the bubble the photo grows from has settled.
                 keyboard.hideIfVisible { openPhotoId = action.bubble.messageId }
@@ -283,16 +279,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             ChatAction.JoinChat -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)
 
-            ChatAction.InviteToGroup -> {
-                // The sheet, not the share sheet: copying the link is the other way to hand it out,
-                // and going straight to the system share picker would bury it. The sheet reads the
-                // url off the same state the CTA that got here is gated on.
-                viewModel.dispatchEvent(ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT))
-                keyboard.hideIfVisible { navigator.openGroupInvite() }
-            }
-
             is ChatAction.ViewProfile -> {
-                // The triggers (top-bar tap, info-card chevron) are only clickable for subjects
+                // The trigger (the top-bar tap) is only clickable for subjects
                 // that have a profile (see State.canViewProfile), so no gating is needed here.
                 // Which profile depends on the subject: a DM's is its counterparty's, and a group
                 // is its own — it has no participant to open one on.
@@ -441,7 +429,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     otherReadPointer = otherReadPointer,
                     onAction = chatActionHandler,
                     linkCardResolution = viewModel.linkCardResolution,
-                    canViewProfile = state.canViewProfile,
                     onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
                     topBarBottom = barHeight,
                 )

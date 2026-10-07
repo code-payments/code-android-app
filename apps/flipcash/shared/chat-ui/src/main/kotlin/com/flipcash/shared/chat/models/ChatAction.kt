@@ -12,7 +12,6 @@ sealed interface ChatAction {
     /** Opens the full-screen viewer for the photo [bubble] carries. */
     data class OpenPhoto(val bubble: ChatListItem.ContentBubble) : ChatAction
     data class AdvanceReadPointer(val messageId: Long) : ChatAction
-    object RefreshContact : ChatAction
     /** Opens a currency's info screen. */
     data class ViewToken(val mint: Mint) : ChatAction
 
@@ -76,15 +75,6 @@ sealed interface ChatAction {
 
     /** Joins the group this screen is showing. */
     data object JoinChat : ChatAction
-
-    /**
-     * Shares the link that invites someone into this group.
-     *
-     * The link itself is not carried: the screen state already builds it from the chat id, and the
-     * handler reads it from there, so the action stays a verb rather than a payload the transcript
-     * would have to keep in sync.
-     */
-    data object InviteToGroup : ChatAction
 
     /**
      * Adds [bubble] to the selection, or removes it if it is already selected.

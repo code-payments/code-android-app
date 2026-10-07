@@ -245,7 +245,7 @@ fun GroupInviteLinkCard(
 }
 
 /**
- * The rule as the chat's header card states it (`ChatInfoCard`): the balance line, then the staff
+ * The rule: the balance line, then the staff
  * line, each on its own line and centred, since both can be set on one chat.
  */
 @Composable

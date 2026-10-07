@@ -171,39 +171,3 @@ internal data class RuleCurrency(
     val nameInRequirement: String?
         get() = name.takeUnless { isReserve }
 }
-
-/**
- * The card that heads a group's transcript in place of its info card: the same
- * [LinkCard.GroupInvite] a transcript renders for an invite link, built from what this subject
- * already knows rather than from a lookup, since the screen already has the chat's own record.
- * [inviteUrl] is null for a viewer who hasn't joined; the header never opens it, so the card only
- * needs it as the link it stands for.
- */
-internal fun ChatSubject.Group.toGroupInviteCard(
-    inviteUrl: String?,
-    currencyName: String?,
-): LinkCard.GroupInvite {
-    val balance = rules.balanceRequirement()
-    val staffOnly = rules.requiresStaff()
-    val requirement = if (balance != null || staffOnly) {
-        LinkCard.GroupInvite.Requirement(
-            amount = balance?.amount?.formatted(),
-            currencyName = currencyName,
-            staffOnly = staffOnly,
-        )
-    } else {
-        null
-    }
-    return LinkCard.GroupInvite(
-        url = inviteUrl.orEmpty(),
-        start = 0,
-        end = inviteUrl.orEmpty().length,
-        chatId = chatId,
-        state = LinkCard.GroupInvite.State.Resolved(
-            title = groupTitle?.takeIf { it.isNotBlank() },
-            picture = picture,
-            memberCount = memberCount,
-            requirement = requirement,
-        ),
-    )
-}

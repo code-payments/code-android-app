@@ -253,13 +253,6 @@ class ChatViewModelStateTest {
     }
 
     @Test
-    fun `an unknown membership has no invite to share`() {
-        // The link is an action, not a view: offering it would invite people into a group this
-        // device cannot yet say the viewer belongs to.
-        assertNull(ChatViewModel.State(subject = group(isMember = null)).groupInviteUrl)
-    }
-
-    @Test
     fun `a DM has no gate to render`() {
         // The null access is the whole point: a default would blur every contact conversation.
         for (state in listOf(ChatViewModel.State(subject = dm, groupAccess = null), ChatViewModel.State())) {
@@ -270,25 +263,13 @@ class ChatViewModelStateTest {
     }
 
     @Test
-    fun `only a group the viewer has joined has an invite to share`() {
+    fun `any group has an invite to share, a DM has none`() {
         assertEquals(
             "https://app.flipcash.com/chat/$groupUuid",
-            ChatViewModel.State(subject = group(isMember = true)).groupInviteUrl,
+            ChatViewModel.State(subject = group(isMember = false)).shareableGroupInviteUrl,
         )
-        assertNull(ChatViewModel.State(subject = group(isMember = false)).groupInviteUrl)
-        assertNull(ChatViewModel.State(subject = dm).groupInviteUrl)
-        assertNull(ChatViewModel.State().groupInviteUrl)
-    }
-
-    @Test
-    fun `the group header offers an invite in every group the viewer has joined`() {
-        assertTrue(ChatViewModel.State(subject = group(isMember = true)).offersGroupInvite)
-        assertTrue(
-            ChatViewModel.State(subject = group(isMember = true, memberCount = 2L)).offersGroupInvite,
-        )
-        assertFalse(ChatViewModel.State(subject = group(isMember = false)).offersGroupInvite)
-        assertFalse(ChatViewModel.State(subject = group(isMember = null)).offersGroupInvite)
-        assertFalse(ChatViewModel.State(subject = dm).offersGroupInvite)
+        assertNull(ChatViewModel.State(subject = dm).shareableGroupInviteUrl)
+        assertNull(ChatViewModel.State().shareableGroupInviteUrl)
     }
 
     @Test
@@ -303,7 +284,7 @@ class ChatViewModelStateTest {
             rules = null,
             isMember = true,
         )
-        assertNull(ChatViewModel.State(subject = hashed).groupInviteUrl)
+        assertNull(ChatViewModel.State(subject = hashed).shareableGroupInviteUrl)
     }
 
     @Test
