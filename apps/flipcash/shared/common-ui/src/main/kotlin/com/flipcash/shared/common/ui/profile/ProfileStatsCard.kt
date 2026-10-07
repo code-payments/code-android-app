@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -42,13 +42,13 @@ fun ProfileStatsCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = StatsCardHeight)
+            .height(StatsCardHeight)
             .clip(CodeTheme.shapes.medium)
             .background(White05),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Stat(
-            modifier = Modifier.width(LeadingStatWidth),
+            modifier = Modifier.width(LeadingStatWidth).fillMaxHeight(),
             caption = stringResource(R.string.title_profileMinimumToChat),
             value = minimumToChat,
         )
@@ -59,7 +59,7 @@ fun ProfileStatsCard(
                 .background(CodeTheme.colors.divider)
         )
         Stat(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             caption = stringResource(R.string.title_profileDateJoined),
             value = joined,
         )
@@ -72,6 +72,8 @@ private fun Stat(
     value: String?,
     modifier: Modifier = Modifier,
 ) {
+    // Top-aligned in the full card height, so both captions sit at the same inset from the top
+    // edge rather than floating to the middle.
     Column(
         modifier = modifier.padding(start = CodeTheme.dimens.staticGrid.x3, top = CodeTheme.dimens.staticGrid.x3),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
