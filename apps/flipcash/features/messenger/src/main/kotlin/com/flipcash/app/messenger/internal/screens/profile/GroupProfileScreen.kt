@@ -1,6 +1,8 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -162,19 +164,26 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     // No member count under the name; the avatar row and body carry the group.
                     subtitle = null,
                     body = group?.description?.takeIf { it.isNotBlank() },
-                    actions = {
+                    onCover = {
                         val mutedLabel = rememberMutedLabel(state.viewerState)
                         if (isMember && mutedLabel != null) {
-                            // A timed mute ("Muted until 12:15 PM") can be wider than the space left
-                            // by Edit Group and Share; the chip gives up width and falls back to
-                            // "Muted" rather than wrapping the buttons or moving below the title.
+                            // On the cover's bottom edge so a late mute state never shifts the
+                            // header, and the action row keeps its width for Edit Group and Share.
+                            // The dark backing keeps the tinted chip legible over a photo.
                             ProfileStatusChip(
-                                modifier = Modifier.weight(1f, fill = false),
+                                modifier = Modifier
+                                    .weight(1f, fill = false)
+                                    .background(
+                                        CodeTheme.colors.background.copy(alpha = 0.7f),
+                                        CircleShape,
+                                    ),
                                 icon = Icons.Outlined.NotificationsOff,
                                 text = mutedLabel,
                                 compactText = stringResource(R.string.label_muted),
                             )
                         }
+                    },
+                    actions = {
                         // Server-computed, and absent for a non-member, so an unresolved viewer
                         // state reads as "may not edit" rather than a permission re-derived here.
                         if (state.viewerState?.permissions?.canEdit == true) {
