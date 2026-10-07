@@ -44,6 +44,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -188,18 +189,28 @@ internal fun MessageList(
         // so the key doesn't change across that step and the row isn't scrolled twice.
         //
         // A message that takes reactions comes down further, far enough for the quick strip to sit
-        // above it: the strip is always above, and there's always room to make, since the
-        // history-start spacer sits over the oldest message.
+        // above it: the strip is always above. Near the start of history there may be nothing
+        // above to scroll into, so the history-start spacer grows by what is missing first, and
+        // goes back to nothing once the focus clears.
         val focusedMessageId = state.editing?.messageId ?: state.selection?.messageId
         val stripRoom = with(LocalDensity.current) {
             (QuickReactionStripPlacement.StripHeight + QuickReactionStripPlacement.Gap + STRIP_BAR_GAP)
                 .roundToPx()
         }
+        var historyStartRoom by remember { mutableIntStateOf(0) }
         LaunchedEffect(focusedMessageId) {
-            if (focusedMessageId == null) return@LaunchedEffect
+            if (focusedMessageId == null) {
+                historyStartRoom = 0
+                return@LaunchedEffect
+            }
             val room = if (state.editing == null && state.selection?.canReact == true) stripRoom else 0
             val buried = room - listState.layoutInfo.headroomAbove(messages, focusedMessageId)
-            if (buried > 0) listState.animateScrollBy(buried.toFloat())
+            if (buried <= 0) return@LaunchedEffect
+            historyStartRoom = buried
+            // Let the spacer measure before scrolling into it: one frame to recompose, one to lay out.
+            withFrameNanos { }
+            withFrameNanos { }
+            listState.animateScrollBy(buried.toFloat())
         }
 
         // The mark a jump leaves on the message it landed on, so the scroll answers which message
@@ -643,11 +654,10 @@ internal fun MessageList(
                     }
                 }
 
-                // Room at the start of history for the quick reaction strip: the oldest message can
-                // be long-pressed with nothing above it to scroll into, and the strip sits above
-                // the message it acts on.
+                // Room at the start of history for the quick reaction strip, made only while a
+                // message near the start needs it: the strip sits above the message it acts on.
                 item(key = "history-start") {
-                    Spacer(Modifier.height(with(LocalDensity.current) { stripRoom.toDp() }))
+                    Spacer(Modifier.height(with(LocalDensity.current) { historyStartRoom.toDp() }))
                 }
             }
         }
