@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.share.TipCodeExportFormat
 import com.flipcash.app.core.share.TipCodeExporter
+import com.flipcash.app.core.share.exportFileBaseName
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.menu.R
@@ -52,7 +53,16 @@ internal class ProfileCardViewModel @Inject constructor(
     private fun export(format: TipCodeExportFormat) {
         val card = card ?: return
         viewModelScope.launch {
-            val export = tipCodeExporter.export(card, format)
+            // A name of nothing but characters a file system rejects sanitises to null, which must
+            // land on the fallback rather than "Chat with ". The exporter sanitises and caps the
+            // assembled name again.
+            val safeName = exportFileBaseName(card.user.displayName)
+            val baseName = if (safeName == null) {
+                resources.getString(R.string.label_profileCardFileNameFallback)
+            } else {
+                resources.getString(R.string.label_profileCardFileName, safeName)
+            }
+            val export = tipCodeExporter.export(card, format, baseName = baseName)
             if (export == null) {
                 BottomBarManager.showMessage(
                     title = resources.getString(R.string.error_title_tipCardExportFailed),

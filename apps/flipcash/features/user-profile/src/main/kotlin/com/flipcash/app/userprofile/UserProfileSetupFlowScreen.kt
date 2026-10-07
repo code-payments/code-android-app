@@ -1,15 +1,20 @@
 package com.flipcash.app.userprofile
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.ui.transitions.LocalHostEnterTransition
 import com.flipcash.app.core.userprofile.UpdateProfileResult
 import com.flipcash.app.core.userprofile.UpdateProfileStep
+import com.flipcash.app.userprofile.internal.bio.EditBioScreen
 import com.flipcash.app.userprofile.internal.mintip.MinimumTipEntryScreen
 import com.flipcash.app.userprofile.internal.name.NameEntryScreen
 import com.flipcash.app.userprofile.internal.photo.PhotoSelectionScreen
+import com.flipcash.app.userprofile.internal.photo.PhotoSelectionViewModel
 import com.flipcash.app.userprofile.internal.username.UsernameEntryScreen
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -30,30 +35,36 @@ fun UpdateUserProfileFlowScreen(
 
     val steps = route.rememberInitialStack<UpdateProfileStep>()
 
-    FlowHost<UpdateProfileStep, UpdateProfileResult>(
-        steps = steps,
-        resumeAt = 0,
-        resultStateRegistry = resultStateRegistry,
-        // Walking off the end of the step list (the last proceed()) completes the flow.
-        completedResult = UpdateProfileResult.Success,
-        onExit = { reason, _ ->
-            val result: UpdateProfileResult = when (reason) {
-                is FlowExitReason.Completed -> reason.result
-                FlowExitReason.Canceled,
-                FlowExitReason.BackedOutOfRoot -> UpdateProfileResult.Canceled
-            }
-            outerNavigator.deliverFlowResult(
-                route = route,
-                value = NavResultOrCanceled.ReturnValue(result),
-            )
-            if (route.target != null && result is UpdateProfileResult.Success) {
-                outerNavigator.replaceAll(route.target!!)
-            } else {
-                outerNavigator.pop()
-            }
-        },
-        entryProvider = profileUpdateProvider(route),
-    )
+    // The steps animate inside the flow's own nav display, so they can't see the slide that pushed
+    // the whole flow. Hand them that transition so a field only takes focus once it has landed.
+    val hostEnterTransition = LocalNavAnimatedContentScope.current.transition
+
+    CompositionLocalProvider(LocalHostEnterTransition provides hostEnterTransition) {
+        FlowHost<UpdateProfileStep, UpdateProfileResult>(
+            steps = steps,
+            resumeAt = 0,
+            resultStateRegistry = resultStateRegistry,
+            // Walking off the end of the step list (the last proceed()) completes the flow.
+            completedResult = UpdateProfileResult.Success,
+            onExit = { reason, _ ->
+                val result: UpdateProfileResult = when (reason) {
+                    is FlowExitReason.Completed -> reason.result
+                    FlowExitReason.Canceled,
+                    FlowExitReason.BackedOutOfRoot -> UpdateProfileResult.Canceled
+                }
+                outerNavigator.deliverFlowResult(
+                    route = route,
+                    value = NavResultOrCanceled.ReturnValue(result),
+                )
+                if (route.target != null && result is UpdateProfileResult.Success) {
+                    outerNavigator.replaceAll(route.target!!)
+                } else {
+                    outerNavigator.pop()
+                }
+            },
+            entryProvider = profileUpdateProvider(route),
+        )
+    }
 }
 
 private fun profileUpdateProvider(
@@ -67,6 +78,12 @@ private fun profileUpdateProvider(
     }
     annotatedEntry<UpdateProfileStep.Photo> {
         PhotoSelectionScreen()
+    }
+    annotatedEntry<UpdateProfileStep.Cover> {
+        PhotoSelectionScreen(slot = PhotoSelectionViewModel.Slot.Cover)
+    }
+    annotatedEntry<UpdateProfileStep.Bio> {
+        EditBioScreen()
     }
     annotatedEntry<UpdateProfileStep.MinimumTip> {
         MinimumTipEntryScreen(isLastStep = route.steps.lastOrNull() == UpdateProfileStep.MinimumTip)

@@ -115,7 +115,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     item(key = "profile_header") {
                         OwnProfileHeader(
                             profile = profileState.profile,
-                            onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                            onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
                             onShare = null,
                             onClaimUsername = state.usernameProgress?.let {
                                 { viewModel.dispatchEvent(Event.ClaimUsername) }
@@ -137,11 +137,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     item(key = "profile_header") {
                         OwnProfileHeader(
                             profile = profileState.profile,
-                            onEdit = {
-                                // Slice 4 gives this its own screen; Settings is where profile
-                                // editing lives until then.
-                                viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings))
-                            },
+                            onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
                             onShare = { viewModel.dispatchEvent(Event.ShareProfile) },
                             onClaimUsername = state.usernameProgress?.let {
                                 { viewModel.dispatchEvent(Event.ClaimUsername) }

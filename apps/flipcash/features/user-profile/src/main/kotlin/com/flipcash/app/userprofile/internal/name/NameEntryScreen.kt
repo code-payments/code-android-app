@@ -31,6 +31,7 @@ import com.flipcash.app.core.ui.transitions.SharedTransition
 import com.flipcash.app.core.ui.transitions.sharedElementTransition
 import com.flipcash.app.core.userprofile.UpdateProfileResult
 import com.flipcash.app.core.userprofile.UpdateProfileStep
+import com.flipcash.app.core.ui.transitions.RequestFocusWhenSettled
 import com.flipcash.core.R
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
@@ -156,8 +157,6 @@ private fun NameEntryScreenContent(
             )
         }
 
-        LaunchedEffect(Unit) {
-            focusRequester.requestFocus()
-        }
+        RequestFocusWhenSettled(focusRequester)
     }
 }

@@ -317,6 +317,10 @@ sealed interface AppRoute : NavKey, Parcelable {
     sealed interface Menu : AppRoute {
         @Serializable
         data object Settings : Menu
+
+        /** Your cover, photo, name, handle, bio and minimum to chat, each opening its editor. */
+        @Serializable
+        data object EditProfile : Menu
         @Serializable
         data object BackupKey : Menu
 

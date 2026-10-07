@@ -1,4 +1,4 @@
-package com.flipcash.app.menu.internal
+package com.flipcash.app.userflags
 
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
