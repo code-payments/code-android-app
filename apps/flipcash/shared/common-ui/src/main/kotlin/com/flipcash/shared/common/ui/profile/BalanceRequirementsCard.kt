@@ -4,14 +4,17 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -40,6 +44,10 @@ private val RowInset = 16.dp
  *
  * Values arrive formatted, since the caller owns currency and token naming: "$10", "$10 of NYC".
  * A null [join] or [chat] reads "None", so a group that only gates speaking still shows a Join row.
+ *
+ * When [communityCurrency] is set, a Community Currency row leads the card with that content (the
+ * token's icon and name) and a chevron, and tapping it calls [onCommunityCurrencyClick]. The caller
+ * then passes bare amounts for [join] and [chat], since the token is already named above them.
  */
 @Composable
 fun BalanceRequirementsCard(
@@ -47,6 +55,8 @@ fun BalanceRequirementsCard(
     chat: String?,
     yourBalance: String?,
     modifier: Modifier = Modifier,
+    communityCurrency: (@Composable RowScope.() -> Unit)? = null,
+    onCommunityCurrencyClick: () -> Unit = {},
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -63,16 +73,15 @@ fun BalanceRequirementsCard(
                 .clip(RoundedCornerShape(CardRadius))
                 .background(White05),
         ) {
+            if (communityCurrency != null) {
+                CommunityCurrencyRow(onClick = onCommunityCurrencyClick, content = communityCurrency)
+                RowSeparator()
+            }
             RequirementRow(
                 label = stringResource(R.string.label_balanceRequirementJoin),
                 value = join ?: stringResource(R.string.label_balanceRequirementNone),
             )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(CodeTheme.dimens.border)
-                    .background(CodeTheme.colors.divider)
-            )
+            RowSeparator()
             RequirementRow(
                 label = stringResource(R.string.label_balanceRequirementChat),
                 value = chat ?: stringResource(R.string.label_balanceRequirementNone),
@@ -109,6 +118,41 @@ fun BalanceRequirementsCard(
 }
 
 @Composable
+private fun RowSeparator() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(CodeTheme.dimens.border)
+            .background(CodeTheme.colors.divider)
+    )
+}
+
+@Composable
+private fun CommunityCurrencyRow(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(RowHeight)
+            .clickable(onClick = onClick)
+            .padding(horizontal = RowInset),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = stringResource(R.string.label_balanceRequirementCommunityCurrency),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+        )
+        content()
+        Icon(
+            painter = painterResource(R.drawable.ic_chevron_right),
+            contentDescription = null,
+            tint = CodeTheme.colors.textSecondary,
+        )
+    }
+}
+
+@Composable
 private fun RequirementRow(label: String, value: String) {
     Row(
         modifier = Modifier
@@ -138,5 +182,11 @@ private fun Preview_BalanceRequirementsCard() {
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         BalanceRequirementsCard(join = "$10 of NYC", chat = "$25 of NYC", yourBalance = "$4.50 of NYC")
         BalanceRequirementsCard(join = null, chat = "$2.50", yourBalance = null)
+        BalanceRequirementsCard(
+            join = "$1",
+            chat = "$1",
+            yourBalance = "$4.50 of Moony",
+            communityCurrency = { Text(text = "Moony", style = CodeTheme.typography.textMedium, color = CodeTheme.colors.textMain) },
+        )
     }
 }

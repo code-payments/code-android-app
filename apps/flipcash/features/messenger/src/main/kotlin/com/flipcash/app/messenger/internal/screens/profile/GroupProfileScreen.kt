@@ -1,8 +1,6 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -14,12 +12,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.NotificationsOff
@@ -37,12 +32,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.DpOffset
@@ -79,7 +72,6 @@ import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White05
 import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
@@ -258,34 +250,40 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     )
                 }
 
-                val soleToken = requirements?.soleToken
-                val soleTokenCurrency = soleToken?.let { tokens[it.bytes] }
-                if (soleToken != null && soleTokenCurrency != null) {
-                    GroupTokenCard(
-                        modifier = Modifier
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(top = CodeTheme.dimens.staticGrid.x6),
-                        name = soleTokenCurrency.name,
-                        imageUrl = soleTokenCurrency.imageUrl,
-                        // The same route and analytics source as a token tapped in the transcript.
-                        onClick = { navigator.push(AppRoute.Token.Info(soleToken, TokenInfoEntry.Chat)) },
-                    )
-                }
-
                 AnimatedVisibility(
                     visible = requirements != null && namesReady,
                     enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                     exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
                 ) {
                     requirements ?: return@AnimatedVisibility
+                    val soleToken = requirements.soleToken
+                    val soleTokenCurrency = soleToken?.let { tokens[it.bytes] }
+                    // With the token named in its own row, Join and Chat state bare amounts.
+                    val namesToken = soleTokenCurrency == null
                     BalanceRequirementsCard(
                         // "Your Balance" arrives with the standing, after the rules.
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.staticGrid.x6)
                             .animateContentSize(),
-                        join = requirements.join?.let { holdingLabel(it, tokens) },
-                        chat = requirements.chat?.let { holdingLabel(it, tokens) },
+                        communityCurrency = soleTokenCurrency?.let { currency ->
+                            {
+                                TokenIconWithName(
+                                    modifier = Modifier.padding(end = CodeTheme.dimens.staticGrid.x1),
+                                    tokenName = currency.name,
+                                    tokenImage = currency.imageUrl,
+                                    imageSize = 24.dp,
+                                    textStyle = CodeTheme.typography.textMedium,
+                                    spacing = CodeTheme.dimens.staticGrid.x2,
+                                )
+                            }
+                        },
+                        // The same route and analytics source as a token tapped in the transcript.
+                        onCommunityCurrencyClick = {
+                            soleToken?.let { navigator.push(AppRoute.Token.Info(it, TokenInfoEntry.Chat)) }
+                        },
+                        join = requirements.join?.let { holdingLabel(it, tokens, namesToken) },
+                        chat = requirements.chat?.let { holdingLabel(it, tokens, namesToken) },
                         yourBalance = (requirements.join ?: requirements.chat)?.let { rule ->
                             standing?.yourBalance?.let { holdingLabel(it, rule.mints.firstOrNull()?.let { m -> Mint(m.bytes) }, tokens) }
                         },
@@ -353,13 +351,15 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
 /**
  * A rule's amount as the profile writes it: "$10", "$2.50", and "$10 of NYC" for a token other
- * than USDF whose name is known. A rule naming no mint, or the reserve, states the amount alone.
+ * than USDF whose name is known. A rule naming no mint, or the reserve, states the amount alone,
+ * as does any rule when [namesToken] is false because the card already names the token.
  */
 @Composable
 private fun holdingLabel(
     rule: ChatRuleRequirement.MinimumBalance,
     tokens: Map<List<Byte>, com.flipcash.app.messenger.internal.RuleCurrency>,
-): String = holdingLabel(rule.amount, rule.mints.firstOrNull()?.let { Mint(it.bytes) }, tokens)
+    namesToken: Boolean = true,
+): String = holdingLabel(rule.amount, rule.mints.firstOrNull()?.takeIf { namesToken }?.let { Mint(it.bytes) }, tokens)
 
 @Composable
 private fun holdingLabel(
@@ -407,53 +407,6 @@ private fun GroupProfileMenu(
                     onDismiss()
                     onItem(item)
                 },
-            )
-        }
-    }
-}
-
-/**
- * The one token a group's requirements name, as a tappable row that opens its info screen. No price
- * line: the rule token the profile already holds carries a name and an icon, not a quote.
- */
-@Composable
-private fun GroupTokenCard(
-    name: String,
-    imageUrl: String?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.title_groupProfileToken),
-            style = CodeTheme.typography.textLarge,
-            color = CodeTheme.colors.textMain,
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(White05)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TokenIconWithName(
-                modifier = Modifier.weight(1f),
-                tokenName = name,
-                tokenImage = imageUrl,
-                imageSize = 32.dp,
-                textStyle = CodeTheme.typography.textMedium,
-                spacing = CodeTheme.dimens.staticGrid.x2,
-            )
-            Icon(
-                painter = painterResource(id = R.drawable.ic_chevron_right),
-                contentDescription = null,
-                tint = CodeTheme.colors.textSecondary,
             )
         }
     }

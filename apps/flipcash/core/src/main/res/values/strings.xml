@@ -1135,9 +1135,6 @@
     <string name="error_title_groupCreateFailed">Something Went Wrong</string>
     <string name="error_description_groupCreateFailed">We couldn\'t create this group. Please try again.</string>
 
-    <!-- The group profile's card for the one token its balance requirements name (iOS "Token"). -->
-    <string name="title_groupProfileToken">Token</string>
-
     <!-- Editing a group (node 10187:110373). The design titles this "Edit Community"; the app
          calls the same thing a Group everywhere else (see title_newPublicGroup, hint_groupName),
          so it is a Group here too rather than introducing a second word for one concept.
