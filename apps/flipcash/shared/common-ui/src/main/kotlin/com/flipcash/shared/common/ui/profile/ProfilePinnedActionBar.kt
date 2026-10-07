@@ -23,7 +23,6 @@ import com.getcode.ui.components.toast.ToastBottomClearance
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
@@ -34,8 +33,8 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials
  * under it. Given an [above] line, the line and the button sit together on a panel.
  *
  * Given the [hazeState] the screen's scroll content draws into, the bar is see-through: the content
- * runs on under it and blurs in over the gap above the bar's first row, as iOS's soft scroll edge
- * does, so [above] reads on full blur. Without a [hazeState] the bar sits on the screen's background.
+ * runs on under it and blurs from the bar's first row down, so nothing blurs above that row and
+ * [above] reads on full blur. Without a [hazeState] the bar sits on the screen's background.
  *
  * The bar clears the navigation bar and measures itself,
  * system bar included. While it is composed it asks the root toast host to rest toasts above that
@@ -63,10 +62,6 @@ fun ProfilePinnedActionBar(
     val material = HazeMaterials.ultraThin(containerColor = background)
 
     val density = LocalDensity.current
-    // The blur ramps in over the gap above the first row, so it is full where that row starts and
-    // nothing blurs visibly above it.
-    val topGap = CodeTheme.dimens.staticGrid.x2
-    val topGapPx = with(density) { topGap.toPx() }
     var height by remember { mutableStateOf(0.dp) }
     ToastBottomClearance(height)
 
@@ -79,28 +74,19 @@ fun ProfilePinnedActionBar(
                 height = measured
                 onHeightChanged(measured)
             }
+            .then(if (hazeState == null) Modifier.background(background) else Modifier)
+            // iOS: 12 above, 8 below and 8 between, on the 5dp grid. The gap above sits outside
+            // the blur, so the blur starts where the first row does.
+            .padding(top = CodeTheme.dimens.staticGrid.x2)
             .then(
                 if (hazeState != null) {
-                    Modifier.hazeBlur(
-                        HazeInput.Sources(hazeState),
-                        material.then {
-                            progressive(
-                                HazeProgressive.verticalGradient(
-                                    startY = 0f,
-                                    startIntensity = 0f,
-                                    endY = topGapPx,
-                                    endIntensity = 1f,
-                                ),
-                            )
-                        },
-                    )
+                    Modifier.hazeBlur(HazeInput.Sources(hazeState), material)
                 } else {
-                    Modifier.background(background)
+                    Modifier
                 },
             )
             .navigationBarsPadding()
-            // iOS: 12 above, 8 below and 8 between, on the 5dp grid.
-            .padding(vertical = CodeTheme.dimens.staticGrid.x2),
+            .padding(bottom = CodeTheme.dimens.staticGrid.x2),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
         // iOS stacks these in a VStack, which centres a line narrower than the buttons.
         horizontalAlignment = Alignment.CenterHorizontally,
