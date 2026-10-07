@@ -12,7 +12,11 @@ import com.flipcash.app.userflags.ResolvedUserFlags
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.app.userflags.UsernameGate
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Fiat
@@ -33,6 +37,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import kotlin.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -45,6 +50,7 @@ class EditProfileViewModelTest {
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
     private val purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true)
+    private val featuredGroups = FeaturedGroupsStore(mockk(relaxed = true))
 
     @Before
     @After
@@ -64,6 +70,7 @@ class EditProfileViewModelTest {
             userFlags = userFlags,
             totalBalance = totalBalance,
             tipPayments = mockk<TipPaymentDelegate>(relaxed = true),
+            featuredGroups = featuredGroups,
             purchaseMethodController = purchaseMethodController,
             analytics = mockk<FlipcashAnalytics>(relaxed = true),
             resources = FakeResourceHelper(),
@@ -196,4 +203,27 @@ class EditProfileViewModelTest {
         val state = reduce(EditProfileViewModel.Event.OnMinimumToChatChanged("$1.00"))(EditProfileViewModel.State())
         assertEquals("$1.00", state.minimumToChat)
     }
+
+    @Test
+    fun `the featured groups count follows the session list`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertEquals(0, vm.stateFlow.value.featuredGroupCount)
+
+        featuredGroups.replace(listOf(group("aa"), group("bb")))
+        advanceUntilIdle()
+        assertEquals(2, vm.stateFlow.value.featuredGroupCount)
+
+        featuredGroups.reset()
+        advanceUntilIdle()
+        assertEquals(0, vm.stateFlow.value.featuredGroupCount)
+    }
+
+    private fun group(hex: String) = ChatMetadata(
+        chatId = ChatId(hex),
+        type = ChatType.GROUP,
+        members = emptyList(),
+        lastMessage = null,
+        lastActivity = Instant.fromEpochMilliseconds(0),
+    )
 }

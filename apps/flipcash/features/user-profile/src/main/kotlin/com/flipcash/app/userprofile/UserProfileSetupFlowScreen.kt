@@ -11,6 +11,7 @@ import com.flipcash.app.core.ui.transitions.LocalHostEnterTransition
 import com.flipcash.app.core.userprofile.UpdateProfileResult
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.userprofile.internal.bio.EditBioScreen
+import com.flipcash.app.userprofile.internal.featuredgroups.EditFeaturedGroupsScreen
 import com.flipcash.app.userprofile.internal.mintip.MinimumTipEntryScreen
 import com.flipcash.app.userprofile.internal.name.NameEntryScreen
 import com.flipcash.app.userprofile.internal.photo.PhotoSelectionScreen
@@ -84,6 +85,9 @@ private fun profileUpdateProvider(
     }
     annotatedEntry<UpdateProfileStep.Bio> {
         EditBioScreen()
+    }
+    annotatedEntry<UpdateProfileStep.FeaturedGroups> {
+        EditFeaturedGroupsScreen()
     }
     annotatedEntry<UpdateProfileStep.MinimumTip> {
         MinimumTipEntryScreen(isLastStep = route.steps.lastOrNull() == UpdateProfileStep.MinimumTip)
