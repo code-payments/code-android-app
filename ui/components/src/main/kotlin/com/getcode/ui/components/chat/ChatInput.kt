@@ -1,7 +1,10 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -66,12 +69,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.animation.core.Animatable
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
@@ -260,10 +268,50 @@ private class ComposerFieldShape(
     }
 }
 
+/**
+ * [field] joined with the [overhang] rect, as a capsule [scale]d about its centre, so a control
+ * reaching past the field's edge is not clipped by it.
+ */
+private class OverhangShape(
+    private val field: Shape,
+    private val overhang: Rect,
+    private val scale: Float,
+) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val base = Path().apply { addOutline(field.createOutline(size, layoutDirection, density)) }
+        val c = overhang.center
+        val w = overhang.width * scale
+        val h = overhang.height * scale
+        val capsule = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    rect = Rect(c.x - w / 2f, c.y - h / 2f, c.x + w / 2f, c.y + h / 2f),
+                    cornerRadius = CornerRadius(h / 2f),
+                )
+            )
+        }
+        return Outline.Generic(Path.combine(PathOperation.Union, base, capsule))
+    }
+}
+
 private const val MaxLines = 5
 
 /** iOS `ChatMotion.replySurface`: duration 0.28, bounce 0, so damping ratio 1 and stiffness (2pi/0.28)^2. */
 private val StackSpring = spring<Float>(dampingRatio = 1f, stiffness = 503f)
+
+/**
+ * iOS `cashSpring` is duration 0.42, bounce 0.12 (damping ratio 0.88, stiffness 224), but there the
+ * field's glass flows into the trailing control's within ~70ms and its edge reads as settled by ~200ms,
+ * well before the frame itself stops. Android has no glass to merge, so the field's edge is the frame:
+ * the same damping ratio, stiff enough to settle in the ~200ms the eye reads on iOS.
+ */
+private val CashSpring = spring<Float>(dampingRatio = 0.88f, stiffness = 520f)
+
+/** iOS `cashBudDelay`: how long the trailing control waits for the send button to shrink out of its spot. */
+private const val CashBudDelayMillis = 100L
+
+/** iOS `cashJoinDelay`: how long the send button waits for the trailing control to merge into the field. */
+private const val CashJoinDelayMillis = 160L
 
 private enum class Slot { Header, Text, Leading, Send }
 
@@ -302,8 +350,18 @@ fun ChatInput(
     val hasText = state.text.isNotEmpty()
     val sendVisible = hasText || hasAttachments || submit is ChatInputSubmit.Action
     val sendSpec = spring<Float>(dampingRatio = 0.66f, stiffness = 4000f)
-    val sendAlpha by animateFloatAsState(if (sendVisible) 1f else 0f, sendSpec, label = "send alpha")
-    val sendScale by animateFloatAsState(if (sendVisible) 1f else 0.6f, sendSpec, label = "send scale")
+    val sendAlphaAnim = remember { Animatable(if (sendVisible) 1f else 0f) }
+    val sendScaleAnim = remember { Animatable(if (sendVisible) 1f else 0.6f) }
+    // With a trailing control, the send button waits for it to merge into the field instead of
+    // appearing over it. Editing has no trailing control, so it never waits.
+    val sendWaitsForTrailingJoin = trailingOutside != null
+    LaunchedEffect(sendVisible) {
+        if (sendVisible && sendWaitsForTrailingJoin) delay(CashJoinDelayMillis)
+        launch { sendAlphaAnim.animateTo(if (sendVisible) 1f else 0f, sendSpec) }
+        sendScaleAnim.animateTo(if (sendVisible) 1f else 0.6f, sendSpec)
+    }
+    val sendAlpha = sendAlphaAnim.value
+    val sendScale = sendScaleAnim.value
 
     // spring(duration 0.4, bounce 0.3)
     val outsideSpec = spring<Float>(dampingRatio = 0.7f, stiffness = 247f)
@@ -312,11 +370,32 @@ fun ChatInput(
         animationSpec = outsideSpec,
         label = "outside fraction",
     )
-    val trailingOutsideFraction by animateFloatAsState(
-        targetValue = if (trailingOutside != null && !hasText) 1f else 0f,
-        animationSpec = outsideSpec,
-        label = "trailing outside fraction",
-    )
+    // The trailing control splits from the field's trailing edge once the send button has shrunk out
+    // of its spot, and merges straight back in as text arrives. Its glyph fades on its own, shorter
+    // clock: in once it is clear of the field, out before it reaches it (iOS `cashGlyphTravel`).
+    val trailingShown = trailingOutside != null && !hasText
+    val trailingFractionAnim = remember { Animatable(if (trailingShown) 1f else 0f) }
+    val trailingAlphaAnim = remember { Animatable(if (trailingShown) 1f else 0f) }
+    LaunchedEffect(trailingShown) {
+        if (trailingShown) {
+            launch {
+                delay(CashBudDelayMillis + 60L)
+                trailingAlphaAnim.animateTo(1f, tween(120, easing = EaseIn))
+            }
+            delay(CashBudDelayMillis)
+            trailingFractionAnim.animateTo(1f, CashSpring)
+        } else {
+            launch { trailingAlphaAnim.animateTo(0f, tween(100, easing = EaseOut)) }
+            trailingFractionAnim.animateTo(0f, CashSpring)
+        }
+    }
+    val trailingOutsideFraction = trailingFractionAnim.value
+    // While the trailing control makes way, the send button appears where the field is going rather
+    // than at its edge, which still has the slot's width to travel: the button and the control share a
+    // centre, so the send grows out of the control's place. Leaving, it rides the field's edge in. iOS
+    // gets both from SwiftUI, which lays an inserted view out at its final frame and lets a removed one
+    // move with its parent.
+    val trailingCollapsing = trailingOutside != null && hasText
 
     var fieldWidth by remember { mutableIntStateOf(0) }
     var leadingWidth by remember { mutableIntStateOf(0) }
@@ -325,6 +404,10 @@ fun ChatInput(
     val density = LocalDensity.current
     val metrics = composerMetrics()
     val outsideSize = ChatInputDefaults.OutsideSize
+    val trailingSlotPx = with(density) { (outsideSize + metrics.outsideSpacing).toPx() }
+    val sendOverhang = {
+        if (trailingCollapsing) (trailingSlotPx * trailingOutsideFraction).coerceAtLeast(0f) else 0f
+    }
     val textMeasurer = rememberTextMeasurer()
     val scope = rememberCoroutineScope()
 
@@ -370,7 +453,27 @@ fun ChatInput(
                 // Above the trailing control, which the field slides over as it widens.
                 .zIndex(1f)
                 .onSizeChanged { fieldWidth = it.width }
-                .clip(shape)
+                // The field's shape, plus the send button where it overhangs the field's edge.
+                .graphicsLayer {
+                    val overhang = sendOverhang()
+                    this.shape = if (overhang > 0f) {
+                        val pad = metrics.fieldPad.toPx()
+                        val sendHeight = metrics.accessorySize.toPx()
+                        OverhangShape(
+                            field = shape,
+                            overhang = Rect(
+                                left = size.width - pad - sendWidth + overhang,
+                                top = size.height - pad - sendHeight,
+                                right = size.width - pad + overhang,
+                                bottom = size.height - pad,
+                            ),
+                            scale = sendScale,
+                        )
+                    } else {
+                        shape
+                    }
+                    clip = true
+                }
                 .then(modifier)
                 .background(containerColor, shape)
                 .border(CodeTheme.dimens.border, ChatInputDefaults.RimBrush, shape)
@@ -427,6 +530,7 @@ fun ChatInput(
                         .layoutId(Slot.Send)
                         .onSizeChanged { sendWidth = it.width }
                         .graphicsLayer {
+                            translationX = sendOverhang()
                             alpha = if (sendEnabled) sendAlpha else sendAlpha * 0.4f
                             scaleX = sendScale
                             scaleY = sendScale
@@ -452,7 +556,13 @@ fun ChatInput(
             },
         )
         if (trailingOutside != null) {
-            TrailingOutsideSlot(trailingOutsideFraction, outsideSize, metrics.outsideSpacing, trailingOutside)
+            TrailingOutsideSlot(
+                fraction = { trailingFractionAnim.value },
+                alpha = { trailingAlphaAnim.value },
+                size = outsideSize,
+                spacing = metrics.outsideSpacing,
+                content = trailingOutside,
+            )
         }
     }
 }
@@ -487,13 +597,14 @@ private fun OutsideSlot(
 }
 
 /**
- * The control after the field. The row gives its width up to the field as [fraction] falls, but the
- * control stays where it is: it fades out and shrinks in place while the field, drawn above it,
- * widens across it, and plays the same in reverse as [fraction] rises.
+ * The control after the field. The row gives its width up to the field as [fraction] falls, and the
+ * control travels from its place to the field's trailing edge, shrinking as it goes, under the field
+ * that is drawn above it. It plays the same in reverse as [fraction] rises. [alpha] is its own.
  */
 @Composable
 private fun TrailingOutsideSlot(
-    fraction: Float,
+    fraction: () -> Float,
+    alpha: () -> Float,
     size: Dp,
     spacing: Dp,
     content: @Composable () -> Unit,
@@ -501,16 +612,21 @@ private fun TrailingOutsideSlot(
     Box(
         modifier = Modifier.layout { measurable, _ ->
             val sizePx = size.roundToPx()
-            val f = fraction.coerceAtLeast(0f)
+            val spacingPx = spacing.roundToPx()
+            val f = fraction().coerceAtLeast(0f)
             val p = measurable.measure(Constraints.fixed(sizePx, sizePx))
-            val width = ((sizePx + spacing.roundToPx()) * f).roundToInt().coerceAtLeast(0)
+            val width = ((sizePx + spacingPx) * f).roundToInt().coerceAtLeast(0)
             layout(width, sizePx) {
                 // Pinned to the row's trailing edge however much width the slot reports.
                 p.placeWithLayer(width - sizePx, 0) {
-                    val k = 0.5f + 0.5f * f.coerceIn(0f, 1f)
+                    val t = fraction()
+                    // iOS `cashGlyphTravel`: `.offset(x: -(height / 2 + spacing))` with `.scale(0.4)`,
+                    // which puts its centre on the field's trailing edge.
+                    translationX = -(sizePx / 2f + spacingPx) * (1f - t)
+                    val k = 0.4f + 0.6f * t
                     scaleX = k
                     scaleY = k
-                    alpha = f.coerceIn(0f, 1f)
+                    this.alpha = alpha().coerceIn(0f, 1f)
                 }
             }
         },
