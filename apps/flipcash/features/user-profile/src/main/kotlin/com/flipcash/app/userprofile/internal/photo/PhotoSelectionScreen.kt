@@ -75,7 +75,7 @@ internal fun PhotoSelectionScreen(slot: PhotoSelectionViewModel.Slot = PhotoSele
     Column {
         AppBarWithTitle(
             title = stringResource(
-                if (slot == PhotoSelectionViewModel.Slot.Cover) R.string.title_setCover else R.string.title_setProfilePicture
+                if (slot == PhotoSelectionViewModel.Slot.Cover) R.string.title_cover else R.string.title_setProfilePicture
             ),
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = {
@@ -127,7 +127,7 @@ private fun PhotoSelectionScreenContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(bottom = CodeTheme.dimens.grid.x3),
+                        .padding(bottom = CodeTheme.dimens.staticGrid.x4),
                     text = stringResource(R.string.action_save),
                     enabled = state.isChanged && state.processingState.isIdle,
                     isLoading = state.processingState.loading,
@@ -139,11 +139,14 @@ private fun PhotoSelectionScreenContent(
             }
         }
     ) { padding ->
+        val isCover = state.slot == PhotoSelectionViewModel.Slot.Cover
+        // The cover sits at the top like iOS's ChangeCoverPictureScreen; the avatar stays centred.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
+                .padding(padding)
+                .padding(top = if (isCover) CodeTheme.dimens.staticGrid.x4 else 0.dp),
+            contentAlignment = if (isCover) Alignment.TopCenter else Alignment.Center,
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -151,7 +154,6 @@ private fun PhotoSelectionScreenContent(
             ) {
                 // The avatar is a circle that shares its bounds with the name step; the cover is
                 // previewed at the banner's own aspect so the crop matches what the profile shows.
-                val isCover = state.slot == PhotoSelectionViewModel.Slot.Cover
                 val pictureShape = if (isCover) CodeTheme.shapes.medium else CircleShape
                 Box(
                     modifier = (if (isCover) {
@@ -166,7 +168,7 @@ private fun PhotoSelectionScreenContent(
                             )
                     })
                         .background(
-                            color = CodeTheme.colors.divider,
+                            color = if (isCover) CodeTheme.colors.surfaceVariant else CodeTheme.colors.divider,
                             shape = pictureShape,
                         ).clip(pictureShape)
                         .clickable {
@@ -219,7 +221,7 @@ private fun PhotoSelectionScreenContent(
                                     Icon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = null,
-                                        tint = White50,
+                                        tint = if (isCover) CodeTheme.colors.textSecondary else White50,
                                         modifier = Modifier.size(48.dp),
                                     )
                                 }

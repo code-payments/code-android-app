@@ -37,12 +37,18 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.ui.components.ListItemDefaults
 import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.offset
+import com.getcode.ui.components.glass.floatingGlass
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 // Carried from the iOS screen.
 private val CoverHeight = 126.dp
 private val AvatarSize = 68.dp
 private val BadgeSize = 28.dp
 private val BadgeIconSize = 16.dp
+private val BadgeOffsetX = 6.dp
+private val BadgeOffsetY = 2.dp
 
 @Composable
 internal fun EditProfileScreenContent(
@@ -116,6 +122,8 @@ private fun CoverAndPhoto(
     onChangePhoto: () -> Unit,
 ) {
     val grid = CodeTheme.dimens.staticGrid
+    // The cover is what the Change cover chip frosts, as iOS's CoverChip is glass over it.
+    val hazeState = rememberHazeState()
     Box(modifier = Modifier.fillMaxWidth().height(CoverHeight + AvatarSize / 2)) {
         Box(
             modifier = Modifier
@@ -128,7 +136,9 @@ private fun CoverAndPhoto(
                 image = state.cover,
                 access = BlobAccessContext.Owned,
                 height = Dp.Unspecified,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState),
             )
             Text(
                 text = stringResource(R.string.action_changeCover),
@@ -137,8 +147,7 @@ private fun CoverAndPhoto(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(grid.x2)
-                    .clip(CircleShape)
-                    .background(CodeTheme.colors.background)
+                    .floatingGlass(hazeState)
                     .padding(horizontal = grid.x2, vertical = grid.x1),
             )
         }
@@ -161,7 +170,11 @@ private fun CoverAndPhoto(
                         .clip(CircleShape)
                         .border(grid.x1, CodeTheme.colors.background, CircleShape),
                 )
-                CameraBadge(modifier = Modifier.align(Alignment.BottomEnd))
+                CameraBadge(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = BadgeOffsetX, y = BadgeOffsetY),
+                )
             }
             Text(
                 text = stringResource(R.string.action_changePhoto),

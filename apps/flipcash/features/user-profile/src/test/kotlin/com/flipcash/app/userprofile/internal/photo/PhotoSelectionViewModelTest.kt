@@ -162,6 +162,34 @@ class PhotoSelectionViewModelTest {
         verify(profileController, never()).setCoverPicture(any())
     }
 
+    @Test
+    fun `replacing a cover saves without asking first, as iOS does`() = runTest(mainCoroutineRule.dispatcher) {
+        stubUpload()
+        whenever(profileController.setCoverPicture(any())).thenReturn(Result.success(cover))
+        val vm = viewModel(PhotoSelectionViewModel.Slot.Cover)
+        advanceUntilIdle()
+
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.OnImageCached(pick, "image/jpeg"))
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.ConfirmImageChange)
+        advanceUntilIdle()
+
+        assertEquals(null, BottomBarManager.messages.value.firstOrNull())
+        verify(profileController).setCoverPicture(blobId)
+    }
+
+    @Test
+    fun `replacing an avatar asks first`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = viewModel(PhotoSelectionViewModel.Slot.Avatar)
+        advanceUntilIdle()
+
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.OnImageCached(pick, "image/jpeg"))
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.ConfirmImageChange)
+        advanceUntilIdle()
+
+        assertEquals("prompt_title_changeProfilePicture", BottomBarManager.messages.value.firstOrNull()?.title)
+        verify(profileController, never()).setProfilePicture(any())
+    }
+
     private fun rejection(reason: RejectionReason, category: ModerationResult.FlaggedCategory = ModerationResult.FlaggedCategory.NONE) =
         BlobRejectedException(BlobRejection(reason, category))
 

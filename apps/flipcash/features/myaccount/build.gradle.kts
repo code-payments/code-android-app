@@ -12,6 +12,7 @@ dependencies {
     testImplementation(libs.bundles.compose.ui.testing)
     testImplementation(testFixtures(project(":ui:resources")))
 
+    implementation(libs.bundles.haze)
     implementation(libs.compose.paging)
 
     implementation(project(":apps:flipcash:shared:analytics"))

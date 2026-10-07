@@ -154,23 +154,17 @@ class PhotoSelectionViewModel @AssistedInject constructor(
         eventFlow
             .filterIsInstance<Event.ConfirmImageChange>()
             .onEach {
-                if (stateFlow.value.savedPicture == null) {
+                // Only a replacement avatar is confirmed, as on iOS: a first picture gives nothing
+                // up, and the cover saves straight away like ChangeCoverPictureScreen.
+                if (slot == Slot.Cover || stateFlow.value.savedPicture == null) {
                     dispatchEvent(Event.CheckImage)
                     return@onEach
                 }
                 BottomBarManager.showMessage(
-                    title = resources.getString(
-                        if (slot == Slot.Cover) R.string.prompt_title_changeCover else R.string.prompt_title_changeProfilePicture
-                    ),
-                    message = resources.getString(
-                        if (slot == Slot.Cover) R.string.prompt_description_changeCover else R.string.prompt_description_changeProfilePicture
-                    ),
+                    title = resources.getString(R.string.prompt_title_changeProfilePicture),
+                    message = resources.getString(R.string.prompt_description_changeProfilePicture),
                     actions = listOf(
-                        BottomBarAction(
-                            resources.getString(
-                                if (slot == Slot.Cover) R.string.action_changeCover else R.string.action_changeProfilePicture
-                            )
-                        ) {
+                        BottomBarAction(resources.getString(R.string.action_changeProfilePicture)) {
                             dispatchEvent(Event.CheckImage)
                         }
                     ),

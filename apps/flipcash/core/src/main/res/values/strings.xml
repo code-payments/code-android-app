@@ -1251,10 +1251,8 @@
     <string name="error_description_profilePhotoNotAllowedFlaggedMisleading">AI flagged this photo as misleading. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
     <string name="error_description_profilePhotoNotAllowedFlaggedSpam">AI flagged this photo as spam. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
     <string name="title_setProfilePicture">Set Profile Picture</string>
-    <string name="title_setCover">Set Cover</string>
-    <string name="prompt_title_changeCover">Change Cover?</string>
-    <string name="prompt_description_changeCover">This will change your cover</string>
-    <string name="action_changeCover">Change Cover</string>
+    <string name="title_cover">Cover</string>
+    <string name="action_changeCover">Change cover</string>
     <string name="error_title_coverNotAllowed">Couldn\'t Upload Your Cover</string>
     <string name="error_description_coverNotAllowed">This image isn\'t allowed as a cover. Please try a different image. If you think it was rejected in error please DM @flipcash on X</string>
     <string name="placeholder_profileDisplayName">Your Name</string>
@@ -1276,7 +1274,7 @@
          starting a conversation. Distinct from the send-side strings above, which are about a
          tip in flight. The floor is explained in prose under the keypad and enforced by keeping
          the save button inert, so there is no below-minimum error to show. -->
-    <string name="title_minimumToChat">Minimum To Chat</string>
+    <string name="title_minimumToChat">Minimum to Chat</string>
     <string name="description_minimumToChat">Choose how much someone must send you to start chatting. You can send it back if the conversation is worthwhile.</string>
     <string name="error_title_minimumTipFailed">Something Went Wrong</string>
     <string name="error_description_minimumTipFailed">We were unable to save your minimum tip. Please try again</string>
