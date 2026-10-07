@@ -363,7 +363,8 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 val bar = (cta as? GroupProfileCta.BuyToJoin)?.requirement
                     ?: (cta as? GroupProfileCta.BuyToChat)?.requirement
                 val buyMint = bar?.mints?.firstOrNull()?.let { Mint(it.bytes) }?.takeUnless { it == Mint.usdf }
-                val shortfall = (standing?.shortfall ?: bar?.amount)?.formatted(Fiat.FormattingRule.Truncated)
+                // What the button buys, named the way the line above it names the requirement.
+                val shortfall = (standing?.shortfall ?: bar?.amount)?.let { holdingLabel(it, buyMint, tokens) }
                 val isJoin = cta is GroupProfileCta.BuyToJoin
 
                 ProfilePinnedActionBar(
@@ -398,9 +399,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                             // Space held while the token is unnamed, so the button doesn't move.
                             val nameAlpha by animateFloatAsState(if (namesReady) 1f else 0f, label = "requirementLine")
                             Text(
-                                modifier = Modifier
-                                    .padding(horizontal = CodeTheme.dimens.inset)
-                                    .graphicsLayer { alpha = nameAlpha },
+                                modifier = Modifier.graphicsLayer { alpha = nameAlpha },
                                 textAlign = TextAlign.Center,
                                 text = stringResource(
                                     if (isJoin) R.string.label_groupRequiredToJoin else R.string.label_groupRequiredToChat,
