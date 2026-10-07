@@ -55,9 +55,11 @@ internal data class ExplainerUiModel(
     val ticks: List<ExplainerTick>,
     val tickLabels: Map<ExplainerTick, String>,
     val reserveText: String,
-    val worthText: String,
+    /** Null when the user holds none of the token, which hides the readout. */
+    val worthText: String?,
     val chart: ExplainerChart,
     val scrubLabel: String,
+    /** Empty when the user holds none of the token, which hides the card. */
     val ownership: List<OwnershipRow>,
 )
 
@@ -108,10 +110,10 @@ internal fun MarketCapExplainerContent(state: MarketCapExplainerViewModel.State)
         ticks = projection.ticks,
         tickLabels = labels.ticks,
         reserveText = reserveText,
-        worthText = snapshot.worth?.convertingTo(state.rate)?.formatted() ?: Dash,
+        worthText = if (state.holdsToken) snapshot.worth?.convertingTo(state.rate)?.formatted() ?: Dash else null,
         chart = chart,
         scrubLabel = scrubLabel,
-        ownership = listOf(
+        ownership = if (!state.holdsToken) emptyList() else listOf(
             OwnershipRow(R.string.label_underlyingTokensYouOwn, labels.tokensHeld ?: Dash),
             OwnershipRow(R.string.label_currentPricePerToken, labels.price),
             OwnershipRow(R.string.label_shareOfCirculatingSupply, labels.shareOfCirculating ?: Dash),
@@ -190,21 +192,23 @@ internal fun MarketCapExplainerBody(
                 onPositionChange = onPositionChange,
                 onDragEnd = onDragEnd,
             )
-            Text(
-                modifier = Modifier.padding(top = grid.x5),
-                text = stringResource(R.string.label_marketCapBalanceWouldBeWorth, model.tokenName),
-                style = CodeTheme.typography.textSmall,
-                color = CodeTheme.colors.textSecondary,
-            )
-            AnimatedNumberText(
-                modifier = Modifier.padding(top = grid.x1),
-                value = model.worthText,
-                style = CodeTheme.typography.displayMedium.bolded(),
-                color = CodeTheme.colors.textMain,
-            )
+            if (model.worthText != null) {
+                Text(
+                    modifier = Modifier.padding(top = grid.x5),
+                    text = stringResource(R.string.label_marketCapBalanceWouldBeWorth, model.tokenName),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                )
+                AnimatedNumberText(
+                    modifier = Modifier.padding(top = grid.x1),
+                    value = model.worthText,
+                    style = CodeTheme.typography.displayMedium.bolded(),
+                    color = CodeTheme.colors.textMain,
+                )
+            }
         }
 
-        Card {
+        if (model.ownership.isNotEmpty()) Card {
             Text(
                 text = stringResource(R.string.title_yourOwnership),
                 style = CodeTheme.typography.textLarge,
@@ -296,4 +300,14 @@ private fun Preview_MarketCapExplainer_Today() {
 @Composable
 private fun Preview_MarketCapExplainer_100K() {
     MarketCapExplainerBody(previewModel(todaySelected = false), onPositionChange = {})
+}
+
+@Preview(name = "Not held", heightDp = 900)
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_MarketCapExplainer_NotHeld() {
+    MarketCapExplainerBody(
+        previewModel(todaySelected = true).copy(worthText = null, ownership = emptyList()),
+        onPositionChange = {},
+    )
 }

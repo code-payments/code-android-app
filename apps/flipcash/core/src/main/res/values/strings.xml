@@ -1395,6 +1395,7 @@
 
 
     <string name="title_howTokenPriceWorks">How %1$s\'s Price Works</string>
+    <string name="error_marketCapExplainerUnavailable">Unable to load</string>
     <string name="subtitle_howMarketCapWorksRow">See what moves market cap · 1 min</string>
     <string name="title_marketCapExplainerHeadline">The more people buy %1$s, the more valuable %1$s becomes.</string>
     <string name="label_marketCapAmountPurchased">Amount of %1$s purchased by the community</string>
