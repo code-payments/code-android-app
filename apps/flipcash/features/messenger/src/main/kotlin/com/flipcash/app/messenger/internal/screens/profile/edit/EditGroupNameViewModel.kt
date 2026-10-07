@@ -5,14 +5,9 @@ import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.GroupField
 import com.flipcash.app.analytics.FlipcashAnalytics
-import com.flipcash.app.core.moderation.moderationDescription
-import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.services.models.EditChatError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ChatCoordinator
-import com.getcode.manager.BottomBarAction
-import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
@@ -59,6 +54,9 @@ class EditGroupNameViewModel @Inject constructor(
         /** `min_len 1, max_len 64`, counted as [ChatTitle] counts it. */
         val isValid: Boolean
             get() = ChatTitle.isValid(titleFieldState.text)
+
+        val remaining: Int
+            get() = ChatTitle.remaining(titleFieldState.text)
 
         /** Nothing to send when the title is what it already was. */
         val isChanged: Boolean
@@ -108,21 +106,14 @@ class EditGroupNameViewModel @Inject constructor(
                 // reaches here without consulting it.
                 if (!state.canSubmit) return@onEach
 
-                BottomBarManager.showAlert(
-                    title = resources.getString(R.string.prompt_title_changeGroupName),
-                    message = resources.getString(R.string.prompt_description_changeGroupName),
-                    actions = listOf(
-                        BottomBarAction(resources.getString(R.string.action_changeGroupName)) {
-                            viewModelScope.launch {
-                                // The bar dismisses on an animation, and the submit's spinner
-                                // belongs to the screen behind it — it would start underneath.
-                                delay(150.milliseconds)
-                                dispatchEvent(Event.SubmitTitle)
-                            }
-                        }
-                    ),
-                    showCancel = true,
-                )
+                showGroupChangeConfirmation(resources, GroupChangeField.Name) {
+                    viewModelScope.launch {
+                        // The bar dismisses on an animation, and the submit's spinner
+                        // belongs to the screen behind it — it would start underneath.
+                        delay(150.milliseconds)
+                        dispatchEvent(Event.SubmitTitle)
+                    }
+                }
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -158,30 +149,8 @@ class EditGroupNameViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
-    /**
-     * `EditChatResponse.Result`, less `OK`.
-     *
-     * Every arm leaves the user on this screen with the field as they typed it — a refused title
-     * is one to amend, and `TITLE_MODERATED` in particular is only actionable if what was rejected
-     * is still in front of them.
-     */
     private fun announceEditFailure(cause: Throwable) {
-        when (cause) {
-            is EditChatError.TitleModerated -> BottomBarManager.showAlert(
-                title = resources.getString(R.string.error_title_groupTitleNotAllowed),
-                message = resources.getString(moderationDescription(cause.category)),
-            )
-
-            is EditChatError.Denied -> BottomBarManager.showAlert(
-                title = resources.getString(R.string.error_title_groupEditDenied),
-                message = resources.getString(R.string.error_description_groupEditDenied),
-            )
-
-            else -> BottomBarManager.showError(
-                title = resources.getString(R.string.error_title_groupEditFailed),
-                message = resources.getString(R.string.error_description_groupEditFailed),
-            )
-        }
+        showGroupEditAlert(resources, groupEditAlert(cause, GroupChangeField.Name))
     }
 
     internal companion object {

@@ -22,5 +22,12 @@ internal object ChatTitle {
     fun lengthOf(input: CharSequence): Int =
         normalize(input).let { it.codePointCount(0, it.length) }
 
+    /** How many more code points the field takes, counted on the text as typed; never negative. */
+    fun remaining(input: CharSequence): Int =
+        (MAX_LENGTH - input.toString().let { it.codePointCount(0, it.length) }).coerceAtLeast(0)
+
+    /** The counter only appears once the end is in sight. */
+    const val COUNTER_THRESHOLD = 10
+
     fun isValid(input: CharSequence): Boolean = lengthOf(input) in MIN_LENGTH..MAX_LENGTH
 }

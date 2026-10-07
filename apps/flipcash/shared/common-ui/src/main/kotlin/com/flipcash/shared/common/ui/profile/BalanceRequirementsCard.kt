@@ -35,6 +35,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 
 private val RowHeight = 56.dp
+private val CompactRowHeight = 48.dp
 private val CardRadius = 12.dp
 private val RowInset = 16.dp
 
@@ -48,6 +49,9 @@ private val RowInset = 16.dp
  * When [communityCurrency] is set, a Community Currency row leads the card with that content (the
  * token's icon and name) and a chevron, and tapping it calls [onCommunityCurrencyClick]. The caller
  * then passes bare amounts for [join] and [chat], since the token is already named above them.
+ *
+ * [compact] is the read-only form on Edit Group: a 16 header, shorter rows with their labels in
+ * the same 16 as the values, and the [footnote] beneath. The profile's own is the default.
  */
 @Composable
 fun BalanceRequirementsCard(
@@ -57,14 +61,16 @@ fun BalanceRequirementsCard(
     modifier: Modifier = Modifier,
     communityCurrency: (@Composable RowScope.() -> Unit)? = null,
     onCommunityCurrencyClick: () -> Unit = {},
+    compact: Boolean = false,
+    footnote: String? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 16.dp),
     ) {
         Text(
             text = stringResource(R.string.title_balanceRequirements),
-            style = CodeTheme.typography.textLarge,
+            style = if (compact) CodeTheme.typography.textMedium else CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textMain,
         )
         Column(
@@ -80,11 +86,20 @@ fun BalanceRequirementsCard(
             RequirementRow(
                 label = stringResource(R.string.label_balanceRequirementJoin),
                 value = join ?: stringResource(R.string.label_balanceRequirementNone),
+                compact = compact,
             )
             RowSeparator()
             RequirementRow(
                 label = stringResource(R.string.label_balanceRequirementChat),
                 value = chat ?: stringResource(R.string.label_balanceRequirementNone),
+                compact = compact,
+            )
+        }
+        if (footnote != null) {
+            Text(
+                text = footnote,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
             )
         }
         // The balance resolves after the rules; it fades in rather than popping, and keeps its
@@ -153,18 +168,18 @@ private fun CommunityCurrencyRow(onClick: () -> Unit, content: @Composable RowSc
 }
 
 @Composable
-private fun RequirementRow(label: String, value: String) {
+private fun RequirementRow(label: String, value: String, compact: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(RowHeight)
+            .height(if (compact) CompactRowHeight else RowHeight)
             .padding(horizontal = RowInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = label,
-            style = CodeTheme.typography.textSmall,
+            style = if (compact) CodeTheme.typography.textMedium else CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
         )
         Text(

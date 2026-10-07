@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.profile.edit
 
 import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.DescriptionEdit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -36,5 +37,42 @@ class PartialEditsTest {
 
         assertEquals(blob, parameters.picture)
         assertNull(parameters.title, "a picture change must not touch the group's name")
+    }
+
+    @Test
+    fun `changing the cover sends a cover blob and nothing else`() {
+        val blob = BlobId(byteArrayOf(4, 5, 6))
+
+        val parameters = coverOnly(blob)
+
+        assertEquals(blob, parameters.coverPicture)
+        assertNull(parameters.title)
+        assertNull(parameters.picture)
+        assertNull(parameters.description)
+    }
+
+    @Test
+    fun `a description edit sends the description and nothing else`() {
+        val parameters = descriptionOnly(DescriptionEdit.Set("Good boys only"))
+
+        assertEquals(DescriptionEdit.Set("Good boys only"), parameters.description)
+        assertNull(parameters.title)
+        assertNull(parameters.picture)
+        assertNull(parameters.coverPicture)
+    }
+
+    @Test
+    fun `description text is sent trimmed`() {
+        assertEquals(
+            DescriptionEdit.Set("Good boys only"),
+            descriptionOnly(DescriptionEdit.Set("  Good boys only \n")).description,
+        )
+    }
+
+    @Test
+    fun `an emptied description is a clear and not an empty set`() {
+        assertEquals(DescriptionEdit.Clear, descriptionOnly(DescriptionEdit.Set("")).description)
+        assertEquals(DescriptionEdit.Clear, descriptionOnly(DescriptionEdit.Set("  \n ")).description)
+        assertEquals(DescriptionEdit.Clear, descriptionOnly(DescriptionEdit.Clear).description)
     }
 }
