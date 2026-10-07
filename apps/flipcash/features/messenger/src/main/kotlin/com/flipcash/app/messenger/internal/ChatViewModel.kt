@@ -397,6 +397,11 @@ internal class ChatViewModel @Inject constructor(
          */
         val speakerBlocksReactions: Boolean = false,
         /**
+         * Whether [speakerBlock] has been resolved at least once. Until it has, a null block means
+         * "not known yet", not "nothing in the way", which is what [cashCardTap] needs to tell apart.
+         */
+        val speakerBlockResolved: Boolean = false,
+        /**
          * The gate's Join button, same shape as [sendProgress]. Membership arrives from the roster
          * rather than from the join's own reply, so without this the button would sit unchanged for
          * the whole round trip and read as dead — which is what it looked like before it had one.
@@ -570,17 +575,29 @@ internal class ChatViewModel @Inject constructor(
          * instead. A blurred transcript has nothing to tap; it falls on the same side because it is
          * also outside the group.
          *
-         * A member always collects, but the claim is only answered with a thank-you when the
-         * composer is live, because the thank-you is a message the viewer posts. A deactivated DM
-         * has no composer, and a reply from it would be refused.
+         * A member collects only if the rules let them chat. The test is [speakerBlocksReactions]
+         * rather than [canSpeak]: it is true for an unmet balance, staff or `never` rule and any
+         * unmet listener rule, and false for `creator` alone, so members of a broadcast group can
+         * still collect what its creator posts. It is also false for a speaker rule this client
+         * does not understand, which collects: unknown rules fail open here as they do elsewhere.
          *
-         * Mirrors iOS, where the tap is refused at the gate's `.join` and recorded for a reply only
-         * at `.open`.
+         * A group whose block has not resolved yet refuses, unlike the composer, which shows until
+         * it does: a claim cannot be taken back once the rules arrive and say no. A DM is not held
+         * for it, since most carry no rules and none is a place cash is gated.
+         *
+         * The claim is only answered with a thank-you when the viewer can post, because the
+         * thank-you is a message they post. A deactivated DM has no composer and a creator-only
+         * group refuses its members' messages, so a reply from either would be refused.
+         *
+         * Mirrors iOS, which refuses at `.join` and when `ConversationGate.allowsReactions` is false
+         * or the rules have not loaded, and records the tap for a reply only at `.open`.
          */
         val cashCardTap: CashCardTap
             get() = when {
                 isOutsideGroup -> CashCardTap.JoinToCollect
-                else -> CashCardTap.Collect(thanks = !isAnonymous && !replacesComposer)
+                speakerBlocksReactions -> CashCardTap.ChatToCollect
+                subject is ChatSubject.Group && !speakerBlockResolved -> CashCardTap.ChatToCollect
+                else -> CashCardTap.Collect(thanks = !isAnonymous && !replacesComposer && canSpeak)
             }
 
         /**
@@ -849,9 +866,9 @@ internal class ChatViewModel @Inject constructor(
 
         /**
          * The reader tapped a cash voucher they cannot collect from here, per
-         * [State.cashCardTap]. The link was not opened; this only tells them why.
+         * [State.cashCardTap]. The link was not opened; this only tells them why, which [tap] names.
          */
-        data object CashLinkRefused : Event
+        data class CashLinkRefused(val tap: CashCardTap) : Event
 
         /** Asks the transcript to scroll to [messageId] — a tap on a quote. */
         data class JumpToMessage(val messageId: Long) : Event
@@ -1442,10 +1459,15 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.CashLinkRefused>()
-            .onEach {
+            .onEach { event ->
+                val (title, message) = when (event.tap) {
+                    CashCardTap.ChatToCollect ->
+                        R.string.title_chatToCollect to R.string.description_chatToCollect
+                    else -> R.string.title_joinToCollect to R.string.description_joinToCollect
+                }
                 BottomBarManager.showInfo(
-                    title = resources.getString(R.string.title_joinToCollect),
-                    message = resources.getString(R.string.description_joinToCollect),
+                    title = resources.getString(title),
+                    message = resources.getString(message),
                 )
             }
             .launchIn(viewModelScope)
@@ -2981,6 +3003,7 @@ internal class ChatViewModel @Inject constructor(
                 is Event.OnSpeakerBlockResolved -> { state -> state.copy(
                     speakerBlock = event.block?.requirement,
                     speakerBlocksReactions = event.block?.reactionsBlocked == true,
+                    speakerBlockResolved = true,
                 ) }
                 Event.JoinChat -> { state ->
                     state.copy(joinProgress = LoadingSuccessState(loading = true))
@@ -3194,7 +3217,7 @@ internal class ChatViewModel @Inject constructor(
                 // Nothing on screen moves when a voucher is tapped -- the link leaves, the card
                 // keeps saying what it said, and the claim comes back as its own signal.
                 is Event.CashLinkOpened -> { state -> state }
-                Event.CashLinkRefused -> { state -> state }
+                is Event.CashLinkRefused -> { state -> state }
                 // The request itself changes nothing: the target is only worth holding once the
                 // walk's bound resolves, and that read is what decides whether it can be reached.
                 is Event.JumpToMessage -> { state -> state }

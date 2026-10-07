@@ -185,6 +185,9 @@
     <!-- Shown when a non-member reading a group taps a cash link in it. The link is not opened. -->
     <string name="title_joinToCollect">Join to Collect</string>
     <string name="description_joinToCollect">Join this chat to collect cash sent in it.</string>
+    <!-- Shown when a member an unmet rule keeps from chatting taps a cash link. The link is not opened. -->
+    <string name="title_chatToCollect">Chat to Collect</string>
+    <string name="description_chatToCollect">Only people who can chat here can collect cash sent in it.</string>
 
     <string name="title_enterAddress">Enter Solana address</string>
     <!-- v2 app-bar title for the withdrawal destination step; title_enterAddress stays the field placeholder. -->

@@ -13,6 +13,7 @@ import com.flipcash.shared.chat.ChatDraftReply
 import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftSnippet
 import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.SpeakerBlock
 import com.flipcash.shared.chat.resolveSpeakerBlock
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
@@ -473,6 +474,7 @@ class ChatViewModelStateTest {
         val state = ChatViewModel.State(
             subject = group(isMember = true),
             groupAccess = GroupAccess.Membered,
+            speakerBlockResolved = true,
         )
         assertEquals(CashCardTap.Collect(thanks = true), state.cashCardTap)
         assertEquals(
@@ -517,6 +519,7 @@ class ChatViewModelStateTest {
             subject = group(isMember = true),
             groupAccess = GroupAccess.Membered,
             joinProgress = LoadingSuccessState(success = true),
+            speakerBlockResolved = true,
         )
         assertEquals(CashCardTap.Collect(thanks = false), justJoined.cashCardTap)
     }
@@ -598,7 +601,45 @@ class ChatViewModelStateTest {
             subject = group(isMember = true, rules = null),
             speakerBlock = block?.requirement,
             speakerBlocksReactions = block?.reactionsBlocked == true,
+            speakerBlockResolved = true,
         )
+    }
+
+    // Built through the resolver, so the cash gate tracks which rules take reactions away.
+    @Test
+    fun `a member the rules keep from chatting is told they must chat to collect`() {
+        for (state in listOf(
+            stateFor(unmet),
+            stateFor(ChatRuleRequirement.Staff),
+            stateFor(ChatRuleRequirement.Never),
+            stateFor(ChatRuleRequirement.Creator, ChatRuleRequirement.Staff),
+        )) {
+            assertEquals(CashCardTap.ChatToCollect, state.cashCardTap)
+        }
+        // A DM's rules count too: the Flipcash account's DM carries `never`.
+        val flipcashDm = ChatViewModel.updateStateForEvent(
+            ChatViewModel.Event.OnSpeakerBlockResolved(SpeakerBlock(ChatRuleRequirement.Never, reactionsBlocked = true))
+        )(ChatViewModel.State(subject = dm))
+        assertEquals(CashCardTap.ChatToCollect, flipcashDm.cashCardTap)
+    }
+
+    @Test
+    fun `a member is refused until the group's rules resolve`() {
+        // A claim cannot be taken back once the rules arrive and say no.
+        val loading = ChatViewModel.State(subject = group(isMember = true), groupAccess = GroupAccess.Membered)
+        assertEquals(CashCardTap.ChatToCollect, loading.cashCardTap)
+
+        val resolved = ChatViewModel.updateStateForEvent(ChatViewModel.Event.OnSpeakerBlockResolved(null))(loading)
+        assertEquals(CashCardTap.Collect(thanks = true), resolved.cashCardTap)
+
+        // A DM is not held for it.
+        assertEquals(CashCardTap.Collect(thanks = true), ChatViewModel.State(subject = dm).cashCardTap)
+    }
+
+    @Test
+    fun `a member of a creator-only group collects without a thank-you`() {
+        // Cash the creator posts to a broadcast group is for its members, who cannot reply to it.
+        assertEquals(CashCardTap.Collect(thanks = false), stateFor(ChatRuleRequirement.Creator).cashCardTap)
     }
 
     @Test

@@ -18,6 +18,15 @@ internal sealed interface CashCardTap {
     data object JoinToCollect : CashCardTap
 
     /**
+     * The viewer is a member, but an unmet rule keeps them from chatting here. The link is not
+     * opened and the viewer is told why. Same client-side-only guard as [JoinToCollect].
+     *
+     * A `creator` rule alone does not land here: cash the creator posts to a broadcast group is
+     * for the members who cannot reply to it.
+     */
+    data object ChatToCollect : CashCardTap
+
+    /**
      * The link opens and the claim runs as it would from anywhere else.
      *
      * [thanks] is whether a collected claim is answered with a reply on the transcript, which is

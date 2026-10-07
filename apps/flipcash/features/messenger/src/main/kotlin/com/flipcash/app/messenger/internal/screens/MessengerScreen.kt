@@ -242,8 +242,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.CancelReply)
             }
 
-            is ChatAction.CashLinkOpened -> when (state.cashCardTap) {
-                CashCardTap.JoinToCollect -> viewModel.dispatchEvent(ChatViewModel.Event.CashLinkRefused)
+            is ChatAction.CashLinkOpened -> when (val tap = state.cashCardTap) {
+                CashCardTap.JoinToCollect,
+                CashCardTap.ChatToCollect -> viewModel.dispatchEvent(ChatViewModel.Event.CashLinkRefused(tap))
                 // Reported before the link leaves, so the tap is on record by the time the claim
                 // can come back.
                 is CashCardTap.Collect -> {
