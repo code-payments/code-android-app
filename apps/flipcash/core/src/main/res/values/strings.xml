@@ -915,13 +915,19 @@
     <string name="subtitle_chatGate_speakerCreatorOnly">Only the creator can send messages</string>
     <string name="subtitle_chatGate_speakerUnsupported">Update Flipcash to send messages</string>
     <string name="action_buyMoreToken">Buy More %1$s</string>
+    <string name="action_join">Join</string>
     <string name="action_joinChat">Join Chat</string>
     <string name="title_leaveChat">Leave Chat</string>
-    <string name="action_leaveChat">Leave</string>
+    <string name="title_encryption">Encryption</string>
+    <string name="label_groupRequiredToJoin">%1$s Required to Join</string>
+    <string name="label_groupRequiredToChat">%1$s Required to Chat</string>
+    <string name="action_buyToJoin">Buy %1$s to Join</string>
+    <string name="action_buyToChat">Buy %1$s to Chat</string>
+    <string name="action_leaveChat">Leave Chat</string>
     <string name="prompt_title_leaveChat">Leave %1$s?</string>
-    <string name="prompt_description_leaveChat">You won’t receive new messages from this chat. You can join it again if it still lets you in</string>
+    <string name="prompt_description_leaveChat">You won’t receive messages from this group any more. You can join again with an invite link</string>
     <string name="error_title_failedToLeave">Something Went Wrong</string>
-    <string name="error_description_failedToLeave">We were unable to leave the chat. Please try again</string>
+    <string name="error_description_failedToLeave">We were unable to leave this group. Please try again</string>
 
     <!-- Muting a chat. The contract has two mute shapes, a deadline and forever, so the sheet
          offers durations plus an indefinite option; unmuting is its own request, which is why
@@ -953,9 +959,9 @@
     <string name="error_description_failedToMute">We were unable to mute the chat. Please try again</string>
     <string name="error_title_failedToUnmute">Something Went Wrong</string>
     <string name="error_description_failedToUnmute">We were unable to unmute the chat. Please try again</string>
-    <string name="error_title_failedToJoin">Couldn\'t Join</string>
-    <string name="error_description_failedToJoin">We were unable to join the chat. Please try again</string>
-    <string name="error_description_joinChat_rulesNotSatisfied">Your balance doesn\'t meet this chat\'s requirement yet</string>
+    <string name="error_title_failedToJoin">Couldn\'t Join Chat</string>
+    <string name="error_description_failedToJoin">Something went wrong. Please try again.</string>
+    <string name="error_description_joinChat_rulesNotSatisfied">You don\'t meet this chat\'s requirements yet.</string>
     <string name="error_description_joinChat_denied">This chat isn\'t open to you</string>
     <string name="error_description_joinChat_notFound">This chat no longer exists</string>
 

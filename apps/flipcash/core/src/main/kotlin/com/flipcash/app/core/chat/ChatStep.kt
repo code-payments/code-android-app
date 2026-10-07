@@ -151,6 +151,12 @@ enum class ProfileOrigin {
      */
     Mention,
 
+    /**
+     * A portrait in a public group's Chatting grid. Like [Mention], the person is not who the chat
+     * is with, so Mute would act on the wrong chat and opening a chat has somewhere new to go.
+     */
+    GroupMember,
+
     /** A `flipcash.com/...` link. The default for `AppRoute.Messaging.Profile`. Blocking pops back. */
     Link,
 

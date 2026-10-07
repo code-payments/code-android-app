@@ -18,7 +18,7 @@ class ProfileOriginTest {
         val pops = ProfileOrigin.entries - setOf(ProfileOrigin.Scan, ProfileOrigin.UsernameLookup)
 
         assertEquals(
-            setOf(ProfileOrigin.Chat, ProfileOrigin.Mention, ProfileOrigin.Link, ProfileOrigin.Transaction),
+            setOf(ProfileOrigin.Chat, ProfileOrigin.Mention, ProfileOrigin.GroupMember, ProfileOrigin.Link, ProfileOrigin.Transaction),
             pops.toSet(),
         )
         pops.forEach { assertFalse(it.resetsToChatsAfterBlock, "$it") }
