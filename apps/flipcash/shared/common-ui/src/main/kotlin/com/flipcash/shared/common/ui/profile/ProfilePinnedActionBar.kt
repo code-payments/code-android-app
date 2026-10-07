@@ -33,9 +33,10 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials
  * [above] line over it and an optional text action ([secondaryText]) under it.
  *
  * Given the [hazeState] the screen's scroll content draws into, the content runs on under the bar
- * and fades off the bottom of the screen: it blurs in and dims to the background from the bar's top
- * edge down over [FadeHeight], so by the first row it is gone and [above] reads clear of it. Without a [hazeState] the
- * bar sits on the screen's background.
+ * and fades off the bottom of the screen: it blurs in and dims from the bar's top edge down over
+ * [FadeHeight], then stays blurred under a [FrostAlpha] dim, so it still shows through behind the
+ * buttons while [above] reads clear of it. Without a [hazeState] the bar sits on the screen's
+ * background.
  *
  * The bar clears the navigation bar and measures itself,
  * system bar included. While it is composed it asks the root toast host to rest toasts above that
@@ -85,10 +86,11 @@ fun ProfilePinnedActionBar(
                                 progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
                             },
                         )
-                        // The blur alone leaves shapes showing through; the dim takes them off.
+                        // The blur alone leaves shapes sharp enough to fight the text; the dim
+                        // softens them without hiding them.
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(background.copy(alpha = 0f), background),
+                                colors = listOf(background.copy(alpha = 0f), background.copy(alpha = FrostAlpha)),
                                 startY = 0f,
                                 endY = fadePx,
                             ),
@@ -134,3 +136,6 @@ fun ProfilePinnedActionBar(
 
 /** The band over the bar's first row in which the content fades off; iOS fades over 56pt. */
 private val FadeHeight = 40.dp
+
+/** How much of the background lies over the blurred content under the buttons. */
+private const val FrostAlpha = 0.6f
