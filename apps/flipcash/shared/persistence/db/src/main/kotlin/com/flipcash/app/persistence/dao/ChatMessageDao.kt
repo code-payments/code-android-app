@@ -136,6 +136,12 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex LIMIT 1")
     suspend fun getByClientId(chatIdHex: String, clientIdHex: String): ChatMessageEntity?
 
+    @Query("""
+        SELECT EXISTS(SELECT 1 FROM chat_messages
+        WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND message_id != :messageId)
+    """)
+    suspend fun isClientIdHeldElsewhere(chatIdHex: String, clientIdHex: String, messageId: Long): Boolean
+
     /** The newest [limit] confirmed messages [selfIdHex] sent in [chatIdHex]. */
     @Query("""
         SELECT * FROM chat_messages
@@ -257,6 +263,14 @@ interface ChatMessageDao {
             entity.copy(pendingClientIdHex = existingPendingId)
         } else entity
 
+        // One row per client id per chat. The id is the transcript's item key, and two rows under
+        // one key crash the list on every open. The write that would add a second holder keeps the
+        // row's own stored id, or none.
+        val claimedId = merged.pendingClientIdHex
+        if (claimedId != null && isClientIdHeldElsewhere(merged.chatIdHex, claimedId, merged.messageId)) {
+            merged = merged.copy(pendingClientIdHex = existingPendingId?.takeIf { it != claimedId })
+        }
+
         // Reactions: never let this write clobber a newer confirmed reaction with an older or
         // absent one. mergeReactionsJson keeps the stored side when entity carries none, and
         // per-emoji picks whichever side's `version` is higher otherwise.
@@ -279,7 +293,8 @@ interface ChatMessageDao {
     @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex")
     suspend fun deletePending(chatIdHex: String, clientIdHex: String)
 
-    @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND message_id != :keepMessageId")
+    /** Spares `SENT` rows, for the reason given on [confirmPendingMessage]. */
+    @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND message_id != :keepMessageId AND status != 'SENT'")
     suspend fun deletePendingExcept(chatIdHex: String, clientIdHex: String, keepMessageId: Long)
 
     // A queued photo is excluded from this and from [deleteAllPending]: it can sit in SENDING for as
@@ -287,11 +302,12 @@ interface ChatMessageDao {
     // arrives. Deleting it would drop a photo whose upload is still running. Its own confirmation
     // settles it, see [confirmPendingMessage].
     @Query("""
-        SELECT pending_client_id_hex FROM chat_messages
+        SELECT * FROM chat_messages
         WHERE chat_id_hex = :chatIdHex AND status = 'SENDING' AND pending_client_id_hex IS NOT NULL
           AND pending_client_id_hex NOT IN (SELECT client_id_hex FROM pending_media)
+        ORDER BY timestamp_epoch_ms ASC, message_id ASC
     """)
-    suspend fun getPendingClientIds(chatIdHex: String): List<String>
+    suspend fun getPendingRows(chatIdHex: String): List<ChatMessageEntity>
 
     @Query("""
         DELETE FROM chat_messages
@@ -331,6 +347,59 @@ interface ChatMessageDao {
     suspend fun failInterruptedSends()
 
     /**
+     * Leaves one row per client id per chat, for installs that stored two before [upsert] refused
+     * to (Bugsnag 6ac2ccde: a rescue racing a confirm put one id on two messages, and the chat
+     * crashed on every open).
+     *
+     * A row still pending keeps the id, since its retry re-sends under it. Between two sent rows
+     * the higher `message_id` keeps it, since the misassigned row is the older message. Between two
+     * unsent rows, whose ids are `-nowMs`, it is only a deterministic pick: nothing on disk says
+     * which one the id belongs to. A sent row that loses the id gives up only its item key's
+     * stability across SENDING→SENT, which it is long past; an unsent row gives up its retry.
+     *
+     * Run once per process before the first refresh, beside [failInterruptedSends].
+     *
+     * Checked first with [hasDuplicateClientIds], because the repair's correlated subquery
+     * searches the whole chat for every row holding a client id, which is every message this
+     * device has sent: 40 chats of 1,000 rows took 1.1 s on the JVM's SQLite, against 8 ms for the
+     * check's one pass. Nothing writes a duplicate any more, so after the first login on this
+     * version only the check runs.
+     */
+    @Transaction
+    suspend fun clearDuplicateClientIds() {
+        if (hasDuplicateClientIds()) clearDuplicateClientIdsUnchecked()
+    }
+
+    /** Whether any chat holds two rows under one client id. See [clearDuplicateClientIds]. */
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM chat_messages
+            WHERE pending_client_id_hex IS NOT NULL
+            GROUP BY chat_id_hex, pending_client_id_hex
+            HAVING COUNT(*) > 1
+        )
+    """)
+    suspend fun hasDuplicateClientIds(): Boolean
+
+    /** The repair itself, without the check. Call [clearDuplicateClientIds]. */
+    @Query("""
+        UPDATE chat_messages SET pending_client_id_hex = NULL
+        WHERE pending_client_id_hex IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM chat_messages AS other
+            WHERE other.chat_id_hex = chat_messages.chat_id_hex
+              AND other.pending_client_id_hex = chat_messages.pending_client_id_hex
+              AND other.message_id != chat_messages.message_id
+              AND (
+                (other.status != 'SENT' AND chat_messages.status = 'SENT')
+                OR ((other.status != 'SENT') = (chat_messages.status != 'SENT')
+                    AND other.message_id > chat_messages.message_id)
+              )
+          )
+    """)
+    suspend fun clearDuplicateClientIdsUnchecked()
+
+    /**
      * The optimistic row is written before the server has stamped the message, so every
      * server-assigned field is written here — `event_sequence` included. Leaving it at the pending
      * row's 0 would keep a sent message looking unacknowledged until some later fetch of the chat
@@ -343,7 +412,7 @@ interface ChatMessageDao {
             unread_seq = :newUnreadSeq,
             event_sequence = :newEventSequence,
             status = 'SENT'
-        WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex
+        WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND status != 'SENT'
     """)
     suspend fun updatePendingToConfirmed(
         chatIdHex: String,
@@ -361,6 +430,13 @@ interface ChatMessageDao {
      * blob; the confirmed row takes the server's content. When the server's copy of the message
      * already arrived over the event stream, which a long upload makes likely, the pending row is
      * dropped in its favour instead of being renumbered onto an existing key.
+     *
+     * Only an unsent row is settled. The rescue in [upsertRescuingPending] can hand [clientIdHex]
+     * to the server's copy of a different message: a photo excluded from the pending rows leaves
+     * a text with no content match, and the oldest-first pass gives the text's id to the photo's
+     * copy. Matching that `SENT` row here would renumber the photo into the text's message, or
+     * delete it, and an encrypted send would pair the photo's plaintext with the text's
+     * ciphertext.
      */
     @Transaction
     suspend fun confirmPendingMessage(
@@ -386,7 +462,9 @@ interface ChatMessageDao {
         // ciphertext beside it. Written as a row rather than in the UPDATE above, since Room would
         // expand a list parameter into an IN clause.
         if (serverMessage.encryptionState != null || replaceContent) {
-            val confirmed = getByClientId(chatIdHex, clientIdHex) ?: return
+            // By message id, not client id: when the UPDATE matched nothing, the client id can
+            // still be on a sent row that isn't this message.
+            val confirmed = getMessage(chatIdHex, serverMessage.messageId) ?: return
             insert(
                 confirmed.copy(
                     contentJson = if (replaceContent) serverMessage.contentJson else confirmed.contentJson,
@@ -401,6 +479,49 @@ interface ChatMessageDao {
     suspend fun upsertAndClearPending(chatIdHex: String, entities: List<ChatMessageEntity>) {
         deleteAllPending(chatIdHex)
         upsert(entities)
+    }
+
+    /**
+     * [upsertAndClearPending] for a write that carries the viewer's own messages. The ids of the
+     * pending rows it clears move onto the server copies that replace them, so a row keeps its
+     * item key from SENDING to SENT.
+     *
+     * The read and the write share this transaction. Read outside it, a send confirmed in between
+     * keeps its id on the confirmed row while the rescue hands the same id to a second message.
+     *
+     * Only a message this device has not stored can be a pending row's server copy; a stored one
+     * was confirmed already or came from another device. A pending row first takes the unstored
+     * message with the same content, which holds for text since both sides serialize the same
+     * content. Photos still sending are excluded from the pending rows by the `pending_media`
+     * filter, so a row left over is a text send whose content matched nothing: usually its own
+     * copy is not on this page, or the server normalised the text. Leftovers pair with the
+     * remaining unstored messages oldest first, because in-flight sends arrive in send order. That
+     * pass can hand the id to any of them, including another device's message, a photo's copy, or
+     * an encrypted copy still waiting for its key.
+     */
+    @Transaction
+    suspend fun upsertRescuingPending(chatIdHex: String, selfIdHex: String, entities: List<ChatMessageEntity>) {
+        val pendingRows = getPendingRows(chatIdHex)
+        val claimants = entities
+            .filter { it.senderIdHex == selfIdHex && it.pendingClientIdHex == null && !exists(chatIdHex, it.messageId) }
+            .sortedWith(compareBy<ChatMessageEntity> { it.timestampEpochMs }.thenBy { it.messageId })
+            .toMutableList()
+        val rescued = HashMap<Long, String>()
+        val unmatched = ArrayList<ChatMessageEntity>()
+        for (row in pendingRows) {
+            val match = claimants.firstOrNull { it.contentJson == row.contentJson }
+            if (match != null) {
+                claimants.remove(match)
+                rescued[match.messageId] = row.pendingClientIdHex!!
+            } else {
+                unmatched += row
+            }
+        }
+        unmatched.zip(claimants).forEach { (row, claimant) -> rescued[claimant.messageId] = row.pendingClientIdHex!! }
+        upsertAndClearPending(
+            chatIdHex,
+            entities.map { entity -> rescued[entity.messageId]?.let { entity.copy(pendingClientIdHex = it) } ?: entity },
+        )
     }
 
     @Query("UPDATE chat_messages SET status = :status WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex")

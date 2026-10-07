@@ -20,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 /**
@@ -372,6 +373,250 @@ class ChatMessageDaoTest {
         assertEquals(MessageStatus.SENT, dao.getMessage(CHAT_HEX, 1)?.status)
     }
 
+    // region One row per client id
+
+    /**
+     * The client id is the transcript's item key. A second row under it puts two items under one
+     * key in the LazyColumn, which throws on every open of the chat (Bugsnag 6ac2ccde).
+     */
+    @Test
+    fun `a write cannot give a client id to a second row`() = runTest {
+        dao.upsert(text(1, "confirmed send").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.upsert(text(2, "someone else's claim").copy(pendingClientIdHex = CLIENT_HEX))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `a refused claim leaves the row's own client id in place`() = runTest {
+        dao.upsert(text(1, "confirmed send").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.upsert(text(2, "other send").copy(pendingClientIdHex = "aaaa"))
+
+        dao.upsert(text(2, "edited").copy(pendingClientIdHex = CLIENT_HEX))
+
+        assertEquals("aaaa", dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `a row keeps its own client id when it is rewritten`() = runTest {
+        dao.upsert(text(1, "sent").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.upsert(text(1, "edited"))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `the same client id in another chat is not a conflict`() = runTest {
+        dao.upsert(text(1, "here").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.upsert(text(1, "there").copy(chatIdHex = OTHER_HEX, pendingClientIdHex = CLIENT_HEX))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(OTHER_HEX, 1)?.pendingClientIdHex)
+    }
+
+    /**
+     * A page carries old self-sent messages as well as the new send. Only one this device has not
+     * stored can be the pending row's server copy; a stored one was confirmed already.
+     */
+    @Test
+    fun `the rescue gives the pending id to the new copy, not a stored message`() = runTest {
+        dao.upsert(text(1, "old"))
+        dao.upsert(pending("new"))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(1, "old"), text(2, "new")))
+
+        assertNull(dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, -1), "the pending row is replaced by its server copy")
+    }
+
+    @Test
+    fun `the rescue pairs each send with the copy of the same content`() = runTest {
+        dao.upsert(pending("first"))
+        dao.upsert(pending("second").copy(messageId = -2, timestampEpochMs = 2, pendingClientIdHex = SECOND_CLIENT_HEX))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(5, "second"), text(6, "first")))
+
+        assertEquals(SECOND_CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 6)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `the rescue leaves another sender's message alone`() = runTest {
+        dao.upsert(pending("mine"))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(3, "theirs").copy(senderIdHex = "9999")))
+
+        assertNull(dao.getMessage(CHAT_HEX, 3)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `an unconfirmed newer send does not take the id of an older send's copy`() = runTest {
+        dao.upsert(pending("a"))
+        dao.upsert(pending("b").copy(messageId = -2, timestampEpochMs = 2, pendingClientIdHex = SECOND_CLIENT_HEX))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(5, "a")))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertNotEquals(SECOND_CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `content beats order when another device's message is on the page`() = runTest {
+        dao.upsert(pending("mine"))
+
+        dao.upsertRescuingPending(
+            CHAT_HEX,
+            SENDER_HEX,
+            listOf(text(4, "other device"), text(5, "mine"), text(6, "later other device")),
+        )
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 4)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 6)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `sends whose content differs pair oldest first`() = runTest {
+        dao.upsert(pending("local-a"))
+        dao.upsert(pending("local-b").copy(messageId = -2, timestampEpochMs = 2, pendingClientIdHex = SECOND_CLIENT_HEX))
+
+        dao.upsertRescuingPending(CHAT_HEX, SENDER_HEX, listOf(text(5, "server-a"), text(6, "server-b")))
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertEquals(SECOND_CLIENT_HEX, dao.getMessage(CHAT_HEX, 6)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `the repair keeps the id on the newer of two sent rows`() = runTest {
+        dao.insert(text(1, "misassigned").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(2, "the real send").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.clearDuplicateClientIds()
+
+        assertNull(dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `the repair leaves only the highest of three sent holders with the id`() = runTest {
+        dao.insert(text(1, "a").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(2, "b").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(3, "c").copy(pendingClientIdHex = CLIENT_HEX))
+
+        dao.clearDuplicateClientIds()
+
+        assertNull(dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 2)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 3)?.pendingClientIdHex)
+    }
+
+    /** Retry re-sends under the client id, so a failed row losing it would lose the retry. */
+    @Test
+    fun `the repair keeps the id on a row still waiting to send`() = runTest {
+        dao.insert(text(5, "sent").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(pending("failed").copy(status = MessageStatus.FAILED))
+
+        dao.clearDuplicateClientIds()
+
+        assertNull(dao.getMessage(CHAT_HEX, 5)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, -1)?.pendingClientIdHex)
+    }
+
+    @Test
+    fun `the repair leaves single holders alone, in this chat and others`() = runTest {
+        dao.insert(text(1, "here").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(1, "there").copy(chatIdHex = OTHER_HEX, pendingClientIdHex = CLIENT_HEX))
+
+        dao.clearDuplicateClientIds()
+
+        assertEquals(CLIENT_HEX, dao.getMessage(CHAT_HEX, 1)?.pendingClientIdHex)
+        assertEquals(CLIENT_HEX, dao.getMessage(OTHER_HEX, 1)?.pendingClientIdHex)
+    }
+
+    /** The check gates the repair at every login, so it has to go quiet once the repair has run. */
+    @Test
+    fun `the check finds a shared id until the repair runs`() = runTest {
+        dao.insert(text(1, "misassigned").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(2, "the real send").copy(pendingClientIdHex = CLIENT_HEX))
+        assertEquals(true, dao.hasDuplicateClientIds())
+
+        dao.clearDuplicateClientIds()
+
+        assertEquals(false, dao.hasDuplicateClientIds())
+    }
+
+    @Test
+    fun `the check ignores one id held once in each of two chats`() = runTest {
+        dao.insert(text(1, "here").copy(pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(1, "there").copy(chatIdHex = OTHER_HEX, pendingClientIdHex = CLIENT_HEX))
+        dao.insert(text(2, "no id"))
+        dao.insert(text(3, "no id either"))
+
+        assertEquals(false, dao.hasDuplicateClientIds())
+    }
+
+    // endregion
+
+    // region Confirming after a mis-tagged rescue
+
+    /**
+     * Photo P, then text T. A refresh carries P's server copy but not T's; P's pending row is held
+     * back by its upload, T has no content match, so [ChatMessageDao.upsertRescuingPending]'s
+     * oldest-first pass gives T's client id to P's copy and drops T's pending row. Built here
+     * directly: P's copy at 5, holding T's id ([CLIENT_HEX]), and no row left for T.
+     */
+    private suspend fun storeMisTaggedPhoto() {
+        dao.insert(text(5, "photo").copy(pendingClientIdHex = CLIENT_HEX))
+    }
+
+    @Test
+    fun `confirming a text not yet stored leaves the photo that took its id`() = runTest {
+        storeMisTaggedPhoto()
+
+        dao.confirmPendingMessage(CHAT_HEX, CLIENT_HEX, text(6, "text"))
+
+        val photo = dao.getMessage(CHAT_HEX, 5)!!
+        assertEquals(listOf(MessageContentSerialized.Text("photo")), photo.contentJson)
+        assertEquals(CLIENT_HEX, photo.pendingClientIdHex)
+        assertNull(dao.getMessage(CHAT_HEX, 6))
+    }
+
+    @Test
+    fun `confirming an encrypted text not yet stored leaves the photo's content alone`() = runTest {
+        storeMisTaggedPhoto()
+
+        dao.confirmPendingMessage(
+            CHAT_HEX,
+            CLIENT_HEX,
+            text(6, "text").copy(ciphertextJson = cipherJson, encryptionState = EncryptionState.DECRYPTED),
+            replaceContent = true,
+        )
+
+        val photo = dao.getMessage(CHAT_HEX, 5)!!
+        assertEquals(listOf(MessageContentSerialized.Text("photo")), photo.contentJson)
+        assertNull(photo.ciphertextJson)
+        assertNull(photo.encryptionState)
+        assertNull(dao.getMessage(CHAT_HEX, 6))
+    }
+
+    @Test
+    fun `confirming a text already stored keeps the photo that took its id`() = runTest {
+        storeMisTaggedPhoto()
+        dao.insert(text(6, "text"))
+
+        dao.confirmPendingMessage(CHAT_HEX, CLIENT_HEX, text(6, "text"))
+
+        assertEquals(listOf(MessageContentSerialized.Text("photo")), dao.getMessage(CHAT_HEX, 5)?.contentJson)
+        assertEquals(listOf(MessageContentSerialized.Text("text")), dao.getMessage(CHAT_HEX, 6)?.contentJson)
+    }
+
+    // endregion
+
     // region Reactions
 
     private fun reactionsJson(vararg entries: Pair<String, Long>) = reactionJsonCodec.encodeToString(
@@ -590,5 +835,6 @@ class ChatMessageDaoTest {
         const val SENDER_HEX = "1122"
         const val SELF_HEX = "3344"
         const val CLIENT_HEX = "eeff"
+        const val SECOND_CLIENT_HEX = "ef01"
     }
 }
