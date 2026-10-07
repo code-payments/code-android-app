@@ -341,12 +341,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 modifier = Modifier.align(Alignment.BottomCenter),
                 text = stringResource(R.string.action_openChat),
                 onClick = { openChat() },
-                    secondaryText = if (isMember) stringResource(R.string.action_leaveChat) else null,
-                    onSecondaryClick = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
-                    isSecondaryLoading = state.leaving,
-                    hazeState = hazeState,
-                    onHeightChanged = { pinnedHeight = it },
-                )
+                secondaryText = if (isMember) stringResource(R.string.action_leaveChat) else null,
+                onSecondaryClick = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
+                isSecondaryLoading = state.leaving,
+                hazeState = hazeState,
+                onHeightChanged = { pinnedHeight = it },
+            )
         }
     }
 }
