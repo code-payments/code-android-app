@@ -13,6 +13,7 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.chat.MemberMatch
 import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.models.ChatQuote
@@ -112,6 +113,7 @@ class ChatMentionPickerTest {
         emojiCatalogLoader = mockk(relaxed = true),
         userProfileDataSource = mockk(relaxed = true),
         rosterSearch = rosterSearch,
+        featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 

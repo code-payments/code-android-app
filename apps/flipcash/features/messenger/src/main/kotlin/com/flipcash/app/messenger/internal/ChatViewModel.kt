@@ -85,6 +85,7 @@ import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.chat.media.ChatMediaUploadState
 import com.flipcash.shared.chat.media.ChatMediaUploads
 import com.flipcash.shared.chat.media.MediaSendProgress
@@ -236,6 +237,7 @@ internal class ChatViewModel @Inject constructor(
     private val toastController: SystemToastController,
     private val userProfileDataSource: UserProfileDataSource,
     private val rosterSearch: RosterSearchSource,
+    private val featuredGroups: FeaturedGroupsStore,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
@@ -1617,6 +1619,14 @@ internal class ChatViewModel @Inject constructor(
                     dispatchEvent(Event.ChatFound(chatId))
                     restoreDraft(chatId)
                     chatCoordinator.setActiveChatId(chatId)
+                    // A featured group tapped on a profile is usually one the viewer is not in, so
+                    // nothing is stored and the profile would sit empty through GetChat. The row
+                    // that was tapped already carries the group's metadata: draw from it now, and
+                    // let the fetch below replace it. A stored chat is left to Room, which knows
+                    // the membership this placeholder cannot.
+                    featuredGroups.peek(chatId)
+                        ?.takeIf { chatCoordinator.observeMetadata(chatId).first() == null }
+                        ?.let { dispatchEvent(Event.OnGroupResolved(ChatMembership(metadata = it, isMember = null))) }
                     viewModelScope.launch { openTranscript(chatId) }
                     chatCoordinator.dismissNotifications(chatId)
                 } else {

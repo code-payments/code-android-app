@@ -11,6 +11,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.controllers.ChatController
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -66,6 +67,7 @@ internal class ChatProfileViewModel @Inject constructor(
     private val e2eePolicy: E2eePolicy,
     private val startChattingPayer: StartChattingPayer,
     private val chatController: ChatController,
+    private val featuredGroupsStore: FeaturedGroupsStore,
 ) : BaseViewModel<ChatProfileViewModel.State, ChatProfileViewModel.Event>(
     initialState = State(selfId = userManager.accountId),
     updateStateForEvent = updateStateForEvent,
@@ -309,7 +311,10 @@ internal class ChatProfileViewModel @Inject constructor(
             .collectLatestIn(viewModelScope) { username ->
                 dispatchEvent(Event.FeaturedGroupsLoaded(emptyList()))
                 chatController.getFeaturedGroups(username)
-                    .onSuccess { dispatchEvent(Event.FeaturedGroupsLoaded(it)) }
+                    .onSuccess {
+                        featuredGroupsStore.remember(it)
+                        dispatchEvent(Event.FeaturedGroupsLoaded(it))
+                    }
             }
 
         // Nullable on purpose: moving to a person with no DM yet has to end the last person's
