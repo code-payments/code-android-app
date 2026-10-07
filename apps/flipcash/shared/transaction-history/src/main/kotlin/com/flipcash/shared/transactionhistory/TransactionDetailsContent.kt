@@ -62,6 +62,8 @@ fun TransactionDetailsContent(
     onBack: () -> Unit = { },
     onCopyId: () -> Unit = { },
     onViewInChat: () -> Unit = { },
+    /** The button opens the counterparty's profile rather than a chat, because no DM exists yet. */
+    viewsProfile: Boolean = false,
     onCancel: () -> Unit = { },
     iconOverride: @Composable ((Any?) -> Any?) = { it },
 ) {
@@ -105,7 +107,10 @@ fun TransactionDetailsContent(
             if (details.canViewInChat) {
                 CodeButton(
                     modifier = Modifier.fillMaxWidth(),
-                    text = stringResource(R.string.action_txnDetails_viewInChat),
+                    text = stringResource(
+                        if (viewsProfile) R.string.action_txnDetails_viewProfile
+                        else R.string.action_txnDetails_viewInChat
+                    ),
                     buttonState = ButtonState.Filled05,
                     // [DetailsCard]'s radius, not CodeButton's default 8dp — the fill alone is
                     // not enough to read as one more card if the corners disagree.

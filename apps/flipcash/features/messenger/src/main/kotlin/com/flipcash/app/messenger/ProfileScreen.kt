@@ -14,6 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ProfileAddress
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.PersonProfileScreen
@@ -33,9 +34,13 @@ import kotlinx.coroutines.flow.filterIsInstance
  * The same screen a chat's profile shows, with no chat behind it: [ProfileViewModel] turns the
  * link's address into a person, then [ChatProfileViewModel] takes over as it does in a chat, which
  * is what runs Block. With no chat there is no Mute row.
+ *
+ * [origin] decides where a block lands: a link or a transaction pops back to where it came from, a
+ * scan or a username search resets to the chat list, since what led here has no use once the
+ * person is blocked.
  */
 @Composable
-fun ProfileScreen(address: ProfileAddress) {
+fun ProfileScreen(address: ProfileAddress, origin: ProfileOrigin = ProfileOrigin.Link) {
     val lookup = hiltViewModel<ProfileViewModel>()
     val viewModel = hiltViewModel<ChatProfileViewModel>()
     val navigator = LocalCodeNavigator.current
@@ -68,12 +73,17 @@ fun ProfileScreen(address: ProfileAddress) {
         }
     }
 
-    LaunchedEffect(viewModel) {
-        // No chat to leave, as a DM's profile does after a block: back to wherever the link was
-        // opened from.
+    LaunchedEffect(viewModel, origin) {
+        // No chat to leave, as a DM's profile does after a block.
         viewModel.eventFlow
             .filterIsInstance<ChatProfileViewModel.Event.BlockSuccessful>()
-            .collect { navigator.pop() }
+            .collect {
+                if (origin.resetsToChatsAfterBlock) {
+                    navigator.navigateAll(listOf(AppRoute.Tabs.Chats))
+                } else {
+                    navigator.pop()
+                }
+            }
     }
 
     if (state.participant == null) {

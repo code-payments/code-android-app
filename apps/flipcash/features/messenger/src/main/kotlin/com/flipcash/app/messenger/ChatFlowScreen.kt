@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -25,7 +24,6 @@ import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
-import com.flipcash.app.messenger.internal.StartSendCashOnceReady
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.flipcash.app.messenger.internal.screens.EmojiPickerViewModel
@@ -33,7 +31,6 @@ import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
-import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
@@ -55,10 +52,8 @@ import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.utils.rememberKeyboardController
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
@@ -77,8 +72,8 @@ fun ChatFlowScreen(
         // onRootReached, and so does system back — so this is the one place that has to do it.
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
-        entryProvider = chatEntryProvider(route.identifier, route.openKeyboard, route.openSendCash),
-        // ChatStep.AmountEntry, ChatStep.InitPayment and ChatStep.InviteToGroup are Sheets, so the
+        entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
+        // ChatStep.AmountEntry and ChatStep.InviteToGroup are Sheets, so the
         // flow needs the sheet strategy to draw them as such; without it the step would fall
         // through to SinglePane and cover the thread. Amount entry
         // returns its result inside the flow (resultBackNavigator), so the strategy's own
@@ -95,16 +90,12 @@ fun ChatFlowScreen(
 private fun chatEntryProvider(
     identifier: ChatIdentifier,
     openKeyboard: Boolean,
-    openSendCash: Boolean,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<ChatStep.Conversation> {
-        FlowConversationScreen(identifier, openKeyboard, openSendCash)
+        FlowConversationScreen(identifier, openKeyboard)
     }
     annotatedEntry<ChatStep.AmountEntry> {
         FlowAmountEntryScreen()
-    }
-    annotatedEntry<ChatStep.InitPayment> {
-        FlowInitPaymentScreen()
     }
     annotatedEntry<ChatStep.InviteToGroup> {
         FlowGroupInviteSheet()
@@ -138,7 +129,6 @@ private fun chatEntryProvider(
 private fun FlowConversationScreen(
     identifier: ChatIdentifier,
     openKeyboard: Boolean,
-    openSendCash: Boolean,
 ) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val navigator = LocalCodeNavigator.current
@@ -179,18 +169,6 @@ private fun FlowConversationScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<ChatViewModel.Event.NavigateToInitPayment>()
-            .collect {
-                navigator.navigateForResult<ChatSendResult>(ChatStep.InitPayment) { result ->
-                    if (result is NavResultOrCanceled.ReturnValue) {
-                        viewModel.dispatchEvent(ChatViewModel.Event.OnStartMessageInput)
-                    }
-                }
-            }
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
             .filterIsInstance<ChatViewModel.Event.OpenScreen>()
             .collect { (route, asSheet) ->
                 keyboard.hideIfVisible {
@@ -207,16 +185,6 @@ private fun FlowConversationScreen(
                     }
                 }
             }
-    }
-
-    // After the collectors above, so the step OnSendCash navigates to has someone listening.
-    // Not keyed on first composition the way openKeyboard is: the handler drops the event until
-    // the participant is set, and picks the wrong step until the fee is known.
-    val sendCashReady by remember(viewModel) {
-        viewModel.stateFlow.map { it.sendCashReady }.distinctUntilChanged()
-    }.collectAsStateWithLifecycle(initialValue = false)
-    StartSendCashOnceReady(requested = openSendCash, ready = sendCashReady) {
-        viewModel.dispatchEvent(ChatViewModel.Event.OnSendCash)
     }
 
     MessengerScreen(viewModel)
@@ -244,27 +212,6 @@ private fun FlowAmountEntryScreen() {
         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
         onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
         onExit = dismissSheet,
-    )
-}
-
-@Composable
-private fun FlowInitPaymentScreen() {
-    val viewModel = flowSharedViewModel<ChatViewModel>()
-    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    // Same dismissal rule as amount entry: exit through the sheet so it animates down rather than
-    // having its scene deleted mid-frame.
-    val dismissSheet = LocalBottomSheetDismissDispatcher.current
-    val resultBack = resultBackNavigator<ChatSendResult>(exit = dismissSheet)
-
-    ChatInitPaymentSheet(
-        fee = state.chatInitFee,
-        token = state.token,
-        sendProgress = state.sendProgress,
-        onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnInitPaymentConfirmed) },
-        onSendComplete = { resultBack.returnValue(ChatSendResult) },
-        sendComplete = remember(viewModel) {
-            viewModel.eventFlow.filterIsInstance<ChatViewModel.Event.SendComplete>().map { }
-        },
     )
 }
 

@@ -41,12 +41,10 @@ import kotlinx.coroutines.flow.onEach
 /**
  * Node 9442:5825 — start a chat with someone by their public `@handle`.
  *
- * Reached from "Find by Username" on the New Chat chooser, and left by becoming the chat itself: the
- * handle resolves to a user id, which is enough to open the conversation whether or not it exists
- * yet ([com.flipcash.app.core.chat.ChatIdentifier.ByUser]). The chat takes the place of this screen
- * and of the chooser above the list, so backing out of the chat lands on the Chats list — both have
- * done their job by then, and re-showing them would put two screens between the chat and the list it
- * belongs to.
+ * Reached from "Find by Username" on the New Chat chooser, and left by becoming the person's DM if
+ * one exists, or their profile if not. That destination takes the place of this screen and of the
+ * chooser above the list, so backing out lands on the Chats list — both have done their job by then,
+ * and re-showing them would put two screens between it and the list it belongs to.
  */
 @Composable
 fun FindByUsernameScreen() {
@@ -77,7 +75,7 @@ fun FindByUsernameScreen() {
                 navigator.popUntil {
                     it !is AppRoute.Messaging.FindByUsername && it !is AppRoute.Messaging.NewChat
                 }
-                navigator.push(AppRoute.Messaging.Chat(resolved.identifier))
+                navigator.push(resolved.destination)
             }
             .launchIn(this)
     }

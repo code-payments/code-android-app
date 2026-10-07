@@ -2,9 +2,12 @@ package com.flipcash.app.tipping.internal
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.blocklist.DmDestinationResolver
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.features.tipping.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.user.UserManager
@@ -28,10 +31,10 @@ internal const val MinHandleLength = 2
 internal const val MaxHandleLength = 15
 
 /**
- * Turning a typed `@handle` into an openable chat.
+ * Turning a typed `@handle` into somewhere to go.
  *
- * One round trip: the profile fetch answers with the user's id, which is all the chat needs — the
- * canonical tip-DM id is derived from it, so the conversation opens whether or not it exists yet.
+ * One round trip: the profile fetch answers with the user's id. The destination is their DM when one
+ * exists and they are not blocked, and their profile until then.
  *
  * A handle nobody has claimed is informational, not an error: the user typed it and can retype it.
  * Only a failed lookup is ours to apologise for.
@@ -40,10 +43,13 @@ internal const val MaxHandleLength = 15
 internal class FindByUsernameViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val userManager: UserManager,
+    private val dmDestinations: DmDestinationResolver,
     private val resources: ResourceHelper,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel<FindByUsernameViewModel.State, FindByUsernameViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val usernameFieldState: TextFieldState = TextFieldState(),
@@ -69,8 +75,8 @@ internal class FindByUsernameViewModel @Inject constructor(
             val success: Boolean = false,
         ) : Event
 
-        /** The handle resolved; [identifier] is what the chat route opens on. */
-        data class UserResolved(val identifier: ChatIdentifier.ByUser) : Event
+        /** The handle resolved; [destination] is their DM if one exists, else their profile. */
+        data class UserResolved(val destination: AppRoute) : Event
     }
 
     init {
@@ -80,14 +86,14 @@ internal class FindByUsernameViewModel @Inject constructor(
             .map { stateFlow.value.usernameFieldState.text.toString().trim() }
             .map { username -> resolve(username) }
             .onResult(
-                onSuccess = { identifier ->
+                onSuccess = { destination ->
                     // No reset back to idle afterwards. The chat replaces this screen, so idle is
                     // a state it never shows again — but the button reaches it first: the fill
                     // snaps from the disabled White10 to a solid White while the content is still
                     // crossfading the checkmark out, so the last thing seen before the chat
                     // arrives is a blank white button. Holding the checkmark leaves it alone.
                     dispatchSuccessThen(Event.UpdateProcessingState(success = true)) {
-                        dispatchEvent(Event.UserResolved(identifier))
+                        dispatchEvent(Event.UserResolved(destination))
                     }
                 },
                 onError = { cause ->
@@ -97,14 +103,14 @@ internal class FindByUsernameViewModel @Inject constructor(
             ).launchIn(viewModelScope)
     }
 
-    private suspend fun resolve(username: String): Result<ChatIdentifier.ByUser> =
+    private suspend fun resolve(username: String): Result<AppRoute> =
         profileController.getProfileForUsername(username)
             .mapCatching { profile ->
                 // A profile with no id can't be chatted with, and is indistinguishable to the user
                 // from a handle that doesn't exist — so it reads as one.
                 val userId = profile.userId ?: throw GetUserProfileError.NotFound()
                 if (userId == userManager.accountId) throw OwnHandle(username)
-                ChatIdentifier.ByUser(userId, profile)
+                dmDestinations.dmDestination(userId, ProfileOrigin.UsernameLookup)
             }
 
     private fun announceUnresolvable(cause: Throwable) {

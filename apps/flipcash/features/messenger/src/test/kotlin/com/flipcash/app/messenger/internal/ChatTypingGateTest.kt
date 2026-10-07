@@ -3,9 +3,10 @@ package com.flipcash.app.messenger.internal
 import android.content.ClipboardManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.analytics.RecordingAnalytics
-import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.MainCoroutineRule
+import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.chat.ChatId
@@ -23,12 +24,13 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.bytes
 import com.getcode.opencode.model.financial.Rate
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -39,12 +41,12 @@ import org.junit.Test
 import java.util.UUID
 
 /**
- * Which chat opens fetch a transcript. A DM opened on its derived id before either side has written
- * in it does not exist on the server, and asking for its messages comes back DENIED, so that open
- * must not ask. Every other outcome still loads as it did.
+ * When the composer opens. A contact DM waits for a Cash message, because the payment is what opens
+ * it. A tip DM has no wait: the payment that creates it is made from the profile, so the chat only
+ * exists once it has been paid.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class ChatOpenTranscriptTest {
+class ChatTypingGateTest {
 
     @get:Rule
     var instantExecutorRule = InstantTaskExecutorRule()
@@ -60,20 +62,26 @@ class ChatOpenTranscriptTest {
     private val exchange = mockk<Exchange>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
 
-    private val chatId = ChatId(UUID.randomUUID().bytes)
     private val contactCoordinator = mockk<ContactCoordinator>(relaxed = true)
-    private val openChat = ChatViewModel.Event.OnChatOpened(ChatIdentifier.ByChatId(chatId))
+    private val contact = DeviceContact(
+        e164 = "+15551234567",
+        androidContactId = 1L,
+        displayName = "Ada Lovelace",
+        photoUri = null,
+        displayNumber = "(555) 123-4567",
+    )
+    private val chatId = ChatId(UUID.randomUUID().bytes)
 
     @Before
     fun setUp() {
         BottomBarManager.clear()
-
         every { userManager.accountCluster } returns mockk<AccountCluster>(relaxed = true)
         every { exchange.preferredRate } returns Rate.oneToOne
         every { transactionController.limits } returns MutableStateFlow(null)
         every { tipPaymentDelegate.startChattingFee(any()) } returns flowOf(null)
-        every { chatCoordinator.observeMetadata(chatId) } returns flowOf(null)
-        coEvery { contactCoordinator.lookupContactByDmChatId(any()) } returns null
+        coEvery { chatCoordinator.hydrateChat(chatId) } returns ChatHydration.Stored
+        every { chatCoordinator.observeMessages(chatId) } returns flowOf(emptyList())
+        coEvery { contactCoordinator.resolve(any()) } returns Result.failure(IllegalStateException())
     }
 
     @After
@@ -111,50 +119,40 @@ class ChatOpenTranscriptTest {
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
     )
 
-    private fun fetched(type: ChatType) = ChatHydration.Fetched(
-        ChatMembership(
-            metadata = mockk<ChatMetadata>(relaxed = true) { every { this@mockk.type } returns type },
-            isMember = null,
-        ),
-    )
-
     @Test
-    fun `a DM the server has no record of is not fetched`() = runTest {
-        coEvery { chatCoordinator.hydrateChat(chatId) } returns ChatHydration.Absent
+    fun `a tip DM with no messages has typing enabled`() = runTest {
+        every { contactCoordinator.lookupContact(any()) } returns Result.failure(NoSuchElementException())
+        coEvery { contactCoordinator.lookupContactByDmChatId(any()) } returns null
+        every { chatCoordinator.observeMetadata(chatId) } returns flowOf(
+            ChatMembership(
+                metadata = mockk<ChatMetadata>(relaxed = true) { every { this@mockk.type } returns ChatType.TIP_DM },
+                isMember = true,
+            ),
+        )
 
-        createViewModel().dispatchEvent(openChat)
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(ChatIdentifier.ByChatId(chatId)))
         advanceUntilIdle()
 
-        coVerify(exactly = 0) { chatCoordinator.loadMessages(any()) }
+        val state = viewModel.stateFlow.value
+        assertTrue(state.chatType == ChatType.TIP_DM)
+        assertTrue(state.typingConstraints.resolved)
+        assertTrue(state.typingConstraints.enabled)
     }
 
     @Test
-    fun `a chat already on the device is fetched`() = runTest {
-        coEvery { chatCoordinator.hydrateChat(chatId) } returns ChatHydration.Stored
+    fun `a contact DM with no Cash message has typing disabled`() = runTest {
+        every { contactCoordinator.lookupContact(contact.e164) } returns Result.success(contact)
 
-        createViewModel().dispatchEvent(openChat)
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(
+            ChatViewModel.Event.OnChatOpened(ChatIdentifier.ByContact(contact, chatId))
+        )
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { chatCoordinator.loadMessages(chatId) }
-    }
-
-    @Test
-    fun `a failed lookup still fetches, since it says nothing about the chat`() = runTest {
-        coEvery { chatCoordinator.hydrateChat(chatId) } returns ChatHydration.Unavailable
-
-        createViewModel().dispatchEvent(openChat)
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) { chatCoordinator.loadMessages(chatId) }
-    }
-
-    @Test
-    fun `a fetched DM is fetched`() = runTest {
-        coEvery { chatCoordinator.hydrateChat(chatId) } returns fetched(ChatType.TIP_DM)
-
-        createViewModel().dispatchEvent(openChat)
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) { chatCoordinator.loadMessages(chatId) }
+        val state = viewModel.stateFlow.value
+        assertTrue(state.chatType == ChatType.CONTACT_DM)
+        assertTrue(state.typingConstraints.resolved)
+        assertFalse(state.typingConstraints.enabled)
     }
 }

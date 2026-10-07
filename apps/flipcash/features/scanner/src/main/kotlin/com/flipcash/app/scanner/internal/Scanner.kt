@@ -124,7 +124,7 @@ internal fun Scanner() {
                     // /tip/chat/{id} deeplink.
                     is DeeplinkType.TipChat -> listOf(
                         AppRoute.Tabs.Chats,
-                        AppRoute.Messaging.Chat(deeplink.identifier),
+                        AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(deeplink.chatId)),
                     )
                     // Same destination as the tapped /chat/{uuid} link: the chat screen is the
                     // gated preview when the viewer is not yet a member.

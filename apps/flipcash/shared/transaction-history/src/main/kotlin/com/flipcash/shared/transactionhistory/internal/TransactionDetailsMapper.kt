@@ -78,8 +78,8 @@ internal class TransactionDetailsMapper @Inject constructor(
             // out rather than shown as zero.
             received = convert?.toAmount?.nativeAmount,
             canCancel = (meta as? MessageMetadata.IndirectlySentCrypto)?.canCancel == true,
-            // Opening the conversation needs somebody to open it with, and the profile is what the
-            // chat header renders from on the first frame (see `ChatIdentifier.ByUser`).
+            // The counterpart action opens a conversation or a profile, and both need somebody to
+            // open it with.
             canViewInChat = counterparty != null,
         )
     }

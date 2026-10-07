@@ -75,7 +75,7 @@ class ConversionsTest {
             DeeplinkType.Login(entropy = "e"),
             DeeplinkType.CashLink(entropy = "e"),
             DeeplinkType.TokenInfo(mint = mint),
-            DeeplinkType.TipChat(identifier = ChatIdentifier.ByChatId(chatId)),
+            DeeplinkType.TipChat(chatId),
             DeeplinkType.GroupChatInvite(chatId = chatId),
             DeeplinkType.Tipcard(userId = id),
             DeeplinkType.Profile(ProfileAddress.ByUsername("someone")),

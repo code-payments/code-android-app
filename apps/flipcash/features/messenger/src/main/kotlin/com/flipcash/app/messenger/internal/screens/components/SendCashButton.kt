@@ -62,16 +62,13 @@ internal fun RowScope.SendCashButton(
 ) {
     // Beside a composer the button is always the condensed (dark, symbol-only) "$". It used to expand
     // to a white "Send $" whenever the composer was empty, which flashed as text came and went.
-    val isTipChat = state.chatType == ChatType.TIP_DM
     val canType = state.typingConstraints.enabled
 
-    // ...except before the first payment, when there is no composer to sit beside and this button
-    // is the entire bar. Condensing it there would leave a full-width transparent "$"; what the
-    // chat actually needs is its one call to action, so it stays white and says what it does.
-    val isCallToAction = isTipChat && !canType
+    // ...except where there is no composer to sit beside (a contact DM before its first payment),
+    // when this button is the entire bar and stays the white "Send $" call to action.
     // A group is condensed too: the group is not one counterparty to "Send $" to.
     val isGroupChat = state.chatType == ChatType.GROUP
-    val isTyping = !isCallToAction && (canType || isGroupChat)
+    val isTyping = canType || isGroupChat
 
     // Colors ease slowly and independently of the width/label so the fill change reads as one calm
     // transition instead of snapping with the resize — but NOT on the first settle. A tip chat opens
@@ -146,24 +143,6 @@ internal fun RowScope.SendCashButton(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (isCallToAction) {
-            // The fee resolves over the network, and this pill is the chat's first frame. Until it
-            // lands the button still has to say what it does, so it names the act without the price.
-            val fee = state.chatInitFee
-            Text(
-                text = if (fee != null) {
-                    stringResource(R.string.action_sendToStartChatting, fee)
-                } else {
-                    stringResource(R.string.title_sendTip)
-                },
-                color = contentColor,
-                style = CodeTheme.typography.textMedium,
-                maxLines = 1,
-                softWrap = false,
-            )
-            return@Row
-        }
-
         // "action_sendCashViaSymbol" is "Send %1$s" — literally "Send " + the currency symbol.
         // Keep the symbol mounted at all times and only collapse the "Send " prefix, so the
         // symbol never crossfades against a wider label (which garbled into "$nd $").

@@ -61,8 +61,8 @@ import kotlin.test.assertTrue
 /**
  * A failed chat send used to report `State: Success` — the delegate failed, but the analytics
  * event said the payment went through. This pins the fixed behaviour: a failed [ContactPaymentDelegate.send]
- * or [TipPaymentDelegate.send] reports `State: Failure` with an `Error` on both "Sent Cash" and
- * "Sent Tip".
+ * or [TipPaymentDelegate.send] reports `State: Failure` with an `Error` on "Sent Cash". The send that opens a
+ * tip DM is paid from the profile now, so a send from the conversation is always a plain cash send.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatSendFailureAnalyticsTest {
@@ -185,7 +185,7 @@ class ChatSendFailureAnalyticsTest {
     }
 
     @Test
-    fun `a failed tip send reports State Failure with an Error`() = runTest(mainCoroutineRule.dispatcher) {
+    fun `a failed send in a tip DM reports State Failure with an Error on Sent Cash`() = runTest(mainCoroutineRule.dispatcher) {
         coEvery {
             tipPaymentDelegate.send(any(), any(), any(), any(), any(), any())
         } returns Result.failure(RuntimeException("network down"))
@@ -198,7 +198,7 @@ class ChatSendFailureAnalyticsTest {
         vm.dispatchEvent(ChatViewModel.Event.OnSendRequested(amount, token))
         advanceUntilIdle()
 
-        val event = analytics.events.single { it.name == "Sent Tip" }
+        val event = analytics.events.single { it.name == "Sent Cash" }
         assertEquals(PropertyValue.Text(AnalyticsState.FAILURE.value), event.properties["State"])
         assertTrue(event.properties.containsKey("Error"))
     }

@@ -9,8 +9,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.transactions.internal.TransactionDetailsViewModel
 import com.flipcash.shared.transactionhistory.TransactionDetailsContent
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -51,12 +49,9 @@ fun TransactionDetailsScreen(id: ID) {
         details = transaction.details,
         onBack = { navigator.pop() },
         onCopyId = { viewModel.dispatchEvent(TransactionDetailsViewModel.Event.CopyId) },
+        viewsProfile = state.viewsProfile,
         onViewInChat = {
-            val userId = transaction.counterpartyId ?: return@TransactionDetailsContent
-            val profile = transaction.counterparty ?: return@TransactionDetailsContent
-            navigator.push(
-                AppRoute.Messaging.Chat(ChatIdentifier.ByUser(userId = userId, profile = profile))
-            )
+            state.counterpartDestination?.let { navigator.push(it) }
         },
         onCancel = { viewModel.dispatchEvent(TransactionDetailsViewModel.Event.OnCancelRequested) },
     )

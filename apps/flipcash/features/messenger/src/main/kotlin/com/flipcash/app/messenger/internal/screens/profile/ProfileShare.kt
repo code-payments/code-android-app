@@ -7,8 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
@@ -17,13 +15,6 @@ import com.flipcash.shared.common.ui.profile.ProfileShareRow
 import com.flipcash.shared.common.ui.profile.ProfileShareSheet
 import com.getcode.theme.CodeTheme
 import kotlinx.coroutines.launch
-
-/** The DM with [this] person, opened by user, with a payment already started when [openSendCash]. */
-internal fun ChatParticipant.TipUser.dmRoute(openSendCash: Boolean = false) =
-    AppRoute.Messaging.Chat(
-        identifier = ChatIdentifier.ByUser(userId, profile),
-        openSendCash = openSendCash,
-    )
 
 /** Hands a person's profile to the system share sheet. */
 @Composable

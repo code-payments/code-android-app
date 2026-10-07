@@ -30,18 +30,10 @@ sealed interface ChatIdentifier : Parcelable {
     }
 
     /**
-     * A tip DM addressed by the counterparty's Flipcash user id — the only identifier that can open
-     * a conversation which does not exist yet.
-     *
-     * [ByChatId] and [ByContact] both name a chat the server already has: one by its id, one by a
-     * phone number the server pre-derived an id for. Reaching someone by their `@handle` has
-     * neither, so this carries the user id, which is what the canonical TIP_DM id is derived
-     * from (`ChatCoordinator.generateChatId`) — deterministic and offline, so the chat opens on the
-     * derived id and the first tip lands in it.
-     *
-     * [profile] rides along because the caller looked it up to get [userId] in the first place: the
-     * header card renders from it on the first frame rather than waiting on a members fetch, which
-     * for a chat with no messages would have nothing to return.
+     * Retired: a tip DM addressed by the counterparty's Flipcash user id, which opened a gated chat
+     * before it existed. Nothing builds one now; a person without a DM is reached through their
+     * profile. It stays only so a route saved by an older build still decodes, and the app opens the
+     * profile for it instead of a chat.
      */
     @Serializable
     @Parcelize

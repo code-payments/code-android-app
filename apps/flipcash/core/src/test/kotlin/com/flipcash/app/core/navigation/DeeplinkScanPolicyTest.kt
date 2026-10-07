@@ -21,7 +21,7 @@ class DeeplinkScanPolicyTest {
     fun `only payment routes are scannable`() {
         assertTrue(DeeplinkType.CashLink(ENTROPY).isScannable)
         assertTrue(DeeplinkType.TokenInfo(MINT).isScannable)
-        assertTrue(DeeplinkType.TipChat(ChatIdentifier.ByChatId(CHAT_ID)).isScannable)
+        assertTrue(DeeplinkType.TipChat(CHAT_ID).isScannable)
         assertTrue(DeeplinkType.Tipcard(USER_ID).isScannable)
         assertTrue(DeeplinkType.Profile(ProfileAddress.ByUsername(USERNAME)).isScannable)
         assertTrue(DeeplinkType.GroupChatInvite(CHAT_ID).isScannable)
