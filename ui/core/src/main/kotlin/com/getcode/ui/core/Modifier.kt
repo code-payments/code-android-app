@@ -362,6 +362,10 @@ fun Modifier.verticalScrollStateGradient(
         }
 }
 
+/**
+ * [startInset] and [endInset] move the fades in from the edges, for content that runs on under
+ * the status bar or an opaque pinned bar: the inset stays solid and the fade finishes where it starts.
+ */
 fun Modifier.verticalScrollStateGradient(
     scrollState: ScrollState,
     color: Color = Color.Unspecified,
@@ -370,22 +374,27 @@ fun Modifier.verticalScrollStateGradient(
     showAtEnd: Boolean = true,
     showAtEndAlways: Boolean = false,
     isLongGradient: Boolean = false,
+    startInset: Dp = 0.dp,
+    endInset: Dp = 0.dp,
 ): Modifier = composed {
     val backgroundColor = color.takeOrElse { CodeTheme.colors.background }
     val gradientSizePx =
         with(LocalDensity.current) { gradientSize.toPx() } * if (isLongGradient) 1.5f else 1f
+    val startInsetPx = with(LocalDensity.current) { startInset.toPx() }
+    val endInsetPx = with(LocalDensity.current) { endInset.toPx() }
     this
         .addIf((showAtStart && scrollState.value > 0) || showAtStartAlways) {
             Modifier.drawWithGradient(
                 color = backgroundColor,
-                startY = { gradientSizePx },
-                endY = { 0f },
+                startY = { startInsetPx + gradientSizePx },
+                endY = { startInsetPx },
             )
         }
         .addIf((showAtEnd && scrollState.value < scrollState.maxValue) || showAtEndAlways) {
             Modifier.drawWithGradient(
                 color = backgroundColor,
-                startY = { size.height - gradientSizePx },
+                startY = { size.height - endInsetPx - gradientSizePx },
+                endY = { size.height - endInsetPx },
             )
         }
 }

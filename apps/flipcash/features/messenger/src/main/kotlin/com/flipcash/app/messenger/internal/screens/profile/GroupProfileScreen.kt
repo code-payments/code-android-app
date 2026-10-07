@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -67,6 +70,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.hazeSource
@@ -133,10 +137,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    // The page fades out under the app bar and into the pinned bar, as on iOS.
+                    .verticalScrollStateGradient(
+                        scrollState = scrollState,
+                        showAtEnd = hasPinned,
+                        startInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                        endInset = clearance,
+                    )
+                    .verticalScroll(scrollState)
                     .padding(bottom = clearance),
             ) {
                 ProfileHeader(

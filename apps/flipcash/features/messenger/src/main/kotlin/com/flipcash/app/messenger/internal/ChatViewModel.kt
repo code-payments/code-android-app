@@ -186,6 +186,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -1800,23 +1801,30 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnProfileStandingResolved(it)) }
             .launchIn(viewModelScope)
 
-        // Each time the profile opens rather than once per flow: this view model outlives the
-        // screen, and who is chatting is a thing that moves. A private group's sampling is denied,
-        // so it is not asked; a failure reads as nobody to show.
-        eventFlow.filterIsInstance<Event.GroupProfileOpened>()
-            .onEach {
-                val chatId = stateFlow.value.chatId ?: return@onEach
-                val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
-                if (group.isPrivate) {
-                    dispatchEvent(Event.OnChattersLoaded(emptyList()))
-                    return@onEach
-                }
-                val chatters = chatCoordinator.sampleChatters(chatId)
-                    .onFailure { trace("failed to sample chatters - ${it.localizedMessage}") }
-                    .getOrNull()?.chatters.orEmpty()
-                dispatchEvent(Event.OnChattersLoaded(chatters))
+        // Sampled as soon as a public group resolves, so the profile has its grid on the way in
+        // rather than popping it in after the push, and again each time the profile opens: this
+        // view model outlives the screen, and who is chatting is a thing that moves. The list on
+        // screen stays until the new one lands. A private group's sampling is denied, so it is
+        // not asked; a failure reads as nobody to show.
+        merge(
+            stateFlow.map { (it.subject as? ChatSubject.Group)?.takeUnless { group -> group.isPrivate }?.chatId }
+                .filterNotNull()
+                .distinctUntilChanged(),
+            eventFlow.filterIsInstance<Event.GroupProfileOpened>().mapNotNull { stateFlow.value.chatId },
+        ).onEach { chatId ->
+            val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+            if (group.isPrivate) {
+                dispatchEvent(Event.OnChattersLoaded(emptyList()))
+                return@onEach
             }
-            .launchIn(viewModelScope)
+            val chatters = chatCoordinator.sampleChatters(chatId)
+                .onFailure { trace("failed to sample chatters - ${it.localizedMessage}") }
+                .getOrNull()?.chatters
+            // A failed refresh keeps what is already showing; only a first failure hides the grid.
+            if (chatters != null || stateFlow.value.chatters.isEmpty()) {
+                dispatchEvent(Event.OnChattersLoaded(chatters.orEmpty()))
+            }
+        }.launchIn(viewModelScope)
 
         // A row that came from the feed can lack the cover the profile shows; GetChat has it. The
         // stored metadata updates and OnGroupResolved carries it into the subject.
@@ -2335,7 +2343,7 @@ internal class ChatViewModel @Inject constructor(
         eventFlow.filterIsInstance<Event.LeaveChat>()
             .mapNotNull { stateFlow.value.subject as? ChatSubject.Group }
             .onEach { group ->
-                BottomBarManager.showAlert(
+                BottomBarManager.showInfo(
                     title = resources.getString(
                         R.string.prompt_title_leaveChat,
                         group.title,
