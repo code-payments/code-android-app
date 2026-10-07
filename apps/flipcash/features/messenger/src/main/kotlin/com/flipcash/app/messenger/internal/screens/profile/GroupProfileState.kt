@@ -13,6 +13,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.TokenWithBalance
+import com.getcode.solana.keys.Mint
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -79,6 +80,19 @@ internal data class GroupBalanceRequirements(
     val join: ChatRuleRequirement.MinimumBalance?,
     val chat: ChatRuleRequirement.MinimumBalance?,
 ) {
+    /**
+     * The one token the requirements name, or null when they name none, two different ones, or
+     * only the reserve. A requirement naming no mint ("any holding") does not count against a
+     * token the other names. Mirrors iOS's `GroupBalanceRequirements.soleToken`.
+     */
+    val soleToken: Mint?
+        get() {
+            val mints = listOfNotNull(join, chat)
+                .mapNotNull { it.mints.firstOrNull()?.let { mint -> Mint(mint.bytes) } }
+                .toSet()
+            return mints.singleOrNull()?.takeUnless { it == Mint.usdf }
+        }
+
     companion object {
         fun from(rules: ChatRules?): GroupBalanceRequirements? {
             val join = rules?.listener.orEmpty()

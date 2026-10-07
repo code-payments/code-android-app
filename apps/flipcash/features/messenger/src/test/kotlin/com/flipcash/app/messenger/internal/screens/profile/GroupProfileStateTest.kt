@@ -16,6 +16,7 @@ import com.getcode.solana.keys.PublicKey
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -208,6 +209,47 @@ class GroupProfileStateTest {
                 )
             )
         )
+    }
+
+    // Sole token
+
+    @Test
+    fun `a token named by both requirements is the sole token`() {
+        val rules = rules(
+            listener = listOf(minimum(10.0, listOf(mint(1)))),
+            speaker = listOf(minimum(25.0, listOf(mint(1)))),
+        )
+        assertEquals(mint(1), GroupBalanceRequirements.from(rules)?.soleToken)
+    }
+
+    @Test
+    fun `a token beside an any-holding requirement is the sole token`() {
+        val rules = rules(
+            listener = listOf(minimum(10.0)),
+            speaker = listOf(minimum(25.0, listOf(mint(1)))),
+        )
+        assertEquals(mint(1), GroupBalanceRequirements.from(rules)?.soleToken)
+    }
+
+    @Test
+    fun `two different tokens leave no sole token`() {
+        val rules = rules(
+            listener = listOf(minimum(10.0, listOf(mint(1)))),
+            speaker = listOf(minimum(25.0, listOf(mint(2)))),
+        )
+        assertNull(GroupBalanceRequirements.from(rules)?.soleToken)
+    }
+
+    @Test
+    fun `the reserve alone is not a sole token`() {
+        val rules = rules(listener = listOf(minimum(10.0, listOf(Mint.usdf))))
+        assertNull(GroupBalanceRequirements.from(rules)?.soleToken)
+    }
+
+    @Test
+    fun `requirements naming no token have no sole token`() {
+        val rules = rules(listener = listOf(minimum(10.0)), speaker = listOf(minimum(25.0)))
+        assertNull(assertNotNull(GroupBalanceRequirements.from(rules)).soleToken)
     }
 
     // Shortfall
