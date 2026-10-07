@@ -30,6 +30,8 @@ import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.GroupAccess
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.internal.extensions.fractionDigits
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
@@ -234,8 +236,9 @@ internal class CreateGroupViewModel @Inject constructor(
     /**
      * The keypad behind the `…` chip.
      *
-     * No ceiling and no floor: a group can ask for any balance, and unlike the minimum-to-chat fee
-     * there is nothing stored to compare a change against. The creator's own balance is a bound on
+     * No ceiling, and a floor of one cent (the server's minimum transfer value): a group can ask
+     * for any balance above that, and unlike the minimum-to-chat fee there is nothing stored to
+     * compare a change against. The creator's own balance is a bound on
      * *creating*, not on typing, and the form says so where the requirement is shown.
      */
     val amountDelegate = AmountEntryDelegate(
@@ -311,13 +314,10 @@ internal class CreateGroupViewModel @Inject constructor(
             .filterIsInstance<Event.ConfirmCustomAmount>()
             .map { amountDelegate.state.value.enteredAmount }
             .onEach { entered ->
-                if (entered <= 0.0) return@onEach
-                // The keypad enters in the preferred currency; the rule is compared against a USD
-                // balance, so it is stored in USD rather than in whatever was typed.
-                val local = Fiat(entered, stateFlow.value.rate.currency)
-                dispatchEvent(
-                    Event.OnAmountSelected(local.convertingToUsdIfNeeded(stateFlow.value.rate))
-                )
+                // Below one minimum unit the server answers INVALID_RULES, so it is rejected here the
+                // same way an empty entry is.
+                val amount = minimumBalanceFor(entered, stateFlow.value.rate) ?: return@onEach
+                dispatchEvent(Event.OnAmountSelected(amount))
             }
             .launchIn(viewModelScope)
 
@@ -511,6 +511,22 @@ internal class CreateGroupViewModel @Inject constructor(
     }
 
     companion object {
+        /**
+         * The stored requirement for a keypad [entered] amount, or null when it falls below the
+         * currency's minimum transfer value (one unit of its last decimal place).
+         *
+         * The keypad enters in the preferred currency; the rule is compared against a USD balance,
+         * so it is stored in USD rather than in whatever was typed, rounded to USD's decimals
+         * (cents) so the server never sees a fraction of one.
+         */
+        @VisibleForTesting
+        internal fun minimumBalanceFor(entered: Double, rate: Rate): Fiat? {
+            if (entered <= 0.0) return null
+            val usd = Fiat(entered, rate.currency).convertingToUsdIfNeeded(rate)
+            val rounded = usd.rounded(CurrencyCode.USD.fractionDigits)
+            return rounded.takeIf { it.decimalValue > 0.0 }
+        }
+
         /** One listener minimum balance of [amount], in whatever [currency] names. */
         private fun rulesFor(currency: GroupCurrency, amount: Fiat) = ChatRules(
             listener = listOf(ChatRuleRequirement.MinimumBalance(amount, currency.mints)),
