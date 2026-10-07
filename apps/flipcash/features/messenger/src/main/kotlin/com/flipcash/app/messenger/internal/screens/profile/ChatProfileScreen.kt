@@ -209,7 +209,6 @@ internal fun PersonProfileScreen(
                             ProfileMenu(
                                 expanded = menuOpen,
                                 items = state.menuItems,
-                                isMuted = state.isMuted,
                                 anchorHeight = menuAnchorHeight,
                                 onDismiss = { menuOpen = false },
                                 onItem = { item ->

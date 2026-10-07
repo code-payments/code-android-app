@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Feedback
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -40,23 +39,20 @@ internal val ChatProfileAction.isDestructive: Boolean
     get() = this == ChatProfileAction.Report || this == ChatProfileAction.Block
 
 /**
- * The row's string. Muting names the opposite once the chat is muted; the picker it opens is where
- * the duration is chosen either way.
+ * The row's string. Muting reads "Mute Notifications" whether or not the chat is muted, as on iOS;
+ * the sheet it opens handles both muting and unmuting.
  */
 @androidx.annotation.StringRes
-internal fun ChatProfileAction.labelRes(isMuted: Boolean): Int = when (this) {
-    ChatProfileAction.Mute -> if (isMuted) R.string.title_unmuteChat else R.string.title_muteChat
+internal fun ChatProfileAction.labelRes(): Int = when (this) {
+    ChatProfileAction.Mute -> R.string.title_muteChat
     ChatProfileAction.Report -> R.string.title_report
     ChatProfileAction.Block -> R.string.title_block
     ChatProfileAction.Unblock -> R.string.action_unblock
 }
 
-/**
- * The row's glyph, matching iOS' `bell.slash`, `flag`, `nosign` and `checkmark.circle`. Muting
- * shows the plain bell once the chat is muted, since the row then turns notifications back on.
- */
-internal fun ChatProfileAction.icon(isMuted: Boolean): ImageVector = when (this) {
-    ChatProfileAction.Mute -> if (isMuted) Icons.Outlined.Notifications else Icons.Outlined.NotificationsOff
+/** The row's glyph, matching iOS' `bell.slash`, `exclamationmark.bubble`, `nosign` and `checkmark.circle`. */
+internal fun ChatProfileAction.icon(): ImageVector = when (this) {
+    ChatProfileAction.Mute -> Icons.Outlined.NotificationsOff
     ChatProfileAction.Report -> Icons.Outlined.Feedback
     ChatProfileAction.Block -> Icons.Outlined.Block
     ChatProfileAction.Unblock -> Icons.Outlined.CheckCircle
@@ -67,7 +63,6 @@ internal fun ChatProfileAction.icon(isMuted: Boolean): ImageVector = when (this)
 internal fun ProfileMenu(
     expanded: Boolean,
     items: List<ChatProfileAction>,
-    isMuted: Boolean,
     anchorHeight: Dp,
     onDismiss: () -> Unit,
     onItem: (ChatProfileAction) -> Unit,
@@ -84,11 +79,11 @@ internal fun ProfileMenu(
             val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
             DropdownMenuItem(
                 leadingIcon = {
-                    Icon(imageVector = item.icon(isMuted), contentDescription = null, tint = tint)
+                    Icon(imageVector = item.icon(), contentDescription = null, tint = tint)
                 },
                 text = {
                     Text(
-                        text = stringResource(item.labelRes(isMuted)),
+                        text = stringResource(item.labelRes()),
                         style = CodeTheme.typography.textSmall,
                         color = tint,
                     )
