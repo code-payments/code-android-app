@@ -43,6 +43,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
@@ -286,11 +287,12 @@ fun ChatInput(
     leading: (@Composable () -> Unit)? = null,
     // Content in the field above the text, such as staged photos. Null for none.
     header: (@Composable () -> Unit)? = null,
-    // A control beside the field, outside it (send cash, cancel edit). Null for none.
+    // A control before the field, outside it (cancel edit). Stays while the field holds text. Null
+    // for none.
     outside: (@Composable () -> Unit)? = null,
-    // Whether [outside] makes way while the field holds text. Off for a control that must stay,
-    // like cancelling an edit.
-    outsideCollapses: Boolean = true,
+    // A control after the field, outside it (send cash). Makes way while the field holds text.
+    // Null for none.
+    trailingOutside: (@Composable () -> Unit)? = null,
 ) {
     val textStyle = CodeTheme.typography.textMedium.copy(
         fontSize = 16.sp,
@@ -303,12 +305,17 @@ fun ChatInput(
     val sendAlpha by animateFloatAsState(if (sendVisible) 1f else 0f, sendSpec, label = "send alpha")
     val sendScale by animateFloatAsState(if (sendVisible) 1f else 0.6f, sendSpec, label = "send scale")
 
-    val outsideShown = outside != null && !(outsideCollapses && hasText)
     // spring(duration 0.4, bounce 0.3)
+    val outsideSpec = spring<Float>(dampingRatio = 0.7f, stiffness = 247f)
     val outsideFraction by animateFloatAsState(
-        targetValue = if (outsideShown) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 247f),
+        targetValue = if (outside != null) 1f else 0f,
+        animationSpec = outsideSpec,
         label = "outside fraction",
+    )
+    val trailingOutsideFraction by animateFloatAsState(
+        targetValue = if (trailingOutside != null && !hasText) 1f else 0f,
+        animationSpec = outsideSpec,
+        label = "trailing outside fraction",
     )
 
     var fieldWidth by remember { mutableIntStateOf(0) }
@@ -355,27 +362,13 @@ fun ChatInput(
         verticalAlignment = Alignment.Bottom,
     ) {
         if (outside != null) {
-            Box(
-                modifier = Modifier
-                    .layout { measurable, constraints ->
-                        val size = outsideSize.roundToPx()
-                        val f = outsideFraction.coerceAtLeast(0f)
-                        val p = measurable.measure(Constraints.fixed(size, size))
-                        val gap = (metrics.outsideSpacing.roundToPx() * f).roundToInt()
-                        layout(((size * f).roundToInt() + gap).coerceAtLeast(0), size) {
-                            p.placeWithLayer(0, 0) {
-                                val k = 0.4f + 0.6f * f.coerceAtMost(1f)
-                                scaleX = k
-                                scaleY = k
-                                alpha = f.coerceIn(0f, 1f)
-                            }
-                        }
-                    },
-            ) { outside() }
+            OutsideSlot(outsideFraction, outsideSize, metrics.outsideSpacing, outside)
         }
         Layout(
             modifier = Modifier
                 .weight(1f)
+                // Above the trailing control, which the field slides over as it widens.
+                .zIndex(1f)
                 .onSizeChanged { fieldWidth = it.width }
                 .clip(shape)
                 .then(modifier)
@@ -458,7 +451,70 @@ fun ChatInput(
                 )
             },
         )
+        if (trailingOutside != null) {
+            TrailingOutsideSlot(trailingOutsideFraction, outsideSize, metrics.outsideSpacing, trailingOutside)
+        }
     }
+}
+
+/**
+ * The control before the field. It scales and fades in with [fraction] and takes its width, and
+ * the [spacing] between it and the field, from the row as it does.
+ */
+@Composable
+private fun OutsideSlot(
+    fraction: Float,
+    size: Dp,
+    spacing: Dp,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier.layout { measurable, _ ->
+            val sizePx = size.roundToPx()
+            val f = fraction.coerceAtLeast(0f)
+            val p = measurable.measure(Constraints.fixed(sizePx, sizePx))
+            val gap = (spacing.roundToPx() * f).roundToInt()
+            layout(((sizePx * f).roundToInt() + gap).coerceAtLeast(0), sizePx) {
+                p.placeWithLayer(0, 0) {
+                    val k = 0.4f + 0.6f * f.coerceAtMost(1f)
+                    scaleX = k
+                    scaleY = k
+                    alpha = f.coerceIn(0f, 1f)
+                }
+            }
+        },
+    ) { content() }
+}
+
+/**
+ * The control after the field. The row gives its width up to the field as [fraction] falls, but the
+ * control stays where it is: it fades out and shrinks in place while the field, drawn above it,
+ * widens across it, and plays the same in reverse as [fraction] rises.
+ */
+@Composable
+private fun TrailingOutsideSlot(
+    fraction: Float,
+    size: Dp,
+    spacing: Dp,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier.layout { measurable, _ ->
+            val sizePx = size.roundToPx()
+            val f = fraction.coerceAtLeast(0f)
+            val p = measurable.measure(Constraints.fixed(sizePx, sizePx))
+            val width = ((sizePx + spacing.roundToPx()) * f).roundToInt().coerceAtLeast(0)
+            layout(width, sizePx) {
+                // Pinned to the row's trailing edge however much width the slot reports.
+                p.placeWithLayer(width - sizePx, 0) {
+                    val k = 0.5f + 0.5f * f.coerceIn(0f, 1f)
+                    scaleX = k
+                    scaleY = k
+                    alpha = f.coerceIn(0f, 1f)
+                }
+            }
+        },
+    ) { content() }
 }
 
 /**

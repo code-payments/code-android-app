@@ -345,27 +345,25 @@ internal fun UserControlBottomBar(
                             dispatch = dispatch,
                             mentionListModifier = Modifier.measured { mentionListHeight = it.height },
                         )
-                        // Editing swaps the leading control rather than adding a banner above the bar:
-                        // send-cash is not reachable mid-edit anyway, and cancel is what the slot is
-                        // for while the edit is open.
-                        val outsideControl: @Composable () -> Unit = {
+                        // Editing swaps the send-cash button for a cancel control on the other side of
+                        // the field rather than adding a banner above the bar: send-cash is not
+                        // reachable mid-edit anyway, and cancel is what the leading slot is for while
+                        // the edit is open.
+                        val cancelEdit: @Composable () -> Unit = {
+                            CancelEditButton(onClick = { dispatch(ChatViewModel.Event.CancelEdit) })
+                        }
+                        val sendCash: @Composable () -> Unit = {
                             Row {
-                                if (state.editing != null) {
-                                    CancelEditButton(
-                                        onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
-                                    )
-                                } else {
-                                    SendCashButton(
-                                        state = state,
-                                        hazeState = hazeState,
-                                        hazeMaterial = material,
-                                        onClick = {
-                                            keyboard.hideIfVisible {
-                                                dispatch(ChatViewModel.Event.OnSendCash)
-                                            }
+                                SendCashButton(
+                                    state = state,
+                                    hazeState = hazeState,
+                                    hazeMaterial = material,
+                                    onClick = {
+                                        keyboard.hideIfVisible {
+                                            dispatch(ChatViewModel.Event.OnSendCash)
                                         }
-                                    )
-                                }
+                                    }
+                                )
                             }
                         }
                         // Without a composer the send-cash button is the whole bar.
@@ -374,7 +372,7 @@ internal fun UserControlBottomBar(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = sideInset),
-                            ) { outsideControl() }
+                            ) { if (state.editing != null) cancelEdit() else sendCash() }
                         }
                         Row(
                             modifier = Modifier
@@ -401,8 +399,8 @@ internal fun UserControlBottomBar(
                                     modifier = Modifier
                                         .testTag("chat_message_input")
                                         .hazeBlur(HazeInput.Sources(hazeState), material),
-                                    outside = outsideControl,
-                                    outsideCollapses = state.editing == null,
+                                    outside = if (state.editing != null) cancelEdit else null,
+                                    trailingOutside = if (state.editing == null) sendCash else null,
                                     focusRequester = focusRequester,
                                     hint = stringResource(
                                         if (state.replyingTo != null) R.string.hint_chatReply
