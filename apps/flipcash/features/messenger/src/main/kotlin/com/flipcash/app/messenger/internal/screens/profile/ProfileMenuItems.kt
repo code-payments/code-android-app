@@ -2,7 +2,7 @@ package com.flipcash.app.messenger.internal.screens.profile
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -27,7 +27,7 @@ internal sealed interface ChatProfileAction {
 
 internal data object ReportUser : FullMenuItem<ChatProfileAction>() {
     override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.Flag)
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Feedback)
 
     override val name: String
         @Composable get() = stringResource(R.string.title_report)

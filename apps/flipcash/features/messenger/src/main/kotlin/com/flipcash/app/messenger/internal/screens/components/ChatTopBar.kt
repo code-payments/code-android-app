@@ -23,7 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -327,7 +327,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.title_report),
-                    icon = Icons.Outlined.Flag,
+                    icon = Icons.Outlined.Feedback,
                     testTag = "action_report_message",
                     // Unlike the others this one leaves the chat, so nothing on the way back
                     // dismisses the bar. Clearing it here means the transcript is at rest behind
