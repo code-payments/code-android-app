@@ -1,8 +1,6 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -169,14 +167,9 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         if (isMember && mutedLabel != null) {
                             // On the cover's bottom edge so a late mute state never shifts the
                             // header, and the action row keeps its width for Edit Group and Share.
-                            // The dark backing keeps the tinted chip legible over a photo.
                             ProfileStatusChip(
-                                modifier = Modifier
-                                    .weight(1f, fill = false)
-                                    .background(
-                                        CodeTheme.colors.background.copy(alpha = 0.7f),
-                                        CircleShape,
-                                    ),
+                                modifier = Modifier.weight(1f, fill = false),
+                                overCover = true,
                                 icon = Icons.Outlined.NotificationsOff,
                                 text = mutedLabel,
                                 compactText = stringResource(R.string.label_muted),

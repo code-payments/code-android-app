@@ -38,10 +38,19 @@ fun ProfileStatusChip(
     // Shown instead of [text] when [text] doesn't fit on one line, e.g. "Muted" for "Muted until
     // 12:15 PM" beside a profile's buttons. Without it, [text] ellipsizes.
     compactText: String? = null,
+    overCover: Boolean = false,
 ) {
     var compact by remember(text, compactText) { mutableStateOf(false) }
     Row(
         modifier = modifier
+            // Over a cover photo the 10% tint alone is unreadable; a dark backing sits under it.
+            .then(
+                if (overCover) {
+                    Modifier.background(CodeTheme.colors.background.copy(alpha = 0.7f), CircleShape)
+                } else {
+                    Modifier
+                }
+            )
             .background(
                 color = CodeTheme.colors.warning.copy(alpha = 0.1f),
                 shape = CircleShape,
