@@ -224,7 +224,12 @@ internal fun PersonProfileScreen(
                         .padding(top = CodeTheme.dimens.staticGrid.x4),
                     groups = rememberFeaturedGroupItems(state.featuredGroups),
                     onOpen = { chatId ->
-                        navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId)))
+                        navigator.push(
+                            AppRoute.Messaging.Chat(
+                                identifier = ChatIdentifier.ByChatId(chatId),
+                                openOnProfile = true,
+                            )
+                        )
                     },
                 )
             }

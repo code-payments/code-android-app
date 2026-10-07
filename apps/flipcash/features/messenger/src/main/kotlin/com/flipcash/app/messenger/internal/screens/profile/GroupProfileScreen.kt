@@ -118,7 +118,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             .collect { flowNavigator.exitCanceled() }
     }
 
-    // A join that went through lands on the chat, which is the screen underneath.
+    // The chat is usually the screen underneath. A flow opened on the profile
+    // (AppRoute.Messaging.Chat.openOnProfile) has nothing underneath, so the transcript takes the
+    // profile's place and back from it leaves the flow, as it would from any chat.
+    fun openChat() {
+        if (flowNavigator.canGoBack) {
+            flowNavigator.back()
+        } else {
+            flowNavigator.navigateTo(ChatStep.Conversation, popCurrent = true)
+        }
+    }
+
+    // A join that went through lands on the chat.
     // The success flag is sticky on the view model, so only a join started from this screen counts:
     // someone who joined from the gate and opens the profile afterwards must not be bounced.
     var joinedHere by remember { mutableStateOf(false) }
@@ -126,7 +137,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
         if (state.joinProgress.loading) joinedHere = true
     }
     LaunchedEffect(state.joinProgress.success, joinedHere) {
-        if (state.joinProgress.success && joinedHere) flowNavigator.back()
+        if (state.joinProgress.success && joinedHere) openChat()
     }
 
     val standing = state.profileStanding
@@ -332,7 +343,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     onClick = {
                         when (cta) {
                             GroupProfileCta.Join -> viewModel.dispatchEvent(ChatViewModel.Event.JoinChat)
-                            GroupProfileCta.OpenChat -> flowNavigator.back()
+                            GroupProfileCta.OpenChat -> openChat()
                             is GroupProfileCta.BuyToJoin, is GroupProfileCta.BuyToChat -> {
                                 if (buyMint == null) {
                                     viewModel.dispatchEvent(ChatViewModel.Event.GateFundingTapped(GroupGateFunding.ADD_CASH))

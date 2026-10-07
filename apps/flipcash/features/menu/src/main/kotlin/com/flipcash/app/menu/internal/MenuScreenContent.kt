@@ -166,7 +166,10 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                             onOpen = { chatId ->
                                 viewModel.dispatchEvent(
                                     Event.OpenScreen(
-                                        AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId))
+                                        AppRoute.Messaging.Chat(
+                                            identifier = ChatIdentifier.ByChatId(chatId),
+                                            openOnProfile = true,
+                                        )
                                     )
                                 )
                             },
