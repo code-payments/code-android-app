@@ -48,4 +48,9 @@ sealed interface UpdateProfileStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     object Bio : UpdateProfileStep
+
+    /** The public groups the profile features, picked from the ones the user has joined. */
+    @Parcelize
+    @Serializable
+    object FeaturedGroups : UpdateProfileStep
 }

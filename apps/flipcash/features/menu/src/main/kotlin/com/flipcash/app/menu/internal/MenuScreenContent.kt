@@ -50,6 +50,7 @@ import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.bills.components.cards.TipCardFlattened
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.ProfileState
@@ -59,9 +60,11 @@ import com.flipcash.features.menu.R
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.common.ui.ContactAvatar
+import com.flipcash.shared.common.ui.profile.FeaturedGroupsSection
 import com.flipcash.shared.common.ui.profile.ProfileActionButton
 import com.flipcash.shared.common.ui.profile.ProfileHeader
 import com.flipcash.shared.common.ui.profile.ProfileStatsCard
+import com.flipcash.shared.common.ui.profile.rememberFeaturedGroupItems
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White08
@@ -152,6 +155,21 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                                 .padding(top = CodeTheme.dimens.staticGrid.x4),
                             minimumToChat = state.minimumToChat,
                             joined = profileState.joined,
+                        )
+                    }
+                    item(key = "featured_groups") {
+                        FeaturedGroupsSection(
+                            modifier = Modifier
+                                .padding(horizontal = CodeTheme.dimens.inset)
+                                .padding(top = CodeTheme.dimens.staticGrid.x4),
+                            groups = rememberFeaturedGroupItems(state.featuredGroups),
+                            onOpen = { chatId ->
+                                viewModel.dispatchEvent(
+                                    Event.OpenScreen(
+                                        AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId))
+                                    )
+                                )
+                            },
                         )
                     }
                     item(key = "bottom_spacer") { Spacer(Modifier.height(CodeTheme.dimens.grid.x4)) }

@@ -18,6 +18,7 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -47,6 +48,7 @@ internal class EditProfileViewModel @Inject constructor(
     userFlags: UserFlagsCoordinator,
     totalBalance: TotalBalanceProvider,
     tipPayments: TipPaymentDelegate,
+    featuredGroups: FeaturedGroupsStore,
     private val purchaseMethodController: PurchaseMethodController,
     private val analytics: FlipcashAnalytics,
     private val resources: ResourceHelper,
@@ -67,6 +69,8 @@ internal class EditProfileViewModel @Inject constructor(
         val cover: MediaItem? = null,
         /** What others pay to open a chat, formatted. Null until it resolves. */
         val minimumToChat: String? = null,
+        /** How many public groups the profile features; the row reads it from the session's list. */
+        val featuredGroupCount: Int = 0,
         val usernameGate: UsernameGate = UsernameGate.Unlocked,
         val usernameMinimumBalance: String = "",
     )
@@ -74,6 +78,7 @@ internal class EditProfileViewModel @Inject constructor(
     internal sealed interface Event {
         data class OnProfileChanged(val profile: UserProfile) : Event
         data class OnMinimumToChatChanged(val minimumToChat: String?) : Event
+        data class OnFeaturedGroupCountChanged(val count: Int) : Event
         data class OnUsernameGateChanged(val gate: UsernameGate, val minimumBalance: String) : Event
 
         /** A field card's tap; the screen opens the step in the profile editor. */
@@ -99,6 +104,12 @@ internal class EditProfileViewModel @Inject constructor(
             .map { it?.formatted() }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnMinimumToChatChanged(it)) }
+            .launchIn(viewModelScope)
+
+        featuredGroups.groups
+            .map { it.size }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnFeaturedGroupCountChanged(it)) }
             .launchIn(viewModelScope)
 
         combine(
@@ -180,6 +191,7 @@ internal class EditProfileViewModel @Inject constructor(
                 }
 
                 is Event.OnMinimumToChatChanged -> { state -> state.copy(minimumToChat = event.minimumToChat) }
+                is Event.OnFeaturedGroupCountChanged -> { state -> state.copy(featuredGroupCount = event.count) }
                 is Event.OnUsernameGateChanged -> { state ->
                     state.copy(usernameGate = event.gate, usernameMinimumBalance = event.minimumBalance)
                 }

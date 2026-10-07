@@ -18,10 +18,12 @@ import com.flipcash.app.userflags.usernameGate
 import com.flipcash.features.menu.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.flipcash.shared.tipping.TippingCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.common.ui.profile.joinedLabel
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -33,6 +35,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -58,6 +61,7 @@ internal class MenuScreenViewModel @Inject constructor(
     analytics: FlipcashAnalytics,
     private val tippingCoordinator: TippingCoordinator,
     private val tipCodePreviewCache: TipCodePreviewCache,
+    private val featuredGroupsStore: FeaturedGroupsStore,
     tipPayments: TipPaymentDelegate,
     private val resources: ResourceHelper,
 ) :
@@ -78,6 +82,8 @@ internal class MenuScreenViewModel @Inject constructor(
         // What another user must send to open a chat with the viewer, formatted. Null until it
         // resolves, which the stats card draws as a dash.
         val minimumToChat: String? = null,
+        // The viewer's own featured groups, in profile order. Empty until the first read lands.
+        val featuredGroups: List<ChatMetadata> = emptyList(),
     )
 
     /**
@@ -122,6 +128,7 @@ internal class MenuScreenViewModel @Inject constructor(
             val minimumBalance: String,
         ) : Event
         data class OnMinimumToChatChanged(val minimumToChat: String?) : Event
+        data class OnFeaturedGroupsChanged(val groups: List<ChatMetadata>) : Event
 
         /** The progress card's tap — claim a handle, or explain why it can't be claimed yet. */
         data object ClaimUsername : Event
@@ -184,6 +191,21 @@ internal class MenuScreenViewModel @Inject constructor(
             .map { it?.formatted() }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnMinimumToChatChanged(it)) }
+            .launchIn(viewModelScope)
+
+        // The featured groups are held for the session, so a save in the picker reaches this tab
+        // without a read. The read here is for the first look and for a handle that changes.
+        featuredGroupsStore.groups
+            .onEach { dispatchEvent(Event.OnFeaturedGroupsChanged(it)) }
+            .launchIn(viewModelScope)
+
+        userManager.state
+            .filter { it.authState is AuthState.Ready }
+            .map { it.userProfile?.username }
+            .filterNotNull()
+            .filter { it.isNotEmpty() }
+            .distinctUntilChanged()
+            .onEach { featuredGroupsStore.load(it) }
             .launchIn(viewModelScope)
 
         // The username nudge. Gated on Ready for the same reason as the tip card: a named account
@@ -296,6 +318,10 @@ internal class MenuScreenViewModel @Inject constructor(
 
                 is Event.OnMinimumToChatChanged -> { state ->
                     state.copy(minimumToChat = event.minimumToChat)
+                }
+
+                is Event.OnFeaturedGroupsChanged -> { state ->
+                    state.copy(featuredGroups = event.groups)
                 }
 
                 is Event.PresentDepositOptions,
