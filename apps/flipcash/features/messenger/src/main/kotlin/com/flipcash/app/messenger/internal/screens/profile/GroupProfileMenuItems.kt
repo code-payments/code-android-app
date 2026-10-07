@@ -3,7 +3,7 @@ package com.flipcash.app.messenger.internal.screens.profile
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
@@ -53,7 +53,7 @@ internal data object InviteToGroup : FullMenuItem<GroupProfileAction>() {
 
 internal data object ReportGroup : FullMenuItem<GroupProfileAction>() {
     override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.Flag)
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Feedback)
 
     override val name: String
         @Composable get() = stringResource(R.string.title_report)
