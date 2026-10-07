@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -41,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -92,6 +94,8 @@ import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The group's own profile, reached from the info card at the head of its transcript.
@@ -151,6 +155,19 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val cta = standing?.cta ?: GroupProfileCta.None
     val requirements = remember(group?.rules) { GroupBalanceRequirements.from(group?.rules) }
     val tokens = state.ruleTokens
+    // The amounts read "$1 of Moony" once the token is named; held back until then so they don't
+    // read "$1" first and change under the reader. A token that never resolves stops holding
+    // them after a moment, and they read as a bare amount, as they did before.
+    var namesTimedOut by remember(requirements) { mutableStateOf(false) }
+    LaunchedEffect(requirements) {
+        delay(RuleNameHold)
+        namesTimedOut = true
+    }
+    val namesReady = namesTimedOut || requirements == null ||
+        listOfNotNull(requirements.join, requirements.chat)
+            .mapNotNull { it.mints.firstOrNull()?.let { m -> Mint(m.bytes) } }
+            .filterNot { it == Mint.usdf }
+            .all { tokens.containsKey(it.bytes) }
 
     var menuOpen by remember { mutableStateOf(false) }
     var pinnedHeight by remember { mutableStateOf(0.dp) }
@@ -281,7 +298,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     )
                 }
 
-                if (requirements != null) {
+                AnimatedVisibility(
+                    visible = requirements != null && namesReady,
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+                ) {
+                    requirements ?: return@AnimatedVisibility
                     BalanceRequirementsCard(
                         // "Your Balance" arrives with the standing, after the rules.
                         modifier = Modifier
@@ -373,8 +395,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     },
                     above = if (bar != null) {
                         {
+                            // Space held while the token is unnamed, so the button doesn't move.
+                            val nameAlpha by animateFloatAsState(if (namesReady) 1f else 0f, label = "requirementLine")
                             Text(
-                                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                                modifier = Modifier
+                                    .padding(horizontal = CodeTheme.dimens.inset)
+                                    .graphicsLayer { alpha = nameAlpha },
                                 textAlign = TextAlign.Center,
                                 text = stringResource(
                                     if (isJoin) R.string.label_groupRequiredToJoin else R.string.label_groupRequiredToChat,
@@ -503,3 +529,6 @@ private fun GroupTokenCard(
         }
     }
 }
+
+/** How long the requirement amounts wait for their token's name before showing without it. */
+private val RuleNameHold = 1500.milliseconds
