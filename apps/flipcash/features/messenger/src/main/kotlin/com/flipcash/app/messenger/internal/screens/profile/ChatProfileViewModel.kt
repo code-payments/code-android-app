@@ -10,8 +10,10 @@ import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.chat.E2eePolicy
+import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.isMutedAt
 import com.flipcash.services.user.UserManager
@@ -63,6 +65,7 @@ internal class ChatProfileViewModel @Inject constructor(
     private val tipPaymentDelegate: TipPaymentDelegate,
     private val e2eePolicy: E2eePolicy,
     private val startChattingPayer: StartChattingPayer,
+    private val chatController: ChatController,
 ) : BaseViewModel<ChatProfileViewModel.State, ChatProfileViewModel.Event>(
     initialState = State(selfId = userManager.accountId),
     updateStateForEvent = updateStateForEvent,
@@ -113,6 +116,11 @@ internal class ChatProfileViewModel @Inject constructor(
          * and cannot be dismissed until the chat is ready, or the payment fails.
          */
         val paymentInProgress: Boolean = false,
+        /**
+         * The public groups this person features. Empty until the read lands, and after one that
+         * fails: the section hides rather than say the read went wrong.
+         */
+        val featuredGroups: List<ChatMetadata> = emptyList(),
     ) {
         /** Null for your own profile, for anyone but a tip user, and until [profileSettled]. */
         val pinnedAction: ProfilePinnedAction?
@@ -161,6 +169,7 @@ internal class ChatProfileViewModel @Inject constructor(
             val viewerState: ViewerState? = null,
         ) : Event
         data class FeeLoaded(val fee: Fiat?) : Event
+        data class FeaturedGroupsLoaded(val groups: List<ChatMetadata>) : Event
         data class TokenUpdated(val token: Token) : Event
 
         /** The pinned button was tapped; what it does is [State.pinnedAction]'s. */
@@ -289,6 +298,19 @@ internal class ChatProfileViewModel @Inject constructor(
             .flatMapLatest { blocklist.observeIsBlocked(it) }
             .onEach { dispatchEvent(Event.BlockedChanged(it)) }
             .launchIn(viewModelScope)
+
+        // Keyed on the handle because that is all the read takes, and a cached participant may not
+        // carry one until the full profile replaces it. Latest: groups fetched for someone the
+        // screen has moved on from are dropped.
+        stateFlow
+            .map { (it.participant as? ChatParticipant.TipUser)?.profile?.username?.takeIf { name -> name.isNotBlank() } }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collectLatestIn(viewModelScope) { username ->
+                dispatchEvent(Event.FeaturedGroupsLoaded(emptyList()))
+                chatController.getFeaturedGroups(username)
+                    .onSuccess { dispatchEvent(Event.FeaturedGroupsLoaded(it)) }
+            }
 
         // Nullable on purpose: moving to a person with no DM yet has to end the last person's
         // subscriptions, and coming back to one has to start them again.
@@ -456,6 +478,7 @@ internal class ChatProfileViewModel @Inject constructor(
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnParticipantSet -> { state -> state.withParticipantSet(event) }
+                is Event.FeaturedGroupsLoaded -> { state -> state.copy(featuredGroups = event.groups) }
                 is Event.JoinDateLoaded -> { state -> state.copy(joinDate = event.joinDate) }
                 is Event.ProfileLoaded -> { state ->
                     // A fetch that lands after the screen moved on is someone else's.

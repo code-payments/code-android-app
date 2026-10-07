@@ -34,6 +34,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.messenger.internal.rememberMutedLabel
@@ -42,12 +43,14 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.common.ui.ContactAvatar
+import com.flipcash.shared.common.ui.profile.FeaturedGroupsSection
 import com.flipcash.shared.common.ui.profile.ProfileActionButton
 import com.flipcash.shared.common.ui.profile.ProfileHeader
 import com.flipcash.shared.common.ui.profile.ProfilePinnedActionBar
 import com.flipcash.shared.common.ui.profile.ProfileStatsCard
 import com.flipcash.shared.common.ui.profile.ProfileStatusChip
 import com.flipcash.shared.common.ui.profile.joinedLabel
+import com.flipcash.shared.common.ui.profile.rememberFeaturedGroupItems
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
@@ -205,6 +208,15 @@ internal fun PersonProfileScreen(
                     // The fee is a field of the full profile; before it settles there is no honest number.
                     minimumToChat = state.fee?.takeIf { state.profileSettled }?.formatted(),
                     joined = joinedLabel(state.joinDate),
+                )
+                FeaturedGroupsSection(
+                    modifier = Modifier
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .padding(top = CodeTheme.dimens.staticGrid.x4),
+                    groups = rememberFeaturedGroupItems(state.featuredGroups),
+                    onOpen = { chatId ->
+                        navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId)))
+                    },
                 )
             }
 

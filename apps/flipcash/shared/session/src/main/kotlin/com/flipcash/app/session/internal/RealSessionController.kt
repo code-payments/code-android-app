@@ -11,6 +11,7 @@ import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.chat.observeUnreadChatListCount
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
@@ -111,6 +112,7 @@ class RealSessionController @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val contactCoordinator: ContactCoordinator,
     private val chatCoordinator: ChatCoordinator,
+    private val featuredGroupsStore: FeaturedGroupsStore,
     private val blocklistCoordinator: BlocklistCoordinator,
     private val blobStorageCoordinator: BlobStorageCoordinator,
     private val mediaUrlResolver: MediaUrlResolver,
@@ -204,6 +206,7 @@ class RealSessionController @Inject constructor(
                         depositDelegate.cancelSweep()
                         scope.launch { contactCoordinator.reset() }
                         scope.launch { chatCoordinator.teardown() }
+                        featuredGroupsStore.reset()
                         // Blob download URLs are minted for the signed-in owner.
                         scope.launch { mediaUrlResolver.reset() }
                         stateHolder.reset()

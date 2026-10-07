@@ -149,6 +149,7 @@ class SessionControllerShareCheckTest {
         tokenCoordinator = tokenCoordinator,
         contactCoordinator = mockk(relaxed = true),
         chatCoordinator = mockk(relaxed = true),
+        featuredGroupsStore = mockk(relaxed = true),
         blocklistCoordinator = mockk(relaxed = true),
         blobStorageCoordinator = mockk(relaxed = true),
         mediaUrlResolver = mockk(relaxed = true),

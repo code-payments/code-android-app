@@ -8,7 +8,10 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.services.chat.E2eePolicy
+import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ProfileController
+import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.shared.chat.ChatCoordinator
@@ -53,6 +56,9 @@ class ChatProfileViewModelTest {
     private val serverJoin = Instant.fromEpochSeconds(1_710_000_000)
 
     private val profiles = mockk<ProfileController>()
+    private val chatController = mockk<ChatController> {
+        coEvery { getFeaturedGroups(any()) } returns Result.success(emptyList())
+    }
     private val userManager = mockk<UserManager> { every { accountId } returns List(16) { 1 } }
 
     private val dmChatId = ChatId(ByteArray(32) { 7 })
@@ -88,6 +94,7 @@ class ChatProfileViewModelTest {
         tipPaymentDelegate = tipPaymentDelegate,
         e2eePolicy = mockk<E2eePolicy>(relaxed = true),
         startChattingPayer = payer,
+        chatController = chatController,
     )
 
     private fun openFull(model: ChatProfileViewModel) =
@@ -133,6 +140,39 @@ class ChatProfileViewModelTest {
         )
 
         assertEquals("Sally", model.stateFlow.value.participant?.name)
+    }
+
+    private fun featured(hex: String) = ChatMetadata(
+        chatId = ChatId(hex),
+        type = ChatType.GROUP,
+        members = emptyList(),
+        lastMessage = null,
+        lastActivity = Instant.fromEpochSeconds(0),
+    )
+
+    @Test
+    fun `a person's featured groups are read by their handle`() = runTest {
+        coEvery { profiles.getProfileForUser(theirId) } returns
+            Result.success(participant(serverJoin).profile)
+        val groups = listOf(featured("aa"), featured("bb"))
+        coEvery { chatController.getFeaturedGroups("sally_streamer") } returns Result.success(groups)
+        val model = viewModel()
+
+        model.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant(cachedJoin)))
+
+        assertEquals(groups, model.stateFlow.value.featuredGroups)
+    }
+
+    @Test
+    fun `a failed featured groups read leaves the section hidden`() = runTest {
+        coEvery { profiles.getProfileForUser(theirId) } returns
+            Result.success(participant(serverJoin).profile)
+        coEvery { chatController.getFeaturedGroups(any()) } returns Result.failure(Exception("offline"))
+        val model = viewModel()
+
+        model.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant(cachedJoin)))
+
+        assertEquals(emptyList(), model.stateFlow.value.featuredGroups)
     }
 
     @Test
