@@ -926,6 +926,8 @@
     <string name="label_groupRequiredToChat">%1$s Required to Chat</string>
     <string name="action_buyToJoin">Buy %1$s to Join</string>
     <string name="action_buyToChat">Buy %1$s to Chat</string>
+    <string name="action_addToJoin">Add %1$s to Join</string>
+    <string name="action_addToChat">Add %1$s to Chat</string>
     <string name="action_leaveChat">Leave Chat</string>
     <string name="prompt_title_leaveChat">Leave %1$s?</string>
     <string name="prompt_description_leaveChat">You won’t receive messages from this group any more. You can join again with an invite link</string>

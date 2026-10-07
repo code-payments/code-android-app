@@ -289,6 +289,45 @@ class GroupProfileStateTest {
         assertNull(balanceShortfall(minimum(10.0), listOf(held(1, 10.0)), emptyMap()))
     }
 
+    // Gate funding
+
+    @Test
+    fun `funding buys when one other balance covers the shortfall`() {
+        // $6 short of $10 of mint 1; mint 2 alone holds $6.
+        assertEquals(
+            GateFunding.Buy,
+            gateFunding(minimum(10.0, listOf(mint(1))), listOf(held(1, 4.0), held(2, 6.0)), emptyMap()),
+        )
+    }
+
+    @Test
+    fun `funding adds money when no single balance covers the shortfall`() {
+        // $6 short; $3 + $3 would cover it, but the buy pays from one source.
+        assertEquals(
+            GateFunding.AddMoney,
+            gateFunding(
+                minimum(10.0, listOf(mint(1))),
+                listOf(held(1, 4.0), held(2, 3.0), held(3, 3.0)),
+                emptyMap(),
+            ),
+        )
+    }
+
+    @Test
+    fun `funding does not pay with the gated token itself`() {
+        assertEquals(
+            GateFunding.AddMoney,
+            gateFunding(minimum(10.0, listOf(mint(1))), listOf(held(1, 4.0)), emptyMap()),
+        )
+    }
+
+    @Test
+    fun `funding without a rate falls back to any spendable source`() {
+        val rule = minimum(Fiat(10.0, CurrencyCode.CAD), listOf(mint(1)))
+        assertEquals(GateFunding.Buy, gateFunding(rule, listOf(held(2, 0.5)), emptyMap()))
+        assertEquals(GateFunding.AddMoney, gateFunding(rule, listOf(held(1, 4.0)), emptyMap()))
+    }
+
     // Chatting grid
 
     private fun chatter() = SampledChatter(

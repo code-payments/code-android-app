@@ -13,15 +13,20 @@ sealed interface ChatAction {
     data class OpenPhoto(val bubble: ChatListItem.ContentBubble) : ChatAction
     data class AdvanceReadPointer(val messageId: Long) : ChatAction
     object RefreshContact : ChatAction
+    /** Opens a currency's info screen. */
+    data class ViewToken(val mint: Mint) : ChatAction
+
     /**
-     * Opens a currency's info screen. [returnAfterBuy] brings the reader back here once they buy
-     * it — set by the group gate, where buying is how they get in.
+     * The group gate's Buy: opens the buy screen for [mint] straight away, so the reader comes back
+     * to the gate once the buy lands. The gate sends [AddCash] instead when nothing they hold can
+     * pay for it.
      */
-    data class ViewToken(val mint: Mint, val returnAfterBuy: Boolean = false) : ChatAction
+    data class BuyGateToken(val mint: Mint) : ChatAction
 
     /**
      * Opens the add-cash flow — the group gate's answer to a balance rule any holding satisfies,
-     * or one on the reserve, where there is no other token to buy.
+     * or one on the reserve, where there is no other token to buy, and to a buy no single held
+     * balance can pay for.
      */
     data object AddCash : ChatAction
 

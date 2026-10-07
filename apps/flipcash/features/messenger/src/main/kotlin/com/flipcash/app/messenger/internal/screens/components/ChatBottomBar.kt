@@ -88,6 +88,7 @@ import com.flipcash.app.messenger.internal.balanceRequirement
 import com.flipcash.app.messenger.internal.mention.mentionListHeight
 import com.flipcash.app.messenger.internal.mention.mentionRowCap
 import com.flipcash.app.messenger.internal.requiresStaff
+import com.flipcash.app.messenger.internal.screens.profile.GateFunding
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.models.ChatActionHandler
@@ -152,6 +153,8 @@ internal fun UserControlBottomBar(
             staffOnly = (state.subject as? ChatSubject.Group)?.rules.requiresStaff() == true,
             currency = state.ruleCurrency,
             shortfall = state.profileStanding?.shortfall,
+            funding = state.profileStanding?.funding ?: GateFunding.Buy,
+            hazeState = hazeState,
             onAction = onAction,
             joinProgress = state.joinProgress,
         )
@@ -173,6 +176,8 @@ internal fun UserControlBottomBar(
                 requirement = block,
                 currency = currency,
                 shortfall = state.profileStanding?.shortfall,
+                funding = state.profileStanding?.funding ?: GateFunding.Buy,
+                hazeState = hazeState,
                 onAction = onAction,
             )
         } else {
