@@ -1,6 +1,7 @@
 package com.flipcash.shared.common.ui.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -59,14 +60,16 @@ fun ProfilePinnedActionBar(
                 onHeightChanged(measured)
             }
             .background(CodeTheme.colors.background)
-            .navigationBarsPadding(),
+            .navigationBarsPadding()
+            // iOS: 12 above, 8 below and 8 between, on the 5dp grid.
+            .padding(vertical = CodeTheme.dimens.staticGrid.x2),
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
     ) {
         above?.invoke()
         CodeButton(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(bottom = CodeTheme.dimens.grid.x3),
+                .padding(horizontal = CodeTheme.dimens.inset),
             buttonState = ButtonState.Filled,
             text = text,
             enabled = enabled,
@@ -77,8 +80,7 @@ fun ProfilePinnedActionBar(
             CodeButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(bottom = CodeTheme.dimens.grid.x3),
+                    .padding(horizontal = CodeTheme.dimens.inset),
                 buttonState = ButtonState.Subtle,
                 text = secondaryText,
                 onClick = onSecondaryClick,

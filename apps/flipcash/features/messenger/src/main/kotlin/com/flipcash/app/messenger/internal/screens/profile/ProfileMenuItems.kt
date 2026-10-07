@@ -7,6 +7,7 @@ import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,7 +76,11 @@ internal fun ProfileMenu(
         shape = CodeTheme.shapes.extraLarge,
         offset = DpOffset(x = 0.dp, y = -anchorHeight),
     ) {
-        items.forEach { item ->
+        items.forEachIndexed { index, item ->
+            // A divider wherever the red rows start or stop, so they sit apart, as on iOS.
+            if (index > 0 && items[index - 1].isDestructive != item.isDestructive) {
+                HorizontalDivider(color = CodeTheme.colors.divider)
+            }
             val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
             DropdownMenuItem(
                 leadingIcon = {

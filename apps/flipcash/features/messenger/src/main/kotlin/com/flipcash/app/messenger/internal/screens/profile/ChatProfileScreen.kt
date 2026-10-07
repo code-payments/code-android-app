@@ -4,8 +4,10 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
@@ -34,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ReportSubject
+import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
@@ -159,17 +162,25 @@ internal fun PersonProfileScreen(
                     // Until the whole profile is here a missing bio means nothing, so it is not shown.
                     body = person?.profile?.bio?.takeIf { state.isFullProfileLoaded },
                     actions = {
-                        if (state.isBlocked) {
-                            ProfileStatusChip(
-                                icon = Icons.Outlined.Block,
-                                text = stringResource(R.string.label_blocked),
-                            )
-                        }
-                        if (state.isMuted) {
-                            ProfileStatusChip(
-                                icon = Icons.Outlined.NotificationsOff,
-                                text = stringResource(R.string.label_muted),
-                            )
+                        // As on iOS: "Muted until 5:56 PM" for a timed mute, and gone once it lapses.
+                        val mutedLabel = rememberMutedLabel(state.viewerState)
+                        // iOS spaces the chips 8 apart and keeps the row's 12 before Share.
+                        if (state.isBlocked || mutedLabel != null) Row(
+                            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (state.isBlocked) {
+                                ProfileStatusChip(
+                                    icon = Icons.Outlined.Block,
+                                    text = stringResource(R.string.label_blocked),
+                                )
+                            }
+                            if (mutedLabel != null) {
+                                ProfileStatusChip(
+                                    icon = Icons.Outlined.NotificationsOff,
+                                    text = mutedLabel,
+                                )
+                            }
                         }
                         if (person != null) {
                             ProfileActionButton(

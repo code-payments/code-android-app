@@ -17,6 +17,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.isMutedAt
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
@@ -97,6 +98,8 @@ internal class ChatProfileViewModel @Inject constructor(
         val dmExists: Boolean = false,
         val isBlocked: Boolean = false,
         val isMuted: Boolean = false,
+        /** What the Muted chip reads its deadline from; it lapses the chip on its own. */
+        val viewerState: ViewerState? = null,
         /** Null until it has loaded. */
         val fee: Fiat? = null,
         /** The E2EE footer's claim for the DM, decided by the policy from its metadata. */
@@ -159,7 +162,11 @@ internal class ChatProfileViewModel @Inject constructor(
         data class DmChatIdResolved(val chatId: ChatId?) : Event
         data class DmExistsChanged(val exists: Boolean) : Event
         data class BlockedChanged(val isBlocked: Boolean) : Event
-        data class ChatStateChanged(val isMuted: Boolean, val isEncrypted: Boolean) : Event
+        data class ChatStateChanged(
+            val isMuted: Boolean,
+            val isEncrypted: Boolean,
+            val viewerState: ViewerState? = null,
+        ) : Event
         data class FeeLoaded(val fee: Fiat?) : Event
         data class TokenUpdated(val token: Token) : Event
 
@@ -334,6 +341,7 @@ internal class ChatProfileViewModel @Inject constructor(
                                 // Evaluated on emission; a timed mute that lapses has no event of its own.
                                 isMuted = membership?.metadata?.viewerState.isMutedAt(),
                                 isEncrypted = membership?.metadata?.let(e2eePolicy::shouldEncrypt) ?: false,
+                                viewerState = membership?.metadata?.viewerState,
                             )
                         }
                         .distinctUntilChanged()
@@ -442,9 +450,10 @@ internal class ChatProfileViewModel @Inject constructor(
                     return@onSuccess
                 }
                 // The server creates the DM from the payment, so its members arrive a moment
-                // after. The sheet stays up, showing its success, until they do. If they never do
-                // (as on iOS) the sheet goes and the profile stays: the pinned action flips to Open
-                // Chat when they land.
+                // after. The sheet stays up, showing its success, until they do; iOS dismisses after
+                // a second instead, but here the sheet holds until the chat can open. If they never
+                // arrive the sheet goes and the profile stays: the pinned action flips to Open Chat
+                // when they land.
                 val arrived = withTimeoutOrNull(MEMBERS_TIMEOUT) {
                     chatCoordinator.observeMembers(chatId).first { it.isNotEmpty() }
                 }
@@ -491,7 +500,11 @@ internal class ChatProfileViewModel @Inject constructor(
                 is Event.DmExistsChanged -> { state -> state.copy(dmExists = event.exists) }
                 is Event.BlockedChanged -> { state -> state.copy(isBlocked = event.isBlocked) }
                 is Event.ChatStateChanged -> { state ->
-                    state.copy(isMuted = event.isMuted, isEncrypted = event.isEncrypted)
+                    state.copy(
+                        isMuted = event.isMuted,
+                        isEncrypted = event.isEncrypted,
+                        viewerState = event.viewerState,
+                    )
                 }
                 is Event.FeeLoaded -> { state -> state.copy(fee = event.fee) }
                 is Event.TokenUpdated -> { state -> state.copy(token = event.token) }
