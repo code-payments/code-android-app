@@ -50,8 +50,11 @@ private val RowInset = 16.dp
  * token's icon and name) and a chevron, and tapping it calls [onCommunityCurrencyClick]. The caller
  * then passes bare amounts for [join] and [chat], since the token is already named above them.
  *
- * [compact] is the read-only form on Edit Group: a 16 header, shorter rows with their labels in
- * the same 16 as the values, and the [footnote] beneath. The profile's own is the default.
+ * [compact] is the form on Edit Group: a 16 header, shorter rows with their labels in the same 16
+ * as the values, and the [footnote] beneath. The profile's own is the default.
+ *
+ * [onJoinClick] and [onChatClick] make their row tappable and give it a trailing chevron — Edit
+ * Group passes them to open the requirement's editor; the read-only profile passes neither.
  */
 @Composable
 fun BalanceRequirementsCard(
@@ -63,6 +66,8 @@ fun BalanceRequirementsCard(
     onCommunityCurrencyClick: () -> Unit = {},
     compact: Boolean = false,
     footnote: String? = null,
+    onJoinClick: (() -> Unit)? = null,
+    onChatClick: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -87,12 +92,14 @@ fun BalanceRequirementsCard(
                 label = stringResource(R.string.label_balanceRequirementJoin),
                 value = join ?: stringResource(R.string.label_balanceRequirementNone),
                 compact = compact,
+                onClick = onJoinClick,
             )
             RowSeparator()
             RequirementRow(
                 label = stringResource(R.string.label_balanceRequirementChat),
                 value = chat ?: stringResource(R.string.label_balanceRequirementNone),
                 compact = compact,
+                onClick = onChatClick,
             )
         }
         if (footnote != null) {
@@ -168,11 +175,12 @@ private fun CommunityCurrencyRow(onClick: () -> Unit, content: @Composable RowSc
 }
 
 @Composable
-private fun RequirementRow(label: String, value: String, compact: Boolean) {
+private fun RequirementRow(label: String, value: String, compact: Boolean, onClick: (() -> Unit)?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(if (compact) CompactRowHeight else RowHeight)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = RowInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -182,11 +190,20 @@ private fun RequirementRow(label: String, value: String, compact: Boolean) {
             style = if (compact) CodeTheme.typography.textMedium else CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
         )
-        Text(
-            text = value,
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = value,
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
+            if (onClick != null) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textSecondary,
+                )
+            }
+        }
     }
 }
 
@@ -202,6 +219,14 @@ private fun Preview_BalanceRequirementsCard() {
             chat = "$1",
             yourBalance = "$4.50 of Moony",
             communityCurrency = { Text(text = "Moony", style = CodeTheme.typography.textMedium, color = CodeTheme.colors.textMain) },
+        )
+        BalanceRequirementsCard(
+            join = "$10",
+            chat = null,
+            yourBalance = null,
+            compact = true,
+            onJoinClick = {},
+            onChatClick = {},
         )
     }
 }

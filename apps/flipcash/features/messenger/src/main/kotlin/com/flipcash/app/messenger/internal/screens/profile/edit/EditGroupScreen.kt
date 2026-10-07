@@ -22,6 +22,7 @@ import com.flipcash.app.messenger.internal.screens.profile.GroupBalanceRequireme
 import com.flipcash.app.messenger.internal.screens.profile.holdingLabel
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.services.models.chat.GroupBalanceRole
 import com.flipcash.shared.common.ui.profile.BalanceRequirementsCard
 import com.flipcash.shared.common.ui.profile.CoverAndPhoto
 import com.flipcash.shared.common.ui.profile.FieldCard
@@ -32,7 +33,11 @@ import com.getcode.ui.theme.CodeScaffold
 
 /**
  * The group's edit screen: its cover and picture, then a card for each text field, then the
- * balance requirements, which are shown and not editable.
+ * balance requirements.
+ *
+ * The requirements' Join and Chat rows open [EditGroupBalanceRequirementScreen] only where
+ * `EditChatRequest.rules` would be accepted: a public group created with a listener minimum
+ * ([isBalanceEditable]). Anywhere else the card is shown and not editable.
  *
  * Every field opens its own editor and saves on its own, so nothing is held here. The screen is
  * the door to those editors and leaves the moment the viewer stops being allowed through it: if
@@ -52,6 +57,7 @@ internal fun EditGroupScreen(chatViewModel: ChatViewModel) {
 
     val requirements = remember(group?.rules) { GroupBalanceRequirements.from(group?.rules) }
     val tokens = state.ruleTokens
+    val balanceEditable = group != null && isBalanceEditable(group.rules, group.isPrivate)
     val grid = CodeTheme.dimens.staticGrid
 
     CodeScaffold(
@@ -109,6 +115,12 @@ internal fun EditGroupScreen(chatViewModel: ChatViewModel) {
                     yourBalance = null,
                     compact = true,
                     footnote = stringResource(R.string.footer_groupBalanceRequirements),
+                    onJoinClick = if (balanceEditable) {
+                        { flowNavigator.navigateTo(ChatStep.EditGroupBalanceRequirement(GroupBalanceRole.Join)) }
+                    } else null,
+                    onChatClick = if (balanceEditable) {
+                        { flowNavigator.navigateTo(ChatStep.EditGroupBalanceRequirement(GroupBalanceRole.Chat)) }
+                    } else null,
                 )
             }
         }
