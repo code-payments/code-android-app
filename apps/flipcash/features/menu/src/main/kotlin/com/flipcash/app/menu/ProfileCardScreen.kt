@@ -38,6 +38,7 @@ import com.flipcash.core.R as CoreR
 import com.flipcash.features.menu.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.utils.KeepScreenOn
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
@@ -70,6 +71,16 @@ fun ProfileCardScreen() {
         targetValue = if (appeared) 1f else CardInitialScale,
         animationSpec = spring(dampingRatio = CardSpringDamping, stiffness = CardSpringStiffness),
         label = "profile card scale",
+    )
+
+    // As on iOS: the card is a code someone is about to scan, so a dim screen is raised to 0.6 for
+    // as long as it is up (the boost is capped there, so anything under 0.4 lands on exactly 0.6).
+    KeepScreenOn(
+        isEnabled = true,
+        useBrightness = true,
+        minBrightness = ScanMinimumBrightness,
+        brightnessBoost = ScanBoostedBrightness,
+        maxBrightness = ScanBoostedBrightness,
     )
 
     // Everything under the Download button is its frosting source, as the cover is for the You tab's gear.
@@ -132,6 +143,9 @@ fun ProfileCardScreen() {
         )
     }
 }
+
+private const val ScanMinimumBrightness = 0.4f
+private const val ScanBoostedBrightness = 0.6f
 
 /** How much of the display the card spans, the proportion the earlier full-screen card used. */
 private const val CardWidthFraction = 0.75f

@@ -1199,8 +1199,6 @@
     <!-- The "You" tab's username progress card (nodes 9536:4336 / 9537:1845). -->
     <string name="title_usernameUpsell">Get a custom @username</string>
     <string name="subtitle_usernameUpsellLocked">Get your balance to %1$s or more to unlock</string>
-    <string name="subtitle_usernameUpsellUnlocked">Tap to select your username now</string>
-    <string name="label_usernameAmountToGo">%1$s to go</string>
     <string name="error_title_usernameTaken">Username Taken</string>
     <string name="error_description_usernameTaken">Please try a different username</string>
     <!-- Moderation rejections reuse the display-name descriptions above, per the design. -->
@@ -1327,6 +1325,7 @@
 
     <!-- You tab (tip card) -->
     <string name="action_editProfile">Edit Profile</string>
+    <string name="action_claimYourUsernameLink">Claim your username ›</string>
     <string name="title_shareUserProfile">Share User Profile</string>
     <!-- Who the share sheet is for: display name, then @handle -->
     <string name="subtitle_shareUserProfile">%1$s · @%2$s</string>

@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
@@ -52,7 +53,6 @@ import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.ProfileState
-import com.flipcash.app.menu.internal.components.UsernameProgressCard
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R as CoreR
 import com.flipcash.features.menu.R
@@ -117,6 +117,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                             profile = profileState.profile,
                             onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
                             onShare = null,
+                            onClaimUsername = state.usernameProgress?.let {
+                                { viewModel.dispatchEvent(Event.ClaimUsername) }
+                            },
                             onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
                         )
                     }
@@ -140,6 +143,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                                 viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings))
                             },
                             onShare = { viewModel.dispatchEvent(Event.ShareProfile) },
+                            onClaimUsername = state.usernameProgress?.let {
+                                { viewModel.dispatchEvent(Event.ClaimUsername) }
+                            },
                             onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
                         )
                     }
@@ -151,20 +157,6 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                             minimumToChat = state.minimumToChat,
                             joined = profileState.joined,
                         )
-                    }
-                    // Only for a named account: one with no name is already being asked for one.
-                    // Gone entirely once a handle exists — the state nulls it out.
-                    state.usernameProgress?.let { progress ->
-                        item(key = "username_progress") {
-                            UsernameProgressCard(
-                                modifier = Modifier
-                                    .padding(horizontal = CodeTheme.dimens.inset)
-                                    .padding(top = CodeTheme.dimens.staticGrid.x4),
-                                progress = progress,
-                                minimumBalance = state.usernameMinimumBalance,
-                                onClick = { viewModel.dispatchEvent(Event.ClaimUsername) },
-                            )
-                        }
                     }
                     item(key = "bottom_spacer") { Spacer(Modifier.height(CodeTheme.dimens.grid.x4)) }
                 }
@@ -179,6 +171,7 @@ private fun OwnProfileHeader(
     profile: UserProfile?,
     onEdit: () -> Unit,
     onShare: (() -> Unit)?,
+    onClaimUsername: (() -> Unit)?,
     onSettings: () -> Unit,
 ) {
     // The header is what scrolls under the gear, so it is the gear's frosting source.
@@ -200,6 +193,22 @@ private fun OwnProfileHeader(
             title = profile?.displayName?.ifEmpty { null },
             subtitle = profile?.username?.takeIf { it.isNotEmpty() }?.let { "@$it" },
             body = profile?.bio?.ifEmpty { null },
+            // As on iOS: a one-line offer under the handle while there is no handle, or only an
+            // auto-assigned one. The tap goes through the balance gate like the old progress card.
+            underSubtitle = {
+                if (onClaimUsername != null) {
+                    Text(
+                        modifier = Modifier
+                            .padding(top = CodeTheme.dimens.staticGrid.x1)
+                            .clickable(onClick = onClaimUsername)
+                            .padding(vertical = CodeTheme.dimens.staticGrid.x1)
+                            .testTag("you-claim-username"),
+                        text = stringResource(R.string.action_claimYourUsernameLink),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textMain,
+                    )
+                }
+            },
             actions = {
                 ProfileActionButton(
                     text = stringResource(R.string.action_editProfile),
