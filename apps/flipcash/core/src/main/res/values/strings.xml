@@ -1337,8 +1337,8 @@
     <string name="action_claimUsername">Claim your username</string>
     <string name="placeholder_minimumToChat">Not set</string>
     <string name="title_shareUserProfile">Share User Profile</string>
+    <string name="title_shareProfileToChats">Share Profile</string>
     <!-- Who the share sheet is for: display name, then @handle -->
-    <string name="subtitle_shareUserProfile">%1$s · @%2$s</string>
     <string name="action_shareProfileLink">Share Profile</string>
     <string name="action_showProfileCard">Show Profile Card</string>
     <string name="action_copyLink">Copy Link</string>

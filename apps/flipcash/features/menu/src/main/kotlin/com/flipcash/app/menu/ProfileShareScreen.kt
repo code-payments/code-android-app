@@ -10,51 +10,53 @@ import com.flipcash.features.menu.R
 import com.flipcash.shared.common.ui.profile.ProfileShareRow
 import com.flipcash.shared.common.ui.profile.ProfileShareSheet
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 
 private const val RowShare = "share"
 private const val RowCard = "card"
-private const val RowCopy = "copy"
 
 /**
  * The share sheet for the viewer's own profile, behind `AppRoute.Menu.ShareProfile`.
  *
  * A row does not act on the tap. It asks the navigator to animate the sheet away and runs the
- * action once that has finished, so the system share sheet or the card screen is not opened over a
- * sheet that is still on its way out.
+ * action once that has finished, so the card screen or the share-to-chats sheet is not opened over
+ * a sheet that is still on its way out.
  */
 @Composable
 fun ProfileShareScreen() {
     val viewModel = hiltViewModel<ProfileShareViewModel>()
     val navigator = LocalCodeNavigator.current
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val profile = remember(viewModel) { viewModel.profile }
 
-    val name = profile?.displayName.orEmpty()
-    val handle = profile?.username
-    val subtitle = if (handle.isNullOrEmpty()) {
-        name
-    } else {
-        stringResource(R.string.subtitle_shareUserProfile, name, handle)
-    }
     val rows = listOf(
         ProfileShareRow(RowShare, R.drawable.ic_share_os, stringResource(R.string.action_shareProfileLink)),
         ProfileShareRow(RowCard, R.drawable.ic_qr_code, stringResource(R.string.action_showProfileCard)),
-        ProfileShareRow(RowCopy, R.drawable.ic_copy, stringResource(R.string.action_copyLink)),
     )
 
     ProfileShareSheet(
         title = stringResource(R.string.title_shareUserProfile),
-        subtitle = subtitle,
         rows = rows,
         onRow = { row ->
             // A second tap while the sheet animates out would replace the pending action and run both.
             if (navigator.pendingSheetDismiss != null) return@ProfileShareSheet
             navigator.pendingSheetDismiss = {
                 when (row.id) {
-                    RowShare -> viewModel.share()
+                    RowShare -> viewModel.currentUserId?.let { userId ->
+                        navigator.push(
+                            AppRoute.Messaging.ShareProfileToChats(
+                                userId = userId,
+                                username = profile?.username,
+                                displayName = profile?.displayName,
+                                // Your own profile has no DM to leave out.
+                                directChatId = null,
+                            )
+                        )
+                    }
                     RowCard -> navigator.push(AppRoute.Menu.ProfileCard)
-                    RowCopy -> viewModel.copyLink()
                 }
             }
         },
+        onDismiss = dismissSheet,
     )
 }

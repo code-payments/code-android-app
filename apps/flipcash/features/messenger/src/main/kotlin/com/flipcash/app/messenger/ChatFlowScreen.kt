@@ -25,6 +25,7 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
+import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.flipcash.app.messenger.internal.screens.EmojiPickerViewModel
 import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
@@ -232,7 +233,7 @@ private fun FlowGroupInviteSheet() {
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
 
     LaunchedEffect(inviteViewModel, state.chatId) {
-        state.chatId?.let(inviteViewModel::inviteTo)
+        state.chatId?.let(inviteViewModel::exclude)
     }
 
     // Returned to whichever screen opened the sheet (see openGroupInvite), which navigates. The
@@ -248,7 +249,7 @@ private fun FlowGroupInviteSheet() {
 
     GroupInviteSheet(
         inviteUrl = state.groupInviteUrl,
-        group = state.subject as? ChatSubject.Group,
+        subject = ShareToChatsSubject.Group(state.subject as? ChatSubject.Group),
         state = inviteState,
         onShare = { viewModel.dispatchEvent(ChatViewModel.Event.InviteLinkShared) },
         onCopy = { viewModel.dispatchEvent(ChatViewModel.Event.CopyInviteLink) },

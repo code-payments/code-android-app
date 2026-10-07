@@ -65,6 +65,7 @@ import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.GroupInviteResult
 import com.flipcash.app.core.media.rememberMediaUrl
 import com.flipcash.app.core.share.SharePreviewImage
+import com.flipcash.app.core.share.TipCodePreview
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.shareable.LocalShareController
@@ -74,6 +75,7 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.common.ui.ContactAvatar
+import com.getcode.opencode.model.core.ID
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.navigateForResult
@@ -112,25 +114,47 @@ internal fun CodeNavigator.openGroupInvite() {
 }
 
 /**
- * Node 10329:12104 — handing out the link to a group, and sending it straight into the
+ * What [GroupInviteSheet] hands out: a group's invite link, or a person's profile link. The two
+ * differ in their copy, in what the Share tile gives the system share sheet, and in whether the
+ * group's analytics fire; the rest of the sheet is the same.
+ */
+internal sealed interface ShareToChatsSubject {
+    /**
+     * @param group what is being invited to, for the group's name and picture. The sheet only opens
+     * on a group, so null is the frame before the subject resolves.
+     */
+    data class Group(val group: ChatSubject.Group?) : ShareToChatsSubject
+
+    /**
+     * @param preview the tip-code image for the system share sheet's card, when one is rendered.
+     */
+    data class User(
+        val userId: ID,
+        val username: String?,
+        val displayName: String?,
+        val preview: TipCodePreview?,
+    ) : ShareToChatsSubject
+}
+
+/**
+ * Node 10329:12104 — handing out a link to a group or a person, and sending it straight into the
  * viewer's other chats.
  *
- * The Share and Copy tiles carry the same URL, built once by
- * [com.flipcash.app.core.util.Linkify.groupChatInvite] from the chat's id: there is no invite RPC,
- * the id *is* the invite, and one builder is what keeps the shared link, the copied link and the
- * sent link identical.
+ * The Share and Copy tiles carry the same URL, built once by the caller: for a group by
+ * [com.flipcash.app.core.util.Linkify.groupChatInvite] from the chat's id (there is no invite RPC,
+ * the id *is* the invite), for a person by [com.flipcash.app.core.util.Linkify.tipcard]. One
+ * builder is what keeps the shared link, the copied link and the sent link identical.
  *
  * @param inviteUrl null for anyone who has nobody to invite — a DM, or a group this viewer has not
  * joined — in which case the sheet is the title bar alone. Both entry points are gated on the same
  * value, so this is a race with a leave rather than a state to design for.
- * @param group what is being invited to, for the group's name and picture. The sheet only opens on
- * a group, so null is the frame before the subject resolves.
+ * @param subject what is being handed out.
  * @param state the Recent Chats selection and the message to send with the link.
  */
 @Composable
 internal fun GroupInviteSheet(
     inviteUrl: String?,
-    group: ChatSubject.Group?,
+    subject: ShareToChatsSubject,
     state: GroupInviteViewModel.State,
     onShare: () -> Unit,
     onCopy: () -> Unit,
@@ -145,6 +169,7 @@ internal fun GroupInviteSheet(
     // Resolved here rather than in the share controller: the stored download URL expires, and
     // re-minting it needs the chat's profile to authorize it — neither of which the shareable
     // module can see. Same size and access as the avatar the conversation bar draws.
+    val group = (subject as? ShareToChatsSubject.Group)?.group
     val picture = group?.picture
     val pictureUrl = rememberMediaUrl(
         media = picture,
@@ -214,13 +239,21 @@ internal fun GroupInviteSheet(
                                 onShare()
                                 scope.launch {
                                     shareController.present(
-                                        Shareable.GroupInvite(
-                                            url = inviteUrl,
-                                            title = group?.groupTitle,
-                                            imageUrl = pictureUrl.url,
-                                            imageCacheKey = picture
-                                                ?.cacheKeyForSize(SharePreviewImage.TARGET_PX),
-                                        )
+                                        when (subject) {
+                                            is ShareToChatsSubject.Group -> Shareable.GroupInvite(
+                                                url = inviteUrl,
+                                                title = group?.groupTitle,
+                                                imageUrl = pictureUrl.url,
+                                                imageCacheKey = picture
+                                                    ?.cacheKeyForSize(SharePreviewImage.TARGET_PX),
+                                            )
+                                            is ShareToChatsSubject.User -> Shareable.Profile(
+                                                userId = subject.userId,
+                                                displayName = subject.displayName,
+                                                username = subject.username,
+                                                preview = subject.preview,
+                                            )
+                                        }
                                     )
                                 }
                             },
@@ -229,8 +262,11 @@ internal fun GroupInviteSheet(
                             modifier = Modifier.weight(1f),
                             icon = if (copied) R.drawable.ic_check else R.drawable.ic_copy,
                             label = stringResource(
-                                if (copied) R.string.action_inviteLinkCopied
-                                else R.string.action_copyInviteLink
+                                when {
+                                    copied -> R.string.action_inviteLinkCopied
+                                    subject is ShareToChatsSubject.User -> R.string.action_copyLink
+                                    else -> R.string.action_copyInviteLink
+                                }
                             ),
                             onClick = {
                                 onCopy()
@@ -292,7 +328,9 @@ internal fun GroupInviteSheet(
                     )
                 }
                 .onSizeChanged { headerHeight = with(density) { it.height.toDp() } },
-            title = stringResource(R.string.title_invitePeople),
+            title = stringResource(
+                if (subject is ShareToChatsSubject.User) R.string.title_shareProfileToChats else R.string.title_invitePeople
+            ),
             titleAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(HeaderPadding),
             endContent = { AppBarDefaults.Close(hazeState = hazeState, onClick = onDismiss) },
@@ -318,6 +356,9 @@ internal fun GroupInviteSheet(
                         .onSizeChanged { fieldHeight = with(density) { it.height.toDp() } },
                     hazeState = hazeState,
                     sending = state.sending,
+                    sendLabel = stringResource(
+                        if (subject is ShareToChatsSubject.User) R.string.action_send else R.string.action_invite
+                    ),
                     onMessageChanged = onMessageChanged,
                     onInvite = onInvite,
                 )
@@ -440,13 +481,14 @@ private fun RecentChatRow(
  * and the sheet's view model reads it at send time.
  *
  * The chat screen's own composer and glass, so typing here feels like typing in a chat, but
- * without its outline, since the Figma pill has none. An Invite label replaces the send arrow
+ * without its outline, since the Figma pill has none. A text label replaces the send arrow
  * because the link goes out whether or not a message is typed.
  */
 @Composable
 private fun InviteComposer(
     hazeState: HazeState,
     sending: Boolean,
+    sendLabel: String,
     onMessageChanged: (String) -> Unit,
     onInvite: () -> Unit,
     modifier: Modifier = Modifier,
@@ -471,7 +513,7 @@ private fun InviteComposer(
         hint = stringResource(R.string.hint_addAMessage),
         state = message,
         submit = ChatInputSubmit.Action(
-            label = stringResource(R.string.action_invite),
+            label = sendLabel,
             busy = sending,
             perform = onInvite,
         ),

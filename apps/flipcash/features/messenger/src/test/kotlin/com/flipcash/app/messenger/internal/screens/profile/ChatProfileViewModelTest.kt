@@ -88,8 +88,6 @@ class ChatProfileViewModelTest {
         tipPaymentDelegate = tipPaymentDelegate,
         e2eePolicy = mockk<E2eePolicy>(relaxed = true),
         startChattingPayer = payer,
-        clipboardManager = mockk<android.content.ClipboardManager>(relaxed = true),
-        toastController = mockk<com.flipcash.app.core.toast.SystemToastController>(relaxed = true),
     )
 
     private fun openFull(model: ChatProfileViewModel) =
