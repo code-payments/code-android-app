@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -48,6 +49,7 @@ internal fun EditBioScreen() {
     Column {
         AppBarWithTitle(
             title = stringResource(R.string.title_bio),
+            titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = {
                 keyboard.hideIfVisible { flowNavigator.back() }
             },
@@ -79,7 +81,7 @@ private fun EditBioScreenContent(
                     .navigationBarsPadding()
                     .padding(
                         top = CodeTheme.dimens.grid.x6,
-                        bottom = CodeTheme.dimens.grid.x3,
+                        bottom = CodeTheme.dimens.staticGrid.x4,
                     ).imePadding(),
                 text = stringResource(R.string.action_save),
                 enabled = draft.canSave && state.processingState.isIdle,
@@ -92,14 +94,17 @@ private fun EditBioScreenContent(
         }
     ) { padding ->
         val focusRequester = remember { FocusRequester() }
+        // The counter sits right under the field and any error under the counter, as on iOS.
         Column(
-            modifier = Modifier.padding(padding),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            modifier = Modifier
+                .padding(padding)
+                .padding(top = CodeTheme.dimens.staticGrid.x4),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
         ) {
             DisplayTextInput(
                 state = state.fieldState,
                 placeholder = stringResource(R.string.placeholder_bio),
-                style = CodeTheme.typography.textMedium.copy(color = CodeTheme.colors.textMain),
+                style = CodeTheme.typography.textLarge.copy(color = CodeTheme.colors.textMain),
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
@@ -109,6 +114,14 @@ private fun EditBioScreenContent(
                     capitalization = KeyboardCapitalization.Sentences,
                     imeAction = ImeAction.Default,
                 ),
+            )
+
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = draft.remaining.toString(),
+                style = CodeTheme.typography.textSmall,
+                color = if (draft.remaining < 0) CodeTheme.colors.errorText else CodeTheme.colors.textSecondary,
+                textAlign = TextAlign.End,
             )
 
             val error = draft.error
@@ -124,14 +137,6 @@ private fun EditBioScreenContent(
                     color = CodeTheme.colors.errorText,
                 )
             }
-
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = draft.remaining.toString(),
-                style = CodeTheme.typography.textSmall,
-                color = if (draft.remaining < 0) CodeTheme.colors.errorText else CodeTheme.colors.textSecondary,
-                textAlign = TextAlign.End,
-            )
         }
 
         RequestFocusWhenSettled(focusRequester)
