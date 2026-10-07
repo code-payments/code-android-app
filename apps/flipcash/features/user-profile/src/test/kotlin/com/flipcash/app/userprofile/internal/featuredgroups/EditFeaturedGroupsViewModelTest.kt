@@ -83,6 +83,8 @@ class EditFeaturedGroupsViewModelTest {
         )
         coEvery { chatController.getFeaturedGroups(any()) } returns featured
         coEvery { chatController.getGroupChatFeed(any()) } returns joined
+        // The store's cover prefetch; the picker never shows covers, so a failure is fine here.
+        coEvery { chatController.getChat(any()) } returns Result.failure(IllegalStateException())
         return EditFeaturedGroupsViewModel(
             userManager = userManager,
             chatController = chatController,
