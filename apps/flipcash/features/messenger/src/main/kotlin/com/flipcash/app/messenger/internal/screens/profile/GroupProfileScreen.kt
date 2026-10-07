@@ -225,15 +225,14 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 }
 
                 if (requirements != null) {
-                    val ofTemplate = stringResource(R.string.label_chat_preview_cash_suffix, "%1\$s", "%2\$s")
                     BalanceRequirementsCard(
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.staticGrid.x6),
-                        join = requirements.join?.let { holdingLabel(it, tokens, ofTemplate) },
-                        chat = requirements.chat?.let { holdingLabel(it, tokens, ofTemplate) },
+                        join = requirements.join?.let { holdingLabel(it, tokens) },
+                        chat = requirements.chat?.let { holdingLabel(it, tokens) },
                         yourBalance = (requirements.join ?: requirements.chat)?.let { rule ->
-                            standing?.yourBalance?.let { holdingLabel(it, rule.mints.firstOrNull()?.let { m -> Mint(m.bytes) }, tokens, ofTemplate) }
+                            standing?.yourBalance?.let { holdingLabel(it, rule.mints.firstOrNull()?.let { m -> Mint(m.bytes) }, tokens) }
                         },
                     )
                 }
@@ -280,7 +279,6 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             )
 
             if (hasPinned) {
-                val ofTemplate = stringResource(R.string.label_chat_preview_cash_suffix, "%1\$s", "%2\$s")
                 val bar = (cta as? GroupProfileCta.BuyToJoin)?.requirement
                     ?: (cta as? GroupProfileCta.BuyToChat)?.requirement
                 val buyMint = bar?.mints?.firstOrNull()?.let { Mint(it.bytes) }?.takeUnless { it == Mint.usdf }
@@ -320,7 +318,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                                 modifier = Modifier.padding(bottom = CodeTheme.dimens.staticGrid.x2),
                                 text = stringResource(
                                     if (isJoin) R.string.label_groupRequiredToJoin else R.string.label_groupRequiredToChat,
-                                    holdingLabel(bar, tokens, ofTemplate),
+                                    holdingLabel(bar, tokens),
                                 ),
                                 style = CodeTheme.typography.textSmall,
                                 color = CodeTheme.colors.textSecondary,
@@ -341,21 +339,22 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
  * A rule's amount as the profile writes it: "$10", "$2.50", and "$10 of NYC" for a token other
  * than USDF whose name is known. A rule naming no mint, or the reserve, states the amount alone.
  */
+@Composable
 private fun holdingLabel(
     rule: ChatRuleRequirement.MinimumBalance,
     tokens: Map<List<Byte>, com.flipcash.app.messenger.internal.RuleCurrency>,
-    ofTemplate: String,
-): String = holdingLabel(rule.amount, rule.mints.firstOrNull()?.let { Mint(it.bytes) }, tokens, ofTemplate)
+): String = holdingLabel(rule.amount, rule.mints.firstOrNull()?.let { Mint(it.bytes) }, tokens)
 
+@Composable
 private fun holdingLabel(
     amount: Fiat,
     mint: Mint?,
     tokens: Map<List<Byte>, com.flipcash.app.messenger.internal.RuleCurrency>,
-    ofTemplate: String,
 ): String {
     val formatted = amount.formatted(Fiat.FormattingRule.Truncated)
     val name = mint?.takeUnless { it == Mint.usdf }?.let { tokens[it.bytes] }?.name
-    return if (name != null) ofTemplate.replace("%1\$s", formatted).replace("%2\$s", name) else formatted
+        ?: return formatted
+    return stringResource(R.string.label_chat_preview_cash_suffix, formatted, name)
 }
 
 /** The ⋯ button's menu: Encryption and Mute, then a divider and the red Report. */
