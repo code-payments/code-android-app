@@ -117,8 +117,6 @@ internal fun PersonProfileScreen(
     val person = state.participant as? ChatParticipant.TipUser
     val isSelf = person != null && person.userId == state.selfId
     val pinned = if (isSelf) null else state.pinnedAction
-    val share = rememberProfileShare()
-    var shareOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
 
     var pinnedHeight by remember { mutableStateOf(0.dp) }
@@ -184,7 +182,18 @@ internal fun PersonProfileScreen(
                             ProfileActionButton(
                                 icon = ImageVector.vectorResource(R.drawable.ic_share_os),
                                 contentDescription = stringResource(R.string.action_share),
-                                onClick = { shareOpen = true },
+                                onClick = {
+                                    // The DM is what "Open Chat" opens, so it is the one chat
+                                    // that has nothing to gain from being sent this person.
+                                    navigator.push(
+                                        AppRoute.Messaging.ShareProfileToChats(
+                                            userId = person.userId,
+                                            username = person.profile.username,
+                                            displayName = person.profile.displayName,
+                                            directChatId = state.dmChatId,
+                                        )
+                                    )
+                                },
                             )
                         }
                     },
@@ -262,15 +271,6 @@ internal fun PersonProfileScreen(
                 )
             }
         }
-    }
-
-    if (shareOpen && person != null) {
-        ProfileShareSheetHost(
-            person = person,
-            onShare = { share(person) },
-            onCopyLink = viewModel::copyLink,
-            onDismiss = { shareOpen = false },
-        )
     }
 }
 

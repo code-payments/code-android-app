@@ -1,13 +1,19 @@
 package com.flipcash.app.messenger.internal
 
+import android.content.ClipboardManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.bills.share.TipCodePreviewCache
+import com.flipcash.app.core.extensions.setText
+import com.flipcash.app.core.share.TipCodePreview
+import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.chatListFeed
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.toConversationReference
+import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,7 +34,8 @@ import javax.inject.Inject
 
 /**
  * The invite sheet's "Recent Chats" (nodes 10330:19387, 10330:19549, 10329:12104): which chats,
- * 1:1 or group, are picked, the message to go with the link, and sending both to each.
+ * 1:1 or group, are picked, the message to go with the link, and sending both to each. It serves a
+ * group's invite and a person's profile link alike; they differ only in which chat is left out.
  *
  * Scoped to the sheet rather than kept on the conversation's view model: a selection means nothing
  * once the sheet is gone, and the send has to outlive nothing but the sheet, which waits for it.
@@ -38,13 +45,18 @@ internal class GroupInviteViewModel @Inject constructor(
     private val chatCoordinator: ChatCoordinator,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
+    private val clipboardManager: ClipboardManager,
+    private val tipCodePreviewCache: TipCodePreviewCache,
 ) : ViewModel() {
 
     data class State(
         /** Null until the feed first emits, so an empty list means there are no chats to offer. */
         val recentChats: List<ConversationReference>? = null,
-        /** The group the invites are for, which is left out of its own list. */
-        val groupId: ChatId? = null,
+        /**
+         * The chat that is left out of the list: the group being invited to, or the DM with the
+         * person being shared. Null for the viewer's own profile, which leaves nothing out.
+         */
+        val excludedChatId: ChatId? = null,
         /** Picked chats in the order they were tapped. The first is where the send lands. */
         val selection: List<ChatId> = emptyList(),
         val message: String = "",
@@ -53,9 +65,12 @@ internal class GroupInviteViewModel @Inject constructor(
         /** The message bar only comes up once there is someone to send to (node 10330:19549). */
         val showsComposer: Boolean get() = selection.isNotEmpty()
 
-        /** [recentChats] without the group being invited to: sending a group its own link is a no-op. */
+        /**
+         * [recentChats] without [excludedChatId]: sending a group its own link is a no-op, and
+         * sending a person their own profile is pointless.
+         */
         val invitable: List<ConversationReference>?
-            get() = recentChats?.filterNot { it.chatId == groupId }
+            get() = recentChats?.filterNot { it.chatId == excludedChatId }
     }
 
     private val _state = MutableStateFlow(State())
@@ -81,14 +96,27 @@ internal class GroupInviteViewModel @Inject constructor(
         }
     }
 
-    /** Names the group the sheet invites to, so it drops out of the list and cannot be picked. */
-    fun inviteTo(groupId: ChatId) {
-        _state.update { it.copy(groupId = groupId, selection = it.selection - groupId) }
+    /** Names the chat the sheet leaves out, so it drops out of the list and cannot be picked. */
+    fun exclude(chatId: ChatId?) {
+        _state.update { state ->
+            state.copy(excludedChatId = chatId, selection = state.selection.filterNot { it == chatId })
+        }
+    }
+
+    /** The rendered share-sheet card for [userId], if one is ready. Null shares the link alone. */
+    fun previewFor(userId: ID): TipCodePreview? = tipCodePreviewCache.get(userId)
+
+    /** Puts a person's profile [link] on the clipboard. */
+    fun copyProfileLink(link: String) {
+        clipboardManager.setText(
+            text = link,
+            label = resources.getString(R.string.title_clipboardLabelTipCardLink),
+        )
     }
 
     fun toggle(chatId: ChatId) {
         _state.update { state ->
-            if (state.sending || chatId == state.groupId) return@update state
+            if (state.sending || chatId == state.excludedChatId) return@update state
             val selection = if (chatId in state.selection) {
                 state.selection - chatId
             } else {

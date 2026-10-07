@@ -63,7 +63,13 @@ class GroupInviteViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = GroupInviteViewModel(chatCoordinator, userManager, resources)
+    private fun viewModel() = GroupInviteViewModel(
+        chatCoordinator,
+        userManager,
+        resources,
+        clipboardManager = mockk(relaxed = true),
+        tipCodePreviewCache = mockk(relaxed = true),
+    )
 
     @Test
     fun `the message bar is hidden until a chat is picked`() {
@@ -173,11 +179,43 @@ class GroupInviteViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
 
-        model.inviteTo(group)
+        model.exclude(group)
         model.toggle(group)
 
         assertEquals(listOf(alice), model.state.value.invitable?.map { it.chatId })
         assertEquals(emptyList<ChatId>(), model.state.value.selection)
+    }
+
+    @Test
+    fun `a person's DM is left out of the chats their profile is sent to`() = runTest(scheduler) {
+        val dm = ChatId(ByteArray(32) { 7 })
+        every { chatCoordinator.feed(*anyVararg()) } returns flowOf(
+            listOf(summary(alice, ChatType.TIP_DM), summary(dm, ChatType.TIP_DM)),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.exclude(dm)
+        model.toggle(dm)
+
+        assertEquals(listOf(alice), model.state.value.invitable?.map { it.chatId })
+        assertEquals(emptyList<ChatId>(), model.state.value.selection)
+    }
+
+    @Test
+    fun `no exclusion offers every chat`() = runTest(scheduler) {
+        val group = ChatId(ByteArray(32) { 9 })
+        every { chatCoordinator.feed(*anyVararg()) } returns flowOf(
+            listOf(summary(alice, ChatType.TIP_DM), summary(group, ChatType.GROUP)),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.exclude(null)
+        model.toggle(alice)
+
+        assertEquals(listOf(alice, group), model.state.value.invitable?.map { it.chatId })
+        assertEquals(listOf(alice), model.state.value.selection)
     }
 
     @Test

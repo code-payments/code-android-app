@@ -43,6 +43,7 @@ import com.flipcash.app.messenger.ChatPhotoViewerScreen
 import com.flipcash.app.messenger.E2eeLearnMoreScreen
 import com.flipcash.app.messenger.MuteChatScreen
 import com.flipcash.app.messenger.ProfileScreen
+import com.flipcash.app.messenger.ShareProfileToChatsScreen
 import com.flipcash.app.messenger.ReportFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
@@ -143,6 +144,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Report> { key ->
         ReportFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
+    annotatedEntry<AppRoute.Messaging.ShareProfileToChats> { key -> ShareProfileToChatsScreen(key) }
     annotatedEntry<AppRoute.Messaging.MuteChat> { key -> MuteChatScreen(key.chatId, key.chatType) }
     annotatedEntry<AppRoute.Messaging.PhotoViewer> { key -> ChatPhotoViewerScreen(key.chatId, key.messageId) }
     annotatedEntry<AppRoute.Messaging.E2eeDmInfo> { E2eeLearnMoreScreen(forGroup = false) }

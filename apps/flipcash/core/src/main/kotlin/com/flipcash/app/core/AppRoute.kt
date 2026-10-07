@@ -467,6 +467,24 @@ sealed interface AppRoute : NavKey, Parcelable {
             com.getcode.navigation.WrapContentSheet
 
         /**
+         * A person's profile link, shared by the system share sheet, copied, or sent into recent
+         * chats. Opened from the viewer's own profile and from someone else's, so it carries what
+         * the link and the share card are built from.
+         *
+         * @param directChatId the viewer's DM with the person, left out of the picker so nobody is
+         * sent their own profile. Null for the viewer's own profile, and for a person with no DM
+         * yet.
+         */
+        @Serializable
+        @Parcelize
+        data class ShareProfileToChats(
+            val userId: ID,
+            val username: String?,
+            val displayName: String?,
+            val directChatId: ChatId?,
+        ) : Messaging, com.getcode.navigation.Sheet
+
+        /**
          * What end-to-end encryption covers in a DM, opened from the DM profile's footer. A
          * [com.getcode.navigation.WrapContentSheet], for the reason [MuteChat] is one.
          */
