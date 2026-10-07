@@ -8,6 +8,7 @@ import com.flipcash.app.persistence.sources.lastMessagesByChat
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.RosterChange
@@ -201,6 +202,14 @@ class GroupFeedDelegate @Inject constructor(
                 trace(tag = TAG, message = "Leave failed for $chatId", type = TraceType.Error)
                 metadataDataSource.setMembership(chatId, isMember = true)
             }
+    }
+
+    override suspend fun sampleChatters(chatId: ChatId): Result<ChatterSample> =
+        chatController.sampleChatters(chatId)
+
+    override suspend fun refreshCover(chatId: ChatId) {
+        val cover = chatController.getChat(chatId).getOrNull()?.coverPicture ?: return
+        metadataDataSource.updateCoverPicture(chatId, cover)
     }
 
     /**
