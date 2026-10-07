@@ -5,28 +5,36 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Who is offered the group's Edit row.
+ * What the group profile's overflow offers, and to whom.
  *
- * `canEdit` is computed by the server and arrives on `ViewerState.Permissions`. The reason this is
- * worth a test of its own is that several local signals — being a member, having created the chat,
- * the chat being a group at all — look like they answer the question and none of them is the
- * answer. Offering Edit on a local guess produces a row that opens a screen whose Save then comes
- * back `DENIED`, which reads to the user as the app being broken rather than as a permission.
+ * Edit moved out to its own button (shown from the server's `canEdit`, which is not a local guess
+ * about membership or creatorship), so the menu is Encryption, Mute for members, and Report.
  */
 class GroupProfileOverflowTest {
 
     @Test
-    fun `a viewer who may edit is offered exactly the Edit row`() {
-        val items = groupProfileOverflowItems(canEdit = true)
-
-        assertEquals(1, items.size)
-        assertEquals(GroupProfileAction.Edit, items.single().action)
+    fun `a member is offered encryption, mute and report in that order`() {
+        assertEquals(
+            listOf(
+                GroupProfileMenuAction.Encryption,
+                GroupProfileMenuAction.Mute,
+                GroupProfileMenuAction.Report,
+            ),
+            groupProfileMenuActions(isMember = true),
+        )
     }
 
     @Test
-    fun `a viewer who may not edit is offered nothing`() {
-        // Empty rather than disabled: the overflow button itself is drawn only when this has
-        // something in it, so no-permission means no button, not a button that opens an empty menu.
-        assertTrue(groupProfileOverflowItems(canEdit = false).isEmpty())
+    fun `a non-member is not offered mute but is offered report`() {
+        assertEquals(
+            listOf(GroupProfileMenuAction.Encryption, GroupProfileMenuAction.Report),
+            groupProfileMenuActions(isMember = false),
+        )
+    }
+
+    @Test
+    fun `only report is destructive`() {
+        assertTrue(GroupProfileMenuAction.Report.isDestructive)
+        assertTrue(GroupProfileMenuAction.entries.filter { it.isDestructive } == listOf(GroupProfileMenuAction.Report))
     }
 }
