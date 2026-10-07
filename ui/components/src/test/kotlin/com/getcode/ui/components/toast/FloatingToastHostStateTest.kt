@@ -1,6 +1,7 @@
 package com.getcode.ui.components.toast
 
 import androidx.compose.material.SnackbarResult
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
@@ -74,5 +75,24 @@ class FloatingToastHostStateTest {
         assertEquals("Chat archived again", host.current?.message)
         host.current!!.dismiss()
         second.await()
+    }
+
+    @Test
+    fun `clearance is the tallest owner and drops back when one is cleared`() {
+        val host = FloatingToastHostState()
+        val a = Any()
+        val b = Any()
+        assertEquals(0.dp, host.bottomClearance)
+
+        host.setBottomClearance(a, 80.dp)
+        host.setBottomClearance(b, 120.dp)
+        assertEquals(120.dp, host.bottomClearance)
+
+        host.setBottomClearance(b, 40.dp)
+        assertEquals(80.dp, host.bottomClearance)
+
+        host.clearBottomClearance(a)
+        host.clearBottomClearance(b)
+        assertEquals(0.dp, host.bottomClearance)
     }
 }

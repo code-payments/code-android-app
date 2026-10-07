@@ -93,7 +93,7 @@ class ChatOpenTranscriptTest {
         tokenCoordinator = mockk(relaxed = true),
         exchange = exchange,
         verifiedFiatCalculator = mockk(relaxed = true),
-        purchaseMethodController = mockk(relaxed = true),
+        startChattingPayer = mockk(relaxed = true),
         userManager = userManager,
         resources = mockk(relaxed = true),
         analytics = RecordingAnalytics(),

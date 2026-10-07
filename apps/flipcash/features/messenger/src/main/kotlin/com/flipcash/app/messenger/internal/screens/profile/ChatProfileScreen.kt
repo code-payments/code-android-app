@@ -1,345 +1,284 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import android.os.Parcelable
-import androidx.annotation.VisibleForTesting
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.chat.ChatParticipant
-import com.flipcash.app.core.chat.ChatStep
-import com.flipcash.app.core.chat.ProfileOrigin
-import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.core.AppRoute
-import com.getcode.navigation.core.LocalCodeNavigator
-import com.flipcash.app.menu.MenuItem
-import com.flipcash.app.menu.MenuList
-import com.flipcash.app.messenger.internal.ChatMuteStatusChip
-import com.flipcash.app.messenger.internal.ChatViewModel
-import com.flipcash.app.messenger.internal.asSubject
-import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
+import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.chat.ReportSubject
+import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
-import com.flipcash.services.models.chat.ViewerState
+import com.flipcash.shared.common.ui.ContactAvatar
+import com.flipcash.shared.common.ui.profile.ProfileActionButton
+import com.flipcash.shared.common.ui.profile.ProfileHeader
+import com.flipcash.shared.common.ui.profile.ProfilePinnedActionBar
+import com.flipcash.shared.common.ui.profile.ProfileStatsCard
+import com.flipcash.shared.common.ui.profile.ProfileStatusChip
+import com.flipcash.shared.common.ui.profile.joinedLabel
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.util.resources.LocalResources
-import com.flipcash.app.messenger.internal.joinedLine
-import com.getcode.view.LoadingSuccessState
-import kotlin.time.Instant
-
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import com.flipcash.app.core.chat.ChatStep
 
 /**
- * A DM counterparty's profile.
+ * A DM counterparty's profile, hosted inside the chat's flow so back returns to the chat.
  *
- * Two view models rather than one, because the screen says two kinds of thing about two different
- * subjects. [viewModel] holds the person — their profile, their join date, whether they are
- * blocked — and is the screen's own. [chatViewModel] is the conversation's, shared with the
- * transcript, and it is what muting goes through: a mute is held by the chat, not by the person,
- * and the same mute is reachable from a group's profile where there is no person at all.
- *
- * The mute row is shown for a tip DM only. This route is also how a group member's profile opens,
- * and there the chat behind it is the group — a mute row on a member's profile would silence the
- * whole group from a screen that names one person. The muted chip follows the row for the same
- * reason: the group's mute is not this person's, so a member's profile doesn't show it. Contact DMs
- * never reach this screen ([com.flipcash.app.messenger.internal.ChatSubject.Contact] answers
- * `canViewProfile` false).
- *
- * The Message and Send Cash shortcuts follow the same split, the other way round: they show on a
- * group member's profile and not on a tip DM's, where they would only reopen the chat behind it.
- * [profileShortcutRecipient] has the whole rule. Share shows on every person's profile.
- *
- * A tapped `@handle` naming someone other than a tip DM's counterpart opens with
- * [ProfileOrigin.Mention]. That person is not who the chat is with, so the screen leaves the chat
- * out, as a `flipcash.com` link's profile does: no Mute, and Message shows.
+ * The chat is the flow's [ChatViewModel], but nothing here reads it: this screen's own
+ * [ChatProfileViewModel] works out for itself whether a DM with this person exists, and every row
+ * and the pinned button act on that.
  */
 @Composable
 internal fun ChatProfileScreen(
     viewModel: ChatProfileViewModel,
-    chatViewModel: ChatViewModel,
-    origin: ProfileOrigin = ProfileOrigin.Chat,
+    onOpenChat: (ChatId) -> Unit,
 ) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
-    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
-
     PersonProfileScreen(
         viewModel = viewModel,
-        chat = profileChat(
-            origin = origin,
-            chatId = chatState.chatId,
-            chatType = chatState.chatType,
-            viewerState = chatState.viewerState,
-            isEncrypted = chatState.isEncrypted,
-        ),
-        cashSymbol = chatState.cashSymbol,
         onBack = { flowNavigator.back() },
+        onOpenChat = onOpenChat,
     )
 }
 
 /**
- * The chat behind a profile opened from inside it, or null for a mention, whose person the chat is
- * not with.
- */
-internal fun profileChat(
-    origin: ProfileOrigin,
-    chatId: ChatId?,
-    chatType: ChatType,
-    viewerState: ViewerState?,
-    isEncrypted: Boolean = false,
-): ProfileChat? = when (origin) {
-    ProfileOrigin.Chat -> ProfileChat(chatId, chatType, viewerState, isEncrypted)
-    ProfileOrigin.Mention -> null
-}
-
-/**
- * The conversation a person's profile was opened from, for the parts of the screen that act on the
- * chat rather than the person: the mute row and the muted chip.
- */
-internal data class ProfileChat(
-    val chatId: ChatId?,
-    val chatType: ChatType,
-    val viewerState: ViewerState?,
-    /** [com.flipcash.services.chat.E2eePolicy]'s answer for this chat; the footer follows it. */
-    val isEncrypted: Boolean = false,
-)
-
-/**
- * A person's profile, from a chat or from a link: the header, the shortcuts under it, and the
- * Mute, Report and Block rows.
- *
- * [chat] is null when no conversation is behind the screen, as for a `flipcash.com` link. That
- * leaves out the mute row and chip, which belong to a chat, and keeps Message, which a tip DM's
- * profile hides. See [ChatProfileScreen] for the rules.
+ * Another person's profile, from a chat or from a link: the shared header with the Blocked and
+ * Muted chips and Share, the stats card, and the one action pinned to the bottom (Start Chatting,
+ * Open Chat or Unblock). Mute, Report and Block are behind the top bar's ⋯.
  */
 @Composable
 internal fun PersonProfileScreen(
     viewModel: ChatProfileViewModel,
-    chat: ProfileChat?,
-    cashSymbol: String,
     onBack: () -> Unit,
+    onOpenChat: (ChatId) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val isTipDm = chat?.chatType == ChatType.TIP_DM
-    val share = rememberProfileShare()
 
-    CodeScaffold(
-        topBar = {
-            AppBarWithTitle(onBackIconClicked = onBack)
-        },
-        bottomBar = {
-            if (chat?.isEncrypted == true) {
-                E2eeFooter(
-                    isEncrypted = true,
-                    onLearnMore = { navigator.push(AppRoute.Messaging.E2eeDmInfo) },
-                )
+    // The host decides what opening the chat means (pop back to it, or push it); everything else
+    // the profile can ask for is the same wherever it is.
+    val currentOnOpenChat by rememberUpdatedState(onOpenChat)
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow.collect { event ->
+            when (event) {
+                is ChatProfileViewModel.Event.OpenChat -> currentOnOpenChat(event.chatId)
+                is ChatProfileViewModel.Event.OpenSendCash ->
+                    navigator.push(event.participant.dmRoute(openSendCash = true))
+                is ChatProfileViewModel.Event.OpenScreen -> navigator.push(event.route)
+                else -> Unit
             }
-        },
-    ) { innerPadding ->
-        MenuList(
+        }
+    }
+
+    // Paying and waiting for the chat to open: there is no leaving until it has.
+    BackHandler(enabled = state.paymentInProgress) {}
+
+    StartChattingSheet(
+        state = state,
+        onConfirm = { viewModel.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting) },
+        onDismiss = { viewModel.dispatchEvent(ChatProfileViewModel.Event.DismissPaymentSheet) },
+    )
+
+    val person = state.participant as? ChatParticipant.TipUser
+    val isSelf = person != null && person.userId == state.selfId
+    val pinned = if (isSelf) null else state.pinnedAction
+    val share = rememberProfileShare()
+    var shareOpen by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
+
+    var pinnedHeight by remember { mutableStateOf(0.dp) }
+    // Nothing is pinned, so nothing for the content to leave room for. The bar registers its own
+    // toast clearance while it is shown.
+    val clearance = if (pinned != null) pinnedHeight else 0.dp
+
+    val hazeState = rememberHazeState()
+
+    CodeScaffold { padding ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            // Mute first, then report, block last: the reversible and routine sits above the one
-            // that asks someone else to look, which sits above the one that ends the conversation.
-            // Same shape as the group's profile, where leaving holds the last place.
-            items = buildList<MenuItem<ChatProfileAction>> {
-                if (isTipDm) {
-                    add(MuteDm)
-                }
-                add(ReportUser)
-                add(BlockUser)
-            },
-            header = {
-                val person = state.participant as? ChatParticipant.TipUser
-                val recipient = profileShortcutRecipient(
-                    participant = state.participant,
-                    chatType = chat?.chatType,
-                    selfId = state.selfId,
-                )
+                .padding(padding),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = clearance),
+            ) {
                 ProfileHeader(
-                    participant = state.participant,
-                    joinDate = state.joinDate,
-                    // Only where the mute is this person's chat; see the KDoc above.
-                    viewerState = chat?.viewerState?.takeIf { isTipDm },
-                    // Not flowNavigator, for the reason Report isn't: the DM is a top-level route,
-                    // so LocalCodeNavigator hands it up and it opens over this chat.
-                    // Share for anyone with a link; Message only where profileShortcutRecipient
-                    // allows it.
-                    shortcuts = person?.let { user ->
-                        {
-                            ProfileShortcuts(
-                                cashSymbol = cashSymbol,
-                                onMessage = recipient?.let { { navigator.push(it.dmRoute()) } },
-                                onSendCash = {
-                                    recipient?.let { navigator.push(it.dmRoute(openSendCash = true)) }
-                                },
-                                onShare = { share(user) },
+                    modifier = Modifier.hazeSource(hazeState),
+                    cover = person?.profile?.coverPicture,
+                    access = person?.let { BlobAccessContext.profile(it.userId) } ?: BlobAccessContext.Owned,
+                    avatar = { modifier ->
+                        ContactAvatar(
+                            image = person?.profile?.profilePicture,
+                            displayName = person?.displayName.orEmpty(),
+                            access = person?.let { BlobAccessContext.profile(it.userId) }
+                                ?: BlobAccessContext.Owned,
+                            modifier = modifier,
+                        )
+                    },
+                    title = state.participant?.let {
+                        it.name ?: stringResource(R.string.title_unnamedUser)
+                    }.orEmpty(),
+                    subtitle = state.participant?.handle?.takeIf { it != state.participant?.name },
+                    // Until the whole profile is here a missing bio means nothing, so it is not shown.
+                    body = person?.profile?.bio?.takeIf { state.isFullProfileLoaded },
+                    actions = {
+                        // As on iOS: "Muted until 5:56 PM" for a timed mute, and gone once it lapses.
+                        val mutedLabel = rememberMutedLabel(state.viewerState)
+                        // iOS spaces the chips 8 apart and keeps the row's 12 before Share.
+                        if (state.isBlocked || mutedLabel != null) Row(
+                            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (state.isBlocked) {
+                                ProfileStatusChip(
+                                    icon = Icons.Outlined.Block,
+                                    text = stringResource(R.string.label_blocked),
+                                )
+                            }
+                            if (mutedLabel != null) {
+                                ProfileStatusChip(
+                                    icon = Icons.Outlined.NotificationsOff,
+                                    text = mutedLabel,
+                                )
+                            }
+                        }
+                        if (person != null) {
+                            ProfileActionButton(
+                                icon = ImageVector.vectorResource(R.drawable.ic_share_os),
+                                contentDescription = stringResource(R.string.action_share),
+                                onClick = { shareOpen = true },
                             )
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        // The gap under the header is the header's own, because MenuList puts
-                        // nothing between its header slot and the first row. 40dp matches what
-                        // iOS spends here (its 16pt stack spacing plus the row block's 24pt top
-                        // inset); without it the mute chip sits against the first row and the
-                        // screen reads as one block rather than a title above a list.
-                        .padding(
-                            top = CodeTheme.dimens.grid.x7,
-                            // None under the shortcuts: the first row's own 25dp inset is the
-                            // gap, and ProfileHeader matches it above them so they sit centered
-                            // between the join date and the list.
-                            bottom = if (person != null) {
-                                0.dp
-                            } else {
-                                CodeTheme.dimens.grid.x8
-                            },
-                        ),
                 )
-            },
-            onItemClick = { item ->
-                when (item.action) {
-                    ChatProfileAction.Block ->
-                        viewModel.dispatchEvent(ChatProfileViewModel.Event.BlockUser)
-                    // Both muting and unmuting go through the picker, which is why this row
-                    // navigates either way rather than acting on one of them here. The outer
-                    // navigator, as with Report: the sheet is a top-level route shared with the
-                    // chat list, so it opens over the chat rather than inside it.
-                    ChatProfileAction.Mute -> chat?.chatId?.let { chatId ->
-                        navigator.push(AppRoute.Messaging.MuteChat(chatId, chat.chatType))
-                    }
-                    // Not flowNavigator: Report is a top-level route rather than a step of
-                    // this flow, and LocalCodeNavigator hands a non-FlowStep route up to its
-                    // parent. So it opens over the chat rather than inside it.
-                    ChatProfileAction.Report ->
-                        (state.participant as? ChatParticipant.TipUser)?.let { participant ->
-                            navigator.push(
-                                AppRoute.Messaging.Report(
-                                    ReportSubject.User(participant.userId)
+                ProfileStatsCard(
+                    modifier = Modifier
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .padding(top = CodeTheme.dimens.staticGrid.x4),
+                    // The fee is a field of the full profile; before it settles there is no honest number.
+                    minimumToChat = state.fee?.takeIf { state.profileSettled }?.formatted(),
+                    joined = joinedLabel(state.joinDate),
+                )
+            }
+
+            AppBarWithTitle(
+                onBackIconClicked = onBack,
+                hazeState = hazeState,
+                endContent = {
+                    if (person != null && !isSelf) {
+                        val density = LocalDensity.current
+                        var menuAnchorHeight by remember { mutableStateOf(0.dp) }
+                        Box(modifier = Modifier.onSizeChanged { menuAnchorHeight = with(density) { it.height.toDp() } }) {
+                            CircularIconButton(hazeState = hazeState, onClick = { menuOpen = true }) { size ->
+                                Icon(
+                                    imageVector = Icons.Rounded.MoreVert,
+                                    contentDescription = stringResource(R.string.action_moreProfileActions),
+                                    tint = Color.White,
+                                    modifier = Modifier.requiredSize(size),
                                 )
+                            }
+                            ProfileMenu(
+                                expanded = menuOpen,
+                                items = state.menuItems,
+                                anchorHeight = menuAnchorHeight,
+                                onDismiss = { menuOpen = false },
+                                onItem = { item ->
+                                    when (item) {
+                                        ChatProfileAction.Block ->
+                                            viewModel.dispatchEvent(ChatProfileViewModel.Event.BlockUser)
+                                        ChatProfileAction.Unblock ->
+                                            viewModel.dispatchEvent(ChatProfileViewModel.Event.Unblock)
+                                        // The picker is where muting and unmuting both live. Pushed
+                                        // on the outer navigator: it is a top-level route.
+                                        ChatProfileAction.Mute -> state.dmChatId?.let { chatId ->
+                                            navigator.push(AppRoute.Messaging.MuteChat(chatId, ChatType.TIP_DM))
+                                        }
+                                        ChatProfileAction.Report ->
+                                            navigator.push(
+                                                AppRoute.Messaging.Report(ReportSubject.User(person.userId))
+                                            )
+                                    }
+                                },
                             )
                         }
-                }
-            },
-            endSlot = { item ->
-                val loading = item.action == ChatProfileAction.Block &&
-                    state.processingState.state == LoadingSuccessState.State.Loading
-                if (loading) {
-                    CodeCircularProgressIndicator(
-                        strokeWidth = CodeTheme.dimens.thickBorder,
-                        color = CodeTheme.colors.textSecondary,
-                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
-                    )
-                } else {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_chevron_right),
-                        contentDescription = null,
-                        tint = CodeTheme.colors.textSecondary,
-                    )
-                }
-            },
+                    }
+                },
+            )
+
+            if (pinned != null) {
+                ProfilePinnedActionBar(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    text = pinned.label(),
+                    isLoading = pinned == ProfilePinnedAction.OpeningChat,
+                    onClick = { viewModel.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped) },
+                    above = if (state.dmExists && state.isEncrypted) {
+                        {
+                            E2eeFooter(
+                                isEncrypted = true,
+                                onLearnMore = { navigator.push(AppRoute.Messaging.E2eeDmInfo) },
+                                clearNavigationBar = false,
+                            )
+                        }
+                    } else null,
+                    onHeightChanged = { pinnedHeight = it },
+                )
+            }
+        }
+    }
+
+    if (shareOpen && person != null) {
+        ProfileShareSheetHost(
+            person = person,
+            onShare = { share(person) },
+            onCopyLink = viewModel::copyLink,
+            onDismiss = { shareOpen = false },
         )
     }
 }
 
-@VisibleForTesting
 @Composable
-internal fun ProfileHeader(
-    participant: ChatParticipant?,
-    joinDate: Instant?,
-    modifier: Modifier = Modifier,
-    viewerState: ViewerState? = null,
-    shortcuts: (@Composable () -> Unit)? = null,
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        ChatSubjectAvatar(
-            subject = participant.asSubject(),
-            modifier = Modifier
-                .size(CodeTheme.dimens.staticGrid.x17)
-                .clip(CircleShape),
-        )
-        Text(
-            // Wider than the 5dp that binds the identity lines below it, so the name reads as the
-            // start of that block rather than as another line of the picture.
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
-            // Left empty only while the participant loads; a person with neither a name nor a
-            // handle is still called something.
-            text = participant?.let { it.name ?: stringResource(R.string.title_unnamedUser) }.orEmpty(),
-            style = CodeTheme.typography.textLarge,
-            color = CodeTheme.colors.textMain,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        // The handle sits under the name, the same shape as the info card's identity line
-        // (node 9443:8928). Left out when the line above is already the handle, so a name-less
-        // account doesn't read it twice.
-        participant?.handle?.takeIf { it != participant.name }?.let { handle ->
-            Text(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
-                text = handle,
-                style = CodeTheme.typography.textSmall,
-                color = CodeTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        joinDate?.let { instant ->
-            Text(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
-                text = joinedLine(instant, LocalResources.current),
-                style = CodeTheme.typography.textSmall,
-                color = CodeTheme.colors.textSecondary,
-            )
-        }
-        // Below everything that describes the person: these act on them, like the rows under the
-        // header, but they're the routine ones, so they sit closest to the name. 25dp, the same as
-        // the first row's inset below them, so they sit centered between the join date and the
-        // list. Nothing between them and the join date, so they sit at one height on every
-        // person's profile, muted or not.
-        shortcuts?.let { content ->
-            Box(modifier = Modifier.padding(top = CodeTheme.dimens.grid.x5)) {
-                content()
-            }
-        }
-        // Last, because it is the only line here that is the viewer's setting rather than a fact
-        // about the person, and the only one that can stop being true while the screen is open.
-        // Only where there is a mute to show, the DM's own person; there it holds its line so the
-        // rows below don't move on mute or unmute. 16dp matches iOS, set by eye on device.
-        viewerState?.let { state ->
-            ChatMuteStatusChip(
-                viewerState = state,
-                modifier = Modifier.padding(
-                    top = if (shortcuts != null) {
-                        CodeTheme.dimens.staticGrid.x4
-                    } else {
-                        CodeTheme.dimens.grid.x2
-                    },
-                ),
-                reserveSpace = true,
-            )
-        }
-    }
+private fun ProfilePinnedAction.label(): String = when (this) {
+    is ProfilePinnedAction.StartChatting ->
+        if (fee != null) stringResource(labelRes(), fee.formatted()) else stringResource(labelRes())
+    else -> stringResource(labelRes())
 }

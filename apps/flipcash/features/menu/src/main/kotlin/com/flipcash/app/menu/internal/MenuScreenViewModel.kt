@@ -20,6 +20,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.flipcash.shared.tipping.TippingCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.shared.common.ui.profile.joinedLabel
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Fiat

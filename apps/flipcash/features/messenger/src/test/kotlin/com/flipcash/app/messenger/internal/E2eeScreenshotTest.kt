@@ -16,15 +16,12 @@ import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.messenger.internal.screens.E2eeLearnMoreSheet
 import com.flipcash.app.messenger.internal.screens.E2eeSheetKind
-import com.flipcash.app.messenger.internal.screens.profile.BlockUser
 import com.flipcash.app.messenger.internal.screens.profile.E2eeFooter
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileHeader
 import com.flipcash.app.messenger.internal.screens.profile.InviteToGroup
 import com.flipcash.app.messenger.internal.screens.profile.LeaveChat
 import com.flipcash.app.messenger.internal.screens.profile.MuteChat
-import com.flipcash.app.messenger.internal.screens.profile.ProfileHeader
 import com.flipcash.app.messenger.internal.screens.profile.ReportGroup
-import com.flipcash.app.messenger.internal.screens.profile.ReportUser
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.UserProfile
@@ -55,40 +52,6 @@ class E2eeScreenshotTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
-
-    @Test
-    fun rendersDmProfileWithFooter() = render("e2ee_dm_profile.png") {
-        val person = ChatParticipant.TipUser(
-            userId = listOf(1.toByte()),
-            profile = UserProfile.Empty.copy(displayName = "Grace Hopper", username = "grace_hopper"),
-        )
-        CodeScaffold(
-            topBar = { AppBarWithTitle(onBackIconClicked = {}) },
-            bottomBar = { E2eeFooter(isEncrypted = true, onLearnMore = {}) },
-        ) { innerPadding ->
-            MenuList(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                items = listOf(ReportUser, BlockUser),
-                header = {
-                    ProfileHeader(
-                        participant = person,
-                        joinDate = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = CodeTheme.dimens.grid.x7, bottom = CodeTheme.dimens.grid.x8),
-                    )
-                },
-                onItemClick = {},
-                endSlot = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_chevron_right),
-                        contentDescription = null,
-                        tint = CodeTheme.colors.textSecondary,
-                    )
-                },
-            )
-        }
-    }
 
     @Test
     fun rendersGroupInfo() = render("e2ee_group_info.png") {

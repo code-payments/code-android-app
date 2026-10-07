@@ -39,11 +39,14 @@ internal fun E2eeFooter(
     isEncrypted: Boolean,
     onLearnMore: () -> Unit,
     modifier: Modifier = Modifier,
+    // Off where something below the footer already clears the system bar, as the pinned button on
+    // a person's profile does.
+    clearNavigationBar: Boolean = true,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
+            .then(if (clearNavigationBar) Modifier.navigationBarsPadding() else Modifier)
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),

@@ -15,7 +15,6 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.map
-import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.CashLinkChoice
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
@@ -23,7 +22,6 @@ import com.flipcash.analytics.GroupInviteMethod
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.analytics.GroupInviteSource
 import com.flipcash.analytics.State as AnalyticsState
-import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.analytics.events.ChatEvents
 import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.analytics.events.TransferEvents
@@ -41,7 +39,7 @@ import com.flipcash.app.core.tokens.brandedName
 import com.flipcash.app.core.tokens.isReserve
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
-import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
@@ -218,7 +216,7 @@ internal class ChatViewModel @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
-    private val purchaseMethodController: PurchaseMethodController,
+    private val startChattingPayer: StartChattingPayer,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalytics,
@@ -2619,6 +2617,8 @@ internal class ChatViewModel @Inject constructor(
             .onEach { onConfirmRequested() }
             .launchIn(viewModelScope)
 
+        // Duplicates StartChattingPayer.pay (minus its send-limit check); this fee-payment path goes
+        // away with the paid-DM gate in profile-refresh slice 5.
         eventFlow.filterIsInstance<Event.OnInitPaymentConfirmed>()
             .onEach { onConfirmRequested(fixedAmount = minAmountFlow.value) }
             .launchIn(viewModelScope)
@@ -2629,12 +2629,11 @@ internal class ChatViewModel @Inject constructor(
             // Event.OnSendRequested).
             .filter { stateFlow.value.participant != null || stateFlow.value.chatType == ChatType.GROUP }
             .onEach {
-                if (!tokenCoordinator.hasGiveableBalance()) {
-                    if (!tokenCoordinator.hasBalance()) {
-                        presentAddMoney()
-                    } else {
-                        presentDiscoverCurrencies()
-                    }
+                if (!startChattingPayer.mayProceed(
+                        onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
+                        onDiscoverCurrencies = { dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery, asSheet = true)) },
+                    )
+                ) {
                     return@onEach
                 }
                 // The payment that opens a tip DM costs exactly the recipient's fee, so there is
@@ -2653,8 +2652,7 @@ internal class ChatViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .onEach {
-                analytics.track(AddMoneyEvents.opened(AddMoneySource.CHAT))
-                purchaseMethodController.presentDepositOptions()?.let { route ->
+                startChattingPayer.depositRoute()?.let { route ->
                     dispatchEvent(Event.OpenScreen(route))
                 }
             }.launchIn(viewModelScope)
@@ -2889,7 +2887,9 @@ internal class ChatViewModel @Inject constructor(
         val balanceInLocal = balance.convertingTo(rate)
         val isOverBalance = amount.valueGreaterThan(balanceInLocal)
         if (isOverBalance) {
-            presentInsufficientBalance()
+            startChattingPayer.presentInsufficientBalance(
+                onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
+            )
         }
         return isOverBalance
     }
@@ -2928,56 +2928,6 @@ internal class ChatViewModel @Inject constructor(
                 token = token,
             ))
         }
-    }
-
-    /**
-     * Over balance, with something in the account: the same prompt the tip card raises, offering
-     * the way out of it. [presentAddMoney] covers the empty account, which has nothing to enter a
-     * smaller amount than.
-     */
-    private fun presentInsufficientBalance() {
-        BottomBarManager.showInfo(
-            title = resources.getString(R.string.title_insufficientBalance),
-            message = resources.getString(R.string.description_insufficientBalanceToUse),
-            actions = listOf(
-                BottomBarAction(
-                    text = resources.getString(R.string.action_addMoney)
-                ) {
-                    dispatchEvent(Event.PresentDepositOptions)
-                },
-            ),
-            showCancel = true,
-        )
-    }
-
-    private fun presentAddMoney() {
-        BottomBarManager.showInfo(
-            title = resources.getString(R.string.title_noBalanceYet),
-            message = resources.getString(R.string.description_noBalanceYetToSend),
-            actions = listOf(
-                BottomBarAction(
-                    text = resources.getString(R.string.action_addMoney)
-                ) {
-                    dispatchEvent(Event.PresentDepositOptions)
-                },
-            ),
-            showCancel = true,
-        )
-    }
-
-    private fun presentDiscoverCurrencies() {
-        BottomBarManager.showInfo(
-            title = resources.getString(R.string.title_noCommunityCurrenciesYet),
-            message = resources.getString(R.string.description_noCommunityCurrenciesYet),
-            actions = listOf(
-                BottomBarAction(
-                    text = resources.getString(R.string.action_discoverCurrencies)
-                ) {
-                    dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery, asSheet = true))
-                },
-            ),
-            showCancel = true,
-        )
     }
 
     companion object {

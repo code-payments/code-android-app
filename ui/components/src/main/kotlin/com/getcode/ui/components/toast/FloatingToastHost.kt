@@ -18,10 +18,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarResult
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,6 +38,7 @@ import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.dismiss
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.ui.components.glass.FloatingChrome
 import dev.chrisbanes.haze.HazeState
@@ -88,6 +91,28 @@ class FloatingToastHostState {
             field = value
             if (value) current?.dismiss()
         }
+
+    private val coverings = mutableStateMapOf<Any, Dp>()
+
+    /**
+     * How far up from the bottom of the screen the tallest thing a screen has pinned there reaches,
+     * so the host can rest its toast above it. Zero when no screen has asked.
+     */
+    val bottomClearance: Dp
+        get() = coverings.values.maxOrNull() ?: 0.dp
+
+    /**
+     * Records that [owner] has something [height] tall (measured from the screen's bottom edge,
+     * system bars included) pinned to the bottom. Calling again replaces the owner's earlier
+     * height; [clearBottomClearance] withdraws it.
+     */
+    fun setBottomClearance(owner: Any, height: Dp) {
+        coverings[owner] = height
+    }
+
+    fun clearBottomClearance(owner: Any) {
+        coverings.remove(owner)
+    }
 
     private var nextSlot = 0L
 
@@ -274,3 +299,18 @@ private fun SwipeToDismiss(
 
 // How far below its resting place a rising toast starts: enough to tuck its squashed bottom edge
 // behind the bar it grows out of.
+
+/**
+ * Asks the root host to rest its toasts above something this screen pins to the bottom, for as long
+ * as the screen is composed. [height] is measured from the screen's bottom edge, system bars
+ * included. A no-op where no root host is installed.
+ */
+@Composable
+fun ToastBottomClearance(height: Dp) {
+    val host = LocalFloatingToastHost.current ?: return
+    val owner = remember { Any() }
+    DisposableEffect(host, owner, height) {
+        host.setBottomClearance(owner, height)
+        onDispose { host.clearBottomClearance(owner) }
+    }
+}

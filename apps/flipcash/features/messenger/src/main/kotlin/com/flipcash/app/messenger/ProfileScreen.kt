@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
@@ -62,7 +63,7 @@ fun ProfileScreen(address: ProfileAddress) {
     LaunchedEffect(viewModel, state.participant) {
         state.participant?.let {
             viewModel.dispatchEvent(
-                ChatProfileViewModel.Event.OnParticipantSet(it, fromServer = true)
+                ChatProfileViewModel.Event.OnParticipantSet(it, isFullProfile = true)
             )
         }
     }
@@ -97,9 +98,11 @@ fun ProfileScreen(address: ProfileAddress) {
     } else {
         PersonProfileScreen(
             viewModel = viewModel,
-            chat = null,
-            cashSymbol = state.cashSymbol,
             onBack = { navigator.pop() },
+            // Reached by link, so there is no chat underneath to return to.
+            onOpenChat = { chatId ->
+                navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId)))
+            },
         )
     }
 }

@@ -65,9 +65,17 @@ class BlocklistCoordinator @Inject constructor(
             }.flow.map { page -> page.map { entity -> dataSource.toProfile(entity) } }
         }
     
-    /** Blocks [userId] and hides the DM so it drops out of the Tips feed immediately. */
+    /**
+     * Whether [userId] is on the blocklist. Backed by the local table, which [blockUser] and
+     * [unblock] write through, so it flips as soon as either succeeds.
+     */
+    fun observeIsBlocked(userId: ID): Flow<Boolean> =
+        dataSource.observeIsBlocked(userId).distinctUntilChanged()
+
+    /** Blocks [userId], caching the row, and hides the DM so it drops out of the Tips feed immediately. */
     suspend fun blockUser(userId: ID): Result<Unit> =
         blocklistController.blockUser(userId).onSuccess {
+            dataSource.insert(userId, blockedAtEpochMs = System.currentTimeMillis())
             // TIP_DM ids are derivable, so no network lookup is needed to find the chat to hide.
             chatCoordinator.generateChatId(userId).getOrNull()
                 ?.let { chatCoordinator.setChatHidden(it, hidden = true) }
