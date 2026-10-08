@@ -183,7 +183,9 @@ class MessagingDelegate @Inject constructor(
 
     override fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>> {
         return Pager(
-            config = PagingConfig(pageSize = 50),
+            // The first load defaults to three pages. One fills the screen, and every row in it
+            // is mapped (quotes included) before the transcript can draw.
+            config = PagingConfig(pageSize = 50, initialLoadSize = 50),
             remoteMediator = ChatMessageRemoteMediator(chatId, messagingController, messageDataSource),
         ) {
             messageDataSource.observeForChat(chatId)

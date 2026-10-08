@@ -15,6 +15,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.shared.chat.ChatState
 import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarManager
@@ -202,5 +203,39 @@ class ChatOpenTranscriptTest {
         runCurrent()
 
         assertNull(viewModel.stateFlow.value.subject as? ChatSubject.Group)
+    }
+
+    @Test
+    fun `a group in the feed is drawn from its feed row as soon as it opens`() = runTest {
+        val row = mockk<ChatMetadata>(relaxed = true) {
+            every { this@mockk.chatId } returns this@ChatOpenTranscriptTest.chatId
+            every { type } returns ChatType.GROUP
+            every { title } returns "Moony"
+        }
+        every { chatCoordinator.state } returns MutableStateFlow(ChatState(feed = listOf(row)))
+        coEvery { chatCoordinator.hydrateChat(chatId) } coAnswers { awaitCancellation() }
+
+        val viewModel = createViewModel()
+        viewModel.openChat(ChatIdentifier.ByChatId(chatId))
+        runCurrent()
+
+        val state = viewModel.stateFlow.value
+        val group = state.subject as ChatSubject.Group
+        assertEquals("Moony", group.groupTitle)
+        // The feed holds only chats the viewer is in, so a member's transcript is never blurred.
+        assertEquals(true, group.isMember)
+        assertEquals(ChatType.GROUP, state.chatType)
+    }
+
+    @Test
+    fun `a chat missing from the feed is not seeded`() = runTest {
+        every { chatCoordinator.state } returns MutableStateFlow(ChatState(feed = emptyList()))
+        coEvery { chatCoordinator.hydrateChat(chatId) } coAnswers { awaitCancellation() }
+
+        val viewModel = createViewModel()
+        viewModel.openChat(ChatIdentifier.ByChatId(chatId))
+        runCurrent()
+
+        assertNull(viewModel.stateFlow.value.subject)
     }
 }

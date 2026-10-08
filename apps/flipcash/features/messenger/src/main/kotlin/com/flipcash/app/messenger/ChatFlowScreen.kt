@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -140,9 +141,9 @@ private fun FlowConversationScreen(
     val sheetNavigator = LocalSheetNavigator.current
     val keyboard = rememberKeyboardController()
 
-    LaunchedEffect(viewModel, identifier) {
-        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
-    }
+    // Opened while composing rather than from an effect, so the first frame already has whatever
+    // the open can draw from memory (a group's name and picture) instead of a placeholder.
+    remember(viewModel, identifier) { viewModel.openChat(identifier) }
 
     var hasOpened by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(openKeyboard) {
@@ -307,9 +308,7 @@ private fun FlowGroupProfileScreen(identifier: ChatIdentifier) {
     // A flow opened on the profile (AppRoute.Messaging.Chat.openOnProfile) has no conversation
     // under it, so nothing else has opened the chat yet. Re-opening the chat that is
     // already open is a no-op, so the usual push from the transcript is unaffected.
-    LaunchedEffect(viewModel, identifier) {
-        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
-    }
+    remember(viewModel, identifier) { viewModel.openChat(identifier) }
     GroupProfileScreen(viewModel)
 }
 

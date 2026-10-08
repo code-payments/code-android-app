@@ -11,6 +11,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingDataEvent
+import androidx.paging.PagingDataPresenter
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
@@ -159,6 +161,9 @@ import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import java.util.Optional
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -167,6 +172,7 @@ import kotlinx.coroutines.delay
 import android.graphics.Bitmap
 import android.net.Uri
 import java.io.File
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -182,6 +188,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -862,13 +869,33 @@ internal class ChatViewModel @Inject constructor(
         data object JumpConsumed : Event
     }
 
+    /**
+     * The chat the open handler last ran its first-open work for. Not [State.chatId]: a chat id
+     * opened by id is in state from the moment the open is dispatched, before that work has run.
+     */
+    private var openedChatId: ChatId? = null
+
+    /**
+     * Where the transcript's page caches collect. Off main, so the first page's load and mapping
+     * don't queue behind the screen's first frames.
+     */
+    private val pagingScope = CoroutineScope(viewModelScope.coroutineContext + dispatchers.Default)
+
+    /**
+     * Quoted messages read for the current page generation, keyed by id; empty when not stored.
+     * Any input to [mappedMessages] re-maps every loaded row, and without this each re-map read
+     * every quote again. A new generation clears it, so an edit to a quoted message shows.
+     */
+    private val quotedMessages = ConcurrentHashMap<Long, Optional<ChatMessage>>()
+    private var quotedGeneration: PagingData<ChatMessage>? = null
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val messageStream = stateFlow.mapNotNull { it.chatId }
         .distinctUntilChanged()
         .flatMapLatest { chatCoordinator.observeMessagesPaged(it) }
         // Cached here rather than after the mapping below so the overlay composes over the page
         // cache: an edit or delete awaiting the server re-runs the mapping without re-fetching.
-        .cachedIn(viewModelScope)
+        .cachedIn(pagingScope)
 
     /** Where the Encrypted marker goes: read from the transcript, never from `use_e2ee`. */
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -882,6 +909,7 @@ internal class ChatViewModel @Inject constructor(
     private val pendingMutations = stateFlow.mapNotNull { it.chatId }
         .distinctUntilChanged()
         .flatMapLatest { chatCoordinator.observePendingMutations(it) }
+        .distinctUntilChanged()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val otherReadPointer = stateFlow.mapNotNull { it.chatId }
@@ -953,7 +981,12 @@ internal class ChatViewModel @Inject constructor(
         stateFlow.map { it.chatType == ChatType.GROUP }
             .distinctUntilChanged()
             .flatMapLatest { isGroup ->
-                if (isGroup) chatCoordinator.observeSenderProfiles() else flowOf(null)
+                // Starts from the last read so the transcript's first mapping already has the
+                // names; waiting on the fresh query mapped the first page twice.
+                if (isGroup) {
+                    chatCoordinator.observeSenderProfiles()
+                        .onStart { chatCoordinator.currentSenderProfiles()?.let { emit(it) } }
+                } else flowOf(null)
             }
             // Held rather than cold so a tap on a sender's picture can read the profile that drew
             // it. The transcript is the only thing that asks for these, so the map the paging
@@ -970,6 +1003,24 @@ internal class ChatViewModel @Inject constructor(
     fun memberParticipant(userId: ID): ChatParticipant.TipUser? =
         senderProfiles.value?.get(userId.hexEncodedString())
             ?.let { ChatParticipant.TipUser(userId, it) }
+
+    /**
+     * Opens the chat [identifier] names. Call it while composing the screen, before the state is
+     * first read.
+     *
+     * A group already in the feed is drawn from the feed row in the same update, so the first
+     * frame has its name and picture instead of a placeholder, and the transcript starts on its
+     * sender profiles without waiting for Room to emit the stored metadata. The feed only holds
+     * chats you are in, so the membership is known. Room's emission replaces the seed as usual.
+     */
+    fun openChat(identifier: ChatIdentifier) {
+        if (identifier is ChatIdentifier.ByChatId && stateFlow.value.subject == null) {
+            chatCoordinator.state.value.feed
+                ?.firstOrNull { it.chatId == identifier.chatId && it.type == ChatType.GROUP }
+                ?.let { dispatchEvent(Event.OnGroupResolved(ChatMembership(metadata = it, isMember = true))) }
+        }
+        dispatchEvent(Event.OnChatOpened(identifier))
+    }
 
     /**
      * What the quick strip is built from, other than the message's own reactions. Held in [State]
@@ -1019,6 +1070,10 @@ internal class ChatViewModel @Inject constructor(
             senderProfiles,
             combine(viewerCanPost, viewerCanSpeak, viewerCanReact, viewerPreviewing, ::ViewerGates),
         ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages, previewing) ->
+            if (pagingData !== quotedGeneration) {
+                quotedGeneration = pagingData
+                quotedMessages.clear()
+            }
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.flatMapIndexed { index, content ->
@@ -1035,7 +1090,11 @@ internal class ChatViewModel @Inject constructor(
                     // its body with no panel rather than an error.
                     val quote = (content as? MessageContent.Reply)?.let { reply ->
                         stateFlow.value.chatId
-                            ?.let { chatCoordinator.getMessage(it, reply.repliedMessageId) }
+                            ?.let { chatId ->
+                                quotedMessages.getOrPut(reply.repliedMessageId) {
+                                    Optional.ofNullable(chatCoordinator.getMessage(chatId, reply.repliedMessageId))
+                                }.orElse(null)
+                            }
                             ?.toQuote()
                     }
 
@@ -1174,7 +1233,7 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
             }
-        }.cachedIn(viewModelScope)
+        }.cachedIn(pagingScope)
 
     /**
      * The transcript as the list draws it: [mappedMessages] with date separators and the unread
@@ -1339,9 +1398,25 @@ internal class ChatViewModel @Inject constructor(
     /** Shots staged at the shutter and not yet written, by file: the chip id and its readiness. */
     private val pendingCaptures = HashMap<Uri, Pair<String?, CompletableDeferred<Boolean>>>()
 
+    /**
+     * Loads and maps the transcript's first page as soon as the chat id is known, into the cache
+     * the list reads from. The list subscribes only after the screen's first frame, which on a
+     * busy device left the page waiting a few hundred milliseconds it could have spent loading.
+     * Nothing reads from this presenter, so it never asks for more than the first page.
+     */
+    private fun initTranscriptPrefetch() {
+        val presenter = object : PagingDataPresenter<ChatListItem.ContentBubble>(dispatchers.Default) {
+            override suspend fun presentPagingDataEvent(
+                event: PagingDataEvent<ChatListItem.ContentBubble>,
+            ) = Unit
+        }
+        pagingScope.launch { mappedMessages.collectLatest { presenter.collectFrom(it) } }
+    }
+
     init {
         // Essential — needed immediately for chat display
         initChatHandlers()
+        initTranscriptPrefetch()
         initLinkCardFreshness()
         initClaimReplies()
         initMentionHandlers()
@@ -1588,11 +1663,12 @@ internal class ChatViewModel @Inject constructor(
                 // are cached in Room, so skip the re-resolve + network reload that would invalidate
                 // Paging and reflow the message list. Still keep the chat active and clear
                 // notifications.
-                if (chatId != null && stateFlow.value.chatId == chatId) {
+                if (chatId != null && openedChatId == chatId) {
                     chatCoordinator.setActiveChatId(chatId)
                     chatCoordinator.dismissNotifications(chatId)
                     return@onEach
                 }
+                openedChatId = chatId
 
                 if (chatId != null) {
                     dispatchEvent(Event.ChatFound(chatId))
@@ -1607,6 +1683,14 @@ internal class ChatViewModel @Inject constructor(
                         ?.takeIf { chatCoordinator.observeMetadata(chatId).first() == null }
                         ?.let { dispatchEvent(Event.OnGroupResolved(ChatMembership(metadata = it, isMember = null))) }
                     viewModelScope.launch { openTranscript(chatId) }
+                    // A feed row has no cover, so fetch it now rather than when the group's
+                    // profile opens: the profile would otherwise draw an empty cover through GetChat.
+                    viewModelScope.launch {
+                        val metadata = chatCoordinator.observeMetadata(chatId).firstOrNull()?.metadata
+                        if (metadata?.type == ChatType.GROUP && metadata.coverPicture == null) {
+                            chatCoordinator.refreshCover(chatId)
+                        }
+                    }
                     chatCoordinator.dismissNotifications(chatId)
                 } else {
                     // No existing chat means no messages yet, so typing stays disabled. The
@@ -2411,6 +2495,8 @@ internal class ChatViewModel @Inject constructor(
                     ?: 0
                 dispatchEvent(Event.UnreadBoundaryResolved(boundary, budget))
             }
+            // The list waits on this, and on main it queued behind the transcript's first frame.
+            .flowOn(dispatchers.IO)
             .launchIn(viewModelScope)
     }
 
@@ -2929,7 +3015,9 @@ internal class ChatViewModel @Inject constructor(
                                 subject = ChatSubject.Contact(ChatParticipant.Contact(id.contact)),
                                 chatType = ChatType.CONTACT_DM,
                             )
-                        is ChatIdentifier.ByChatId -> state
+                        // Known without a lookup, so the transcript, boundary and the rest keyed
+                        // on it start now rather than once the open handler gets to ChatFound.
+                        is ChatIdentifier.ByChatId -> state.copy(chatId = id.chatId)
                         is ChatIdentifier.ByUser -> error(ROUTED_TO_PROFILE)
                     }
                 }
