@@ -1,24 +1,31 @@
 package com.flipcash.benchmark
 
+import android.util.Log
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.ByteArrayOutputStream
+import java.util.regex.Pattern
 
 /**
  * Generates a baseline profile by exercising critical user journeys.
  *
  * Pass a seed phrase via instrumentation args to enable authenticated flows:
  * ```
- * -Pandroid.testInstrumentationRunnerArguments.SEED_PHRASE="word1 word2 ..."
+ * -Pandroid.testInstrumentationRunnerArguments.SEED_PHRASE=word1_word2_...
  * ```
+ * Join the words with underscores. AGP's test runner passes the value to `am instrument`
+ * unquoted, so a space-separated phrase fails with "Invalid userId -2" before any test runs,
+ * and it splits on commas, so a comma-joined phrase arrives as its first word.
  *
  * Without a seed phrase, only the pre-auth startup path is profiled.
  */
@@ -31,16 +38,24 @@ class BaselineProfileGenerator {
 
     private val seedPhrase: String?
         get() = InstrumentationRegistry.getArguments().getString("SEED_PHRASE")
+            ?.split('_', ' ')
+            ?.filter { it.isNotBlank() }
+            ?.joinToString(" ")
 
     @Test
     fun generateBaselineProfile() {
         rule.collect(
             packageName = PACKAGE_NAME,
         ) {
+            // Grant up front: a fresh install asks for both, and the prompts hide every tag the
+            // journeys wait on.
+            RUNTIME_PERMISSIONS.forEach { device.executeShellCommand("pm grant $PACKAGE_NAME $it") }
+
             // Cold start — app init, Hilt DI, Compose runtime bootstrap
             pressHome()
             startActivityAndWait()
             device.waitForIdle()
+            dismissNotificationPrompt()
 
             // App data persists across iterations, so after the first login every later
             // iteration starts authenticated. Probe the tab bar, not a specific tab: a launch
@@ -111,19 +126,14 @@ class BaselineProfileGenerator {
     }
 
     private fun MacrobenchmarkScope.chatJourney() {
-        // The chats tab lists conversations; open the first one and send a text message. A
-        // message is fund-free (money-safety: never tap Send Cash / confirm a spend). The
-        // conversation is not hardcoded — send_contact_row resolves to the first row.
+        // The chats tab lists conversations; open the first one. View-only: the first row can be
+        // a public group, where a sent message (or the typing indicator from typing one) reaches
+        // every member. The conversation is not hardcoded — send_contact_row resolves to the
+        // first row.
         openTab("nav_chats", "chats_screen")
 
         device.wait(Until.findObject(By.res("send_contact_row")), TIMEOUT)?.click()
         device.wait(Until.findObject(By.res("chat_screen")), LOGIN_TIMEOUT)
-        device.waitForIdle()
-        device.wait(Until.findObject(By.res("chat_message_input")), TIMEOUT)?.click()
-        device.waitForIdle()
-        device.executeShellCommand("input text BaselineProfileTest")
-        device.waitForIdle()
-        device.findObject(By.res("chat_send_icon"))?.click()
         device.waitForIdle()
 
         // Scroll the message list so MessageList / bubble composition gets compiled.
@@ -136,15 +146,55 @@ class BaselineProfileGenerator {
         device.waitForIdle()
         flingScroll("chat_list", Direction.UP, 2)
         flingScroll("chat_list", Direction.DOWN, 1)
+        chatProfileJourney()
         returnToScanner()
+    }
+
+    /**
+     * Opens chats from the top of the list until one has led to a group profile and one to a
+     * user profile, so a group transcript, a DM transcript and both profile screens are in the
+     * profile. Which rows are groups depends on the account, so each row is opened and its title
+     * tapped; the screen that comes up says which kind it was. View-only: nothing is sent.
+     */
+    private fun MacrobenchmarkScope.chatProfileJourney() {
+        val seen = mutableSetOf<String>()
+        for (index in 0 until PROFILE_ROWS_TO_TRY) {
+            if (seen.size == PROFILE_SCREENS.size) break
+            device.wait(Until.findObject(By.res("chats_screen")), TIMEOUT)
+            val row = device.findObjects(By.res("send_contact_row")).getOrNull(index) ?: break
+            row.click()
+            device.wait(Until.findObject(By.res("chat_screen")), LOGIN_TIMEOUT)
+            device.wait(Until.hasObject(By.res("chat_message_list")), TIMEOUT)
+            device.waitForIdle()
+
+            device.findObject(By.res("chat_title"))?.click()
+            val screen = device.wait(Until.findObject(By.res(PROFILE_SCREEN_PATTERN)), TIMEOUT)
+                ?.resourceName
+                ?.let { name -> PROFILE_SCREENS.firstOrNull { it == name } }
+            if (screen != null) {
+                device.waitForIdle()
+                seen += screen
+                device.pressBack()
+                device.wait(Until.findObject(By.res("chat_message_list")), TIMEOUT)
+            }
+            device.pressBack()
+            device.waitForIdle()
+        }
     }
 
     private fun MacrobenchmarkScope.discoveryJourney() {
         // Discovery is a wallet action tile now, not a tab of its own.
         openTab("nav_wallet", "wallet_screen")
+        // The tile sits under the balance list, below the fold on a short screen or a long list.
+        scrollUntilVisible("wallet_content", By.text("Discover Currencies"), Direction.DOWN)
         device.wait(Until.findObject(By.text("Discover Currencies")), TIMEOUT)?.click()
 
-        device.wait(Until.findObject(By.res("discovery_leaderboard")), LOGIN_TIMEOUT)
+        // Without the leaderboard the Back presses below would leave the app.
+        if (device.wait(Until.findObject(By.res("discovery_leaderboard")), LOGIN_TIMEOUT) == null) {
+            logHierarchy("discovery_leaderboard not shown")
+            returnToScanner()
+            return
+        }
         device.waitForIdle()
 
         // Open a token's info screen from the FRESH leaderboard first. (Tapping a row
@@ -156,7 +206,7 @@ class BaselineProfileGenerator {
 
         // Scroll the token-info screen down until the market-cap chart's period tabs
         // (the bottom-most element) are on screen — the chart sits at the very bottom.
-        scrollUntilVisible("token_info_screen", "market_cap_period_All", Direction.UP)
+        scrollUntilVisible("token_info_screen", By.res("market_cap_period_All"), Direction.DOWN)
 
         // Interact with the market-cap chart: scrub across it (highlights points), then
         // toggle every time window (each reloads data + redraws the chart).
@@ -176,8 +226,8 @@ class BaselineProfileGenerator {
         device.pressBack()
         device.wait(Until.findObject(By.res("discovery_leaderboard")), TIMEOUT)
         device.waitForIdle()
-        flingScroll("discovery_leaderboard", Direction.UP, 3)   // scroll down through the list
-        flingScroll("discovery_leaderboard", Direction.DOWN, 2) // and back up
+        flingScroll("discovery_leaderboard", Direction.DOWN, 3) // scroll down through the list
+        flingScroll("discovery_leaderboard", Direction.UP, 2)   // and back up
 
         returnToScanner()
     }
@@ -200,15 +250,15 @@ class BaselineProfileGenerator {
         }
     }
 
-    /** Fling [scrollableResId] in [direction] (re-finding each time) until [targetResId] appears. */
+    /** Fling [scrollableResId] in [direction] (re-finding each time) until [target] appears. */
     private fun MacrobenchmarkScope.scrollUntilVisible(
         scrollableResId: String,
-        targetResId: String,
+        target: BySelector,
         direction: Direction,
         maxFlings: Int = 6,
     ) {
         repeat(maxFlings) {
-            if (device.hasObject(By.res(targetResId))) return
+            if (device.hasObject(target)) return
             val scrollable = device.findObject(By.res(scrollableResId)) ?: return
             try {
                 scrollable.setGestureMargin(device.displayWidth / 5)
@@ -277,7 +327,26 @@ class BaselineProfileGenerator {
     private fun MacrobenchmarkScope.openTab(navResId: String, homeResId: String) {
         device.wait(Until.findObject(By.res(navResId)), TIMEOUT)?.click()
         device.wait(Until.findObject(By.res(homeResId)), LOGIN_TIMEOUT)
+            ?: logHierarchy("$homeResId not shown after tapping $navResId")
         device.waitForIdle()
+    }
+
+    /**
+     * The onboarding push prompt can land over the tab bar after launch even with the permission
+     * granted. Decline it in-app ("Not Now", then "I'm Sure") so the journeys see the tabs.
+     */
+    private fun MacrobenchmarkScope.dismissNotificationPrompt() {
+        if (device.wait(Until.findObject(By.res("notification_permission_screen")), 2_000L) == null) return
+        device.findObject(By.text("Not Now"))?.click()
+        device.wait(Until.findObject(By.text("I'm Sure")), TIMEOUT)?.click()
+        device.waitForIdle()
+    }
+
+    /** Logs what is on screen when a journey misses its target, so a thin profile can be traced. */
+    private fun MacrobenchmarkScope.logHierarchy(reason: String) {
+        val out = ByteArrayOutputStream()
+        device.dumpWindowHierarchy(out)
+        Log.w(TAG, "$reason; on screen:\n$out")
     }
 
     /**
@@ -292,6 +361,8 @@ class BaselineProfileGenerator {
         var guard = 0
         while (
             guard++ < 4 &&
+            // Back from a tab root closes the app; stop once it is no longer in front.
+            device.currentPackageName == PACKAGE_NAME &&
             (!device.hasObject(By.res("nav_scanner")) || device.hasObject(By.res("token_info_screen")))
         ) {
             device.pressBack()
@@ -301,13 +372,26 @@ class BaselineProfileGenerator {
             device.wait(Until.findObject(By.res("nav_scanner")), TIMEOUT)?.click()
         }
         device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
+            ?: logHierarchy("scanner_view not shown")
         device.waitForIdle()
     }
 
     companion object {
         private const val PACKAGE_NAME = "com.flipcash.app.android"
+        private const val TAG = "BaselineProfileGen"
+        private val RUNTIME_PERMISSIONS = listOf(
+            "android.permission.CAMERA",
+            "android.permission.POST_NOTIFICATIONS",
+        )
         private const val TIMEOUT = 5_000L
         private const val LOGIN_TIMEOUT = 15_000L
+
+        /** The chat flow's profile steps, by screen-root tag (see `screenRootTag`). */
+        private val PROFILE_SCREENS = listOf("group_profile_screen", "profile_screen")
+        private val PROFILE_SCREEN_PATTERN: Pattern = Pattern.compile(PROFILE_SCREENS.joinToString("|"))
+
+        /** Rows tried from the top of the chat list before giving up on a missing kind. */
+        private const val PROFILE_ROWS_TO_TRY = 6
     }
 }
 
