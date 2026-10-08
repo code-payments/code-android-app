@@ -22,6 +22,8 @@ import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.LocalContactCoordinator
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.core.links.LocalTrustedWebsites
+import com.flipcash.app.core.links.TrustedWebsites
 import com.flipcash.app.core.media.LocalMediaUrlResolver
 import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.app.core.tipping.LocalTipCoordinator
@@ -147,6 +149,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var mediaUrlResolver: MediaUrlResolver
 
+    @Inject
+    lateinit var trustedWebsites: TrustedWebsites
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -169,6 +174,7 @@ class MainActivity : FragmentActivity() {
                 LocalVibrator provides vibrator,
                 LocalRouter provides router,
                 LocalUserManager provides userManager,
+                LocalTrustedWebsites provides trustedWebsites,
                 LocalSessionController provides sessionController,
                 LocalShareController provides shareController,
                 LocalInviteController provides inviteController,

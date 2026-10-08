@@ -52,6 +52,16 @@ data class BottomBarAction(
 
 
 /**
+ * A tick box drawn between a [BottomBarManager.BottomBarMessage]'s subtitle and its actions. It
+ * starts unchecked each time the message shows; [onCheckedChange] hears every change, so an action's
+ * `onClick` can act on the state the box was in when it was tapped.
+ */
+data class BottomBarCheckbox(
+    val label: String,
+    val onCheckedChange: (checked: Boolean) -> Unit,
+)
+
+/**
  * Represents an action related to a selected bottom bar item.
  *
  * @property index The index of the selected bottom bar item.
@@ -80,6 +90,7 @@ object BottomBarManager {
         val timeoutSeconds: Int? = null,
         val id: Long = UUID.randomUUID().mostSignificantBits,
         val callSite: String? = null,
+        val checkbox: BottomBarCheckbox? = null,
     ) {
         constructor(
             title: String = "",
@@ -138,8 +149,8 @@ object BottomBarManager {
     private val _messages: MutableStateFlow<List<BottomBarMessage>> = MutableStateFlow(emptyList())
     val messages: StateFlow<List<BottomBarMessage>> get() = _messages.asStateFlow()
 
-    @PublishedApi
-    internal fun showMessage(bottomBarMessage: BottomBarMessage) {
+    /** Shows a message built in full, for one the `show*` helpers can't express (e.g. a [BottomBarCheckbox]). */
+    fun showMessage(bottomBarMessage: BottomBarMessage) {
         _messages.update { currentMessages ->
             currentMessages + bottomBarMessage
         }

@@ -286,7 +286,7 @@ internal class SettingsViewModel @Inject constructor(
                     R.string.title_settingsSectionSecurity,
                     listOf(AccessKey, RequireBiometrics),
                 ),
-                SettingsSection(R.string.title_settingsSectionPrivacy, listOf(Blocklist)),
+                SettingsSection(R.string.title_settingsSectionPrivacy, listOf(Blocklist, TrustedWebsites)),
                 SettingsSection(
                     R.string.title_advancedFeatures,
                     listOf(/* BillCustomizer, */ DeviceLogs, BetaFlags, SwitchAccount),
