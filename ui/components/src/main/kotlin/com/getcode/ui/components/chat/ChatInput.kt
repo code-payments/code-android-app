@@ -139,7 +139,7 @@ object ChatInputDefaults {
 
     /** The field's padding around its controls; the attach menu's leading edge sits this far out from "+"'s. */
     val FieldPadding: Dp
-        @Composable get() = CodeTheme.dimens.staticGrid.x2
+        @Composable get() = 8.dp
 
     /** The leading and send controls' diameter, and the text row's minimum height. */
     val AccessorySize: Dp
@@ -205,8 +205,12 @@ internal data class ComposerMetrics(
     val fieldPad: Dp,
     /** The leading and send controls' diameter, and the text row's minimum height. */
     val accessorySize: Dp,
-    /** The text's inset from the field's sides while stacked or with no leading control. */
+    /** The text's inset from the field's sides while stacked, or inline with no leading control. */
     val stackedTextInset: Dp,
+    /** The stacked text's inset from the field's top when no header sits above it. */
+    val stackedTextTopInset: Dp,
+    /** The gap between the stacked text's bottom and the row of controls. */
+    val stackedTextGap: Dp,
     /** The gap between the controls and the text. */
     val controlSpacing: Dp,
     /** The gap between the outside control and the field. */
@@ -217,12 +221,15 @@ internal data class ComposerMetrics(
 internal fun composerMetrics(): ComposerMetrics {
     val grid = CodeTheme.dimens.staticGrid
     return ComposerMetrics(
-        fieldCorner = grid.x6,
-        headerTopInset = grid.x2,
+        // Concentric with the send and leading controls: their radius plus the padding around them.
+        fieldCorner = ChatInputDefaults.FieldPadding + ChatInputDefaults.AccessorySize / 2,
+        headerTopInset = ChatInputDefaults.FieldPadding,
         headerInnerCorner = ChatInputDefaults.HeaderChipCorner,
         fieldPad = ChatInputDefaults.FieldPadding,
         accessorySize = ChatInputDefaults.AccessorySize,
-        stackedTextInset = grid.x2,
+        stackedTextInset = 14.dp,
+        stackedTextTopInset = 16.dp,
+        stackedTextGap = 8.dp,
         controlSpacing = grid.x2,
         outsideSpacing = grid.x2,
     )
@@ -294,7 +301,7 @@ private class OverhangShape(
     }
 }
 
-private const val MaxLines = 5
+private const val MaxLines = 7
 
 /** iOS `ChatMotion.replySurface`: duration 0.28, bounce 0, so damping ratio 1 and stiffness (2pi/0.28)^2. */
 private val StackSpring = spring<Float>(dampingRatio = 1f, stiffness = 503f)
@@ -671,7 +678,9 @@ private class ComposerMeasurePolicy(
         val width = constraints.maxWidth
         val pad = metrics.fieldPad.roundToPx()
         val gap = metrics.controlSpacing.roundToPx()
-        val stackedInset = metrics.stackedTextInset.roundToPx()
+        val inlineInset = metrics.stackedTextInset.roundToPx()
+        val stackedInset = inlineInset
+        val stackedGap = metrics.stackedTextGap.roundToPx()
         val loose = constraints.copy(minWidth = 0, minHeight = 0, maxHeight = Constraints.Infinity)
         val header = measurables.firstOrNull { it.layoutId == Slot.Header }
             ?.measure(loose.copy(maxWidth = width))
@@ -680,7 +689,7 @@ private class ComposerMeasurePolicy(
         val leadW = leading?.width ?: 0
         val minRow = metrics.accessorySize.roundToPx()
 
-        val inlineX = if (leading != null) pad + leadW + gap else stackedInset
+        val inlineX = if (leading != null) pad + leadW + gap else inlineInset
         val inlineW = (width - inlineX - (pad + send.width + gap)).coerceAtLeast(0)
         val stackedW = (width - 2 * stackedInset).coerceAtLeast(0)
         val target = stacked()
@@ -693,7 +702,9 @@ private class ComposerMeasurePolicy(
         val controlsH = maxOf(minRow, leading?.height ?: 0, send.height)
         val inlineRow = maxOf(minRow, text.height, controlsH)
         val inlineH = headerBlock + inlineRow + pad
-        val stackedH = headerBlock + text.height + controlsH + pad
+        // Under a header the text keeps the header's spacing; alone it takes its own top inset.
+        val stackedTop = if (header != null) headerBlock else metrics.stackedTextTopInset.roundToPx()
+        val stackedH = stackedTop + text.height + stackedGap + controlsH + pad
         val t = stackFraction().coerceIn(0f, 1f)
         val naturalH = lerp(inlineH, stackedH, t)
         val heightTarget = if (stacked()) stackedH else inlineH
@@ -716,7 +727,7 @@ private class ComposerMeasurePolicy(
             leading?.place(pad, bottom - leading.height + shift)
             send.place(width - pad - send.width, bottom - send.height + shift)
             val textX = lerp(inlineX, stackedInset, t)
-            val textY = lerp(rowTop + (inlineRow - text.height) / 2, rowTop, t)
+            val textY = lerp(rowTop + (inlineRow - text.height) / 2, stackedTop, t)
             text.place(textX, textY + shift)
         }
     }
