@@ -280,7 +280,9 @@ internal class LinkCardResolver(
                     memory.putWeb(key, it)
                     _revision.update { n -> n + 1 }
                 }
-                result.onFailure { forget(webQueries, key) }
+                // Memory holds a success, and expires it by TTL. Keeping the query too would
+                // hand back the expired answer instead of asking again.
+                forget(webQueries, key)
             }
         }.getOrNull()
     }

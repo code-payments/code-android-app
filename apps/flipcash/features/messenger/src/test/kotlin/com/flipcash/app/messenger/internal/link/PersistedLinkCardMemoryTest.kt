@@ -322,4 +322,14 @@ class PersistedLinkCardMemoryTest {
         assertTrue(table.writes.isEmpty())
         assertTrue(table.rows.isEmpty())
     }
+
+    @Test
+    fun `an entry loaded from a 23 hour old none row expires an hour and a millisecond later`() = runTest {
+        val loaded = webReloaded(LinkCard.Web.State.None, 23.hours.inWholeMilliseconds)
+        assertEquals(LinkCard.Web.State.None, loaded.webs[webKey])
+        clock += 1.hours.inWholeMilliseconds
+        assertEquals(LinkCard.Web.State.None, loaded.webs[webKey])
+        clock += 1
+        assertNull(loaded.webs[webKey])
+    }
 }

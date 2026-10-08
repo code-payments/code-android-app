@@ -50,7 +50,7 @@ internal class PersistedLinkCardMemory(
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-) : LinkCardMemory() {
+) : LinkCardMemory(clock = now) {
 
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.IO)
     private val loaded = MutableStateFlow(false)
@@ -64,7 +64,7 @@ internal class PersistedLinkCardMemory(
                 loaded.value = false
                 _groups.clear()
                 _users.clear()
-                _webs.clear()
+                clearWebs()
                 writtenAt.clear()
                 records.forEach { load(it) }
                 loaded.value = true
@@ -91,7 +91,9 @@ internal class PersistedLinkCardMemory(
 
     override fun putWeb(key: String, state: LinkCard.Web.State) {
         val rowKey = WEB_PREFIX + key
-        if (_webs.put(key, state) == state && !rewriteDue(rowKey)) return
+        val unchanged = webs[key] == state
+        storeWeb(key, state)
+        if (unchanged && !rewriteDue(rowKey)) return
         write(rowKey, webJson.encodeToString(StoredWeb.serializer(), StoredWeb.of(state)))
     }
 
@@ -149,7 +151,7 @@ internal class PersistedLinkCardMemory(
                     val age = (now() - record.updatedAt).milliseconds
                     val ttl = if (state is LinkCard.Web.State.Resolved) WebLinks.RESOLVED_TTL else WebLinks.EMPTY_TTL
                     if (age > ttl) error("stale web row")
-                    _webs[record.key.removePrefix(WEB_PREFIX)] = state
+                    storeWeb(record.key.removePrefix(WEB_PREFIX), state, at = record.updatedAt)
                 }
                 else -> error("unknown key")
             }

@@ -707,4 +707,34 @@ class LinkCardResolverTest {
         assertEquals(LinkCard.Web.State.None, (resolver.resolve(bad) as LinkCard.Web).state)
         assertEquals(0, calls)
     }
+
+    private suspend fun TestScope.expiry(answer: LinkCard.Web.State, ttl: kotlin.time.Duration) {
+        var now = 1_000_000L
+        var calls = 0
+        val memory = LinkCardMemory(clock = { now })
+        val resolver = webResolver(memory) { calls++; Result.success(answer) }
+        resolver.resolve(webCard)
+        assertEquals(1, calls)
+
+        now += ttl.inWholeMilliseconds
+        assertEquals(answer, (resolver.peek(webCard) as LinkCard.Web).state)
+        resolver.resolve(webCard)
+        assertEquals(1, calls)
+
+        now += 1
+        assertNull(resolver.peek(webCard))
+        assertTrue(memory.webs.isEmpty())
+        assertEquals(answer, (resolver.resolve(webCard) as LinkCard.Web).state)
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun `a none web answer expires in memory at the empty ttl and is looked up again`() = runTest {
+        expiry(LinkCard.Web.State.None, WebLinks.EMPTY_TTL)
+    }
+
+    @Test
+    fun `a resolved web answer expires in memory at the resolved ttl and is looked up again`() = runTest {
+        expiry(webResolved, WebLinks.RESOLVED_TTL)
+    }
 }

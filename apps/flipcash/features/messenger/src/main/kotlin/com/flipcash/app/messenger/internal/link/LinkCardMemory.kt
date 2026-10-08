@@ -26,15 +26,45 @@ import java.util.concurrent.ConcurrentHashMap
  * The maps are read directly -- [LinkCardResolver.peek] runs during composition and must not
  * suspend -- and written only through the `put` functions, so a subclass sees every answer.
  */
-internal open class LinkCardMemory {
+internal open class LinkCardMemory(
+    protected val clock: () -> Long = { System.currentTimeMillis() },
+) {
     val tokens: Map<Mint, LinkCard.TokenInfo.State.Resolved> get() = _tokens
     val groups: Map<ChatId, LinkCard.GroupInvite.State.Resolved> get() = _groups
     val users: Map<LinkCard.User.Identity, LinkCard.User.State.Resolved> get() = _users
 
-    /** Web page answers by [WebLinks.cacheKey]. Only answers: a failed lookup is never put here. */
-    val webs: Map<String, LinkCard.Web.State> get() = _webs
+    /**
+     * Web page answers by [WebLinks.cacheKey]. Only answers: a failed lookup is never put here. An
+     * answer past its TTL reads as absent (parity decision D19), so it is looked up again.
+     */
+    val webs: Map<String, LinkCard.Web.State> = FreshWebs()
 
-    protected val _webs = ConcurrentHashMap<String, LinkCard.Web.State>()
+    private class Stored(val state: LinkCard.Web.State, val at: Long)
+
+    private val _webEntries = ConcurrentHashMap<String, Stored>()
+
+    private fun Stored.isFresh(): Boolean {
+        val ttl = if (state is LinkCard.Web.State.Resolved) WebLinks.RESOLVED_TTL else WebLinks.EMPTY_TTL
+        return clock() - at <= ttl.inWholeMilliseconds
+    }
+
+    private inner class FreshWebs : AbstractMap<String, LinkCard.Web.State>() {
+        override val entries: Set<Map.Entry<String, LinkCard.Web.State>>
+            get() = _webEntries.entries.filter { it.value.isFresh() }
+                .associate { it.key to it.value.state }.entries
+
+        override fun get(key: String): LinkCard.Web.State? =
+            _webEntries[key]?.takeIf { it.isFresh() }?.state
+
+        override fun containsKey(key: String): Boolean = get(key) != null
+    }
+
+    /** Holds [state] as of [at]: now for an answer just fetched, the row's `updatedAt` for a loaded one. */
+    protected fun storeWeb(key: String, state: LinkCard.Web.State, at: Long = clock()) {
+        _webEntries[key] = Stored(state, at)
+    }
+
+    protected fun clearWebs() = _webEntries.clear()
 
     protected val _tokens = ConcurrentHashMap<Mint, LinkCard.TokenInfo.State.Resolved>()
     protected val _groups = ConcurrentHashMap<ChatId, LinkCard.GroupInvite.State.Resolved>()
@@ -45,7 +75,7 @@ internal open class LinkCardMemory {
     }
 
     open fun putWeb(key: String, state: LinkCard.Web.State) {
-        _webs[key] = state
+        storeWeb(key, state)
     }
 
     open fun putGroup(chatId: ChatId, state: LinkCard.GroupInvite.State.Resolved) {
