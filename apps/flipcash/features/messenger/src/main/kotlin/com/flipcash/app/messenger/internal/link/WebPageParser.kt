@@ -41,9 +41,11 @@ internal object WebPageParser {
         val title = metas["og:title"] ?: titleText ?: return null
         val description = metas["og:description"] ?: metas["description"]
         val base = finalUrl.toHttpUrlOrNull()
+        // An address the image fetch would refuse draws no slot, so it is dropped here (D11, D12, D13).
         val image = metas["og:image"]
+            ?.takeUnless { WebLinks.hasEscapedHost(it) || WebLinks.isUnsafeLocation(it) }
             ?.let { base?.resolve(it) }
-            ?.takeIf { it.scheme == "https" && WebLinks.isEligibleHost(it.host) }
+            ?.takeIf { it.scheme == "https" && it.port == 443 && WebLinks.isEligibleHost(it.host) }
             ?.toString()
         val host = (base?.host ?: return null).lowercase().removePrefix("www.")
         return LinkCard.Web.State.Resolved(title, description, image, host)

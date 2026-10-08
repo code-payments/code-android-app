@@ -51,4 +51,39 @@ class WebPageParserTest {
         }
         if (failures.isNotEmpty()) fail("${failures.size} of ${rows.length()} vectors failed:\n" + failures.joinToString("\n"))
     }
+
+    private fun imageOf(ogImage: String, finalUrl: String = "https://example.com/post"): String? =
+        WebPageParser.parse(
+            """<html><head><title>T</title><meta property="og:image" content="$ogImage"></head></html>""".toByteArray(),
+            finalUrl,
+        )?.imageUrl
+
+    @Test
+    fun `a good https image is kept`() {
+        assertEquals("https://img.example.com/p.png", imageOf("https://img.example.com/p.png"))
+        assertEquals("https://example.com/p.png", imageOf("/p.png"))
+        assertEquals("https://img.example.com/p.png", imageOf("https://img.example.com:443/p.png"))
+    }
+
+    @Test
+    fun `an image that is not https is dropped`() {
+        assertEquals(null, imageOf("http://img.example.com/p.png"))
+    }
+
+    @Test
+    fun `an image on another port is dropped`() {
+        assertEquals(null, imageOf("https://img.example.com:8443/p.png"))
+    }
+
+    @Test
+    fun `an image with an escaped host is dropped`() {
+        assertEquals(null, imageOf("https://im%67.example.com/p.png"))
+        assertEquals(null, imageOf("//im%67.example.com/p.png"))
+    }
+
+    @Test
+    fun `an image on an ineligible host is dropped`() {
+        assertEquals(null, imageOf("https://127.0.0.1/p.png"))
+        assertEquals(null, imageOf("https://localhost/p.png"))
+    }
 }
