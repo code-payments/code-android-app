@@ -66,12 +66,14 @@ class MessageLinkPrefetcherTest {
 
     private fun TestScope.prefetcher(
         memory: LinkCardMemory,
-        group: suspend (ChatId) -> Result<LinkCard.GroupInvite.State.Resolved>,
+        web: suspend (String) -> Result<LinkCard.Web.State> = { Result.failure(IOException("not used")) },
+        group: suspend (ChatId) -> Result<LinkCard.GroupInvite.State.Resolved> = { Result.failure(IOException("not used")) },
     ) = MessageLinkPrefetcher(
         classifier = LinkCardClassifier(router),
         memory = memory,
         group = group,
         user = { Result.failure(IOException("not used")) },
+        web = web,
         dispatchers = TestDispatcherProvider(StandardTestDispatcher(testScheduler)),
     )
 
@@ -133,5 +135,46 @@ class MessageLinkPrefetcherTest {
             .prefetch(listOf(message(inviteText, redacted = true)), wait = 1.seconds)
 
         assertEquals(0, asked)
+    }
+
+    private val pageUrl = "https://example.com/article"
+    private val pageText = "read $pageUrl"
+    private val page = LinkCard.Web.State.Resolved(
+        title = "An article",
+        description = null,
+        imageUrl = null,
+        host = "example.com",
+    )
+
+    @Test
+    fun `a web link is not fetched unless the caller allows it`() = runTest {
+        val memory = LinkCardMemory()
+        var asked = 0
+        prefetcher(memory, web = { asked++; Result.success(page) })
+            .prefetch(listOf(message(pageText)), wait = 1.seconds)
+
+        assertEquals(0, asked)
+        assertTrue(memory.webs.isEmpty())
+    }
+
+    @Test
+    fun `a web link is fetched once when allowed, and not again once held`() = runTest {
+        val memory = LinkCardMemory()
+        var asked = 0
+        val prefetcher = prefetcher(memory, web = { asked++; Result.success(page) })
+        prefetcher.prefetch(listOf(message(pageText)), wait = 1.seconds, webLinks = true)
+        prefetcher.prefetch(listOf(message(pageText, id = 2)), wait = 1.seconds, webLinks = true)
+
+        assertEquals(1, asked)
+        assertEquals(page, memory.webs[WebLinks.cacheKey(pageUrl)])
+    }
+
+    @Test
+    fun `a group invite is prefetched whether or not web links are allowed`() = runTest {
+        val memory = LinkCardMemory()
+        prefetcher(memory, group = { Result.success(resolved) })
+            .prefetch(listOf(message(inviteText)), wait = 1.seconds, webLinks = false)
+
+        assertEquals(resolved, memory.groups[chatId])
     }
 }

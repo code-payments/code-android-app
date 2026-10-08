@@ -43,6 +43,7 @@ import com.flipcash.shared.chat.PendingMutation
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.OutgoingEncryption
+import com.flipcash.shared.chat.internal.WebPreviewGate
 import com.flipcash.shared.chat.media.ChatMediaText
 import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
@@ -98,6 +99,8 @@ class MessagingDelegate @Inject constructor(
     /** Opens encrypted pushes; without it, every push keeps the server's body. */
     private val incoming: IncomingMessageOpener? = null,
 ) : MessagingOperations {
+
+    private val webGate = WebPreviewGate(stateHolder, metadataDataSource)
 
     /**
      * Edits and deletes awaiting a server answer, per chat, keyed by message id.
@@ -262,7 +265,7 @@ class MessagingDelegate @Inject constructor(
         messagingController.getMessages(chatId)
             .onSuccess { messages ->
                 // Not waited on: this page is what the open transcript is waiting for.
-                linkPrefetch.prefetch(messages)
+                linkPrefetch.prefetch(messages, webLinks = webGate.allows(chatId))
                 messageDataSource.upsert(chatId, messages)
 
                 // Seat the event-log cursor at the newest page's frontier. It is what marks this

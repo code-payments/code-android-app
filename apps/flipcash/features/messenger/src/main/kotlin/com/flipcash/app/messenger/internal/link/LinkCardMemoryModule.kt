@@ -70,12 +70,14 @@ internal abstract class LinkCardMemoryModule {
             memory: LinkCardMemory,
             group: GroupLinkLookup,
             user: UserLinkLookup,
+            web: WebLinkLookup,
             dispatchers: DispatcherProvider,
         ): MessageLinkPrefetcher = MessageLinkPrefetcher(
             classifier = classifier,
             memory = memory,
             group = { group(it) },
             user = { user(it) },
+            web = { web(it) },
             dispatchers = dispatchers,
         )
     }

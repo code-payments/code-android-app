@@ -14,6 +14,11 @@ import kotlin.time.Duration.Companion.seconds
  *
  * The lookups live in `:apps:flipcash:features:messenger`, which this module cannot see, so this is
  * the seam; `MessageLinkPrefetcher` on the far side is the implementation.
+ *
+ * [webLinks] lets outside https links be fetched too. Only a caller that knows the messages are in
+ * the chat on screen, and that the viewer is a member of it, passes true. A web fetch is visible
+ * to the linked host, so it must happen no earlier than the read receipt it stands beside. A feed
+ * sync, a delivery or a push never passes it.
  */
 interface MessageLinkPrefetch {
 
@@ -27,11 +32,11 @@ interface MessageLinkPrefetch {
      *
      * Never throws: a lookup that fails leaves the card to ask for itself when drawn.
      */
-    suspend fun prefetch(messages: List<ChatMessage>, wait: Duration = Duration.ZERO)
+    suspend fun prefetch(messages: List<ChatMessage>, wait: Duration = Duration.ZERO, webLinks: Boolean = false)
 
     /** Does nothing. What a delegate built without a prefetcher -- a unit test -- is given. */
     object None : MessageLinkPrefetch {
-        override suspend fun prefetch(messages: List<ChatMessage>, wait: Duration) = Unit
+        override suspend fun prefetch(messages: List<ChatMessage>, wait: Duration, webLinks: Boolean) = Unit
     }
 
     companion object {
