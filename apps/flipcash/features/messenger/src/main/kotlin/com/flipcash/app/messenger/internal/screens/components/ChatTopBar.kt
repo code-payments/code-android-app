@@ -180,6 +180,7 @@ private fun ConversationTitleBar(
                 // Profile open is the tip arm's answer alone (see State.canViewProfile).
                 modifier = Modifier
                     .fillMaxWidth()
+                    .testTag("chat_title")
                     .then(
                         if (state.canViewProfile) {
                             // No indication: the target is the whole title row, so an unbounded

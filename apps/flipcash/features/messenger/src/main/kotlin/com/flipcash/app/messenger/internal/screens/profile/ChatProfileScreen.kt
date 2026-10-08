@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.screens.profile
 
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -134,7 +135,8 @@ internal fun PersonProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .testTag("profile_screen"),
         ) {
             val scrollState = rememberScrollState()
             Column(
