@@ -11,6 +11,7 @@ internal object WebLinks {
     const val MAX_REDIRECTS = 3
     const val MAX_CONCURRENT = 4
     val TIMEOUT = 5.seconds
+    val LOOKUP_DEADLINE = 10.seconds
     val RESOLVED_TTL = 168.hours
     val EMPTY_TTL = 24.hours
     const val USER_AGENT = "Mozilla/5.0 (compatible; FlipcashLinkPreview/1.0)"

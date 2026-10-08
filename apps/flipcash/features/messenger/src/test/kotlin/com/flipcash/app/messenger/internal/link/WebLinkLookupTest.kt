@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.link
 
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.chat.models.LinkCard
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -32,6 +33,8 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -198,6 +201,32 @@ class WebLinkLookupTest {
 
         val same = Script { reply(it, repeated = listOf("Content-Length" to "${html.length}", "Content-Length" to "${html.length}")) }
         assertTrue(fetch(same).state() is LinkCard.Web.State.Resolved)
+    }
+
+    /** One deadline covers every hop, and it starts once the permit is held (parity decision D18). */
+    @Test
+    fun `slow hops past the deadline fail and are not none`() {
+        val script = Script { req ->
+            Thread.sleep(150)
+            if (req.url.encodedPath.length < 4) redirect(req, "https://example.com${req.url.encodedPath}x") else reply(req)
+        }
+        val slow = WebLinkLookup(webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(), { true }, realIo, deadline = 300.milliseconds)
+        val result = runBlocking { slow("https://example.com/") }
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() !is CancellationException)
+        // The same hops inside a longer deadline resolve.
+        val fast = WebLinkLookup(webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(), { true }, realIo, deadline = 5.seconds)
+        assertTrue(runBlocking { fast("https://example.com/") }.getOrThrow() is LinkCard.Web.State.Resolved)
+    }
+
+    @Test
+    fun `time spent waiting for a permit does not count against the deadline`() {
+        val script = Script { req -> Thread.sleep(250); reply(req) }
+        val lookup = WebLinkLookup(webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(), { true }, realIo, deadline = 400.milliseconds)
+        val results = runBlocking(Dispatchers.IO) {
+            (1..WebLinks.MAX_CONCURRENT + 1).map { async { lookup("https://example.com/$it") } }.awaitAll()
+        }
+        results.forEach { assertTrue(it.getOrThrow() is LinkCard.Web.State.Resolved) }
     }
 
     @Test

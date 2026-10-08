@@ -3,10 +3,12 @@ package com.flipcash.app.messenger.internal.link
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.chat.models.LinkCard
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.CookieJar
@@ -24,6 +26,7 @@ import java.net.Proxy
 import java.net.UnknownHostException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
 /** Drops private, loopback and link-local answers, so a public name cannot point the fetch inward. */
@@ -84,10 +87,22 @@ internal class WebLinkLookup(
     private val client: OkHttpClient,
     private val enabled: suspend () -> Boolean,
     private val dispatchers: DispatcherProvider,
+    private val deadline: Duration = WebLinks.LOOKUP_DEADLINE,
 ) {
     private val inFlight = Semaphore(WebLinks.MAX_CONCURRENT)
 
-    suspend operator fun invoke(url: String): Result<LinkCard.Web.State> = inFlight.withPermit { fetch(url) }
+    /**
+     * One [deadline] covers every hop. It starts once the permit is held, so waiting behind other
+     * lookups does not spend it. Running out is a failure, not a None: the page may be fine, and a
+     * failure is not cached (parity decision D18).
+     */
+    suspend operator fun invoke(url: String): Result<LinkCard.Web.State> = inFlight.withPermit {
+        try {
+            withTimeout(deadline) { fetch(url) }
+        } catch (e: TimeoutCancellationException) {
+            Result.failure(IOException("lookup deadline", e))
+        }
+    }
 
     private suspend fun fetch(url: String): Result<LinkCard.Web.State> = withContext(dispatchers.IO) {
         if (!enabled()) return@withContext Result.failure(IllegalStateException("web previews off"))
