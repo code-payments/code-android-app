@@ -226,4 +226,100 @@ class PersistedLinkCardMemoryTest {
 
         assertNull(memory.groups[chatId])
     }
+
+    private val webResolved = LinkCard.Web.State.Resolved(
+        title = "Example",
+        description = null,
+        imageUrl = "https://example.com/i.png",
+        host = "example.com",
+    )
+    private val webKey = "https://example.com/a"
+
+    @Test
+    fun `a web answer round-trips under a web key with the agreed fields`() = runTest {
+        val table = FakeTable()
+        memory(table).apply {
+            putWeb(webKey, webResolved)
+            putWeb("https://example.com/none", LinkCard.Web.State.None)
+        }
+        advanceUntilIdle()
+        assertEquals(
+            """{"title":"Example","description":null,"imageUrl":"https://example.com/i.png","host":"example.com"}""",
+            table.rows["web:$webKey"]!!.json,
+        )
+        assertEquals(
+            """{"title":null,"description":null,"imageUrl":null,"host":null}""",
+            table.rows["web:https://example.com/none"]!!.json,
+        )
+
+        table.reopen()
+        val restarted = memory(table)
+        advanceUntilIdle()
+        restarted.awaitLoaded()
+        assertEquals(webResolved, restarted.webs[webKey])
+        assertEquals(LinkCard.Web.State.None, restarted.webs["https://example.com/none"])
+    }
+
+    private suspend fun TestScope.webReloaded(state: LinkCard.Web.State, ageMs: Long): LinkCardMemory {
+        val table = FakeTable()
+        memory(table).putWeb(webKey, state)
+        advanceUntilIdle()
+        clock += ageMs
+        table.reopen()
+        val restarted = memory(table)
+        advanceUntilIdle()
+        restarted.awaitLoaded()
+        return restarted
+    }
+
+    @Test
+    fun `a resolved web row reads as absent only once it is older than the resolved TTL`() = runTest {
+        val ttl = 168.hours.inWholeMilliseconds
+        assertEquals(webResolved, webReloaded(webResolved, ttl).webs[webKey])
+        assertNull(webReloaded(webResolved, ttl + 1).webs[webKey])
+    }
+
+    @Test
+    fun `a none web row reads as absent only once it is older than the empty TTL`() = runTest {
+        val ttl = 24.hours.inWholeMilliseconds
+        assertEquals(LinkCard.Web.State.None, webReloaded(LinkCard.Web.State.None, ttl).webs[webKey])
+        assertNull(webReloaded(LinkCard.Web.State.None, ttl + 1).webs[webKey])
+    }
+
+    @Test
+    fun `a none web row is not kept for the resolved TTL`() = runTest {
+        assertNull(webReloaded(LinkCard.Web.State.None, 25.hours.inWholeMilliseconds).webs[webKey])
+        assertEquals(webResolved, webReloaded(webResolved, 25.hours.inWholeMilliseconds).webs[webKey])
+    }
+
+    @Test
+    fun `an unchanged web answer is not written again within a day`() = runTest {
+        val table = FakeTable()
+        val memory = memory(table)
+        advanceUntilIdle()
+        memory.awaitLoaded()
+        memory.putWeb(webKey, webResolved)
+        advanceUntilIdle()
+        memory.putWeb(webKey, webResolved)
+        advanceUntilIdle()
+        assertEquals(1, table.writes.count { it == "web:$webKey" })
+    }
+
+    @Test
+    fun `a failed web lookup through the resolver leaves nothing on disk`() = runTest {
+        val table = FakeTable()
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("unused")) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
+            web = { Result.failure(java.io.IOException("offline")) },
+            memory = memory(table),
+        )
+        resolver.resolve(LinkCard.Web(url = webKey, start = 0, end = 21))
+        advanceUntilIdle()
+        assertTrue(table.writes.isEmpty())
+        assertTrue(table.rows.isEmpty())
+    }
 }

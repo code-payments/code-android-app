@@ -51,6 +51,9 @@ internal class LinkCardResolver(
     private val tokenMetadata: suspend (mint: Mint) -> Result<Token>,
     private val group: suspend (chatId: ChatId) -> Result<LinkCard.GroupInvite.State.Resolved>,
     private val user: suspend (identity: LinkCard.User.Identity) -> Result<LinkCard.User.State.Resolved>,
+    private val web: suspend (url: String) -> Result<LinkCard.Web.State> = {
+        Result.failure(IllegalStateException("no web lookup"))
+    },
     private val memory: LinkCardMemory = LinkCardMemory(),
 ) : LinkCardResolution {
 
@@ -71,6 +74,7 @@ internal class LinkCardResolver(
     private val tokenQueries = mutableMapOf<Mint, Deferred<LinkCard.TokenInfo.State>>()
     private val groupQueries = mutableMapOf<ChatId, Deferred<LinkCard.GroupInvite.State>>()
     private val userQueries = mutableMapOf<LinkCard.User.Identity, Deferred<LinkCard.User.State>>()
+    private val webQueries = mutableMapOf<String, Deferred<Result<LinkCard.Web.State>>>()
 
     /**
      * The answers that have landed, readable without the lock and without suspending — which is the
@@ -117,8 +121,7 @@ internal class LinkCardResolver(
         is LinkCard.TokenInfo -> tokenAnswers[card.mint]?.let { card.copy(state = it) }
         is LinkCard.GroupInvite -> groupAnswers[card.chatId]?.let { card.copy(state = it) }
         is LinkCard.User -> userAnswers[card.identity]?.let { card.copy(state = it) }
-        // Task 6
-        is LinkCard.Web -> null
+        is LinkCard.Web -> WebLinks.cacheKey(card.url)?.let { memory.webs[it] }?.let { card.copy(state = it) }
     }
 
     override suspend fun resolve(card: LinkCard): LinkCard = when (card) {
@@ -126,8 +129,7 @@ internal class LinkCardResolver(
         is LinkCard.TokenInfo -> card.copy(state = tokenState(card.mint))
         is LinkCard.GroupInvite -> card.copy(state = groupState(card.chatId))
         is LinkCard.User -> card.copy(state = userState(card.identity))
-        // Task 6
-        is LinkCard.Web -> card
+        is LinkCard.Web -> card.copy(state = webState(card.url) ?: card.state)
     }
 
     /**
@@ -263,6 +265,25 @@ internal class LinkCardResolver(
                 },
             )
         }
+
+    /**
+     * The answer for a web page, or null when the lookup failed and the card stays as it was. A
+     * failure is forgotten, never remembered or stored, so the next draw asks again. A page that
+     * answers is held in [memory] by its cache key, which ignores the fragment.
+     */
+    private suspend fun webState(url: String): LinkCard.Web.State? {
+        val key = WebLinks.cacheKey(url) ?: return LinkCard.Web.State.None
+        memory.webs[key]?.let { return it }
+        return memoized(webQueries, key) {
+            web(url).also { result ->
+                result.onSuccess {
+                    memory.putWeb(key, it)
+                    _revision.update { n -> n + 1 }
+                }
+                result.onFailure { forget(webQueries, key) }
+            }
+        }.getOrNull()
+    }
 
     private suspend fun <K, V> memoized(
         queries: MutableMap<K, Deferred<V>>,

@@ -22,9 +22,10 @@ import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * [LinkCardMemory] that also keeps group and person answers in `link_previews`, so the first visit
+ * [LinkCardMemory] that also keeps group, person and web page answers in `link_previews`, so the first visit
  * after a cold start paints those cards resolved rather than growing into them.
  *
  * Only those two are stored because only those two change size when they resolve: a group card
@@ -63,6 +64,7 @@ internal class PersistedLinkCardMemory(
                 loaded.value = false
                 _groups.clear()
                 _users.clear()
+                _webs.clear()
                 writtenAt.clear()
                 records.forEach { load(it) }
                 loaded.value = true
@@ -85,6 +87,12 @@ internal class PersistedLinkCardMemory(
         val key = userKey(identity)
         if (_users.put(identity, state) == state && !rewriteDue(key)) return
         write(key, json.encodeToString(UserProfile.serializer(), state.profile.publicOnly()))
+    }
+
+    override fun putWeb(key: String, state: LinkCard.Web.State) {
+        val rowKey = WEB_PREFIX + key
+        if (_webs.put(key, state) == state && !rewriteDue(rowKey)) return
+        write(rowKey, webJson.encodeToString(StoredWeb.serializer(), StoredWeb.of(state)))
     }
 
     override fun removeGroup(chatId: ChatId) {
@@ -133,6 +141,16 @@ internal class PersistedLinkCardMemory(
                         ?.let { _users[identity] = it }
                         ?: error("stored profile names no account")
                 }
+                record.key.startsWith(WEB_PREFIX) -> {
+                    val stored = webJson.decodeFromString(StoredWeb.serializer(), record.json)
+                    val state = stored.toState()
+                    // Freshness comes from the row itself. A stale row is dropped like one that no
+                    // longer decodes, and the link is looked up again the ordinary way.
+                    val age = (now() - record.updatedAt).milliseconds
+                    val ttl = if (state is LinkCard.Web.State.Resolved) WebLinks.RESOLVED_TTL else WebLinks.EMPTY_TTL
+                    if (age > ttl) error("stale web row")
+                    _webs[record.key.removePrefix(WEB_PREFIX)] = state
+                }
                 else -> error("unknown key")
             }
         }.isSuccess
@@ -168,6 +186,33 @@ internal class PersistedLinkCardMemory(
         }
     }
 
+    /**
+     * A web card's answer as stored, field names shared with iOS. A null title is
+     * [LinkCard.Web.State.None]. Every field is written, nulls included.
+     */
+    @Serializable
+    private data class StoredWeb(
+        val title: String? = null,
+        val description: String? = null,
+        val imageUrl: String? = null,
+        val host: String? = null,
+    ) {
+        fun toState(): LinkCard.Web.State =
+            if (title == null) {
+                LinkCard.Web.State.None
+            } else {
+                LinkCard.Web.State.Resolved(title, description, imageUrl, host ?: error("web row without a host"))
+            }
+
+        companion object {
+            fun of(state: LinkCard.Web.State) = when (state) {
+                is LinkCard.Web.State.Resolved -> StoredWeb(state.title, state.description, state.imageUrl, state.host)
+                // Loading is never stored; it stands for no answer, so it is written as none only if asked to.
+                LinkCard.Web.State.None, LinkCard.Web.State.Loading -> StoredWeb()
+            }
+        }
+    }
+
     @Serializable
     private data class StoredRequirement(
         val amount: String?,
@@ -181,10 +226,12 @@ internal class PersistedLinkCardMemory(
         val REWRITE_AFTER = 1.days
         const val GROUP_PREFIX = "group:"
         const val USER_PREFIX = "user:"
+        const val WEB_PREFIX = "web:"
         const val BY_ID = "id:"
         const val BY_NAME = "name:"
 
         val json = Json { ignoreUnknownKeys = true }
+        val webJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
         fun groupKey(chatId: ChatId) = GROUP_PREFIX + chatId.bytes.toHexString()
 

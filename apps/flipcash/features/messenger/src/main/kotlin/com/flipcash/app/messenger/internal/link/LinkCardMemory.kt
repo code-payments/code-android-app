@@ -31,12 +31,21 @@ internal open class LinkCardMemory {
     val groups: Map<ChatId, LinkCard.GroupInvite.State.Resolved> get() = _groups
     val users: Map<LinkCard.User.Identity, LinkCard.User.State.Resolved> get() = _users
 
+    /** Web page answers by [WebLinks.cacheKey]. Only answers: a failed lookup is never put here. */
+    val webs: Map<String, LinkCard.Web.State> get() = _webs
+
+    protected val _webs = ConcurrentHashMap<String, LinkCard.Web.State>()
+
     protected val _tokens = ConcurrentHashMap<Mint, LinkCard.TokenInfo.State.Resolved>()
     protected val _groups = ConcurrentHashMap<ChatId, LinkCard.GroupInvite.State.Resolved>()
     protected val _users = ConcurrentHashMap<LinkCard.User.Identity, LinkCard.User.State.Resolved>()
 
     fun putToken(mint: Mint, state: LinkCard.TokenInfo.State.Resolved) {
         _tokens[mint] = state
+    }
+
+    open fun putWeb(key: String, state: LinkCard.Web.State) {
+        _webs[key] = state
     }
 
     open fun putGroup(chatId: ChatId, state: LinkCard.GroupInvite.State.Resolved) {
