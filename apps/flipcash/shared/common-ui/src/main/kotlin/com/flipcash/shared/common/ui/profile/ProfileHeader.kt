@@ -1,6 +1,6 @@
 package com.flipcash.shared.common.ui.profile
 
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -85,8 +85,12 @@ fun ProfileHeader(
                 avatar(
                     Modifier
                         .size(AvatarSize)
+                        // A solid disc behind an inset clip, not a border over the clip: a border
+                        // shares the picture's edge, so the picture's antialiased fringe shows
+                        // past the ring.
+                        .background(CodeTheme.colors.background, CircleShape)
+                        .padding(AvatarRing)
                         .clip(CircleShape)
-                        .border(AvatarRing, CodeTheme.colors.background, CircleShape)
                 )
                 Row(
                     modifier = Modifier
