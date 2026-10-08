@@ -13,7 +13,9 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.annotation.ExperimentalCoilApi
 import coil3.fetch.FetchResult
@@ -251,6 +253,29 @@ class WebLinkCardTest {
         }
         composeTestRule.onNodeWithText("The title").assertIsDisplayed()
         composeTestRule.onNodeWithText("example.com").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the text sits inside the panel by ten dp and the picture meets its top and sides`() {
+        val loader = ImageLoader.Builder(androidx.test.core.app.ApplicationProvider.getApplicationContext())
+            .components { add(HangingFetcherFactory) }
+            .build()
+        setCard(
+            resolving(resolved.copy(imageUrl = "https://img.example.com/p.png")),
+            imageLoader = loader,
+        )
+
+        val panel = composeTestRule.onNodeWithTag(WEB_LINK_CARD_TAG).getUnclippedBoundsInRoot()
+        val image = composeTestRule.onNodeWithTag(WEB_LINK_IMAGE_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val host = composeTestRule.onNodeWithText("example.com", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val description = composeTestRule.onNodeWithText("A description", useUnmergedTree = true).getUnclippedBoundsInRoot()
+
+        assertEquals(panel.top, image.top)
+        assertEquals(panel.left, image.left)
+        assertEquals(panel.right, image.right)
+        assertEquals(image.bottom + 10.dp, host.top)
+        assertEquals(panel.left + 10.dp, host.left)
+        assertEquals(panel.bottom - 10.dp, description.bottom)
     }
 
     @Test

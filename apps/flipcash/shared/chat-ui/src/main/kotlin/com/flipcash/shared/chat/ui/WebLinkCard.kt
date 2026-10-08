@@ -2,7 +2,6 @@ package com.flipcash.shared.chat.ui
 
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -19,6 +18,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
@@ -38,6 +38,9 @@ internal const val WEB_LINK_IMAGE_TAG = "web_link_image"
 
 /** Width over height of the picture, the shape Open Graph images are sized for. */
 private const val IMAGE_ASPECT = 1.91f
+/** The app is dark only, so the panel and the chip are white at a low alpha over the bubble. */
+private val PANEL_FILL = Color.White.copy(alpha = 0.08f)
+private val CHIP_FILL = Color.White.copy(alpha = 0.12f)
 private const val TITLE_LINES = 2
 private const val DESCRIPTION_LINES = 2
 
@@ -130,6 +133,7 @@ private fun WebPreview(
             .padding(top = CodeTheme.dimens.staticGrid.x2)
             .fillMaxWidth()
             .clip(shape)
+            .background(PANEL_FILL)
             .testTag(WEB_LINK_CARD_TAG)
             .combinedClickable(
                 enabled = interactive,
@@ -142,7 +146,7 @@ private fun WebPreview(
     ) {
         PreviewImage(preview.imageUrl)
         Column(
-            modifier = Modifier.padding(top = CodeTheme.dimens.staticGrid.x1),
+            modifier = Modifier.padding(CodeTheme.dimens.staticGrid.x2),
         ) {
             Text(
                 text = preview.host,
@@ -192,7 +196,6 @@ private fun PreviewImage(imageUrl: String?) {
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(IMAGE_ASPECT)
-            .clip(RoundedCornerShape(CodeTheme.dimens.staticGrid.x1))
             .background(CodeTheme.colors.textSecondary.copy(alpha = 0.15f))
             .testTag(WEB_LINK_IMAGE_TAG),
     )
@@ -211,7 +214,7 @@ private fun ShowPreviewChip(host: String, onClick: () -> Unit, modifier: Modifie
         modifier = modifier
             .padding(top = CodeTheme.dimens.staticGrid.x2)
             .clip(shape)
-            .border(CodeTheme.dimens.border, CodeTheme.colors.textSecondary.copy(alpha = 0.4f), shape)
+            .background(CHIP_FILL)
             .combinedClickable(onClick = onClick, hapticFeedbackEnabled = false)
             .padding(
                 horizontal = CodeTheme.dimens.staticGrid.x2,
