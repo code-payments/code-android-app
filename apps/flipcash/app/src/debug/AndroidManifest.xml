@@ -2,6 +2,7 @@
 
     <uses-permission android:name="com.getcode.dev.READ_ACCOUNT" />
     <application>
+        <activity android:name="com.flipcash.app.spike.ComposerSpikeActivity" android:exported="true" />
 
     </application>
 

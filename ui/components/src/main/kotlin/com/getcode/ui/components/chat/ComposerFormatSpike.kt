@@ -44,7 +44,7 @@ import kotlinx.coroutines.channels.Channel
  * - "action_label": own `TextContextMenuProvider` over a platform ActionMode, icon plus label.
  * - "action_icon": same, empty title plus icon and contentDescription.
  */
-enum class SpikeMode { Off, Api, ActionLabel, ActionIcon }
+enum class SpikeMode { Off, Api, ActionLabel, ActionIcon, ActionShort }
 
 private class Fmt(val key: String, val label: String, val icon: Int, val open: String, val close: String)
 
@@ -56,6 +56,8 @@ private val formats = listOf(
     Fmt("fmt_link", "Link", com.getcode.ui.components.R.drawable.ic_spike_format_link, "[", "]()"),
 )
 
+private fun shortLabel(key: String) = when (key) { "fmt_bold" -> "B"; "fmt_italic" -> "I"; "fmt_strike" -> "S"; "fmt_code" -> "</>"; else -> "Link" }
+
 private fun Context.spikeMode(): SpikeMode {
     val debuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
     if (!debuggable) return SpikeMode.Off
@@ -64,6 +66,7 @@ private fun Context.spikeMode(): SpikeMode {
         "api" -> SpikeMode.Api
         "action_label" -> SpikeMode.ActionLabel
         "action_icon" -> SpikeMode.ActionIcon
+        "action_short" -> SpikeMode.ActionShort
         else -> SpikeMode.Off
     }
 }
@@ -90,6 +93,7 @@ fun Modifier.composerFormatItems(state: TextFieldState): Modifier {
     val mode = LocalContext.current.spikeMode()
     if (mode == SpikeMode.Off) return this
     return this.appendTextContextMenuComponents {
+        if (state.selection.collapsed) return@appendTextContextMenuComponents
         formats.forEach { f ->
             item(
                 key = f.key,
@@ -107,14 +111,14 @@ fun Modifier.composerFormatItems(state: TextFieldState): Modifier {
 fun ComposerFormatToolbarHost(content: @Composable () -> Unit) {
     val context = LocalContext.current
     val mode = remember { context.spikeMode() }
-    if (mode != SpikeMode.ActionLabel && mode != SpikeMode.ActionIcon) {
+    if (mode == SpikeMode.Off || mode == SpikeMode.Api) {
         content()
         return
     }
     val view = LocalView.current
     var coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val provider = remember(view, mode) {
-        IconActionModeProvider(view, iconOnly = mode == SpikeMode.ActionIcon) { coords }
+        IconActionModeProvider(view, mode) { coords }
     }
     CompositionLocalProvider(LocalTextContextMenuToolbarProvider provides provider) {
         Box(Modifier.onGloballyPositioned { coords = it }) { content() }
@@ -123,21 +127,23 @@ fun ComposerFormatToolbarHost(content: @Composable () -> Unit) {
 
 private class IconActionModeProvider(
     private val view: View,
-    private val iconOnly: Boolean,
+    private val spikeMode: SpikeMode,
     private val coords: () -> LayoutCoordinates?,
 ) : TextContextMenuProvider {
     override suspend fun showTextContextMenu(dataProvider: TextContextMenuDataProvider) {
+        android.util.Log.d("ComposerFormatSpike", "ActionMode provider fired, mode=$spikeMode")
         val closed = Channel<Unit>(Channel.CONFLATED)
         val callback = object : ActionMode.Callback2() {
             override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
                 var group = 1
                 var order = 1
-                dataProvider.data().components.forEach { c ->
+                val comps = dataProvider.data().components.let { l -> if (spikeMode == SpikeMode.ActionShort) l.sortedBy { c -> if (c is TextContextMenuItem && formats.any { it.key == c.key }) 0 else 1 } else l }
+                comps.forEach { c ->
                     when (c) {
                         is TextContextMenuItem -> {
                             val fmt = formats.firstOrNull { it.key == c.key }
                             val o = order++
-                            val item = menu.add(group, o, o, if (fmt != null && iconOnly) "" else c.label)
+                            val item = menu.add(group, o, o, when { fmt == null -> c.label; spikeMode == SpikeMode.ActionIcon -> ""; spikeMode == SpikeMode.ActionShort -> shortLabel(fmt.key); else -> c.label })
                             item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
                             if (fmt != null) {
                                 item.icon = ContextCompat.getDrawable(view.context, fmt.icon)
