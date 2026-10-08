@@ -7,9 +7,12 @@ import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.rememberScrollState
@@ -57,6 +60,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.BottomScrollEdge
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.hazeSource
@@ -73,6 +77,7 @@ import com.flipcash.app.core.chat.ChatStep
 @Composable
 internal fun ChatProfileScreen(
     viewModel: ChatProfileViewModel,
+    chatUnderneath: ChatId?,
     onOpenChat: (ChatId) -> Unit,
 ) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
@@ -80,6 +85,7 @@ internal fun ChatProfileScreen(
         viewModel = viewModel,
         onBack = { flowNavigator.back() },
         onOpenChat = onOpenChat,
+        chatUnderneath = chatUnderneath,
     )
 }
 
@@ -93,6 +99,8 @@ internal fun PersonProfileScreen(
     viewModel: ChatProfileViewModel,
     onBack: () -> Unit,
     onOpenChat: (ChatId) -> Unit,
+    /** The chat this profile was opened from, when it is the DM with this person; null otherwise. */
+    chatUnderneath: ChatId? = null,
 ) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -121,7 +129,8 @@ internal fun PersonProfileScreen(
 
     val person = state.participant as? ChatParticipant.TipUser
     val isSelf = person != null && person.userId == state.selfId
-    val pinned = if (isSelf) null else state.pinnedAction
+    val pinned = state.pinnedAction
+        ?.takeUnless { isSelf || it.opensChatUnderneath(state.dmChatId, chatUnderneath) }
     var menuOpen by remember { mutableStateOf(false) }
 
     var pinnedHeight by remember { mutableStateOf(0.dp) }
@@ -132,7 +141,7 @@ internal fun PersonProfileScreen(
     val hazeState = rememberHazeState()
 
     CodeScaffold { padding ->
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -145,6 +154,8 @@ internal fun PersonProfileScreen(
                     // The whole page, so the pinned bar and the top edge blur whatever scrolls under them.
                     .hazeSource(hazeState)
                     .verticalScroll(scrollState)
+                    // At least a screen tall, so a short page can hold the encryption note to the bottom.
+                    .heightIn(min = maxHeight)
                     .padding(bottom = clearance),
             ) {
                 ProfileHeader(
@@ -236,9 +247,28 @@ internal fun PersonProfileScreen(
                         )
                     },
                 )
+                // The encryption note closes the page, under the pinned button rather than on it.
+                if (state.dmExists && state.isEncrypted) {
+                    // With nothing pinned, the note takes the bottom of a short page.
+                    if (pinned == null) Spacer(modifier = Modifier.weight(1f))
+                    E2eeFooter(
+                        modifier = Modifier.padding(top = CodeTheme.dimens.staticGrid.x4),
+                        isEncrypted = true,
+                        onLearnMore = { navigator.push(AppRoute.Messaging.E2eeDmInfo) },
+                        // The pinned button's clearance already covers the system bar.
+                        clearNavigationBar = pinned == null,
+                    )
+                }
             }
 
             ProfileTopScrollEdge(hazeState = hazeState, scrollState = scrollState)
+            if (pinned == null) {
+                BottomScrollEdge(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    hazeState = hazeState,
+                    scrollState = scrollState,
+                )
+            }
 
             AppBarWithTitle(
                 onBackIconClicked = onBack,
@@ -290,15 +320,6 @@ internal fun PersonProfileScreen(
                     text = pinned.label(),
                     isLoading = pinned == ProfilePinnedAction.OpeningChat,
                     onClick = { viewModel.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped) },
-                    above = if (state.dmExists && state.isEncrypted) {
-                        {
-                            E2eeFooter(
-                                isEncrypted = true,
-                                onLearnMore = { navigator.push(AppRoute.Messaging.E2eeDmInfo) },
-                                clearNavigationBar = false,
-                            )
-                        }
-                    } else null,
                     hazeState = hazeState,
                     onHeightChanged = { pinnedHeight = it },
                 )

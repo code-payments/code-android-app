@@ -272,11 +272,16 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
         viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant))
     }
 
+    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
+    // Only a profile opened from the chat itself has that chat underneath; a member's portrait in
+    // a group is ProfileOrigin.Chat too, but its DM is not the group.
+    val chatUnderneath = chatState.chatId.takeIf { origin == ProfileOrigin.Chat }
+
     ChatProfileScreen(
         viewModel = viewModel,
+        chatUnderneath = chatUnderneath,
         onOpenChat = { chatId ->
-            val chatState = chatViewModel.stateFlow.value
-            if (origin == ProfileOrigin.Chat && chatState.chatId == chatId) {
+            if (chatUnderneath != null && chatUnderneath == chatId) {
                 // The chat is the one underneath: back to it rather than a second copy.
                 flowNavigator.back()
             } else {

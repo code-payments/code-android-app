@@ -9,11 +9,16 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -75,7 +80,10 @@ import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.BottomScrollEdge
 import com.getcode.ui.components.CircularIconButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -117,9 +125,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
     // The chat is usually the screen underneath. A flow opened on the profile
     // (AppRoute.Messaging.Chat.openOnProfile) has nothing underneath, so the transcript is pushed on
-    // top and back from it returns here, as iOS does.
+    // top and back from it returns here, as iOS does. Read once: back pops the stack before this
+    // screen finishes animating out, and a live read would bring the pinned bar back for the exit.
+    val openedFromChat = remember { flowNavigator.canGoBack }
+
     fun openChat() {
-        if (flowNavigator.canGoBack) {
+        if (openedFromChat) {
             flowNavigator.back()
         } else {
             flowNavigator.navigateTo(ChatStep.Conversation)
@@ -145,11 +156,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
     var menuOpen by remember { mutableStateOf(false) }
     var pinnedHeight by remember { mutableStateOf(0.dp) }
-    val clearance = pinnedHeight
+    // Opened from the chat, back already returns to it, so nothing is pinned: Leave Chat sits at
+    // the foot of the page instead.
+    val clearance = if (openedFromChat) 0.dp else pinnedHeight
     val hazeState = rememberHazeState()
 
     CodeScaffold { padding ->
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -162,6 +175,8 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     // The whole page, so the pinned bar and the top edge blur whatever scrolls under them.
                     .hazeSource(hazeState)
                     .verticalScroll(scrollState)
+                    // At least a screen tall, so a short page can hold Leave Chat to the bottom.
+                    .heightIn(min = maxHeight)
                     .padding(bottom = clearance),
             ) {
                 ProfileHeader(
@@ -291,10 +306,36 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         },
                     )
                 }
-                Box(modifier = Modifier.padding(bottom = CodeTheme.dimens.staticGrid.x6))
+                if (openedFromChat && isMember) {
+                    // Takes up whatever the page leaves over; nothing once it scrolls.
+                    Spacer(modifier = Modifier.weight(1f))
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.staticGrid.x6),
+                        buttonState = ButtonState.Subtle,
+                        text = stringResource(R.string.action_leaveChat),
+                        isLoading = state.leaving,
+                        enabled = !state.leaving,
+                        onClick = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .then(if (openedFromChat) Modifier.navigationBarsPadding() else Modifier)
+                        .padding(bottom = CodeTheme.dimens.staticGrid.x6)
+                )
             }
 
             ProfileTopScrollEdge(hazeState = hazeState, scrollState = scrollState)
+            if (openedFromChat) {
+                BottomScrollEdge(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    hazeState = hazeState,
+                    scrollState = scrollState,
+                )
+            }
 
             AppBarWithTitle(
                 onBackIconClicked = { flowNavigator.back() },
@@ -337,16 +378,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
             // Open Chat in every standing, as in the design: a viewer short of a minimum is told
             // so, and buys, on the chat's own gate.
-            ProfilePinnedActionBar(
-                modifier = Modifier.align(Alignment.BottomCenter),
-                text = stringResource(R.string.action_openChat),
-                onClick = { openChat() },
-                secondaryText = if (isMember) stringResource(R.string.action_leaveChat) else null,
-                onSecondaryClick = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
-                isSecondaryLoading = state.leaving,
-                hazeState = hazeState,
-                onHeightChanged = { pinnedHeight = it },
-            )
+            if (!openedFromChat) {
+                ProfilePinnedActionBar(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    text = stringResource(R.string.action_openChat),
+                    onClick = { openChat() },
+                    secondaryText = if (isMember) stringResource(R.string.action_leaveChat) else null,
+                    onSecondaryClick = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
+                    isSecondaryLoading = state.leaving,
+                    hazeState = hazeState,
+                    onHeightChanged = { pinnedHeight = it },
+                )
+            }
         }
     }
 }
