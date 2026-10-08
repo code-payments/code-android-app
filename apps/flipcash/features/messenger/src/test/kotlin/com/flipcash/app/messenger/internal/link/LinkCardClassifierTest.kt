@@ -255,6 +255,15 @@ class LinkCardClassifierTest {
         assertNull(cardFor("https://ex%61mple.com/"))
     }
 
+    /** iOS gives an explicit port other than 443 no card (parity decision D12). */
+    @Test
+    fun `a port other than 443 gets no web card`() {
+        assertNull(cardFor("https://example.com:6379/"))
+        assertNull(cardFor("https://example.com:8443/a"))
+        assertTrue(cardFor("https://example.com:443/") is LinkCard.Web)
+        assertTrue(cardFor("https://example.com/") is LinkCard.Web)
+    }
+
     @Test
     fun `a website page stays a link`() {
         listOf(

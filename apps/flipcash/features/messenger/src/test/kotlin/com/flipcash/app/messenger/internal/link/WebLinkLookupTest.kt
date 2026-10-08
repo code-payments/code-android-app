@@ -79,6 +79,11 @@ class WebLinkLookupTest {
     private fun fetch(script: Script, url: String = "https://example.com/a", enabled: Boolean = true) =
         runBlocking { lookup(script, enabled)(url) }
 
+    /** The lookup only requests port 443, so a test server is reached by moving the call after the checks. */
+    private fun portTo(port: Int) = Interceptor { chain ->
+        chain.proceed(chain.request().newBuilder().url(chain.request().url.newBuilder().port(port).build()).build())
+    }
+
     private fun Result<LinkCard.Web.State>.state(): LinkCard.Web.State = getOrThrow()
 
     @Test
@@ -119,6 +124,14 @@ class WebLinkLookupTest {
             assertEquals(LinkCard.Web.State.None, fetch(script).state(), target)
             assertEquals(1, script.seen.size, target)
         }
+    }
+
+    /** A hop to a port other than 443 gives none and is not requested (parity decision D12). */
+    @Test
+    fun `a redirect to another port gives none and is not requested`() {
+        val script = Script { req -> redirect(req, "https://example.com:8443/") }
+        assertEquals(LinkCard.Web.State.None, fetch(script).state())
+        assertEquals(1, script.seen.size)
     }
 
     @Test
@@ -207,12 +220,13 @@ class WebLinkLookupTest {
             val client = webPreviewClient(Dns { listOf(InetAddress.getByName("127.0.0.1")) })
                 .newBuilder()
                 .sslSocketFactory(clientCerts.sslSocketFactory(), clientCerts.trustManager)
+                .addInterceptor(portTo(server.port))
                 .addInterceptor { chain ->
                     chain.proceed(chain.request()).also { sawEncoding = it.header("Content-Encoding") }
                 }
                 .build()
             val result = runBlocking {
-                WebLinkLookup(client, { true }, realIo)("https://$host:${server.port}/")
+                WebLinkLookup(client, { true }, realIo)("https://$host/")
             }
             assertEquals("gzip", sawEncoding, "OkHttp must not strip Content-Encoding")
             assertEquals("identity", server.takeRequest().headers["Accept-Encoding"])
@@ -280,8 +294,9 @@ class WebLinkLookupTest {
             val client = webPreviewClient(Dns { listOf(InetAddress.getByName("127.0.0.1")) })
                 .newBuilder()
                 .sslSocketFactory(clientCerts.sslSocketFactory(), clientCerts.trustManager)
+                .addInterceptor(portTo(server.port))
                 .build()
-            val result = runBlocking { WebLinkLookup(client, { true }, realIo)("https://$host:${server.port}/") }
+            val result = runBlocking { WebLinkLookup(client, { true }, realIo)("https://$host/") }
             assertEquals(LinkCard.Web.State.None, result.getOrThrow())
             assertEquals(1, server.requestCount)
         } finally {

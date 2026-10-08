@@ -59,7 +59,8 @@ internal class LinkCardClassifier @Inject constructor(
     private fun web(link: DetectedUrl): LinkCard.Web? {
         if (WebLinks.hasEscapedHost(link.url)) return null
         val url = link.url.toHttpUrlOrNull() ?: return null
-        if (url.scheme != "https") return null
+        // An explicit port other than 443 gets no card (parity decision D12).
+        if (url.scheme != "https" || url.port != 443) return null
         if (url.host in CARD_HOSTS || !WebLinks.isEligibleHost(url.host)) return null
         return LinkCard.Web(url = link.url, start = link.start, end = link.end)
     }

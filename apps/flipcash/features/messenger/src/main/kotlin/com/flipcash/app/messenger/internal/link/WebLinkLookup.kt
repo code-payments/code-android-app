@@ -77,7 +77,8 @@ internal class WebLinkLookup(
             var current = url.toHttpUrl()
             // The first request plus MAX_REDIRECTS redirects. A redirect answering the last one is None.
             repeat(WebLinks.MAX_REDIRECTS + 1) {
-                if (current.scheme != "https" || !WebLinks.isEligibleHost(current.host)) {
+                // Port 443 only, on every hop (parity decision D12).
+                if (current.scheme != "https" || current.port != 443 || !WebLinks.isEligibleHost(current.host)) {
                     return@runCatching LinkCard.Web.State.None
                 }
                 client.newCall(request(current)).await().use { response ->
