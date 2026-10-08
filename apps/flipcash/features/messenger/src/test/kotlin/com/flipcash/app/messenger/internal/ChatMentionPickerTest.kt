@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshots.Snapshot
@@ -116,7 +115,7 @@ class ChatMentionPickerTest {
         rosterSearch = rosterSearch,
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
-        savedStateHandle = SavedStateHandle(),
+        identifier = null,
     )
 
     private fun ChatViewModel.openGroup() {

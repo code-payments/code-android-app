@@ -8,16 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.core.os.bundleOf
-import androidx.hilt.lifecycle.viewmodel.HiltViewModelFactory
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.DEFAULT_ARGS_KEY
-import androidx.lifecycle.HasDefaultViewModelProviderFactory
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.MutableCreationExtras
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -74,7 +65,12 @@ fun ChatFlowScreen(
 ) {
     val navigator = LocalCodeNavigator.current
     val keyboard = rememberKeyboardController()
-    rememberChatViewModel(route.identifier)
+    // Created here, before any step asks for it, so it opens the chat while being created and the
+    // first frame already has what the open can draw from memory (a group's name and picture). The
+    // steps get this instance from flowSharedViewModel: the flow's store owner is this entry's.
+    hiltViewModel<ChatViewModel, ChatViewModel.Factory>(
+        creationCallback = { factory -> factory.create(route.identifier) },
+    )
 
     FlowHost<ChatStep, Parcelable>(
         initialStack = route.rememberInitialStack(),
@@ -96,28 +92,6 @@ fun ChatFlowScreen(
             SinglePaneSceneStrategy(),
         ),
     )
-}
-
-/**
- * Creates the flow's shared [ChatViewModel] with [identifier] in its [SavedStateHandle], before any
- * step asks for it, so it opens the chat while being created. The first frame then reads a state
- * that already has what the open can draw from memory, a group's name and picture, instead of a
- * placeholder. The steps get this instance from [flowSharedViewModel]: the flow's store owner is
- * this entry's, and both use the default key.
- */
-@Composable
-private fun rememberChatViewModel(identifier: ChatIdentifier): ChatViewModel {
-    val owner = checkNotNull(LocalViewModelStoreOwner.current) { "No store owner for the chat flow" }
-    val context = LocalContext.current
-    return remember(owner, identifier) {
-        // What hiltViewModel builds for the steps, with the route added to the default args.
-        val defaults = owner as HasDefaultViewModelProviderFactory
-        val factory = HiltViewModelFactory(context, defaults.defaultViewModelProviderFactory)
-        val extras = MutableCreationExtras(defaults.defaultViewModelCreationExtras).apply {
-            set(DEFAULT_ARGS_KEY, bundleOf(ChatViewModel.ARG_CHAT to identifier))
-        }
-        ViewModelProvider.create(owner.viewModelStore, factory, extras)[ChatViewModel::class]
-    }
 }
 
 @Composable

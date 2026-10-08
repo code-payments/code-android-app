@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal
 
-import androidx.lifecycle.SavedStateHandle
 import android.content.ClipboardManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.analytics.PropertyValue
@@ -159,7 +158,7 @@ class ChatEventStallTest {
         rosterSearch = mockk(relaxed = true),
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
-        savedStateHandle = SavedStateHandle(),
+        identifier = null,
     )
 
     @Test

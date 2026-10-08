@@ -11,7 +11,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.SavedStateHandle
 import androidx.paging.PagingDataEvent
 import androidx.paging.PagingDataPresenter
 import androidx.paging.PagingData
@@ -156,8 +155,10 @@ import com.getcode.utils.hexEncodedString
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -217,8 +218,10 @@ data class TypingConstraints(
     val timeout: Duration = 5.seconds,
 )
 
-@HiltViewModel
-internal class ChatViewModel @Inject constructor(
+@HiltViewModel(assistedFactory = ChatViewModel.Factory::class)
+internal class ChatViewModel @AssistedInject constructor(
+    /** The chat this view model opens on creation. Null opens nothing; tests open their own. */
+    @Assisted private val identifier: ChatIdentifier?,
     private val chatCoordinator: ChatCoordinator,
     private val mediaUploads: ChatMediaUploads,
     private val e2eePolicy: E2eePolicy,
@@ -247,7 +250,6 @@ internal class ChatViewModel @Inject constructor(
     private val rosterSearch: RosterSearchSource,
     private val featuredGroups: FeaturedGroupsStore,
     private val dispatchers: DispatcherProvider,
-    private val savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -1436,7 +1438,7 @@ internal class ChatViewModel @Inject constructor(
         }
 
         // Last, so the open handler is already collecting when the event goes out.
-        savedStateHandle.get<ChatIdentifier>(ARG_CHAT)?.let(::openChat)
+        identifier?.let(::openChat)
     }
 
     /**
@@ -2983,10 +2985,12 @@ internal class ChatViewModel @Inject constructor(
         }
     }
 
-    companion object {
-        /** The [ChatIdentifier] this view model opens on creation, in its [SavedStateHandle]. */
-        const val ARG_CHAT = "chat"
+    @AssistedFactory
+    interface Factory {
+        fun create(identifier: ChatIdentifier?): ChatViewModel
+    }
 
+    companion object {
         /**
          * How often a visible claimable voucher is re-asked about.
          *

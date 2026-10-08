@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal
 
-import androidx.lifecycle.SavedStateHandle
 import android.content.ClipboardManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.analytics.RecordingAnalytics
@@ -91,7 +90,7 @@ class ChatOpenTranscriptTest {
     }
 
     private fun createViewModel(
-        handle: SavedStateHandle = SavedStateHandle(),
+        identifier: ChatIdentifier? = null,
     ): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
         mediaUploads = noMediaUploads(),
@@ -121,7 +120,7 @@ class ChatOpenTranscriptTest {
         rosterSearch = mockk(relaxed = true),
         featuredGroups = featuredGroups,
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
-        savedStateHandle = handle,
+        identifier = identifier,
     )
 
     private fun fetched(type: ChatType) = ChatHydration.Fetched(
@@ -219,7 +218,7 @@ class ChatOpenTranscriptTest {
         every { chatCoordinator.state } returns MutableStateFlow(ChatState(feed = listOf(row)))
         coEvery { chatCoordinator.hydrateChat(chatId) } coAnswers { awaitCancellation() }
 
-        val viewModel = createViewModel(openedOn(ChatIdentifier.ByChatId(chatId)))
+        val viewModel = createViewModel(ChatIdentifier.ByChatId(chatId))
 
         // Read before anything runs: the first frame composes from this.
         val state = viewModel.stateFlow.value
@@ -235,12 +234,10 @@ class ChatOpenTranscriptTest {
         every { chatCoordinator.state } returns MutableStateFlow(ChatState(feed = emptyList()))
         coEvery { chatCoordinator.hydrateChat(chatId) } coAnswers { awaitCancellation() }
 
-        val viewModel = createViewModel(openedOn(ChatIdentifier.ByChatId(chatId)))
+        val viewModel = createViewModel(ChatIdentifier.ByChatId(chatId))
         runCurrent()
 
         assertNull(viewModel.stateFlow.value.subject)
     }
 
-    private fun openedOn(identifier: ChatIdentifier) =
-        SavedStateHandle(mapOf(ChatViewModel.ARG_CHAT to identifier))
 }

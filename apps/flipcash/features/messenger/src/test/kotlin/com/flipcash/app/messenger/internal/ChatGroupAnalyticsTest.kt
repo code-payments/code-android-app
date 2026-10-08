@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal
 
-import androidx.lifecycle.SavedStateHandle
 import android.content.ClipboardManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.analytics.GroupGateFunding
@@ -168,7 +167,7 @@ class ChatGroupAnalyticsTest {
         rosterSearch = mockk(relaxed = true),
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
-        savedStateHandle = SavedStateHandle(),
+        identifier = null,
     )
 
     private fun membership(isMember: Boolean, rules: ChatRules? = gatedRules, memberCount: Long = 4L) =
