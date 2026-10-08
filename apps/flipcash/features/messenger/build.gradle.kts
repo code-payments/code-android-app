@@ -47,6 +47,9 @@ dependencies {
 
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.mockito.kotlin)
+    // A TLS MockWebServer, to see headers as OkHttp really sends and receives them (WebLinkLookupTest).
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.okhttp.tls)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.paging.testing)
 }
