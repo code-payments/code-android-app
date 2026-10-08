@@ -57,9 +57,11 @@ class WebLinkLookupTest {
         type: String? = "text/html; charset=utf-8",
         body: ByteArray = html.toByteArray(),
         headers: Map<String, String> = emptyMap(),
+        repeated: List<Pair<String, String>> = emptyList(),
     ): Response = Response.Builder()
         .request(request).protocol(Protocol.HTTP_1_1).code(code).message("m")
         .apply { headers.forEach { (k, v) -> header(k, v) } }
+        .apply { repeated.forEach { (k, v) -> addHeader(k, v) } }
         .body(body.toResponseBody(type?.toMediaType()))
         .build()
 
@@ -158,6 +160,44 @@ class WebLinkLookupTest {
         }
         assertTrue(fetch(script).state() is LinkCard.Web.State.Resolved)
         assertEquals(listOf("example.com", "example.com"), script.seen.map { it.url.host })
+    }
+
+    /** Every Content-Encoding value across repeated headers must be identity (parity decision D17). */
+    @Test
+    fun `any non identity content encoding across repeated headers gives none`() {
+        for (values in listOf(listOf("gzip", "identity"), listOf("identity", "gzip"), listOf("identity, gzip"), listOf("br"))) {
+            val script = Script { reply(it, repeated = values.map { v -> "Content-Encoding" to v }) }
+            assertEquals(LinkCard.Web.State.None, fetch(script).state(), values.toString())
+        }
+        for (values in listOf(listOf("identity"), listOf("Identity", "identity, IDENTITY"))) {
+            val script = Script { reply(it, repeated = values.map { v -> "Content-Encoding" to v }) }
+            assertTrue(fetch(script).state() is LinkCard.Web.State.Resolved, values.toString())
+        }
+    }
+
+    @Test
+    fun `repeated locations that differ fail, equal ones are followed`() {
+        val differ = Script { req ->
+            reply(req, 302, null, ByteArray(0), repeated = listOf("Location" to "https://a.example/", "Location" to "https://b.example/"))
+        }
+        assertTrue(fetch(differ).isFailure)
+        assertEquals(1, differ.seen.size)
+
+        val same = Script { req ->
+            if (req.url.host == "a.example") reply(req)
+            else reply(req, 302, null, ByteArray(0), repeated = listOf("Location" to "https://a.example/", "Location" to "https://a.example/"))
+        }
+        assertTrue(fetch(same).state() is LinkCard.Web.State.Resolved)
+        assertEquals(2, same.seen.size)
+    }
+
+    @Test
+    fun `repeated content lengths that differ fail, equal ones do not`() {
+        val differ = Script { reply(it, repeated = listOf("Content-Length" to "10", "Content-Length" to "11")) }
+        assertTrue(fetch(differ).isFailure)
+
+        val same = Script { reply(it, repeated = listOf("Content-Length" to "${html.length}", "Content-Length" to "${html.length}")) }
+        assertTrue(fetch(same).state() is LinkCard.Web.State.Resolved)
     }
 
     @Test

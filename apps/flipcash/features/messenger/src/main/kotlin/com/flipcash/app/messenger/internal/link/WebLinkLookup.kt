@@ -100,9 +100,15 @@ internal class WebLinkLookup(
                     return@runCatching LinkCard.Web.State.None
                 }
                 client.newCall(request(current)).await().use { response ->
+                    // Repeated headers that disagree are a smuggling shape; fail rather than pick one (parity decision D17).
+                    if (response.headers.values("Content-Length").distinct().size > 1) {
+                        throw IOException("conflicting Content-Length")
+                    }
                     when {
                         response.isRedirect -> {
-                            val location = response.header("Location")
+                            val locations = response.headers.values("Location").distinct()
+                            if (locations.size > 1) throw IOException("conflicting Location")
+                            val location = locations.firstOrNull()
                             if (location == null || WebLinks.isUnsafeLocation(location)) {
                                 return@runCatching LinkCard.Web.State.None
                             }
@@ -133,8 +139,10 @@ internal class WebLinkLookup(
         it.subtype == "html" || it.subtype == "xhtml+xml"
     } ?: false
 
-    private fun Response.isEncoded() = header("Content-Encoding")
-        ?.let { !it.trim().equals("identity", ignoreCase = true) } ?: false
+    /** Every value of every repeated Content-Encoding header, each comma-separated token, must be identity. */
+    private fun Response.isEncoded() = headers.values("Content-Encoding")
+        .flatMap { it.split(',') }
+        .any { !it.trim().equals("identity", ignoreCase = true) }
 
     private fun Response.capped(): ByteArray {
         val source = body.source()
