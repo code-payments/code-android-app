@@ -264,6 +264,14 @@ class LinkCardClassifierTest {
         assertTrue(cardFor("https://example.com/") is LinkCard.Web)
     }
 
+    /** `HttpUrl` keeps the trailing dot, so the host rule has to refuse it (parity decision D13). */
+    @Test
+    fun `a trailing dot host gets no web card`() {
+        assertNull(cardFor("https://localhost./"))
+        assertNull(cardFor("https://a.local./"))
+        assertNull(cardFor("https://example.com./"))
+    }
+
     @Test
     fun `a website page stays a link`() {
         listOf(

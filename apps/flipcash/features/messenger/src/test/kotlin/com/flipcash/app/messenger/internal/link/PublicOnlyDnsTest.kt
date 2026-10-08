@@ -10,6 +10,7 @@ import java.net.InetAddress
 import java.net.UnknownHostException
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** The `addresses` vectors of `link_metadata.json`. A failure is fixed in the canonical fixture, never here. */
@@ -54,5 +55,15 @@ class PublicOnlyDnsTest {
         assertFailsWith<UnknownHostException> {
             PublicOnlyDns(dnsOf("10.0.0.1", "169.254.169.254")).lookup("example.com")
         }
+    }
+
+    /** `64:ff9b::/96` carries an IPv4 address in its last 32 bits; it is judged by that address (parity decision D14). */
+    @Test
+    fun `a nat64 address is judged by its embedded ipv4`() {
+        assertTrue(InetAddress.getByName("64:ff9b::a00:1").isPrivate())
+        assertTrue(InetAddress.getByName("64:ff9b::7f00:1").isPrivate())
+        assertTrue(InetAddress.getByName("64:ff9b::a9fe:a9fe").isPrivate())
+        assertFalse(InetAddress.getByName("64:ff9b::808:808").isPrivate())
+        assertFalse(InetAddress.getByName("2001:db8::a00:1").isPrivate())
     }
 }

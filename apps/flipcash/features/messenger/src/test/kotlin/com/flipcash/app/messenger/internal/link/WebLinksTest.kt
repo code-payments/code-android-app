@@ -72,4 +72,15 @@ class WebLinksTest {
         assertFalse(WebLinks.hasEscapedHost("https://example.com/a%20b?q=%41#%42"))
         assertFalse(WebLinks.hasEscapedHost("https://us%40er@example.com/"))
     }
+
+    /** A trailing dot or an all-numeric host is how an IP literal or `localhost` hides (parity decision D13). */
+    @Test
+    fun `a trailing dot or a numeric host is refused, a digit in a name is not`() {
+        for (host in listOf("localhost.", "a.local.", "example.com.", "1.1.1.1.", "127.1", "0x7f.0.0.1", "0177.0.0.1", "0X7F.1", "2130706433", "0x7f000001")) {
+            assertFalse(WebLinks.isEligibleHost(host), host)
+        }
+        for (host in listOf("1password.com", "123.example.com", "example.com", "0x.example.com", "a1.b2")) {
+            assertEquals(true, WebLinks.isEligibleHost(host), host)
+        }
+    }
 }

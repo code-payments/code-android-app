@@ -33,8 +33,12 @@ internal class PublicOnlyDns(private val delegate: Dns = Dns.SYSTEM) : Dns {
             .ifEmpty { throw UnknownHostException("$hostname resolves only to private addresses") }
 }
 
-/** The fixture's `addresses` rule. Java already turns an IPv4-mapped IPv6 literal into an [Inet4Address]. */
+/**
+ * The fixture's `addresses` rule. Java already turns an IPv4-mapped IPv6 literal into an [Inet4Address].
+ * A NAT64 address (`64:ff9b::/96`) is judged by the IPv4 address in its last 32 bits (parity decision D14).
+ */
 internal fun InetAddress.isPrivate(): Boolean {
+    nat64Embedded()?.let { return it.isPrivate() }
     if (isLoopbackAddress || isLinkLocalAddress || isSiteLocalAddress || isAnyLocalAddress || isMulticastAddress) return true
     val b = address.map { it.toInt() and 0xFF }
     return when (this) {
@@ -42,6 +46,14 @@ internal fun InetAddress.isPrivate(): Boolean {
         is Inet6Address -> (b[0] and 0xFE) == 0xFC
         else -> true
     }
+}
+
+private fun InetAddress.nat64Embedded(): InetAddress? {
+    if (this !is Inet6Address) return null
+    val b = address
+    val prefix = intArrayOf(0x00, 0x64, 0xFF, 0x9B)
+    val inPrefix = prefix.indices.all { (b[it].toInt() and 0xFF) == prefix[it] } && (4 until 12).all { b[it].toInt() == 0 }
+    return if (inPrefix) InetAddress.getByAddress(b.copyOfRange(12, 16)) else null
 }
 
 /**

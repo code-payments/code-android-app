@@ -118,6 +118,7 @@ class WebLinkLookupTest {
             "http://example.com/",
             "https://10.0.0.1/",
             "https://printer.local/",
+            "https://a.local./",
             "https://ex%61mple.com/",
         )) {
             val script = Script { req -> redirect(req, target) }
