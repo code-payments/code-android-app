@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.link
 
+import android.content.Context
+import coil3.ImageLoader
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.LinkPreviewDataSource
@@ -11,6 +13,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import kotlinx.coroutines.runBlocking
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import javax.inject.Qualifier
@@ -20,6 +24,11 @@ import javax.inject.Singleton
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 internal annotation class WebPreview
+
+/** The client for the picture a page names: the page rules plus a cap on the body, see [webImageClient]. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+internal annotation class WebPreviewImages
 
 /**
  * The process-wide half of link cards: the answers kept between visits, and the prefetch that
@@ -50,6 +59,21 @@ internal abstract class LinkCardMemoryModule {
         @Singleton
         @WebPreview
         fun provideWebPreviewClient(): OkHttpClient = webPreviewClient()
+
+        @Provides
+        @Singleton
+        @WebPreviewImages
+        fun provideWebImageClient(flags: FeatureFlagController): OkHttpClient =
+            // The interceptor runs on OkHttp's own thread, where blocking for a flag read is fine.
+            webImageClient(enabled = { runBlocking { flags.get(FeatureFlag.WebLinkPreviews) } })
+
+        @Provides
+        @Singleton
+        @WebPreviewImages
+        fun provideWebPreviewImageLoader(
+            @ApplicationContext context: Context,
+            @WebPreviewImages client: OkHttpClient,
+        ): ImageLoader = webPreviewImageLoader(context, client)
 
         @Provides
         @Singleton

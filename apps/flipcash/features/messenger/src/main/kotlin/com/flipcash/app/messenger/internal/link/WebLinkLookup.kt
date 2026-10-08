@@ -70,7 +70,10 @@ private fun InetAddress.nat64Embedded(): InetAddress? {
  * interceptors add credentials. Redirects are followed by hand so each hop is checked. It never
  * uses a system proxy, which would resolve the name itself and so bypass [PublicOnlyDns].
  */
-internal fun webPreviewClient(dns: Dns = PublicOnlyDns()): OkHttpClient = OkHttpClient.Builder()
+internal fun webPreviewClient(dns: Dns = PublicOnlyDns()): OkHttpClient = webClientBuilder(dns).build()
+
+/** The transport settings every outside fetch, page or image, shares. */
+internal fun webClientBuilder(dns: Dns): OkHttpClient.Builder = OkHttpClient.Builder()
     .dns(dns)
     .proxy(Proxy.NO_PROXY)
     .cookieJar(CookieJar.NO_COOKIES)
@@ -80,7 +83,31 @@ internal fun webPreviewClient(dns: Dns = PublicOnlyDns()): OkHttpClient = OkHttp
     .connectTimeout(WebLinks.TIMEOUT.toJavaDuration())
     .readTimeout(WebLinks.TIMEOUT.toJavaDuration())
     .callTimeout((WebLinks.TIMEOUT * 2).toJavaDuration())
-    .build()
+
+/** Port 443 only, on every hop (parity decision D12), https, and a host a preview may fetch (D13). */
+internal fun HttpUrl.isFetchable(): Boolean = scheme == "https" && port == 443 && WebLinks.isEligibleHost(host)
+
+/** Repeated headers that disagree are a smuggling shape; fail rather than pick one (parity decision D17). */
+internal fun Response.requireConsistentLength() {
+    if (headers.values("Content-Length").distinct().size > 1) throw IOException("conflicting Content-Length")
+}
+
+/**
+ * Where a redirect points, or null when it is unusable: no `Location`, a backslash or escaped host
+ * in it (D11, D16), or one that does not resolve. Throws when repeated `Location` headers disagree.
+ */
+internal fun Response.redirectTarget(current: HttpUrl): HttpUrl? {
+    val locations = headers.values("Location").distinct()
+    if (locations.size > 1) throw IOException("conflicting Location")
+    val location = locations.firstOrNull()
+    if (location == null || WebLinks.isUnsafeLocation(location)) return null
+    return current.resolve(location)
+}
+
+/** Every value of every repeated Content-Encoding header, each comma-separated token, must be identity (D7, D17). */
+internal fun Response.isEncoded() = headers.values("Content-Encoding")
+    .flatMap { it.split(',') }
+    .any { !it.trim().equals("identity", ignoreCase = true) }
 
 /** The client implementation of the spec's LinkMetadataSource. A server RPC replaces it. */
 internal class WebLinkLookup(
@@ -111,23 +138,12 @@ internal class WebLinkLookup(
             // The first request plus MAX_REDIRECTS redirects. A redirect answering the last one is None.
             repeat(WebLinks.MAX_REDIRECTS + 1) {
                 // Port 443 only, on every hop (parity decision D12).
-                if (current.scheme != "https" || current.port != 443 || !WebLinks.isEligibleHost(current.host)) {
-                    return@runCatching LinkCard.Web.State.None
-                }
+                if (!current.isFetchable()) return@runCatching LinkCard.Web.State.None
                 client.newCall(request(current)).await().use { response ->
-                    // Repeated headers that disagree are a smuggling shape; fail rather than pick one (parity decision D17).
-                    if (response.headers.values("Content-Length").distinct().size > 1) {
-                        throw IOException("conflicting Content-Length")
-                    }
+                    response.requireConsistentLength()
                     when {
                         response.isRedirect -> {
-                            val locations = response.headers.values("Location").distinct()
-                            if (locations.size > 1) throw IOException("conflicting Location")
-                            val location = locations.firstOrNull()
-                            if (location == null || WebLinks.isUnsafeLocation(location)) {
-                                return@runCatching LinkCard.Web.State.None
-                            }
-                            current = current.resolve(location) ?: return@runCatching LinkCard.Web.State.None
+                            current = response.redirectTarget(current) ?: return@runCatching LinkCard.Web.State.None
                         }
                         response.code >= 500 -> throw IOException("HTTP ${response.code}")
                         !response.isSuccessful -> return@runCatching LinkCard.Web.State.None
@@ -153,11 +169,6 @@ internal class WebLinkLookup(
     private fun Response.isHtml() = body.contentType()?.let {
         it.subtype == "html" || it.subtype == "xhtml+xml"
     } ?: false
-
-    /** Every value of every repeated Content-Encoding header, each comma-separated token, must be identity. */
-    private fun Response.isEncoded() = headers.values("Content-Encoding")
-        .flatMap { it.split(',') }
-        .any { !it.trim().equals("identity", ignoreCase = true) }
 
     private fun Response.capped(): ByteArray {
         val source = body.source()
