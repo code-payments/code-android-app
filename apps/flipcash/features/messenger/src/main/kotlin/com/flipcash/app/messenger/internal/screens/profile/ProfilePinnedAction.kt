@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.screens.profile
 
 import androidx.annotation.StringRes
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.financial.Fiat
 
 /** The one primary action pinned to the bottom of another user's profile. */
@@ -34,6 +35,13 @@ internal fun resolvePinnedAction(
     paid -> ProfilePinnedAction.OpeningChat
     else -> fee?.let(ProfilePinnedAction::StartChatting)
 }
+
+/**
+ * Whether the pinned button is left off because it would only open [chatUnderneath], the chat
+ * this profile was opened from: back already returns there.
+ */
+internal fun ProfilePinnedAction.opensChatUnderneath(dmChatId: ChatId?, chatUnderneath: ChatId?): Boolean =
+    this == ProfilePinnedAction.OpenChat && chatUnderneath != null && dmChatId == chatUnderneath
 
 /**
  * The rows under another user's profile, in order: the reversible and routine first, the one that

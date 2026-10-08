@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.financial.Fiat
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -100,6 +101,33 @@ class ProfileActionsTest {
         assertTrue(ChatProfileAction.Block.isDestructive)
         assertFalse(ChatProfileAction.Mute.isDestructive)
         assertFalse(ChatProfileAction.Unblock.isDestructive)
+    }
+
+    // -- opensChatUnderneath --
+
+    private val dm = ChatId(List(16) { 1.toByte() })
+    private val group = ChatId(List(16) { 2.toByte() })
+
+    @Test
+    fun `open chat is left off when the DM is the chat underneath`() {
+        assertTrue(ProfilePinnedAction.OpenChat.opensChatUnderneath(dmChatId = dm, chatUnderneath = dm))
+    }
+
+    @Test
+    fun `open chat stays when the chat underneath is another chat`() {
+        assertFalse(ProfilePinnedAction.OpenChat.opensChatUnderneath(dmChatId = dm, chatUnderneath = group))
+    }
+
+    @Test
+    fun `open chat stays with no chat underneath`() {
+        assertFalse(ProfilePinnedAction.OpenChat.opensChatUnderneath(dmChatId = dm, chatUnderneath = null))
+        assertFalse(ProfilePinnedAction.OpenChat.opensChatUnderneath(dmChatId = null, chatUnderneath = null))
+    }
+
+    @Test
+    fun `only open chat is ever left off`() {
+        assertFalse(ProfilePinnedAction.Unblock.opensChatUnderneath(dmChatId = dm, chatUnderneath = dm))
+        assertFalse(ProfilePinnedAction.OpeningChat.opensChatUnderneath(dmChatId = dm, chatUnderneath = dm))
     }
 
     // -- labelRes --
