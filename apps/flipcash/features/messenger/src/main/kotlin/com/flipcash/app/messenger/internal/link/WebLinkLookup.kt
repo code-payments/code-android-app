@@ -103,7 +103,7 @@ internal class WebLinkLookup(
                     when {
                         response.isRedirect -> {
                             val location = response.header("Location")
-                            if (location == null || WebLinks.hasEscapedHost(location)) {
+                            if (location == null || WebLinks.isUnsafeLocation(location)) {
                                 return@runCatching LinkCard.Web.State.None
                             }
                             current = current.resolve(location) ?: return@runCatching LinkCard.Web.State.None

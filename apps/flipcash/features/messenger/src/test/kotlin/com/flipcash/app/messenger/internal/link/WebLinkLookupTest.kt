@@ -135,6 +135,31 @@ class WebLinkLookupTest {
         assertEquals(1, script.seen.size)
     }
 
+    /** The escape check reads the Location's own authority, not the first `://` anywhere in it (parity decision D16). */
+    @Test
+    fun `a redirect with an escaped host or a backslash gives none`() {
+        for (target in listOf(
+            "//ex%61mple.org/x",
+            "https://ex%61mple.org/x",
+            "HTTPS://user@ex%61mple.org:443/x",
+            "/a\\b",
+            "https://example.com\\@evil.org/",
+        )) {
+            val script = Script { req -> redirect(req, target) }
+            assertEquals(LinkCard.Web.State.None, fetch(script).state(), target)
+            assertEquals(1, script.seen.size, target)
+        }
+    }
+
+    @Test
+    fun `a relative redirect keeps its host even when its query holds an escape`() {
+        val script = Script { req ->
+            if (req.url.encodedPath == "/redir") reply(req) else redirect(req, "/redir?to=https://a%20b")
+        }
+        assertTrue(fetch(script).state() is LinkCard.Web.State.Resolved)
+        assertEquals(listOf("example.com", "example.com"), script.seen.map { it.url.host })
+    }
+
     @Test
     fun `non html and 404 give none, 503 and io errors fail`() {
         assertEquals(LinkCard.Web.State.None, fetch(Script { reply(it, type = "application/json") }).state())

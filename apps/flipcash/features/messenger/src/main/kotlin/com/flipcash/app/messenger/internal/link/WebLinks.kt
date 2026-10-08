@@ -17,6 +17,7 @@ internal object WebLinks {
 
     private val blockedSuffixes = listOf(".localhost", ".local", ".internal")
     private val ipv4 = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
+    private val schemePrefix = Regex("""^[a-z][a-z0-9+.-]*://""", RegexOption.IGNORE_CASE)
     private val numericLabel = Regex("""^(0x[0-9a-f]+|\d+)$""", RegexOption.IGNORE_CASE)
 
     /**
@@ -37,9 +38,26 @@ internal object WebLinks {
      * decodes the escape and would fetch the decoded host, while iOS keeps it, so both apps give
      * such a link no card (parity decision D11).
      */
-    fun hasEscapedHost(url: String): Boolean {
-        val authority = url.substringAfter("://", missingDelimiterValue = "")
-            .takeWhile { it != '/' && it != '?' && it != '#' }
+    fun hasEscapedHost(url: String): Boolean =
+        hasEscape(url.substringAfter("://", missingDelimiterValue = ""))
+
+    /**
+     * Whether a redirect's `Location` is unusable: it holds a backslash, or it names a host (`scheme://`
+     * or scheme-relative `//`) with a percent escape. A relative reference keeps the current host,
+     * so an escape in its path or query is no concern (parity decision D16).
+     */
+    fun isUnsafeLocation(location: String): Boolean {
+        if ('\\' in location) return true
+        val rest = when {
+            location.startsWith("//") -> location.removePrefix("//")
+            schemePrefix.containsMatchIn(location) -> location.substringAfter("://")
+            else -> return false
+        }
+        return hasEscape(rest)
+    }
+
+    private fun hasEscape(afterDelimiter: String): Boolean {
+        val authority = afterDelimiter.takeWhile { it != '/' && it != '?' && it != '#' }
         return '%' in authority.substringAfterLast('@')
     }
 
