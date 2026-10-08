@@ -66,4 +66,30 @@ class PublicOnlyDnsTest {
         assertFalse(InetAddress.getByName("64:ff9b::808:808").isPrivate())
         assertFalse(InetAddress.getByName("2001:db8::a00:1").isPrivate())
     }
+
+    /** Special-use IPv4 blocks beyond the fixture's rows (parity decision D14). */
+    @Test
+    fun `special-use ipv4 ranges are private and their neighbours are not`() {
+        for (a in listOf("192.0.0.1", "192.0.0.255", "192.0.2.1", "198.18.0.1", "198.19.255.254", "240.0.0.1", "255.255.255.255")) {
+            assertTrue(InetAddress.getByName(a).isPrivate(), a)
+        }
+        for (a in listOf("192.0.1.1", "192.0.3.1", "198.17.255.255", "198.20.0.1", "239.255.255.255".let { "223.255.255.255" })) {
+            assertFalse(InetAddress.getByName(a).isPrivate(), a)
+        }
+    }
+
+    @Test
+    fun `6to4, ipv4-compatible and mapped ipv6 are judged as the spec says`() {
+        for (a in listOf("2002::1", "2002:808:808::1", "::", "::1", "::a00:1", "::808:808", "::ffff:10.0.0.1", "::ffff:192.0.2.1")) {
+            assertTrue(InetAddress.getByName(a).isPrivate(), a)
+        }
+        for (a in listOf("::ffff:8.8.8.8", "2001:4860::8888", "2003::1")) {
+            assertFalse(InetAddress.getByName(a).isPrivate(), a)
+        }
+        // Built from raw bytes, so a mapped form is covered whichever class Java returns.
+        val mapped = ByteArray(16).also { it[10] = 0xFF.toByte(); it[11] = 0xFF.toByte(); it[12] = 10; it[15] = 1 }
+        assertTrue(InetAddress.getByAddress(mapped).isPrivate())
+        mapped[12] = 8; mapped[13] = 8; mapped[14] = 8; mapped[15] = 8
+        assertFalse(InetAddress.getByAddress(mapped).isPrivate())
+    }
 }

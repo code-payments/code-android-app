@@ -35,15 +35,19 @@ internal class PublicOnlyDns(private val delegate: Dns = Dns.SYSTEM) : Dns {
 
 /**
  * The fixture's `addresses` rule. Java already turns an IPv4-mapped IPv6 literal into an [Inet4Address].
- * A NAT64 address (`64:ff9b::/96`) is judged by the IPv4 address in its last 32 bits (parity decision D14).
+ * A NAT64 address (`64:ff9b::/96`) is judged by the IPv4 address in its last 32 bits, a mapped one
+ * the same way. 6to4 (`2002::/16`) and IPv4-compatible (`::/96`) addresses are always private, as
+ * are the IPv4 special-use blocks 192.0.0.0/24, 192.0.2.0/24, 198.18.0.0/15 and 240.0.0.0/4
+ * (parity decision D14).
  */
 internal fun InetAddress.isPrivate(): Boolean {
     nat64Embedded()?.let { return it.isPrivate() }
     if (isLoopbackAddress || isLinkLocalAddress || isSiteLocalAddress || isAnyLocalAddress || isMulticastAddress) return true
     val b = address.map { it.toInt() and 0xFF }
     return when (this) {
-        is Inet4Address -> b[0] == 0 || (b[0] == 100 && (b[1] and 0xC0) == 64) || b.all { it == 255 }
-        is Inet6Address -> (b[0] and 0xFE) == 0xFC
+        is Inet4Address -> b[0] == 0 || (b[0] == 100 && (b[1] and 0xC0) == 64) || b[0] >= 240 ||
+            (b[0] == 192 && b[1] == 0 && (b[2] == 0 || b[2] == 2)) || (b[0] == 198 && (b[1] and 0xFE) == 18)
+        is Inet6Address -> (b[0] and 0xFE) == 0xFC || (b[0] == 0x20 && b[1] == 0x02) || (0 until 12).all { b[it] == 0 }
         else -> true
     }
 }
@@ -51,9 +55,11 @@ internal fun InetAddress.isPrivate(): Boolean {
 private fun InetAddress.nat64Embedded(): InetAddress? {
     if (this !is Inet6Address) return null
     val b = address
-    val prefix = intArrayOf(0x00, 0x64, 0xFF, 0x9B)
-    val inPrefix = prefix.indices.all { (b[it].toInt() and 0xFF) == prefix[it] } && (4 until 12).all { b[it].toInt() == 0 }
-    return if (inPrefix) InetAddress.getByAddress(b.copyOfRange(12, 16)) else null
+    val nat64 = intArrayOf(0x00, 0x64, 0xFF, 0x9B).let { p ->
+        p.indices.all { (b[it].toInt() and 0xFF) == p[it] } && (4 until 12).all { b[it].toInt() == 0 }
+    }
+    val mapped = (0 until 10).all { b[it].toInt() == 0 } && b[10].toInt() == -1 && b[11].toInt() == -1
+    return if (nat64 || mapped) InetAddress.getByAddress(b.copyOfRange(12, 16)) else null
 }
 
 /**

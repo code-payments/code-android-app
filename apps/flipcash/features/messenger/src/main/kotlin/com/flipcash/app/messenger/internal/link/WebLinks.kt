@@ -17,11 +17,11 @@ internal object WebLinks {
 
     private val blockedSuffixes = listOf(".localhost", ".local", ".internal")
     private val ipv4 = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
-    private val numericLabel = Regex("""^(0x[0-9a-f]*|\d+)$""", RegexOption.IGNORE_CASE)
+    private val numericLabel = Regex("""^(0x[0-9a-f]+|\d+)$""", RegexOption.IGNORE_CASE)
 
     /**
      * A host string a preview may fetch. IP literals never are; neither is a single label. A trailing
-     * dot and a host of only numeric or hex labels (`127.1`, `0x7f.0.0.1`) are refused too, because
+     * dot and a host of only numeric or hex labels (`127.1`, `0x7f.0.0.1`; a bare `0x` is not one) are refused too, because
      * they are how a literal or `localhost` hides from the rules above (parity decision D13).
      */
     fun isEligibleHost(host: String): Boolean {
