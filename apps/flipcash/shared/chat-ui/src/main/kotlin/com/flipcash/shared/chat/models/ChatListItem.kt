@@ -261,6 +261,10 @@ enum class MessagePart(val id: String) {
  */
 fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentBubble> {
     val card = linkCard ?: return listOf(this)
+    // A web card draws inside the text bubble, under the text, with the link left in the text. A
+    // split row would carry the receipt and the reaction pills, and they would vanish whenever the
+    // card is empty, which is most of the time.
+    if (card is LinkCard.Web) return listOf(this)
     val text = plainText ?: return listOf(copy(linkCard = null))
     if (card.start < 0 || card.end > text.length || card.start >= card.end) {
         return listOf(copy(linkCard = null))

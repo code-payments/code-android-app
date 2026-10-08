@@ -444,6 +444,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     otherReadPointer = otherReadPointer,
                     onAction = chatActionHandler,
                     linkCardResolution = viewModel.linkCardResolution,
+                    webPreviewImageLoader = viewModel.webPreviewImageLoader,
                     onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
                     topBarBottom = barHeight,
                 )

@@ -160,6 +160,8 @@ fun ContentBubble(
         }
         val isEdited = item.isEdited && item.isLastRow
         val card = item.linkCard?.takeIf { item.part == MessagePart.Card }
+        // A web card is not split out: it draws in the text bubble under the text.
+        val webCard = item.linkCard as? LinkCard.Web
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -196,6 +198,10 @@ fun ContentBubble(
                     maxWidth = bubbleMaxWidth,
                     isEdited = isEdited,
                     jumbo = jumbo,
+                    webCard = webCard,
+                    onCardLongClick = onLongClick?.takeIf { interactive },
+                    onCardDoubleClick = onDoubleClick?.takeIf { interactive },
+                    interactive = interactive,
                     attention = attention,
                 )
 
@@ -273,6 +279,10 @@ fun ContentBubble(
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
                     onQuoteDoubleClick = onDoubleClick?.takeIf { interactive },
                     jumbo = jumbo,
+                    webCard = webCard,
+                    onCardLongClick = onLongClick?.takeIf { interactive },
+                    onCardDoubleClick = onDoubleClick?.takeIf { interactive },
+                    interactive = interactive,
                     attention = attention,
                 )
 
@@ -415,6 +425,10 @@ private fun TextBubble(
     onQuoteLongClick: (() -> Unit)? = null,
     onQuoteDoubleClick: (() -> Unit)? = null,
     jumbo: Boolean = false,
+    webCard: LinkCard.Web? = null,
+    onCardLongClick: (() -> Unit)? = null,
+    onCardDoubleClick: (() -> Unit)? = null,
+    interactive: Boolean = true,
     attention: () -> Float = { 0f },
 ) {
     if (jumbo) {
@@ -436,11 +450,17 @@ private fun TextBubble(
     // quote. A bubble with no quote never widens, because the two are equal there.
     val surround = if (quote != null) BubbleDefaults.surroundInset else BubbleDefaults.paddingHorizontal
     val bodyInset = BubbleDefaults.paddingHorizontal - surround
+    // Asked here rather than in the card so the bubble can widen for a card that draws: the image
+    // would otherwise be squeezed to the text's width. A chip, a card still loading and an empty
+    // answer leave the bubble text-sized.
+    val web = webCard?.let { rememberWebLinkCard(it) }
+    val cardDrawn = web?.resolved != null
     Bubble(
         isFromSelf,
         position,
         maxWidth,
         modifier,
+        minWidth = if (cardDrawn) maxWidth else 0.dp,
         horizontalPadding = surround,
         attention = attention,
     ) {
@@ -558,35 +578,49 @@ private fun TextBubble(
             )
         }
 
-        if (quote == null) {
-            bodyText()
-        } else {
-            QuotedBody(
-                gap = BubbleDefaults.surroundInset,
-                quote = {
-                    ChatQuotePanel(
-                        quote = quote,
-                        onClick = onQuoteClick,
-                        onLongClick = onQuoteLongClick,
-                        onDoubleClick = onQuoteDoubleClick,
-                        // Tagged because the citation repeats the quoted message's own text, so a
-                        // UI test matching on that text cannot tell the two apart.
-                        modifier = Modifier.testTag(REPLY_QUOTE_TAG),
+        Column {
+            // The marker is pinned to the text's corner, so the card below does not sit under it.
+            Box(modifier = Modifier.addIf(cardDrawn) { Modifier.fillMaxWidth() }) {
+                if (quote == null) {
+                    bodyText()
+                } else {
+                    QuotedBody(
+                        gap = BubbleDefaults.surroundInset,
+                        quote = {
+                            ChatQuotePanel(
+                                quote = quote,
+                                onClick = onQuoteClick,
+                                onLongClick = onQuoteLongClick,
+                                onDoubleClick = onQuoteDoubleClick,
+                                // Tagged because the citation repeats the quoted message's own text, so a
+                                // UI test matching on that text cannot tell the two apart.
+                                modifier = Modifier.testTag(REPLY_QUOTE_TAG),
+                            )
+                        },
+                        body = bodyText,
                     )
-                },
-                body = bodyText,
-            )
-        }
+                }
 
-        if (isEdited) {
-            Text(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = bodyInset),
-                text = markerLabel,
-                style = markerStyle,
-                color = CodeTheme.colors.textSecondary,
-            )
+                if (isEdited) {
+                    Text(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = bodyInset),
+                        text = markerLabel,
+                        style = markerStyle,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                }
+            }
+            if (web != null) {
+                WebLinkCard(
+                    state = web,
+                    modifier = Modifier.padding(horizontal = bodyInset),
+                    onLongClick = onCardLongClick,
+                    onDoubleClick = onCardDoubleClick,
+                    interactive = interactive,
+                )
+            }
         }
     }
 }

@@ -1029,6 +1029,8 @@
     <!-- Group invite link card. The untitled name is provisional, pending copy. -->
     <string name="label_linkCard_untitledGroup">Group Chat</string>
     <string name="action_linkCard_view">View</string>
+    <!-- Web link card chip, shown to a viewer outside the group. Copy pending UX review, with the iOS string. -->
+    <string name="action_webLinkCard_showPreview">Show preview · %1$s</string>
     <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
 
     <!-- Chat message selection bar and its actions -->

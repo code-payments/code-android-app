@@ -190,4 +190,24 @@ class SplitAroundLinkCardTest {
         assertEquals(listOf(DetectedMention(start = 3, end = 8, username = "jeff")), rows[0].mentions)
         assertEquals(emptyList(), rows[1].mentions)
     }
+
+    @Test
+    fun `a web card stays inside one bubble with the link left in the text`() {
+        val text = "read https://example.com/a now"
+        val card = LinkCard.Web(url = "https://example.com/a", start = 5, end = 26)
+        val rows = ChatListItem.ContentBubble(
+            messageId = 7,
+            contentIndex = 0,
+            content = MessageContent.Text(text),
+            isFromSelf = true,
+            timestamp = Instant.fromEpochSeconds(1_000),
+            isEdited = false,
+            linkCard = card,
+        ).splitAroundLinkCard()
+
+        val row = rows.single()
+        assertNull(row.part)
+        assertNull(row.partText)
+        assertEquals(card, row.linkCard)
+    }
 }

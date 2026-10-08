@@ -118,6 +118,8 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.models.splitAroundLinkCard
+import coil3.ImageLoader
+import com.flipcash.app.messenger.internal.link.WebPreviewImages
 import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionStrip
@@ -250,6 +252,8 @@ internal class ChatViewModel @AssistedInject constructor(
     private val rosterSearch: RosterSearchSource,
     private val featuredGroups: FeaturedGroupsStore,
     private val dispatchers: DispatcherProvider,
+    // Last and defaulted so the transcript tests, which draw no pictures, need not supply one.
+    @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
