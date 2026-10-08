@@ -69,5 +69,11 @@ fun ShareProfileToChatsScreen(route: AppRoute.Messaging.ShareProfileToChats) {
         onMessageChanged = viewModel::onMessageChanged,
         onInvite = { viewModel.invite(link) },
         onDismiss = dismissSheet,
+        // The card is drawn over this sheet, which stays open beneath it.
+        onShowCard = {
+            keyboard.hideIfVisible {
+                navigator.push(AppRoute.Menu.ProfileCard(route.userId))
+            }
+        },
     )
 }

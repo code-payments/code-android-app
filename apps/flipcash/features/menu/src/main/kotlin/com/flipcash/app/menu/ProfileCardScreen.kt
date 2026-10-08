@@ -3,6 +3,7 @@ package com.flipcash.app.menu
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.hazeSource
 import com.flipcash.app.menu.internal.ProfileBarButton
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -28,11 +29,12 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.bills.components.cards.TipCardFlattened
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.menu.internal.ProfileCardViewModel
 import com.flipcash.core.R as CoreR
 import com.flipcash.features.menu.R
@@ -41,17 +43,22 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.KeepScreenOn
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import kotlinx.coroutines.delay
 
 /**
- * The viewer's own profile card, full screen, behind `AppRoute.Menu.ProfileCard`. It presents like
- * a scanned bill: the card pops in on a spring while the Close button fades in. The backdrop's
- * fade in and the whole screen's fade out belong to the navigation transition, which fades this
- * route in place of the default slide. Download, where the You tab keeps its settings gear, hands
- * the card to the system share sheet as an image.
+ * A person's profile card, full screen, behind `AppRoute.Menu.ProfileCard`: the viewer's own or
+ * anyone else's, opened from the share sheet's Show Profile Card tile. It presents like
+ * a scanned bill: the backdrop fades up over the share sheet, which stays open beneath it, while
+ * the card pops in on a spring. Closing, by button or back, fades the whole screen out before the
+ * route pops; the route is a [com.getcode.navigation.FullscreenOverlay], so navigation draws no
+ * transition of its own. Download, where the You tab keeps its settings gear, hands the card to
+ * the system share sheet as an image.
  */
 @Composable
-fun ProfileCardScreen() {
-    val viewModel = hiltViewModel<ProfileCardViewModel>()
+fun ProfileCardScreen(route: AppRoute.Menu.ProfileCard) {
+    val viewModel = hiltViewModel<ProfileCardViewModel, ProfileCardViewModel.Factory>(
+        creationCallback = { factory -> factory.create(route.userId) },
+    )
     val navigator = LocalCodeNavigator.current
     val haptics = LocalHapticFeedback.current
     val card = viewModel.card
@@ -62,10 +69,26 @@ fun ProfileCardScreen() {
         appeared = true
     }
 
+    // Fade out, then pop, so the sheet beneath is uncovered rather than cut back to.
+    var closing by remember { mutableStateOf(false) }
+    LaunchedEffect(closing) {
+        if (!closing) return@LaunchedEffect
+        appeared = false
+        delay(RevealFadeMillis.toLong())
+        navigator.pop()
+    }
+    BackHandler(enabled = !closing) { closing = true }
+
     val fade by animateFloatAsState(
         targetValue = if (appeared) 1f else 0f,
         animationSpec = tween(durationMillis = RevealFadeMillis, easing = EaseOut),
         label = "profile card fade",
+    )
+    // The backdrop leads the card in, and on the way out takes the card and Close with it.
+    val backdropFade by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = tween(durationMillis = RevealFadeMillis, easing = EaseOut),
+        label = "profile card backdrop fade",
     )
     val cardScale by animateFloatAsState(
         targetValue = if (appeared) 1f else CardInitialScale,
@@ -88,6 +111,7 @@ fun ProfileCardScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .graphicsLayer { alpha = backdropFade }
             .background(CodeTheme.colors.background),
     ) {
         Box(
@@ -138,7 +162,7 @@ fun ProfileCardScreen() {
                 .padding(bottom = CodeTheme.dimens.grid.x4)
                 .graphicsLayer { alpha = fade },
             buttonState = ButtonState.Subtle,
-            onClick = { navigator.pop() },
+            onClick = { closing = true },
             text = stringResource(CoreR.string.description_chatMediaClose),
         )
     }

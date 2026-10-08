@@ -45,11 +45,12 @@ class ProfileCardViewModelTest {
             user = UserProfile.Empty.copy(displayName = displayName),
         )
         val tipping = mockk<TippingCoordinator>()
-        coEvery { tipping.resolveTipCard() } returns Result.success(card)
+        coEvery { tipping.profileCard(any()) } returns Result.success(card)
         val baseName = slot<String>()
         coEvery { exporter.export(any(), any(), capture(baseName), any()) } returns null
 
         val vm = ProfileCardViewModel(
+            userId = listOf<Byte>(1),
             tippingCoordinator = tipping,
             tipCodeExporter = exporter,
             shareable = mockk<ShareSheetController>(relaxed = true),

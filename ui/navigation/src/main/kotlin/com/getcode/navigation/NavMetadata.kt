@@ -20,6 +20,7 @@ enum class NavMetadataKeys(val key: String, ) {
     IsHalfSheet("sheet_half"),
     IsFullscreenSheet("sheet_fullscreen"),
     IsSolitarySheet("sheet_solitary"),
+    IsFullscreenOverlay("fullscreen_overlay"),
     NavResultKey("navresult_key"),
 }
 
@@ -73,6 +74,7 @@ fun KClass<*>.metadata(): Map<String, Any> {
         NavMetadataKeys.IsHalfSheet.key to HalfSheet::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsFullscreenSheet.key to FullscreenSheet::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsSolitarySheet.key to SolitarySheet::class.java.isAssignableFrom(this.java),
+        NavMetadataKeys.IsFullscreenOverlay.key to FullscreenOverlay::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsNonDismissable.key to NonDismissableRoute::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsNonDraggable.key to NonDraggableRoute::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.NavResultKey.key to (if (resultClass != null) {

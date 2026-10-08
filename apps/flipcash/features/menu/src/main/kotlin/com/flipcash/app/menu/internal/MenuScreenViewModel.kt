@@ -27,6 +27,7 @@ import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.common.ui.profile.joinedLabel
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -297,7 +298,7 @@ internal class MenuScreenViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.ShareProfile>()
-            .mapNotNull { shareProfileRoute(stateFlow.value.profileState) }
+            .mapNotNull { shareProfileRoute(stateFlow.value.profileState, tippingCoordinator.currentUserId) }
             .onEach { dispatchEvent(Event.OpenScreen(it)) }
             .launchIn(viewModelScope)
     }
@@ -335,8 +336,20 @@ internal class MenuScreenViewModel @Inject constructor(
 }
 
 /**
- * Where the header's share button goes: the share sheet, once the viewer has a profile worth
- * sharing. An account with no name has no card or link to hand out, so the tap leads nowhere.
+ * Where the header's share button goes: the same share sheet every other profile opens, once the
+ * viewer has a profile worth sharing. An account with no name has no card or link to hand out, so
+ * the tap leads nowhere, and neither does one with no signed-in user to address.
  */
-internal fun shareProfileRoute(profileState: MenuScreenViewModel.ProfileState): AppRoute? =
-    if (profileState is MenuScreenViewModel.ProfileState.Named) AppRoute.Menu.ShareProfile else null
+internal fun shareProfileRoute(
+    profileState: MenuScreenViewModel.ProfileState,
+    userId: ID?,
+): AppRoute? {
+    if (profileState !is MenuScreenViewModel.ProfileState.Named || userId == null) return null
+    return AppRoute.Messaging.ShareProfileToChats(
+        userId = userId,
+        username = profileState.profile.username,
+        displayName = profileState.profile.displayName,
+        // Your own profile has no DM to leave out.
+        directChatId = null,
+    )
+}

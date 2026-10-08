@@ -14,14 +14,18 @@ import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.menu.R
 import com.flipcash.shared.tipping.TippingCoordinator
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-/** The viewer's own profile card, shown full screen and exportable as an image. */
-@HiltViewModel
-internal class ProfileCardViewModel @Inject constructor(
+/** [userId]'s profile card, shown full screen and exportable as an image. */
+@HiltViewModel(assistedFactory = ProfileCardViewModel.Factory::class)
+internal class ProfileCardViewModel @AssistedInject constructor(
+    @Assisted userId: ID,
     private val tippingCoordinator: TippingCoordinator,
     private val tipCodeExporter: TipCodeExporter,
     private val shareable: ShareSheetController,
@@ -34,8 +38,13 @@ internal class ProfileCardViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            tippingCoordinator.resolveTipCard().onSuccess { card = it }
+            tippingCoordinator.profileCard(userId).onSuccess { card = it }
         }
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(userId: ID): ProfileCardViewModel
     }
 
     /** Asks which format to export, then renders it. */
