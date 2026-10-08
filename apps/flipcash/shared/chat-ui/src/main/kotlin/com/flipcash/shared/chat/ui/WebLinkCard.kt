@@ -19,9 +19,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import coil3.compose.AsyncImage
@@ -30,6 +32,7 @@ import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.LocalWebLinkPreviewMode
 import com.flipcash.shared.chat.models.LocalWebPreviewImageLoader
 import com.flipcash.shared.chat.models.WebLinkPreviewMode
+import com.getcode.ui.core.addIf
 import com.getcode.theme.CodeTheme
 
 internal const val WEB_LINK_CARD_TAG = "web_link_card"
@@ -91,6 +94,10 @@ private fun chipHostOf(url: String): String =
  * The card under a message's text, or the chip that asks for it. The whole card is one target that
  * opens the page through [LocalUriHandler], so the host's "leaving Flipcash" warning applies as it
  * does to the link text; a long press goes to the message's own.
+ *
+ * [bareShape] set draws the card as the whole message, with no bubble around it: the panel takes the
+ * bubble's corners instead of its own and sits flush, with no gap above it for text that is not
+ * there.
  */
 @Composable
 internal fun WebLinkCard(
@@ -99,6 +106,7 @@ internal fun WebLinkCard(
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
     interactive: Boolean = true,
+    bareShape: Shape? = null,
 ) {
     val resolved = state.resolved
     val chipHost = state.chipHost
@@ -110,6 +118,7 @@ internal fun WebLinkCard(
             interactive = interactive,
             onLongClick = onLongClick,
             onDoubleClick = onDoubleClick,
+            bareShape = bareShape,
         )
 
         chipHost != null -> ShowPreviewChip(host = chipHost, onClick = state.ask, modifier = modifier)
@@ -123,18 +132,20 @@ private fun WebPreview(
     interactive: Boolean,
     onLongClick: (() -> Unit)?,
     onDoubleClick: (() -> Unit)?,
+    bareShape: Shape?,
     modifier: Modifier = Modifier,
 ) {
     // The link that was sent, never one the page named.
     val uriHandler = LocalUriHandler.current
-    val shape = RoundedCornerShape(CodeTheme.dimens.staticGrid.x2)
+    val shape = bareShape ?: RoundedCornerShape(CodeTheme.dimens.staticGrid.x2)
     Column(
         modifier = modifier
-            .padding(top = CodeTheme.dimens.staticGrid.x2)
+            .addIf(bareShape == null) { Modifier.padding(top = CodeTheme.dimens.staticGrid.x2) }
             .fillMaxWidth()
             .clip(shape)
             .background(PANEL_FILL)
             .testTag(WEB_LINK_CARD_TAG)
+            .addIf(bareShape != null) { Modifier.semantics { linkCardShape = bareShape!! } }
             .combinedClickable(
                 enabled = interactive,
                 onClick = { uriHandler.openUri(url) },

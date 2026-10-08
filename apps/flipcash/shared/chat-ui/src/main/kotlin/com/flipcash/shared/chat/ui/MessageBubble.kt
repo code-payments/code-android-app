@@ -73,6 +73,7 @@ import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.ui.media.MediaMessageBubble
 import com.flipcash.shared.chat.ui.media.photoBody
 import com.flipcash.shared.chat.models.MessagePart
+import com.flipcash.shared.chat.models.isAloneIn
 import com.flipcash.shared.chat.models.splitAroundLinkCard
 import kotlin.time.Instant
 import com.flipcash.shared.chat.models.SeparatorConfig
@@ -162,6 +163,8 @@ fun ContentBubble(
         val card = item.linkCard?.takeIf { item.part == MessagePart.Card }
         // A web card is not split out: it draws in the text bubble under the text.
         val webCard = item.linkCard as? LinkCard.Web
+        // Whether the text is only that link; the card still has to resolve for it to draw bare.
+        val webCardAlone = remember(item) { item.linkOnlyWebCard() != null }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -199,6 +202,7 @@ fun ContentBubble(
                     isEdited = isEdited,
                     jumbo = jumbo,
                     webCard = webCard,
+                    webCardAlone = webCardAlone,
                     onCardLongClick = onLongClick?.takeIf { interactive },
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
@@ -280,6 +284,7 @@ fun ContentBubble(
                     onQuoteDoubleClick = onDoubleClick?.takeIf { interactive },
                     jumbo = jumbo,
                     webCard = webCard,
+                    webCardAlone = webCardAlone,
                     onCardLongClick = onLongClick?.takeIf { interactive },
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
@@ -364,6 +369,39 @@ fun ChatListItem.ContentBubble.rendersBareEmoji(): Boolean {
 fun ChatListItem.ContentBubble.rendersBare(): Boolean =
     part == MessagePart.Card || rendersBareEmoji()
 
+/**
+ * [rendersBare], plus the case only composition can answer: a message that is nothing but a web
+ * link whose card has resolved draws as the card alone (see [TextBubble]), so its "Edited" marker
+ * comes out below it like a Flipcash card row's. Asks the same [rememberWebLinkCard] the bubble
+ * does, so the two agree on every frame.
+ *
+ * Does not change [groupsWith]: a bare web card keeps its run, as a Flipcash card row does, because
+ * it is drawn in the bubble's outline.
+ */
+@Composable
+fun ChatListItem.ContentBubble.rememberRendersBare(): Boolean {
+    if (rendersBare()) return true
+    val web = linkOnlyWebCard() ?: return false
+    return rememberWebLinkCard(web).resolved != null
+}
+
+/**
+ * The web card of a message whose text is nothing but its link, or null. "Nothing but" is the rule
+ * [splitAroundLinkCard] applies to a Flipcash card (see [isAloneIn]); whether the card then draws
+ * bare also depends on its state, which only composition has.
+ */
+private fun ChatListItem.ContentBubble.linkOnlyWebCard(): LinkCard.Web? {
+    val web = linkCard as? LinkCard.Web ?: return null
+    // A photo reply draws through the media bubble, which has no web card.
+    val textual = when (val content = content) {
+        is MessageContent.Text -> true
+        is MessageContent.Reply -> content.photoBody() == null
+        else -> false
+    }
+    if (!textual || part != null) return null
+    return web.takeIf { plainText?.let(it::isAloneIn) == true }
+}
+
 private const val EDITED_MARKER_SLOT = "edited-marker"
 
 internal const val REPLY_QUOTE_TAG = "bubble_reply_quote"
@@ -426,6 +464,7 @@ private fun TextBubble(
     onQuoteDoubleClick: (() -> Unit)? = null,
     jumbo: Boolean = false,
     webCard: LinkCard.Web? = null,
+    webCardAlone: Boolean = false,
     onCardLongClick: (() -> Unit)? = null,
     onCardDoubleClick: (() -> Unit)? = null,
     interactive: Boolean = true,
@@ -455,6 +494,24 @@ private fun TextBubble(
     // answer leave the bubble text-sized.
     val web = webCard?.let { rememberWebLinkCard(it) }
     val cardDrawn = web?.resolved != null
+    if (web != null && cardDrawn && webCardAlone) {
+        BareWebCard(
+            web = web,
+            isFromSelf = isFromSelf,
+            position = position,
+            maxWidth = maxWidth,
+            modifier = modifier,
+            quote = quote,
+            onQuoteClick = onQuoteClick,
+            onQuoteLongClick = onQuoteLongClick,
+            onQuoteDoubleClick = onQuoteDoubleClick,
+            onLongClick = onCardLongClick,
+            onDoubleClick = onCardDoubleClick,
+            interactive = interactive,
+            attention = attention,
+        )
+        return
+    }
     Bubble(
         isFromSelf,
         position,
@@ -621,6 +678,66 @@ private fun TextBubble(
                     interactive = interactive,
                 )
             }
+        }
+    }
+}
+
+/**
+ * A resolved web card that is the whole message: no bubble and no link text, the card in the
+ * bubble's corners for its place in the run. The panel's own fill is the surface.
+ *
+ * Laid out as [BareLinkCard] is -- through [Bubble] with `bare`, so the jump flash and the width
+ * ceiling stay where every bubble gets them, and a reply's citation above the card.
+ *
+ * Only reached while the card is resolved. Should it stop being (its entry expires and the lookup
+ * comes back empty), [TextBubble] draws the text bubble with the link again.
+ */
+@Composable
+private fun BareWebCard(
+    web: WebLinkCardState,
+    isFromSelf: Boolean,
+    position: BubblePosition,
+    maxWidth: Dp,
+    modifier: Modifier = Modifier,
+    quote: ChatQuote? = null,
+    onQuoteClick: (() -> Unit)? = null,
+    onQuoteLongClick: (() -> Unit)? = null,
+    onQuoteDoubleClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
+    interactive: Boolean = true,
+    attention: () -> Float = { 0f },
+) {
+    val shape = bubbleShape(position, isFromSelf)
+    Bubble(
+        isFromSelf = isFromSelf,
+        position = position,
+        maxWidth = maxWidth,
+        minWidth = maxWidth,
+        modifier = modifier,
+        shape = shape,
+        bare = true,
+        horizontalPadding = 0.dp,
+        verticalPadding = 0.dp,
+        attention = attention,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(BubbleDefaults.surroundInset)) {
+            if (quote != null) {
+                ChatQuotePanel(
+                    quote = quote,
+                    onClick = onQuoteClick,
+                    onLongClick = onQuoteLongClick,
+                    onDoubleClick = onQuoteDoubleClick,
+                    modifier = Modifier.testTag(REPLY_QUOTE_TAG),
+                )
+            }
+            WebLinkCard(
+                state = web,
+                onLongClick = onLongClick,
+                onDoubleClick = onDoubleClick,
+                interactive = interactive,
+                bareShape = shape,
+            )
         }
     }
 }

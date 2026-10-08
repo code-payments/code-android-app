@@ -728,7 +728,7 @@ private fun StubPill(text: String) {
  * point of it is that it matches [bubbleShape] at the card's place in its run.
  */
 internal val LinkCardShapeKey = SemanticsPropertyKey<Shape>("LinkCardShape")
-private var SemanticsPropertyReceiver.linkCardShape by LinkCardShapeKey
+internal var SemanticsPropertyReceiver.linkCardShape by LinkCardShapeKey
 
 private object LinkCardDefaults {
     /**

@@ -266,18 +266,8 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
     // card is empty, which is most of the time.
     if (card is LinkCard.Web) return listOf(this)
     val text = plainText ?: return listOf(copy(linkCard = null))
-    if (card.start < 0 || card.end > text.length || card.start >= card.end) {
-        return listOf(copy(linkCard = null))
-    }
-
-    // Punctuation touching the link first -- the "." ending a sentence, the brackets or quotes
-    // around it -- then the gap.
-    var leadingEnd = card.start
-    while (leadingEnd > 0 && text[leadingEnd - 1].isPunctuation()) leadingEnd--
-    while (leadingEnd > 0 && text[leadingEnd - 1].isWhitespace()) leadingEnd--
-    var trailingStart = card.end
-    while (trailingStart < text.length && text[trailingStart].isPunctuation()) trailingStart++
-    while (trailingStart < text.length && text[trailingStart].isWhitespace()) trailingStart++
+    val (leadingEnd, trailingStart) = card.marginsIn(text)
+        ?: return listOf(copy(linkCard = null))
 
     val parts = listOfNotNull(
         text.substring(0, leadingEnd).takeIf { it.saysSomething() }?.let { MessagePart.Leading to it },
@@ -300,6 +290,36 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
             reactionPills = reactionPills.takeIf { index == parts.lastIndex }.orEmpty(),
         )
     }
+}
+
+/**
+ * Where the text around [this] card's link ends and begins, or null when the card's span does not
+ * fit [text].
+ *
+ * Punctuation touching the link first -- the "." ending a sentence, the brackets or quotes around
+ * it -- then the gap. The text before `first` and from `second` on is what the message says besides
+ * the link.
+ */
+private fun LinkCard.marginsIn(text: String): Pair<Int, Int>? {
+    if (start < 0 || end > text.length || start >= end) return null
+    var leadingEnd = start
+    while (leadingEnd > 0 && text[leadingEnd - 1].isPunctuation()) leadingEnd--
+    while (leadingEnd > 0 && text[leadingEnd - 1].isWhitespace()) leadingEnd--
+    var trailingStart = end
+    while (trailingStart < text.length && text[trailingStart].isPunctuation()) trailingStart++
+    while (trailingStart < text.length && text[trailingStart].isWhitespace()) trailingStart++
+    return leadingEnd to trailingStart
+}
+
+/**
+ * Whether [text] says nothing besides this card's link: what is left once the link, the
+ * punctuation touching it and the whitespace past that are removed is empty. The same rule
+ * [splitAroundLinkCard] uses to drop a text row, so a web card and a Flipcash card agree on what
+ * "only the link" means.
+ */
+internal fun LinkCard.isAloneIn(text: String): Boolean {
+    val (leadingEnd, trailingStart) = marginsIn(text) ?: return false
+    return !text.substring(0, leadingEnd).saysSomething() && !text.substring(trailingStart).saysSomething()
 }
 
 /**
