@@ -1,5 +1,16 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.Typeface
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontSynthesis
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.AnimationSpec
@@ -107,11 +118,12 @@ internal fun RowScope.SendCashButton(
     // fontUnit (rather than swapping styles) lets it ease alongside the width spring so the
     // resize and the type scale read as one motion. Sizes come from the theme so they track
     // any typography change.
+    val expandedSymbolSize = CodeTheme.typography.textMedium.fontSize.value
     val symbolFontSize by animateFloatAsState(
         targetValue = if (isTyping) {
             CondensedSymbolFontSize.value
         } else {
-            CodeTheme.typography.textMedium.fontSize.value
+            expandedSymbolSize
         },
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
@@ -164,7 +176,15 @@ internal fun RowScope.SendCashButton(
                 softWrap = false,
             )
         }
+        // Condensed, the symbol is alone in a circle, where centring its line box leaves the glyph
+        // low: "$" hangs below the baseline. Shift it by the gap between the box's centre and the
+        // glyph's, eased in with the font size so the expanded "Send $" keeps one baseline.
+        val condensedFraction = ((symbolFontSize - expandedSymbolSize) / (CondensedSymbolFontSize.value - expandedSymbolSize))
+            .coerceIn(0f, 1f)
+        var inkOffset by remember { mutableFloatStateOf(0f) }
+        val fontFamilyResolver = LocalFontFamilyResolver.current
         Text(
+            modifier = Modifier.graphicsLayer { translationY = inkOffset * condensedFraction },
             text = state.cashSymbol,
             color = contentColor,
             // Base style stays textMedium; the animated fontSize carries it up to textLarge in
@@ -175,6 +195,36 @@ internal fun RowScope.SendCashButton(
             ),
             maxLines = 1,
             softWrap = false,
+            onTextLayout = { layout ->
+                inkOffset = layout.glyphCenterOffset(fontFamilyResolver)
+            },
         )
     }
 }
+
+/**
+ * How far to move this one-line text so its drawn glyphs, rather than its line box, sit at the
+ * box's vertical centre. Text layout only reports line metrics, so the ink bounds come from the
+ * resolved typeface.
+ */
+private fun TextLayoutResult.glyphCenterOffset(fontFamilyResolver: FontFamily.Resolver): Float {
+    val text = layoutInput.text.text
+    if (text.isEmpty()) return 0f
+    val style = layoutInput.style
+    val typeface = fontFamilyResolver.resolve(
+        fontFamily = style.fontFamily,
+        fontWeight = style.fontWeight ?: FontWeight.Normal,
+        fontStyle = style.fontStyle ?: FontStyle.Normal,
+        fontSynthesis = style.fontSynthesis ?: FontSynthesis.All,
+    ).value as? Typeface ?: return 0f
+    val paint = Paint().apply {
+        this.typeface = typeface
+        textSize = with(layoutInput.density) { style.fontSize.toPx() }
+    }
+    val ink = Rect().also { paint.getTextBounds(text, 0, text.length, it) }
+    if (ink.isEmpty) return 0f
+    // getTextBounds is relative to the baseline.
+    val inkCenter = firstBaseline + (ink.top + ink.bottom) / 2f
+    return size.height / 2f - inkCenter
+}
+
