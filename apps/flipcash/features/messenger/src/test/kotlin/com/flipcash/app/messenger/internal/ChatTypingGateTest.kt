@@ -119,6 +119,7 @@ class ChatTypingGateTest {
         rosterSearch = mockk(relaxed = true),
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
+        identifier = null,
     )
 
     @Test

@@ -58,9 +58,11 @@ class ChatMemberDataSource @Inject constructor(
      * nothing is known, not that nothing has been read.
      */
     suspend fun getSelfReadPointerOrNull(chatId: ChatId, selfId: ID): Long? =
-        getMembersForChat(chatId)
-            .firstOrNull { it.userId == selfId }
-            ?.let { self -> self.pointers.firstOrNull { it.type == PointerType.READ }?.value ?: 0L }
+        // The self row alone. Loading the roster with its profiles to find it cost a chat open
+        // most of its unread-boundary time in a large group.
+        db?.chatMemberDao()
+            ?.getMember(mapper.chatIdHex(chatId), mapper.userIdHex(selfId))
+            ?.let { self -> mapper.pointers(self).firstOrNull { it.type == PointerType.READ }?.value ?: 0L }
 
     suspend fun upsert(chatId: ChatId, members: List<ChatMember>) {
         val database = db ?: return

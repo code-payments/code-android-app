@@ -167,6 +167,7 @@ class ChatGroupAnalyticsTest {
         rosterSearch = mockk(relaxed = true),
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
+        identifier = null,
     )
 
     private fun membership(isMember: Boolean, rules: ChatRules? = gatedRules, memberCount: Long = 4L) =

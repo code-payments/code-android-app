@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -64,6 +65,12 @@ fun ChatFlowScreen(
 ) {
     val navigator = LocalCodeNavigator.current
     val keyboard = rememberKeyboardController()
+    // Created here, before any step asks for it, so it opens the chat while being created and the
+    // first frame already has what the open can draw from memory (a group's name and picture). The
+    // steps get this instance from flowSharedViewModel: the flow's store owner is this entry's.
+    hiltViewModel<ChatViewModel, ChatViewModel.Factory>(
+        creationCallback = { factory -> factory.create(route.identifier) },
+    )
 
     FlowHost<ChatStep, Parcelable>(
         initialStack = route.rememberInitialStack(),
@@ -73,7 +80,7 @@ fun ChatFlowScreen(
         // onRootReached, and so does system back — so this is the one place that has to do it.
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
-        entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
+        entryProvider = chatEntryProvider(route.openKeyboard),
         // ChatStep.AmountEntry and ChatStep.InviteToGroup are Sheets, so the
         // flow needs the sheet strategy to draw them as such; without it the step would fall
         // through to SinglePane and cover the thread. Amount entry
@@ -89,11 +96,10 @@ fun ChatFlowScreen(
 
 @Composable
 private fun chatEntryProvider(
-    identifier: ChatIdentifier,
     openKeyboard: Boolean,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<ChatStep.Conversation> {
-        FlowConversationScreen(identifier, openKeyboard)
+        FlowConversationScreen(openKeyboard)
     }
     annotatedEntry<ChatStep.AmountEntry> {
         FlowAmountEntryScreen()
@@ -106,7 +112,7 @@ private fun chatEntryProvider(
         FlowChatProfileScreen(step.contact, step.origin)
     }
     annotatedEntry<ChatStep.GroupProfile> {
-        FlowGroupProfileScreen(identifier)
+        FlowGroupProfileScreen()
     }
     annotatedEntry<ChatStep.EditGroup> {
         EditGroupScreen()
@@ -128,7 +134,6 @@ private fun chatEntryProvider(
 
 @Composable
 private fun FlowConversationScreen(
-    identifier: ChatIdentifier,
     openKeyboard: Boolean,
 ) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
@@ -139,10 +144,6 @@ private fun FlowConversationScreen(
     // must target the sheet navigator explicitly.
     val sheetNavigator = LocalSheetNavigator.current
     val keyboard = rememberKeyboardController()
-
-    LaunchedEffect(viewModel, identifier) {
-        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
-    }
 
     var hasOpened by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(openKeyboard) {
@@ -302,15 +303,8 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
  * view model is already open on this group, so there is nothing to hand it.
  */
 @Composable
-private fun FlowGroupProfileScreen(identifier: ChatIdentifier) {
-    val viewModel = flowSharedViewModel<ChatViewModel>()
-    // A flow opened on the profile (AppRoute.Messaging.Chat.openOnProfile) has no conversation
-    // under it, so nothing else has opened the chat yet. Re-opening the chat that is
-    // already open is a no-op, so the usual push from the transcript is unaffected.
-    LaunchedEffect(viewModel, identifier) {
-        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
-    }
-    GroupProfileScreen(viewModel)
+private fun FlowGroupProfileScreen() {
+    GroupProfileScreen(flowSharedViewModel<ChatViewModel>())
 }
 
 // Both edit steps read the chat they are editing off the flow's shared ChatViewModel, the same way

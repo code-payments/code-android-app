@@ -171,6 +171,7 @@ class ChatGroupCashLinkTest {
         rosterSearch = mockk(relaxed = true),
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
+        identifier = null,
     )
 
     private fun ChatViewModel.openGroup() {

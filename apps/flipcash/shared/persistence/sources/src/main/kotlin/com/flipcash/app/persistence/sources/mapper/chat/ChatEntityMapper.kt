@@ -326,6 +326,9 @@ class ChatEntityMapper @Inject constructor() {
         )
     }
 
+    fun pointers(member: ChatMemberEntity): List<MessagePointer> =
+        member.pointersJson?.map { it.toDomain() } ?: emptyList()
+
     fun pointerSerialized(pointer: MessagePointer): MessagePointerSerialized =
         pointer.toSerialized()
 

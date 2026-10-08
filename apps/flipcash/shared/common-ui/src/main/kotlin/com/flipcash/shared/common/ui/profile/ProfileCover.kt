@@ -3,13 +3,21 @@ package com.flipcash.shared.common.ui.profile
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
+import androidx.core.net.toUri
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.size.Size
+import com.flipcash.app.core.media.LocalMediaUrlResolver
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.MediaItem
@@ -52,6 +60,38 @@ fun ProfileCover(
         background = SolidColor(CodeTheme.colors.surfaceVariant),
         fallback = { },
     )
+}
+
+/**
+ * Downloads [image] into the cache entry a full-width [ProfileCover] will read, so the profile
+ * draws the picture on its first frame instead of the plain surface colour.
+ *
+ * Covers are cached under their blob id, not their URL (see [ProfileAvatar]), so the profile hits
+ * this entry however long ago the URL was minted. The width stands in for the cover's longest side,
+ * which is how [ProfileCover] picks its rendition on a phone. Nothing is drawn.
+ */
+@Composable
+fun PrefetchProfileCover(image: MediaItem?, access: BlobAccessContext) {
+    val context = LocalContext.current
+    val resolver = LocalMediaUrlResolver.current
+    val targetPx = LocalWindowInfo.current.containerSize.width
+    LaunchedEffect(image, access, targetPx, resolver) {
+        if (image == null || resolver == null || targetPx <= 0) return@LaunchedEffect
+        val cacheKey = image.cacheKeyForSize(targetPx) ?: return@LaunchedEffect
+        val url = resolver.urlForSize(image, targetPx, access) ?: return@LaunchedEffect
+        // Enqueued rather than executed: the download outlives this composable, so leaving the
+        // chat before it lands still leaves the cover cached for the next visit.
+        SingletonImageLoader.get(context).enqueue(
+            ImageRequest.Builder(context)
+                .data(url.toUri())
+                .memoryCacheKey(cacheKey)
+                .diskCacheKey(cacheKey)
+                // The rendition is already sized for the screen; decoding it whole keeps the
+                // memory entry valid for the cover's own request.
+                .size(Size.ORIGINAL)
+                .build()
+        )
+    }
 }
 
 @Preview

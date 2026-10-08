@@ -115,6 +115,7 @@ class ChatMentionPickerTest {
         rosterSearch = rosterSearch,
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
+        identifier = null,
     )
 
     private fun ChatViewModel.openGroup() {

@@ -67,6 +67,8 @@ import com.getcode.ui.utils.rememberKeyboardController
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.filterIsInstance
+import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
 
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
@@ -338,6 +340,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     }
     BackHandler(enabled = state.editing == null && state.selection != null) {
         viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
+    }
+
+    // The group's profile is one tap away; have its cover downloaded before that tap.
+    (state.subject as? ChatSubject.Group)?.let { group ->
+        PrefetchProfileCover(group.coverPicture, BlobAccessContext.ChatProfile(group.chatId))
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
