@@ -57,15 +57,6 @@ class LinkCardClassifierTest {
         override fun dispatch(deepLink: DeepLink) = error("not used in classification tests")
     }
 
-    /**
-     * Vectors answered ahead of the canonical fixture, by name, with the card kind given. The
-     * fixture still records person cards as "not in phase 1"; iOS holds the same exception
-     * (`LinkCardClassifierTests.aheadOfFixture`). Each entry goes when the fixture is updated.
-     */
-    private val aheadOfFixture = mapOf(
-        "tip-card-by-id" to "user",
-    )
-
     private fun fixture(): JSONObject = JSONObject(
         javaClass.classLoader!!
             .getResourceAsStream("link_detection.json")!!
@@ -94,11 +85,6 @@ class LinkCardClassifierTest {
             }
 
             val actual = classifier.firstCard(links)
-
-            aheadOfFixture[name]?.let { kind ->
-                assertEquals(kind, actual?.kindName, "vector `$name` is ahead of the fixture")
-                continue
-            }
 
             val expectedCard = vector.optJSONObject("card")
             if (expectedCard == null) {
@@ -130,6 +116,29 @@ class LinkCardClassifierTest {
                             "vector `$name` must start with its lookup still to do",
                         )
                     }
+
+                    "group" -> {
+                        val card = actual as? LinkCard.GroupInvite
+                        assertEquals(expectedCard.getString("url"), card?.url, "vector `$name`: $note")
+                        assertEquals(
+                            LinkCard.GroupInvite.State.Loading,
+                            card?.state,
+                            "vector `$name` must start with its lookup still to do",
+                        )
+                    }
+
+                    "user" -> {
+                        val card = actual as? LinkCard.User
+                        assertEquals(expectedCard.getString("url"), card?.url, "vector `$name`: $note")
+                        assertEquals(
+                            LinkCard.User.State.Loading,
+                            card?.state,
+                            "vector `$name` must start with its lookup still to do",
+                        )
+                    }
+
+                    // LinkCard.Web does not exist yet; compare the url only.
+                    "web" -> assertEquals(expectedCard.getString("url"), actual?.url, "vector `$name`: $note")
 
                     else -> error("vector `$name` has an unknown card kind `$kind`")
                 }
@@ -259,14 +268,6 @@ class LinkCardClassifierTest {
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, nested.length, nested))))
     }
 }
-
-private val LinkCard.kindName: String
-    get() = when (this) {
-        is LinkCard.Cash -> "cash"
-        is LinkCard.TokenInfo -> "token"
-        is LinkCard.GroupInvite -> "group"
-        is LinkCard.User -> "user"
-    }
 
 /**
  * `AppRouter`'s bare-host person link. Its reserved list is `internal` to the router module, so a

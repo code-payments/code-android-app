@@ -31,6 +31,7 @@ class LinkDetectionVectorTest {
     @Test
     fun `spans match the cross-platform vectors`() {
         val annotator = UrlAnnotator(SpanStyle())
+        val failures = mutableListOf<String>()
         for (vector in vectors()) {
             val name = vector.getString("name")
             val text = vector.getString("text")
@@ -50,7 +51,10 @@ class LinkDetectionVectorTest {
                 Triple(span.getInt("start"), span.getInt("end"), span.getString("url"))
             }
 
-            assertEquals(expected, actual, "vector `$name`: ${vector.getString("note")}")
+            if (expected != actual) {
+                failures += "vector `$name`: expected $expected but was $actual. ${vector.getString("note")}"
+            }
         }
+        assertEquals(emptyList(), failures, failures.joinToString("\n"))
     }
 }
