@@ -30,3 +30,11 @@ interface FullscreenSheet: NavKey
 interface NonDismissableRoute: NavKey
 interface NonDraggableRoute: NavKey
 interface SolitarySheet: NavKey
+
+/**
+ * A full-screen route drawn over whatever is beneath it, sheets included, rather than in place of
+ * it: [com.getcode.navigation.scenes.FullscreenOverlaySceneStrategy] keeps the entries below
+ * composed, so a sheet stays open, scroll position and all, while this is up and is still there
+ * when it pops. The route draws its own backdrop and animates its own entry and exit.
+ */
+interface FullscreenOverlay: NavKey

@@ -28,9 +28,22 @@ class OwnProfileStateTest {
 
     @Test
     fun `the share sheet opens only for a named profile`() {
-        val named = MenuScreenViewModel.ProfileState.Named(UserProfile.Empty, joined = null)
-        assertEquals(AppRoute.Menu.ShareProfile, shareProfileRoute(named))
-        assertNull(shareProfileRoute(MenuScreenViewModel.ProfileState.Unknown))
-        assertNull(shareProfileRoute(MenuScreenViewModel.ProfileState.Unclaimed(placeholder = null)))
+        val userId = listOf<Byte>(1, 2, 3)
+        val named = MenuScreenViewModel.ProfileState.Named(
+            UserProfile.Empty.copy(displayName = "Ada", username = "ada"),
+            joined = null,
+        )
+        assertEquals(
+            AppRoute.Messaging.ShareProfileToChats(
+                userId = userId,
+                username = "ada",
+                displayName = "Ada",
+                directChatId = null,
+            ),
+            shareProfileRoute(named, userId),
+        )
+        assertNull(shareProfileRoute(named, userId = null))
+        assertNull(shareProfileRoute(MenuScreenViewModel.ProfileState.Unknown, userId))
+        assertNull(shareProfileRoute(MenuScreenViewModel.ProfileState.Unclaimed(placeholder = null), userId))
     }
 }

@@ -10,11 +10,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -150,6 +152,8 @@ internal sealed interface ShareToChatsSubject {
  * value, so this is a race with a leave rather than a state to design for.
  * @param subject what is being handed out.
  * @param state the Recent Chats selection and the message to send with the link.
+ * @param onShowCard opens the person's profile card, as a third tile beside Share and Copy. Null
+ * for a group, which has no card.
  */
 @Composable
 internal fun GroupInviteSheet(
@@ -162,6 +166,7 @@ internal fun GroupInviteSheet(
     onMessageChanged: (String) -> Unit,
     onInvite: () -> Unit,
     onDismiss: () -> Unit,
+    onShowCard: (() -> Unit)? = null,
 ) {
     val shareController = LocalShareController.current
     val scope = rememberCoroutineScope()
@@ -225,14 +230,17 @@ internal fun GroupInviteSheet(
         ) {
             if (inviteUrl != null) {
                 item(key = "links") {
+                    // Intrinsic height, so a tile whose label wraps stretches the others to
+                    // match rather than standing taller than them.
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
                             .padding(horizontal = ListInset, vertical = TileRowVertical),
                         horizontalArrangement = Arrangement.spacedBy(TileGap),
                     ) {
                         InviteLinkTile(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             icon = R.drawable.ic_share_os,
                             label = stringResource(R.string.action_shareInviteLink),
                             onClick = {
@@ -259,7 +267,7 @@ internal fun GroupInviteSheet(
                             },
                         )
                         InviteLinkTile(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             icon = if (copied) R.drawable.ic_check else R.drawable.ic_copy,
                             label = stringResource(
                                 when {
@@ -273,6 +281,14 @@ internal fun GroupInviteSheet(
                                 copied = true
                             },
                         )
+                        if (onShowCard != null) {
+                            InviteLinkTile(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                icon = R.drawable.ic_qr_code,
+                                label = stringResource(R.string.action_showProfileCard),
+                                onClick = onShowCard,
+                            )
+                        }
                     }
                 }
                 if (recentChats.isNotEmpty()) {
@@ -368,8 +384,9 @@ internal fun GroupInviteSheet(
 }
 
 /**
- * Node 10330:19400 — Share or Copy: a glyph over its label, the pair splitting the row. The label
- * wraps rather than truncates, so the tile grows past its minimum height instead.
+ * Node 10330:19400 — Share, Copy, or Show Profile Card: a glyph over its label, the tiles splitting
+ * the row. The label wraps rather than truncates, so the tile grows past its minimum height
+ * instead, and the row stretches its neighbours to the same height.
  */
 @Composable
 private fun InviteLinkTile(

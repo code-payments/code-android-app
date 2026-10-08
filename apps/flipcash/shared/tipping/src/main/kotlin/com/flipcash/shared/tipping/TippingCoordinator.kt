@@ -239,6 +239,17 @@ class TippingCoordinator @Inject constructor(
             .map { tipCard(userId, it) }
 
     /**
+     * [userId]'s tip card, to show rather than to tip: unlike [resolveTipCard] it leaves the tip
+     * recipient alone. The viewer's own card is built from their cached profile.
+     */
+    suspend fun profileCard(userId: ID): Result<Scannable.TipCard> =
+        if (userId == currentUserId) {
+            resolveTipCard()
+        } else {
+            resolveProfile(userId).map { tipCard(userId, it) }
+        }
+
+    /**
      * The same, for someone named by their public handle — the only thing a
      * `flipcash.com/{username}` link carries. One round trip, not two: the profile fetch answers
      * with the user's id, which is what the card is actually built from.
