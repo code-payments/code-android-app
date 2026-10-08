@@ -3,7 +3,10 @@ package com.flipcash.shared.chat.ui
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,14 +22,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.flipcash.app.core.ui.shimmer
 import com.flipcash.core.R
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.LocalWebLinkPreviewMode
@@ -38,6 +45,7 @@ import com.getcode.theme.CodeTheme
 internal const val WEB_LINK_CARD_TAG = "web_link_card"
 internal const val WEB_LINK_CHIP_TAG = "web_link_chip"
 internal const val WEB_LINK_IMAGE_TAG = "web_link_image"
+internal const val WEB_LINK_PLACEHOLDER_TAG = "web_link_placeholder"
 
 /** Width over height of the picture, the shape Open Graph images are sized for. */
 private const val IMAGE_ASPECT = 1.91f
@@ -45,18 +53,26 @@ private const val IMAGE_ASPECT = 1.91f
 private val PANEL_FILL = Color.White.copy(alpha = 0.08f)
 private val CHIP_FILL = Color.White.copy(alpha = 0.12f)
 private const val TITLE_LINES = 2
+private val TITLE_BAR_HEIGHT = 14.dp
+private const val TITLE_BAR_SHORT_FRACTION = 0.6f
 private const val DESCRIPTION_LINES = 2
 
 /**
  * What a web card draws now: [resolved] once the page has answered, [chipHost] while the viewer is
- * outside the group and has not asked, and neither otherwise. A card still loading in automatic
- * mode, an empty answer, and a fetch that failed after the chip was tapped all draw nothing.
+ * outside the group and has not asked, and neither otherwise. A card still loading, an empty
+ * answer, and a lookup that failed all draw nothing under a message's text.
+ *
+ * [loading] is true while a lookup is actually under way or about to be: automatic mode, or the chip
+ * tapped, with no answer yet. A link-only message holds its place with a placeholder for as long as
+ * it is, and [host] names the link's own host for it.
  */
 @Stable
 internal class WebLinkCardState(
     val url: String,
     val resolved: LinkCard.Web.State.Resolved?,
     val chipHost: String?,
+    val loading: Boolean,
+    val host: String,
     val ask: () -> Unit,
 )
 
@@ -71,9 +87,10 @@ internal class WebLinkCardState(
 internal fun rememberWebLinkCard(card: LinkCard.Web): WebLinkCardState {
     val mode = LocalWebLinkPreviewMode.current
     var asked by rememberSaveable(card.url) { mutableStateOf(false) }
+    val fetching = mode == WebLinkPreviewMode.Automatic || (mode == WebLinkPreviewMode.TapToLoad && asked)
     val live = rememberResolvedCard(
         card = card,
-        fetch = mode == WebLinkPreviewMode.Automatic || (mode == WebLinkPreviewMode.TapToLoad && asked),
+        fetch = fetching,
     ) as? LinkCard.Web ?: card
     val showChip = mode == WebLinkPreviewMode.TapToLoad && !asked &&
         live.state == LinkCard.Web.State.Loading
@@ -82,12 +99,14 @@ internal fun rememberWebLinkCard(card: LinkCard.Web): WebLinkCardState {
         // Off draws no card at all, even from an answer held from before the flag was switched off.
         resolved = (live.state as? LinkCard.Web.State.Resolved)?.takeIf { mode != WebLinkPreviewMode.Off },
         chipHost = if (showChip) chipHostOf(card.url) else null,
+        loading = fetching && live.state == LinkCard.Web.State.Loading,
+        host = chipHostOf(card.url),
         ask = { asked = true },
     )
 }
 
 /** The host a chip names: lower case, without a leading "www.". */
-private fun chipHostOf(url: String): String =
+internal fun chipHostOf(url: String): String =
     Uri.parse(url).host.orEmpty().lowercase().removePrefix("www.")
 
 /**
@@ -113,6 +132,17 @@ internal fun WebLinkCard(
     when {
         resolved != null -> WebPreview(
             preview = resolved,
+            url = state.url,
+            modifier = modifier,
+            interactive = interactive,
+            onLongClick = onLongClick,
+            onDoubleClick = onDoubleClick,
+            bareShape = bareShape,
+        )
+
+        // Only a bare card holds its place: under text, a card that has not landed draws nothing.
+        state.loading && bareShape != null -> WebPlaceholder(
+            host = state.host,
             url = state.url,
             modifier = modifier,
             interactive = interactive,
@@ -182,6 +212,65 @@ private fun WebPreview(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+/**
+ * What a link-only message draws while its card loads: the card's own proportions with the page's
+ * parts as shimmering bars, so the real card fills the same slot. Acts as the card does -- a tap
+ * opens the link, a long press and a double tap go to the message -- and reads out the link itself,
+ * since the text it replaces is not on screen.
+ */
+@Composable
+private fun WebPlaceholder(
+    host: String,
+    url: String,
+    interactive: Boolean,
+    onLongClick: (() -> Unit)?,
+    onDoubleClick: (() -> Unit)?,
+    bareShape: Shape,
+    modifier: Modifier = Modifier,
+) {
+    val uriHandler = LocalUriHandler.current
+    val bar = RoundedCornerShape(CodeTheme.dimens.staticGrid.x1)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(bareShape)
+            .background(PANEL_FILL)
+            .testTag(WEB_LINK_PLACEHOLDER_TAG)
+            .semantics {
+                contentDescription = url
+                linkCardShape = bareShape
+            }
+            .combinedClickable(
+                enabled = interactive,
+                onClick = { uriHandler.openUri(url) },
+                onLongClick = onLongClick,
+                onDoubleClick = onDoubleClick,
+                hapticFeedbackEnabled = false,
+            ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(IMAGE_ASPECT)
+                .shimmer(RectangleShape),
+        )
+        Column(
+            modifier = Modifier.padding(CodeTheme.dimens.staticGrid.x2),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
+        ) {
+            Text(
+                text = host,
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Box(Modifier.fillMaxWidth().height(TITLE_BAR_HEIGHT).shimmer(bar))
+            Box(Modifier.fillMaxWidth(TITLE_BAR_SHORT_FRACTION).height(TITLE_BAR_HEIGHT).shimmer(bar))
         }
     }
 }
