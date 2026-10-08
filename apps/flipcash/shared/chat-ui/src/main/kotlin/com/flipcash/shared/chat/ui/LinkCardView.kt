@@ -2,6 +2,7 @@ package com.flipcash.shared.chat.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -169,7 +170,12 @@ internal fun LinkCardView(
     ) {
         val height: Dp = maxWidth * LinkCardDefaults.CARD_ASPECT
         when (live) {
-            is LinkCard.Cash -> CashLinkCard(card = live, height = height, shape = shape)
+            is LinkCard.Cash -> CashLinkCard(
+                card = live,
+                height = height,
+                shape = shape,
+                onClaim = onClick?.let { click -> { click(live) } },
+            )
             is LinkCard.TokenInfo -> TokenLinkCard(card = live, height = height, shape = shape)
             // Drawn above; unreachable here.
             is LinkCard.GroupInvite, is LinkCard.User, is LinkCard.Web -> Unit
@@ -223,6 +229,7 @@ private fun CashLinkCard(
     card: LinkCard.Cash,
     height: Dp,
     shape: CornerBasedShape,
+    onClaim: (() -> Unit)? = null,
 ) {
     // Unresolved is also the unavailable state: a lookup that failed, timed out or was switched off
     // renders here. The same voucher, with nothing filled in — same size, same chrome — so nothing
@@ -262,7 +269,7 @@ private fun CashLinkCard(
             // withdraws it. That is the trade: an offer that is occasionally retracted, against a
             // claim that is always late. Claimed and Expired both land on a dimmed card with the
             // label under the tear, so the withdrawal is at least unmistakable when it happens.
-            StubPill(stringResource(R.string.label_linkCard_claim))
+            StubPill(stringResource(R.string.label_linkCard_claim), onClick = onClaim)
             return@CashVoucher
         }
         when (state.claim) {
@@ -277,7 +284,7 @@ private fun CashLinkCard(
             // link -- the bubble sits on the sender's side -- so a card that read differently for
             // the issuer would be saying it twice, and saying it in the one place both people are
             // looking at the same object.
-            LinkCard.Cash.Claim.Claimable -> StubPill(stringResource(R.string.label_linkCard_claim))
+            LinkCard.Cash.Claim.Claimable -> StubPill(stringResource(R.string.label_linkCard_claim), onClick = onClaim)
         }
     }
 }
@@ -708,10 +715,14 @@ private fun InkPlaceholder(
  * is only reporting what became of it.
  */
 @Composable
-private fun StubPill(text: String) {
+private fun StubPill(text: String, onClick: (() -> Unit)? = null) {
     Text(
         modifier = Modifier
-            .background(LinkCardDefaults.INK, RoundedCornerShape(percent = 50))
+            .clip(RoundedCornerShape(percent = 50))
+            .background(LinkCardDefaults.INK)
+            // An explicit button acts on the first tap. The card around it waits out the double-tap
+            // window for the reaction; this does not, and takes no double tap of its own.
+            .addIf(onClick != null) { Modifier.clickable(onClick = onClick!!) }
             .padding(
                 horizontal = CodeTheme.dimens.grid.x3,
                 vertical = CodeTheme.dimens.grid.x1,
