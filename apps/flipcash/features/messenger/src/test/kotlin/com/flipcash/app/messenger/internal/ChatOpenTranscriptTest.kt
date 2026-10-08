@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal
 
+import androidx.lifecycle.SavedStateHandle
 import android.content.ClipboardManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.analytics.RecordingAnalytics
@@ -89,7 +90,9 @@ class ChatOpenTranscriptTest {
         BottomBarManager.clear()
     }
 
-    private fun createViewModel(): ChatViewModel = ChatViewModel(
+    private fun createViewModel(
+        handle: SavedStateHandle = SavedStateHandle(),
+    ): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
         mediaUploads = noMediaUploads(),
         e2eePolicy = E2eePolicy(),
@@ -118,6 +121,7 @@ class ChatOpenTranscriptTest {
         rosterSearch = mockk(relaxed = true),
         featuredGroups = featuredGroups,
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
+        savedStateHandle = handle,
     )
 
     private fun fetched(type: ChatType) = ChatHydration.Fetched(
@@ -215,10 +219,9 @@ class ChatOpenTranscriptTest {
         every { chatCoordinator.state } returns MutableStateFlow(ChatState(feed = listOf(row)))
         coEvery { chatCoordinator.hydrateChat(chatId) } coAnswers { awaitCancellation() }
 
-        val viewModel = createViewModel()
-        viewModel.openChat(ChatIdentifier.ByChatId(chatId))
-        runCurrent()
+        val viewModel = createViewModel(openedOn(ChatIdentifier.ByChatId(chatId)))
 
+        // Read before anything runs: the first frame composes from this.
         val state = viewModel.stateFlow.value
         val group = state.subject as ChatSubject.Group
         assertEquals("Moony", group.groupTitle)
@@ -232,10 +235,12 @@ class ChatOpenTranscriptTest {
         every { chatCoordinator.state } returns MutableStateFlow(ChatState(feed = emptyList()))
         coEvery { chatCoordinator.hydrateChat(chatId) } coAnswers { awaitCancellation() }
 
-        val viewModel = createViewModel()
-        viewModel.openChat(ChatIdentifier.ByChatId(chatId))
+        val viewModel = createViewModel(openedOn(ChatIdentifier.ByChatId(chatId)))
         runCurrent()
 
         assertNull(viewModel.stateFlow.value.subject)
     }
+
+    private fun openedOn(identifier: ChatIdentifier) =
+        SavedStateHandle(mapOf(ChatViewModel.ARG_CHAT to identifier))
 }

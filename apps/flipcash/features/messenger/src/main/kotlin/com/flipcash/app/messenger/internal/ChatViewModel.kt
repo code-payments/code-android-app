@@ -11,6 +11,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.SavedStateHandle
 import androidx.paging.PagingDataEvent
 import androidx.paging.PagingDataPresenter
 import androidx.paging.PagingData
@@ -246,6 +247,7 @@ internal class ChatViewModel @Inject constructor(
     private val rosterSearch: RosterSearchSource,
     private val featuredGroups: FeaturedGroupsStore,
     private val dispatchers: DispatcherProvider,
+    private val savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -1005,15 +1007,15 @@ internal class ChatViewModel @Inject constructor(
             ?.let { ChatParticipant.TipUser(userId, it) }
 
     /**
-     * Opens the chat [identifier] names. Call it while composing the screen, before the state is
-     * first read.
+     * Opens the chat [identifier] names, from [init], so the state the screen first reads already
+     * has it.
      *
      * A group already in the feed is drawn from the feed row in the same update, so the first
      * frame has its name and picture instead of a placeholder, and the transcript starts on its
      * sender profiles without waiting for Room to emit the stored metadata. The feed only holds
      * chats you are in, so the membership is known. Room's emission replaces the seed as usual.
      */
-    fun openChat(identifier: ChatIdentifier) {
+    private fun openChat(identifier: ChatIdentifier) {
         if (identifier is ChatIdentifier.ByChatId && stateFlow.value.subject == null) {
             chatCoordinator.state.value.feed
                 ?.firstOrNull { it.chatId == identifier.chatId && it.type == ChatType.GROUP }
@@ -1432,6 +1434,9 @@ internal class ChatViewModel @Inject constructor(
             initMentionPicker()
             initMessageActionHandlers()
         }
+
+        // Last, so the open handler is already collecting when the event goes out.
+        savedStateHandle.get<ChatIdentifier>(ARG_CHAT)?.let(::openChat)
     }
 
     /**
@@ -2979,6 +2984,9 @@ internal class ChatViewModel @Inject constructor(
     }
 
     companion object {
+        /** The [ChatIdentifier] this view model opens on creation, in its [SavedStateHandle]. */
+        const val ARG_CHAT = "chat"
+
         /**
          * How often a visible claimable voucher is re-asked about.
          *
