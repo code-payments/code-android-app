@@ -112,6 +112,7 @@ internal fun MessageList(
     onAction: ChatActionHandler,
     linkCardResolution: LinkCardResolution,
     webPreviewImageLoader: ImageLoader? = null,
+    webLinkPreviewsEnabled: Boolean = true,
     onJumpConsumed: () -> Unit = {},
     topBarBottom: Dp = 0.dp,
 ) {
@@ -130,10 +131,10 @@ internal fun MessageList(
         LocalLinkCardResolution provides linkCardResolution,
         // A viewer outside the group has not agreed to this device contacting a site a stranger
         // linked, so the card waits for a tap.
-        LocalWebLinkPreviewMode provides if (state.isOutsideGroup) {
-            WebLinkPreviewMode.TapToLoad
-        } else {
-            WebLinkPreviewMode.Automatic
+        LocalWebLinkPreviewMode provides when {
+            !webLinkPreviewsEnabled -> WebLinkPreviewMode.Off
+            state.isOutsideGroup -> WebLinkPreviewMode.TapToLoad
+            else -> WebLinkPreviewMode.Automatic
         },
         LocalWebPreviewImageLoader provides webPreviewImageLoader,
     ) {

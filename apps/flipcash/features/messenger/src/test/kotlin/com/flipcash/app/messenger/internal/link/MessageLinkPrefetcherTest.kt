@@ -67,6 +67,7 @@ class MessageLinkPrefetcherTest {
     private fun TestScope.prefetcher(
         memory: LinkCardMemory,
         web: suspend (String) -> Result<LinkCard.Web.State> = { Result.failure(IOException("not used")) },
+        webEnabled: suspend () -> Boolean = { true },
         group: suspend (ChatId) -> Result<LinkCard.GroupInvite.State.Resolved> = { Result.failure(IOException("not used")) },
     ) = MessageLinkPrefetcher(
         classifier = LinkCardClassifier(router),
@@ -75,6 +76,7 @@ class MessageLinkPrefetcherTest {
         user = { Result.failure(IOException("not used")) },
         web = web,
         dispatchers = TestDispatcherProvider(StandardTestDispatcher(testScheduler)),
+        webEnabled = webEnabled,
     )
 
     @Test
@@ -167,6 +169,31 @@ class MessageLinkPrefetcherTest {
 
         assertEquals(1, asked)
         assertEquals(page, memory.webs[WebLinks.cacheKey(pageUrl)])
+    }
+
+    @Test
+    fun `a web link is not fetched while web link previews are off, and is again once on`() = runTest {
+        val memory = LinkCardMemory()
+        var asked = 0
+        var on = false
+        val prefetcher = prefetcher(memory, web = { asked++; Result.success(page) }, webEnabled = { on })
+
+        prefetcher.prefetch(listOf(message(pageText)), wait = 1.seconds, webLinks = true)
+        assertEquals(0, asked)
+        assertTrue(memory.webs.isEmpty())
+
+        on = true
+        prefetcher.prefetch(listOf(message(pageText, id = 2)), wait = 1.seconds, webLinks = true)
+        assertEquals(1, asked)
+    }
+
+    @Test
+    fun `a group invite is prefetched with web link previews off`() = runTest {
+        val memory = LinkCardMemory()
+        prefetcher(memory, group = { Result.success(resolved) }, webEnabled = { false })
+            .prefetch(listOf(message(inviteText)), wait = 1.seconds, webLinks = true)
+
+        assertEquals(resolved, memory.groups[chatId])
     }
 
     @Test

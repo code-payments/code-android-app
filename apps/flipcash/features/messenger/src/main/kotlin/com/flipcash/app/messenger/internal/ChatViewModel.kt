@@ -17,6 +17,9 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.map
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.featureflags.NoOpFeatureFlagController
 import com.flipcash.analytics.CashLinkChoice
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
@@ -254,11 +257,18 @@ internal class ChatViewModel @AssistedInject constructor(
     private val dispatchers: DispatcherProvider,
     // Last and defaulted so the transcript tests, which draw no pictures, need not supply one.
     @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
+    featureFlags: FeatureFlagController = NoOpFeatureFlagController,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
+
+    /**
+     * Whether web link previews are on. Observed rather than read once, because the flag can flip
+     * in the staff menu while a chat is open. Off means no web card is drawn at all.
+     */
+    val webLinkPreviewsEnabled: StateFlow<Boolean> = featureFlags.observe(FeatureFlag.WebLinkPreviews)
 
     /**
      * A photo in the composer: its id in [ChatMediaUploads] and where it came from, for the

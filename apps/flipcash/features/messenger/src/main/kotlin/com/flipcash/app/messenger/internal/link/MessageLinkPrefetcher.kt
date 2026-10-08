@@ -22,7 +22,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * drawn resolved on the frame its message first appears. See [MessageLinkPrefetch].
  *
  * Group and person links are always fetched ahead; outside pages only when the caller passes
- * `webLinks`. Cash and token cards keep resolving when drawn, as before.
+ * `webLinks` and web link previews are on. Cash and token cards keep resolving when drawn, as before.
  *
  * Links are found exactly as the transcript finds them -- the same text, the same detection pass,
  * the same classifier -- so a link prefetched here is the link a card is drawn for.
@@ -34,6 +34,7 @@ internal class MessageLinkPrefetcher(
     private val user: suspend (identity: LinkCard.User.Identity) -> Result<LinkCard.User.State.Resolved>,
     private val web: suspend (url: String) -> Result<LinkCard.Web.State>,
     dispatchers: DispatcherProvider,
+    private val webEnabled: suspend () -> Boolean = { true },
 ) : MessageLinkPrefetch {
 
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.IO)
@@ -46,12 +47,14 @@ internal class MessageLinkPrefetcher(
         // store may still be loading; wait briefly for it rather than asking for everything.
         withTimeoutOrNull(LOAD_WAIT) { memory.awaitLoaded() }
 
+        // Read once per batch: the flag can flip in the staff menu while a chat is open.
+        val webAllowed = webLinks && webEnabled()
         val lookups = messages
             .asSequence()
             .filterNot { it.redacted }
             .flatMap { it.content.asSequence() }
             .mapNotNull { content -> content.linkableText()?.let { classifier.firstCard(detectUrls(it)) } }
-            .mapNotNull { card -> lookup(card, webLinks) }
+            .mapNotNull { card -> lookup(card, webAllowed) }
             .toList()
 
         if (lookups.isEmpty() || wait <= Duration.ZERO) return

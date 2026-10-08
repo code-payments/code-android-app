@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.ui
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.test.assertCountEquals
@@ -174,6 +175,53 @@ class WebLinkCardTest {
 
         composeTestRule.waitForIdle()
         assertEquals(0, resolution.calls.get())
+        composeTestRule.onNodeWithText("The title").assertIsDisplayed()
+    }
+
+    @Test
+    fun `with previews off a non-member sees no chip and nothing is asked`() {
+        val resolution = resolving(resolved)
+        setCard(resolution, mode = WebLinkPreviewMode.Off)
+
+        composeTestRule.waitForIdle()
+        assertEquals(0, resolution.calls.get())
+        composeTestRule.onAllNodesWithTag(WEB_LINK_CHIP_TAG).assertCountEquals(0)
+        composeTestRule.onAllNodesWithTag(WEB_LINK_CARD_TAG).assertCountEquals(0)
+    }
+
+    @Test
+    fun `with previews off no card is drawn in place of automatic one nor from a held answer`() {
+        val resolution = resolving(resolved)
+        resolution.peeked[url] = card(resolved)
+        setCard(resolution, mode = WebLinkPreviewMode.Off)
+
+        composeTestRule.waitForIdle()
+        assertEquals(0, resolution.calls.get())
+        composeTestRule.onAllNodesWithTag(WEB_LINK_CARD_TAG).assertCountEquals(0)
+        composeTestRule.onAllNodesWithText("The title").assertCountEquals(0)
+    }
+
+    @Test
+    fun `flipping previews on while the message is drawn brings the card back`() {
+        val resolution = resolving(resolved)
+        val mode = mutableStateOf(WebLinkPreviewMode.Off)
+        composeTestRule.setContent {
+            DesignSystem {
+                CompositionLocalProvider(
+                    LocalLinkCardResolution provides resolution,
+                    LocalWebLinkPreviewMode provides mode.value,
+                    LocalUriHandler provides RecordingUriHandler(),
+                ) {
+                    Card(onLongClick = null)
+                }
+            }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onAllNodesWithTag(WEB_LINK_CARD_TAG).assertCountEquals(0)
+
+        mode.value = WebLinkPreviewMode.Automatic
+        composeTestRule.waitForIdle()
+
         composeTestRule.onNodeWithText("The title").assertIsDisplayed()
     }
 

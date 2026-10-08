@@ -3,8 +3,11 @@ package com.flipcash.shared.chat.models
 import androidx.compose.runtime.staticCompositionLocalOf
 import coil3.ImageLoader
 
-/** Whether a web card asks for its page on its own or waits to be told. */
-enum class WebLinkPreviewMode { Automatic, TapToLoad }
+/**
+ * Whether a web card asks for its page on its own, waits to be told, or is not drawn at all
+ * because web link previews are switched off.
+ */
+enum class WebLinkPreviewMode { Automatic, TapToLoad, Off }
 
 /**
  * TapToLoad for a viewer outside the group, who has not agreed to this device contacting a site a

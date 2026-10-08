@@ -67,13 +67,14 @@ internal fun rememberWebLinkCard(card: LinkCard.Web): WebLinkCardState {
     var asked by rememberSaveable(card.url) { mutableStateOf(false) }
     val live = rememberResolvedCard(
         card = card,
-        fetch = mode == WebLinkPreviewMode.Automatic || asked,
+        fetch = mode == WebLinkPreviewMode.Automatic || (mode == WebLinkPreviewMode.TapToLoad && asked),
     ) as? LinkCard.Web ?: card
     val showChip = mode == WebLinkPreviewMode.TapToLoad && !asked &&
         live.state == LinkCard.Web.State.Loading
     return WebLinkCardState(
         url = card.url,
-        resolved = live.state as? LinkCard.Web.State.Resolved,
+        // Off draws no card at all, even from an answer held from before the flag was switched off.
+        resolved = (live.state as? LinkCard.Web.State.Resolved)?.takeIf { mode != WebLinkPreviewMode.Off },
         chipHost = if (showChip) chipHostOf(card.url) else null,
         ask = { asked = true },
     )

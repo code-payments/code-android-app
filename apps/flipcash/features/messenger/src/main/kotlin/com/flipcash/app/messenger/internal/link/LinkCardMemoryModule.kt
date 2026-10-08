@@ -95,6 +95,7 @@ internal abstract class LinkCardMemoryModule {
             group: GroupLinkLookup,
             user: UserLinkLookup,
             web: WebLinkLookup,
+            flags: FeatureFlagController,
             dispatchers: DispatcherProvider,
         ): MessageLinkPrefetcher = MessageLinkPrefetcher(
             classifier = classifier,
@@ -103,6 +104,7 @@ internal abstract class LinkCardMemoryModule {
             user = { user(it) },
             web = { web(it) },
             dispatchers = dispatchers,
+            webEnabled = { flags.get(FeatureFlag.WebLinkPreviews) },
         )
     }
 }
