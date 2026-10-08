@@ -232,4 +232,30 @@ sealed interface LinkCard {
             }
         }
     }
+
+    /**
+     * An outside https page. Unlike the Flipcash cards it does not replace its link: the text keeps the
+     * link, and this draws under it. Only [State.Resolved] draws anything.
+     */
+    data class Web(
+        override val url: String,
+        override val start: Int,
+        override val end: Int,
+        val state: State = State.Loading,
+    ) : LinkCard {
+        sealed interface State {
+            data object Loading : State
+
+            /** The host answered with nothing to show. Cached; draws nothing. */
+            data object None : State
+
+            /** [host] comes from the URL after redirects, never from the page. */
+            data class Resolved(
+                val title: String,
+                val description: String?,
+                val imageUrl: String?,
+                val host: String,
+            ) : State
+        }
+    }
 }

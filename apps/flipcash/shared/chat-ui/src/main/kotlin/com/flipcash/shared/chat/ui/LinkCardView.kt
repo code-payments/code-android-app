@@ -172,7 +172,7 @@ internal fun LinkCardView(
             is LinkCard.Cash -> CashLinkCard(card = live, height = height, shape = shape)
             is LinkCard.TokenInfo -> TokenLinkCard(card = live, height = height, shape = shape)
             // Drawn above; unreachable here.
-            is LinkCard.GroupInvite, is LinkCard.User -> Unit
+            is LinkCard.GroupInvite, is LinkCard.User, is LinkCard.Web -> Unit
         }
     }
 }

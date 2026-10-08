@@ -117,6 +117,8 @@ internal class LinkCardResolver(
         is LinkCard.TokenInfo -> tokenAnswers[card.mint]?.let { card.copy(state = it) }
         is LinkCard.GroupInvite -> groupAnswers[card.chatId]?.let { card.copy(state = it) }
         is LinkCard.User -> userAnswers[card.identity]?.let { card.copy(state = it) }
+        // Task 6
+        is LinkCard.Web -> null
     }
 
     override suspend fun resolve(card: LinkCard): LinkCard = when (card) {
@@ -124,6 +126,8 @@ internal class LinkCardResolver(
         is LinkCard.TokenInfo -> card.copy(state = tokenState(card.mint))
         is LinkCard.GroupInvite -> card.copy(state = groupState(card.chatId))
         is LinkCard.User -> card.copy(state = userState(card.identity))
+        // Task 6
+        is LinkCard.Web -> card
     }
 
     /**

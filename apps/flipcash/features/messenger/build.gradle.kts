@@ -42,6 +42,8 @@ dependencies {
     implementation(libs.bundles.haze)
     // Stored link previews (PersistedLinkCardMemory) are JSON.
     implementation(libs.kotlinx.serialization.json)
+    // HttpUrl parses and normalises outside links (WebLinks).
+    implementation(libs.okhttp)
 
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.mockito.kotlin)

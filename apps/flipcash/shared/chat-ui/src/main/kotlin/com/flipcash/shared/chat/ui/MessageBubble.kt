@@ -758,6 +758,8 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
             )
             // Only a resolved card takes a tap. Which screen it opens -- the person's DM, your own
             // tip card, or nothing for the person already on the other end -- is the chat's call.
+            // A web card's own tap goes through LocalUriHandler (Task 8); nothing to do here.
+            is LinkCard.Web -> Unit
             is LinkCard.User -> (card.state as? LinkCard.User.State.Resolved)?.let {
                 actionHandler(ChatAction.OpenUser(userId = it.userId, profile = it.profile, isOwn = it.isOwn))
             }

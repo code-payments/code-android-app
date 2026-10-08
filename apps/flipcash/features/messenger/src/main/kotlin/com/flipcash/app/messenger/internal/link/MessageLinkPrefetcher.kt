@@ -64,7 +64,8 @@ internal class MessageLinkPrefetcher(
         is LinkCard.User -> card.identity
             .takeUnless { it in memory.users }
             ?.let { identity -> start(identity) { user(identity).onSuccess { memory.putUser(identity, it) } } }
-        is LinkCard.Cash, is LinkCard.TokenInfo -> null
+        // Web lookups arrive in Task 7.
+        is LinkCard.Cash, is LinkCard.TokenInfo, is LinkCard.Web -> null
     }
 
     private fun start(key: Any, block: suspend () -> Unit): Deferred<Unit> =
