@@ -26,6 +26,17 @@ internal object WebLinks {
         return '.' in h
     }
 
+    /**
+     * Whether [url] writes its host with a percent escape, as in `https://ex%61mple.com/`. `HttpUrl`
+     * decodes the escape and would fetch the decoded host, while iOS keeps it, so both apps give
+     * such a link no card (parity decision D11).
+     */
+    fun hasEscapedHost(url: String): Boolean {
+        val authority = url.substringAfter("://", missingDelimiterValue = "")
+            .takeWhile { it != '/' && it != '?' && it != '#' }
+        return '%' in authority.substringAfterLast('@')
+    }
+
     /** Lowercased scheme and host, no fragment, no :443. Path and query kept as written. */
     fun cacheKey(url: String): String? {
         val u = url.toHttpUrlOrNull() ?: return null

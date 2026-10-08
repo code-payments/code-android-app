@@ -249,6 +249,12 @@ class LinkCardClassifierTest {
         ).forEach { assertTrue(cardFor(it) is LinkCard.Web, it) }
     }
 
+    /** HttpUrl would decode the escape and fetch `example.com`; iOS refuses it (parity decision D11). */
+    @Test
+    fun `a percent escaped host gets no web card`() {
+        assertNull(cardFor("https://ex%61mple.com/"))
+    }
+
     @Test
     fun `a website page stays a link`() {
         listOf(

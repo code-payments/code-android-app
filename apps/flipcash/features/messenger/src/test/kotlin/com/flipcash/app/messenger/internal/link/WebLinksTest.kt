@@ -64,4 +64,12 @@ class WebLinksTest {
         assertFalse(WebLinks.isEligibleHost("https://[2606:4700::1111]/".toHttpUrl().host))
         assertFalse(WebLinks.isEligibleHost("https://[::ffff:10.0.0.1]/".toHttpUrl().host))
     }
+
+    @Test
+    fun `a percent escape in the host is refused, elsewhere it is not`() {
+        assertEquals(true, WebLinks.hasEscapedHost("https://ex%61mple.com/"))
+        assertEquals(true, WebLinks.hasEscapedHost("https://user@ex%61mple.com:443/a"))
+        assertFalse(WebLinks.hasEscapedHost("https://example.com/a%20b?q=%41#%42"))
+        assertFalse(WebLinks.hasEscapedHost("https://us%40er@example.com/"))
+    }
 }

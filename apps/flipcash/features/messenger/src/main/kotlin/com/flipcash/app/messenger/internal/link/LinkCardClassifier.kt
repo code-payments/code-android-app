@@ -57,6 +57,7 @@ internal class LinkCardClassifier @Inject constructor(
      * includes a jump wrapper around an outside target.
      */
     private fun web(link: DetectedUrl): LinkCard.Web? {
+        if (WebLinks.hasEscapedHost(link.url)) return null
         val url = link.url.toHttpUrlOrNull() ?: return null
         if (url.scheme != "https") return null
         if (url.host in CARD_HOSTS || !WebLinks.isEligibleHost(url.host)) return null
