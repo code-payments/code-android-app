@@ -235,7 +235,10 @@ class LinkCardClassifierTest {
         }
     }
 
-    /** The router reads any single segment as a handle, so only the host gate stops these. */
+    /**
+     * The router reads any single segment as a handle, so only the host gate stops these from
+     * becoming person cards; they fall through to the outside-link card.
+     */
     @Test
     fun `a person shaped link on another host stays a link`() {
         listOf(
@@ -243,7 +246,7 @@ class LinkCardClassifierTest {
             "https://t.me/satoshi",
             "https://example.com/2b0b4d1e-9f3e-4c21-9f1a-6d5f7c8e9a0b",
             "https://example.com/tip/2b0b4d1e-9f3e-4c21-9f1a-6d5f7c8e9a0b",
-        ).forEach { assertNull(cardFor(it), it) }
+        ).forEach { assertTrue(cardFor(it) is LinkCard.Web, it) }
     }
 
     @Test

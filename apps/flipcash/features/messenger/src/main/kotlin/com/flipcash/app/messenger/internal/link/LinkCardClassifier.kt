@@ -9,6 +9,7 @@ import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
 import dev.theolm.rinku.DeepLink
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import javax.inject.Inject
 
 /**
@@ -48,7 +49,19 @@ internal class LinkCardClassifier @Inject constructor(
      * from: the bubble draws the card in place of that text, and only the detection pass knows
      * where it sat.
      */
-    fun firstCard(links: List<DetectedUrl>): LinkCard? = links.firstNotNullOfOrNull { classify(it) }
+    fun firstCard(links: List<DetectedUrl>): LinkCard? =
+        links.firstNotNullOfOrNull { classify(it) } ?: links.firstNotNullOfOrNull { web(it) }
+
+    /**
+     * An outside https link. A card host never falls through to here, whatever its path, and that
+     * includes a jump wrapper around an outside target.
+     */
+    private fun web(link: DetectedUrl): LinkCard.Web? {
+        val url = link.url.toHttpUrlOrNull() ?: return null
+        if (url.scheme != "https") return null
+        if (url.host in CARD_HOSTS || !WebLinks.isEligibleHost(url.host)) return null
+        return LinkCard.Web(url = link.url, start = link.start, end = link.end)
+    }
 
     private fun classify(link: DetectedUrl): LinkCard? {
         val target = unwrapJumpTarget(link.url) ?: link.url
