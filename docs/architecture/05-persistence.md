@@ -94,10 +94,9 @@ from the local copy. This gives offline reads and a single source of truth.
 
 Preferences and small caches use Jetpack **DataStore** rather than the database.
 A representative example is
-[`OpenGraphCacheProvider`](../../libs/opengraph/src/main/kotlin/com/getcode/libs/opengraph/OpenGraphCacheProvider.kt),
-which caches link-preview metadata via `PreferenceDataStoreFactory.create(...)` with
-a corruption handler and JSON-serialized values. User flags and similar small state
-follow the same pattern.
+[`UserFlagsCoordinator`](../../apps/flipcash/shared/userflags/src/main/kotlin/com/flipcash/app/userflags/UserFlagsCoordinator.kt),
+which stores per-user flags via `PreferenceDataStoreFactory.create(...)` with
+a corruption handler. Other small state follows the same pattern.
 
 ## Why this matters
 
