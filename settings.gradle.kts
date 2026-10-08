@@ -241,6 +241,7 @@ include(
     ":libs:quickresponse",
     ":libs:reporting",
     ":libs:search",
+    ":libs:text-format",
 
     ":libs:vibrator:bindings",
     ":libs:vibrator:impl",
@@ -321,6 +322,7 @@ val kmpUnitTestModules = setOf(
     ":libs:encryption:sha256",
     ":libs:encryption:sha512",
     ":libs:encryption:hmac",
+    ":libs:text-format",
     // ed25519's androidHostTest is a JNI vector test that needs a host-native lib
     // (macOS .dylib / Linux .so); it can't load on the Linux CI runner. Its ed25519.json
     // parity is gated via the iOS cinterop path (macOS) instead — so it's excluded here.

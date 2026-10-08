@@ -39,6 +39,7 @@ kotlin {
             isStatic = true
             export(project(":libs:codes:kikcode"))
             export(project(":libs:encryption:base58"))
+            export(project(":libs:text-format"))
             export(project(":libs:encryption:sha256"))
             export(project(":libs:encryption:sha512"))
             export(project(":libs:encryption:hmac"))
@@ -56,6 +57,7 @@ kotlin {
             dependencies {
                 api(project(":libs:codes:kikcode"))
                 api(project(":libs:encryption:base58"))
+                api(project(":libs:text-format"))
                 api(project(":libs:encryption:sha256"))
                 api(project(":libs:encryption:sha512"))
                 api(project(":libs:encryption:hmac"))

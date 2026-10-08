@@ -13,6 +13,7 @@ on:
       - 'libs/encryption/**'
       - 'libs/reporting/**'
       - 'libs/analytics-events/**'
+      - 'libs/text-format/**'
       - 'build-logic/convention/src/main/kotlin/AnalyticsCatalogueConventionPlugin.kt'
       - 'build-logic/convention/src/main/kotlin/com/getcode/buildlogic/analytics/**'
       - 'gradle/libs.versions.toml'
@@ -78,7 +79,8 @@ jobs:
             :libs:encryption:mnemonic:iosSimulatorArm64Test \
             :libs:encryption:sha256:iosSimulatorArm64Test \
             :libs:encryption:sha512:iosSimulatorArm64Test \
-            :libs:reporting:iosSimulatorArm64Test
+            :libs:reporting:iosSimulatorArm64Test \
+            :libs:text-format:iosSimulatorArm64Test
 
       # The facade suite has to run against the Kotlin in this checkout, not against the last
       # published release, or a facade written for an unreleased Kotlin change is untested until
