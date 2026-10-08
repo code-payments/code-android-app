@@ -236,7 +236,8 @@ internal fun GroupInviteSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(IntrinsicSize.Min)
-                            .padding(horizontal = ListInset, vertical = TileRowVertical),
+                            .padding(horizontal = ListInset)
+                            .padding(top = TileRowTop, bottom = TileRowBottom),
                         horizontalArrangement = Arrangement.spacedBy(TileGap),
                     ) {
                         InviteLinkTile(
@@ -284,7 +285,8 @@ internal fun GroupInviteSheet(
                         if (onShowCard != null) {
                             InviteLinkTile(
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                                icon = R.drawable.ic_qr_code,
+                                // The Scan tab's outline glyph, as the iOS tile draws it.
+                                icon = R.drawable.ic_nav_tipcard,
                                 label = stringResource(R.string.action_showProfileCard),
                                 onClick = onShowCard,
                             )
@@ -544,7 +546,12 @@ private val ComposerFill = Color(0x751E1E1E)
 private val ComposerBlurRadius = 24.dp
 private val HeaderPadding = 16.dp
 private val HeaderRowVertical = 16.dp
-private val TileRowVertical = 12.dp
+// More above than below. AppBarWithTitle holds its height fixed and ignores HeaderPadding's bottom,
+// while its top pushes the close button down past the bar's measured edge, which is where the list
+// starts. iOS pads its header 16 on every side over the same 12 row inset; the extra 16 here stands
+// in for that bottom padding.
+private val TileRowTop = 28.dp
+private val TileRowBottom = 12.dp
 private val TileGap = 10.dp
 private val TileMinHeight = 95.dp
 private val TileShape = RoundedCornerShape(6.dp)
