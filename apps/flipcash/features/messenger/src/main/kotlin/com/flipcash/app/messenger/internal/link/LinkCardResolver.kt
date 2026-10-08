@@ -129,7 +129,7 @@ internal class LinkCardResolver(
         is LinkCard.TokenInfo -> card.copy(state = tokenState(card.mint))
         is LinkCard.GroupInvite -> card.copy(state = groupState(card.chatId))
         is LinkCard.User -> card.copy(state = userState(card.identity))
-        is LinkCard.Web -> card.copy(state = webState(card.url) ?: card.state)
+        is LinkCard.Web -> card.copy(state = webState(card.url))
     }
 
     /**
@@ -267,11 +267,12 @@ internal class LinkCardResolver(
         }
 
     /**
-     * The answer for a web page, or null when the lookup failed and the card stays as it was. A
-     * failure is forgotten, never remembered or stored, so the next draw asks again. A page that
-     * answers is held in [memory] by its cache key, which ignores the fragment.
+     * The answer for a web page. A lookup that failed answers [LinkCard.Web.State.None] for this
+     * draw, so a card waiting on it stops loading and falls back to the link; that is forgotten,
+     * never remembered or stored, so the next draw asks again. A page that answers is held in
+     * [memory] by its cache key, which ignores the fragment.
      */
-    private suspend fun webState(url: String): LinkCard.Web.State? {
+    private suspend fun webState(url: String): LinkCard.Web.State {
         val key = WebLinks.cacheKey(url) ?: return LinkCard.Web.State.None
         memory.webs[key]?.let { return it }
         return memoized(webQueries, key) {
@@ -284,7 +285,7 @@ internal class LinkCardResolver(
                 // hand back the expired answer instead of asking again.
                 forget(webQueries, key)
             }
-        }.getOrNull()
+        }.getOrDefault(LinkCard.Web.State.None)
     }
 
     private suspend fun <K, V> memoized(

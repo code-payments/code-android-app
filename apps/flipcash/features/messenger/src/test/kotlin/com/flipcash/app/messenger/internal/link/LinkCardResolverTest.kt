@@ -675,11 +675,11 @@ class LinkCardResolverTest {
     }
 
     @Test
-    fun `a failed web lookup is not memoized`() = runTest {
+    fun `a failed web lookup ends the draw as none and is not memoized`() = runTest {
         var calls = 0
         val memory = LinkCardMemory()
         val resolver = webResolver(memory) { calls++; Result.failure(java.io.IOException("offline")) }
-        assertEquals(LinkCard.Web.State.Loading, (resolver.resolve(webCard) as LinkCard.Web).state)
+        assertEquals(LinkCard.Web.State.None, (resolver.resolve(webCard) as LinkCard.Web).state)
         assertNull(resolver.peek(webCard))
         assertTrue(memory.webs.isEmpty())
         val revision = resolver.revision.value
