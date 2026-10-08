@@ -20,6 +20,7 @@ import java.io.IOException
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
+import java.net.Proxy
 import java.net.UnknownHostException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -45,10 +46,12 @@ internal fun InetAddress.isPrivate(): Boolean {
 
 /**
  * No cookie jar, no authenticator and no cache, and it must not be built from an app client whose
- * interceptors add credentials. Redirects are followed by hand so each hop is checked.
+ * interceptors add credentials. Redirects are followed by hand so each hop is checked. It never
+ * uses a system proxy, which would resolve the name itself and so bypass [PublicOnlyDns].
  */
 internal fun webPreviewClient(dns: Dns = PublicOnlyDns()): OkHttpClient = OkHttpClient.Builder()
     .dns(dns)
+    .proxy(Proxy.NO_PROXY)
     .cookieJar(CookieJar.NO_COOKIES)
     .cache(null)
     .followRedirects(false)

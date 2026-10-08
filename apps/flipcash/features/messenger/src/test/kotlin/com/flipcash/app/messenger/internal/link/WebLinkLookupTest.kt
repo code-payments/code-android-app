@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
+import okhttp3.CookieJar
 import okhttp3.Dns
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -21,6 +22,11 @@ import okhttp3.tls.HeldCertificate
 import org.junit.Test
 import java.io.IOException
 import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.ProxySelector
+import java.net.SocketAddress
+import java.net.URI
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -211,6 +217,73 @@ class WebLinkLookupTest {
             assertEquals("gzip", sawEncoding, "OkHttp must not strip Content-Encoding")
             assertEquals("identity", server.takeRequest().headers["Accept-Encoding"])
             assertEquals(LinkCard.Web.State.None, result.getOrThrow())
+        } finally {
+            server.close()
+        }
+    }
+
+    @Test
+    fun `the default client pins its transport settings`() {
+        val client = webPreviewClient()
+        assertEquals(false, client.followRedirects)
+        assertEquals(false, client.followSslRedirects)
+        assertTrue(client.dns is PublicOnlyDns)
+        assertEquals(CookieJar.NO_COOKIES, client.cookieJar)
+        assertNull(client.cache)
+        assertEquals(Proxy.NO_PROXY, client.proxy)
+        assertEquals(5_000, client.connectTimeoutMillis)
+        assertEquals(5_000, client.readTimeoutMillis)
+        assertEquals(10_000, client.callTimeoutMillis)
+    }
+
+    /** A system proxy would take the CONNECT and resolve the name itself, so [PublicOnlyDns] would never run. */
+    @Test
+    fun `a system proxy is never asked and the dns still runs`() {
+        val proxy = MockWebServer()
+        proxy.start()
+        try {
+            val asked = CopyOnWriteArrayList<String>()
+            val resolved = CopyOnWriteArrayList<String>()
+            val selector = object : ProxySelector() {
+                override fun select(uri: URI?): List<Proxy> {
+                    asked += uri.toString()
+                    return listOf(Proxy(Proxy.Type.HTTP, InetSocketAddress("127.0.0.1", proxy.port)))
+                }
+
+                override fun connectFailed(uri: URI?, sa: SocketAddress?, ioe: IOException?) = Unit
+            }
+            val client = webPreviewClient(Dns { host -> resolved += host; throw java.net.UnknownHostException(host) })
+                .newBuilder().proxySelector(selector).build()
+            val result = runBlocking { WebLinkLookup(client, { true }, realIo)("https://example.com/") }
+            assertTrue(result.isFailure)
+            assertEquals(0, proxy.requestCount)
+            assertTrue(asked.isEmpty(), "proxy selector was consulted: $asked")
+            assertEquals(listOf("example.com"), resolved.toList())
+        } finally {
+            proxy.close()
+        }
+    }
+
+    /** The lookup's loop follows redirects and checks each hop; the client must not do it first. */
+    @Test
+    fun `the client does not follow a redirect by itself`() {
+        val host = "preview.example.com"
+        val held = HeldCertificate.Builder().addSubjectAlternativeName(host).build()
+        val serverCerts = HandshakeCertificates.Builder().heldCertificate(held).build()
+        val clientCerts = HandshakeCertificates.Builder().addTrustedCertificate(held.certificate).build()
+        val server = MockWebServer()
+        server.useHttps(serverCerts.sslSocketFactory())
+        server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "http://$host/next").build())
+        server.enqueue(MockResponse.Builder().code(200).addHeader("Content-Type", "text/html").body(html).build())
+        server.start()
+        try {
+            val client = webPreviewClient(Dns { listOf(InetAddress.getByName("127.0.0.1")) })
+                .newBuilder()
+                .sslSocketFactory(clientCerts.sslSocketFactory(), clientCerts.trustManager)
+                .build()
+            val result = runBlocking { WebLinkLookup(client, { true }, realIo)("https://$host:${server.port}/") }
+            assertEquals(LinkCard.Web.State.None, result.getOrThrow())
+            assertEquals(1, server.requestCount)
         } finally {
             server.close()
         }
