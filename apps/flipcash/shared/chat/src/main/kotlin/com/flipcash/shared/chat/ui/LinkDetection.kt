@@ -23,19 +23,54 @@ data class DetectedUrl(
 fun detectUrls(text: String): List<DetectedUrl> = buildList {
     val matcher = Patterns.WEB_URL.matcher(text)
     while (matcher.find()) {
-        val match = matcher.group() ?: continue
+        val start = matcher.start()
+        val end = text.extendOverMarkers(matcher.group() ?: continue, start, matcher.end())
+        val match = text.substring(start, end)
         if (!authorityIsAscii(match)) continue
-        if (!endsOnAsciiBoundary(text, matcher.end())) continue
-        val url = match.dropTrailingPunctuation(openedBy = text.getOrNull(matcher.start() - 1))
+        if (!endsOnAsciiBoundary(text, end)) continue
+        val openedBy = text.getOrNull(start - 1)
+        val url = match.dropClosingMarker(openedBy).dropTrailingPunctuation(openedBy)
         add(
             DetectedUrl(
-                start = matcher.start(),
-                end = matcher.start() + url.length,
+                start = start,
+                end = start + url.length,
                 url = withLowercaseScheme(url),
             ),
         )
     }
 }
+
+/**
+ * The end of a link [match] that `Patterns.WEB_URL` cut short before a run of `*` or `~`.
+ *
+ * The pattern ends on a word boundary, so in `example.com/foo* now` it backs off before the `*`,
+ * while `NSDataDetector` keeps it. Only a path is extended: a marker after a bare host is not
+ * part of the link on either platform.
+ */
+private fun String.extendOverMarkers(match: String, start: Int, end: Int): Int {
+    if (!match.hasPath()) return end
+    var e = end
+    while (e < length && this[e] in EXTENDABLE_MARKERS) e++
+    return e
+}
+
+private fun String.hasPath(): Boolean {
+    val schemeEnd = indexOf("://")
+    return indexOf('/', startIndex = if (schemeEnd < 0) 0 else schemeEnd + 3) >= 0
+}
+
+/**
+ * [this] without a closing formatting marker. A trailing `*`, `_` or `~` is dropped once, and only
+ * when the same marker directly precedes the link, so `*example.com/foo*` is bold around a whole
+ * link. This is the single-quote rule below applied to markers (text-format spec, decision 1).
+ */
+private fun String.dropClosingMarker(openedBy: Char?): String {
+    val last = lastOrNull() ?: return this
+    return if (last in FORMAT_MARKERS && last == openedBy) dropLast(1) else this
+}
+
+private const val FORMAT_MARKERS = "*_~"
+private const val EXTENDABLE_MARKERS = "*~"
 
 /**
  * [this] without the punctuation that ends the sentence around it, the way iOS's `NSDataDetector`
