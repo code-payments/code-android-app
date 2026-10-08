@@ -495,9 +495,11 @@ fun ChatInput(
             content = {
                 if (header != null) Box(Modifier.layoutId(Slot.Header)) { header() }
                 Box(Modifier.layoutId(Slot.Text)) {
+                    ComposerFormatToolbarHost {
                     BasicTextField(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .composerFormatItems(state)
                             .focusRequester(focusRequester),
                         state = state,
                         enabled = enabled,
@@ -526,6 +528,7 @@ fun ChatInput(
                             }
                         },
                     )
+                    }
                 }
                 if (leading != null) Box(
                     Modifier
