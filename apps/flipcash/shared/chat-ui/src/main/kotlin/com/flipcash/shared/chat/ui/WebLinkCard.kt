@@ -309,7 +309,6 @@ private fun PreviewImage(imageUrl: String?) {
     )
 }
 
-// Chip copy is pending UX review, with the iOS string.
 @Composable
 private fun ShowPreviewChip(host: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(percent = 50)
