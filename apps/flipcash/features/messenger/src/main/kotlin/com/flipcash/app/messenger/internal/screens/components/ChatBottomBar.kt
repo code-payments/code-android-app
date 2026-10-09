@@ -95,6 +95,7 @@ import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
+import com.getcode.ui.components.chat.ComposerFormatToolbarHost
 import com.getcode.ui.components.chat.ChatInputSubmit
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
@@ -132,6 +133,7 @@ internal fun UserControlBottomBar(
     onAction: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
     topBarHeight: Dp = 0.dp,
+    formattingEnabled: Boolean = false,
 ) {
     if (state.isAnonymous) {
         DeactivatedChatBottomBar()
@@ -390,6 +392,8 @@ internal fun UserControlBottomBar(
                                     .padding(horizontal = sideInset),
                             ) { if (state.editing != null) cancelEdit() else sendCash() }
                         }
+                        val formatting = rememberComposerFormatting(state.chatInputState)
+                        val markerDimming = rememberMarkerDimming(formattingEnabled)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -411,10 +415,18 @@ internal fun UserControlBottomBar(
                                         )
                                     }
                                 }
+                                ComposerFormatToolbarHost(
+                                    enabled = formattingEnabled,
+                                    items = { formatting.toolbarItems() },
+                                ) {
                                 ChatInput(
                                     modifier = Modifier
                                         .testTag("chat_message_input")
                                         .hazeBlur(HazeInput.Sources(hazeState), material),
+                                    outputTransformation = markerDimming,
+                                    stackedLeading = if (formattingEnabled && state.editing == null) {
+                                        { FormatToggleButton(formatting) }
+                                    } else null,
                                     outside = if (state.editing != null) cancelEdit else null,
                                     trailingOutside = if (state.editing == null) sendCash else null,
                                     focusRequester = focusRequester,
@@ -540,6 +552,7 @@ internal fun UserControlBottomBar(
                                         }
                                     },
                                 )
+                                }
 
                                 // An edit starts from a long-press, which leaves the keyboard down, so the
                                 // composer has to claim focus itself or the pre-filled text sits unreachable.
@@ -580,6 +593,18 @@ internal fun UserControlBottomBar(
                                     }
                                 }
                             }
+                        }
+                        if (formattingEnabled && canType && formatting.stripOpen && keyboard.visible) {
+                            FormatStrip(formatting, state.chatInputState)
+                        }
+                        if (formatting.linkSheetOpen) {
+                            LinkSheet(
+                                onDismiss = { formatting.linkSheetOpen = false },
+                                onConfirm = {
+                                    formatting.addLink(it)
+                                    formatting.linkSheetOpen = false
+                                },
+                            )
                         }
                     }
                 }

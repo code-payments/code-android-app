@@ -276,6 +276,10 @@ internal class ChatViewModel @AssistedInject constructor(
      */
     val webLinkPreviewsEnabled: StateFlow<Boolean> = featureFlags.observe(FeatureFlag.WebLinkPreviews)
 
+    /** Whether the composer offers the formatting tools. Rendering formatted text is not flagged. */
+    val composerFormattingEnabled: StateFlow<Boolean> = featureFlags.observe(FeatureFlag.ChatFormattingComposer)
+
+
     /**
      * Whether the transcript may be drawn. Saved link previews load at app start, but a chat opened
      * straight from a notification can beat them to it, and a card drawn before its saved answer
