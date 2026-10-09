@@ -277,6 +277,15 @@ class ChatEntityMapperTest {
     }
 
     @Test
+    fun `a private group stays private through the row`() {
+        val entity = mapper.toEntity(groupMetadata().copy(isPrivate = true))
+        assertEquals(true, entity.isPrivate)
+
+        val restored = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
+        assertEquals(true, restored.isPrivate)
+    }
+
+    @Test
     fun `group description survives the round trip through the row`() {
         val entity = mapper.toEntity(groupMetadata().copy(description = "Weekly tips"))
         assertEquals("Weekly tips", entity.description)

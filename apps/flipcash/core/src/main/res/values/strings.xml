@@ -1105,6 +1105,24 @@
     <string name="action_createPublicGroup">Create a Public Group</string>
     <string name="action_createPrivateGroup">Create a Private Group</string>
     <string name="title_newPrivateGroup">New Private Group</string>
+    <string name="action_requestToJoin">Request to Join</string>
+    <string name="action_requestSent">Request Sent</string>
+    <string name="action_cancelRequest">Cancel Request</string>
+    <string name="subtitle_privateGroupMembers">Private group · %1$s</string>
+    <string name="subtitle_hostApprovesJoins">The host approves who joins</string>
+    <string name="subtitle_requestedJustNow">Requested just now</string>
+    <string name="subtitle_requestedMinutesAgo">Requested %1$dm ago</string>
+    <string name="subtitle_requestedHoursAgo">Requested %1$dh ago</string>
+    <string name="subtitle_requestedDaysAgo">Requested %1$dd ago</string>
+    <string name="subtitle_requestPendingHost">%1$s · You\'ll be able to open the chat once %2$s approves.</string>
+    <string name="subtitle_requestPendingHostUnnamed">%1$s · You\'ll be able to open the chat once the host approves.</string>
+    <string name="prompt_title_lobbyClosed">%1$s isn\'t taking requests right now</string>
+    <string name="prompt_description_lobbyFull">Too many people are waiting for the host to respond. Try again later.</string>
+    <string name="prompt_description_tooManyLobbies">You have too many pending requests. Cancel one to request another.</string>
+    <string name="error_title_failedToRequestJoin">Couldn\'t Send Request</string>
+    <string name="error_description_failedToRequestJoin">Something went wrong. Please try again.</string>
+    <string name="error_title_failedToCancelJoinRequest">Couldn\'t Cancel Request</string>
+    <string name="error_description_failedToCancelJoinRequest">Something went wrong. Please try again.</string>
     <string name="subtitle_privateGroupFootnote">Only people you approve can join. Messages are end-to-end encrypted.</string>
     <string name="action_findByUsername">Find Someone by Username</string>
 

@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.bundles.kotlinx.serialization)
 
     implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.datastore)
 
     implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:persistence:sources"))

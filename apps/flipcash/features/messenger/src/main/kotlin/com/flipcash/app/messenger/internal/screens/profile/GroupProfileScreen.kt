@@ -8,6 +8,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.unit.Dp
+import dev.chrisbanes.haze.HazeState
+import androidx.compose.ui.text.style.TextAlign
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Clock
+import androidx.compose.runtime.produceState
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -106,6 +115,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
     val isMember = group?.isMember == true
+    // A private group's non-member has no chat to open: no envelope, no transcript. The profile is
+    // where they ask in, and where they wait.
+    val privateJoin = PrivateGroupJoin.resolve(
+        isPrivate = group?.isPrivate == true,
+        isMember = group?.isMember,
+        requestedAt = state.lobbyRequestedAt,
+    )
 
     // Each time the screen is entered, not once per flow: the view model outlives this screen, and
     // who is chatting moves between visits.
@@ -158,7 +174,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     var pinnedHeight by remember { mutableStateOf(0.dp) }
     // Opened from the chat, back already returns to it, so nothing is pinned: Leave Chat sits at
     // the foot of the page instead.
-    val clearance = if (openedFromChat) 0.dp else pinnedHeight
+    val clearance = if (openedFromChat && privateJoin == null) 0.dp else pinnedHeight
     val hazeState = rememberHazeState()
 
     CodeScaffold { padding ->
@@ -227,6 +243,15 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     },
                 )
 
+                if (group?.isPrivate == true) {
+                    PrivateGroupNote(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.staticGrid.x3),
+                        memberCount = group.memberCount,
+                    )
+                }
+
                 val unknownName = stringResource(R.string.title_unnamedUser)
                 val chatters = remember(state.chatters, unknownName) {
                     state.chatters.mapNotNull { chatter ->
@@ -268,7 +293,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 }
 
                 AnimatedVisibility(
-                    visible = requirements != null && namesReady,
+                    visible = requirements != null && namesReady && group?.isPrivate != true,
                     enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                     exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
                 ) {
@@ -378,7 +403,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
             // Open Chat in every standing, as in the design: a viewer short of a minimum is told
             // so, and buys, on the chat's own gate.
-            if (!openedFromChat) {
+            if (privateJoin != null) {
+                PrivateJoinBar(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    join = privateJoin,
+                    hostName = state.hostName,
+                    lobbyCall = state.lobbyCall,
+                    onRequest = { viewModel.dispatchEvent(ChatViewModel.Event.RequestToJoin) },
+                    onCancel = { viewModel.dispatchEvent(ChatViewModel.Event.CancelJoinRequest) },
+                    hazeState = hazeState,
+                    onHeightChanged = { pinnedHeight = it },
+                )
+            } else if (!openedFromChat) {
                 ProfilePinnedActionBar(
                     modifier = Modifier.align(Alignment.BottomCenter),
                     text = stringResource(R.string.action_openChat),
@@ -435,3 +471,103 @@ private fun GroupProfileMenu(
 
 /** How long the requirement amounts wait for their token's name before showing without it. */
 private val RuleNameHold = 1500.milliseconds
+
+/** "Private group · 48 members" over "The host approves who joins", behind a lock. */
+@Composable
+private fun PrivateGroupNote(memberCount: Long, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                modifier = Modifier.size(14.dp),
+                imageVector = Icons.Filled.Lock,
+                contentDescription = null,
+                tint = CodeTheme.colors.textSecondary,
+            )
+            Text(
+                text = stringResource(
+                    R.string.subtitle_privateGroupMembers,
+                    pluralStringResource(R.plurals.subtitle_memberCount, memberCount.toInt(), memberCount.toString()),
+                ),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+        Text(
+            text = stringResource(R.string.subtitle_hostApprovesJoins),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+        )
+    }
+}
+
+/**
+ * A private group's pinned action for a non-member: Request to Join, or a disabled Request Sent
+ * with Cancel Request under it and how long the request has waited above it.
+ */
+@Composable
+private fun PrivateJoinBar(
+    join: PrivateGroupJoin,
+    hostName: String?,
+    lobbyCall: LobbyCall?,
+    onRequest: () -> Unit,
+    onCancel: () -> Unit,
+    hazeState: HazeState,
+    onHeightChanged: (Dp) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (join) {
+        PrivateGroupJoin.Request -> ProfilePinnedActionBar(
+            modifier = modifier,
+            text = stringResource(R.string.action_requestToJoin),
+            onClick = onRequest,
+            isLoading = lobbyCall == LobbyCall.Request,
+            enabled = lobbyCall == null,
+            hazeState = hazeState,
+            onHeightChanged = onHeightChanged,
+        )
+        is PrivateGroupJoin.Requested -> {
+            // Ticks so "2m ago" does not stand still while the screen stays up.
+            val now by produceState(Clock.System.now()) {
+                while (true) {
+                    delay(1.minutes)
+                    value = Clock.System.now()
+                }
+            }
+            val age = when (val age = RequestAge.of(join.at, now)) {
+                RequestAge.JustNow -> stringResource(R.string.subtitle_requestedJustNow)
+                is RequestAge.Minutes -> stringResource(R.string.subtitle_requestedMinutesAgo, age.count)
+                is RequestAge.Hours -> stringResource(R.string.subtitle_requestedHoursAgo, age.count)
+                is RequestAge.Days -> stringResource(R.string.subtitle_requestedDaysAgo, age.count)
+            }
+            ProfilePinnedActionBar(
+                modifier = modifier,
+                text = stringResource(R.string.action_requestSent),
+                onClick = {},
+                enabled = false,
+                above = {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset),
+                        text = if (hostName != null) {
+                            stringResource(R.string.subtitle_requestPendingHost, age, hostName)
+                        } else {
+                            stringResource(R.string.subtitle_requestPendingHostUnnamed, age)
+                        },
+                        style = CodeTheme.typography.caption,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+                },
+                secondaryText = stringResource(R.string.action_cancelRequest),
+                onSecondaryClick = onCancel,
+                isSecondaryLoading = lobbyCall == LobbyCall.Cancel,
+                hazeState = hazeState,
+                onHeightChanged = onHeightChanged,
+            )
+        }
+    }
+}

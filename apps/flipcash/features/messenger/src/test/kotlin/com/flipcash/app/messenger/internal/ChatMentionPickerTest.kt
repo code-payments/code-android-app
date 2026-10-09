@@ -114,6 +114,7 @@ class ChatMentionPickerTest {
         userProfileDataSource = mockk(relaxed = true),
         rosterSearch = rosterSearch,
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
+        lobbyRequests = mockk(relaxed = true),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
         identifier = null,
     )

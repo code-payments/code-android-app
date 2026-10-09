@@ -16,6 +16,11 @@ import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.solana.keys.Mint
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /**
  * The one action pinned to the bottom of a group's profile.
@@ -234,3 +239,43 @@ internal fun gateFunding(
 }
 
 private const val MICRO_SCALE = 6
+
+/**
+ * What a private group's profile offers a viewer who is not in it. Null for a public group and for
+ * a member, who get the usual layout.
+ */
+internal sealed interface PrivateGroupJoin {
+    data object Request : PrivateGroupJoin
+    data class Requested(val at: Instant) : PrivateGroupJoin
+
+    companion object {
+        fun resolve(isPrivate: Boolean, isMember: Boolean?, requestedAt: Instant?): PrivateGroupJoin? = when {
+            !isPrivate || isMember == true -> null
+            requestedAt != null -> Requested(requestedAt)
+            else -> Request
+        }
+    }
+}
+
+/** How long ago a join request went in, as "Requested 2h ago" states it. */
+internal sealed interface RequestAge {
+    data object JustNow : RequestAge
+    data class Minutes(val count: Long) : RequestAge
+    data class Hours(val count: Long) : RequestAge
+    data class Days(val count: Long) : RequestAge
+
+    companion object {
+        fun of(at: Instant, now: Instant): RequestAge {
+            val elapsed = (now - at).coerceAtLeast(Duration.ZERO)
+            return when {
+                elapsed < 1.minutes -> JustNow
+                elapsed < 1.hours -> Minutes(elapsed.inWholeMinutes)
+                elapsed < 1.days -> Hours(elapsed.inWholeHours)
+                else -> Days(elapsed.inWholeDays)
+            }
+        }
+    }
+}
+
+/** A lobby call in flight from a private group's profile. */
+enum class LobbyCall { Request, Cancel }

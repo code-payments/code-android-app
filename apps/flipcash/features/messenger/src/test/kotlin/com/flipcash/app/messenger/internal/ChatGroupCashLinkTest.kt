@@ -170,6 +170,7 @@ class ChatGroupCashLinkTest {
         userProfileDataSource = mockk(relaxed = true),
         rosterSearch = mockk(relaxed = true),
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
+        lobbyRequests = mockk(relaxed = true),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
         identifier = null,
     )
