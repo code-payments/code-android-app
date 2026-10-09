@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.SampledChatter
@@ -275,6 +276,46 @@ internal sealed interface RequestAge {
             }
         }
     }
+}
+
+/** How long ago a member joined, as a private group's Members list words it (node 11210:70). */
+internal sealed interface JoinAge {
+    data object JustNow : JoinAge
+    data class Minutes(val count: Long) : JoinAge
+    data class Hours(val count: Long) : JoinAge
+    data object Yesterday : JoinAge
+    data class Days(val count: Long) : JoinAge
+    data object LastWeek : JoinAge
+    data class Weeks(val count: Long) : JoinAge
+    data object LastMonth : JoinAge
+    data class Months(val count: Long) : JoinAge
+
+    companion object {
+        fun of(at: Instant, now: Instant): JoinAge {
+            val elapsed = (now - at).coerceAtLeast(Duration.ZERO)
+            val days = elapsed.inWholeDays
+            return when {
+                elapsed < 1.minutes -> JustNow
+                elapsed < 1.hours -> Minutes(elapsed.inWholeMinutes)
+                elapsed < 1.days -> Hours(elapsed.inWholeHours)
+                days < 2 -> Yesterday
+                days < 7 -> Days(days)
+                days < 14 -> LastWeek
+                days < 30 -> Weeks(days / 7)
+                days < 60 -> LastMonth
+                else -> Months(days / 30)
+            }
+        }
+    }
+}
+
+/**
+ * A private group's roster in the order its grid and list show it: the creator first, then the
+ * most recently joined. A member with no join time sorts last.
+ */
+internal fun privateGroupMembers(members: List<ChatMember>, creator: ID?): List<ChatMember> {
+    val (host, rest) = members.partition { creator != null && it.userId == creator }
+    return host + rest.sortedByDescending { it.joinedAt }
 }
 
 /** A lobby call in flight from a private group's profile. */

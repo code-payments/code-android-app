@@ -69,6 +69,7 @@ import com.flipcash.app.messenger.internal.screens.profile.GroupBalanceRequireme
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileStanding
 import com.flipcash.app.messenger.internal.screens.profile.JoinRequestCall
 import com.flipcash.app.messenger.internal.screens.profile.LobbyCall
+import com.flipcash.app.messenger.internal.screens.profile.privateGroupMembers
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
@@ -96,6 +97,7 @@ import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.FeaturedGroupsStore
+import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.LobbyRequests
 import com.flipcash.shared.chat.media.ChatMediaUploadState
@@ -267,6 +269,7 @@ internal class ChatViewModel @AssistedInject constructor(
     private val featuredGroups: FeaturedGroupsStore,
     private val lobbyRequests: LobbyRequests,
     private val hostLobbies: HostLobbies,
+    private val groupRosters: GroupRosters,
     private val dispatchers: DispatcherProvider,
     // Last and defaulted so the transcript tests, which draw no pictures, need not supply one.
     @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
@@ -486,6 +489,8 @@ internal class ChatViewModel @AssistedInject constructor(
         val isLobbyHost: Boolean = false,
         /** Who is waiting to join, newest first. Empty unless [isLobbyHost]. */
         val joinRequests: List<LobbyMember> = emptyList(),
+        /** A private group's full roster, creator first, for its Members grid and list. */
+        val members: List<ChatMember> = emptyList(),
         /** Approve or Deny calls out, by the requester's user id, so only that row waits. */
         val joinRequestCalls: Map<ID, JoinRequestCall> = emptyMap(),
         /**
@@ -793,6 +798,12 @@ internal class ChatViewModel @AssistedInject constructor(
         data class DenyJoinRequest(val member: LobbyMember) : Event
         data class JoinRequestCallChanged(val userId: ID, val call: JoinRequestCall?) : Event
         data class OnChattersLoaded(val chatters: List<SampledChatter>) : Event
+
+        /** A private group's roster from [GroupRosters], already in display order. */
+        data class OnMembersResolved(val members: List<ChatMember>) : Event
+
+        /** The Members list came on screen: refetch, since a roster read can lag the stream. */
+        data object MembersOpened : Event
         data class OnProfileStandingResolved(val standing: GroupProfileStanding?) : Event
         data class OnRuleTokensResolved(val tokens: Map<List<Byte>, RuleCurrency>) : Event
 
@@ -2559,7 +2570,14 @@ internal class ChatViewModel @AssistedInject constructor(
                         R.string.prompt_title_leaveChat,
                         group.title,
                     ),
-                    message = resources.getString(R.string.prompt_description_leaveChat),
+                    // A private group has no invite link back in: rejoining is a new request.
+                    message = resources.getString(
+                        if (group.isPrivate) {
+                            R.string.prompt_description_leavePrivateChat
+                        } else {
+                            R.string.prompt_description_leaveChat
+                        }
+                    ),
                     actions = listOf(
                         BottomBarAction(text = resources.getString(R.string.action_leaveChat)) {
                             dispatchEvent(Event.LeaveConfirmed)
@@ -2618,6 +2636,41 @@ internal class ChatViewModel @AssistedInject constructor(
             .distinctUntilChanged()
             .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
+
+        // A private group's roster, for its members only (GetRoster is denied to a requester).
+        // Loaded when the viewer turns out to be a member and again each time the profile or the
+        // Members list opens; RosterUpdate keeps it current in between.
+        stateFlow.map { state ->
+            (state.subject as? ChatSubject.Group)
+                ?.takeIf { it.isPrivate && it.isMember == true }
+                ?.let { it.chatId to it.creator }
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { group ->
+                if (group == null) {
+                    flowOf(Event.OnMembersResolved(emptyList()))
+                } else {
+                    val (chatId, creator) = group
+                    viewModelScope.launch {
+                        groupRosters.load(chatId)
+                            .onFailure { trace("failed to load roster - ${it.localizedMessage}") }
+                    }
+                    groupRosters.state.map {
+                        Event.OnMembersResolved(privateGroupMembers(it[chatId].orEmpty(), creator))
+                    }
+                }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
+
+        merge(
+            eventFlow.filterIsInstance<Event.GroupProfileOpened>(),
+            eventFlow.filterIsInstance<Event.MembersOpened>(),
+        ).onEach {
+            val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+            if (group.isPrivate && group.isMember == true) groupRosters.load(group.chatId)
+        }.launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.JoinRequestsOpened>()
             .onEach {
@@ -3383,6 +3436,8 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.OnLobbyRequestResolved -> { state -> state.copy(lobbyRequestedAt = event.requestedAt) }
                 is Event.OnHostNameResolved -> { state -> state.copy(hostName = event.name) }
                 is Event.OnChattersLoaded -> { state -> state.copy(chatters = event.chatters) }
+                is Event.OnMembersResolved -> { state -> state.copy(members = event.members) }
+                Event.MembersOpened -> { state -> state }
                 is Event.OnProfileStandingResolved -> { state -> state.copy(profileStanding = event.standing) }
                 is Event.OnRuleTokensResolved -> { state -> state.copy(ruleTokens = event.tokens) }
                 Event.LeaveConfirmed -> { state -> state.copy(leaving = true) }

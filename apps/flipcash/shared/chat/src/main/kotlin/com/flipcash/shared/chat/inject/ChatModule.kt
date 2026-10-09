@@ -6,6 +6,8 @@ import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.LobbyRequestStore
 import com.flipcash.shared.chat.LobbyUpdateSink
+import com.flipcash.shared.chat.GroupRosters
+import com.flipcash.shared.chat.RosterUpdateSink
 import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.internal.DataStoreLobbyRequestStore
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
@@ -57,6 +59,11 @@ abstract class ChatModule {
     abstract fun bindLobbyUpdateSink(
         impl: HostLobbies
     ): LobbyUpdateSink
+
+    @Binds
+    abstract fun bindRosterUpdateSink(
+        impl: GroupRosters
+    ): RosterUpdateSink
 
     @Binds
     @Singleton

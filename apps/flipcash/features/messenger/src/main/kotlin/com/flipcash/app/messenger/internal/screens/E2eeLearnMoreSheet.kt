@@ -37,33 +37,47 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.BulletRow
 
 /** Which chat kind the learn-more sheet explains. */
-internal enum class E2eeSheetKind { Dm, Group }
+internal enum class E2eeSheetKind { Dm, Group, PrivateGroup }
 
 /**
  * What end-to-end encryption does and doesn't cover, opened from the profile footer. One layout
- * for both kinds, with the DM's and the group's own words (nodes 10416:1533, 10557:1412).
+ * for every kind, with the DM's, the public group's and the private group's own words (nodes
+ * 10416:1533, 10557:1412, 11210:71).
+ *
+ * The private group's frame also lists "Reactions, and who sent them" as not encrypted. Nobody
+ * has confirmed reactions in a private group behave as in a DM, so that row is left out.
  */
 @Composable
 internal fun E2eeLearnMoreSheet(
     kind: E2eeSheetKind,
     onDismiss: () -> Unit,
 ) {
-    val isDm = kind == E2eeSheetKind.Dm
-    val encrypted = if (isDm) {
+    val isEncrypted = kind != E2eeSheetKind.Group
+    val title = if (isEncrypted) R.string.title_e2eeSheet_dm else R.string.title_e2eeSheet_group
+    val subtitle = when (kind) {
+        E2eeSheetKind.Dm -> R.string.subtitle_e2eeSheet_dm
+        E2eeSheetKind.Group -> R.string.subtitle_e2eeSheet_group
+        E2eeSheetKind.PrivateGroup -> R.string.subtitle_e2eeSheet_privateGroup
+    }
+    val encrypted = if (isEncrypted) {
         listOf(R.string.item_e2eeSheet_allMessageText, R.string.item_e2eeSheet_allMedia)
     } else {
         listOf(R.string.item_e2eeSheet_messagesAndMediaInDms)
     }
-    val notEncrypted = if (isDm) {
-        listOf(
+    val notEncrypted = when (kind) {
+        E2eeSheetKind.Dm -> listOf(
             R.string.item_e2eeSheet_payments,
             R.string.item_e2eeSheet_reactions,
             R.string.item_e2eeSheet_publicGroupChats,
             R.string.item_e2eeSheet_beforeEncryption,
         )
-    } else {
-        listOf(
+        E2eeSheetKind.Group -> listOf(
             R.string.item_e2eeSheet_publicGroupChatsIncludingThis,
+            R.string.item_e2eeSheet_payments,
+        )
+        E2eeSheetKind.PrivateGroup -> listOf(
+            R.string.item_e2eeSheet_groupDetails,
+            R.string.item_e2eeSheet_groupMembers,
             R.string.item_e2eeSheet_payments,
         )
     }
@@ -87,7 +101,7 @@ internal fun E2eeLearnMoreSheet(
         ) {
             Icon(
                 modifier = Modifier.size(32.dp),
-                imageVector = if (isDm) Icons.Filled.Lock else Icons.Filled.LockOpen,
+                imageVector = if (isEncrypted) Icons.Filled.Lock else Icons.Filled.LockOpen,
                 contentDescription = null,
                 tint = Color.White.copy(alpha = 0.7f),
             )
@@ -97,9 +111,7 @@ internal fun E2eeLearnMoreSheet(
             modifier = Modifier
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .padding(top = 20.dp),
-            text = stringResource(
-                if (isDm) R.string.title_e2eeSheet_dm else R.string.title_e2eeSheet_group
-            ),
+            text = stringResource(title),
             style = CodeTheme.typography.textLarge.copy(
                 fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -111,9 +123,7 @@ internal fun E2eeLearnMoreSheet(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
                 .padding(top = 16.dp),
-            text = stringResource(
-                if (isDm) R.string.subtitle_e2eeSheet_dm else R.string.subtitle_e2eeSheet_group
-            ),
+            text = stringResource(subtitle),
             style = CodeTheme.typography.textSmall.copy(
                 fontSize = 15.sp,
                 lineHeight = 21.sp,
@@ -195,4 +205,11 @@ private fun Preview_E2eeSheet_Dm() {
 @Composable
 private fun Preview_E2eeSheet_Group() {
     E2eeLearnMoreSheet(kind = E2eeSheetKind.Group, onDismiss = {})
+}
+
+@Preview(heightDp = 817)
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_E2eeSheet_PrivateGroup() {
+    E2eeLearnMoreSheet(kind = E2eeSheetKind.PrivateGroup, onDismiss = {})
 }
