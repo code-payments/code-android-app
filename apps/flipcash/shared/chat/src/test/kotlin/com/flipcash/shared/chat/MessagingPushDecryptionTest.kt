@@ -1,5 +1,8 @@
 package com.flipcash.shared.chat
 
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.IncomingMessageOpener
 import com.flipcash.services.chat.ChatContentCrypto
@@ -26,6 +29,9 @@ import kotlin.test.assertNull
 import kotlin.time.Instant
 
 /** What a DM push shows: the opened plaintext, or `null` so the server's body stays. */
+// Previews run through the formatting parser, which detects links with android.util.Patterns.
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE)
 class MessagingPushDecryptionTest {
 
     private val chatId = ChatId(ByteArray(32) { 7 })
