@@ -46,17 +46,6 @@
     </issue>
 
     <issue
-        id="MissingClass"
-        message="Class referenced in the manifest, `dev.bmcreations.phantom.connect.wallet.PhantomWalletCallbackActivity`, was not found in the project or the libraries"
-        errorLine1="            android:name=&quot;dev.bmcreations.phantom.connect.wallet.PhantomWalletCallbackActivity&quot;"
-        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/AndroidManifest.xml"
-            line="335"
-            column="27"/>
-    </issue>
-
-    <issue
         id="AnnotateVersionCheck"
         message="This method should be annotated with `@ChecksSdkIntAtLeast(api=minSdk)`"
         errorLine1="    val requiresRuntimeRequest: Boolean"

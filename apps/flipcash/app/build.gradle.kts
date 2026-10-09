@@ -239,6 +239,9 @@ dependencies {
     implementation(libs.phantom.connect) {
         exclude(group = "com.ionspin.kotlin", module = "multiplatform-crypto-libsodium-bindings-android-debug")
     }
+    implementation(libs.phantom.connect.wallet) {
+        exclude(group = "com.ionspin.kotlin", module = "multiplatform-crypto-libsodium-bindings-android-debug")
+    }
     implementation(project(":apps:flipcash:shared:funding"))
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:phone"))
