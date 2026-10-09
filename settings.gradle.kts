@@ -224,7 +224,6 @@ include(
     ":libs:logging",
     ":libs:messaging",
     ":libs:models",
-    ":libs:opengraph",
 
     ":libs:network:coinbase:onramp",
 

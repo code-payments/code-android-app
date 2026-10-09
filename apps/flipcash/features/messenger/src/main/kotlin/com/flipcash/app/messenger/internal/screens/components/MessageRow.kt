@@ -73,7 +73,7 @@ import com.flipcash.shared.chat.ui.QuickReactionStripPopup
 import com.flipcash.shared.chat.ui.ReactionPillRow
 import com.flipcash.shared.chat.ui.bubbleMaxWidth
 import com.flipcash.shared.chat.ui.bubblePositionOf
-import com.flipcash.shared.chat.ui.rendersBare
+import com.flipcash.shared.chat.ui.rememberRendersBare
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
@@ -512,7 +512,7 @@ internal fun MessageRow(
                             // receipt, which is every incoming one. A split message marks only its
                             // last row.
                             Row(verticalAlignment = Alignment.Top) {
-                                if (item.isEdited && item.isLastRow && item.rendersBare()) {
+                                if (item.isEdited && item.isLastRow && item.rememberRendersBare()) {
                                     Text(
                                         modifier = Modifier.padding(
                                             top = CodeTheme.dimens.grid.x1,

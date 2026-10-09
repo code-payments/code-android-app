@@ -23,7 +23,6 @@ dependencies {
     implementation(project(":libs:messaging"))
     implementation(project(":libs:models"))
     implementation(project(":libs:network:connectivity:public"))
-    implementation(project(":libs:opengraph"))
     implementation(project(":libs:vibrator:public"))
     api(project(":ui:core"))
     implementation(project(":ui:theme"))

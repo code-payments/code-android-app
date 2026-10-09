@@ -636,4 +636,105 @@ class LinkCardResolverTest {
         resolver.resolve(userCard.copy(start = 10, end = 38))
         assertEquals(1, calls)
     }
+
+    private val webCard = LinkCard.Web(url = "https://example.com/a#one", start = 0, end = 25)
+    private val webResolved = LinkCard.Web.State.Resolved(
+        title = "Example",
+        description = "A page",
+        imageUrl = "https://example.com/i.png",
+        host = "example.com",
+    )
+
+    private fun TestScope.webResolver(
+        memory: LinkCardMemory = LinkCardMemory(),
+        web: suspend (String) -> Result<LinkCard.Web.State>,
+    ) = LinkCardResolver(
+        scope = backgroundScope,
+        giftCard = { Result.failure(IllegalStateException("unused")) },
+        tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+        group = { Result.failure(IllegalStateException("unused")) },
+        user = { Result.failure(IllegalStateException("unused")) },
+        web = web,
+        memory = memory,
+    )
+
+    @Test
+    fun `peek of an unknown web card is null`() = runTest {
+        val resolver = webResolver { Result.success(webResolved) }
+        assertNull(resolver.peek(webCard))
+    }
+
+    @Test
+    fun `a web link is looked up once, even when two cards differ only by fragment`() = runTest {
+        var calls = 0
+        val resolver = webResolver { calls++; Result.success(webResolved) }
+        assertEquals(webResolved, (resolver.resolve(webCard) as LinkCard.Web).state)
+        assertEquals(webResolved, (resolver.resolve(webCard.copy(url = "https://example.com/a#two")) as LinkCard.Web).state)
+        assertEquals(webResolved, (resolver.peek(webCard.copy(url = "https://example.com/a")) as LinkCard.Web).state)
+        assertEquals(1, calls)
+    }
+
+    @Test
+    fun `a failed web lookup ends the draw as none and is not memoized`() = runTest {
+        var calls = 0
+        val memory = LinkCardMemory()
+        val resolver = webResolver(memory) { calls++; Result.failure(java.io.IOException("offline")) }
+        assertEquals(LinkCard.Web.State.None, (resolver.resolve(webCard) as LinkCard.Web).state)
+        assertNull(resolver.peek(webCard))
+        assertTrue(memory.webs.isEmpty())
+        val revision = resolver.revision.value
+        resolver.resolve(webCard)
+        assertEquals(2, calls)
+        assertEquals(revision, resolver.revision.value)
+    }
+
+    @Test
+    fun `none and resolved web answers are memoized and bump the revision`() = runTest {
+        for (answer in listOf(LinkCard.Web.State.None, webResolved)) {
+            val resolver = webResolver { Result.success(answer) }
+            val before = resolver.revision.value
+            resolver.resolve(webCard)
+            assertEquals(before + 1, resolver.revision.value)
+            assertEquals(answer, (resolver.peek(webCard) as LinkCard.Web).state)
+        }
+    }
+
+    @Test
+    fun `a web link that cannot be keyed resolves to none without a lookup`() = runTest {
+        var calls = 0
+        val resolver = webResolver { calls++; Result.success(webResolved) }
+        val bad = webCard.copy(url = "not a url")
+        assertEquals(LinkCard.Web.State.None, (resolver.resolve(bad) as LinkCard.Web).state)
+        assertEquals(0, calls)
+    }
+
+    private suspend fun TestScope.expiry(answer: LinkCard.Web.State, ttl: kotlin.time.Duration) {
+        var now = 1_000_000L
+        var calls = 0
+        val memory = LinkCardMemory(clock = { now })
+        val resolver = webResolver(memory) { calls++; Result.success(answer) }
+        resolver.resolve(webCard)
+        assertEquals(1, calls)
+
+        now += ttl.inWholeMilliseconds
+        assertEquals(answer, (resolver.peek(webCard) as LinkCard.Web).state)
+        resolver.resolve(webCard)
+        assertEquals(1, calls)
+
+        now += 1
+        assertNull(resolver.peek(webCard))
+        assertTrue(memory.webs.isEmpty())
+        assertEquals(answer, (resolver.resolve(webCard) as LinkCard.Web).state)
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun `a none web answer expires in memory at the empty ttl and is looked up again`() = runTest {
+        expiry(LinkCard.Web.State.None, WebLinks.EMPTY_TTL)
+    }
+
+    @Test
+    fun `a resolved web answer expires in memory at the resolved ttl and is looked up again`() = runTest {
+        expiry(webResolved, WebLinks.RESOLVED_TTL)
+    }
 }

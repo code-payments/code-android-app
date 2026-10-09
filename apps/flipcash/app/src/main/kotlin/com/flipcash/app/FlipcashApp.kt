@@ -22,6 +22,7 @@ import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.trace
 import dev.bmcreations.phantom.connect.PhantomSdk
 import dagger.Lazy
+import com.flipcash.app.messenger.LinkPreviewStartup
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +57,13 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
     @Inject
     lateinit var chatPhotoFetcher: Lazy<ChatPhotoFetcher.Factory>
 
+    /**
+     * Built at launch so the saved link previews are reading from the database before a chat opens,
+     * not when the first one asks. Its init starts the read.
+     */
+    @Inject
+    lateinit var linkPreviewStartup: Lazy<LinkPreviewStartup>
+
     @Inject
     lateinit var workerFactory: Lazy<HiltWorkerFactory>
 
@@ -80,6 +88,7 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
             authManager.get().init()
             eventRepository.get()
             preferredCurrencyController.get()
+            linkPreviewStartup.get()
         }
 
         // Track the foreground Activity so the tip-code share preview can render offscreen.

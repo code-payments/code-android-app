@@ -9,6 +9,8 @@ import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
 import dev.theolm.rinku.DeepLink
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import javax.inject.Inject
 
 /**
@@ -48,7 +50,34 @@ internal class LinkCardClassifier @Inject constructor(
      * from: the bubble draws the card in place of that text, and only the detection pass knows
      * where it sat.
      */
-    fun firstCard(links: List<DetectedUrl>): LinkCard? = links.firstNotNullOfOrNull { classify(it) }
+    fun firstCard(links: List<DetectedUrl>): LinkCard? =
+        links.firstNotNullOfOrNull { classify(it) } ?: links.firstNotNullOfOrNull { web(it) }
+
+    /**
+     * An outside https link, or a page of the website (parity decision P25). Every other card host
+     * never falls through to here, whatever its path, and that includes a jump wrapper around an
+     * outside target.
+     */
+    private fun web(link: DetectedUrl): LinkCard.Web? {
+        if (WebLinks.hasEscapedHost(link.url)) return null
+        val url = link.url.toHttpUrlOrNull() ?: return null
+        // An explicit port other than 443 gets no card (parity decision D12).
+        if (url.scheme != "https" || url.port != 443) return null
+        if (url.host in CARD_HOSTS && !url.isWebsitePage()) return null
+        if (!WebLinks.isEligibleHost(url.host)) return null
+        return LinkCard.Web(url = link.url, start = link.start, end = link.end)
+    }
+
+    /**
+     * A link on the website's hosts that is not a Flipcash card (P25). The router matches
+     * `/login`, `/c`, `/cash` and `/verify` on any host, so `flipcash.com/login/e=<seed>` would
+     * otherwise be fetched with the seed in its path; those segments never fall through, and
+     * neither does a link with a fragment, where entropy travels.
+     */
+    private fun HttpUrl.isWebsitePage(): Boolean =
+        host in WEBSITE_HOSTS &&
+            fragment == null &&
+            pathSegments.first().lowercase() !in SECRET_SEGMENTS
 
     private fun classify(link: DetectedUrl): LinkCard? {
         val target = unwrapJumpTarget(link.url) ?: link.url
@@ -144,6 +173,12 @@ internal class LinkCardClassifier @Inject constructor(
         private const val GROUP_INVITE_SEGMENTS = 2
 
         private const val JUMP_HOST = "jump.flipcash.com"
+
+        /** Hosts whose non-card links are website pages (P25). */
+        private val WEBSITE_HOSTS = setOf("flipcash.com", "www.flipcash.com")
+
+        /** First path segments that carry a seed, entropy or a verification code (P25). */
+        private val SECRET_SEGMENTS = setOf("login", "verify", "c", "cash")
         private const val JUMP_SOURCE_PARAM = "source="
 
         /**

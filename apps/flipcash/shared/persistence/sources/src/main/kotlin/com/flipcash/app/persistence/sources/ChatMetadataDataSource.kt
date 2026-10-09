@@ -47,6 +47,10 @@ class ChatMetadataDataSource @Inject constructor(
     suspend fun getChatIdsOfType(chatType: ChatType): List<String> =
         db?.chatMetadataDao()?.getChatIdsOfType(chatType.name).orEmpty()
 
+    /** Whether this device still counts the viewer a member of [chatId]; false when it is not stored. */
+    suspend fun isMember(chatId: ChatId): Boolean =
+        db?.chatMetadataDao()?.getById(mapper.chatIdHex(chatId))?.isMember ?: false
+
     suspend fun setMembership(chatId: ChatId, isMember: Boolean) {
         setMembership(mapper.chatIdHex(chatId), isMember)
     }

@@ -21,8 +21,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Resolves the group and person links in arriving messages into [LinkCardMemory], so a card is
  * drawn resolved on the frame its message first appears. See [MessageLinkPrefetch].
  *
- * Only those two card kinds are fetched ahead: they are the ones whose size depends on the answer.
- * Cash and token cards keep resolving when drawn, as before.
+ * Group and person links are always fetched ahead; outside pages only when the caller passes
+ * `webLinks` and web link previews are on. Cash and token cards keep resolving when drawn, as before.
  *
  * Links are found exactly as the transcript finds them -- the same text, the same detection pass,
  * the same classifier -- so a link prefetched here is the link a card is drawn for.
@@ -32,7 +32,9 @@ internal class MessageLinkPrefetcher(
     private val memory: LinkCardMemory,
     private val group: suspend (chatId: ChatId) -> Result<LinkCard.GroupInvite.State.Resolved>,
     private val user: suspend (identity: LinkCard.User.Identity) -> Result<LinkCard.User.State.Resolved>,
+    private val web: suspend (url: String) -> Result<LinkCard.Web.State>,
     dispatchers: DispatcherProvider,
+    private val webEnabled: suspend () -> Boolean = { true },
 ) : MessageLinkPrefetch {
 
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.IO)
@@ -40,30 +42,37 @@ internal class MessageLinkPrefetcher(
     /** In-flight lookups by link, so a link in two arriving batches is asked for once. */
     private val inFlight = ConcurrentHashMap<Any, Deferred<Unit>>()
 
-    override suspend fun prefetch(messages: List<ChatMessage>, wait: Duration) {
+    override suspend fun prefetch(messages: List<ChatMessage>, wait: Duration, webLinks: Boolean) {
         // A lookup for a link the store already answers would be wasted, and on a cold start the
         // store may still be loading; wait briefly for it rather than asking for everything.
         withTimeoutOrNull(LOAD_WAIT) { memory.awaitLoaded() }
 
+        // Read once per batch: the flag can flip in the staff menu while a chat is open.
+        val webAllowed = webLinks && webEnabled()
         val lookups = messages
             .asSequence()
             .filterNot { it.redacted }
             .flatMap { it.content.asSequence() }
             .mapNotNull { content -> content.linkableText()?.let { classifier.firstCard(detectUrls(it)) } }
-            .mapNotNull { card -> lookup(card) }
+            .mapNotNull { card -> lookup(card, webAllowed) }
             .toList()
 
         if (lookups.isEmpty() || wait <= Duration.ZERO) return
         withTimeoutOrNull(wait) { lookups.awaitAll() }
     }
 
-    private fun lookup(card: LinkCard): Deferred<Unit>? = when (card) {
+    private fun lookup(card: LinkCard, webLinks: Boolean): Deferred<Unit>? = when (card) {
         is LinkCard.GroupInvite -> card.chatId
             .takeUnless { it in memory.groups }
             ?.let { chatId -> start(chatId) { group(chatId).onSuccess { memory.putGroup(chatId, it) } } }
         is LinkCard.User -> card.identity
             .takeUnless { it in memory.users }
             ?.let { identity -> start(identity) { user(identity).onSuccess { memory.putUser(identity, it) } } }
+        // An outside fetch shows the linked host who is reading, so only a caller that vouched for
+        // the open chat and its member asks for it. Otherwise the card resolves when drawn.
+        is LinkCard.Web -> if (!webLinks) null else WebLinks.cacheKey(card.url)
+            ?.takeUnless { it in memory.webs }
+            ?.let { key -> start(key) { web(card.url).onSuccess { memory.putWeb(key, it) } } }
         is LinkCard.Cash, is LinkCard.TokenInfo -> null
     }
 

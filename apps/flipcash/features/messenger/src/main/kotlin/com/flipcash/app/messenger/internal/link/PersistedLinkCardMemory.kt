@@ -22,9 +22,10 @@ import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * [LinkCardMemory] that also keeps group and person answers in `link_previews`, so the first visit
+ * [LinkCardMemory] that also keeps group, person and web page answers in `link_previews`, so the first visit
  * after a cold start paints those cards resolved rather than growing into them.
  *
  * Only those two are stored because only those two change size when they resolve: a group card
@@ -47,9 +48,10 @@ internal class PersistedLinkCardMemory(
     private val store: LinkPreviewDataSource,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
+    private val images: WebImageStore,
     dispatchers: DispatcherProvider,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-) : LinkCardMemory() {
+) : LinkCardMemory(clock = now) {
 
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.IO)
     private val loaded = MutableStateFlow(false)
@@ -59,17 +61,27 @@ internal class PersistedLinkCardMemory(
 
     init {
         scope.launch {
-            store.observeAll(writtenSince = { now() - MAX_AGE.inWholeMilliseconds }).collect { records ->
+            store.observeAll(
+                writtenSince = { now() - MAX_AGE.inWholeMilliseconds },
+                onDropped = { dropped -> dropped.forEach { removeImageOf(it) } },
+            ).collect { records ->
                 loaded.value = false
+                val held = heldWebs()
                 _groups.clear()
                 _users.clear()
+                clearWebs()
                 writtenAt.clear()
                 records.forEach { load(it) }
+                // A database closing or changing hands: what the last one held and this one does not.
+                val kept = heldWebs().values.mapNotNullTo(mutableSetOf()) { imageOf(it) }
+                held.values.mapNotNull { imageOf(it) }.filter { it !in kept }.forEach { removeImage(it) }
                 loaded.value = true
                 trace(tag = TAG, message = "Loaded ${records.size} link previews", type = TraceType.Process)
             }
         }
     }
+
+    override val isLoaded: Boolean get() = loaded.value
 
     override suspend fun awaitLoaded() {
         loaded.first { it }
@@ -87,6 +99,16 @@ internal class PersistedLinkCardMemory(
         write(key, json.encodeToString(UserProfile.serializer(), state.profile.publicOnly()))
     }
 
+    override fun putWeb(key: String, state: LinkCard.Web.State) {
+        val rowKey = WEB_PREFIX + key
+        val unchanged = webs[key] == state
+        val replaced = heldWeb(key)?.let { imageOf(it) }
+        storeWeb(key, state)
+        if (replaced != null && replaced != imageOf(state)) scope.launch { removeImage(replaced) }
+        if (unchanged && !rewriteDue(rowKey)) return
+        write(rowKey, webJson.encodeToString(StoredWeb.serializer(), StoredWeb.of(state)))
+    }
+
     override fun removeGroup(chatId: ChatId) {
         if (_groups.remove(chatId) != null) delete(groupKey(chatId))
     }
@@ -97,6 +119,20 @@ internal class PersistedLinkCardMemory(
 
     private fun rewriteDue(key: String): Boolean =
         now() - (writtenAt[key] ?: 0L) >= REWRITE_AFTER.inWholeMilliseconds
+
+    private fun imageOf(state: LinkCard.Web.State): String? = (state as? LinkCard.Web.State.Resolved)?.imageUrl
+
+    private fun removeImage(url: String) {
+        runCatching { images.remove(url) }
+            .onFailure { trace(tag = TAG, message = "Failed to remove an image", error = it) }
+    }
+
+    /** A row dropped for age by the table, which has already deleted it: only its picture is left. */
+    private fun removeImageOf(record: LinkPreviewRecord) {
+        if (!record.key.startsWith(WEB_PREFIX)) return
+        runCatching { webJson.decodeFromString(StoredWeb.serializer(), record.json).imageUrl }
+            .getOrNull()?.let { removeImage(it) }
+    }
 
     private fun delete(key: String) {
         writtenAt.remove(key)
@@ -133,6 +169,19 @@ internal class PersistedLinkCardMemory(
                         ?.let { _users[identity] = it }
                         ?: error("stored profile names no account")
                 }
+                record.key.startsWith(WEB_PREFIX) -> {
+                    val stored = webJson.decodeFromString(StoredWeb.serializer(), record.json)
+                    val state = stored.toState()
+                    // Freshness comes from the row itself. A stale row is dropped like one that no
+                    // longer decodes, and the link is looked up again the ordinary way.
+                    val age = (now() - record.updatedAt).milliseconds
+                    val ttl = if (state is LinkCard.Web.State.Resolved) WebLinks.RESOLVED_TTL else WebLinks.EMPTY_TTL
+                    if (age > ttl) {
+                        imageOf(state)?.let { removeImage(it) }
+                        error("stale web row")
+                    }
+                    storeWeb(record.key.removePrefix(WEB_PREFIX), state, at = record.updatedAt)
+                }
                 else -> error("unknown key")
             }
         }.isSuccess
@@ -168,6 +217,33 @@ internal class PersistedLinkCardMemory(
         }
     }
 
+    /**
+     * A web card's answer as stored, field names shared with iOS. A null title is
+     * [LinkCard.Web.State.None]. Every field is written, nulls included.
+     */
+    @Serializable
+    private data class StoredWeb(
+        val title: String? = null,
+        val description: String? = null,
+        val imageUrl: String? = null,
+        val host: String? = null,
+    ) {
+        fun toState(): LinkCard.Web.State =
+            if (title == null) {
+                LinkCard.Web.State.None
+            } else {
+                LinkCard.Web.State.Resolved(title, description, imageUrl, host ?: error("web row without a host"))
+            }
+
+        companion object {
+            fun of(state: LinkCard.Web.State) = when (state) {
+                is LinkCard.Web.State.Resolved -> StoredWeb(state.title, state.description, state.imageUrl, state.host)
+                // Loading is never stored; it stands for no answer, so it is written as none only if asked to.
+                LinkCard.Web.State.None, LinkCard.Web.State.Loading -> StoredWeb()
+            }
+        }
+    }
+
     @Serializable
     private data class StoredRequirement(
         val amount: String?,
@@ -181,10 +257,12 @@ internal class PersistedLinkCardMemory(
         val REWRITE_AFTER = 1.days
         const val GROUP_PREFIX = "group:"
         const val USER_PREFIX = "user:"
+        const val WEB_PREFIX = "web:"
         const val BY_ID = "id:"
         const val BY_NAME = "name:"
 
         val json = Json { ignoreUnknownKeys = true }
+        val webJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
         fun groupKey(chatId: ChatId) = GROUP_PREFIX + chatId.bytes.toHexString()
 

@@ -42,9 +42,17 @@ dependencies {
     implementation(libs.bundles.haze)
     // Stored link previews (PersistedLinkCardMemory) are JSON.
     implementation(libs.kotlinx.serialization.json)
+    // HttpUrl parses and normalises outside links (WebLinks).
+    implementation(libs.okhttp)
+    // The preview picture's own ImageLoader (WebImageLoader), on the client built under the page rules.
+    implementation(libs.coil3.core)
+    implementation(libs.coil3.network)
 
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.mockito.kotlin)
+    // A TLS MockWebServer, to see headers as OkHttp really sends and receives them (WebLinkLookupTest).
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.okhttp.tls)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.paging.testing)
 }

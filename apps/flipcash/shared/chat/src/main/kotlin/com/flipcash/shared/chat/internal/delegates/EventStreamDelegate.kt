@@ -29,6 +29,7 @@ import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.MessageLinkPrefetch
 import com.flipcash.shared.chat.internal.MentionPoolUpdates
+import com.flipcash.shared.chat.internal.WebPreviewGate
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
@@ -95,6 +96,8 @@ class EventStreamDelegate @Inject constructor(
     private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
     private val mentionPool: MentionPoolUpdates = MentionPoolUpdates.None,
 ) : EventStreamOperations {
+
+    private val webGate = WebPreviewGate(stateHolder, metadataDataSource)
 
     companion object {
         private const val TAG = "EventStreamDelegate"
@@ -293,7 +296,7 @@ class EventStreamDelegate @Inject constructor(
             result
                 .onSuccess { delta ->
                     if (delta.messages.isNotEmpty()) {
-                        linkPrefetch.prefetch(delta.messages, MessageLinkPrefetch.LIVE_WAIT)
+                        linkPrefetch.prefetch(delta.messages, MessageLinkPrefetch.LIVE_WAIT, webLinks = webGate.allows(chatId))
                         messageDataSource.upsert(chatId, delta.messages)
                     }
                     // One write that only moves forward: the cursor, and the newest message only
@@ -355,7 +358,7 @@ class EventStreamDelegate @Inject constructor(
         val lastMsg = if (resolvedMessages.isNotEmpty()) {
             trace(tag = TAG, message = "Upserting ${resolvedMessages.size} messages for $chatId", type = TraceType.Process)
             // Waited on so a link card lands already sized; see [MessageLinkPrefetch].
-            linkPrefetch.prefetch(resolvedMessages, MessageLinkPrefetch.LIVE_WAIT)
+            linkPrefetch.prefetch(resolvedMessages, MessageLinkPrefetch.LIVE_WAIT, webLinks = webGate.allows(update.chatId))
             messageDataSource.upsert(chatId, resolvedMessages)
             typingTracker.messageArrived(chatId, resolvedMessages.mapNotNull { it.senderId })
             mentionPool.onMessages(chatId, resolvedMessages.mapNotNull { m -> m.senderId?.let { it to m.timestamp } })

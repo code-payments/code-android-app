@@ -74,7 +74,11 @@ import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.LocalChatActionHandler
+import coil3.ImageLoader
 import com.flipcash.shared.chat.models.LocalLinkCardResolution
+import com.flipcash.shared.chat.models.LocalWebLinkPreviewMode
+import com.flipcash.shared.chat.models.LocalWebPreviewImageLoader
+import com.flipcash.shared.chat.models.WebLinkPreviewMode
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
@@ -107,6 +111,8 @@ internal fun MessageList(
     otherReadPointer: MessagePointer? = null,
     onAction: ChatActionHandler,
     linkCardResolution: LinkCardResolution,
+    webPreviewImageLoader: ImageLoader? = null,
+    webLinkPreviewsEnabled: Boolean = true,
     onJumpConsumed: () -> Unit = {},
     topBarBottom: Dp = 0.dp,
 ) {
@@ -123,6 +129,14 @@ internal fun MessageList(
     CompositionLocalProvider(
         LocalChatActionHandler provides onAction,
         LocalLinkCardResolution provides linkCardResolution,
+        // A viewer outside the group has not agreed to this device contacting a site a stranger
+        // linked, so the card waits for a tap.
+        LocalWebLinkPreviewMode provides when {
+            !webLinkPreviewsEnabled -> WebLinkPreviewMode.Off
+            state.isOutsideGroup -> WebLinkPreviewMode.TapToLoad
+            else -> WebLinkPreviewMode.Automatic
+        },
+        LocalWebPreviewImageLoader provides webPreviewImageLoader,
     ) {
         // Whether the list has settled where this visit opens it: at the unread divider, or at the
         // bottom when there is none. Saveable for the same reason refreshSettled is — the screen is

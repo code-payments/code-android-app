@@ -17,6 +17,7 @@ import org.robolectric.annotation.Config
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -57,15 +58,6 @@ class LinkCardClassifierTest {
         override fun dispatch(deepLink: DeepLink) = error("not used in classification tests")
     }
 
-    /**
-     * Vectors answered ahead of the canonical fixture, by name, with the card kind given. The
-     * fixture still records person cards as "not in phase 1"; iOS holds the same exception
-     * (`LinkCardClassifierTests.aheadOfFixture`). Each entry goes when the fixture is updated.
-     */
-    private val aheadOfFixture = mapOf(
-        "tip-card-by-id" to "user",
-    )
-
     private fun fixture(): JSONObject = JSONObject(
         javaClass.classLoader!!
             .getResourceAsStream("link_detection.json")!!
@@ -94,11 +86,6 @@ class LinkCardClassifierTest {
             }
 
             val actual = classifier.firstCard(links)
-
-            aheadOfFixture[name]?.let { kind ->
-                assertEquals(kind, actual?.kindName, "vector `$name` is ahead of the fixture")
-                continue
-            }
 
             val expectedCard = vector.optJSONObject("card")
             if (expectedCard == null) {
@@ -130,6 +117,29 @@ class LinkCardClassifierTest {
                             "vector `$name` must start with its lookup still to do",
                         )
                     }
+
+                    "group" -> {
+                        val card = actual as? LinkCard.GroupInvite
+                        assertEquals(expectedCard.getString("url"), card?.url, "vector `$name`: $note")
+                        assertEquals(
+                            LinkCard.GroupInvite.State.Loading,
+                            card?.state,
+                            "vector `$name` must start with its lookup still to do",
+                        )
+                    }
+
+                    "user" -> {
+                        val card = actual as? LinkCard.User
+                        assertEquals(expectedCard.getString("url"), card?.url, "vector `$name`: $note")
+                        assertEquals(
+                            LinkCard.User.State.Loading,
+                            card?.state,
+                            "vector `$name` must start with its lookup still to do",
+                        )
+                    }
+
+                    // LinkCard.Web does not exist yet; compare the url only.
+                    "web" -> assertEquals(expectedCard.getString("url"), actual?.url, "vector `$name`: $note")
 
                     else -> error("vector `$name` has an unknown card kind `$kind`")
                 }
@@ -226,7 +236,10 @@ class LinkCardClassifierTest {
         }
     }
 
-    /** The router reads any single segment as a handle, so only the host gate stops these. */
+    /**
+     * The router reads any single segment as a handle, so only the host gate stops these from
+     * becoming person cards; they fall through to the outside-link card.
+     */
     @Test
     fun `a person shaped link on another host stays a link`() {
         listOf(
@@ -234,17 +247,67 @@ class LinkCardClassifierTest {
             "https://t.me/satoshi",
             "https://example.com/2b0b4d1e-9f3e-4c21-9f1a-6d5f7c8e9a0b",
             "https://example.com/tip/2b0b4d1e-9f3e-4c21-9f1a-6d5f7c8e9a0b",
-        ).forEach { assertNull(cardFor(it), it) }
+        ).forEach { assertTrue(cardFor(it) is LinkCard.Web, it) }
     }
 
+    /** HttpUrl would decode the escape and fetch `example.com`; iOS refuses it (parity decision D11). */
     @Test
-    fun `a website page stays a link`() {
+    fun `a percent escaped host gets no web card`() {
+        assertNull(cardFor("https://ex%61mple.com/"))
+    }
+
+    /** iOS gives an explicit port other than 443 no card (parity decision D12). */
+    @Test
+    fun `a port other than 443 gets no web card`() {
+        assertNull(cardFor("https://example.com:6379/"))
+        assertNull(cardFor("https://example.com:8443/a"))
+        assertTrue(cardFor("https://example.com:443/") is LinkCard.Web)
+        assertTrue(cardFor("https://example.com/") is LinkCard.Web)
+    }
+
+    /** `HttpUrl` keeps the trailing dot, so the host rule has to refuse it (parity decision D13). */
+    @Test
+    fun `a trailing dot host gets no web card`() {
+        assertNull(cardFor("https://localhost./"))
+        assertNull(cardFor("https://a.local./"))
+        assertNull(cardFor("https://example.com./"))
+    }
+
+    /** P25: the website's own pages are web cards, never a person card. */
+    @Test
+    fun `a website page is a web card`() {
         listOf(
             "https://flipcash.com/download",
             "https://flipcash.com/Privacy",
             "https://flipcash.com/terms",
             "https://flipcash.com/currencycreator",
             "https://flipcash.com/api",
+            "https://www.flipcash.com/about",
+        ).forEach { assertIs<LinkCard.Web>(cardFor(it), it) }
+    }
+
+    /** P25: a seed, entropy or verification code is never fetched as a website page. */
+    @Test
+    fun `a website link carrying a secret is not a card`() {
+        listOf(
+            "https://flipcash.com/login/e=KNi8pQr1n5hRU65vKJGge3",
+            "https://flipcash.com/LOGIN/e=KNi8pQr1n5hRU65vKJGge3",
+            "https://flipcash.com/login",
+            "https://www.flipcash.com/verify?email=a%40b.com&code=123456",
+            "https://flipcash.com/c/other",
+            "https://flipcash.com/cash/other",
+            "https://flipcash.com/#/e=KNi8pQr1n5hRU65vKJGge3",
+            "https://flipcash.com/download#",
+        ).forEach { assertNull(cardFor(it), it) }
+    }
+
+    /** P25 is the website only: the app hosts' unknown paths stay links. */
+    @Test
+    fun `an app host path that does not classify is not a card`() {
+        listOf(
+            "https://app.flipcash.com/download",
+            "https://send.flipcash.com/",
+            "https://jump.flipcash.com/",
         ).forEach { assertNull(cardFor(it), it) }
     }
 
@@ -259,14 +322,6 @@ class LinkCardClassifierTest {
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, nested.length, nested))))
     }
 }
-
-private val LinkCard.kindName: String
-    get() = when (this) {
-        is LinkCard.Cash -> "cash"
-        is LinkCard.TokenInfo -> "token"
-        is LinkCard.GroupInvite -> "group"
-        is LinkCard.User -> "user"
-    }
 
 /**
  * `AppRouter`'s bare-host person link. Its reserved list is `internal` to the router module, so a

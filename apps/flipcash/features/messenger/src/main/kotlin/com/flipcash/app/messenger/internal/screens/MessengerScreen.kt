@@ -74,6 +74,8 @@ import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val webLinkPreviewsEnabled by viewModel.webLinkPreviewsEnabled.collectAsStateWithLifecycle()
+    val previewsReady by viewModel.previewsReady.collectAsStateWithLifecycle()
     val messages = viewModel.messages.collectAsLazyPagingItems()
     val mediaProgress = viewModel.mediaSendProgress.collectAsStateWithLifecycle()
     val mediaProgressOf = remember(mediaProgress) { { mediaProgress.value } }
@@ -424,29 +426,34 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 LocalChatMediaProgress provides mediaProgressOf,
                 LocalChatPhotoSources provides photoSources,
             ) {
-                MessageList(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("chat_message_list")
-                        .softTopEdge(ChatTopEdge.blurHold(barHeight))
-                        .hazeSource(hazeState)
-                        // Inside the edge blur and the haze, so a photo landing under the bars
-                        // passes behind them the way its bubble does.
-                        .chatPhotoTranscript(
-                            sources = photoSources,
-                            top = barHeight,
-                            bottom = overlapPadding.calculateBottomPadding(),
-                        ),
-                    state = state,
-                    contentPadding = overlapPadding,
-                    messages = messages,
-                    separatorConfig = state.separatorConfig,
-                    otherReadPointer = otherReadPointer,
-                    onAction = chatActionHandler,
-                    linkCardResolution = viewModel.linkCardResolution,
-                    onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
-                    topBarBottom = barHeight,
-                )
+                // Held for the saved link previews, 300 ms at most and the first chat only.
+                if (previewsReady) {
+                    MessageList(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("chat_message_list")
+                            .softTopEdge(ChatTopEdge.blurHold(barHeight))
+                            .hazeSource(hazeState)
+                            // Inside the edge blur and the haze, so a photo landing under the bars
+                            // passes behind them the way its bubble does.
+                            .chatPhotoTranscript(
+                                sources = photoSources,
+                                top = barHeight,
+                                bottom = overlapPadding.calculateBottomPadding(),
+                            ),
+                        state = state,
+                        contentPadding = overlapPadding,
+                        messages = messages,
+                        separatorConfig = state.separatorConfig,
+                        otherReadPointer = otherReadPointer,
+                        onAction = chatActionHandler,
+                        linkCardResolution = viewModel.linkCardResolution,
+                        webPreviewImageLoader = viewModel.webPreviewImageLoader,
+                        webLinkPreviewsEnabled = webLinkPreviewsEnabled,
+                        onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
+                        topBarBottom = barHeight,
+                    )
+                }
             }
         }
     }

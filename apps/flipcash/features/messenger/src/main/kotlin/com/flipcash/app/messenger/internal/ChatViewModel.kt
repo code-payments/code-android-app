@@ -17,6 +17,9 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.map
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.featureflags.NoOpFeatureFlagController
 import com.flipcash.analytics.CashLinkChoice
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
@@ -45,6 +48,7 @@ import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
 import com.flipcash.app.messenger.internal.link.LinkCardClassifier
+import com.flipcash.app.messenger.internal.link.LinkCardMemory
 import com.flipcash.app.messenger.internal.link.LinkCardResolver
 import com.flipcash.app.messenger.internal.mention.activeMentionToken
 import com.flipcash.app.messenger.internal.mention.insertMention
@@ -118,6 +122,8 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.models.splitAroundLinkCard
+import coil3.ImageLoader
+import com.flipcash.app.messenger.internal.link.WebPreviewImages
 import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionStrip
@@ -203,9 +209,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 
 data class TypingConstraints(
@@ -250,11 +258,40 @@ internal class ChatViewModel @AssistedInject constructor(
     private val rosterSearch: RosterSearchSource,
     private val featuredGroups: FeaturedGroupsStore,
     private val dispatchers: DispatcherProvider,
+    // Last and defaulted so the transcript tests, which draw no pictures, need not supply one.
+    @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
+    linkCardMemory: LinkCardMemory? = null,
+    featureFlags: FeatureFlagController = NoOpFeatureFlagController,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
+
+    /**
+     * Whether web link previews are on. Observed rather than read once, because the flag can flip
+     * in the staff menu while a chat is open. Off means no web card is drawn at all.
+     */
+    val webLinkPreviewsEnabled: StateFlow<Boolean> = featureFlags.observe(FeatureFlag.WebLinkPreviews)
+
+    /**
+     * Whether the transcript may be drawn. Saved link previews load at app start, but a chat opened
+     * straight from a notification can beat them to it, and a card drawn before its saved answer
+     * arrives shows its placeholder and then grows into the answer. So the first draw waits for
+     * them, for at most [PREVIEWS_WAIT], and then goes ahead with whatever has arrived. A store
+     * already loaded costs nothing, which is every chat after the first.
+     */
+    private val _previewsReady = MutableStateFlow(linkCardMemory == null || linkCardMemory.isLoaded)
+    val previewsReady: StateFlow<Boolean> = _previewsReady.asStateFlow()
+
+    init {
+        if (!_previewsReady.value && linkCardMemory != null) {
+            viewModelScope.launch {
+                withTimeoutOrNull(PREVIEWS_WAIT) { linkCardMemory.awaitLoaded() }
+                _previewsReady.value = true
+            }
+        }
+    }
 
     /**
      * A photo in the composer: its id in [ChatMediaUploads] and where it came from, for the
@@ -2991,6 +3028,10 @@ internal class ChatViewModel @AssistedInject constructor(
     }
 
     companion object {
+        /** The longest the first draw of a transcript waits for saved link previews to load. */
+        val PREVIEWS_WAIT = 300.milliseconds
+
+
         /**
          * How often a visible claimable voucher is re-asked about.
          *

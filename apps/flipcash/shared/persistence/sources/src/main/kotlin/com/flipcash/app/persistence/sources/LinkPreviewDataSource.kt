@@ -40,22 +40,28 @@ class LinkPreviewDataSource @Inject constructor() {
      * what the reader already has.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun observeAll(writtenSince: () -> Long): Flow<List<LinkPreviewRecord>> =
+    fun observeAll(
+        writtenSince: () -> Long,
+        onDropped: (List<LinkPreviewRecord>) -> Unit = {},
+    ): Flow<List<LinkPreviewRecord>> =
         FlipcashDatabase.observeInstance().flatMapLatest { instance ->
             if (instance == null) {
                 flowOf(emptyList())
             } else {
                 flow {
                     val dao = instance.linkPreviewDao()
-                    dao.deleteWrittenBefore(writtenSince())
+                    val cutoff = writtenSince()
+                    val dropped = dao.getWrittenBefore(cutoff)
+                    dao.deleteWrittenBefore(cutoff)
+                    if (dropped.isNotEmpty()) onDropped(dropped.map { it.toRecord() })
                     emit(
-                        dao.getAll().map {
-                            LinkPreviewRecord(key = it.key, json = it.json, updatedAt = it.updatedAt)
-                        },
+                        dao.getAll().map { it.toRecord() },
                     )
                 }
             }
         }
+
+    private fun LinkPreviewEntity.toRecord() = LinkPreviewRecord(key = key, json = json, updatedAt = updatedAt)
 
     suspend fun upsert(record: LinkPreviewRecord) {
         db?.linkPreviewDao()?.upsert(
