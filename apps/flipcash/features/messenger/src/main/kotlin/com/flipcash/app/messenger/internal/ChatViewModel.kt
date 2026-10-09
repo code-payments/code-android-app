@@ -2610,8 +2610,12 @@ internal class ChatViewModel @AssistedInject constructor(
             .launchIn(viewModelScope)
     }
 
-    private fun stagePhotos(uris: List<Uri>, captured: Boolean) {
-        val chatId = stateFlow.value.chatId ?: return
+    private fun stagePhotos(
+        uris: List<Uri>,
+        captured: Boolean,
+        chatId: ChatId? = stateFlow.value.chatId,
+    ) {
+        chatId ?: return
         if (stateFlow.value.editing != null) return
         val room = MAX_STAGED_PHOTOS - stateFlow.value.stagedPhotos.size
         uris.take(room.coerceAtLeast(0)).forEach { uri ->
@@ -2635,8 +2639,10 @@ internal class ChatViewModel @AssistedInject constructor(
         val share = pendingShares.take(chatId) ?: return
         // The same gate as the Photos and Camera rows. A chat that doesn't take media still takes
         // the text, and the copies of the images that go unused are deleted here.
-        if (stateFlow.value.acceptsMedia && share.images.isNotEmpty()) {
-            stagePhotos(share.images, captured = true)
+        // The chat id is passed in because ChatFound, which sets it in state, is reduced after this
+        // runs; acceptsMedia would read false for a chat that does take media.
+        if (stateFlow.value.editing == null && share.images.isNotEmpty()) {
+            stagePhotos(share.images, captured = true, chatId = chatId)
         } else {
             share.images.forEach { uri -> uri.path?.let { File(it).delete() } }
         }
