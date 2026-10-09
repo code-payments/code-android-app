@@ -37,5 +37,7 @@ dependencies {
     testImplementation(testFixtures(project(":services:flipcash")))
     implementation(project(":libs:network:connectivity:public"))
     implementation(project(":libs:emojis"))
+    // api: chat-ui draws FormattedText, which this module's parse helper returns.
+    api(project(":libs:text-format"))
     implementation(libs.androidx.lifecycle.process)
 }

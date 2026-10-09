@@ -96,4 +96,35 @@ class MentionDetectionTest {
         assertEquals(emptyList(), handles("no handles here"))
         assertEquals(emptyList(), handles("just an @ sign"))
     }
+
+    // Text-format spec, rule 6: one `_` may sit before the `@`, and then the handle's final `_`
+    // is the italic's closer rather than part of the name.
+    @Test
+    fun `an italic mention gives its closing underscore back`() {
+        val text = "_@jeff_"
+        val mention = detectMentions(text, emptyList()).single()
+        assertEquals("jeff", mention.username)
+        assertEquals(1 to 6, mention.start to mention.end)
+    }
+
+    @Test
+    fun `a handle that really ends in an underscore is written with two`() {
+        assertEquals(listOf("jeff_"), handles("_@jeff__"))
+    }
+
+    @Test
+    fun `nothing is trimmed when the handle does not end in an underscore`() {
+        assertEquals(listOf("jeff_x"), handles("_@jeff_x"))
+    }
+
+    @Test
+    fun `an underscore that follows a handle character is not an opener`() {
+        assertEquals(emptyList(), handles("jeff_@gmail.com"))
+        assertEquals(emptyList(), handles("__@jeff__"))
+    }
+
+    @Test
+    fun `an italic that ends in a mention keeps the underscore in the handle`() {
+        assertEquals(listOf("jeff_"), handles("_hey @jeff_"))
+    }
 }

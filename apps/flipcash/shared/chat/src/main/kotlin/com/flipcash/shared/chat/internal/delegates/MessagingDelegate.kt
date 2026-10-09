@@ -37,6 +37,7 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.internal.SenderResolver
+import com.flipcash.shared.chat.ui.formattedDisplayText
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.PendingMutation
@@ -327,7 +328,8 @@ class MessagingDelegate @Inject constructor(
 
     /** Text, photos and replies to either are what DMs encrypt; anything else keeps the server's body. */
     private fun MessageContent.pushText(): String? = when (this) {
-        is MessageContent.Text -> text
+        // Built here from the decrypted text, so it can drop the markers the server never could.
+        is MessageContent.Text -> formattedDisplayText(text)
         is MessageContent.Media -> ChatMediaText.pushText(caption?.text)
         is MessageContent.Reply -> content.singleOrNull()?.pushText()
         else -> null

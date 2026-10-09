@@ -117,7 +117,7 @@ private fun MessageContent.previewText(
     depth: Int = 0,
 ): String? = when (this) {
     is MessageContent.Text -> {
-        val message = text.takeIf { it.isNotEmpty() }
+        val message = formattedDisplayText(text).takeIf { it.isNotEmpty() }
         when {
             message == null -> null
             sentBySelf -> resources.getString(R.string.label_chat_preview_sentMessage, message)
