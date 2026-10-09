@@ -38,6 +38,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.rememberKeyboardController
 
 /**
@@ -61,8 +62,19 @@ fun SharePickerScreen() {
             endContent = { AppBarDefaults.Close(onClick = { navigator.pop() }) },
         )
         Box(modifier = Modifier.fillMaxSize()) {
+            val loaded = chats
+            if (loaded == null) {
+                // No rows until the list is known, so an early tap can't land on a row that
+                // is about to be replaced.
+                CodeCircularProgressIndicator(
+                    strokeWidth = CodeTheme.dimens.thickBorder,
+                    color = CodeTheme.colors.textSecondary,
+                    modifier = Modifier.align(Alignment.Center).requiredSize(CodeTheme.dimens.staticGrid.x8),
+                )
+                return@Box
+            }
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(chats.orEmpty(), key = { it.chatId.toString() }) { chat ->
+                items(loaded, key = { it.chatId.toString() }) { chat ->
                     ShareTargetRow(chat) {
                         if (viewModel.choose(chat.chatId)) {
                             keyboard.hideIfVisible {

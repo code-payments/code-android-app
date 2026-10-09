@@ -14,7 +14,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -40,8 +39,12 @@ internal class SharePickerViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val selfId = userManager.accountId
-            _chats.value = chatCoordinator.chatListFeed().first()
-                .map { it.toConversationReference(selfId, emptyMap(), resources) }
+            chatCoordinator.chatListFeed().collect { summaries ->
+                val fresh = summaries.map { it.toConversationReference(selfId, emptyMap(), resources) }
+                // The first list is shown as it arrives. Later ones (the feed keeps syncing) keep
+                // the rows already on screen where they are, so nothing moves under a finger.
+                _chats.value = fresh.mergeStable(_chats.value) { it.chatId }
+            }
         }
     }
 
@@ -57,4 +60,17 @@ internal class SharePickerViewModel @Inject constructor(
         // its copied images with it. Cleared rather than on dispose, so a rotation keeps it.
         if (!chosen) shares.discard()
     }
+}
+
+/**
+ * This list with the order of [previous] kept: rows still present stay in their old positions with
+ * their new contents, rows that went are dropped, and new ones are appended in their own order.
+ * With no [previous] it is this list unchanged.
+ */
+internal fun <T, K> List<T>.mergeStable(previous: List<T>?, key: (T) -> K): List<T> {
+    if (previous == null) return this
+    val byKey = associateBy(key)
+    val kept = previous.mapNotNull { byKey[key(it)] }
+    val keptKeys = kept.mapTo(HashSet(), key)
+    return kept + filterNot { key(it) in keptKeys }
 }
