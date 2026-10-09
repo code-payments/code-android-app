@@ -178,7 +178,7 @@ class LinkCardTapTest {
         composeTestRule.mainClock.autoAdvance = false
         composeTestRule.onNodeWithText("View").performClick()
 
-        assertEquals(listOf<ChatAction>(ChatAction.OpenGroup(chatId)), actions.toList())
+        assertEquals(listOf<ChatAction>(ChatAction.OpenGroup(chatId, resolved = true)), actions.toList())
     }
 
     @Test
