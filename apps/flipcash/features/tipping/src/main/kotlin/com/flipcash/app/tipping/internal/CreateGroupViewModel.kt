@@ -577,7 +577,10 @@ internal class CreateGroupViewModel @AssistedInject constructor(
 
             is StartChatError.Denied -> BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_groupCreateDenied),
-                message = resources.getString(R.string.error_description_groupCreateDenied),
+                message = resources.getString(
+                    if (stateFlow.value.isPrivate) R.string.error_description_privateGroupCreateDenied
+                    else R.string.error_description_groupCreateDenied
+                ),
             )
 
             // The blob was accepted by storage and refused by StartChat, so the picture is what has

@@ -96,8 +96,8 @@ class CreateGroupViewModelErrorTest {
         BottomBarManager.clear()
     }
 
-    private fun createViewModel() = CreateGroupViewModel(
-        isPrivate = false,
+    private fun createViewModel(isPrivate: Boolean = false) = CreateGroupViewModel(
+        isPrivate = isPrivate,
         exchange = exchange,
         tokenCoordinator = tokenCoordinator,
         dispatchers = dispatchers,
@@ -260,6 +260,24 @@ class CreateGroupViewModelErrorTest {
             vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
             advanceUntilIdle()
             assertTrue(titles().contains("error_title_groupCreateDenied"))
+        }
+
+    @Test
+    fun `a denied private create says private groups`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val vm = createViewModel(isPrivate = true)
+            vm.stateFlow.value.titleFieldState.setTextAndPlaceCursorAtEnd("Ballers")
+
+            failing(StartChatError.Denied())
+            vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+            advanceUntilIdle()
+
+            assertTrue(
+                BottomBarManager.messages.value.any {
+                    it.subtitle == "error_description_privateGroupCreateDenied"
+                }
+            )
         }
 
     @Test
