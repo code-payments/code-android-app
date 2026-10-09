@@ -6,7 +6,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /** Rules shared by every step of a web link preview. Mirrors `link_metadata.json`. */
 internal object WebLinks {
-    const val MAX_BODY_BYTES = 512 * 1024
+    const val MAX_BODY_BYTES = 1024 * 1024
     const val MAX_IMAGE_BYTES = 2 * 1024 * 1024
     const val MAX_REDIRECTS = 3
     const val MAX_CONCURRENT = 4
