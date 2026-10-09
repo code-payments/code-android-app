@@ -5,7 +5,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
@@ -17,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.core.os.BundleCompat
 import com.getcode.utils.trace
 import com.google.android.gms.auth.api.phone.SmsRetriever
@@ -95,14 +95,10 @@ fun SmsOtpAutofill(
             }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            context.registerReceiver(
-                receiver, filter, SmsRetriever.SEND_PERMISSION,
-                null, Context.RECEIVER_EXPORTED,
-            )
-        } else {
-            context.registerReceiver(receiver, filter, SmsRetriever.SEND_PERMISSION, null)
-        }
+        ContextCompat.registerReceiver(
+            context, receiver, filter, SmsRetriever.SEND_PERMISSION,
+            null, ContextCompat.RECEIVER_EXPORTED,
+        )
 
         onDispose {
             context.unregisterReceiver(receiver)
