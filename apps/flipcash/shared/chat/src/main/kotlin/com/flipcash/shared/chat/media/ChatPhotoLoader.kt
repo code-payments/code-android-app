@@ -1,8 +1,10 @@
 package com.flipcash.shared.chat.media
 
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
+import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.chat.BlobOpenFailure
 import com.flipcash.services.chat.ChatContentCrypto
+import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.chat.OpenedBlob
 import com.flipcash.services.controllers.BlobStorageController
 import com.flipcash.services.models.chat.BlobAccessContext
@@ -64,6 +66,8 @@ class ChatPhotoLoader internal constructor(
     private val crypto: ChatContentCrypto,
     private val userManager: UserManager,
     private val members: ChatMemberDataSource,
+    private val groupCrypto: GroupContentCrypto,
+    private val metadata: ChatMetadataDataSource,
     private val now: () -> kotlin.time.Instant,
 ) {
     @Inject
@@ -72,7 +76,9 @@ class ChatPhotoLoader internal constructor(
         crypto: ChatContentCrypto,
         userManager: UserManager,
         members: ChatMemberDataSource,
-    ) : this(blobStorage, crypto, userManager, members, { Clock.System.now() })
+        groupCrypto: GroupContentCrypto,
+        metadata: ChatMetadataDataSource,
+    ) : this(blobStorage, crypto, userManager, members, groupCrypto, metadata, { Clock.System.now() })
 
     /**
      * A URL to download [photo] from: the stored one while it is usable, else a freshly minted one.
@@ -97,23 +103,32 @@ class ChatPhotoLoader internal constructor(
      */
     suspend fun open(photo: ChatPhoto, downloaded: ByteArray): ByteArray {
         if (!photo.sealed) return downloaded
-        val selfId = userManager.accountId ?: throw ChatPhotoUnavailable.Open(BlobOpenFailure.KeyPending)
-        val peerId = members.getMembersForChat(photo.chatId).firstOrNull { it.userId != selfId }?.userId
-            ?: throw ChatPhotoUnavailable.Open(BlobOpenFailure.KeyPending)
         val expected = photo.rendition.blob?.sizeBytes ?: throw ChatPhotoUnavailable.Open(BlobOpenFailure.Length)
-        return when (
-            val opened = crypto.openBlob(
+        if (metadata.isPrivate(photo.chatId)) {
+            return groupCrypto.openBlob(
                 chatId = photo.chatId,
-                selfId = selfId,
-                peerId = peerId,
                 senderId = photo.senderId,
                 blobId = photo.rendition.blobId.bytes,
                 expectedSize = expected,
                 sealed = downloaded,
-            )
-        ) {
-            is OpenedBlob.Plaintext -> opened.bytes
-            is OpenedBlob.Failed -> throw ChatPhotoUnavailable.Open(opened.reason)
+            ).bytesOrThrow()
         }
+        val selfId = userManager.accountId ?: throw ChatPhotoUnavailable.Open(BlobOpenFailure.KeyPending)
+        val peerId = members.getMembersForChat(photo.chatId).firstOrNull { it.userId != selfId }?.userId
+            ?: throw ChatPhotoUnavailable.Open(BlobOpenFailure.KeyPending)
+        return crypto.openBlob(
+            chatId = photo.chatId,
+            selfId = selfId,
+            peerId = peerId,
+            senderId = photo.senderId,
+            blobId = photo.rendition.blobId.bytes,
+            expectedSize = expected,
+            sealed = downloaded,
+        ).bytesOrThrow()
+    }
+
+    private fun OpenedBlob.bytesOrThrow(): ByteArray = when (this) {
+        is OpenedBlob.Plaintext -> bytes
+        is OpenedBlob.Failed -> throw ChatPhotoUnavailable.Open(reason)
     }
 }

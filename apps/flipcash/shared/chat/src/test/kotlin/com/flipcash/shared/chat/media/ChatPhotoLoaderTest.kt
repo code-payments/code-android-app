@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.media
 
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
+import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.chat.BlobOpenFailure
 import com.flipcash.services.chat.ChatContentCrypto
 import com.flipcash.services.chat.OpenedBlob
@@ -41,7 +42,8 @@ class ChatPhotoLoaderTest {
             ChatMember(it, UserProfile(displayName = "n", socialAccounts = emptyList(), phoneNumber = null, email = null), emptyList())
         }
     }
-    private val loader = ChatPhotoLoader(storage, crypto, user, members) { now }
+    private val metadata = mockk<ChatMetadataDataSource> { coEvery { isPrivate(any()) } returns false }
+    private val loader = ChatPhotoLoader(storage, crypto, user, members, mockk(), metadata) { now }
 
     private fun metadata(url: String, expiresAt: Instant? = null) = BlobMetadata(
         mimeType = "image/jpeg", sizeBytes = 3, downloadUrl = url, expiresAtMillis = expiresAt?.toEpochMilliseconds(),

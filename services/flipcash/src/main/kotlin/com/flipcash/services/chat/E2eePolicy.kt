@@ -11,11 +11,13 @@ import javax.inject.Inject
  *
  * This is the only reader of [ChatMetadata.useE2ee] in the app. It maps a chat onto
  * [ChatEncryptionPolicy], which both apps share, so the two platforms can't disagree on when a DM
- * is encrypted. The @flipcash exemption lives there.
+ * is encrypted. The @flipcash exemption lives there. A private group is always encrypted.
  */
 class E2eePolicy @Inject constructor() {
 
     fun shouldEncrypt(chat: ChatMetadata): Boolean {
+        // A private group is always encrypted, under its chat key; the server refuses plaintext.
+        if (chat.isPrivate) return true
         // CONTACT_DM and TIP_DM, matching the server's IsDmChatType.
         val isDm = chat.type == ChatType.CONTACT_DM || chat.type == ChatType.TIP_DM
         // Every member is checked rather than picking out the peer, so the answer doesn't depend

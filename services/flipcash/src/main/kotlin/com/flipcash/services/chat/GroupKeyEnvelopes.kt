@@ -1,12 +1,16 @@
 package com.flipcash.services.chat
 
 import com.flipcash.services.controllers.ChatController
+import com.flipcash.services.models.GetKeyEnvelopeError
 import com.flipcash.services.models.SetKeyEnvelopeError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.getcode.chatcipher.ChatCipher
 import com.getcode.chatcipher.EncryptedPayload
+import com.getcode.ed25519kmp.KeyPair
 import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,11 +27,12 @@ class GroupKeyEnvelopes @Inject constructor(
     private val cipher: ChatCipher,
     private val keys: ChatKeySource,
     private val chatController: ChatController,
-) {
+) : GroupKeySource {
     // Own public key in the key so a different account on this device never reuses a group key.
     private data class CacheKey(val chatId: ID, val ownPk: ID)
 
     private val groupKeys = ConcurrentHashMap<CacheKey, ByteArray>()
+    private val locks = ConcurrentHashMap<CacheKey, Mutex>()
 
     /**
      * Generates [chatId]'s chat key and stores the creator's own envelope: the second step of
@@ -54,30 +59,81 @@ class GroupKeyEnvelopes @Inject constructor(
     suspend fun wrapFor(chatId: ChatId, recipientPk: ByteArray): Result<KeyEnvelope> {
         val own = keys.ownKeyPair()
             ?: return Result.failure(IllegalStateException("No account key pair"))
-        val groupKey = groupKey(chatId).getOrElse { return Result.failure(it) }
+        val groupKey = key(chatId).getOrElse { return Result.failure(it) }
         return runCatching { cipher.wrapGroupKey(own, recipientPk, chatId.bytes, groupKey).toKeyEnvelope() }
     }
 
     /**
-     * The viewer's copy of [chatId]'s chat key, opened from their stored envelope. Only a
-     * self-wrapped envelope is opened here; one the creator wrapped for a member is the member's
-     * path, which needs the creator's key.
+     * The viewer's copy of [chatId]'s chat key, fetched once per chat per launch and kept in memory.
+     *
+     * A self-wrapped envelope opens under the viewer's own key. One the creator wrapped when
+     * admitting the viewer opens under the creator's key, which comes from the Resolver for
+     * `Metadata.creator`; the member then wraps the key for itself and stores that, so its other
+     * devices depend only on its own key. An envelope wrapped by anyone else is refused, and so is
+     * one that fails to open: the caller must not send in the chat without this key.
+     *
+     * `NO_ENVELOPE` means a creator whose setup stopped before [storeNewKey] landed; only the
+     * creator regenerates the key there.
      */
-    private suspend fun groupKey(chatId: ChatId): Result<ByteArray> {
+    override suspend fun key(chatId: ChatId): Result<ByteArray> {
         val own = keys.ownKeyPair()
             ?: return Result.failure(IllegalStateException("No account key pair"))
         val cacheKey = CacheKey(chatId.bytes.toList(), own.publicKey.toList())
         groupKeys[cacheKey]?.let { return Result.success(it) }
 
-        val stored = chatController.getKeyEnvelope(chatId).getOrElse { return Result.failure(it) }
-        return runCatching {
-            cipher.unwrapGroupKey(
-                ownKeyPair = own,
-                wrapperPk = own.publicKey,
-                chatId = chatId.bytes,
-                envelope = EncryptedPayload(stored.envelope.nonce, stored.envelope.ciphertext),
-            )
-        }.onSuccess { groupKeys[cacheKey] = it }
+        return locks.getOrPut(cacheKey) { Mutex() }.withLock {
+            groupKeys[cacheKey]?.let { return@withLock Result.success(it) }
+            fetchKey(chatId, own)
+                .onSuccess { groupKeys[cacheKey] = it }
+        }
+    }
+
+    private suspend fun fetchKey(chatId: ChatId, own: KeyPair, retried: Boolean = false): Result<ByteArray> {
+        val stored = chatController.getKeyEnvelope(chatId).getOrElse { error ->
+            if (error is GetKeyEnvelopeError.NoEnvelope && !retried && viewerIsCreator(chatId)) {
+                // storeNewKey caches the key it stored; ALREADY_SET leaves nothing cached, so read that one.
+                return storeNewKey(chatId).mapCatching {
+                    groupKeys[CacheKey(chatId.bytes.toList(), own.publicKey.toList())]
+                        ?: fetchKey(chatId, own, retried = true).getOrThrow()
+                }
+            }
+            return Result.failure(error)
+        }
+        if (stored.envelope.scheme != KeyEnvelope.SCHEME_X25519_XCHACHA20POLY1305) {
+            return Result.failure(UntrustedEnvelope("Unsupported envelope scheme ${stored.envelope.scheme}"))
+        }
+        val payload = EncryptedPayload(stored.envelope.nonce, stored.envelope.ciphertext)
+        val wrapper = stored.wrappedBy
+
+        if (wrapper == null || wrapper == keys.ownUserId()) {
+            return runCatching { cipher.unwrapGroupKey(own, own.publicKey, chatId.bytes, payload) }
+                .recoverCatching { throw UntrustedEnvelope("Self-wrapped envelope did not open", it) }
+        }
+
+        val creator = chatController.getChat(chatId).getOrElse { return Result.failure(it) }.creator
+        if (creator == null || wrapper != creator) {
+            return Result.failure(UntrustedEnvelope("Envelope wrapped by someone other than the creator"))
+        }
+        val creatorPk = keys.peerPublicKey(creator).getOrElse { return Result.failure(it) }
+        val groupKey = runCatching { cipher.unwrapGroupKey(own, creatorPk, chatId.bytes, payload) }
+            .getOrElse { return Result.failure(UntrustedEnvelope("Creator-wrapped envelope did not open", it)) }
+
+        val selfWrapped = runCatching {
+            cipher.wrapGroupKey(own, own.publicKey, chatId.bytes, groupKey).toKeyEnvelope()
+        }.getOrElse { return Result.failure(it) }
+        return chatController.setKeyEnvelope(chatId, selfWrapped).fold(
+            onSuccess = { Result.success(groupKey) },
+            onFailure = { error ->
+                // Another device re-wrapped first; its envelope stands, so read that one.
+                if (error is SetKeyEnvelopeError.AlreadySet && !retried) fetchKey(chatId, own, retried = true)
+                else Result.failure(error)
+            },
+        )
+    }
+
+    private suspend fun viewerIsCreator(chatId: ChatId): Boolean {
+        val self = keys.ownUserId() ?: return false
+        return chatController.getChat(chatId).getOrNull()?.creator == self
     }
 
     private fun EncryptedPayload.toKeyEnvelope() = KeyEnvelope(
@@ -86,3 +142,6 @@ class GroupKeyEnvelopes @Inject constructor(
         ciphertext = ciphertext,
     )
 }
+
+/** A key envelope this client will not trust: wrong wrapper, unknown scheme, or it failed to open. */
+class UntrustedEnvelope(message: String, cause: Throwable? = null) : Exception(message, cause)

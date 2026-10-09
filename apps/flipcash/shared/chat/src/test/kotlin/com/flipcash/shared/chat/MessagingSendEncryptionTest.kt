@@ -130,6 +130,7 @@ class MessagingSendEncryptionTest {
                 chatController = chatController,
                 metadataDataSource = metadata,
                 memberDataSource = members,
+                groupCrypto = mockk(),
             ),
         )
     }
@@ -209,6 +210,7 @@ class MessagingSendEncryptionTest {
         chatController = chatController,
         metadataDataSource = metadata,
         memberDataSource = members,
+        groupCrypto = mockk(),
     )
 
     @Test
