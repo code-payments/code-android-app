@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.ui.platform.UriHandler
 import com.flipcash.core.R
 import com.getcode.manager.BottomBarAction
+import com.getcode.manager.BottomBarCheckbox
 import com.getcode.manager.BottomBarManager
 import java.net.IDN
 
@@ -25,30 +26,42 @@ sealed interface LinkDestination {
     /** The host is exactly one of [FIRST_PARTY_HOSTS]; open without asking. */
     data object FirstParty : LinkDestination
 
+    /** The host is exactly one the user chose to trust from the warning; open without asking. */
+    data class Trusted(val host: String) : LinkDestination
+
     /**
      * Anywhere else. [host] is what the warning shows: lowercased and in ASCII (punycode) form, so
      * a homograph domain can't pass for the real one. For a link with no host at all (`mailto:`),
-     * it is the scheme.
+     * it is the scheme, and [trustable] is false: there is no website to stop asking about.
      */
-    data class External(val host: String) : LinkDestination
+    data class External(val host: String, val trustable: Boolean = true) : LinkDestination
 }
 
 /**
- * Classifies [url] by its host, on an exact match against [FIRST_PARTY_HOSTS] — never a suffix
- * match, so `evilflipcash.com` and `flipcash.com.evil.tld` both warn.
+ * Classifies [url] by its host, on an exact match against [FIRST_PARTY_HOSTS] and then
+ * [trustedHosts] — never a suffix match, so `evilflipcash.com` and `flipcash.com.evil.tld` both
+ * warn, and trusting `x.com` does not cover `mail.x.com`. [trustedHosts] holds hosts in the form
+ * [LinkDestination.External.host] gives them.
  *
  * The host is parsed here rather than with `Uri`/`URI`: those differ from browsers on inputs an
  * attacker picks (`\` as a path separator, non-ASCII hosts), and the answer has to agree with where
  * the browser actually goes. Anything this can't read as first-party warns.
  */
-fun classifyLink(url: String): LinkDestination {
+fun classifyLink(url: String, trustedHosts: Set<String> = emptySet()): LinkDestination {
     val raw = hostOf(url.trim())
     if (raw == null) {
         val scheme = url.trim().substringBefore(':', missingDelimiterValue = "").lowercase()
-        return LinkDestination.External(scheme.ifEmpty { url.trim().take(MAX_FALLBACK_LENGTH) })
+        return LinkDestination.External(
+            host = scheme.ifEmpty { url.trim().take(MAX_FALLBACK_LENGTH) },
+            trustable = false,
+        )
     }
     val host = asciiHost(raw)
-    return if (host in FIRST_PARTY_HOSTS) LinkDestination.FirstParty else LinkDestination.External(host)
+    return when (host) {
+        in FIRST_PARTY_HOSTS -> LinkDestination.FirstParty
+        in trustedHosts -> LinkDestination.Trusted(host)
+        else -> LinkDestination.External(host)
+    }
 }
 
 private const val MAX_FALLBACK_LENGTH = 64
@@ -94,27 +107,72 @@ private fun asciiHost(host: String): String {
 }
 
 /**
- * Runs [open] straight away for a first-party link, and otherwise asks first: "You're Leaving
- * Flipcash", naming the host, with Open Website as the primary button and Cancel as the secondary.
+ * Runs [open] straight away for a first-party or trusted link, and otherwise asks first: "You're
+ * Leaving Flipcash", naming the host, with Open Website as the primary button and Cancel as the
+ * secondary. Above the button sits "Don't ask again for <host>", unchecked; [trusted] keeps the host
+ * only when Open Website is tapped with it checked.
  *
  * Only for links someone else wrote, such as a chat message. A link the app opens on purpose
  * (terms, a token's socials) goes straight to the browser.
  */
-fun openWithExternalLinkCheck(context: Context, url: String, open: () -> Unit) {
-    when (val destination = classifyLink(url)) {
-        LinkDestination.FirstParty -> open()
-        is LinkDestination.External -> BottomBarManager.showInfo(
-            title = context.getString(R.string.prompt_title_externalLink),
-            message = context.getString(R.string.prompt_description_externalLink, destination.host),
-            actions = listOf(
-                BottomBarAction(
-                    text = context.getString(R.string.action_openWebsite),
-                    onClick = open,
-                ),
-            ),
-            showCancel = true,
+fun openWithExternalLinkCheck(
+    context: Context,
+    url: String,
+    trusted: TrustedWebsites,
+    open: () -> Unit,
+) {
+    val trustedHosts = trusted.websites.value.mapTo(mutableSetOf()) { it.host }
+    when (val destination = classifyLink(url, trustedHosts)) {
+        LinkDestination.FirstParty,
+        is LinkDestination.Trusted -> open()
+        is LinkDestination.External -> BottomBarManager.showMessage(
+            externalLinkWarning(
+                destination = destination,
+                title = context.getString(R.string.prompt_title_externalLink),
+                message = context.getString(R.string.prompt_description_externalLink, destination.host),
+                openWebsite = context.getString(R.string.action_openWebsite),
+                dontAskAgain = context.getString(R.string.action_dontAskAgainForHost, destination.host),
+                onTrust = trusted::trust,
+                open = open,
+            )
         )
     }
+}
+
+/**
+ * The warning for [destination]. Separate from [openWithExternalLinkCheck] so the rule for when
+ * [onTrust] runs can be tested without resources: only from Open Website, and only with the box
+ * checked at that moment.
+ */
+internal fun externalLinkWarning(
+    destination: LinkDestination.External,
+    title: String,
+    message: String,
+    openWebsite: String,
+    dontAskAgain: String,
+    onTrust: (host: String) -> Unit,
+    open: () -> Unit,
+): BottomBarManager.BottomBarMessage {
+    var dontAsk = false
+    return BottomBarManager.BottomBarMessage(
+        title = title,
+        subtitle = message,
+        type = BottomBarManager.BottomBarMessageType.INFO,
+        checkbox = BottomBarCheckbox(
+            label = dontAskAgain,
+            onCheckedChange = { dontAsk = it },
+        ).takeIf { destination.trustable },
+        actions = listOf(
+            BottomBarAction(
+                text = openWebsite,
+                onClick = {
+                    if (dontAsk) onTrust(destination.host)
+                    open()
+                },
+            ),
+        ),
+        showCancel = true,
+    )
 }
 
 /**
@@ -125,8 +183,9 @@ fun openWithExternalLinkCheck(context: Context, url: String, open: () -> Unit) {
 class ExternalLinkUriHandler(
     private val context: Context,
     private val delegate: UriHandler,
+    private val trusted: TrustedWebsites,
 ) : UriHandler {
     override fun openUri(uri: String) {
-        openWithExternalLinkCheck(context, uri) { delegate.openUri(uri) }
+        openWithExternalLinkCheck(context, uri, trusted) { delegate.openUri(uri) }
     }
 }

@@ -72,6 +72,6 @@ class ExternalLinksTest {
 
     @Test
     fun `a link with no host warns with its scheme`() {
-        assertEquals(LinkDestination.External("mailto"), classifyLink("mailto:someone@flipcash.com"))
+        assertEquals(LinkDestination.External("mailto", trustable = false), classifyLink("mailto:someone@flipcash.com"))
     }
 }

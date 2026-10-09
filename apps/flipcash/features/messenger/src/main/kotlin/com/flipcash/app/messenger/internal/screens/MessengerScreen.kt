@@ -41,6 +41,7 @@ import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.links.ExternalLinkUriHandler
+import com.flipcash.app.core.links.LocalTrustedWebsites
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -82,8 +83,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val context = LocalContext.current
     // Links a sender typed are the ones that can lead anywhere, so only the transcript asks before
     // leaving. The cash card goes through [uriHandler] above: it is ours, and opens directly.
-    val transcriptUriHandler = remember(context, uriHandler) {
-        ExternalLinkUriHandler(context, uriHandler)
+    val trustedWebsites = LocalTrustedWebsites.current
+    val transcriptUriHandler = remember(context, uriHandler, trustedWebsites) {
+        ExternalLinkUriHandler(context, uriHandler, trustedWebsites)
     }
 
     val userManager = LocalUserManager.current

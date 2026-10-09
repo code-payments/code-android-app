@@ -401,6 +401,7 @@
     <!-- %1$s is the link's host. -->
     <string name="prompt_description_externalLink">This will open %1$s. Never share your Access Key with a website</string>
     <string name="action_openWebsite">Open Website</string>
+    <string name="action_dontAskAgainForHost">Don\'t ask again for %1$s</string>
     <string name="action_unlinkAccount">Unlink Account</string>
 
     <string name="title_verificationFlow">Verify Your Phone Number And Email To Continue</string>
@@ -1300,6 +1301,13 @@
     <string name="prompt_description_unblockUser">The conversation with them will reappear in Tips</string>
     <string name="title_blocklistEmpty">No One Blocked</string>
     <string name="description_blocklistEmpty">Block people from sending you messages by tapping their profile and selecting block</string>
+    <!-- Settings › Privacy: the hosts ticked "Don't ask again" on the external-link warning. -->
+    <string name="title_trustedWebsites">Trusted Websites</string>
+    <!-- Under a trusted host; the argument is a short date such as "Oct 7". -->
+    <string name="subtitle_trustedWebsiteAdded">Added %1$s</string>
+    <string name="description_trustedWebsites">Links to these sites open without the “You\'re Leaving Flipcash” warning. Each entry is an exact match: x.com does not cover mail.x.com.</string>
+    <string name="title_trustedWebsitesEmpty">No Trusted Websites</string>
+    <string name="description_trustedWebsitesEmpty">Skip the “You\'re Leaving Flipcash” warning for a website by checking “Don\'t ask again” when you open its link</string>
     <string name="subtitle_joinedDate">Joined %1$s</string>
     <!-- The profile's two shortcuts into the DM with this person. "Send Cash" beside it is
          action_sendCash. -->

@@ -56,6 +56,7 @@ import com.flipcash.app.myaccount.BlocklistScreen
 import com.flipcash.app.myaccount.UserProfileScreen
 import com.flipcash.app.myaccount.EditProfileScreen
 import com.flipcash.app.myaccount.SettingsScreen
+import com.flipcash.app.myaccount.TrustedWebsitesScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
 import com.flipcash.app.tokens.SwapFlowScreen
@@ -186,6 +187,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.EditProfile> { EditProfileScreen() }
     annotatedEntry<AppRoute.Menu.ProfileCard> { key -> ProfileCardScreen(key) }
     annotatedEntry<AppRoute.Menu.Blocklist> { BlocklistScreen() }
+    annotatedEntry<AppRoute.Menu.TrustedWebsites> { TrustedWebsitesScreen() }
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }
     annotatedEntry<AppRoute.Menu.AccountSelection> { AccountSelectionScreen() }

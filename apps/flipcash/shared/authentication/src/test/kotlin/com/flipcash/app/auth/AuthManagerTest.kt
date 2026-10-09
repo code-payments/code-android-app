@@ -7,6 +7,7 @@ import com.flipcash.app.auth.internal.credentials.AccountMetadata
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.core.links.TrustedWebsites
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.push.PushTokenProvider
@@ -557,5 +558,18 @@ class AuthManagerTest {
 
         coVerify { credentialManager.lookup() }
         verify { persistence.openDatabase(entropy) }
+    }
+
+    // The trusted-website list is device-level and must outlive Log Out and Switch Accounts, both of
+    // which go through resetStateForUser. Neither AuthManager nor the settings it resets can reach it.
+    @Test
+    fun `logout and switch accounts have no route to the trusted-website list`() {
+        listOf(AuthManager::class.java, AppSettingsCoordinator::class.java).forEach { type ->
+            val params = type.declaredConstructors.flatMap { it.parameterTypes.toList() }
+            assertTrue(
+                params.none { TrustedWebsites::class.java.isAssignableFrom(it) },
+                "${type.simpleName} must not take TrustedWebsites",
+            )
+        }
     }
 }

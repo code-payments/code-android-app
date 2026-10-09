@@ -13,4 +13,7 @@ dependencies {
     implementation(project(":ui:biometrics"))
 
     implementation(libs.androidx.datastore)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
 }

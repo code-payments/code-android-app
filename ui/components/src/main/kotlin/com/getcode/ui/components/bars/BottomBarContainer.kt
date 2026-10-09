@@ -11,7 +11,10 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import com.getcode.theme.White10
 
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import com.getcode.manager.BottomBarAction.Companion.OK_DESCRIPTOR
+import com.getcode.manager.BottomBarCheckbox
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SelectedBottomBarAction
 import com.getcode.theme.CodeTheme
@@ -64,6 +68,7 @@ import androidx.compose.foundation.clickable
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeCheckbox
 import com.getcode.ui.theme.CodeButton
 import com.getcode.util.resources.R
 import kotlinx.coroutines.delay
@@ -252,6 +257,9 @@ fun BottomBarView(
                     }
                 }
             }
+            bottomBarMessage.checkbox?.let { checkbox ->
+                BottomBarCheckboxRow(checkbox = checkbox, messageId = bottomBarMessage.id)
+            }
             if (bottomBarMessage.additionalInfo.isNotEmpty()) {
                 var isExpanded by remember { mutableStateOf(false) }
 
@@ -432,4 +440,34 @@ private fun BottomBarManager.BottomBarMessageType.backgroundColor(): Color = whe
     BottomBarManager.BottomBarMessageType.WARNING -> CodeTheme.colors.bannerWarning
     // use themed banner's for success modals too
     BottomBarManager.BottomBarMessageType.SUCCESS -> CodeTheme.colors.bannerThemed // CodeTheme.colors.bannerSuccess
+}
+
+/**
+ * The message's tick box and its label, the whole row toggling it. Keyed on [messageId] so each
+ * message starts unchecked.
+ */
+@Composable
+private fun BottomBarCheckboxRow(checkbox: BottomBarCheckbox, messageId: Long) {
+    var checked by remember(messageId) { mutableStateOf(false) }
+    val toggle = { value: Boolean ->
+        checked = value
+        checkbox.onCheckedChange(value)
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = toggle),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // The row is the touch target, so the box can drop its own 48dp minimum and sit flush.
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+            CodeCheckbox(checked = checked, onCheckedChange = null)
+        }
+        Text(
+            text = checkbox.label,
+            style = CodeTheme.typography.textSmall,
+            color = White,
+        )
+    }
 }

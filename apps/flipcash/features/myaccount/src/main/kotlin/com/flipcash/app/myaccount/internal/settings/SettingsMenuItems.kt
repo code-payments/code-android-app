@@ -5,6 +5,7 @@ import androidx.compose.material.icons.filled.ContactMail
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
@@ -45,6 +46,16 @@ internal data object Blocklist : FullMenuItem<SettingsViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(R.string.title_blocklist)
     override val action: SettingsViewModel.Event = SettingsViewModel.Event.OpenScreen(AppRoute.Menu.Blocklist)
+}
+
+/** Always shown; the screen has its own empty state. */
+internal data object TrustedWebsites : FullMenuItem<SettingsViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Language)
+    override val name: String
+        @Composable get() = stringResource(CoreR.string.title_trustedWebsites)
+    override val action: SettingsViewModel.Event =
+        SettingsViewModel.Event.OpenScreen(AppRoute.Menu.TrustedWebsites)
 }
 
 internal data object BillCustomizer : FullMenuItem<SettingsViewModel.Event>() {

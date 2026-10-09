@@ -16,6 +16,7 @@ import com.flipcash.app.myaccount.internal.settings.LogOut
 import com.flipcash.app.myaccount.internal.settings.RequireBiometrics
 import com.flipcash.app.myaccount.internal.settings.SettingsViewModel
 import com.flipcash.app.myaccount.internal.settings.SwitchAccount
+import com.flipcash.app.myaccount.internal.settings.TrustedWebsites
 import com.flipcash.app.updates.ReleaseStageProvider
 import com.flipcash.app.userflags.FieldOverride
 import com.flipcash.app.userflags.ResolvedFlag
@@ -74,7 +75,7 @@ class SettingsViewModelTest {
         assertEquals(
             listOf(
                 AccessKey, RequireBiometrics,
-                Blocklist,
+                Blocklist, TrustedWebsites,
                 DeviceLogs, BetaFlags,
                 LogOut, DeleteAccount,
             ),
@@ -141,6 +142,12 @@ class SettingsViewModelTest {
         )
         assertEquals(null, enrolled.biometricsDescription)
         assertTrue(enrolled.biometricsRequired)
+    }
+
+    @Test
+    fun `trusted websites row always sits directly under blocked`() {
+        val privacy = SettingsViewModel.State().sections.single { it.title == R.string.title_settingsSectionPrivacy }
+        assertEquals(listOf(Blocklist, TrustedWebsites), privacy.items)
     }
 
     @Test
