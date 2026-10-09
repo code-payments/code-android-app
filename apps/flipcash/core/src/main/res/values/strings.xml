@@ -1114,8 +1114,8 @@
     <string name="action_requestedMinutesAgo">Requested %1$dm ago</string>
     <string name="action_requestedHoursAgo">Requested %1$dh ago</string>
     <string name="action_requestedDaysAgo">Requested %1$dd ago</string>
-    <string name="subtitle_requestPendingHost">You\'ll be able to open the chat once %1$s approves.</string>
-    <string name="subtitle_requestPendingHostUnnamed">You\'ll be able to open the chat once the host approves.</string>
+    <string name="subtitle_requestPendingHost">You\'ll be able to open the chat once %1$s approves</string>
+    <string name="subtitle_requestPendingHostUnnamed">You\'ll be able to open the chat once the host approves</string>
     <string name="prompt_title_lobbyClosed">%1$s isn\'t taking requests right now</string>
     <string name="prompt_description_lobbyFull">Too many people are waiting for the host to respond. Try again later.</string>
     <string name="prompt_description_tooManyLobbies">You have too many pending requests. Cancel one to request another.</string>
