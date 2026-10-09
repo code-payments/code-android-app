@@ -17,6 +17,7 @@ import org.robolectric.annotation.Config
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -272,14 +273,41 @@ class LinkCardClassifierTest {
         assertNull(cardFor("https://example.com./"))
     }
 
+    /** P25: the website's own pages are web cards, never a person card. */
     @Test
-    fun `a website page stays a link`() {
+    fun `a website page is a web card`() {
         listOf(
             "https://flipcash.com/download",
             "https://flipcash.com/Privacy",
             "https://flipcash.com/terms",
             "https://flipcash.com/currencycreator",
             "https://flipcash.com/api",
+            "https://www.flipcash.com/about",
+        ).forEach { assertIs<LinkCard.Web>(cardFor(it), it) }
+    }
+
+    /** P25: a seed, entropy or verification code is never fetched as a website page. */
+    @Test
+    fun `a website link carrying a secret is not a card`() {
+        listOf(
+            "https://flipcash.com/login/e=KNi8pQr1n5hRU65vKJGge3",
+            "https://flipcash.com/LOGIN/e=KNi8pQr1n5hRU65vKJGge3",
+            "https://flipcash.com/login",
+            "https://www.flipcash.com/verify?email=a%40b.com&code=123456",
+            "https://flipcash.com/c/other",
+            "https://flipcash.com/cash/other",
+            "https://flipcash.com/#/e=KNi8pQr1n5hRU65vKJGge3",
+            "https://flipcash.com/download#",
+        ).forEach { assertNull(cardFor(it), it) }
+    }
+
+    /** P25 is the website only: the app hosts' unknown paths stay links. */
+    @Test
+    fun `an app host path that does not classify is not a card`() {
+        listOf(
+            "https://app.flipcash.com/download",
+            "https://send.flipcash.com/",
+            "https://jump.flipcash.com/",
         ).forEach { assertNull(cardFor(it), it) }
     }
 
