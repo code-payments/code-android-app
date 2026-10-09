@@ -18,6 +18,8 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import okio.Buffer
+import okio.BufferedSource
 import java.io.IOException
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -170,11 +172,45 @@ internal class WebLinkLookup(
         it.subtype == "html" || it.subtype == "xhtml+xml"
     } ?: false
 
-    private fun Response.capped(): ByteArray {
-        val source = body.source()
-        source.request(WebLinks.MAX_BODY_BYTES.toLong())
-        return source.buffer.readByteArray(minOf(source.buffer.size, WebLinks.MAX_BODY_BYTES.toLong()))
+    private fun Response.capped(): ByteArray = body.source().readHead(WebLinks.MAX_BODY_BYTES)
+}
+
+/**
+ * Reads up to [cap] bytes of a page, stopping early once the head has ended: the first `</head` or
+ * `<body`, either case, as [WebPageParser] finds it. A marker split across two reads is still seen,
+ * because each scan restarts a marker's length before the new bytes. What follows is never pulled
+ * from the connection. Reads [chunk] bytes at a time.
+ */
+internal fun BufferedSource.readHead(cap: Int, chunk: Long = 8192): ByteArray {
+    val out = Buffer()
+    while (out.size < cap) {
+        val scanFrom = maxOf(0L, out.size - (HEAD_END_LONGEST - 1))
+        if (read(out, minOf(chunk, cap - out.size)) < 0) break
+        if (out.hasHeadEnd(scanFrom)) break
     }
+    return out.readByteArray()
+}
+
+private const val HEAD_END_LONGEST = 6L
+
+private fun Buffer.hasHeadEnd(from: Long): Boolean {
+    var i = from
+    while (i < size) {
+        if (this[i] == '<'.code.toByte()) {
+            if (matchesAt(i, "</head") || matchesAt(i, "<body")) return true
+        }
+        i++
+    }
+    return false
+}
+
+private fun Buffer.matchesAt(at: Long, marker: String): Boolean {
+    if (at + marker.length > size) return false
+    for (k in marker.indices) {
+        val b = this[at + k].toInt().toChar().lowercaseChar()
+        if (b != marker[k]) return false
+    }
+    return true
 }
 
 private suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
