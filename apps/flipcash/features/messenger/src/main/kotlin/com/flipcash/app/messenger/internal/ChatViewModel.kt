@@ -585,6 +585,13 @@ internal class ChatViewModel @AssistedInject constructor(
         val obscuresTranscript: Boolean
             get() = isOutsideGroup && !readsFromOutside
 
+        /**
+         * The host's Join Requests anchor under the title bar (node 11354:70): only while someone is
+         * waiting, and not while a message action has taken the bar over.
+         */
+        val showsJoinRequestsAnchor: Boolean
+            get() = isLobbyHost && joinRequests.isNotEmpty() && selection == null && editing == null
+
         /** Whether the chat's speaker rules let this viewer speak. See [speakerBlock]. */
         val canSpeak: Boolean
             get() = speakerBlock == null

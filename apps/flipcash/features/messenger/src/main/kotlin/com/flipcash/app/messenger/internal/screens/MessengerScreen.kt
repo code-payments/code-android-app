@@ -2,12 +2,19 @@ package com.flipcash.app.messenger.internal.screens
 
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.shared.chat.ui.media.ChatPhotoOverlay
@@ -52,8 +59,10 @@ import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
+import com.flipcash.app.messenger.internal.screens.components.JoinRequestsAnchor
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.BlurredContent
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.app.core.LocalUserManager
@@ -376,13 +385,35 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         // against the background at its own edge.
         barPlacement = ScaffoldBarPlacement.Overlay,
         topBar = {
-            ChatTopBar(
-                navigator = navigator,
-                state = state,
-                onBarHeightChange = { barHeight = it },
-                chatActionHandler = chatActionHandler,
-                dispatch = viewModel::dispatchEvent,
-            )
+            // The anchor rides in the top slot rather than over the list, so the transcript's top
+            // inset grows by its height and the oldest message clears it. barHeight stays the bar's
+            // own: the soft top edge belongs to the bar, and the anchor is glass over the scroll.
+            Column {
+                ChatTopBar(
+                    navigator = navigator,
+                    state = state,
+                    onBarHeightChange = { barHeight = it },
+                    chatActionHandler = chatActionHandler,
+                    dispatch = viewModel::dispatchEvent,
+                )
+                // Hold the last list through the exit, so the card doesn't empty as it slides away.
+                var lastRequests by remember { mutableStateOf(state.joinRequests) }
+                if (state.joinRequests.isNotEmpty()) lastRequests = state.joinRequests
+                AnimatedVisibility(
+                    visible = state.showsJoinRequestsAnchor,
+                    enter = slideInVertically { -it } + fadeIn(),
+                    exit = slideOutVertically { -it } + fadeOut(),
+                ) {
+                    JoinRequestsAnchor(
+                        requests = lastRequests,
+                        onReview = { keyboard.hideIfVisible { navigator.push(ChatStep.JoinRequests) } },
+                        hazeState = hazeState,
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.grid.x2),
+                    )
+                }
+            }
         },
         bottomBar = {
             // Behind the backdrop with the transcript while a message is raised, dimmed and blurred

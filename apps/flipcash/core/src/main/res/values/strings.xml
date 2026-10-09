@@ -1146,6 +1146,16 @@
     <string name="title_noJoinRequests">No requests right now</string>
     <string name="subtitle_noJoinRequests">When someone asks to join %1$s, they\'ll show up here</string>
     <string name="action_shareGroup">Share Group</string>
+    <!-- In-chat Join Requests anchor (nodes 11354:70, 11354:81). -->
+    <string name="title_wantsToJoin">%1$s wants to join</string>
+    <plurals name="title_peopleWantToJoin">
+        <item quantity="one">%1$d person wants to join</item>
+        <item quantity="other">%1$d people want to join</item>
+    </plurals>
+    <string name="subtitle_namesAnd">and</string>
+    <string name="title_requestedJustNow">Requested just now</string>
+    <string name="title_requestedYesterday">Requested yesterday</string>
+    <string name="action_review">Review</string>
     <string name="subtitle_privateGroupFootnote">Only people you approve can join. Messages are end-to-end encrypted.</string>
     <string name="action_findByUsername">Find Someone by Username</string>
 
