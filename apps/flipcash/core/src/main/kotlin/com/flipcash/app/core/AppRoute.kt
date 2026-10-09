@@ -412,14 +412,18 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object FindByUsername : Messaging
 
         /**
-         * Node 10153:22901 — creating a public group, from the empty form to its invite link.
+         * Node 10153:22901 — creating a public group, from the empty form to its invite link; node
+         * 11203:65 is the same flow for a private one.
          *
          * The three screens share one draft, so they are steps of a flow rather than routes; see
          * [NewGroupStep].
          */
         @Serializable
         @Parcelize
-        data object NewGroup : Messaging, FlowRoute {
+        data class NewGroup(
+            /** Node 11203:65: approval to join, end-to-end encrypted, no balance requirement. */
+            val isPrivate: Boolean = false,
+        ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
                 get() = listOf(NewGroupStep.Form)
         }

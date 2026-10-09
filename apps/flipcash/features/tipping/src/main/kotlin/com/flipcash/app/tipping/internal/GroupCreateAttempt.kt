@@ -21,7 +21,8 @@ internal data class GroupDraft(
      */
     val currency: GroupCurrency,
     /** The required balance, in USD — the currency [com.flipcash.shared.chat.GroupAccess] compares in. */
-    val amount: Fiat,
+    /** Null for a private group, which has no requirement. */
+    val amount: Fiat?,
 )
 
 /**

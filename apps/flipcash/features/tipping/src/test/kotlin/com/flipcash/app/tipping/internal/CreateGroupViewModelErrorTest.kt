@@ -97,6 +97,7 @@ class CreateGroupViewModelErrorTest {
     }
 
     private fun createViewModel() = CreateGroupViewModel(
+        isPrivate = false,
         exchange = exchange,
         tokenCoordinator = tokenCoordinator,
         dispatchers = dispatchers,
@@ -106,6 +107,7 @@ class CreateGroupViewModelErrorTest {
         contentReader = contentReader,
         resources = resources,
         analytics = analytics,
+        groupKeys = mockk(relaxed = true),
     )
 
     private fun token(seed: Byte, symbol: String) = MintMetadata(

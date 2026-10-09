@@ -14,6 +14,7 @@ import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.tipping.R
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.services.chat.GroupKeyEnvelopes
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.StartChatError
 import com.flipcash.services.models.chat.BlobId
@@ -41,7 +42,11 @@ import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -50,7 +55,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import javax.inject.Inject
 
 /**
  * The three preset balance requirements on the form — node 10127:118014's `$10 / $50 / $100` chips.
@@ -75,9 +79,14 @@ internal val BalancePresets: List<Fiat> = listOf(Fiat(10), Fiat(50), Fiat(100))
  * `StartChat` would answer `RULES_NOT_SATISFIED`, which is a worse way to learn it. And the picture
  * has to be uploaded and `READY` first, because `PublicGroupChatParameters.picture` is a blob id, not
  * bytes. Both server results are still handled: a balance can move between the check and the call.
+ *
+ * [isPrivate] is the private group form (node 11203:65): the same draft without a requirement, and
+ * a second step after `StartChat` — the creator's key envelope — that has to land before anything
+ * can happen in the group.
  */
-@HiltViewModel
-internal class CreateGroupViewModel @Inject constructor(
+@HiltViewModel(assistedFactory = CreateGroupViewModel.Factory::class)
+internal class CreateGroupViewModel @AssistedInject constructor(
+    @Assisted isPrivate: Boolean,
     exchange: Exchange,
     tokenCoordinator: TokenCoordinator,
     dispatchers: DispatcherProvider,
@@ -87,13 +96,16 @@ internal class CreateGroupViewModel @Inject constructor(
     private val contentReader: ContentReader,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalytics,
+    private val groupKeys: GroupKeyEnvelopes,
 ) : BaseViewModel<CreateGroupViewModel.State, CreateGroupViewModel.Event>(
-    initialState = State(),
+    initialState = State(isPrivate = isPrivate),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
 
     data class State(
+        /** Fixed for the flow: privacy can't change after creation, so it is not a form field. */
+        val isPrivate: Boolean = false,
         val titleFieldState: TextFieldState = TextFieldState(),
         /** The picked picture's re-encoded local copy, while it is being prepared and after. */
         val image: Loadable<Uri> = Loadable.Loading(),
@@ -154,7 +166,7 @@ internal class CreateGroupViewModel @Inject constructor(
          * sets; `speaker` is left empty rather than null because [ChatRules] holds both as lists.
          */
         val rules: ChatRules?
-            get() = amount?.let { rulesFor(currency, it) }
+            get() = if (isPrivate) null else amount?.let { rulesFor(currency, it) }
 
         /**
          * The creator measured against their own rule, by the same predicate the join gate uses.
@@ -187,7 +199,7 @@ internal class CreateGroupViewModel @Inject constructor(
             get() = access.let { it == null || it is GroupAccess.Eligible }
 
         val canCreate: Boolean
-            get() = hasTitle && rules != null && selfSatisfied && processingState.isIdle
+            get() = hasTitle && processingState.isIdle && (isPrivate || (rules != null && selfSatisfied))
 
         /**
          * The amount shown in the `…` chip's place, when one was entered there.
@@ -255,6 +267,12 @@ internal class CreateGroupViewModel @Inject constructor(
     )
 
     private val attempt = GroupCreateAttempt()
+
+    /**
+     * A private group `StartChat` created whose key envelope has not landed yet. Create resumes
+     * here rather than calling `StartChat` again: the chat exists, only its key is missing.
+     */
+    private var awaitingKey: ChatMetadata? = null
 
     init {
         exchange.observePreferredRate()
@@ -340,9 +358,14 @@ internal class CreateGroupViewModel @Inject constructor(
     private suspend fun create() {
         val state = stateFlow.value
         if (!state.processingState.isIdle) return
+        if (!state.hasTitle) return
+
+        if (state.isPrivate) {
+            createPrivate(state)
+            return
+        }
 
         val amount = state.amount ?: return
-        if (!state.hasTitle) return
 
         // The self-satisfaction check the form already gates Create on, re-read here because the
         // balance behind it is a live flow and the tap is a separate moment from the render.
@@ -401,6 +424,70 @@ internal class CreateGroupViewModel @Inject constructor(
             dispatchEvent(Event.UpdateProcessingState())
             announceCreateFailure(cause, stateFlow.value.currencyName)
         }
+    }
+
+    /**
+     * `StartChat(private_group)`, then the creator's key envelope. Create stays loading through
+     * both. A failed envelope is retried a few times here, and after that by the next Create, which
+     * goes straight back to the envelope.
+     */
+    private suspend fun createPrivate(state: State) {
+        dispatchEvent(Event.UpdateProcessingState(loading = true))
+
+        val chat = awaitingKey ?: run {
+            val draft = GroupDraft(
+                title = state.title,
+                picture = state.image.dataOrNull,
+                currency = state.currency,
+                amount = null,
+            )
+            val idempotencyKey = attempt.keyFor(draft)
+
+            val picture = if (draft.picture == null) {
+                null
+            } else {
+                attempt.picture ?: uploadPicture(draft.picture, state.imageMimeType)
+                    ?.also { attempt.rememberPicture(it) }
+                    ?: run {
+                        dispatchEvent(Event.UpdateProcessingState())
+                        return
+                    }
+            }
+
+            chatCoordinator.create(
+                parameters = StartChatParameters.PrivateGroup(title = draft.title, picture = picture),
+                idempotencyKey = idempotencyKey,
+            ).also { analytics.trackCreated(null, hasPicture = picture != null, it) }
+                .onSuccess { attempt.clear() }
+                .getOrElse { cause ->
+                    dispatchEvent(Event.UpdateProcessingState())
+                    announceCreateFailure(cause, currencyName = null)
+                    return
+                }
+        }
+
+        awaitingKey = chat
+        if (storeKeyWithRetry(chat)) {
+            awaitingKey = null
+            dispatchSuccessThen(Event.UpdateProcessingState(success = true)) {
+                dispatchEvent(Event.ChatCreated(chat))
+                dispatchEvent(Event.UpdateProcessingState())
+            }
+        } else {
+            dispatchEvent(Event.UpdateProcessingState())
+            BottomBarManager.showError(
+                title = resources.getString(R.string.error_title_groupCreateFailed),
+                message = resources.getString(R.string.error_description_groupCreateFailed),
+            )
+        }
+    }
+
+    private suspend fun storeKeyWithRetry(chat: ChatMetadata): Boolean {
+        repeat(KEY_ATTEMPTS) { index ->
+            if (groupKeys.storeNewKey(chat.chatId).isSuccess) return true
+            if (index < KEY_ATTEMPTS - 1) delay(KEY_RETRY_DELAY_MS * (index + 1))
+        }
+        return false
     }
 
     /** Uploads the prepared picture and returns its READY blob, or null having reported why not. */
@@ -510,7 +597,15 @@ internal class CreateGroupViewModel @Inject constructor(
         }
     }
 
+    @AssistedFactory
+    interface Factory {
+        fun create(isPrivate: Boolean): CreateGroupViewModel
+    }
+
     companion object {
+        private const val KEY_ATTEMPTS = 3
+        private const val KEY_RETRY_DELAY_MS = 500L
+
         /**
          * The stored requirement for a keypad [entered] amount, or null when it falls below the
          * currency's minimum transfer value (one unit of its last decimal place).
