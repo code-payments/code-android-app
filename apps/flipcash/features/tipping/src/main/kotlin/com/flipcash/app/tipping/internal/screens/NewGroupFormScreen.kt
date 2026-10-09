@@ -88,7 +88,9 @@ internal fun NewGroupFormScreen(viewModel: CreateGroupViewModel) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_newPublicGroup),
+            title = stringResource(
+                if (state.isPrivate) R.string.title_newPrivateGroup else R.string.title_newPublicGroup
+            ),
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = { keyboard.hideIfVisible { flowNavigator.exitCanceled() } },
             endContent = {
@@ -113,30 +115,44 @@ internal fun NewGroupFormScreen(viewModel: CreateGroupViewModel) {
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x9),
         ) {
-            IdentityCard(
-                image = state.image,
-                titleField = {
-                    DisplayTextInput(
-                        state = state.titleFieldState,
-                        placeholder = stringResource(R.string.hint_groupName),
-                        modifier = Modifier.fillMaxWidth(),
-                        style = CodeTheme.typography.screenTitle.copy(
-                            color = CodeTheme.colors.textMain,
-                        ),
-                        placeholderStyle = CodeTheme.typography.screenTitle.copy(
-                            color = CodeTheme.colors.textMain.copy(alpha = 0.2f),
-                        ),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Words,
-                            imeAction = ImeAction.Done,
-                        ),
-                        onKeyboardAction = { keyboard.hideIfVisible { } },
-                    )
-                },
-                onPick = { pickPicture.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2)) {
+                IdentityCard(
+                    image = state.image,
+                    titleField = {
+                        DisplayTextInput(
+                            state = state.titleFieldState,
+                            placeholder = stringResource(R.string.hint_groupName),
+                            modifier = Modifier.fillMaxWidth(),
+                            style = CodeTheme.typography.screenTitle.copy(
+                                color = CodeTheme.colors.textMain,
+                            ),
+                            placeholderStyle = CodeTheme.typography.screenTitle.copy(
+                                color = CodeTheme.colors.textMain.copy(alpha = 0.2f),
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Words,
+                                imeAction = ImeAction.Done,
+                            ),
+                            onKeyboardAction = { keyboard.hideIfVisible { } },
+                        )
+                    },
+                    onPick = { pickPicture.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
+                )
 
-            RequirementSection(
+                // Node 11203:65: what a private group is, said once, where privacy is chosen, because
+                // it can't be undone.
+                if (state.isPrivate) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x3),
+                        text = stringResource(R.string.subtitle_privateGroupFootnote),
+                        style = CodeTheme.typography.caption.copy(fontSize = 13.sp, lineHeight = 17.sp),
+                        color = White50,
+                    )
+                }
+            }
+
+            // A private group has no rules (StartChat's private_group case carries none).
+            if (!state.isPrivate) RequirementSection(
                 state = state,
                 onChangeCurrency = {
                     keyboard.hideIfVisible {
