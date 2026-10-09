@@ -65,6 +65,7 @@ class ChatMetadataDaoTest {
         viewerStateVersion: Long = 0,
         canEdit: Boolean = false,
         useE2ee: Boolean = false,
+        isPrivate: Boolean = false,
     ) = ChatMetadataEntity(
         chatIdHex = chatIdHex,
         chatType = chatType,
@@ -86,6 +87,7 @@ class ChatMetadataDaoTest {
         viewerStateVersion = viewerStateVersion,
         canEdit = canEdit,
         useE2ee = useE2ee,
+        isPrivate = isPrivate,
     )
 
     @Test
@@ -185,6 +187,24 @@ class ChatMetadataDaoTest {
         dao.upsert(entity(useE2ee = true))
 
         assertEquals(true, dao.getById(CHAT_HEX)?.useE2ee)
+    }
+
+    @Test
+    fun `upsert keeps a private group private when a write does not carry it`() = runTest {
+        dao.upsert(entity(isPrivate = true))
+
+        dao.upsert(entity(isPrivate = false))
+
+        assertEquals(true, dao.getById(CHAT_HEX)?.isPrivate)
+    }
+
+    @Test
+    fun `upsert picks up is_private for a stored chat`() = runTest {
+        dao.upsert(entity(isPrivate = false))
+
+        dao.upsert(entity(isPrivate = true))
+
+        assertEquals(true, dao.getById(CHAT_HEX)?.isPrivate)
     }
 
     @Test

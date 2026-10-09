@@ -94,7 +94,9 @@ interface ChatMetadataDao {
             "cover_picture_json = COALESCE(:coverPictureJson, cover_picture_json), " +
             "rules_json = :rulesJson, " +
             "is_member = :isMember, " +
-            "use_e2ee = :useE2ee " +
+            "use_e2ee = :useE2ee, " +
+            // Never cleared: privacy is fixed at creation, so a row rebuilt without it keeps it.
+            "is_private = (is_private OR :isPrivate) " +
             "WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun updateServerOwnedFields(
@@ -110,6 +112,7 @@ interface ChatMetadataDao {
         rulesJson: ChatRulesSerialized?,
         isMember: Boolean,
         useE2ee: Boolean,
+        isPrivate: Boolean,
     )
 
     /**
@@ -212,6 +215,7 @@ interface ChatMetadataDao {
             rulesJson = entity.rulesJson,
             isMember = entity.isMember,
             useE2ee = entity.useE2ee,
+            isPrivate = entity.isPrivate,
         )
         updateRosterIfNewer(
             chatIdHex = entity.chatIdHex,

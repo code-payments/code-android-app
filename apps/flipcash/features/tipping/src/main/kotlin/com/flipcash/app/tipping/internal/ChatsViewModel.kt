@@ -10,6 +10,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.isMutedAt
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.LobbyRequests
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatFeeds
 import com.flipcash.shared.chat.ChatListEntry
@@ -38,6 +39,7 @@ internal class ChatsViewModel @Inject constructor(
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,
     private val archiveStore: ChatArchiveStore,
+    private val lobbyRequests: LobbyRequests,
 ) : BaseViewModel<ChatsViewModel.State, ChatsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -100,6 +102,10 @@ internal class ChatsViewModel @Inject constructor(
     }
 
     init {
+        // No push says a join request was answered; an admitted group only shows up once the feed
+        // is synced, which refresh() does when GetChat says a request has left its lobby.
+        viewModelScope.launch { lobbyRequests.refresh() }
+
         val selfId = { userManager.accountId }
 
         fun content(

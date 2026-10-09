@@ -119,6 +119,7 @@ class ChatOpenTranscriptTest {
         userProfileDataSource = mockk(relaxed = true),
         rosterSearch = mockk(relaxed = true),
         featuredGroups = featuredGroups,
+        lobbyRequests = mockk(relaxed = true),
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
         identifier = identifier,
     )

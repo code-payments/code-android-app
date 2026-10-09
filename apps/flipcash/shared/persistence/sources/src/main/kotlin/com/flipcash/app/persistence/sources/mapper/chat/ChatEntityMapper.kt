@@ -100,6 +100,7 @@ class ChatEntityMapper @Inject constructor() {
             canEdit = metadata.viewerState?.permissions?.canEdit ?: false,
             creatorHex = metadata.creator?.hexEncodedString(),
             useE2ee = metadata.useE2ee,
+            isPrivate = metadata.isPrivate,
         )
     }
 
@@ -133,6 +134,7 @@ class ChatEntityMapper @Inject constructor() {
             viewerState = entity.toViewerState(),
             creator = entity.creatorHex?.hexToIdExt(),
             useE2ee = entity.useE2ee,
+            isPrivate = entity.isPrivate,
         )
     }
 

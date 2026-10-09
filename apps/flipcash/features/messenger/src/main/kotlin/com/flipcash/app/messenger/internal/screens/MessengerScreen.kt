@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.screens
 
+import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -39,6 +40,7 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.links.ExternalLinkUriHandler
 import com.flipcash.app.core.links.LocalTrustedWebsites
@@ -103,6 +105,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // screen rather than being a route, so it can grow out of and shrink back into its bubble.
     val photoSources = remember { ChatPhotoSources() }
     var openPhotoId by remember { mutableStateOf<Long?>(null) }
+
+    // A private group the viewer is not in has no transcript to show: no key envelope, so nothing
+    // to decrypt. A share link or deep link only knows the chat id and lands here first, so once the
+    // group resolves as private, swap to its profile, where the viewer can ask in.
+    val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val privateOutsider = (state.subject as? ChatSubject.Group)?.let { it.isPrivate && it.isMember != true } == true
+    LaunchedEffect(privateOutsider) {
+        if (privateOutsider) flowNavigator.replaceStack(listOf(ChatStep.GroupProfile))
+    }
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
