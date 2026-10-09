@@ -536,15 +536,16 @@ private fun PrivateJoinBar(
                     value = Clock.System.now()
                 }
             }
-            val age = when (val age = RequestAge.of(join.at, now)) {
-                RequestAge.JustNow -> stringResource(R.string.subtitle_requestedJustNow)
-                is RequestAge.Minutes -> stringResource(R.string.subtitle_requestedMinutesAgo, age.count)
-                is RequestAge.Hours -> stringResource(R.string.subtitle_requestedHoursAgo, age.count)
-                is RequestAge.Days -> stringResource(R.string.subtitle_requestedDaysAgo, age.count)
+            // "Request Sent" for the first minute, then how long the request has waited.
+            val label = when (val age = RequestAge.of(join.at, now)) {
+                RequestAge.JustNow -> stringResource(R.string.action_requestSent)
+                is RequestAge.Minutes -> stringResource(R.string.action_requestedMinutesAgo, age.count)
+                is RequestAge.Hours -> stringResource(R.string.action_requestedHoursAgo, age.count)
+                is RequestAge.Days -> stringResource(R.string.action_requestedDaysAgo, age.count)
             }
             ProfilePinnedActionBar(
                 modifier = modifier,
-                text = stringResource(R.string.action_requestSent),
+                text = label,
                 onClick = {},
                 enabled = false,
                 above = {
@@ -553,9 +554,9 @@ private fun PrivateJoinBar(
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset),
                         text = if (hostName != null) {
-                            stringResource(R.string.subtitle_requestPendingHost, age, hostName)
+                            stringResource(R.string.subtitle_requestPendingHost, hostName)
                         } else {
-                            stringResource(R.string.subtitle_requestPendingHostUnnamed, age)
+                            stringResource(R.string.subtitle_requestPendingHostUnnamed)
                         },
                         style = CodeTheme.typography.caption,
                         color = CodeTheme.colors.textSecondary,
