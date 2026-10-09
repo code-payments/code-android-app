@@ -33,7 +33,7 @@ import kotlin.test.fail
  * Runs every `lookups` vector of `link_metadata.json`: the scripted responses by URL, the requests
  * made in order, the result, the card, and the keys the lookup and the resolver wrote. All failing
  * vectors are reported together. The fixture is a synced copy, so a disagreement is fixed in the
- * canonical file, never here -- with the one override named in [pendingFixtureChange].
+ * canonical file, never here.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
@@ -59,14 +59,6 @@ class LookupVectorTest {
             super.putWeb(key, state)
         }
     }
-
-    /**
-     * Pending fixture change, orchestrator #44: "redirects-shared-4" lists the home key as cached
-     * None. Our proposal is that running out of redirects during the fallback remembers None for the
-     * original key only. Drop this override once the fixture says the same.
-     */
-    private fun pendingFixtureChange(name: String, cached: Map<String, LinkCard.Web.State>) =
-        if (name == "redirects-shared-4") cached.filterKeys { it != "https://example.com/" } else cached
 
     private fun JSONArray.objects() = (0 until length()).map { getJSONObject(it) }
 
@@ -165,10 +157,7 @@ class LookupVectorTest {
         }
         if (resolved.url != url) problems += "the card opens ${resolved.url}, expected the original $url"
 
-        val expectedCached = pendingFixtureChange(
-            name,
-            v.getJSONArray("cached").objects().associate { it.getString("key") to stored(it) },
-        )
+        val expectedCached = v.getJSONArray("cached").objects().associate { it.getString("key") to stored(it) }
         if (memory.puts != expectedCached) problems += "cached ${memory.puts}, expected $expectedCached"
 
         if (name == "stops-after-head" && pulled.get() > 64 * 1024) {

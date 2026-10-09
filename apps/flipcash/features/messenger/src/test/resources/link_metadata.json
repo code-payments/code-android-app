@@ -1189,14 +1189,9 @@
           "key": "https://example.com/file/k",
           "state": "none",
           "card": null
-        },
-        {
-          "key": "https://example.com/",
-          "state": "none",
-          "card": null
         }
       ],
-      "note": "2 + 2 = 4 redirects: the fourth is never followed, so the home page is None."
+      "note": "2 + 2 = 4 redirects: the fourth is never followed, so the link is None. The home key stores nothing: the budget was spent by the original link, and only a home answer reached within its own rules is stored."
     },
     {
       "name": "title-past-512k",
