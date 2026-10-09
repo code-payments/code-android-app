@@ -196,7 +196,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             ChatAction.OpenEncryptionInfo -> keyboard.hideIfVisible {
-                navigator.push(AppRoute.Messaging.E2eeDmInfo)
+                // The marker shows in DMs and in private groups; each has its own copy.
+                val privateGroup = (state.subject as? ChatSubject.Group)?.isPrivate == true
+                navigator.push(
+                    if (privateGroup) AppRoute.Messaging.E2eePrivateGroupInfo else AppRoute.Messaging.E2eeDmInfo
+                )
             }
 
             ChatAction.AddCash -> {
