@@ -9,6 +9,7 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewMode
+import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
@@ -25,6 +26,9 @@ import javax.inject.Inject
  * Anything that is not a group -- a DM id pasted into a `/chat/` link, or a chat that has gone --
  * fails the lookup, and the card draws its unavailable state.
  *
+ * A resolved record is also handed to [FeaturedGroupsStore], so the profile a tap opens has
+ * something to draw before its own fetch answers.
+ *
  * The requirement is stated the way the chat's own head card states it, including the reserve
  * being named by the amount alone ("$100", not "$100 of Dollars"). An unknown mint is not a
  * failure: the amount is still true, so it is stated without a token beside it.
@@ -33,11 +37,16 @@ internal class GroupLinkLookup @Inject constructor(
     private val chatController: ChatController,
     private val tokenCoordinator: TokenCoordinator,
     private val resources: ResourceHelper,
+    private val featuredGroups: FeaturedGroupsStore,
 ) {
     suspend operator fun invoke(chatId: ChatId): Result<LinkCard.GroupInvite.State.Resolved> =
         runCatching {
             val chat = chatController.getChat(chatId, ViewMode.REDACTED).getOrThrow()
             if (chat.type != ChatType.GROUP) throw NotAGroup(chatId)
+
+            // A tap opens the group's profile, which draws from this record at once rather than
+            // sitting empty through its own GetChat -- the same placeholder a featured group gets.
+            featuredGroups.remember(listOf(chat))
 
             val balance = chat.rules.balanceRequirement()
             val staffOnly = chat.rules.requiresStaff()

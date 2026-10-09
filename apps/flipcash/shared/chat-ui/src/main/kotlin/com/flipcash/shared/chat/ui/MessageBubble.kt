@@ -734,7 +734,8 @@ private fun BareLinkCard(
  * app, wrong from inside a chat, where it swaps the transcript for the wallet on the way to a
  * screen the reader asked for directly. There is no wallet card here for the detail to grow out of.
  * So it pushes, exactly as the cash bubble's own token tap does, and back returns to the message.
- * A group invite pushes the group's conversation for the same reason.
+ * A group invite pushes the group's profile (its conversation until the card has resolved) for
+ * the same reason.
  */
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
@@ -749,7 +750,12 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
             is LinkCard.TokenInfo -> actionHandler(ChatAction.ViewToken(card.mint))
             // Pushed over this chat rather than through the chat deep link, which replaces the
             // stack: Back has to return to the message that held the invite.
-            is LinkCard.GroupInvite -> actionHandler(ChatAction.OpenGroup(card.chatId))
+            is LinkCard.GroupInvite -> actionHandler(
+                ChatAction.OpenGroup(
+                    chatId = card.chatId,
+                    resolved = card.state is LinkCard.GroupInvite.State.Resolved,
+                )
+            )
             // Only a resolved card takes a tap. Which screen it opens -- the person's DM, your own
             // tip card, or nothing for the person already on the other end -- is the chat's call.
             is LinkCard.User -> (card.state as? LinkCard.User.State.Resolved)?.let {
