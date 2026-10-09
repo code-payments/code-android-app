@@ -8,7 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
-import com.getcode.libs.biometrics.Biometrics.TEST_AUTH
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
@@ -55,10 +54,12 @@ object Biometrics {
     private const val AUTHENTICATORS =
         BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
 
-    const val TEST_AUTH = BiometricManager.Authenticators.BIOMETRIC_WEAK
+    private const val TEST_AUTH = BiometricManager.Authenticators.BIOMETRIC_WEAK
+
+    fun authenticationState(manager: BiometricManager): Int = manager.canAuthenticate(TEST_AUTH)
 
     fun canAuthenticate(context: Context): Boolean {
-        val state = BiometricManager.from(context).canAuthenticate(TEST_AUTH)
+        val state = authenticationState(BiometricManager.from(context))
 
         return !(state == BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ||
                 state == BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ||
@@ -67,7 +68,7 @@ object Biometrics {
     }
 
     fun hasNoneEnrolled(context: Context): Boolean {
-        val state = BiometricManager.from(context).canAuthenticate(TEST_AUTH)
+        val state = authenticationState(BiometricManager.from(context))
 
         return state == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED
     }

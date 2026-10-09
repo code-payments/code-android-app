@@ -377,37 +377,4 @@
             column="31"/>
     </issue>
 
-    <issue
-        id="WrongConstant"
-        message="Must be one or more of: Authenticators.BIOMETRIC_STRONG, Authenticators.BIOMETRIC_WEAK, Authenticators.DEVICE_CREDENTIAL, Authenticators.IDENTITY_CHECK"
-        errorLine1="                val biometricsState = biometricManager.canAuthenticate(Biometrics.TEST_AUTH)"
-        errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/kotlin/com/flipcash/app/appsettings/internal/AppSettingsMapper.kt"
-            line="18"
-            column="72"/>
-    </issue>
-
-    <issue
-        id="UnspecifiedRegisterReceiverFlag"
-        message="`receiver` is missing `RECEIVER_EXPORTED` or `RECEIVER_NOT_EXPORTED` flag for unprotected broadcasts registered for com.google.android.gms.auth.api.phone.SMS_RETRIEVED"
-        errorLine1="            context.registerReceiver(receiver, filter, SmsRetriever.SEND_PERMISSION, null)"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/kotlin/com/flipcash/app/phone/components/SmsOtpAutofill.kt"
-            line="104"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnrememberedMutableState"
-        message="Creating a state object during composition without using `remember`"
-        errorLine1="        object : State&lt;Float> {"
-        errorLine2="        ^">
-        <location
-            file="src/main/kotlin/com/getcode/ui/components/Flippable.kt"
-            line="57"
-            column="9"/>
-    </issue>
-
 </issues>

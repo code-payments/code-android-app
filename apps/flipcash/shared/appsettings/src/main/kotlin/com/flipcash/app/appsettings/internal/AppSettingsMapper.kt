@@ -15,7 +15,7 @@ class AppSettingMapper @Inject constructor(
     override suspend fun map(from: AppSetting): AppSettingsItem {
         return when (from.type) {
             AppSettingValue.BiometricsRequired -> {
-                val biometricsState = biometricManager.canAuthenticate(Biometrics.TEST_AUTH)
+                val biometricsState = Biometrics.authenticationState(biometricManager)
                 val canUseBiometrics =
                     !(biometricsState == BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ||
                             biometricsState == BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ||
