@@ -48,6 +48,7 @@ internal class PersistedLinkCardMemory(
     private val store: LinkPreviewDataSource,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
+    private val images: WebImageStore,
     dispatchers: DispatcherProvider,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : LinkCardMemory(clock = now) {
@@ -60,13 +61,20 @@ internal class PersistedLinkCardMemory(
 
     init {
         scope.launch {
-            store.observeAll(writtenSince = { now() - MAX_AGE.inWholeMilliseconds }).collect { records ->
+            store.observeAll(
+                writtenSince = { now() - MAX_AGE.inWholeMilliseconds },
+                onDropped = { dropped -> dropped.forEach { removeImageOf(it) } },
+            ).collect { records ->
                 loaded.value = false
+                val held = heldWebs()
                 _groups.clear()
                 _users.clear()
                 clearWebs()
                 writtenAt.clear()
                 records.forEach { load(it) }
+                // A database closing or changing hands: what the last one held and this one does not.
+                val kept = heldWebs().values.mapNotNullTo(mutableSetOf()) { imageOf(it) }
+                held.values.mapNotNull { imageOf(it) }.filter { it !in kept }.forEach { removeImage(it) }
                 loaded.value = true
                 trace(tag = TAG, message = "Loaded ${records.size} link previews", type = TraceType.Process)
             }
@@ -92,7 +100,9 @@ internal class PersistedLinkCardMemory(
     override fun putWeb(key: String, state: LinkCard.Web.State) {
         val rowKey = WEB_PREFIX + key
         val unchanged = webs[key] == state
+        val replaced = heldWeb(key)?.let { imageOf(it) }
         storeWeb(key, state)
+        if (replaced != null && replaced != imageOf(state)) scope.launch { removeImage(replaced) }
         if (unchanged && !rewriteDue(rowKey)) return
         write(rowKey, webJson.encodeToString(StoredWeb.serializer(), StoredWeb.of(state)))
     }
@@ -107,6 +117,20 @@ internal class PersistedLinkCardMemory(
 
     private fun rewriteDue(key: String): Boolean =
         now() - (writtenAt[key] ?: 0L) >= REWRITE_AFTER.inWholeMilliseconds
+
+    private fun imageOf(state: LinkCard.Web.State): String? = (state as? LinkCard.Web.State.Resolved)?.imageUrl
+
+    private fun removeImage(url: String) {
+        runCatching { images.remove(url) }
+            .onFailure { trace(tag = TAG, message = "Failed to remove an image", error = it) }
+    }
+
+    /** A row dropped for age by the table, which has already deleted it: only its picture is left. */
+    private fun removeImageOf(record: LinkPreviewRecord) {
+        if (!record.key.startsWith(WEB_PREFIX)) return
+        runCatching { webJson.decodeFromString(StoredWeb.serializer(), record.json).imageUrl }
+            .getOrNull()?.let { removeImage(it) }
+    }
 
     private fun delete(key: String) {
         writtenAt.remove(key)
@@ -150,7 +174,10 @@ internal class PersistedLinkCardMemory(
                     // longer decodes, and the link is looked up again the ordinary way.
                     val age = (now() - record.updatedAt).milliseconds
                     val ttl = if (state is LinkCard.Web.State.Resolved) WebLinks.RESOLVED_TTL else WebLinks.EMPTY_TTL
-                    if (age > ttl) error("stale web row")
+                    if (age > ttl) {
+                        imageOf(state)?.let { removeImage(it) }
+                        error("stale web row")
+                    }
                     storeWeb(record.key.removePrefix(WEB_PREFIX), state, at = record.updatedAt)
                 }
                 else -> error("unknown key")

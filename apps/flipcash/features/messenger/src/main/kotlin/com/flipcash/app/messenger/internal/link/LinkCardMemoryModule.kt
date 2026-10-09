@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.link
 
 import android.content.Context
 import coil3.ImageLoader
+import coil3.disk.DiskCache
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.LinkPreviewDataSource
@@ -51,8 +52,9 @@ internal abstract class LinkCardMemoryModule {
             store: LinkPreviewDataSource,
             userManager: UserManager,
             resources: ResourceHelper,
+            images: WebImageStore,
             dispatchers: DispatcherProvider,
-        ): PersistedLinkCardMemory = PersistedLinkCardMemory(store, userManager, resources, dispatchers)
+        ): PersistedLinkCardMemory = PersistedLinkCardMemory(store, userManager, resources, images, dispatchers)
 
         // Not the app's singleton client: it logs bodies at Level.BODY and keeps cookies.
         @Provides
@@ -70,10 +72,22 @@ internal abstract class LinkCardMemoryModule {
         @Provides
         @Singleton
         @WebPreviewImages
+        fun provideWebPreviewDiskCache(@ApplicationContext context: Context): DiskCache =
+            webPreviewDiskCache(context)
+
+        @Provides
+        @Singleton
+        @WebPreviewImages
         fun provideWebPreviewImageLoader(
             @ApplicationContext context: Context,
             @WebPreviewImages client: OkHttpClient,
-        ): ImageLoader = webPreviewImageLoader(context, client)
+            @WebPreviewImages diskCache: DiskCache,
+        ): ImageLoader = webPreviewImageLoader(context, client, diskCache)
+
+        @Provides
+        @Singleton
+        fun provideWebImageStore(@WebPreviewImages diskCache: DiskCache): WebImageStore =
+            CoilWebImageStore(diskCache)
 
         @Provides
         @Singleton

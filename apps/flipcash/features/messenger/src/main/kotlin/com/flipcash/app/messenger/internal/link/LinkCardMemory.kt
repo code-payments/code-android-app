@@ -64,6 +64,12 @@ internal open class LinkCardMemory(
         _webEntries[key] = Stored(state, at)
     }
 
+    /** The held answer for [key] whatever its age: an expired one still names a picture on disk. */
+    protected fun heldWeb(key: String): LinkCard.Web.State? = _webEntries[key]?.state
+
+    /** Every held answer whatever its age, by key. */
+    protected fun heldWebs(): Map<String, LinkCard.Web.State> = _webEntries.mapValues { it.value.state }
+
     protected fun clearWebs() = _webEntries.clear()
 
     protected val _tokens = ConcurrentHashMap<Mint, LinkCard.TokenInfo.State.Resolved>()
