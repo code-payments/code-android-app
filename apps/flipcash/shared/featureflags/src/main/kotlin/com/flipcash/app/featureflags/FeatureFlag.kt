@@ -99,6 +99,15 @@ sealed interface FeatureFlag<T: Any> {
         override val persistLogOut: Boolean = false
     }
 
+    @FeatureFlagMarker
+    data object ChatFormattingComposer : FeatureFlag<Boolean> {
+        override val key: String = "chat_formatting_composer"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -119,6 +128,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.BackgroundReset -> "Background Reset"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
         FeatureFlag.WebLinkPreviews -> "Web Link Previews"
+        FeatureFlag.ChatFormattingComposer -> "Chat Formatting Tools"
     }
 
 val FeatureFlag<*>.message: String
@@ -130,4 +140,5 @@ val FeatureFlag<*>.message: String
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
         FeatureFlag.WebLinkPreviews -> "When enabled, a link to a web page in a chat shows the page's title, description and image, fetched from this device"
+        FeatureFlag.ChatFormattingComposer -> "When enabled, the chat composer offers bold, italic, strikethrough, code, link, list and quote formatting. Formatted messages always display; this only adds the tools to write them"
     }
