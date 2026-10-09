@@ -112,6 +112,9 @@ private fun asciiHost(host: String): String {
  * secondary. Above the button sits "Don't ask again for <host>", unchecked; [trusted] keeps the host
  * only when Open Website is tapped with it checked.
  *
+ * A masked link, whose text is a [label] rather than its address, says so in the subtitle:
+ * "<label>" will open <host>. A bare link keeps the plain subtitle.
+ *
  * Only for links someone else wrote, such as a chat message. A link the app opens on purpose
  * (terms, a token's socials) goes straight to the browser.
  */
@@ -119,6 +122,7 @@ fun openWithExternalLinkCheck(
     context: Context,
     url: String,
     trusted: TrustedWebsites,
+    label: String? = null,
     open: () -> Unit,
 ) {
     val trustedHosts = trusted.websites.value.mapTo(mutableSetOf()) { it.host }
@@ -129,7 +133,11 @@ fun openWithExternalLinkCheck(
             externalLinkWarning(
                 destination = destination,
                 title = context.getString(R.string.prompt_title_externalLink),
-                message = context.getString(R.string.prompt_description_externalLink, destination.host),
+                message = if (label == null) {
+                    context.getString(R.string.prompt_description_externalLink, destination.host)
+                } else {
+                    context.getString(R.string.prompt_description_externalLinkMasked, label, destination.host)
+                },
                 openWebsite = context.getString(R.string.action_openWebsite),
                 dontAskAgain = context.getString(R.string.action_dontAskAgainForHost, destination.host),
                 onTrust = trusted::trust,
@@ -187,5 +195,10 @@ class ExternalLinkUriHandler(
 ) : UriHandler {
     override fun openUri(uri: String) {
         openWithExternalLinkCheck(context, uri, trusted) { delegate.openUri(uri) }
+    }
+
+    /** A masked link: the warning names [label] as well as the host it really opens. */
+    fun openMasked(label: String, uri: String) {
+        openWithExternalLinkCheck(context, uri, trusted, label) { delegate.openUri(uri) }
     }
 }

@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -60,6 +61,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.paging.compose.LazyPagingItems
+import com.flipcash.app.core.links.ExternalLinkUriHandler
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
@@ -549,11 +551,16 @@ private fun TextBubble(
         // not rebuild the body; only whether mentions can be tapped at all is part of its key.
         val currentOnMentionClick by rememberUpdatedState(onMentionClick)
         val mentionsTappable = onMentionClick != null
+        // Only the transcript's handler knows how to warn; anywhere else a masked link opens as
+        // an ordinary one.
+        val uriHandler = LocalUriHandler.current as? ExternalLinkUriHandler
+        val currentUriHandler by rememberUpdatedState(uriHandler)
+        val maskedLinksWarn = uriHandler != null
         // A tombstone carries no link and nothing worth selecting; it is a notice, not a message.
         val mentioned = if (isTombstone) {
             null
         } else {
-            remember(bodyString, mentions, linkStyle, mentionStyle, mentionsTappable, formatStyles) {
+            remember(bodyString, mentions, linkStyle, mentionStyle, mentionsTappable, formatStyles, maskedLinksWarn) {
                 buildMentionedText(
                     text = bodyString,
                     mentions = mentions,
@@ -565,6 +572,11 @@ private fun TextBubble(
                         null
                     },
                     formatStyles = formatStyles,
+                    onMaskedLinkClick = if (maskedLinksWarn) {
+                        { label, url -> currentUriHandler?.openMasked(label, url) }
+                    } else {
+                        null
+                    },
                 )
             }
         }

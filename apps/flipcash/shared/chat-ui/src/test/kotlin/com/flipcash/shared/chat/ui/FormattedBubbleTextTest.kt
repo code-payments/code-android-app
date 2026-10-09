@@ -153,4 +153,23 @@ class FormattedBubbleTextTest {
         val literal = "[free money] ($cash)"
         assertEquals(listOf(cash), cardLinks(literal).map { it.url })
     }
+
+    @Test
+    fun `only a masked link reports its label when tapped`() {
+        val taps = mutableListOf<Pair<String, String>>()
+        val text = "[the docs](https://example.com/docs) and example.org/a"
+        val built = buildMentionedText(
+            text = text,
+            mentions = emptyList(),
+            linkStyle = linkStyle,
+            mentionStyle = mentionStyle,
+            onMentionClick = null,
+            onMaskedLinkClick = { label, url -> taps += label to url },
+        )
+
+        val links = built.text.getLinkAnnotations(0, built.text.length).map { it.item as LinkAnnotation.Url }
+        links[0].linkInteractionListener!!.onClick(links[0])
+        assertEquals(listOf("the docs" to "https://example.com/docs"), taps)
+        assertEquals(null, links[1].linkInteractionListener)
+    }
 }
