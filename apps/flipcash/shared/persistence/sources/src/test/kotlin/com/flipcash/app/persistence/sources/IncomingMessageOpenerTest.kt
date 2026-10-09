@@ -3,6 +3,9 @@ package com.flipcash.app.persistence.sources
 import com.flipcash.services.chat.ChatContentCrypto
 import com.flipcash.services.chat.ChatKeySource
 import com.flipcash.services.chat.FakeChatCipher
+import com.flipcash.services.chat.GroupContentCrypto
+import com.flipcash.services.chat.GroupKeySource
+import com.flipcash.services.chat.UntrustedEnvelope
 import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.chat.UndecryptableReason
 import com.flipcash.services.models.chat.ChatId
@@ -35,7 +38,10 @@ class IncomingMessageOpenerTest {
     }
 
     private val selfSide = Keys(selfKeys, peerKeys.publicKey)
-    private val opener = IncomingMessageOpener(ChatContentCrypto(FakeChatCipher, selfSide))
+    private val groupKey = ByteArray(32) { 5 }
+    private var groupKeyResult: Result<ByteArray> = Result.success(groupKey)
+    private val group = GroupContentCrypto(FakeChatCipher, GroupKeySource { groupKeyResult })
+    private val opener = IncomingMessageOpener(ChatContentCrypto(FakeChatCipher, selfSide), group)
     private val theirs = ChatContentCrypto(FakeChatCipher, Keys(peerKeys, selfKeys.publicKey))
     private val mine = ChatContentCrypto(FakeChatCipher, Keys(selfKeys, peerKeys.publicKey))
 
@@ -106,7 +112,7 @@ class IncomingMessageOpenerTest {
 
     @Test
     fun `an unknown scheme is unsupported`() = runTest {
-        val opened = open(message(fromPeer("hi").copy(scheme = 2))).single()
+        val opened = open(message(fromPeer("hi").copy(scheme = 3))).single()
 
         assertEquals(MessageEncryption.Undecryptable(UndecryptableReason.Unsupported), opened.encryption)
     }
@@ -151,5 +157,44 @@ class IncomingMessageOpenerTest {
 
         assertEquals(listOf(MessageContent.Text("hi")), reopened.content)
         assertEquals(MessageEncryption.Decrypted(sealed), reopened.encryption)
+    }
+
+    @Test
+    fun `a private group message opens under the chat key with no peer stored`() = runTest {
+        val sealed = group.seal(chatId, senderId = peer, content = MessageContent.Text("group")).getOrThrow()
+
+        val opened = open(message(sealed), peerId = null).single()
+
+        assertEquals(listOf(MessageContent.Text("group")), opened.content)
+        assertEquals(MessageEncryption.Decrypted(sealed), opened.encryption)
+    }
+
+    @Test
+    fun `a private group message waits when the chat key can't be fetched`() = runTest {
+        val sealed = group.seal(chatId, senderId = peer, content = MessageContent.Text("group")).getOrThrow()
+        groupKeyResult = Result.failure(IOException("offline"))
+
+        assertEquals(MessageEncryption.KeyPending, open(message(sealed)).single().encryption)
+    }
+
+    @Test
+    fun `a private group message under an untrusted envelope is undecryptable`() = runTest {
+        val sealed = group.seal(chatId, senderId = peer, content = MessageContent.Text("group")).getOrThrow()
+        groupKeyResult = Result.failure(UntrustedEnvelope("wrapped by a stranger"))
+
+        assertEquals(
+            MessageEncryption.Undecryptable(UndecryptableReason.Authentication),
+            open(message(sealed)).single().encryption,
+        )
+    }
+
+    @Test
+    fun `a private group message is bound to its sender`() = runTest {
+        val sealed = group.seal(chatId, senderId = peer, content = MessageContent.Text("group")).getOrThrow()
+
+        assertEquals(
+            MessageEncryption.Undecryptable(UndecryptableReason.Authentication),
+            open(message(sealed, senderId = self)).single().encryption,
+        )
     }
 }

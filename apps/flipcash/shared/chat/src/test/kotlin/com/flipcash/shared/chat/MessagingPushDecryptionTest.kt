@@ -60,7 +60,7 @@ class MessagingPushDecryptionTest {
         stateHolder = mockk(relaxed = true),
         analytics = mockk(relaxed = true),
         senderResolver = mockk(relaxed = true),
-        incoming = IncomingMessageOpener(ChatContentCrypto(FakeChatCipher, selfSide)),
+        incoming = IncomingMessageOpener(ChatContentCrypto(FakeChatCipher, selfSide), mockk()),
     )
 
     private suspend fun sealedFromPeer(content: MessageContent) =

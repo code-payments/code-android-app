@@ -11,6 +11,9 @@ interface ChatKeySource {
     /** The viewer's account key pair, or null when no account is loaded. */
     fun ownKeyPair(): KeyPair?
 
+    /** The viewer's Flipcash user id, or null when no account is loaded. */
+    fun ownUserId(): ID? = null
+
     /** The Ed25519 public key [userId] registered their account with. */
     suspend fun peerPublicKey(userId: ID): Result<ByteArray>
 }
@@ -30,6 +33,8 @@ internal class DefaultChatKeySource @Inject constructor(
             // cipher's X25519 conversion reads.
             KeyPair(publicKey = keyPair.publicKeyBytes, privateKey = keyPair.privateKeyBytes)
         }
+
+    override fun ownUserId(): ID? = userManager.accountId
 
     override suspend fun peerPublicKey(userId: ID): Result<ByteArray> =
         resolver.resolve(userId).map { it.byteArray }
