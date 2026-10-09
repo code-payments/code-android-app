@@ -38,6 +38,7 @@ import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupCoverScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupDescriptionScreen
+import com.flipcash.app.messenger.internal.screens.profile.JoinRequestsScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupNameScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupPictureScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupScreen
@@ -118,6 +119,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.EditGroup> {
         FlowEditGroupScreen()
+    }
+    annotatedEntry<ChatStep.JoinRequests> {
+        JoinRequestsScreen(flowSharedViewModel<ChatViewModel>())
     }
     annotatedEntry<ChatStep.EditGroupName> {
         FlowEditGroupNameScreen()

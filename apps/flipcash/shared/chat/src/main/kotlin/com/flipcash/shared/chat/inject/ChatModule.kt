@@ -3,7 +3,9 @@ package com.flipcash.shared.chat.inject
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
+import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.LobbyRequestStore
+import com.flipcash.shared.chat.LobbyUpdateSink
 import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.internal.DataStoreLobbyRequestStore
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
@@ -50,6 +52,11 @@ abstract class ChatModule {
     internal abstract fun bindLobbyRequestStore(
         impl: DataStoreLobbyRequestStore
     ): LobbyRequestStore
+
+    @Binds
+    abstract fun bindLobbyUpdateSink(
+        impl: HostLobbies
+    ): LobbyUpdateSink
 
     @Binds
     @Singleton

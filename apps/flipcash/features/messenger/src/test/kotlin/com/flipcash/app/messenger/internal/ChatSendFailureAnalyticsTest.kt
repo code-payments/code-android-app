@@ -158,6 +158,7 @@ class ChatSendFailureAnalyticsTest {
         rosterSearch = mockk(relaxed = true),
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         lobbyRequests = mockk(relaxed = true),
+        hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
         identifier = null,
     )

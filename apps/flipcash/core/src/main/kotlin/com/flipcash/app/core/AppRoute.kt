@@ -363,9 +363,16 @@ sealed interface AppRoute : NavKey, Parcelable {
             // profile is the flow's root, so back returns to wherever the tap came from, and Open
             // Chat pushes the transcript on top of it.
             val openOnProfile: Boolean = false,
+            // Open on a private group's Join Requests, over its profile so back lands there. Set by
+            // the chat list's join-requests row.
+            val openOnJoinRequests: Boolean = false,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
-                get() = listOf(if (openOnProfile) ChatStep.GroupProfile else ChatStep.Conversation)
+                get() = when {
+                    openOnJoinRequests -> listOf(ChatStep.GroupProfile, ChatStep.JoinRequests)
+                    openOnProfile -> listOf(ChatStep.GroupProfile)
+                    else -> listOf(ChatStep.Conversation)
+                }
         }
 
         /**

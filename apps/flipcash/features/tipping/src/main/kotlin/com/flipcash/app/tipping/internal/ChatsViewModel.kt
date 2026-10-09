@@ -11,6 +11,12 @@ import com.flipcash.services.models.chat.isMutedAt
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.LobbyRequests
+import com.flipcash.shared.chat.HostLobbies
+import com.flipcash.shared.chat.ChatSummary
+import com.flipcash.services.models.chat.LobbyMember
+import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatFeeds
 import com.flipcash.shared.chat.ChatListEntry
@@ -40,6 +46,7 @@ internal class ChatsViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     private val archiveStore: ChatArchiveStore,
     private val lobbyRequests: LobbyRequests,
+    private val hostLobbies: HostLobbies,
 ) : BaseViewModel<ChatsViewModel.State, ChatsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -56,6 +63,8 @@ internal class ChatsViewModel @Inject constructor(
         // Whether a pull from the top has brought the chips on. Held here rather than in the
         // screen so it survives opening a chat and coming back.
         val chipsRevealed: Boolean = false,
+        // The pinned Join Requests row: the viewer's hosted private group with the newest request.
+        val joinRequests: HostedJoinRequests? = null,
     ) {
         /** The chips stay once revealed, and always show under a filter other than All. */
         val showsChips: Boolean get() = chipsRevealed || filter != ChatListFilter.All
@@ -63,6 +72,10 @@ internal class ChatsViewModel @Inject constructor(
         /** The Archived row: only under All, and only when something is archived. */
         val showsArchivedRow: Boolean
             get() = filter == ChatListFilter.All && projection.archivedRowVisible
+
+        /** The Join Requests row: only under All, like Archived, and only while someone waits. */
+        val showsJoinRequestsRow: Boolean
+            get() = filter == ChatListFilter.All && joinRequests != null
 
         /** Nothing in the main list and nothing archived: the full-screen prompt. */
         val hasNoChatsAtAll: Boolean
@@ -87,6 +100,8 @@ internal class ChatsViewModel @Inject constructor(
         data class FilterSelected(val filter: ChatListFilter) : Event
 
         data object ChipsRevealed : Event
+
+        data class JoinRequestsUpdated(val joinRequests: HostedJoinRequests?) : Event
     }
 
     fun selectFilter(filter: ChatListFilter) = dispatchEvent(Event.FilterSelected(filter))
@@ -161,6 +176,19 @@ internal class ChatsViewModel @Inject constructor(
             .flowOn(dispatchers.Default)
             .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
+
+        // The viewer's hosted private groups, archived ones included; each one's lobby is fetched
+        // once per chat-list load, since LobbyUpdate only reaches a running stream.
+        val hostedGroups = chatCoordinator.chatListFeeds()
+            .map { feeds -> hostedPrivateGroups(feeds.main + feeds.archived, selfId()) }
+            .distinctUntilChanged()
+        hostedGroups
+            .onEach { groups -> groups.keys.forEach { chatId -> viewModelScope.launch { hostLobbies.load(chatId) } } }
+            .launchIn(viewModelScope)
+        combine(hostedGroups, hostLobbies.state, ::hostedJoinRequests)
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.JoinRequestsUpdated(it)) }
+            .launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -172,7 +200,35 @@ internal class ChatsViewModel @Inject constructor(
                 // A chip can only be tapped once the row is on screen, so choosing one reveals it.
                 is Event.FilterSelected -> { state -> state.copy(filter = event.filter, chipsRevealed = true) }
                 Event.ChipsRevealed -> { state -> state.copy(chipsRevealed = true) }
+                is Event.JoinRequestsUpdated -> { state -> state.copy(joinRequests = event.joinRequests) }
             }
         }
     }
 }
+
+/** The chat list's Join Requests row: which group it opens, by name, and how many wait there. */
+internal data class HostedJoinRequests(val chatId: ChatId, val groupName: String, val count: Int)
+
+/** Private groups [selfId] created, by id, with their titles. */
+internal fun hostedPrivateGroups(summaries: List<ChatSummary>, selfId: ID?): Map<ChatId, String> {
+    selfId ?: return emptyMap()
+    return summaries
+        .map { it.metadata }
+        .filter { it.isPrivate && it.creator == selfId }
+        .associate { it.chatId to it.title.orEmpty() }
+}
+
+/**
+ * The hosted group whose newest request is the most recent, or null when nobody waits anywhere.
+ * There is no frame for a switcher between hosted groups, so the row names one group and opens it.
+ */
+internal fun hostedJoinRequests(
+    hosted: Map<ChatId, String>,
+    lobbies: Map<ChatId, List<LobbyMember>>,
+): HostedJoinRequests? = hosted
+    .mapNotNull { (chatId, name) ->
+        val waiting = lobbies[chatId].orEmpty()
+        if (waiting.isEmpty()) null else Triple(chatId, name, waiting)
+    }
+    .maxByOrNull { (_, _, waiting) -> waiting.maxOf { it.enteredAt } }
+    ?.let { (chatId, name, waiting) -> HostedJoinRequests(chatId, name, waiting.size) }
