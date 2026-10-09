@@ -72,4 +72,26 @@ interface ChatCipher {
         chatId: ByteArray,
         blobId: ByteArray,
     ): ByteArray
+
+    /** 32 fresh random bytes: a private group's chat key, generated once by its creator. */
+    fun newGroupKey(): ByteArray
+
+    /**
+     * Wraps [groupKey] for [recipientPk] as `chat.v1.KeyEnvelope` scheme `X25519_XCHACHA20POLY1305`,
+     * under a fresh random nonce. [ownKeyPair] is the wrapper; pass its own public key as
+     * [recipientPk] to wrap for oneself.
+     *
+     * @throws ChatCipherException under the same key rules as [chatKey], or if [groupKey] is not 32 bytes.
+     */
+    @Throws(ChatCipherException::class)
+    fun wrapGroupKey(ownKeyPair: KeyPair, recipientPk: ByteArray, chatId: ByteArray, groupKey: ByteArray): EncryptedPayload
+
+    /**
+     * Opens an envelope [wrapperPk] made for [ownKeyPair]. [wrapperPk] is the viewer's own key for a
+     * self-wrapped envelope, otherwise the group creator's.
+     *
+     * @throws ChatCipherException if the envelope fails authentication or the keys are rejected.
+     */
+    @Throws(ChatCipherException::class)
+    fun unwrapGroupKey(ownKeyPair: KeyPair, wrapperPk: ByteArray, chatId: ByteArray, envelope: EncryptedPayload): ByteArray
 }

@@ -20,8 +20,54 @@ object DefaultChatCipher : ChatCipher {
     private const val TAG_SIZE = 16
     private val LABEL = "flipcash-dm-e2ee-v1".encodeToByteArray()
     private val BLOB_LABEL = "flipcash-dm-e2ee-blob-v1".encodeToByteArray()
+    private val WRAP_LABEL = "flipcash-group-key-wrap-v1".encodeToByteArray()
 
-    override fun chatKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, chatId: ByteArray): ByteArray {
+    override fun chatKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, chatId: ByteArray): ByteArray =
+        pairKey(ownKeyPair, peerPublicKey, LABEL + chatId)
+
+    override fun newGroupKey(): ByteArray {
+        ensureSodium()
+        return LibsodiumRandom.buf(KEY_SIZE).toByteArray()
+    }
+
+    override fun wrapGroupKey(
+        ownKeyPair: KeyPair,
+        recipientPk: ByteArray,
+        chatId: ByteArray,
+        groupKey: ByteArray,
+    ): EncryptedPayload = wrapGroupKey(ownKeyPair, recipientPk, chatId, groupKey, randomNonce())
+
+    internal fun wrapGroupKey(
+        ownKeyPair: KeyPair,
+        recipientPk: ByteArray,
+        chatId: ByteArray,
+        groupKey: ByteArray,
+        nonce: ByteArray,
+    ): EncryptedPayload {
+        if (groupKey.size != KEY_SIZE) throw ChatCipherException("group key must be 32 bytes")
+        val wrappingKey = pairKey(ownKeyPair, recipientPk, WRAP_LABEL + chatId)
+        val aad = WRAP_LABEL + chatId + ownKeyPair.publicKey + recipientPk
+        return EncryptedPayload(nonce, seal(groupKey, aad, nonce, wrappingKey))
+    }
+
+    override fun unwrapGroupKey(
+        ownKeyPair: KeyPair,
+        wrapperPk: ByteArray,
+        chatId: ByteArray,
+        envelope: EncryptedPayload,
+    ): ByteArray {
+        val wrappingKey = pairKey(ownKeyPair, wrapperPk, WRAP_LABEL + chatId)
+        val aad = WRAP_LABEL + chatId + wrapperPk + ownKeyPair.publicKey
+        val key = open(envelope.ciphertext, aad, envelope.nonce, wrappingKey)
+        if (key.size != KEY_SIZE) throw ChatCipherException("group key must be 32 bytes")
+        return key
+    }
+
+    /**
+     * Steps 1–3 shared by the DM chat key and the group key wrap: X25519 between the two members,
+     * then HKDF-SHA256 salted with both Ed25519 public keys in bytewise order.
+     */
+    private fun pairKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, info: ByteArray): ByteArray {
         if (ownKeyPair.publicKey.size != KEY_SIZE || ownKeyPair.privateKey.size != 64) {
             throw ChatCipherException("own key pair must be a 32-byte public and 64-byte private key")
         }
@@ -30,7 +76,7 @@ object DefaultChatCipher : ChatCipher {
         val a = ownKeyPair.publicKey
         val b = peerPublicKey
         val salt = if (compareBytes(a, b) <= 0) a + b else b + a
-        return hkdfSha256(ikm = ss, salt = salt, info = LABEL + chatId, length = KEY_SIZE)
+        return hkdfSha256(ikm = ss, salt = salt, info = info, length = KEY_SIZE)
     }
 
     override fun encrypt(
