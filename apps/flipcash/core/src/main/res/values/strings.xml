@@ -1105,7 +1105,7 @@
     <string name="action_createPublicGroup">Create a Public Group</string>
     <string name="action_createPrivateGroup">Create a Private Group</string>
     <string name="title_newPrivateGroup">New Private Group</string>
-    <string name="subtitle_privateGroupFootnote">Only people you approve can join. Messages are end-to-end encrypted. This can\'t be changed later.</string>
+    <string name="subtitle_privateGroupFootnote">Only people you approve can join. Messages are end-to-end encrypted.</string>
     <string name="action_findByUsername">Find Someone by Username</string>
 
     <!-- Creating a public group (node 10153:22901). -->
