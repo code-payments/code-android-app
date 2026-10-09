@@ -1,5 +1,8 @@
 package com.flipcash.shared.chat.ui
 
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import com.flipcash.core.R
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobAccessContext
@@ -30,6 +33,9 @@ import kotlin.time.Instant
  * typed, so the row has to look through it — otherwise a chat whose newest message is a reply
  * shows no preview at all.
  */
+// Previews run through the formatting parser, which detects links with android.util.Patterns.
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE)
 class ChatSummaryPreviewTest {
 
     private val sentAt = Instant.fromEpochSeconds(1_000)

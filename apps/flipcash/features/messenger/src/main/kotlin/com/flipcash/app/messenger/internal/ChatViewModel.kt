@@ -143,7 +143,9 @@ import com.flipcash.shared.chat.readOnly
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.ui.UndecryptableHint
 import com.flipcash.shared.chat.ui.undecryptableHint
+import com.flipcash.shared.chat.ui.cardLinks
 import com.flipcash.shared.chat.ui.detectMentions
+import com.flipcash.shared.chat.ui.formattedDisplayText
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.shared.chat.withinWindows
@@ -1231,7 +1233,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     // whether or not the reader ever scrolled to it.
                     val linkableText = enriched.linkableText()
                     val links = linkableText?.let(::detectUrls).orEmpty()
-                    val linkCard = linkCardClassifier.firstCard(links)
+                    val linkCard = linkableText?.let { linkCardClassifier.firstCard(cardLinks(it, links)) }
 
                     // Detected over the whole text, beside the links, so a handle inside a link
                     // stays the link's. Nothing is looked up until one is tapped.
@@ -1439,7 +1441,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     },
                 )
 
-                is MessageContent.Text -> ChatQuoteSnippet.Text(body.text)
+                is MessageContent.Text -> ChatQuoteSnippet.Text(formattedDisplayText(body.text))
 
                 is MessageContent.Media -> body.toPhotoSnippet(this)
 
@@ -1457,7 +1459,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     is MessageContent.Media -> inner.toPhotoSnippet(this)
                     else -> ChatQuoteSnippet.Text(
                         body.content.filterIsInstance<MessageContent.Text>()
-                            .firstOrNull()?.text.orEmpty()
+                            .firstOrNull()?.text?.let(::formattedDisplayText).orEmpty()
                     )
                 }
 
