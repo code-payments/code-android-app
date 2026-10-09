@@ -59,4 +59,27 @@ object FakeChatCipher : ChatCipher {
         }
         return blob.copyOfRange(header.size, blob.size)
     }
+
+    override fun newGroupKey(): ByteArray = ByteArray(32) { it.toByte() }
+
+    override fun wrapGroupKey(
+        ownKeyPair: KeyPair,
+        recipientPk: ByteArray,
+        chatId: ByteArray,
+        groupKey: ByteArray,
+    ) = EncryptedPayload(nonce = ByteArray(24), ciphertext = ownKeyPair.publicKey + recipientPk + groupKey)
+
+    override fun unwrapGroupKey(
+        ownKeyPair: KeyPair,
+        wrapperPk: ByteArray,
+        chatId: ByteArray,
+        envelope: EncryptedPayload,
+    ): ByteArray {
+        val header = wrapperPk + ownKeyPair.publicKey
+        val sealed = envelope.ciphertext
+        if (sealed.size < header.size || !sealed.copyOfRange(0, header.size).contentEquals(header)) {
+            throw ChatCipherException("authentication failed")
+        }
+        return sealed.copyOfRange(header.size, sealed.size)
+    }
 }
