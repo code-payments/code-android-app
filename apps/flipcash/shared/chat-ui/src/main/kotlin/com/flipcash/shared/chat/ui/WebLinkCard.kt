@@ -2,6 +2,7 @@ package com.flipcash.shared.chat.ui
 
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +52,9 @@ internal const val WEB_LINK_PLACEHOLDER_TAG = "web_link_placeholder"
 private const val IMAGE_ASPECT = 1.91f
 /** The app is dark only, so the panel and the chip are white at a low alpha over the bubble. */
 private val PANEL_FILL = Color.White.copy(alpha = 0.08f)
+
+/** A bare card's outline: the group invite card's stroke, so both bare cards draw the same edge. */
+private val BARE_STROKE = GroupInviteCardDefaults.STROKE
 private val CHIP_FILL = Color.White.copy(alpha = 0.12f)
 private const val TITLE_LINES = 2
 private val TITLE_BAR_HEIGHT = 14.dp
@@ -172,6 +176,9 @@ private fun WebPreview(
         modifier = modifier
             .addIf(bareShape == null) { Modifier.padding(top = CodeTheme.dimens.staticGrid.x2) }
             .fillMaxWidth()
+            // A bare card has no bubble for an edge, and a dark opaque page image can match the
+            // chat's own colour; the outline is drawn over the image so the edge always shows.
+            .addIf(bareShape != null) { Modifier.border(CodeTheme.dimens.border, BARE_STROKE, shape) }
             .clip(shape)
             .background(PANEL_FILL)
             .testTag(WEB_LINK_CARD_TAG)
@@ -237,6 +244,7 @@ private fun WebPlaceholder(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .border(CodeTheme.dimens.border, BARE_STROKE, bareShape)
             .clip(bareShape)
             .background(PANEL_FILL)
             .testTag(WEB_LINK_PLACEHOLDER_TAG)
