@@ -1210,6 +1210,7 @@
     <string name="error_description_groupRulesInvalid">Try a different balance requirement</string>
     <string name="error_title_groupCreateDenied">Can\'t Create This Group</string>
     <string name="error_description_groupCreateDenied">Your account isn\'t able to create public groups</string>
+    <string name="error_description_privateGroupCreateDenied">Your account isn\'t able to create private groups</string>
     <!-- Anything StartChat can fail on that the form cannot explain: an unrecognised result, or the
          transport. The key survives a retry, so trying again resumes the same attempt. -->
     <string name="error_title_groupCreateFailed">Something Went Wrong</string>
