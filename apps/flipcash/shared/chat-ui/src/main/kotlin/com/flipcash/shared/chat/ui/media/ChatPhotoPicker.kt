@@ -33,7 +33,7 @@ fun rememberChatPhotoPicker(
         if (uri != null) currentOnPicked(listOf(uri))
     }
     // getPickImagesMaxLimit() only exists where the system picker does (API 33+, or SDK
-    // extension R 2+); elsewhere androidx falls back to a picker with no cap of its own.
+    // extension R 2+). Without it, the open slots are the only cap.
     val systemMax = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ||
             (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
@@ -41,10 +41,10 @@ fun rememberChatPhotoPicker(
         ) {
             MediaStore.getPickImagesMaxLimit()
         } else {
-            Int.MAX_VALUE
+            null
         }
     }
-    val max = remaining.coerceIn(2, maxOf(2, systemMax))
+    val max = maxOf(2, systemMax?.let { minOf(remaining, it) } ?: remaining)
     val multiple = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(max),
     ) { uris ->
