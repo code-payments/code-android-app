@@ -400,6 +400,8 @@
     <string name="prompt_title_externalLink">You\'re Leaving Flipcash</string>
     <!-- %1$s is the link's host. -->
     <string name="prompt_description_externalLink">This will open %1$s. Never share your Access Key with a website</string>
+    <!-- %1$s is the link's text, %2$s the host it opens. -->
+    <string name="prompt_description_externalLinkMasked">“%1$s” will open %2$s. Never share your Access Key with a website.</string>
     <string name="action_openWebsite">Open Website</string>
     <string name="action_dontAskAgainForHost">Don\'t ask again for %1$s</string>
     <string name="action_unlinkAccount">Unlink Account</string>
