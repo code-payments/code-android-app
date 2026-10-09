@@ -190,9 +190,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     keyboard.hideIfVisible {
                         viewModel.dispatchEvent(
                             ChatViewModel.Event.OpenScreen(
-                                // Pushed, so Back returns to this chat. The pushed screen gates
-                                // itself: a non-member sees the join or the buy there.
-                                AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(action.chatId))
+                                // Pushed, so Back returns to this chat. A resolved card opens
+                                // the group's profile, as a featured group does: Open Chat there
+                                // pushes the transcript, which gates itself for a non-member.
+                                // Until the card resolves there is no record to show, so it opens
+                                // the chat.
+                                AppRoute.Messaging.Chat(
+                                    identifier = ChatIdentifier.ByChatId(action.chatId),
+                                    openOnProfile = action.resolved,
+                                )
                             )
                         )
                     }

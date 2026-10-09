@@ -35,8 +35,11 @@ sealed interface ChatAction {
     /**
      * Opens the group a link card names, pushed over this chat so Back returns here. The pushed
      * screen gates itself; a card never joins or buys on the reader's behalf.
+     *
+     * [resolved] is whether the card has fetched the group's public record. A resolved card opens
+     * the group's profile, a card still loading or unavailable opens the chat itself.
      */
-    data class OpenGroup(val chatId: ChatId) : ChatAction
+    data class OpenGroup(val chatId: ChatId, val resolved: Boolean) : ChatAction
 
     /**
      * Opens the person a link card names: their DM, pushed over this chat so Back returns here, or
