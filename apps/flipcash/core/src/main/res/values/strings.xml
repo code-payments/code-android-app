@@ -973,6 +973,8 @@
     <string name="error_description_joinChat_rulesNotSatisfied">You don\'t meet this chat\'s requirements yet.</string>
     <string name="error_description_joinChat_denied">This chat isn\'t open to you</string>
     <string name="error_description_joinChat_notFound">This chat no longer exists</string>
+    <string name="error_title_groupNotFound">Group Not Found</string>
+    <string name="error_description_groupNotFound">This group doesn\'t exist or was deleted</string>
 
     <string name="prompt_title_cancelCashLinkPostShare">Are You Sure?</string>
     <string name="prompt_description_cancelCashLinkPostShare">Anyone you sent the link to won\'t be able to collect the cash</string>

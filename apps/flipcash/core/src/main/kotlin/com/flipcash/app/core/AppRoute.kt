@@ -366,6 +366,11 @@ sealed interface AppRoute : NavKey, Parcelable {
             // Open on a private group's Join Requests as the flow's root, so back returns to the
             // Requests screen that set it, the way iOS does.
             val openOnJoinRequests: Boolean = false,
+            // Opened from a group invite: a tapped or scanned /chat link, or an invite card. A chat
+            // the server has no record of is then a dead link, so the flow says so and closes. Any
+            // other open keeps the empty chat, because a DM on its derived id has no record either
+            // until someone writes in it.
+            val isGroupLink: Boolean = false,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
                 get() = when {

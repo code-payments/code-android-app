@@ -136,7 +136,10 @@ internal fun Scanner() {
                         analytics.track(GroupEvents.inviteFollowed(GroupInviteSource.QR))
                         listOf(
                             AppRoute.Tabs.Chats,
-                            AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(deeplink.chatId)),
+                            AppRoute.Messaging.Chat(
+                                ChatIdentifier.ByChatId(deeplink.chatId),
+                                isGroupLink = true,
+                            ),
                         )
                     }
                     else -> emptyList()

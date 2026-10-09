@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
@@ -21,6 +22,7 @@ import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.chat.GroupInviteResult
+import com.flipcash.features.messenger.R
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -43,6 +45,7 @@ import com.flipcash.app.messenger.internal.screens.profile.MembersScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupNameScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupPictureScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupScreen
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.annotatedEntry
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -60,6 +63,7 @@ import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
@@ -72,9 +76,27 @@ fun ChatFlowScreen(
     // Created here, before any step asks for it, so it opens the chat while being created and the
     // first frame already has what the open can draw from memory (a group's name and picture). The
     // steps get this instance from flowSharedViewModel: the flow's store owner is this entry's.
-    hiltViewModel<ChatViewModel, ChatViewModel.Factory>(
+    val viewModel = hiltViewModel<ChatViewModel, ChatViewModel.Factory>(
         creationCallback = { factory -> factory.create(route.identifier) },
     )
+
+    // A group link the server has no record of: say so and leave, rather than sit on an empty chat
+    // with a composer. Other opens ignore it (see AppRoute.Messaging.Chat.isGroupLink).
+    if (route.isGroupLink) {
+        val resources = LocalContext.current.resources
+        val chatNotFound by viewModel.stateFlow
+            .map { it.chatNotFound }
+            .collectAsStateWithLifecycle(initialValue = false)
+        LaunchedEffect(chatNotFound) {
+            if (chatNotFound) {
+                BottomBarManager.showError(
+                    title = resources.getString(R.string.error_title_groupNotFound),
+                    message = resources.getString(R.string.error_description_groupNotFound),
+                )
+                keyboard.hideIfVisible { navigator.pop() }
+            }
+        }
+    }
 
     FlowHost<ChatStep, Parcelable>(
         initialStack = route.rememberInitialStack(),
