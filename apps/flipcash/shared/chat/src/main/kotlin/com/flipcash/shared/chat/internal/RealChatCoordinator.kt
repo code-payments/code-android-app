@@ -11,6 +11,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.LobbyUpdateSink
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatState
@@ -101,6 +102,7 @@ class RealChatCoordinator @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val archiveStore: ChatArchiveStore = ChatArchiveStore.None,
     private val mediaSender: ChatMediaSending = ChatMediaSending.None,
+    private val lobbyUpdates: LobbyUpdateSink = LobbyUpdateSink.None,
 ) : ChatCoordinator,
     SessionListener,
     DefaultLifecycleObserver,
@@ -221,6 +223,8 @@ class RealChatCoordinator @Inject constructor(
                         messagingDelegate.loadMessages(event.chatId)
                     is EventStreamDelegate.Event.RosterChanged ->
                         groupFeedDelegate.applyRosterChanges(event.chatId, event.changes)
+                    is EventStreamDelegate.Event.LobbyChanged ->
+                        lobbyUpdates.apply(event.chatId, event.updates)
                 }
             }.launchIn(scope)
 
@@ -418,6 +422,7 @@ class RealChatCoordinator @Inject constructor(
         stateHolder.reset()
         eventStreamDelegate.clearAll()
         reactionsDelegate.clearAll()
+        lobbyUpdates.clear()
         cluster.value = null
         supervisorJob.cancel()
         trace(tag = TAG, message = "teardown complete", type = TraceType.Process)

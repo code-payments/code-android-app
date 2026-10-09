@@ -67,11 +67,13 @@ import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.chat.SampledChatter
 import com.flipcash.app.messenger.internal.screens.profile.GroupBalanceRequirements
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileStanding
+import com.flipcash.app.messenger.internal.screens.profile.JoinRequestCall
 import com.flipcash.app.messenger.internal.screens.profile.LobbyCall
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
@@ -94,6 +96,7 @@ import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.FeaturedGroupsStore
+import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.LobbyRequests
 import com.flipcash.shared.chat.media.ChatMediaUploadState
 import com.flipcash.shared.chat.media.ChatMediaUploads
@@ -263,6 +266,7 @@ internal class ChatViewModel @AssistedInject constructor(
     private val rosterSearch: RosterSearchSource,
     private val featuredGroups: FeaturedGroupsStore,
     private val lobbyRequests: LobbyRequests,
+    private val hostLobbies: HostLobbies,
     private val dispatchers: DispatcherProvider,
     // Last and defaulted so the transcript tests, which draw no pictures, need not supply one.
     @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
@@ -478,6 +482,12 @@ internal class ChatViewModel @AssistedInject constructor(
         val lobbyCall: LobbyCall? = null,
         /** A private group's host, by name, for "once <host> approves"; null until known. */
         val hostName: String? = null,
+        /** The viewer created this private group, so its lobby is theirs to answer. */
+        val isLobbyHost: Boolean = false,
+        /** Who is waiting to join, newest first. Empty unless [isLobbyHost]. */
+        val joinRequests: List<LobbyMember> = emptyList(),
+        /** Approve or Deny calls out, by the requester's user id, so only that row waits. */
+        val joinRequestCalls: Map<ID, JoinRequestCall> = emptyMap(),
         /**
          * What the group's profile pins and states about the viewer's balance, decided with the
          * live balance and rates. Null until they arrive, and for anything that is not a group.
@@ -766,6 +776,15 @@ internal class ChatViewModel @AssistedInject constructor(
         data class OnLobbyRequestResolved(val requestedAt: Instant?) : Event
 
         data class OnHostNameResolved(val name: String?) : Event
+
+        /** The viewer's host standing and this group's lobby, from [HostLobbies]. */
+        data class OnJoinRequestsResolved(val isHost: Boolean, val members: List<LobbyMember>) : Event
+
+        /** Join Requests came on screen: refetch, since LobbyUpdate is best-effort. */
+        data object JoinRequestsOpened : Event
+        data class ApproveJoinRequest(val member: LobbyMember) : Event
+        data class DenyJoinRequest(val member: LobbyMember) : Event
+        data class JoinRequestCallChanged(val userId: ID, val call: JoinRequestCall?) : Event
         data class OnChattersLoaded(val chatters: List<SampledChatter>) : Event
         data class OnProfileStandingResolved(val standing: GroupProfileStanding?) : Event
         data class OnRuleTokensResolved(val tokens: Map<List<Byte>, RuleCurrency>) : Event
@@ -2573,6 +2592,72 @@ internal class ChatViewModel @AssistedInject constructor(
             .onEach { dispatchEvent(Event.OnHostNameResolved(it)) }
             .launchIn(viewModelScope)
 
+        // The host's side of a private group: its lobby, kept by HostLobbies and loaded whenever the
+        // viewer turns out to be the creator, so the profile card and the in-chat anchor have it.
+        stateFlow.map { state ->
+            (state.subject as? ChatSubject.Group)
+                ?.takeIf { it.isPrivate && it.creator != null && it.creator == userManager.accountId }
+                ?.chatId
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { chatId ->
+                if (chatId == null) {
+                    flowOf(Event.OnJoinRequestsResolved(isHost = false, members = emptyList()))
+                } else {
+                    viewModelScope.launch { hostLobbies.load(chatId) }
+                    hostLobbies.state.map { Event.OnJoinRequestsResolved(isHost = true, members = it[chatId].orEmpty()) }
+                }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.JoinRequestsOpened>()
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                if (stateFlow.value.isLobbyHost) hostLobbies.load(chatId)
+            }
+            .launchIn(viewModelScope)
+
+        // Each row's call runs on its own, so one slow Approve does not hold up the rest.
+        eventFlow.filterIsInstance<Event.ApproveJoinRequest>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val userId = event.member.userProfile.userId ?: return@onEach
+                if (userId in stateFlow.value.joinRequestCalls) return@onEach
+                dispatchEvent(Event.JoinRequestCallChanged(userId, JoinRequestCall.Approve))
+                viewModelScope.launch {
+                    hostLobbies.approve(chatId, event.member).onFailure {
+                        trace("failed to admit lobby member - ${it.localizedMessage}")
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToApproveJoinRequest),
+                            message = resources.getString(R.string.error_description_failedToApproveJoinRequest),
+                        )
+                    }
+                    dispatchEvent(Event.JoinRequestCallChanged(userId, null))
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.DenyJoinRequest>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val userId = event.member.userProfile.userId ?: return@onEach
+                if (userId in stateFlow.value.joinRequestCalls) return@onEach
+                dispatchEvent(Event.JoinRequestCallChanged(userId, JoinRequestCall.Deny))
+                viewModelScope.launch {
+                    hostLobbies.deny(chatId, userId).onFailure {
+                        trace("failed to deny lobby member - ${it.localizedMessage}")
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToDenyJoinRequest),
+                            message = resources.getString(R.string.error_description_failedToDenyJoinRequest),
+                        )
+                    }
+                    dispatchEvent(Event.JoinRequestCallChanged(userId, null))
+                }
+            }
+            .launchIn(viewModelScope)
+
         // No push says a request was answered, so the profile asks each time it comes up.
         eventFlow.filterIsInstance<Event.GroupProfileOpened>()
             .onEach {
@@ -3276,7 +3361,17 @@ internal class ChatViewModel @AssistedInject constructor(
                 Event.GroupInfoOpened,
                 Event.InviteCardFollowed,
                 Event.LeaveChat, Event.GroupProfileOpened,
-                Event.RequestToJoin, Event.CancelJoinRequest -> { state -> state }
+                Event.RequestToJoin, Event.CancelJoinRequest,
+                Event.JoinRequestsOpened, is Event.ApproveJoinRequest, is Event.DenyJoinRequest -> { state -> state }
+                is Event.OnJoinRequestsResolved -> { state ->
+                    state.copy(isLobbyHost = event.isHost, joinRequests = event.members)
+                }
+                is Event.JoinRequestCallChanged -> { state ->
+                    val calls = state.joinRequestCalls.toMutableMap()
+                    val call = event.call
+                    if (call == null) calls.remove(event.userId) else calls[event.userId] = call
+                    state.copy(joinRequestCalls = calls)
+                }
                 is Event.LobbyCallChanged -> { state -> state.copy(lobbyCall = event.call) }
                 is Event.OnLobbyRequestResolved -> { state -> state.copy(lobbyRequestedAt = event.requestedAt) }
                 is Event.OnHostNameResolved -> { state -> state.copy(hostName = event.name) }

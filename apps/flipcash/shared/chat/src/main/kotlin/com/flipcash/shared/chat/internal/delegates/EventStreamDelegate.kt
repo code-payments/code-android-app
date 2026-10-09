@@ -19,6 +19,7 @@ import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ReactionUpdate
 import com.flipcash.services.models.chat.Reactor
+import com.flipcash.services.models.chat.LobbyUpdate
 import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.shared.chat.reactions.ReactionState
 import com.flipcash.services.models.GetDeltaError
@@ -115,6 +116,9 @@ class EventStreamDelegate @Inject constructor(
          * delegate's, and this delegate has no business knowing what a membership means.
          */
         data class RosterChanged(val chatId: ChatId, val changes: List<RosterChange>) : Event
+
+        /** [chatId]'s lobby changed. Sent only to the group's creator; unversioned. */
+        data class LobbyChanged(val chatId: ChatId, val updates: List<LobbyUpdate>) : Event
     }
 
     private val _events = Channel<Event>(Channel.UNLIMITED)
@@ -456,6 +460,12 @@ class EventStreamDelegate @Inject constructor(
         // and the membership writes both live on the group side.
         if (update.rosterUpdates.isNotEmpty()) {
             _events.send(Event.RosterChanged(chatId, update.rosterUpdates))
+        }
+
+        // --- Lobby changes ---
+
+        if (update.lobbyUpdates.isNotEmpty()) {
+            _events.send(Event.LobbyChanged(chatId, update.lobbyUpdates))
         }
 
         // --- Process reaction updates ---

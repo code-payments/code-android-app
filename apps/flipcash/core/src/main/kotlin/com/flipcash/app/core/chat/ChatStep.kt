@@ -101,6 +101,15 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Serializable
     data object EditGroup : ChatStep
 
+    /**
+     * Node 11206:60 — who is waiting to join a private group, for its creator to approve or deny.
+     * Carries nothing for the same reason [GroupProfile] does not; the lobby itself comes from the
+     * shared host-lobby store.
+     */
+    @Parcelize
+    @Serializable
+    data object JoinRequests : ChatStep
+
     /** The group's title, on the same entry screen shape the profile name uses. */
     @Parcelize
     @Serializable

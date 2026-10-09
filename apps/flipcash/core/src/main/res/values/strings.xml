@@ -1123,6 +1123,30 @@
     <string name="error_description_failedToRequestJoin">Something went wrong. Please try again.</string>
     <string name="error_title_failedToCancelJoinRequest">Couldn\'t Cancel Request</string>
     <string name="error_description_failedToCancelJoinRequest">Something went wrong. Please try again.</string>
+    <string name="error_title_failedToApproveJoinRequest">Couldn\'t Approve</string>
+    <string name="error_description_failedToApproveJoinRequest">Something went wrong. Please try again.</string>
+    <string name="error_title_failedToDenyJoinRequest">Couldn\'t Deny</string>
+    <string name="error_description_failedToDenyJoinRequest">Something went wrong. Please try again.</string>
+    <string name="title_joinRequests">Join Requests</string>
+    <plurals name="subtitle_joinRequestsWaiting">
+        <item quantity="one">%1$d person is waiting</item>
+        <item quantity="other">%1$d people are waiting</item>
+    </plurals>
+    <plurals name="subtitle_joinRequestsForGroup">
+        <item quantity="one">%1$d person wants to join %2$s</item>
+        <item quantity="other">%1$d people want to join %2$s</item>
+    </plurals>
+    <string name="subtitle_requestedJustNow">requested just now</string>
+    <string name="subtitle_requestedMinutesAgo">requested %1$dm ago</string>
+    <string name="subtitle_requestedHoursAgo">requested %1$dh ago</string>
+    <string name="subtitle_requestedYesterday">requested yesterday</string>
+    <string name="subtitle_requestedDaysAgo">requested %1$dd ago</string>
+    <string name="action_deny">Deny</string>
+    <string name="action_approve">Approve</string>
+    <string name="subtitle_joinRequestsFooter">Approving shares the group key with them from this device.</string>
+    <string name="title_noJoinRequests">No requests right now</string>
+    <string name="subtitle_noJoinRequests">When someone asks to join %1$s, they\'ll show up here</string>
+    <string name="action_shareGroup">Share Group</string>
     <string name="subtitle_privateGroupFootnote">Only people you approve can join. Messages are end-to-end encrypted.</string>
     <string name="action_findByUsername">Find Someone by Username</string>
 

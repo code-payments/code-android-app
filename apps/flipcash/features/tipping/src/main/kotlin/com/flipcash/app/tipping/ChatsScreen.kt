@@ -49,6 +49,15 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import com.flipcash.app.tipping.internal.HostedJoinRequests
+import com.getcode.theme.White10
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.Icon
@@ -127,7 +136,7 @@ fun ChatsScreen() {
     val visible = state.visibleChats
     // Everything between the chips and the filler, in list order.
     val parkKeys: List<Any> = remember(state.chats, state.hasNoChatsAtAll, visible) {
-        listOf<Any>("archived") + when {
+        listOf<Any>("join_requests", "archived") + when {
             !chats.isLoaded() -> listOf("loading")
             state.hasNoChatsAtAll -> listOf("empty")
             visible.isEmpty() -> listOf("empty_filter")
@@ -229,6 +238,32 @@ fun ChatsScreen() {
                 // loading) and the parked position has a stable anchor; empty when there is no row.
                 // Its key never leaves the list, so animateItem only moves it; the row itself fades in
                 // and out inside the slot, while the rows below slide to make room or close the gap.
+                // Same shape as the Archived slot below: always emitted, empty while nobody waits.
+                item(key = "join_requests", contentType = "join_requests") {
+                    Box(Modifier.animateItem().then(parkFiller.tracked("join_requests"))) {
+                        var shown by remember { mutableStateOf(state.joinRequests) }
+                        if (state.joinRequests != null) shown = state.joinRequests
+                        AnimatedVisibility(
+                            visible = state.showsJoinRequestsRow,
+                            enter = fadeIn(),
+                            exit = fadeOut(),
+                        ) {
+                            val requests = shown ?: return@AnimatedVisibility
+                            JoinRequestsRow(
+                                requests = requests,
+                                onClick = {
+                                    navigator.push(
+                                        AppRoute.Messaging.Chat(
+                                            ChatIdentifier.ByChatId(requests.chatId),
+                                            openOnJoinRequests = true,
+                                        )
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
+
                 item(key = "archived", contentType = "archived") {
                     Box(Modifier.animateItem().then(parkFiller.tracked("archived"))) {
                         AnimatedVisibility(
@@ -493,6 +528,69 @@ private fun ChatFilterRow(
             selected = selected == ChatListFilter.Groups,
             onClick = { onSelect(ChatListFilter.Groups) },
             count = groupsCount,
+        )
+    }
+}
+
+/**
+ * Node 11214:67 — the host's way into Join Requests, pinned above Archived: "3 people want to join
+ * Moony" with a plain count, like Archived's, so it does not read as unread messages.
+ */
+@Composable
+private fun JoinRequestsRow(requests: HostedJoinRequests, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(CodeTheme.colors.background)
+            .clickable(onClick = onClick)
+            .testTag("join_requests_row")
+            .padding(vertical = CodeTheme.dimens.grid.x3)
+            .padding(start = CodeTheme.dimens.inset, end = CodeTheme.dimens.inset),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(CodeTheme.dimens.staticGrid.x8)
+                .clip(CircleShape)
+                .background(White10),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.PersonAdd,
+                contentDescription = null,
+                tint = CodeTheme.colors.textMain,
+                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.title_joinRequests),
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
+            Text(
+                text = pluralStringResource(
+                    R.plurals.subtitle_joinRequestsForGroup,
+                    requests.count,
+                    requests.count,
+                    requests.groupName,
+                ),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            text = requests.count.toString(),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = CodeTheme.colors.textSecondary,
         )
     }
 }

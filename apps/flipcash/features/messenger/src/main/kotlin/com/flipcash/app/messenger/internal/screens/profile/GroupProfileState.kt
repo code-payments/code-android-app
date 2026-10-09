@@ -279,3 +279,6 @@ internal sealed interface RequestAge {
 
 /** A lobby call in flight from a private group's profile. */
 enum class LobbyCall { Request, Cancel }
+
+/** An Approve or Deny out for one row of Join Requests. */
+enum class JoinRequestCall { Approve, Deny }

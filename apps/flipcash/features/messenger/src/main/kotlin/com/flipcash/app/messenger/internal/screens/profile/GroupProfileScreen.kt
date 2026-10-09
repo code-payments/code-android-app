@@ -1,6 +1,14 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
+import com.getcode.theme.White10
+import com.getcode.theme.White05
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -249,6 +257,23 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.staticGrid.x3),
                         memberCount = group.memberCount,
+                    )
+                }
+
+                // The host's way into Join Requests; gone when nobody is waiting.
+                AnimatedVisibility(
+                    visible = state.isLobbyHost && state.joinRequests.isNotEmpty(),
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+                ) {
+                    var shownCount by remember { mutableStateOf(state.joinRequests.size) }
+                    if (state.joinRequests.isNotEmpty()) shownCount = state.joinRequests.size
+                    JoinRequestsCard(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.staticGrid.x4),
+                        count = shownCount,
+                        onClick = { flowNavigator.navigateTo(ChatStep.JoinRequests) },
                     )
                 }
 
@@ -570,5 +595,53 @@ private fun PrivateJoinBar(
                 onHeightChanged = onHeightChanged,
             )
         }
+    }
+}
+
+/** Node 11205:68 — the host's Join Requests row: title, "3 people are waiting", grey count, chevron. */
+@Composable
+private fun JoinRequestsCard(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(White05)
+            .clickable(onClick = onClick)
+            .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x3),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.title_joinRequests),
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
+            Text(
+                text = pluralStringResource(R.plurals.subtitle_joinRequestsWaiting, count, count),
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+        // Grey rather than the unread badge's colour: a count of people waiting, not unread messages.
+        Box(
+            modifier = Modifier
+                .heightIn(min = 20.dp)
+                .clip(CircleShape)
+                .background(White10)
+                .padding(horizontal = 7.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = count.toString(),
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textMain,
+            )
+        }
+        Icon(
+            painter = painterResource(R.drawable.ic_chevron_right),
+            contentDescription = null,
+            tint = CodeTheme.colors.textSecondary,
+        )
     }
 }
