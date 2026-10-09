@@ -1,6 +1,8 @@
 package com.flipcash.shared.chat.ui.media
 
 import android.net.Uri
+import android.os.Build
+import android.os.ext.SdkExtensions
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -30,7 +32,19 @@ fun rememberChatPhotoPicker(
     val single = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) currentOnPicked(listOf(uri))
     }
-    val max = remaining.coerceIn(2, maxOf(2, MediaStore.getPickImagesMaxLimit()))
+    // getPickImagesMaxLimit() only exists where the system picker does (API 33+, or SDK
+    // extension R 2+); elsewhere androidx falls back to a picker with no cap of its own.
+    val systemMax = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ||
+            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                SdkExtensions.getExtensionVersion(Build.VERSION_CODES.R) >= 2)
+        ) {
+            MediaStore.getPickImagesMaxLimit()
+        } else {
+            Int.MAX_VALUE
+        }
+    }
+    val max = remaining.coerceIn(2, maxOf(2, systemMax))
     val multiple = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(max),
     ) { uris ->
