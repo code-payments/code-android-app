@@ -117,6 +117,7 @@ internal class WebLinkLookup(
     private val enabled: suspend () -> Boolean,
     private val dispatchers: DispatcherProvider,
     private val deadline: Duration = WebLinks.LOOKUP_DEADLINE,
+    private val memory: LinkCardMemory? = null,
 ) {
     private val inFlight = Semaphore(WebLinks.MAX_CONCURRENT)
 
@@ -136,29 +137,78 @@ internal class WebLinkLookup(
     private suspend fun fetch(url: String): Result<LinkCard.Web.State> = withContext(dispatchers.IO) {
         if (!enabled()) return@withContext Result.failure(IllegalStateException("web previews off"))
         runCatching {
-            var current = url.toHttpUrl()
-            // The first request plus MAX_REDIRECTS redirects. A redirect answering the last one is None.
-            repeat(WebLinks.MAX_REDIRECTS + 1) {
-                // Port 443 only, on every hop (parity decision D12).
-                if (!current.isFetchable()) return@runCatching LinkCard.Web.State.None
-                client.newCall(request(current)).await().use { response ->
-                    response.requireConsistentLength()
-                    when {
-                        response.isRedirect -> {
-                            current = response.redirectTarget(current) ?: return@runCatching LinkCard.Web.State.None
-                        }
-                        response.code >= 500 -> throw IOException("HTTP ${response.code}")
-                        !response.isSuccessful -> return@runCatching LinkCard.Web.State.None
-                        !response.isHtml() -> return@runCatching LinkCard.Web.State.None
-                        // The caps count bytes read, so a compressed body is not read at all.
-                        response.isEncoded() -> return@runCatching LinkCard.Web.State.None
-                        else -> return@runCatching WebPageParser.parse(response.capped(), current.toString())
-                            ?: LinkCard.Web.State.None
+            // One budget of redirects for the link and, if it is needed, the home page.
+            val hops = Hops()
+            when (val first = fetchPage(url.toHttpUrl(), hops)) {
+                is Page.Answer -> first.state
+                Page.OutOfRedirects -> LinkCard.Web.State.None
+                is Page.Retry -> homePage(first.finalUrl, hops)
+            }
+        }.onFailure { if (it is CancellationException) throw it }
+    }
+
+    /**
+     * The home page of [finalUrl]'s host, for a link that is private or has no card of its own (parity
+     * decisions P23, P24). A remembered answer for it is used without a request. Its answer is
+     * remembered under its own key too, None included. Running out of redirects there is the one
+     * answer that is not remembered for the home page: the link gets None and the home key nothing.
+     */
+    private suspend fun homePage(finalUrl: HttpUrl, hops: Hops): LinkCard.Web.State {
+        if (finalUrl.encodedPath == "/" && finalUrl.query == null) return LinkCard.Web.State.None
+        val home = finalUrl.newBuilder().encodedPath("/").query(null).fragment(null).build()
+        val key = WebLinks.cacheKey(home.toString())
+        key?.let { k -> memory?.webs?.get(k)?.let { return it } }
+        val state = when (val page = fetchPage(home, hops)) {
+            is Page.Answer -> page.state
+            is Page.Retry -> LinkCard.Web.State.None
+            Page.OutOfRedirects -> return LinkCard.Web.State.None
+        }
+        if (key != null) memory?.putWeb(key, state)
+        return state
+    }
+
+    private class Hops {
+        var redirects = 0
+    }
+
+    private sealed interface Page {
+        /** The page's own answer, None included. */
+        data class Answer(val state: LinkCard.Web.State) : Page
+
+        /** The page is private or has no card: 401, 403, 404, or a 2xx page without a title. [finalUrl] is where it ended. */
+        data class Retry(val finalUrl: HttpUrl) : Page
+
+        data object OutOfRedirects : Page
+    }
+
+    /** Follows redirects by hand, spending [hops], and checks every hop. 5xx throws. */
+    private suspend fun fetchPage(start: HttpUrl, hops: Hops): Page {
+        var current = start
+        while (true) {
+            // Port 443 only, on every hop (parity decision D12).
+            if (!current.isFetchable()) return Page.Answer(LinkCard.Web.State.None)
+            val next: HttpUrl = client.newCall(request(current)).await().use { response ->
+                response.requireConsistentLength()
+                when {
+                    response.isRedirect -> {
+                        val target = response.redirectTarget(current)
+                            ?: return Page.Answer(LinkCard.Web.State.None)
+                        // The first request plus MAX_REDIRECTS redirects, home page included.
+                        if (++hops.redirects > WebLinks.MAX_REDIRECTS) return Page.OutOfRedirects
+                        target
                     }
+                    response.code >= 500 -> throw IOException("HTTP ${response.code}")
+                    response.code == 401 || response.code == 403 || response.code == 404 -> return Page.Retry(current)
+                    !response.isSuccessful -> return Page.Answer(LinkCard.Web.State.None)
+                    !response.isHtml() -> return Page.Answer(LinkCard.Web.State.None)
+                    // The caps count bytes read, so a compressed body is not read at all.
+                    response.isEncoded() -> return Page.Answer(LinkCard.Web.State.None)
+                    else -> return WebPageParser.parse(response.capped(), current.toString())
+                        ?.let { Page.Answer(it) } ?: Page.Retry(current)
                 }
             }
-            LinkCard.Web.State.None
-        }.onFailure { if (it is CancellationException) throw it }
+            current = next
+        }
     }
 
     // Set on the request, so OkHttp's bridge sees Accept-Encoding and leaves the body encoded.

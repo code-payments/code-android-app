@@ -95,10 +95,12 @@ internal abstract class LinkCardMemoryModule {
             @WebPreview client: OkHttpClient,
             flags: FeatureFlagController,
             dispatchers: DispatcherProvider,
+            memory: LinkCardMemory,
         ): WebLinkLookup = WebLinkLookup(
             client = client,
             enabled = { flags.get(FeatureFlag.WebLinkPreviews) },
             dispatchers = dispatchers,
+            memory = memory,
         )
 
         @Provides
