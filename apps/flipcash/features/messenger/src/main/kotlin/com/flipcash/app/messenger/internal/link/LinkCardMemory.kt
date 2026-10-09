@@ -107,4 +107,7 @@ internal open class LinkCardMemory(
      * every stored answer. Memory alone has nothing to read.
      */
     open suspend fun awaitLoaded() = Unit
+
+    /** Whether [awaitLoaded] would return at once. Memory alone has nothing to read, so it always would. */
+    open val isLoaded: Boolean get() = true
 }

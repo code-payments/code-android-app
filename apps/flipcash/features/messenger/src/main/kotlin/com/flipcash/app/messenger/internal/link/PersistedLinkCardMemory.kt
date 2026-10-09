@@ -81,6 +81,8 @@ internal class PersistedLinkCardMemory(
         }
     }
 
+    override val isLoaded: Boolean get() = loaded.value
+
     override suspend fun awaitLoaded() {
         loaded.first { it }
     }
