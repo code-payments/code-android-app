@@ -11,7 +11,7 @@ import com.ionspin.kotlin.crypto.signature.Signature
 import com.ionspin.kotlin.crypto.util.LibsodiumRandom
 
 /**
- * [ChatCipher] for scheme `X25519_XCHACHA20POLY1305`, on libsodium. Stateless; libsodium is
+ * [ChatCipher] for schemes `X25519_XCHACHA20POLY1305` and `CHAT_KEY_XCHACHA20POLY1305`, on libsodium. Stateless; libsodium is
  * initialized on first use if the app has not done it already.
  */
 object DefaultChatCipher : ChatCipher {
@@ -21,6 +21,8 @@ object DefaultChatCipher : ChatCipher {
     private val LABEL = "flipcash-dm-e2ee-v1".encodeToByteArray()
     private val BLOB_LABEL = "flipcash-dm-e2ee-blob-v1".encodeToByteArray()
     private val WRAP_LABEL = "flipcash-group-key-wrap-v1".encodeToByteArray()
+    private val GROUP_LABEL = "flipcash-group-e2ee-v1".encodeToByteArray()
+    private val GROUP_BLOB_LABEL = "flipcash-group-e2ee-blob-v1".encodeToByteArray()
 
     override fun chatKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, chatId: ByteArray): ByteArray =
         pairKey(ownKeyPair, peerPublicKey, LABEL + chatId)
@@ -140,6 +142,49 @@ object DefaultChatCipher : ChatCipher {
         if (blob.size < NONCE_SIZE + TAG_SIZE) throw ChatCipherException("blob shorter than nonce and tag")
         val aad = BLOB_LABEL + chatId + senderPk + recipientPk + blobId
         return open(blob.copyOfRange(NONCE_SIZE, blob.size), aad, blob.copyOfRange(0, NONCE_SIZE), chatKey)
+    }
+
+    override fun encryptGroup(content: ByteArray, groupKey: ByteArray, chatId: ByteArray, senderId: ByteArray): EncryptedPayload =
+        encryptGroup(content, groupKey, chatId, senderId, randomNonce())
+
+    internal fun encryptGroup(
+        content: ByteArray,
+        groupKey: ByteArray,
+        chatId: ByteArray,
+        senderId: ByteArray,
+        nonce: ByteArray,
+    ): EncryptedPayload = EncryptedPayload(nonce, seal(content, GROUP_LABEL + chatId + senderId, nonce, groupKey))
+
+    override fun decryptGroup(payload: EncryptedPayload, groupKey: ByteArray, chatId: ByteArray, senderId: ByteArray): ByteArray =
+        open(payload.ciphertext, GROUP_LABEL + chatId + senderId, payload.nonce, groupKey)
+
+    override fun encryptGroupBlob(
+        image: ByteArray,
+        groupKey: ByteArray,
+        chatId: ByteArray,
+        blobId: ByteArray,
+        senderId: ByteArray,
+    ): ByteArray = encryptGroupBlob(image, groupKey, chatId, blobId, senderId, randomNonce())
+
+    internal fun encryptGroupBlob(
+        image: ByteArray,
+        groupKey: ByteArray,
+        chatId: ByteArray,
+        blobId: ByteArray,
+        senderId: ByteArray,
+        nonce: ByteArray,
+    ): ByteArray = nonce + seal(image, GROUP_BLOB_LABEL + chatId + blobId + senderId, nonce, groupKey)
+
+    override fun decryptGroupBlob(
+        blob: ByteArray,
+        groupKey: ByteArray,
+        chatId: ByteArray,
+        blobId: ByteArray,
+        senderId: ByteArray,
+    ): ByteArray {
+        if (blob.size < NONCE_SIZE + TAG_SIZE) throw ChatCipherException("blob shorter than nonce and tag")
+        val aad = GROUP_BLOB_LABEL + chatId + blobId + senderId
+        return open(blob.copyOfRange(NONCE_SIZE, blob.size), aad, blob.copyOfRange(0, NONCE_SIZE), groupKey)
     }
 
     // -- steps -------------------------------------------------------------------------------
