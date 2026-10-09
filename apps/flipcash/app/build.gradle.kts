@@ -115,6 +115,7 @@ android {
 
     lint {
         checkReleaseBuilds = false
+        checkDependencies = true
         baseline = file("lint-baseline.xml")
     }
 
