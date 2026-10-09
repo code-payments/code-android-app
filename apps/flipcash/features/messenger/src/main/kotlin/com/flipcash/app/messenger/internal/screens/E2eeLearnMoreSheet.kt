@@ -43,9 +43,6 @@ internal enum class E2eeSheetKind { Dm, Group, PrivateGroup }
  * What end-to-end encryption does and doesn't cover, opened from the profile footer. One layout
  * for every kind, with the DM's, the public group's and the private group's own words (nodes
  * 10416:1533, 10557:1412, 11210:71).
- *
- * The private group's frame also lists "Reactions, and who sent them" as not encrypted. Nobody
- * has confirmed reactions in a private group behave as in a DM, so that row is left out.
  */
 @Composable
 internal fun E2eeLearnMoreSheet(
@@ -78,6 +75,7 @@ internal fun E2eeLearnMoreSheet(
         E2eeSheetKind.PrivateGroup -> listOf(
             R.string.item_e2eeSheet_groupDetails,
             R.string.item_e2eeSheet_groupMembers,
+            R.string.item_e2eeSheet_reactions,
             R.string.item_e2eeSheet_payments,
         )
     }
