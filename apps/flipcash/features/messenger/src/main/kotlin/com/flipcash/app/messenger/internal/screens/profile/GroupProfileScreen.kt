@@ -290,6 +290,45 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         )
                     }
                 }
+                // A private group's members see its roster instead of a sample: creator first,
+                // then the newest joins, with the count opening the full list (node 11210:68).
+                val members = remember(state.members, unknownName) {
+                    state.members.take(MembersGridLimit).map { member ->
+                        val profile = member.userProfile
+                        ChattingGridItem(
+                            userId = member.userId,
+                            name = chatterName(profile.displayName, profile.username, unknownName),
+                            picture = profile.profilePicture,
+                            isHost = member.userId == group?.creator,
+                        )
+                    }
+                }
+                AnimatedVisibility(
+                    visible = group?.isPrivate == true && members.isNotEmpty(),
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+                ) {
+                    GroupChattingGrid(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.staticGrid.x6),
+                        chatters = members,
+                        title = stringResource(R.string.title_members),
+                        count = (group?.memberCount ?: state.members.size.toLong()).toString(),
+                        onShowAll = { flowNavigator.navigateTo(ChatStep.Members) },
+                        onOpen = { item ->
+                            val member = state.members.firstOrNull { it.userId == item.userId }
+                                ?: return@GroupChattingGrid
+                            flowNavigator.navigateTo(
+                                ChatStep.Profile(
+                                    contact = ChatParticipant.TipUser(item.userId, member.userProfile),
+                                    origin = ProfileOrigin.GroupMember,
+                                )
+                            )
+                        },
+                    )
+                }
+
                 // The sample lands after the header; opening the grid in place moves the
                 // requirements card down with it rather than jumping it.
                 AnimatedVisibility(
@@ -405,12 +444,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         GroupProfileMenu(
                             expanded = menuOpen,
                             items = groupProfileMenuActions(isMember),
+                            isPrivate = group?.isPrivate == true,
                             anchorHeight = anchorHeight,
                             onDismiss = { menuOpen = false },
                             onItem = { item ->
                                 when (item) {
-                                    GroupProfileMenuAction.Encryption ->
-                                        navigator.push(AppRoute.Messaging.E2eeGroupInfo)
+                                    GroupProfileMenuAction.Encryption -> navigator.push(
+                                        if (group?.isPrivate == true) {
+                                            AppRoute.Messaging.E2eePrivateGroupInfo
+                                        } else {
+                                            AppRoute.Messaging.E2eeGroupInfo
+                                        }
+                                    )
                                     // The picker handles muting and unmuting both; pushed on the
                                     // outer navigator, as it is a top-level route.
                                     GroupProfileMenuAction.Mute -> state.chatId?.let { chatId ->
@@ -460,6 +505,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 private fun GroupProfileMenu(
     expanded: Boolean,
     items: List<GroupProfileMenuAction>,
+    isPrivate: Boolean,
     anchorHeight: androidx.compose.ui.unit.Dp,
     onDismiss: () -> Unit,
     onItem: (GroupProfileMenuAction) -> Unit,
@@ -477,7 +523,7 @@ private fun GroupProfileMenu(
             }
             val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
             DropdownMenuItem(
-                leadingIcon = { Icon(imageVector = item.icon(), contentDescription = null, tint = tint) },
+                leadingIcon = { Icon(imageVector = item.icon(isPrivate), contentDescription = null, tint = tint) },
                 text = {
                     Text(
                         text = stringResource(item.labelRes()),
@@ -496,6 +542,9 @@ private fun GroupProfileMenu(
 
 /** How long the requirement amounts wait for their token's name before showing without it. */
 private val RuleNameHold = 1500.milliseconds
+
+/** Four rows of portraits; the count beside the title opens the rest. */
+private const val MembersGridLimit = 16
 
 /** "Private group · 48 members" over "The host approves who joins", behind a lock. */
 @Composable

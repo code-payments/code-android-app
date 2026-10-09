@@ -931,6 +931,8 @@
     <string name="action_addToChat">Add %1$s to Chat</string>
     <string name="action_leaveChat">Leave Chat</string>
     <string name="prompt_title_leaveChat">Leave %1$s?</string>
+    <!-- A private group: coming back means a new request, not an invite link (node 11206:98). -->
+    <string name="prompt_description_leavePrivateChat">You’ll lose access to the conversation. To rejoin, you’ll need to request again and wait for the host to approve</string>
     <string name="prompt_description_leaveChat">You won’t receive messages from this group any more. You can join again with an invite link</string>
     <string name="error_title_failedToLeave">Something Went Wrong</string>
     <string name="error_description_failedToLeave">We were unable to leave this group. Please try again</string>
@@ -1019,6 +1021,10 @@
     <string name="item_e2eeSheet_beforeEncryption">Messages sent before encryption became available</string>
     <string name="item_e2eeSheet_messagesAndMediaInDms">Messages and media in 1:1 chats</string>
     <string name="item_e2eeSheet_publicGroupChatsIncludingThis">Public group chats, including this one</string>
+    <!-- A private group (node 11210:71). -->
+    <string name="subtitle_e2eeSheet_privateGroup">Messages and media in this group are end-to-end encrypted. Only its members can read them, and the host approves everyone who joins.</string>
+    <string name="item_e2eeSheet_groupDetails">The group’s name, photo, description and cover</string>
+    <string name="item_e2eeSheet_groupMembers">Who is in the group, and how many</string>
 
     <!-- Cash link card: the state of the link a message carries, read without claiming it -->
     <string name="label_linkCard_cash">Cash</string>
@@ -1116,16 +1122,16 @@
     <string name="subtitle_requestPendingHost">You\'ll be able to open the chat once %1$s approves</string>
     <string name="subtitle_requestPendingHostUnnamed">You\'ll be able to open the chat once the host approves</string>
     <string name="prompt_title_lobbyClosed">%1$s isn\'t taking requests right now</string>
-    <string name="prompt_description_lobbyFull">Too many people are waiting for the host to respond. Try again later.</string>
-    <string name="prompt_description_tooManyLobbies">You have too many pending requests. Cancel one to request another.</string>
+    <string name="prompt_description_lobbyFull">Too many people are waiting for the host to respond. Try again later</string>
+    <string name="prompt_description_tooManyLobbies">You have too many pending requests. Cancel one to request another</string>
     <string name="error_title_failedToRequestJoin">Couldn\'t Send Request</string>
-    <string name="error_description_failedToRequestJoin">Something went wrong. Please try again.</string>
+    <string name="error_description_failedToRequestJoin">Something went wrong. Please try again</string>
     <string name="error_title_failedToCancelJoinRequest">Couldn\'t Cancel Request</string>
-    <string name="error_description_failedToCancelJoinRequest">Something went wrong. Please try again.</string>
+    <string name="error_description_failedToCancelJoinRequest">Something went wrong. Please try again</string>
     <string name="error_title_failedToApproveJoinRequest">Couldn\'t Approve</string>
-    <string name="error_description_failedToApproveJoinRequest">Something went wrong. Please try again.</string>
+    <string name="error_description_failedToApproveJoinRequest">Something went wrong. Please try again</string>
     <string name="error_title_failedToDenyJoinRequest">Couldn\'t Deny</string>
-    <string name="error_description_failedToDenyJoinRequest">Something went wrong. Please try again.</string>
+    <string name="error_description_failedToDenyJoinRequest">Something went wrong. Please try again</string>
     <string name="title_joinRequests">Join Requests</string>
     <plurals name="subtitle_joinRequestsWaiting">
         <item quantity="one">%1$d person is waiting</item>
@@ -1156,6 +1162,22 @@
     <string name="title_requestedJustNow">Requested just now</string>
     <string name="title_requestedYesterday">Requested yesterday</string>
     <string name="action_review">Review</string>
+    <!-- A private group's members (nodes 11210:68, 11210:70). -->
+    <string name="title_members">Members</string>
+    <plurals name="header_memberCount">
+        <item quantity="one">%1$d MEMBER</item>
+        <item quantity="other">%1$d MEMBERS</item>
+    </plurals>
+    <string name="label_host">Host</string>
+    <string name="subtitle_joinedJustNow">Joined just now</string>
+    <string name="subtitle_joinedMinutesAgo">Joined %1$dm ago</string>
+    <string name="subtitle_joinedHoursAgo">Joined %1$dh ago</string>
+    <string name="subtitle_joinedYesterday">Joined yesterday</string>
+    <string name="subtitle_joinedDaysAgo">Joined %1$dd ago</string>
+    <string name="subtitle_joinedLastWeek">Joined last week</string>
+    <string name="subtitle_joinedWeeksAgo">Joined %1$d weeks ago</string>
+    <string name="subtitle_joinedLastMonth">Joined last month</string>
+    <string name="subtitle_joinedMonthsAgo">Joined %1$d months ago</string>
     <string name="subtitle_privateGroupFootnote">Only people you approve can join. Messages are end-to-end encrypted.</string>
     <string name="action_findByUsername">Find Someone by Username</string>
 

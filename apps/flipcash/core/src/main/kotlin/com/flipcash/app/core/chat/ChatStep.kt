@@ -110,6 +110,14 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Serializable
     data object JoinRequests : ChatStep
 
+    /**
+     * Node 11210:70 — every member of a private group, the creator pinned first with a Host tag.
+     * The roster comes from the shared roster store.
+     */
+    @Parcelize
+    @Serializable
+    data object Members : ChatStep
+
     /** The group's title, on the same entry screen shape the profile name uses. */
     @Parcelize
     @Serializable

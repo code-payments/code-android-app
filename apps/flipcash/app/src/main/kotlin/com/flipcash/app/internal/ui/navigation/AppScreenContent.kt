@@ -149,6 +149,9 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.PhotoViewer> { key -> ChatPhotoViewerScreen(key.chatId, key.messageId) }
     annotatedEntry<AppRoute.Messaging.E2eeDmInfo> { E2eeLearnMoreScreen(forGroup = false) }
     annotatedEntry<AppRoute.Messaging.E2eeGroupInfo> { E2eeLearnMoreScreen(forGroup = true) }
+    annotatedEntry<AppRoute.Messaging.E2eePrivateGroupInfo> {
+        E2eeLearnMoreScreen(forGroup = true, isPrivate = true)
+    }
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info>(testTag = "token_info_screen") { key ->

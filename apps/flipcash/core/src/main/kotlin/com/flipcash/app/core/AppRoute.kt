@@ -527,6 +527,14 @@ sealed interface AppRoute : NavKey, Parcelable {
             Messaging,
             com.getcode.navigation.Sheet,
             com.getcode.navigation.WrapContentSheet
+
+        /** [E2eeGroupInfo] for a private group, which is end-to-end encrypted (node 11210:71). */
+        @Serializable
+        @Parcelize
+        data object E2eePrivateGroupInfo :
+            Messaging,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.WrapContentSheet
     }
 
     @Serializable
