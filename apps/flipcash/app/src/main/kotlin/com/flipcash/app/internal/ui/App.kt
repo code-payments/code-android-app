@@ -67,7 +67,9 @@ import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.features.shareapp.R
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.services.user.AuthState
+import com.flipcash.shared.chat.share.LocalPendingChatShares
 import com.getcode.animation.LocalSharedTransitionScope
 import com.getcode.utils.trace
 import com.getcode.libs.biometrics.BiometricsError
@@ -321,6 +323,33 @@ internal fun App(
                                         DeeplinkAction.None -> {}
                                     }
                                     deepLink = null
+                                }
+
+                                // A share from another app: once the app is past its cold-start Loading
+                                // route and signed in, open the chat picker (or the chat itself when
+                                // the share already names one, which is where direct share lands).
+                                // Anyone who isn't signed in just gets the app: the share is dropped.
+                                val pendingShares = LocalPendingChatShares.current
+                                val pendingShare = pendingShares?.pending?.collectAsStateWithLifecycle()?.value
+                                LaunchedEffect(pendingShare, currentRoute, userState.authState) {
+                                    val shares = pendingShares ?: return@LaunchedEffect
+                                    if (pendingShare == null || currentRoute is AppRoute.Loading) return@LaunchedEffect
+                                    when (userState.authState) {
+                                        AuthState.Ready -> {
+                                            val share = shares.beginPresenting() ?: return@LaunchedEffect
+                                            keyboard.hide()
+                                            val target = share.chatId
+                                            codeNavigator.navigate(
+                                                if (target != null) {
+                                                    AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(target))
+                                                } else {
+                                                    AppRoute.Messaging.SharePicker
+                                                }
+                                            )
+                                        }
+                                        is AuthState.Onboarding, AuthState.LoggedOut -> shares.discard()
+                                        else -> Unit
+                                    }
                                 }
 
                                 LaunchedEffect(userState.authState) {

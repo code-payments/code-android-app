@@ -99,6 +99,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!--
+                 Share target: text and links, and one or many images, sent from another app's share
+                 sheet. MainActivity reads the intent (onCreate / onNewIntent), copies the images
+                 out of the sender's grant, and opens a chat picker; nothing is sent from here.
+
+                 Direct share (a conversation row in the sheet) is a later change: it needs a
+                 sharing-shortcuts target (`android.service.chooser.chooser_target_service` /
+                 `android.app.shortcuts` meta-data) and pushes shortcuts whose id arrives as
+                 EXTRA_SHORTCUT_ID, which chatIdFromShortcutId maps back to a chat.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+
             <!-- app.flipcash.com App Links -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />

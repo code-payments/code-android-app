@@ -470,6 +470,16 @@ sealed interface AppRoute : NavKey, Parcelable {
             com.getcode.navigation.WrapContentSheet
 
         /**
+         * Where a share from another app picks the conversation it goes to. Opened by the app
+         * itself when a share is waiting in `PendingChatShares`, and replaced by the chosen
+         * [Chat]. Carries nothing: what was shared is held there, not on a route a back stack
+         * would save and restore.
+         */
+        @Serializable
+        @Parcelize
+        data object SharePicker : Messaging
+
+        /**
          * A person's profile link, shared by the system share sheet, copied, or sent into recent
          * chats. Opened from the viewer's own profile and from someone else's, so it carries what
          * the link and the share card are built from.

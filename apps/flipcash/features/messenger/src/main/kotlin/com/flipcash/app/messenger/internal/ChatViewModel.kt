@@ -89,6 +89,7 @@ import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftSnapshot
 import com.flipcash.shared.chat.ChatDraftStore
+import com.flipcash.shared.chat.share.PendingChatShares
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.FeaturedGroupsStore
@@ -262,6 +263,7 @@ internal class ChatViewModel @AssistedInject constructor(
     @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
     linkCardMemory: LinkCardMemory? = null,
     featureFlags: FeatureFlagController = NoOpFeatureFlagController,
+    private val pendingShares: PendingChatShares = PendingChatShares(),
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -1717,6 +1719,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 if (chatId != null) {
                     dispatchEvent(Event.ChatFound(chatId))
                     restoreDraft(chatId)
+                    applyPendingShare(chatId)
                     chatCoordinator.setActiveChatId(chatId)
                     // A featured group tapped on a profile is usually one the viewer is not in, so
                     // nothing is stored and the profile would sit empty through GetChat. The row
@@ -2607,20 +2610,49 @@ internal class ChatViewModel @AssistedInject constructor(
             .launchIn(viewModelScope)
     }
 
+    private fun stagePhotos(uris: List<Uri>, captured: Boolean) {
+        val chatId = stateFlow.value.chatId ?: return
+        if (stateFlow.value.editing != null) return
+        val room = MAX_STAGED_PHOTOS - stateFlow.value.stagedPhotos.size
+        uris.take(room.coerceAtLeast(0)).forEach { uri ->
+            val id = mediaUploads.stage(chatId, uri)
+            if (captured) uri.path?.let { captureFiles[id] = File(it) }
+            dispatchEvent(Event.PhotoStaged(StagedPhoto(id, uri)))
+        }
+        // Anything over the limit is not staged, and a camera file for it has no use.
+        if (captured) uris.drop(room.coerceAtLeast(0)).forEach { it.path?.let { path -> File(path).delete() } }
+    }
+
+    /**
+     * Puts a share routed to [chatId] into the composer: images as photo chips, the text after
+     * whatever the composer already holds (the restored draft, so nothing is overwritten). Nothing
+     * is sent. [PendingChatShares.take] hands the share over once, so a recreated chat finds none.
+     *
+     * Called straight after the draft is restored and not by event: the photo handlers start after
+     * the first frame and an event sent before then has no one listening.
+     */
+    private suspend fun applyPendingShare(chatId: ChatId) {
+        val share = pendingShares.take(chatId) ?: return
+        // The same gate as the Photos and Camera rows. A chat that doesn't take media still takes
+        // the text, and the copies of the images that go unused are deleted here.
+        if (stateFlow.value.acceptsMedia && share.images.isNotEmpty()) {
+            stagePhotos(share.images, captured = true)
+        } else {
+            share.images.forEach { uri -> uri.path?.let { File(it).delete() } }
+        }
+        val text = share.text ?: return
+        withContext(Dispatchers.Main.immediate) {
+            val input = stateFlow.value.chatInputState
+            val existing = input.text.toString()
+            input.setTextAndPlaceCursorAtEnd(
+                if (existing.isBlank()) text else existing.trimEnd() + "\n" + text
+            )
+        }
+    }
+
     private fun initPhotoHandlers() {
         eventFlow.filterIsInstance<Event.StagePhotos>()
-            .onEach { event ->
-                val chatId = stateFlow.value.chatId ?: return@onEach
-                if (stateFlow.value.editing != null) return@onEach
-                val room = MAX_STAGED_PHOTOS - stateFlow.value.stagedPhotos.size
-                event.uris.take(room.coerceAtLeast(0)).forEach { uri ->
-                    val id = mediaUploads.stage(chatId, uri)
-                    if (event.captured) uri.path?.let { captureFiles[id] = File(it) }
-                    dispatchEvent(Event.PhotoStaged(StagedPhoto(id, uri)))
-                }
-                // Anything over the limit is not staged, and a camera file for it has no use.
-                if (event.captured) event.uris.drop(room.coerceAtLeast(0)).forEach { it.path?.let { path -> File(path).delete() } }
-            }
+            .onEach { event -> stagePhotos(event.uris, event.captured) }
             .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.CaptureStarted>()
