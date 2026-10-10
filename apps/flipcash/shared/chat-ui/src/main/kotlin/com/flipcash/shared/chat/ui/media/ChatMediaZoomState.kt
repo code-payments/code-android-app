@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import kotlin.math.max
 
 /** The zoom arithmetic of the viewer, free of Compose state so it can be tested on the JVM. */
@@ -87,6 +88,8 @@ class ChatMediaZoomState {
 
     /** One step of a pinch or pan: [zoom] is the factor since the last event, [pan] its movement. */
     internal fun transform(focus: Offset, pan: Offset, zoom: Float) {
+        // The event that lifts the last finger has no centroid; its NaN would poison the offset.
+        if (!focus.isSpecified) return
         val newScale = (scale * zoom).coerceIn(ChatMediaZoom.MIN_SCALE, ChatMediaZoom.MAX_SCALE)
         val moved = ChatMediaZoom.offsetAfterZoom(offset, focus, scale, newScale, pan, container)
         scale = newScale

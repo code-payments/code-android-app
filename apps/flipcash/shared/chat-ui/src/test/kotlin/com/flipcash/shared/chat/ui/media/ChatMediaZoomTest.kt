@@ -49,4 +49,21 @@ class ChatMediaZoomTest {
         state.transform(Offset(200f, 400f), Offset.Zero, 0.01f)
         assertEquals(1f, state.scale)
     }
+
+    @Test
+    fun transformIgnoresTheLiftEventsMissingCentroid() {
+        // The event that lifts the last finger has no pointer still down, so calculateCentroid()
+        // returns Offset.Unspecified (NaN). Applying it made the offset NaN and the photo vanished.
+        val state = ChatMediaZoomState().apply {
+            container = this@ChatMediaZoomTest.container
+            content = Size(400f, 800f)
+        }
+        state.transform(Offset(300f, 500f), Offset.Zero, 2f)
+        val zoomed = state.offset
+
+        state.transform(Offset.Unspecified, Offset.Zero, 1f)
+
+        assertEquals(2f, state.scale)
+        assertEquals(zoomed, state.offset)
+    }
 }

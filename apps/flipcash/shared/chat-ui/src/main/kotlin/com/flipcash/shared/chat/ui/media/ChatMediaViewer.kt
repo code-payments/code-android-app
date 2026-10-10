@@ -4,6 +4,8 @@ import com.getcode.theme.CodeTheme
 import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,6 +30,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -76,7 +80,8 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  * A full-screen photo.
  *
  * Pinch zooms from 1× to 4× with the pan held inside the image's edges; a double tap goes to 2.5×
- * about the tapped point, or back to fit when already zoomed. A one-finger drag that starts while
+ * about the tapped point, or back to fit when already zoomed. A single tap hides or shows the
+ * close and share buttons. A one-finger drag that starts while
  * the image is at fit pulls it away; when zoomed the same drag pans instead.
  *
  * On its own the pull moves the image down, fading the black behind it, and past a fifth of the
@@ -123,6 +128,12 @@ fun ChatMediaViewer(
     val currentOnPull by rememberUpdatedState(onPull)
     val currentOnPullEnd by rememberUpdatedState(onPullEnd)
     val touchSlop = LocalViewConfiguration.current.touchSlop
+    var chromeVisible by remember { mutableStateOf(true) }
+    val chromeShown by animateFloatAsState(
+        targetValue = if (chromeVisible) 1f else 0f,
+        animationSpec = if (reduceMotion) snap() else tween(200),
+        label = "chrome",
+    )
 
     val painter = rememberAsyncImagePainter(
         model = model,
@@ -158,6 +169,7 @@ fun ChatMediaViewer(
                 .testTag(VIEWER_IMAGE_TAG)
                 .pointerInput(zoomState, reduceMotion) {
                     detectTapGestures(
+                        onTap = { if (currentInteractive) chromeVisible = !chromeVisible },
                         onDoubleTap = { tap ->
                             if (currentInteractive) {
                                 scope.launch { zoomState.toggle(tap, animated = !reduceMotion) }
@@ -291,11 +303,12 @@ fun ChatMediaViewer(
             }
         }
 
-        val chrome = Modifier.graphicsLayer { alpha = frame?.invoke()?.chromeAlpha ?: 1f }
+        val chrome = Modifier.graphicsLayer { alpha = (frame?.invoke()?.chromeAlpha ?: 1f) * chromeShown }
         ViewerButton(
             icon = Icons.Filled.Close,
             description = stringResource(R.string.description_chatMediaClose),
             enabled = interactive,
+            visible = chromeVisible,
             tag = VIEWER_CLOSE_TAG,
             onClick = onDismiss,
             modifier = chrome.align(Alignment.TopStart),
@@ -304,6 +317,7 @@ fun ChatMediaViewer(
             icon = Icons.Outlined.IosShare,
             description = stringResource(R.string.description_chatMediaShare),
             enabled = fullImageLoaded && interactive,
+            visible = chromeVisible,
             tag = VIEWER_SHARE_TAG,
             onClick = onShare,
             modifier = chrome.align(Alignment.TopEnd),
@@ -323,13 +337,15 @@ private fun ViewerButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     description: String,
     enabled: Boolean,
+    visible: Boolean,
     tag: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     IconButton(
         onClick = onClick,
-        enabled = enabled,
+        // Hidden buttons fade out at full tint but stop taking taps straight away.
+        enabled = enabled && visible,
         modifier = modifier
             .statusBarsPadding()
             .padding(CodeTheme.dimens.staticGrid.x2)
