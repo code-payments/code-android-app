@@ -488,7 +488,7 @@ private class CameraRelease(private val unbind: () -> Unit) {
 
 private fun captureDir(context: Context) = File(context.cacheDir, "chat_capture")
 
-private fun captureFile(context: Context): File {
+internal fun captureFile(context: Context): File {
     val dir = captureDir(context).apply { mkdirs() }
     return File(dir, "photo_${UUID.randomUUID()}.jpg")
 }

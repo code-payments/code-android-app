@@ -20,6 +20,7 @@ import com.flipcash.shared.chat.ui.media.ComposerPhotoChips
 import com.flipcash.shared.chat.ui.media.MAX_STAGED_PHOTOS
 import com.flipcash.shared.chat.ui.media.attachRows
 import com.flipcash.shared.chat.ui.media.rememberChatPhotoPicker
+import com.flipcash.shared.chat.ui.media.composerImageReceiver
 import com.flipcash.shared.chat.ui.media.deleteLeftoverCaptures
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
@@ -255,7 +256,17 @@ internal fun UserControlBottomBar(
         val screenHeight = maxHeight
         Column(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                // Images dropped anywhere on the bar (strip and field included), pasted, or sent by a
+                // keyboard are staged like picked photos; a chat that takes no media refuses them.
+                .composerImageReceiver(
+                    acceptsMedia = state.acceptsMedia,
+                    remaining = MAX_STAGED_PHOTOS - state.stagedPhotos.size,
+                    onImages = { uris ->
+                        dispatch(ChatViewModel.Event.StagePhotos(uris, captured = true))
+                        focusAfterPick = true
+                    },
+                ),
         ) {
             // Compact at rest: with the keyboard down the composer sits narrower and a little lower, into
             // the navigation bar's inset, and opens out to the normal margins as the keyboard comes up.
