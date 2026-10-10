@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -325,6 +326,27 @@ class ChatPhotoMediaUiTest {
         rule.onNodeWithTag(VIEWER_IMAGE_TAG).performTouchInput { doubleClick(center) }
         rule.waitForIdle()
         assertFalse(zoom.isZoomed)
+    }
+
+    @Test
+    fun singleTapTogglesTheButtons() {
+        rule.setContent {
+            DesignSystem {
+                ChatMediaViewer(
+                    model = null, fullImageLoaded = true, onFullImageLoaded = {},
+                    onShare = {}, onDismiss = {}, reduceMotion = true,
+                )
+            }
+        }
+        rule.onNodeWithTag(VIEWER_IMAGE_TAG).performTouchInput { click(center) }
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithTag(VIEWER_CLOSE_TAG).assertIsNotEnabled()
+        rule.onNodeWithTag(VIEWER_SHARE_TAG).assertIsNotEnabled()
+
+        rule.onNodeWithTag(VIEWER_IMAGE_TAG).performTouchInput { click(center) }
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithTag(VIEWER_CLOSE_TAG).assertIsEnabled()
+        rule.onNodeWithTag(VIEWER_SHARE_TAG).assertIsEnabled()
     }
 
     // endregion
