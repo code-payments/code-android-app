@@ -287,10 +287,13 @@ internal fun Scanner() {
                         }
                     },
                     onError = {
+                        // A device without a usable camera is an expected state, not an error
+                        // to report.
                         if (it is NoCamerasAvailableException) {
                             cameraAvailable = false
+                        } else {
+                            ErrorUtils.handleError(it)
                         }
-                        ErrorUtils.handleError(it)
                     }
                 )
             },

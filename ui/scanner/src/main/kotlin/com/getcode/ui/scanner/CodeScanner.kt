@@ -89,13 +89,6 @@ fun CodeScanner(
         Preview.Builder().build().apply { surfaceProvider = previewView.surfaceProvider }
     }
 
-    val cameraSelector = remember {
-        val lensFacing = CameraSelector.LENS_FACING_BACK
-        CameraSelector.Builder()
-            .requireLensFacing(lensFacing)
-            .build()
-    }
-
     // Ask for the analysis stream through ResolutionSelector rather than the deprecated
     // setTargetResolution. The old API is only a hint, and on a 4:3 sensor it resolves a 1920x1080
     // request down to a 720x720 square -- which costs range twice over. A square crop keeps the
@@ -150,7 +143,6 @@ fun CodeScanner(
             cameraProvider.bindToLifecycleSafely(
                 context,
                 lifecycleOwner,
-                cameraSelector,
                 preview,
                 imageAnalysis
             ).onSuccess {
@@ -187,7 +179,6 @@ fun CodeScanner(
                         cameraProvider.bindToLifecycleSafely(
                             context,
                             lifecycleOwner,
-                            cameraSelector,
                             preview,
                             imageAnalysis
                         ).onSuccess {
@@ -289,15 +280,21 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider {
 private suspend fun ProcessCameraProvider.bindToLifecycleSafely(
     context: Context,
     lifecycleOwner: LifecycleOwner,
-    cameraSelector: CameraSelector,
     preview: Preview,
     imageAnalysis: ImageAnalysis,
     retries: Int = 3,
 ): Result<Camera> {
     val hasCamera = context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
     if (!hasCamera) {
-        return Result.failure(IllegalStateException("No camera available on this device"))
+        return Result.failure(NoCamerasAvailableException())
     }
+
+    // Some devices expose no back camera to CameraX -- an Infinix X688B lists a single camera and
+    // reports it as front facing -- so requiring LENS_FACING_BACK fails every bind there. Prefer
+    // the back camera and fall back to whatever the device has; a code held up to a front camera
+    // still scans.
+    val cameraSelector = pickScannerCamera(availableCameraInfos) { it.lensFacing }?.cameraSelector
+        ?: return Result.failure(NoCamerasAvailableException())
 
     return runCatching {
         bindWithRetry(retries) {
@@ -319,11 +316,23 @@ suspend fun bindWithRetry(
         try {
             return bind()
         } catch (e: Exception) {
-            if (attempt == retries - 1) throw e
+            // CameraX throws IllegalArgumentException when no camera matches the selector or the
+            // use cases can't be combined. Neither changes between attempts, so retrying only
+            // delays the failure.
+            if (e is IllegalArgumentException || attempt == retries - 1) throw e
             delay(1000)
         }
     }
     throw NoCamerasAvailableException()
+}
+
+/**
+ * The back camera when there is one, otherwise the first camera the device exposes, or null when
+ * it exposes none.
+ */
+internal fun <T> pickScannerCamera(cameras: List<T>, lensFacing: (T) -> Int): T? {
+    return cameras.firstOrNull { lensFacing(it) == CameraSelector.LENS_FACING_BACK }
+        ?: cameras.firstOrNull()
 }
 
 class NoCamerasAvailableException : Throwable()
