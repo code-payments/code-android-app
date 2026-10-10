@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="subtitle_usingFrontCamera">No back camera found. Using your front camera.</string>
+    <string name="subtitle_usingFrontCamera">No back camera found. Using your front camera</string>
     <string name="error_title_paymentFailed">Payment Failed</string>
     <string name="error_description_paymentFailed">This payment request could not be paid at this time. Please try again later.</string>
 
