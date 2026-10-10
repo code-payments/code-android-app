@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,7 @@ import com.getcode.media.StaticImageResult
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Black50
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.toast.LocalFloatingToastHost
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.scanner.CodeScanner
@@ -92,6 +94,8 @@ internal fun Scanner() {
 
     val vibrator = LocalVibrator.current
     val scope = rememberCoroutineScope()
+    val toasts = LocalFloatingToastHost.current
+    var frontCameraNoticeShown by rememberSaveable { mutableStateOf(false) }
 
     // Built by hand for the same reason `rememberMultiCodeAnalyzer` builds the camera's: nothing
     // binds these types, and neither the module that declares them nor `:ui:scanner` is
@@ -283,6 +287,20 @@ internal fun Scanner() {
                             }
                             is KikCodeResult -> {
                                 session.onCodeScan(result.kikCode)
+                            }
+                        }
+                    },
+                    onFrontCameraFallback = {
+                        // Once per scanner, not on every rebind: the preview already shows which
+                        // camera is in use, this only says why.
+                        if (!frontCameraNoticeShown && toasts != null) {
+                            frontCameraNoticeShown = true
+                            scope.launch {
+                                toasts.show(
+                                    message = resources.getString(R.string.subtitle_usingFrontCamera),
+                                    hugContent = true,
+                                    passThrough = true,
+                                )
                             }
                         }
                     },

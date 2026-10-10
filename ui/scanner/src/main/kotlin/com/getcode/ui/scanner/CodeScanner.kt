@@ -67,6 +67,8 @@ fun CodeScanner(
     onPreviewStateChanged: (Boolean) -> Unit,
     onCodeScanned: (CodeScanResult) -> Unit,
     onError: (Throwable) -> Unit = { },
+    // Called when the device has no back camera and the scanner bound the front one instead.
+    onFrontCameraFallback: () -> Unit = { },
     // Surfaces the underlying PreviewView so callers can snapshot the live feed (e.g. to render a
     // blurred camera backdrop behind an overlay). Non-null while mounted, null on dispose.
     onPreviewViewChanged: (PreviewView?) -> Unit = { },
@@ -147,6 +149,7 @@ fun CodeScanner(
                 imageAnalysis
             ).onSuccess {
                 camera = it
+                if (it.cameraInfo.lensFacing == CameraSelector.LENS_FACING_FRONT) onFrontCameraFallback()
             }.onFailure { onError(it) }
         } else {
             cameraProvider.unbindAll()
@@ -183,6 +186,9 @@ fun CodeScanner(
                             imageAnalysis
                         ).onSuccess {
                             camera = it
+                            if (it.cameraInfo.lensFacing == CameraSelector.LENS_FACING_FRONT) {
+                                onFrontCameraFallback()
+                            }
                         }.onFailure { onError(it) }
                     }
                 }
