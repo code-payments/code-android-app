@@ -30,4 +30,7 @@ dependencies {
     implementation(libs.compose.animation)
     implementation(libs.compose.material)
 
+    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.test)
+
 }
