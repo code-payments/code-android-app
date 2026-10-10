@@ -18,7 +18,6 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.shared.chat.ChatCoordinator
-import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
@@ -156,21 +155,14 @@ class EditGroupPictureViewModel @Inject constructor(
             .onEach {
                 if (!stateFlow.value.canSubmit) return@onEach
 
-                BottomBarManager.showAlert(
-                    title = resources.getString(R.string.prompt_title_changeGroupPicture),
-                    message = resources.getString(R.string.prompt_description_changeGroupPicture),
-                    actions = listOf(
-                        BottomBarAction(resources.getString(R.string.action_changeGroupPicture)) {
-                            viewModelScope.launch {
-                                // The bar dismisses on an animation, and the upload's spinner
-                                // belongs to the screen behind it — it would start underneath.
-                                delay(150.milliseconds)
-                                dispatchEvent(Event.SubmitPicture)
-                            }
-                        }
-                    ),
-                    showCancel = true,
-                )
+                showGroupChangeConfirmation(resources, GroupChangeField.Picture) {
+                    viewModelScope.launch {
+                        // The bar dismisses on an animation, and the upload's spinner
+                        // belongs to the screen behind it — it would start underneath.
+                        delay(150.milliseconds)
+                        dispatchEvent(Event.SubmitPicture)
+                    }
+                }
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -243,27 +235,10 @@ class EditGroupPictureViewModel @Inject constructor(
     }
 
     private fun announceEditFailure(cause: Throwable) {
-        when (cause) {
-            // Storage took the blob and EditChat would not have it, so the pick is what has to
-            // change — it is dropped rather than left on screen inviting the same upload again.
-            is EditChatError.PictureBlobNotAccepted -> {
-                dispatchEvent(Event.DiscardPendingImage)
-                BottomBarManager.showAlert(
-                    title = resources.getString(R.string.error_title_imageNotAllowed),
-                    message = resources.getString(R.string.error_description_imageNotAllowed),
-                )
-            }
-
-            is EditChatError.Denied -> BottomBarManager.showAlert(
-                title = resources.getString(R.string.error_title_groupEditDenied),
-                message = resources.getString(R.string.error_description_groupEditDenied),
-            )
-
-            else -> BottomBarManager.showError(
-                title = resources.getString(R.string.error_title_groupEditFailed),
-                message = resources.getString(R.string.error_description_groupEditFailed),
-            )
-        }
+        // Storage took the blob and EditChat would not have it, so the pick is what has to
+        // change — it is dropped rather than left on screen inviting the same upload again.
+        if (cause is EditChatError.PictureBlobNotAccepted) dispatchEvent(Event.DiscardPendingImage)
+        showGroupEditAlert(resources, groupEditAlert(cause, GroupChangeField.Picture))
     }
 
     private fun rejectImage(title: Int, message: Int) {

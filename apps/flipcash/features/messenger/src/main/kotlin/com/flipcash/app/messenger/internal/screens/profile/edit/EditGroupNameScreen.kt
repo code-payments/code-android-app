@@ -97,14 +97,25 @@ internal fun EditGroupNameScreen(chatViewModel: ChatViewModel) {
                 )
             },
             bottomBar = {
+                Column(
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .imePadding(),
+                ) {
+                // Only once the end is near, so it reads as a warning and not as furniture.
+                val remaining = state.remaining
+                if (remaining < ChatTitle.COUNTER_THRESHOLD) {
+                    Text(
+                        modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x3),
+                        text = stringResource(R.string.label_groupNameRemaining, remaining),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                }
                 CodeButton(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(
-                            top = CodeTheme.dimens.grid.x6,
-                            bottom = CodeTheme.dimens.grid.x3,
-                        ).imePadding(),
+                        .padding(bottom = CodeTheme.dimens.grid.x3),
                     text = stringResource(R.string.action_save),
                     enabled = state.canSubmit,
                     isLoading = state.processingState.loading,
@@ -115,13 +126,14 @@ internal fun EditGroupNameScreen(chatViewModel: ChatViewModel) {
                         }
                     },
                 )
+                }
             },
         ) { padding ->
             val focusRequester = remember { FocusRequester() }
             Column(modifier = Modifier.padding(padding)) {
                 DisplayTextInput(
                     state = state.titleFieldState,
-                    placeholder = stringResource(R.string.hint_groupName),
+                    placeholder = stringResource(R.string.hint_groupNameEdit),
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester),

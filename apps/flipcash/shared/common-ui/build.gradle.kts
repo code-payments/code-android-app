@@ -16,6 +16,7 @@ dependencies {
     implementation(project(":libs:datetime"))
     implementation(project(":apps:flipcash:shared:theme"))
 
+    implementation(libs.bundles.haze)
     implementation(libs.compose.material)
     implementation(libs.bundles.haze)
     api(libs.compose.material.icons.extended)

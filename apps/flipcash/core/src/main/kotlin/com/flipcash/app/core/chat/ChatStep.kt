@@ -94,9 +94,8 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * the flow is already open on the group, and every step here reads it off the conversation's
      * view model.
      *
-     * The design node lists four rows; only [EditGroupPicture] and [EditGroupName] are built.
-     * Membership card, description and social links have no field on `EditChatRequest` in
-     * flipcash2 0.11.0, so there is nothing for them to write.
+     * Name, description, picture and cover each open their own editor and save on their own;
+     * the balance requirements are shown read-only, since nothing on `EditChatRequest` writes them.
      */
     @Parcelize
     @Serializable
@@ -111,6 +110,16 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object EditGroupPicture : ChatStep
+
+    /** The group's banner — the same pick, upload and `EditChat` as the picture, for the cover. */
+    @Parcelize
+    @Serializable
+    data object EditGroupCover : ChatStep
+
+    /** The group's description, up to 160 characters; emptying it clears it. */
+    @Parcelize
+    @Serializable
+    data object EditGroupDescription : ChatStep
 
     /**
      * The full emoji picker for a message's reaction, opened from the pill row's "+" or the
