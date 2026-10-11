@@ -12,6 +12,7 @@ import coil3.request.Options
 import com.flipcash.services.chat.BlobOpenFailure
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -20,6 +21,8 @@ import okio.Buffer
 import okio.buffer
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 /**
  * Keys a [ChatPhoto] by its blob id, so the memory cache never keys on a signed URL that rotates
@@ -45,10 +48,18 @@ class ChatPhotoFetcher(
     private val imageLoader: ImageLoader,
 ) : Fetcher {
 
+    /** When this fetch went to the network, so a slow or cancelled download leaves a trace. */
+    private var downloadStarted: TimeMark? = null
+
     override suspend fun fetch(): FetchResult = try {
         load()
     } catch (e: ChatPhotoUnavailable) {
         trace(tag = TAG, message = "Chat photo ${photo.cacheKey} unavailable: ${e.message}", type = TraceType.Log)
+        throw e
+    } catch (e: CancellationException) {
+        downloadStarted?.let {
+            trace(tag = TAG, message = "Chat photo ${photo.cacheKey} cancelled after ${it.elapsedNow()}", type = TraceType.Log)
+        }
         throw e
     }
 
@@ -58,6 +69,12 @@ class ChatPhotoFetcher(
         val key = photo.cacheKey
         cache?.openSnapshot(key)?.let { return it.asResult() }
 
+        downloadStarted = TimeSource.Monotonic.markNow()
+        trace(
+            tag = TAG,
+            message = "Chat photo $key downloading ${photo.rendition.role} (${photo.rendition.blob?.sizeBytes} bytes)",
+            type = TraceType.Log,
+        )
         var url = loader.resolveUrl(photo) ?: throw ChatPhotoUnavailable.NotFound()
         var bytes = download(url)
         if (bytes == null) {
@@ -66,6 +83,7 @@ class ChatPhotoFetcher(
             bytes = download(url) ?: throw ChatPhotoUnavailable.Download(null)
         }
         val opened = loader.open(photo, bytes)
+        trace(tag = TAG, message = "Chat photo $key loaded in ${downloadStarted?.elapsedNow()}", type = TraceType.Log)
 
         if (cache != null) {
             cache.write(key, opened)?.let { return it.asResult() }

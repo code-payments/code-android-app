@@ -159,6 +159,7 @@ import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.hexEncodedString
 import com.getcode.utils.trace
+import com.getcode.utils.TraceType
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.assisted.Assisted
@@ -982,6 +983,8 @@ internal class ChatViewModel @AssistedInject constructor(
 
     /** Whether the viewer is reading a group they have not joined, which shows its photos as BlurHash only. */
     private val viewerPreviewing = stateFlow.map { it.isOutsideGroup }.distinctUntilChanged()
+        // Logged because it blurs every photo in the chat, and nothing else on screen says why.
+        .onEach { trace(tag = "ChatViewModel", message = "Viewer previewing group: $it", type = TraceType.Log) }
 
     private data class ViewerGates(
         val canPost: Boolean,

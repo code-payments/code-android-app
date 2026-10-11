@@ -193,4 +193,35 @@ class MediaMessageBubbleTest {
         assertTrue(chip.top >= photo.top && chip.bottom <= photo.bottom, "chip $chip sits outside photo $photo vertically")
         assertTrue(chip.right - chip.left < photo.right - photo.left, "chip $chip fills the whole photo $photo")
     }
+
+    private fun sized(role: MediaItemRendition.Role, longestSide: Int, id: Byte) = MediaItemRendition(
+        role = role,
+        blobId = BlobId(ByteArray(32) { id }),
+        blob = BlobMetadata(
+            mimeType = "image/jpeg",
+            sizeBytes = longestSide.toLong(),
+            downloadUrl = "https://cdn/$longestSide",
+            image = ImageMetadata(width = longestSide, height = longestSide * 3 / 4, blurhash = "abc"),
+        ),
+    )
+
+    @Test
+    fun `a bubble loads the smallest derived rendition that fills it, not the original`() {
+        val item = MediaItem(
+            listOf(
+                sized(MediaItemRendition.Role.ORIGINAL, 4000, 1),
+                sized(MediaItemRendition.Role.DISPLAY, 1600, 2),
+                sized(MediaItemRendition.Role.DISPLAY, 800, 3),
+                sized(MediaItemRendition.Role.THUMBNAIL, 320, 4),
+            ),
+        )
+        assertEquals(800, bubbleRendition(item, bubblePx = 700)?.blob?.image?.width)
+        assertEquals(1600, bubbleRendition(item, bubblePx = 900)?.blob?.image?.width)
+    }
+
+    @Test
+    fun `a bubble falls back to the original when the server derived no renditions`() {
+        val item = MediaItem(listOf(sized(MediaItemRendition.Role.ORIGINAL, 4000, 1)))
+        assertEquals(MediaItemRendition.Role.ORIGINAL, bubbleRendition(item, bubblePx = 700)?.role)
+    }
 }
