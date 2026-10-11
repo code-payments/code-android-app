@@ -9,7 +9,8 @@ class ChatCipherException(message: String, cause: Throwable? = null) : Exception
 class EncryptedPayload(val nonce: ByteArray, val ciphertext: ByteArray)
 
 /**
- * Scheme `X25519_XCHACHA20POLY1305` from `messaging.v1.EncryptedContent` in flipcash2-protobuf-api.
+ * Schemes `X25519_XCHACHA20POLY1305` (DMs) and `CHAT_KEY_XCHACHA20POLY1305` (private groups) from
+ * `messaging.v1.EncryptedContent` in flipcash2-protobuf-api, plus the group key wrap from `chat.v1.KeyEnvelope`.
  * Shared by both apps; `test-vectors/chat_cipher.json` in the orchestrator repo pins it.
  * [DefaultChatCipher] is the implementation; the interface is the seam for fakes in either app.
  *
@@ -72,6 +73,26 @@ interface ChatCipher {
         chatId: ByteArray,
         blobId: ByteArray,
     ): ByteArray
+
+    /**
+     * Encrypts serialized `Content` bytes for a private group (scheme `CHAT_KEY_XCHACHA20POLY1305`)
+     * under [groupKey] and a fresh random nonce. [senderId] is the raw `UserId.value` of the sender,
+     * not a public key.
+     */
+    @Throws(ChatCipherException::class)
+    fun encryptGroup(content: ByteArray, groupKey: ByteArray, chatId: ByteArray, senderId: ByteArray): EncryptedPayload
+
+    /** @throws ChatCipherException if authentication fails, including the wrong [senderId] or [chatId]. */
+    @Throws(ChatCipherException::class)
+    fun decryptGroup(payload: EncryptedPayload, groupKey: ByteArray, chatId: ByteArray, senderId: ByteArray): ByteArray
+
+    /** Returns `nonce || ciphertext || tag` for a private group's blob. [senderId] is the uploader. */
+    @Throws(ChatCipherException::class)
+    fun encryptGroupBlob(image: ByteArray, groupKey: ByteArray, chatId: ByteArray, blobId: ByteArray, senderId: ByteArray): ByteArray
+
+    /** @throws ChatCipherException if [blob] is too short or fails authentication. */
+    @Throws(ChatCipherException::class)
+    fun decryptGroupBlob(blob: ByteArray, groupKey: ByteArray, chatId: ByteArray, blobId: ByteArray, senderId: ByteArray): ByteArray
 
     /** 32 fresh random bytes: a private group's chat key, generated once by its creator. */
     fun newGroupKey(): ByteArray

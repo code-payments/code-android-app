@@ -60,6 +60,25 @@ object FakeChatCipher : ChatCipher {
         return blob.copyOfRange(header.size, blob.size)
     }
 
+    override fun encryptGroup(content: ByteArray, groupKey: ByteArray, chatId: ByteArray, senderId: ByteArray) =
+        EncryptedPayload(nonce = ByteArray(24), ciphertext = groupKey + chatId + senderId + content)
+
+    override fun decryptGroup(payload: EncryptedPayload, groupKey: ByteArray, chatId: ByteArray, senderId: ByteArray): ByteArray =
+        openWithHeader(payload.ciphertext, groupKey + chatId + senderId)
+
+    override fun encryptGroupBlob(image: ByteArray, groupKey: ByteArray, chatId: ByteArray, blobId: ByteArray, senderId: ByteArray) =
+        groupKey + chatId + blobId + senderId + image
+
+    override fun decryptGroupBlob(blob: ByteArray, groupKey: ByteArray, chatId: ByteArray, blobId: ByteArray, senderId: ByteArray) =
+        openWithHeader(blob, groupKey + chatId + blobId + senderId)
+
+    private fun openWithHeader(sealed: ByteArray, header: ByteArray): ByteArray {
+        if (sealed.size < header.size || !sealed.copyOfRange(0, header.size).contentEquals(header)) {
+            throw ChatCipherException("authentication failed")
+        }
+        return sealed.copyOfRange(header.size, sealed.size)
+    }
+
     override fun newGroupKey(): ByteArray = ByteArray(32) { it.toByte() }
 
     override fun wrapGroupKey(
