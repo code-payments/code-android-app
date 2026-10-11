@@ -209,12 +209,12 @@ fun ChatPhotoOverlay(
     // The bubble already has the photo cached at its own size: draw that until the full one lands.
     val request = remember(source) {
         ImageRequest.Builder(context)
-            .data(source.model)
+            .data(source.fullModel)
             .placeholderMemoryCacheKey(source.model.cacheKey)
             .build()
     }
     var fullImageLoaded by remember(messageId) { mutableStateOf(false) }
-    val share = rememberSharePhoto(source.model)
+    val share = rememberSharePhoto(source.fullModel)
 
     Box(
         modifier = modifier

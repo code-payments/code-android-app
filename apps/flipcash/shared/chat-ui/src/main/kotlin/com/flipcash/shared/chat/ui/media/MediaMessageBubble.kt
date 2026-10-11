@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.ui.media
 
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import com.getcode.theme.CodeTheme
 import com.flipcash.shared.chat.ui.BubbleCorners
 import com.flipcash.services.chat.BlobOpenFailure
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.media.ChatPhoto
@@ -88,6 +90,13 @@ internal fun isPhotoUnavailable(error: Throwable): Boolean {
     }
 }
 
+/**
+ * The rendition a photo bubble [bubblePx] wide loads: the smallest derived size that fills it, or
+ * the original when the server derived none (a sealed photo, or one still being processed).
+ */
+internal fun bubbleRendition(item: MediaItem, bubblePx: Int): MediaItemRendition? =
+    item.renditionForSize(bubblePx) ?: item.rendition(MediaItemRendition.Role.ORIGINAL)
+
 internal fun MediaSendProgress.toPhase(): ChatPhotoPhase = when (this) {
     MediaSendProgress.Preparing -> ChatPhotoPhase.Preparing
     is MediaSendProgress.Uploading -> ChatPhotoPhase.Uploading(fraction)
@@ -115,7 +124,12 @@ internal fun MediaMessageBubble(
     onDoubleClick: (() -> Unit)? = null,
 ) {
     val actionHandler = LocalChatActionHandler.current
-    val rendition = body.items.firstOrNull()?.let { it.rendition(MediaItemRendition.Role.ORIGINAL) ?: it.renditions.firstOrNull() }
+    val mediaItem = body.items.firstOrNull()
+    val rendition = mediaItem?.let { it.rendition(MediaItemRendition.Role.ORIGINAL) ?: it.renditions.firstOrNull() }
+    // The bubble draws the smallest server rendition that fills it, not the original: originals run
+    // to several megabytes, and on a slow link the BlurHash stays up for the whole download.
+    val bubblePx = with(LocalDensity.current) { maxWidth.roundToPx() }
+    val bubbleRendition = mediaItem?.let { bubbleRendition(it, bubblePx) } ?: rendition
     val image = rendition?.blob?.image
     val info = item.photo
     // The optimistic row has no blob id yet and the staged file as its URL.
@@ -125,9 +139,12 @@ internal fun MediaMessageBubble(
     val sentPreview = remember(item.pendingClientIdHex) {
         item.pendingClientIdHex?.let(SentPhotoPreviews::forMessage)?.asImageBitmap()
     }
-    val model = remember(rendition, info) {
+    val fullModel = remember(rendition, info) {
         if (rendition == null || info == null || localUri != null) null
         else ChatPhoto(info.chatId, rendition, info.senderId, info.sealed, info.redacted)
+    }
+    val model = remember(bubbleRendition, fullModel) {
+        if (fullModel == null || bubbleRendition == null) null else fullModel.copy(rendition = bubbleRendition)
     }
 
     val progressOf = LocalChatMediaProgress.current
@@ -174,6 +191,7 @@ internal fun MediaMessageBubble(
                 // A photo this device is still sending has no model and cannot open.
                 messageId = item.messageId.takeIf { onClick != null && !failed },
                 model = model,
+                fullModel = fullModel,
                 imageWidth = image?.width,
                 imageHeight = image?.height,
                 corners = bubblePhotoCorners(

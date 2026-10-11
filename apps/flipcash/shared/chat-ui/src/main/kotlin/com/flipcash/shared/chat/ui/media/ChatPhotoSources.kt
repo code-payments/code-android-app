@@ -37,7 +37,10 @@ import com.flipcash.shared.chat.ui.bubbleCorners
 /** What the overlay needs of one on-screen photo bubble: where it is, and what it draws. */
 @Stable
 class ChatPhotoSource internal constructor(
+    /** What the bubble draws, a rendition sized to it; its cached image is the viewer's placeholder. */
     internal val model: ChatPhoto,
+    /** The full-size photo the viewer opens and shares. */
+    internal val fullModel: ChatPhoto,
     /** The photo's own size, for the shape it opens to. Null when the message did not say. */
     internal val imageSize: Size?,
     internal val corners: ChatPhotoCorners,
@@ -100,19 +103,20 @@ val LocalChatPhotoSources = staticCompositionLocalOf<ChatPhotoSources?> { null }
 internal fun Modifier.chatPhotoSource(
     messageId: Long?,
     model: ChatPhoto?,
+    fullModel: ChatPhoto?,
     imageWidth: Int?,
     imageHeight: Int?,
     corners: ChatPhotoCorners,
 ): Modifier {
     val sources = LocalChatPhotoSources.current
-    if (sources == null || messageId == null || model == null) return this
-    val source = remember(model, imageWidth, imageHeight, corners) {
+    if (sources == null || messageId == null || model == null || fullModel == null) return this
+    val source = remember(model, fullModel, imageWidth, imageHeight, corners) {
         val size = if ((imageWidth ?: 0) > 0 && (imageHeight ?: 0) > 0) {
             Size(imageWidth!!.toFloat(), imageHeight!!.toFloat())
         } else {
             null
         }
-        ChatPhotoSource(model, size, corners)
+        ChatPhotoSource(model, fullModel, size, corners)
     }
     DisposableEffect(sources, messageId, source) {
         sources.register(messageId, source)
