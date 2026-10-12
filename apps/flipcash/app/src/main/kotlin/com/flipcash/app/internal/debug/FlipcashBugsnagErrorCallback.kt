@@ -25,6 +25,12 @@ internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
         event.addMetadata("device", "apiLevelHonest", false)
     }
 
+    // An install missing its ABI split fails every native library load. Tagged for the same reason.
+    val missingLibraries = NativeLibraries.missing
+    if (missingLibraries.isNotEmpty()) {
+        event.addMetadata("device", "nativeLibsMissing", missingLibraries.joinToString())
+    }
+
     // Attach recent logs
     val logFile = TraceManager.getLogFile(includeHeader = false)
     if (logFile != null && logFile.exists()) {
