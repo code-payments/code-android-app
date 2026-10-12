@@ -151,7 +151,10 @@ internal fun MediaMessageBubble(
     val progress by remember(item.pendingClientIdHex) {
         derivedStateOf { item.pendingClientIdHex?.let { progressOf()[it] } }
     }
-    val failed = item.receiptStatus == ReceiptStatus.FAILED || progress is MediaSendProgress.Failed
+    val denied = item.receiptStatus == ReceiptStatus.DENIED
+    val failed = denied || item.receiptStatus == ReceiptStatus.FAILED || progress is MediaSendProgress.Failed
+    // A denied or terminal failure still renders as failed, but a tap can't fix it.
+    val retryable = !denied && (progress as? MediaSendProgress.Failed)?.retryable != false
 
     var loadError by remember(model) { mutableStateOf<Throwable?>(null) }
     val unavailable = loadError?.let(::isPhotoUnavailable) == true
@@ -159,7 +162,7 @@ internal fun MediaMessageBubble(
 
     val onClick: (() -> Unit)? = when {
         !interactive -> null
-        failed -> ({ actionHandler(ChatAction.RetryMessage(item)) })
+        failed -> if (retryable) ({ actionHandler(ChatAction.RetryMessage(item)) }) else null
         canOpenPhoto(blurhashOnly, failed = false, unavailable = unavailable) && localUri == null ->
             ({ actionHandler(ChatAction.OpenPhoto(item)) })
         else -> null
