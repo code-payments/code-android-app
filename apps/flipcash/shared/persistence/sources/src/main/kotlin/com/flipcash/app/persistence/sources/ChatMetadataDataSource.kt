@@ -102,6 +102,16 @@ class ChatMetadataDataSource @Inject constructor(
         db?.chatMetadataDao()?.upsert(mapper.toEntity(metadata))
     }
 
+    /**
+     * Writes a fresh server read of a chat the caller may have left. GetChat doesn't return the
+     * caller's membership, so the stored value stands instead of [upsert]'s `true`.
+     */
+    suspend fun upsertKeepingMembership(metadata: ChatMetadata) {
+        val dao = db?.chatMetadataDao() ?: return
+        val isMember = dao.getById(mapper.chatIdHex(metadata.chatId))?.isMember ?: false
+        dao.upsert(mapper.toEntity(metadata, isMember = isMember))
+    }
+
     suspend fun upsert(metadatas: List<ChatMetadata>) {
         db?.chatMetadataDao()?.upsert(metadatas.map { mapper.toEntity(it) })
     }

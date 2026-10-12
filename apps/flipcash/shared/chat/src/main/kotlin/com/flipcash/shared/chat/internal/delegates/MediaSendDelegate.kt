@@ -333,9 +333,12 @@ class MediaSendDelegate internal constructor(
                 }
             }
             .onFailure { cause ->
-                // A chat that stopped taking ciphertext won't take this blob on a retry either.
-                val terminal = cause is SendMessageError.EncryptionNotAllowed
-                fail(chatId, clientMessageId, hex, retryable = !terminal, discard = record.takeIf { terminal })
+                // A chat that stopped taking ciphertext won't take this blob on a retry either, and
+                // a denied sender won't be let in by one.
+                val denied = cause is SendMessageError.Denied
+                val terminal = denied || cause is SendMessageError.EncryptionNotAllowed
+                fail(chatId, clientMessageId, hex, retryable = !terminal, discard = record.takeIf { terminal }, denied = denied)
+                if (denied) messaging.rereadAfterDenied(chatId)
             }
     }
 
@@ -345,8 +348,13 @@ class MediaSendDelegate internal constructor(
         hex: String,
         retryable: Boolean,
         discard: PendingMediaRecord?,
+        denied: Boolean = false,
     ) {
-        messageDataSource.failPending(chatId, clientMessageId)
+        if (denied) {
+            messageDataSource.denyPending(chatId, clientMessageId)
+        } else {
+            messageDataSource.failPending(chatId, clientMessageId)
+        }
         stages.update { it + (hex to Stage.Failed(retryable)) }
         // A terminal failure has nothing a retry could resend, so the queue entry and the file go.
         if (discard != null) discard(discard)

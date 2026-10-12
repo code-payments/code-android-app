@@ -76,6 +76,13 @@ class ReceiptHandoffTest {
     }
 
     @Test
+    fun `a denied send always shows its line`() {
+        val send = mine(0, ReceiptStatus.DENIED, clientId = "c2")
+        val rows = listOf(send, mine(1, ReceiptStatus.SENT))
+        assertEquals(listOf(true, true), shown(rows, settlingKey = send.messageKey))
+    }
+
+    @Test
     fun `a first send that is settling shows no line anywhere`() {
         val send = mine(1, ReceiptStatus.SENT, clientId = "c1")
         assertEquals(listOf(false), shown(listOf(send), settlingKey = send.messageKey))

@@ -1,5 +1,6 @@
 package com.flipcash.app.persistence.converters
 
+import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.services.models.VerifiableContactMethod
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -267,4 +268,10 @@ class ChatTypeConvertersTest {
     }
 
     // endregion
+
+    @Test
+    fun `DENIED round-trips by name`() {
+        assertEquals("DENIED", converter.fromMessageStatus(MessageStatus.DENIED))
+        assertEquals(MessageStatus.DENIED, converter.toMessageStatus("DENIED"))
+    }
 }

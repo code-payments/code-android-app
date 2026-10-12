@@ -2,6 +2,7 @@
 
 package com.flipcash.shared.chat.internal.delegates
 
+import com.flipcash.services.models.SendMessageError
 import androidx.core.app.NotificationManagerCompat
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
@@ -371,7 +372,7 @@ class MessagingDelegate @Inject constructor(
     /**
      * Seals [payload] if the chat encrypts, sends it, and settles the pending row. A failure to
      * seal fails the row like a failed request, so it can be retried; so does the server refusing
-     * the ciphertext with `EncryptionNotAllowed`.
+     * the ciphertext with `EncryptionNotAllowed`. A `Denied` settles the row as denied, with no retry.
      */
     private suspend fun send(
         chatId: ChatId,
@@ -393,8 +394,14 @@ class MessagingDelegate @Inject constructor(
                 metadataDataSource.updateLastMessageId(chatId, serverMessage.messageId)
                 metadataDataSource.updateLastActivity(chatId, serverMessage.timestamp.toEpochMilliseconds())
             }
-            .onFailure {
-                messageDataSource.failPending(chatId, clientMessageId)
+            .onFailure { cause ->
+                // The server won't take this from this user in this chat; a retry gets the same answer.
+                if (cause is SendMessageError.Denied) {
+                    messageDataSource.denyPending(chatId, clientMessageId)
+                    rereadAfterDenied(chatId)
+                } else {
+                    messageDataSource.failPending(chatId, clientMessageId)
+                }
             }
     }
 
@@ -650,6 +657,21 @@ class MessagingDelegate @Inject constructor(
         messageDataSource.clear()
         memberDataSource.clear()
         senderResolver.clear()
+    }
+
+    /**
+     * The server refused a send without saying why. If a speaker rule changed, the stored rules are
+     * stale and the composer is still up; re-reading the chat lets `speakerBlock` see the new rules.
+     * A removal from the group is not visible here: GetChat does not return the caller's membership.
+     */
+    internal suspend fun rereadAfterDenied(chatId: ChatId) {
+        val metadata = chatController.getChat(chatId).getOrElse {
+            trace(tag = TAG, message = "Couldn't re-read $chatId after a denied send", type = TraceType.Silent)
+            return
+        }
+        // A removal may already have landed from the stream; don't write the caller back in.
+        metadataDataSource.upsertKeepingMembership(metadata)
+        memberDataSource.upsert(chatId, metadata.members)
     }
 
     // endregion

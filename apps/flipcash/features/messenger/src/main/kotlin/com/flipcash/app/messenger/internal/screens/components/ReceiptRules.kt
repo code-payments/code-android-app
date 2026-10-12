@@ -71,7 +71,7 @@ internal fun shouldShowReceiptLabel(
     // A split message's receipt goes under its last row only; the rows above share its status.
     if (!item.isLastRow) return false
     val status = effectiveReceiptStatus(item, otherReadPointer) ?: return false
-    if (status == ReceiptStatus.FAILED) return true
+    if (status == ReceiptStatus.FAILED || status == ReceiptStatus.DENIED) return true
     val confirmed = item.confirmedStatus(otherReadPointer, settlingKey) ?: return false
 
     // Walking toward the newest: it keeps its line while nothing newer takes it -- no newer send

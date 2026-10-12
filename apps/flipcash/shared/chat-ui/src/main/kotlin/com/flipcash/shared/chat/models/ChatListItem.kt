@@ -9,7 +9,7 @@ import com.flipcash.shared.chat.ui.UndecryptableHint
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
-enum class ReceiptStatus { SENDING, SENT, READ, FAILED }
+enum class ReceiptStatus { SENDING, SENT, READ, FAILED, DENIED }
 
 sealed interface ChatListItem {
     val itemKey: Any

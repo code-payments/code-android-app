@@ -62,6 +62,7 @@ internal fun ReceiptLabel(
                 ReceiptStatus.SENT -> stringResource(R.string.label_chatReceipt_delivered)
                 ReceiptStatus.READ -> stringResource(R.string.label_chatReceipt_read)
                 ReceiptStatus.FAILED -> stringResource(R.string.label_chatReceipt_notSent)
+                ReceiptStatus.DENIED -> stringResource(R.string.label_chatReceipt_denied)
                 else -> return@AnimatedContent
             }
 
@@ -82,7 +83,7 @@ internal fun ReceiptLabel(
                     style = CodeTheme.typography.caption.copy(
                         fontWeight = FontWeight.Bold,
                     ),
-                    color = if (animatedStatus == ReceiptStatus.FAILED) {
+                    color = if (animatedStatus == ReceiptStatus.FAILED || animatedStatus == ReceiptStatus.DENIED) {
                         CodeTheme.colors.errorText
                     } else {
                         CodeTheme.colors.textSecondary

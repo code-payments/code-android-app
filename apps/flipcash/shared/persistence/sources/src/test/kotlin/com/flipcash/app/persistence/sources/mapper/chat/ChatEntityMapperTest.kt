@@ -1,5 +1,7 @@
 package com.flipcash.app.persistence.sources.mapper.chat
 
+import com.flipcash.services.models.chat.DeliveryStatus
+import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.app.persistence.entities.ChatMemberEntity
 import com.flipcash.app.persistence.entities.ChatMemberWithProfile
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
@@ -128,6 +130,22 @@ class ChatEntityMapperTest {
             entity(MessageContent.Deleted(deletedTs = Instant.fromEpochSeconds(2_000), deletedBy = listOf(0xAB.toByte()))).isDeleted,
         )
         assertEquals(false, entity(MessageContent.Text("still here")).isDeleted)
+    }
+
+    @Test
+    fun `a denied row maps to a denied delivery`() {
+        val entity = mapper.toEntity(
+            CHAT_HEX,
+            ChatMessage(
+                messageId = 1,
+                senderId = listOf(0xAB.toByte()),
+                content = listOf(MessageContent.Text("refused")),
+                timestamp = Instant.fromEpochSeconds(1_000),
+                unreadSeq = 1,
+            ),
+        ).copy(status = MessageStatus.DENIED)
+
+        assertEquals(DeliveryStatus.DENIED, mapper.toMessage(entity).deliveryStatus)
     }
 
     /**

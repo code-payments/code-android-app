@@ -365,6 +365,37 @@ class ChatMessageDaoTest {
     }
 
     @Test
+    fun `the sweep leaves a denied send alone`() = runTest {
+        dao.upsert(pending("refused"))
+        dao.updatePendingStatus(CHAT_HEX, CLIENT_HEX, MessageStatus.DENIED)
+
+        dao.failInterruptedSends()
+
+        assertEquals(MessageStatus.DENIED, dao.getByClientId(CHAT_HEX, CLIENT_HEX)?.status)
+    }
+
+    /** A confirm that lands after the denial means the server took it after all. */
+    @Test
+    fun `a late confirm settles a denied send as sent`() = runTest {
+        dao.upsert(pending("refused"))
+        dao.updatePendingStatus(CHAT_HEX, CLIENT_HEX, MessageStatus.DENIED)
+
+        dao.confirmPendingMessage(CHAT_HEX, CLIENT_HEX, text(6, "refused"))
+
+        assertEquals(MessageStatus.SENT, dao.getByClientId(CHAT_HEX, CLIENT_HEX)?.status)
+    }
+
+    @Test
+    fun `a refresh drops a denied send like a failed one`() = runTest {
+        dao.upsert(pending("refused"))
+        dao.updatePendingStatus(CHAT_HEX, CLIENT_HEX, MessageStatus.DENIED)
+
+        dao.deletePendingExcept(CHAT_HEX, CLIENT_HEX, keepMessageId = 99)
+
+        assertNull(dao.getByClientId(CHAT_HEX, CLIENT_HEX))
+    }
+
+    @Test
     fun `the sweep leaves a sent message alone`() = runTest {
         dao.upsert(text(1, "already sent"))
 

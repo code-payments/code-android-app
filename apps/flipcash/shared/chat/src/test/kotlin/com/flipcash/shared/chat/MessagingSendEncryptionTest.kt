@@ -331,6 +331,62 @@ class MessagingSendEncryptionTest {
     }
 
     @Test
+    fun `Denied settles the send without a retry`() = runTest {
+        storedChat(chat())
+        answerSends()
+        coEvery { controller.sendMessage(chatId, any(), any()) } returns
+            Result.failure(SendMessageError.Denied())
+        coEvery { chatController.getChat(chatId, any()) } returns Result.failure(GetChatError.Other())
+
+        val result = delegate.sendMessage(chatId, "hello", replyToMessageId = null)
+
+        assertIs<SendMessageError.Denied>(result.exceptionOrNull())
+        coVerify { messages.denyPending(chatId, clientMessageId) }
+        coVerify(exactly = 0) { messages.failPending(any(), any()) }
+    }
+
+    @Test
+    fun `Denied re-reads the chat so its rules can hide the composer`() = runTest {
+        val stored = chat()
+        storedChat(stored)
+        answerSends()
+        coEvery { controller.sendMessage(chatId, any(), any()) } returns Result.failure(SendMessageError.Denied())
+        coEvery { chatController.getChat(chatId, any()) } returns Result.success(stored)
+
+        delegate.sendMessage(chatId, "hello", replyToMessageId = null)
+
+        coVerify { metadata.upsertKeepingMembership(stored) }
+        coVerify(exactly = 0) { metadata.upsert(any<ChatMetadata>()) }
+        coVerify { members.upsert(chatId, stored.members) }
+    }
+
+    @Test
+    fun `a failed re-read leaves the denial in place`() = runTest {
+        storedChat(chat())
+        answerSends()
+        coEvery { controller.sendMessage(chatId, any(), any()) } returns Result.failure(SendMessageError.Denied())
+        coEvery { chatController.getChat(chatId, any()) } returns Result.failure(GetChatError.Other())
+
+        val result = delegate.sendMessage(chatId, "hello", replyToMessageId = null)
+
+        assertIs<SendMessageError.Denied>(result.exceptionOrNull())
+        coVerify { messages.denyPending(chatId, clientMessageId) }
+        coVerify(exactly = 0) { metadata.upsertKeepingMembership(any()) }
+    }
+
+    @Test
+    fun `EncryptionNotAllowed does not re-read the chat`() = runTest {
+        storedChat(chat())
+        answerSends()
+        coEvery { controller.sendMessage(chatId, any(), any()) } returns
+            Result.failure(SendMessageError.EncryptionNotAllowed())
+
+        delegate.sendMessage(chatId, "hello", replyToMessageId = null)
+
+        coVerify(exactly = 0) { metadata.upsertKeepingMembership(any()) }
+    }
+
+    @Test
     fun `a retry seals the stored plaintext again`() = runTest {
         storedChat(chat())
         val wires = answerSends()
