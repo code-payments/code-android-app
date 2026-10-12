@@ -1198,7 +1198,13 @@
     <string name="title_invitePeople">Invite People</string>
     <string name="action_shareInviteLink">Share</string>
     <string name="label_recentChats">Recent Chats</string>
-    <string name="title_shareToChat">Share to</string>
+    <string name="title_shareToChat">Send to</string>
+    <string name="label_chats">Chats</string>
+    <string name="label_shareTo">To %1$s</string>
+    <string name="label_shareNoMatches">No chats match \u201C%1$s\u201D</string>
+    <string name="title_shareNoChats">No chats yet</string>
+    <string name="subtitle_shareNoChats">Start a chat in Flipcash, then share again.</string>
+    <string name="label_shareAttachedCount">%1$d attached</string>
     <string name="hint_addAMessage">Add a message</string>
     <string name="title_tipIntro">Receive Tips From Everyone</string>
     <string name="subtitle_tipIntro">Add your name to receive tips</string>
