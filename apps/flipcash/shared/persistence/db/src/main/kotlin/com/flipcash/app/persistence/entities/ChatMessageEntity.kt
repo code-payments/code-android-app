@@ -9,6 +9,11 @@ enum class MessageStatus {
     SENDING,
     SENT,
     FAILED,
+    /**
+     * The server refused the send (`Denied`). Final: a retry gets the same answer. Stored by name,
+     * so no migration; a build that predates it reads the row as SENT.
+     */
+    DENIED,
 }
 
 /** How an end-to-end encrypted row stands on this device. Null on a row sent in plaintext. */

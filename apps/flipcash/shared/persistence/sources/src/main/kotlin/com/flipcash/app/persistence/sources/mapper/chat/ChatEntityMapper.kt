@@ -206,6 +206,7 @@ class ChatEntityMapper @Inject constructor() {
                 MessageStatus.SENDING -> DeliveryStatus.SENDING
                 MessageStatus.SENT -> DeliveryStatus.SENT
                 MessageStatus.FAILED -> DeliveryStatus.FAILED
+                MessageStatus.DENIED -> DeliveryStatus.DENIED
             },
             pendingClientIdHex = entity.pendingClientIdHex,
             encryption = entity.toEncryption(),

@@ -391,6 +391,15 @@ class ChatMessageDataSource @Inject constructor(
         )
     }
 
+    /** Settles a send the server refused. Unlike [failPending], the row offers no retry. */
+    suspend fun denyPending(chatId: ChatId, clientMessageId: ClientMessageId) {
+        db?.chatMessageDao()?.updatePendingStatus(
+            mapper.chatIdHex(chatId),
+            mapper.clientMessageIdHex(clientMessageId),
+            MessageStatus.DENIED,
+        )
+    }
+
     /**
      * Fails the sends a previous process left in flight. See [ChatMessageDao.failInterruptedSends].
      */

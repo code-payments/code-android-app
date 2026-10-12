@@ -1171,6 +1171,7 @@ internal class ChatViewModel @AssistedInject constructor(
                         when (message.deliveryStatus) {
                             DeliveryStatus.SENDING -> ReceiptStatus.SENDING
                             DeliveryStatus.FAILED -> ReceiptStatus.FAILED
+                            DeliveryStatus.DENIED -> ReceiptStatus.FAILED
                             DeliveryStatus.SENT -> ReceiptStatus.SENT
                         }
                     } else null
