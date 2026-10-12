@@ -7,6 +7,8 @@ import com.bugsnag.android.Configuration
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.internal.debug.FlipcashDebugTree
 import com.flipcash.app.internal.debug.FlipcashErrorCallback
+import com.flipcash.app.internal.debug.TestLab
+import com.flipcash.app.internal.debug.bugsnagReleaseStage
 import com.flipcash.app.updates.ReleaseStage
 import com.flipcash.app.updates.ReleaseStageProvider
 import com.getcode.utils.ErrorUtils
@@ -42,11 +44,12 @@ class TraceInitializer: Initializer<Unit> {
                     TraceManager.includeRpcBodies = true
                 }
 
+                val onTestLab = TestLab.isRunning(context)
                 val config = Configuration.load(context).apply {
-                    releaseStage = initialStage?.name ?: "Unknown"
+                    releaseStage = bugsnagReleaseStage(initialStage, onTestLab)
                     addOnError(FlipcashErrorCallback)
                     addOnSend { event ->
-                        event.app.releaseStage = stageProvider.resolvedStage?.name ?: "Unknown"
+                        event.app.releaseStage = bugsnagReleaseStage(stageProvider.resolvedStage, onTestLab)
                         true
                     }
                 }
