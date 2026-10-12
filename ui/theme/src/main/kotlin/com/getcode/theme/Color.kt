@@ -47,8 +47,6 @@ val TextSecondary = BrandLight
 val TextTertiary = BrandMuted
 val TextError = Alert
 
-val SystemGreen = Color(0xFF04C759)
-
 val TopNotification = Color(0xFF4f49ce)
 val TopNeutral = Color(0xFF747474)
 
