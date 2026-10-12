@@ -398,6 +398,7 @@ class MessagingDelegate @Inject constructor(
                 // The server won't take this from this user in this chat; a retry gets the same answer.
                 if (cause is SendMessageError.Denied) {
                     messageDataSource.denyPending(chatId, clientMessageId)
+                    rereadAfterDenied(chatId)
                 } else {
                     messageDataSource.failPending(chatId, clientMessageId)
                 }
@@ -656,6 +657,20 @@ class MessagingDelegate @Inject constructor(
         messageDataSource.clear()
         memberDataSource.clear()
         senderResolver.clear()
+    }
+
+    /**
+     * The server refused a send without saying why. If a speaker rule changed, the stored rules are
+     * stale and the composer is still up; re-reading the chat lets `speakerBlock` see the new rules.
+     * A removal from the group is not visible here: GetChat does not return the caller's membership.
+     */
+    internal suspend fun rereadAfterDenied(chatId: ChatId) {
+        val metadata = chatController.getChat(chatId).getOrElse {
+            trace(tag = TAG, message = "Couldn't re-read $chatId after a denied send", type = TraceType.Silent)
+            return
+        }
+        metadataDataSource.upsert(metadata)
+        memberDataSource.upsert(chatId, metadata.members)
     }
 
     // endregion

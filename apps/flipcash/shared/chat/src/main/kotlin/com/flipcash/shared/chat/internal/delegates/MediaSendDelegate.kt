@@ -338,6 +338,7 @@ class MediaSendDelegate internal constructor(
                 val denied = cause is SendMessageError.Denied
                 val terminal = denied || cause is SendMessageError.EncryptionNotAllowed
                 fail(chatId, clientMessageId, hex, retryable = !terminal, discard = record.takeIf { terminal }, denied = denied)
+                if (denied) messaging.rereadAfterDenied(chatId)
             }
     }
 

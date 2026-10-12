@@ -228,6 +228,7 @@ class MediaSendDelegateTest {
         runCurrent()
 
         coVerify { messageDataSource.denyPending(chatId, match { hex(it) == ids[0] }) }
+        coVerify { messaging.rereadAfterDenied(chatId) }
         coVerify(exactly = 0) { messageDataSource.failPending(any(), any()) }
         assertNull(records[ids[0]])
         assertEquals(MediaSendProgress.Failed(false), delegate.progressOf(ids[0]))
