@@ -153,6 +153,13 @@ class ErrorsTest {
         assertIs<UnreportedError>(GetMessagesError.NotFound())
     }
 
+    @Test
+    fun `Denied chat errors are not reported`() {
+        assertIs<UnreportedError>(SendMessageError.Denied())
+        assertIs<UnreportedError>(NotifyIsTypingError.Denied())
+        assertIs<UnreportedError>(AdvancePointerError.Denied())
+    }
+
     // -- SendMessageError --
 
     @Test

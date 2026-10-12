@@ -543,7 +543,8 @@ sealed class SendMessageError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
-    class Denied : SendMessageError("Denied")
+    // The server refused this user in this chat. The row settles as DENIED; nothing to report.
+    class Denied : SendMessageError("Denied"), UnreportedError
     // Sender sent EncryptedContent to a chat that doesn't allow it (non-DM). E2eePolicy only
     // encrypts in a DM, so this means the chat's type changed under us; the send fails and can
     // be retried.
@@ -559,7 +560,8 @@ sealed class AdvancePointerError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
-    class Denied : AdvancePointerError("Denied")
+    // A read pointer the server won't take is dropped; callers ignore the result.
+    class Denied : AdvancePointerError("Denied"), UnreportedError
     class MessageNotFound : AdvancePointerError("Message not found")
     class Unrecognized : AdvancePointerError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : AdvancePointerError(message = cause?.message, cause = cause), NotifiableError
@@ -569,7 +571,8 @@ sealed class NotifyIsTypingError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
-    class Denied : NotifyIsTypingError("Denied")
+    // A typing notice the server won't take is dropped; callers ignore the result.
+    class Denied : NotifyIsTypingError("Denied"), UnreportedError
     class Unrecognized : NotifyIsTypingError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : NotifyIsTypingError(message = cause?.message, cause = cause), NotifiableError
 }
