@@ -40,6 +40,9 @@ import com.flipcash.app.internal.ui.App
 import com.flipcash.app.phone.LocalPhoneUtils
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.router.LocalRouter
+import com.flipcash.shared.chat.share.LocalPendingChatShares
+import com.flipcash.shared.chat.share.PendingChatShares
+import com.flipcash.shared.chat.ui.media.receiveChatShare
 import com.flipcash.app.router.Router
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.session.SessionController
@@ -152,6 +155,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var trustedWebsites: TrustedWebsites
 
+    @Inject
+    lateinit var pendingChatShares: PendingChatShares
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -163,6 +169,11 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch(Dispatchers.Default) { phoneUtils.ensureLoaded() }
 
         applyBetaFlagLaunchOverrides()
+
+        // Only a fresh launch carries a share nobody has read yet. A recreated activity (rotation,
+        // process restore) gets the same intent back with a saved state, and reading it again would
+        // stage the share a second time.
+        if (savedInstanceState == null) receiveShare(intent)
 
         setContent {
             CompositionLocalProvider(
@@ -189,6 +200,7 @@ class MainActivity : FragmentActivity() {
                 LocalCoinbaseOnRampController provides coinbaseOnRampController,
                 LocalTipCoordinator provides tippingCoordinator,
                 LocalMediaUrlResolver provides mediaUrlResolver,
+                LocalPendingChatShares provides pendingChatShares,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {
                 ProvidePermissionChecker(permissionChecker) {
@@ -199,6 +211,27 @@ class MainActivity : FragmentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        receiveShare(intent)
+    }
+
+    /**
+     * Takes images and text shared from another app (ACTION_SEND / ACTION_SEND_MULTIPLE) into
+     * [pendingChatShares]; the app then shows the chat picker. Images are copied before anything
+     * else, while this activity still holds the sender's read grant. Other intents are ignored.
+     */
+    private fun receiveShare(intent: Intent) {
+        val action = intent.action
+        if (action != Intent.ACTION_SEND && action != Intent.ACTION_SEND_MULTIPLE) return
+        // Before the copy starts, so the launch route is not chosen while the share is in flight.
+        pendingChatShares.expectIncoming()
+        lifecycleScope.launch {
+            receiveChatShare(applicationContext, intent, pendingChatShares)
         }
     }
 

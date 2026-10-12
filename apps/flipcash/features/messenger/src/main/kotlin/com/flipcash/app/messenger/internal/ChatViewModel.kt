@@ -2610,20 +2610,26 @@ internal class ChatViewModel @AssistedInject constructor(
             .launchIn(viewModelScope)
     }
 
+    private fun stagePhotos(
+        uris: List<Uri>,
+        captured: Boolean,
+        chatId: ChatId? = stateFlow.value.chatId,
+    ) {
+        chatId ?: return
+        if (stateFlow.value.editing != null) return
+        val room = MAX_STAGED_PHOTOS - stateFlow.value.stagedPhotos.size
+        uris.take(room.coerceAtLeast(0)).forEach { uri ->
+            val id = mediaUploads.stage(chatId, uri)
+            if (captured) uri.path?.let { captureFiles[id] = File(it) }
+            dispatchEvent(Event.PhotoStaged(StagedPhoto(id, uri)))
+        }
+        // Anything over the limit is not staged, and a camera file for it has no use.
+        if (captured) uris.drop(room.coerceAtLeast(0)).forEach { it.path?.let { path -> File(path).delete() } }
+    }
+
     private fun initPhotoHandlers() {
         eventFlow.filterIsInstance<Event.StagePhotos>()
-            .onEach { event ->
-                val chatId = stateFlow.value.chatId ?: return@onEach
-                if (stateFlow.value.editing != null) return@onEach
-                val room = MAX_STAGED_PHOTOS - stateFlow.value.stagedPhotos.size
-                event.uris.take(room.coerceAtLeast(0)).forEach { uri ->
-                    val id = mediaUploads.stage(chatId, uri)
-                    if (event.captured) uri.path?.let { captureFiles[id] = File(it) }
-                    dispatchEvent(Event.PhotoStaged(StagedPhoto(id, uri)))
-                }
-                // Anything over the limit is not staged, and a camera file for it has no use.
-                if (event.captured) event.uris.drop(room.coerceAtLeast(0)).forEach { it.path?.let { path -> File(path).delete() } }
-            }
+            .onEach { event -> stagePhotos(event.uris, event.captured) }
             .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.CaptureStarted>()

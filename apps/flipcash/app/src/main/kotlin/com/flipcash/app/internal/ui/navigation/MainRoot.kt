@@ -33,7 +33,10 @@ import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.resolveBackStack
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.services.user.AuthState
+import com.flipcash.shared.chat.share.LocalPendingChatShares
+import com.flipcash.shared.chat.share.PendingChatShares
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -42,9 +45,11 @@ import com.getcode.utils.trace
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -57,6 +62,7 @@ internal fun MainRoot(
     var showLoading by remember { mutableStateOf(false) }
     val router = LocalRouter.current!!
     var showLogo by remember { mutableStateOf(true) }
+    val pendingShares = LocalPendingChatShares.current
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -104,10 +110,16 @@ internal fun MainRoot(
                         "state" to state
                     }
                 )
+                // A launch by a share opens on the picker, so the share has to be known before the
+                // first real route is chosen; waiting here keeps the Loading screen up meanwhile.
+                val shareRoute = if (state == AuthState.Ready) {
+                    pendingShares?.let { claimShareRoute(it) }
+                } else null
                 val launch = buildNavGraphForLaunch(
                     state = state,
                     router = router,
-                    deepLink = deepLink
+                    deepLink = deepLink,
+                    shareRoute = shareRoute,
                 )
 
                 when (state) {
@@ -183,10 +195,29 @@ private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
     return prefix.indices.all { i -> this[i]::class == prefix[i]::class }
 }
 
+/**
+ * The screen a share from another app opens on, once it has finished arriving, or null when this
+ * launch carries no share. Claims the share, so the root's own share handling doesn't push the
+ * same screen a second time.
+ */
+private suspend fun claimShareRoute(shares: PendingChatShares): AppRoute? {
+    // Bounded: a copy that never finishes must not leave the app on its splash screen.
+    withTimeoutOrNull(ShareArrivalTimeout) { shares.incoming.first { !it } }
+    shares.beginPresenting() ?: return null
+    return AppRoute.Messaging.SharePicker
+}
+
+private val ShareArrivalTimeout = 3.seconds
+
+/**
+ * @param shareRoute the screen a share from another app opens on, which goes straight on top of the
+ * start screen so it is the first one shown. Wins over a deeplink: the launch is the share.
+ */
 internal fun buildNavGraphForLaunch(
     state: AuthState,
     router: Router,
     deepLink: () -> DeepLink?,
+    shareRoute: AppRoute? = null,
 ): LaunchNavGraph? {
     return when (state) {
         is AuthState.Onboarding -> when (state.resumePoint) {
@@ -218,7 +249,9 @@ internal fun buildNavGraphForLaunch(
         AuthState.Ready -> {
             val home = homeRoute
             val link = deepLink()
-            if (link != null) {
+            if (shareRoute != null) {
+                LaunchNavGraph(listOf(launchRoute, shareRoute))
+            } else if (link != null) {
                 when (val action = router.dispatch(link)) {
                     is DeeplinkAction.Navigate -> LaunchNavGraph(
                         baseRoutes = listOf(home),

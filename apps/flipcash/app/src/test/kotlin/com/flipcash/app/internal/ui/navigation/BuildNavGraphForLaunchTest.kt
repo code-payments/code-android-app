@@ -52,6 +52,18 @@ class BuildNavGraphForLaunchTest {
     // -- Ready --
 
     @Test
+    fun `a share launch puts the picker straight on top of the Chats tab`() {
+        val result = buildNavGraphForLaunch(
+            state = AuthState.Ready,
+            router = FakeRouter(DeeplinkAction.None),
+            deepLink = { null },
+            shareRoute = AppRoute.Messaging.SharePicker,
+        )!!
+        assertEquals(listOf(AppRoute.Tabs.Chats, AppRoute.Messaging.SharePicker), result.baseRoutes)
+        assertTrue(result.deeplinkRoutes.isEmpty())
+    }
+
+    @Test
     fun `logged in without deeplink opens on the Chats tab`() {
         val result = build(AuthState.Ready)!!
         assertEquals(listOf(AppRoute.Tabs.Chats), result.baseRoutes)
