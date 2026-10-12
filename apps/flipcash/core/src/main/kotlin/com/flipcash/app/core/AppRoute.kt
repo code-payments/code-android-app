@@ -471,8 +471,8 @@ sealed interface AppRoute : NavKey, Parcelable {
 
         /**
          * Where a share from another app picks the conversation it goes to. Opened by the app
-         * itself when a share is waiting in `PendingChatShares`, and replaced by the chosen
-         * [Chat]. Carries nothing: what was shared is held there, not on a route a back stack
+         * itself when a share is waiting in `PendingChatShares`, and sends the share from there
+         * to the chats picked. Carries nothing: what was shared is held there, not on a route a back stack
          * would save and restore.
          */
         @Serializable

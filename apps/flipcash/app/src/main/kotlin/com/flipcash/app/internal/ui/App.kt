@@ -326,8 +326,8 @@ internal fun App(
                                 }
 
                                 // A share from another app: once the app is past its cold-start Loading
-                                // route and signed in, open the chat picker (or the chat itself when
-                                // the share already names one, which is where direct share lands).
+                                // route and signed in, open the chat picker, which selects the chat the
+                                // share already names (where direct share lands).
                                 // Anyone who isn't signed in just gets the app: the share is dropped.
                                 val pendingShares = LocalPendingChatShares.current
                                 val pendingShare = pendingShares?.pending?.collectAsStateWithLifecycle()?.value
@@ -336,16 +336,9 @@ internal fun App(
                                     if (pendingShare == null || currentRoute is AppRoute.Loading) return@LaunchedEffect
                                     when (userState.authState) {
                                         AuthState.Ready -> {
-                                            val share = shares.beginPresenting() ?: return@LaunchedEffect
+                                            shares.beginPresenting() ?: return@LaunchedEffect
                                             keyboard.hide()
-                                            val target = share.chatId
-                                            codeNavigator.navigate(
-                                                if (target != null) {
-                                                    AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(target))
-                                                } else {
-                                                    AppRoute.Messaging.SharePicker
-                                                }
-                                            )
+                                            codeNavigator.navigate(AppRoute.Messaging.SharePicker)
                                         }
                                         is AuthState.Onboarding, AuthState.LoggedOut -> shares.discard()
                                         else -> Unit

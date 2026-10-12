@@ -28,7 +28,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Text
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.flipcash.shared.chat.share.MAX_SHARE_IMAGES
+import com.flipcash.shared.chat.share.ShareChatStatus
+import com.flipcash.shared.chat.share.ShareFailure
+import com.flipcash.shared.chat.share.ShareSending
+import com.flipcash.shared.chat.share.ShareSendProgress
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -66,14 +75,16 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.rememberKeyboardController
 
 /**
- * Where a share from another app picks its conversation, behind `AppRoute.Messaging.SharePicker`.
- * The iOS share extension's "Send to" screen: a title with a close button, a search field, the
- * chats as a radio list, and, once one is picked, a bar with what is being shared, a message field
- * and the action.
+ * Where a share from another app picks its conversations and is sent, behind
+ * `AppRoute.Messaging.SharePicker`. The iOS share extension's "Send to" screen: a title with a
+ * close button, a search field, the chats grouped under "Suggested" and "Recent chats", and, once
+ * one is picked, a bar with the shared images, a message field, who it goes to and Send (Retry
+ * after a failure). Up to five chats can be picked; it closes when every one has the share.
  *
- * Differs from iOS where the app does: one chat at a time, and the action opens that chat with the
- * share staged in its composer rather than sending it from here, so it reads "Next", not "Send".
- * Nothing is sent from this screen.
+ * Differs from iOS where Android does: the search field and bar use the app's own components, the
+ * Send button sits inside the message field as it does in the chat composer, and the selection
+ * indicator is the app's check mark. Failure lines, the image limit notice and "Sending X of Y"
+ * are as on iOS.
  */
 @Composable
 fun SharePickerScreen() {
@@ -81,13 +92,20 @@ fun SharePickerScreen() {
     val allChats by viewModel.chats.collectAsStateWithLifecycle()
     val chats by viewModel.visibleChats.collectAsStateWithLifecycle()
     val selected by viewModel.selected.collectAsStateWithLifecycle()
-    val share by viewModel.share.collectAsStateWithLifecycle()
+    val progress by viewModel.progress.collectAsStateWithLifecycle()
+    val sending by viewModel.sending.collectAsStateWithLifecycle()
+    val done by viewModel.done.collectAsStateWithLifecycle()
+    val limitHits by viewModel.limitHits.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
-    val keyboard = rememberKeyboardController()
-
-    // The message starts as the text that was shared, as it does on iOS, and is what goes on.
-    val message = rememberTextFieldState(remember(viewModel) { viewModel.share.value?.text.orEmpty() })
+    val haptics = LocalHapticFeedback.current
     val query = viewModel.queryState.text.toString().trim()
+
+    LaunchedEffect(done, viewModel.hasShare) {
+        if (done || !viewModel.hasShare) navigator.pop()
+    }
+    LaunchedEffect(limitHits) {
+        if (limitHits > 0) haptics.performHapticFeedback(HapticFeedbackType.Reject)
+    }
 
     Column(
         modifier = Modifier
@@ -119,38 +137,47 @@ fun SharePickerScreen() {
                     title = stringResource(R.string.title_shareNoChats),
                     detail = stringResource(R.string.subtitle_shareNoChats),
                 )
-                else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    item(key = "search") {
-                        SearchInput(
-                            state = viewModel.queryState,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = ListInset)
-                                .padding(top = 20.dp, bottom = CodeTheme.dimens.grid.x2),
-                        )
-                    }
-                    if (loaded.isEmpty()) {
-                        item(key = "empty") {
-                            Text(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = ListInset).padding(top = 24.dp),
-                                text = stringResource(R.string.label_shareNoMatches, query),
-                                style = CodeTheme.typography.textSmall,
-                                color = White50,
-                                textAlign = TextAlign.Center,
+                else -> {
+                    // Suggested chat first and not repeated below; a search is one flat list.
+                    val suggested = viewModel.suggested
+                        ?.takeIf { query.isEmpty() }
+                        ?.let { id -> loaded.firstOrNull { it.chatId == id } }
+                    val recent = if (suggested == null) loaded else loaded.filter { it.chatId != suggested.chatId }
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        item(key = "search") {
+                            SearchInput(
+                                state = viewModel.queryState,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = ListInset)
+                                    .padding(top = 20.dp, bottom = CodeTheme.dimens.grid.x2),
                             )
                         }
-                    } else {
-                        item(key = "header") {
-                            SectionHeader(
-                                stringResource(if (query.isEmpty()) R.string.label_recentChats else R.string.label_chats)
-                            )
+                        if (suggested != null) {
+                            item(key = "suggestedHeader") { SectionHeader(stringResource(R.string.label_suggested)) }
+                            item(key = "suggested:${suggested.chatId}") {
+                                ShareTargetRow(suggested, suggested.chatId in selected) { viewModel.toggle(suggested.chatId) }
+                            }
                         }
-                        items(loaded, key = { it.chatId.toString() }) { chat ->
-                            ShareTargetRow(
-                                chat = chat,
-                                selected = chat.chatId == selected,
-                                onClick = { viewModel.toggle(chat.chatId) },
-                            )
+                        if (loaded.isEmpty()) {
+                            item(key = "empty") {
+                                Text(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = ListInset).padding(top = 24.dp),
+                                    text = stringResource(R.string.label_shareNoMatches, query),
+                                    style = CodeTheme.typography.textSmall,
+                                    color = White50,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        } else if (recent.isNotEmpty()) {
+                            item(key = "header") {
+                                SectionHeader(
+                                    stringResource(if (query.isEmpty()) R.string.label_recentChats else R.string.label_chats)
+                                )
+                            }
+                            items(recent, key = { it.chatId.toString() }) { chat ->
+                                ShareTargetRow(chat, chat.chatId in selected) { viewModel.toggle(chat.chatId) }
+                            }
                         }
                     }
                 }
@@ -158,26 +185,24 @@ fun SharePickerScreen() {
         }
 
         // Slides up once a chat is picked, as the iOS compose bar does.
-        val picked = chats.orEmpty().firstOrNull { it.chatId == selected }
+        val names = allChats.orEmpty().associate { it.chatId to it.name.orEmpty() }
         AnimatedVisibility(
-            visible = picked != null && share != null,
+            visible = selected.isNotEmpty(),
             enter = slideInVertically { it },
             exit = slideOutVertically { it },
         ) {
+            val isSending = sending != null
+            val hasMessage = viewModel.messageState.text.isNotBlank()
             ComposeBar(
-                recipient = picked?.name.orEmpty(),
-                images = share?.images.orEmpty().map { it.toString() },
-                messageState = message,
-                onNext = {
-                    val target = selected
-                    if (target != null && viewModel.confirm(message.text.toString())) {
-                        keyboard.hideIfVisible {
-                            navigator.replace(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(target)))
-                        }
-                    } else {
-                        navigator.pop()
-                    }
-                },
+                recipients = selected.mapNotNull { names[it] }.joinToString(", "),
+                images = viewModel.images.map { it.toString() },
+                droppedImages = viewModel.droppedImageCount,
+                messageState = viewModel.messageState,
+                sending = sending,
+                progress = progress,
+                names = names,
+                canSend = viewModel.canSend(selected, isSending, progress, hasMessage),
+                onSend = { viewModel.send() },
             )
         }
     }
@@ -261,16 +286,23 @@ private fun ShareTargetRow(chat: ConversationReference, selected: Boolean, onCli
 }
 
 /**
- * Who it goes to, then the field, with the shared images stacked in it, and the action. The field
- * is the chat composer's own so typing here feels the same.
+ * Notices, then the field with the shared images stacked in it and the action, then who it goes
+ * to. The field is the chat composer's own so typing here feels the same.
  */
 @Composable
 private fun ComposeBar(
-    recipient: String,
+    recipients: String,
     images: List<String>,
-    messageState: androidx.compose.foundation.text.input.TextFieldState,
-    onNext: () -> Unit,
+    droppedImages: Int,
+    messageState: TextFieldState,
+    sending: ShareSending?,
+    progress: ShareSendProgress?,
+    names: Map<ChatId, String>,
+    canSend: Boolean,
+    onSend: () -> Unit,
 ) {
+    val failed = progress?.takeIf { sending == null }?.failed.orEmpty()
+    val isRetry = failed.isNotEmpty()
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -280,22 +312,63 @@ private fun ComposeBar(
             .padding(top = 12.dp, bottom = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        if (droppedImages > 0) {
+            Notice(stringResource(R.string.label_shareImageLimit, MAX_SHARE_IMAGES))
+        }
+        if (sending != null && sending.total > 1) {
+            Notice(stringResource(R.string.label_shareSendingProgress, sending.position, sending.total))
+        }
+        failed.forEach { id ->
+            val status = progress?.statuses?.get(id) as? ShareChatStatus.Failed ?: return@forEach
+            Notice(
+                text = stringResource(
+                    R.string.label_shareFailure,
+                    names[id].orEmpty(),
+                    stringResource(status.failure.message()),
+                ),
+                color = CodeTheme.colors.error,
+            )
+        }
         ChatInput(
             hint = stringResource(R.string.hint_addAMessage),
             state = messageState,
+            enabled = sending == null,
             hasAttachments = images.isNotEmpty(),
-            submit = ChatInputSubmit.Action(label = stringResource(com.flipcash.core.R.string.action_next), perform = onNext),
+            sendEnabled = canSend,
+            submit = ChatInputSubmit.Action(
+                label = stringResource(
+                    if (isRetry) com.flipcash.core.R.string.action_retry else com.flipcash.core.R.string.action_send
+                ),
+                busy = sending != null,
+                perform = { if (canSend) onSend() },
+            ),
             header = if (images.isEmpty()) null else ({ ThumbnailStack(images) }),
         )
         Text(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            text = stringResource(R.string.label_shareTo, recipient),
+            text = recipients,
             style = CodeTheme.typography.textSmall,
             color = White50,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+@Composable
+private fun Notice(text: String, color: Color = White50) {
+    Text(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        text = text,
+        style = CodeTheme.typography.textSmall,
+        color = color,
+    )
+}
+
+private fun ShareFailure.message(): Int = when (this) {
+    ShareFailure.Send -> R.string.error_shareSendFailed
+    ShareFailure.ImageRejected -> R.string.error_shareImageRejected
+    ShareFailure.ImageUnprepared -> R.string.error_shareImageUnprepared
 }
 
 /** Up to three of the images, fanned, with the count over them when there are more than one. */

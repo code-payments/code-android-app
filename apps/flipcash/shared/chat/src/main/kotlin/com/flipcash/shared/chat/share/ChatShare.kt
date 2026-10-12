@@ -74,15 +74,17 @@ fun Intent.toChatShareRequest(mimeOf: (Uri) -> String?): ChatShareRequest? {
 fun chatIdFromShortcutId(shortcutId: String?): ChatId? = null
 
 /**
- * A share ready to stage: [text] for the composer and [images], which are app-owned files under
+ * A share ready to send: [text] for the message field and [images], which are app-owned files under
  * the capture directory, safe to read after the sender's grant is gone.
  *
- * [chatId] is where it goes, null while the user is still choosing.
+ * [chatId] is the chat the sender suggested, which the picker offers first and selects; null when
+ * nothing was suggested. [droppedImageCount] is how many images past the limit were left out.
  */
 data class PendingChatShare(
     val text: String?,
     val images: List<Uri>,
     val chatId: ChatId? = null,
+    val droppedImageCount: Int = 0,
     /** Set once the picker (or a direct target) has been opened for it, so it is opened once. */
     val presented: Boolean = false,
 ) {
@@ -92,10 +94,9 @@ data class PendingChatShare(
 }
 
 /**
- * The one share waiting to land in a chat. A holder rather than route arguments: the chat route
- * lives in the back stack and is saved and restored with it, so anything on it would be staged
- * again every time it is restored. Here, [take] removes the share, so it is staged at most once
- * whatever recreates the chat screen.
+ * The one share waiting for the picker. A holder rather than route arguments: the picker route
+ * lives in the back stack and is saved and restored with it, so anything on it would be presented
+ * again every time it is restored. Here, [beginPresenting] claims the share once.
  *
  * Process-scoped on purpose. A share that doesn't survive process death is dropped, which is the
  * right outcome: its files are cache and nothing was sent.
@@ -145,45 +146,13 @@ class PendingChatShares @Inject constructor() {
         return claimed
     }
 
-    /** Sends the held share to [chatId]; the chat claims it with [take]. False when none is held. */
-    fun route(chatId: ChatId): Boolean {
-        var routed = false
-        _pending.update { current ->
-            routed = current != null
-            current?.copy(chatId = chatId)
-        }
-        return routed
-    }
-
     /**
-     * [route] with the message the user ended up with in the picker, which replaces the shared text.
-     * A blank [text] clears it.
+     * Lets go of the held share without deleting its files: they belong to sends already under
+     * way, which read them from the app's own scope after the picker is gone.
      */
-    fun route(chatId: ChatId, text: String?): Boolean {
-        var routed = false
-        _pending.update { current ->
-            routed = current != null
-            current?.copy(chatId = chatId, text = text?.trim()?.takeIf { it.isNotEmpty() })
-        }
-        return routed
-    }
-
-    /**
-     * Removes and returns the share routed to [chatId]. Null for any other chat, and for every
-     * call after the first.
-     */
-    fun take(chatId: ChatId): PendingChatShare? {
-        var taken: PendingChatShare? = null
-        _pending.update { current ->
-            if (current != null && current.chatId == chatId) {
-                taken = current
-                null
-            } else {
-                taken = null
-                current
-            }
-        }
-        return taken
+    fun release() {
+        _pending.value = null
+        _incoming.value = false
     }
 
     /** Drops the held share and deletes its files: the user backed out, or can't receive it. */

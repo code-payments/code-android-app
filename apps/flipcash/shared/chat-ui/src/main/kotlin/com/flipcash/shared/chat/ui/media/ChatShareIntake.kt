@@ -40,6 +40,7 @@ private suspend fun stageChatShare(context: Context, intent: Intent, shares: Pen
             text = request.text,
             images = copies,
             chatId = com.flipcash.shared.chat.share.chatIdFromShortcutId(request.shortcutId),
+            droppedImageCount = (request.imageSources.size - MAX_STAGED_PHOTOS).coerceAtLeast(0),
         )
     )
     return true

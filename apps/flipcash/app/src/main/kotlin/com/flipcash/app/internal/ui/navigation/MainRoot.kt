@@ -203,13 +203,8 @@ private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
 private suspend fun claimShareRoute(shares: PendingChatShares): AppRoute? {
     // Bounded: a copy that never finishes must not leave the app on its splash screen.
     withTimeoutOrNull(ShareArrivalTimeout) { shares.incoming.first { !it } }
-    val share = shares.beginPresenting() ?: return null
-    val target = share.chatId
-    return if (target != null) {
-        AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(target))
-    } else {
-        AppRoute.Messaging.SharePicker
-    }
+    shares.beginPresenting() ?: return null
+    return AppRoute.Messaging.SharePicker
 }
 
 private val ShareArrivalTimeout = 3.seconds

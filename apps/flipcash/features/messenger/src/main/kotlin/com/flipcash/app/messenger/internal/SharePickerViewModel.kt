@@ -8,7 +8,14 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.chatListFeed
+import android.net.Uri
+import com.flipcash.shared.chat.share.ChatShareGateway
+import com.flipcash.shared.chat.share.MAX_SHARE_RECIPIENTS
+import com.flipcash.shared.chat.share.ShareRecipientSelection
 import com.flipcash.shared.chat.share.PendingChatShare
+import com.flipcash.shared.chat.share.ShareSendProgress
+import com.flipcash.shared.chat.share.ShareSender
+import com.flipcash.shared.chat.share.ShareSending
 import com.flipcash.shared.chat.share.PendingChatShares
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.toConversationReference
@@ -21,12 +28,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * The chats a share from another app can go to. Lists the Chats tab's own set and, on a pick,
- * routes the waiting [PendingChatShares] share to that chat; the chat claims it when it opens.
+ * The chats a share from another app can go to, and the send itself. Lists the Chats tab's own set,
+ * keeps the picked chats (up to [MAX_SHARE_RECIPIENTS], in pick order) and the message, and sends
+ * through [ShareSender], which uses the same path as typing the content in each chat.
  */
 @HiltViewModel
 internal class SharePickerViewModel @Inject constructor(
@@ -34,7 +43,10 @@ internal class SharePickerViewModel @Inject constructor(
     userManager: UserManager,
     resources: ResourceHelper,
     private val shares: PendingChatShares,
+    gateway: ChatShareGateway,
 ) : ViewModel() {
+
+    private val sender = ShareSender(gateway)
 
     private val _chats = MutableStateFlow<List<ConversationReference>?>(null)
 
@@ -51,15 +63,45 @@ internal class SharePickerViewModel @Inject constructor(
         combine(_chats, query) { all, q -> all?.filterByQuery(q) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    /** The share being sent, for the compose bar's preview and message. Null once it is gone. */
-    val share: StateFlow<PendingChatShare?> = shares.pending
+    /** The share being sent, held for the whole life of the picker. */
+    private val held: PendingChatShare? = shares.pending.value
 
-    private val _selected = MutableStateFlow<ChatId?>(null)
+    /** False when there is no share to send, as after the process was restored; the screen closes. */
+    val hasShare: Boolean = held != null
 
-    /** The chat the share will go to, or null while none is picked. */
-    val selected: StateFlow<ChatId?> = _selected.asStateFlow()
+    /** The images to show and send. */
+    val images: List<Uri> = held?.images.orEmpty()
 
-    private var chosen = false
+    /** Images past the limit that were left out. */
+    val droppedImageCount: Int = held?.droppedImageCount ?: 0
+
+    /** The chat the sender suggested, offered first, or null. */
+    val suggested: ChatId? = held?.chatId
+
+    /** The message: starts as the text that was shared and is what goes with the images. */
+    val messageState = TextFieldState(held?.text.orEmpty())
+
+    private val _selected = MutableStateFlow<List<ChatId>>(emptyList())
+
+    /** The chats the share will go to, in pick order. */
+    val selected: StateFlow<List<ChatId>> = _selected.asStateFlow()
+
+    val progress: StateFlow<ShareSendProgress?> = sender.progress
+
+    val sending: StateFlow<ShareSending?> = sender.sending
+
+    private val _done = MutableStateFlow(false)
+
+    /** True once every chat has the share, so the screen can close. */
+    val done: StateFlow<Boolean> = _done.asStateFlow()
+
+    private val _limitHits = MutableStateFlow(0)
+
+    /** Counts taps on a row once the selection was full, for haptic feedback. */
+    val limitHits: StateFlow<Int> = _limitHits.asStateFlow()
+
+    private var started = false
+    private var sendJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -68,31 +110,58 @@ internal class SharePickerViewModel @Inject constructor(
                 val fresh = summaries.map { it.toConversationReference(selfId, emptyMap(), resources) }
                 // The first list is shown as it arrives. Later ones (the feed keeps syncing) keep
                 // the rows already on screen where they are, so nothing moves under a finger.
+                val first = _chats.value == null
                 _chats.value = fresh.mergeStable(_chats.value) { it.chatId }
+                if (first && suggested != null && fresh.any { it.chatId == suggested }) select(suggested)
             }
         }
     }
 
-    /** Picks [chatId], or clears the pick when it is already the one picked. */
-    fun toggle(chatId: ChatId) {
-        _selected.update { if (it == chatId) null else chatId }
+    /** Whether there is something to send and somewhere to send it, and no send under way. */
+    fun canSend(selected: List<ChatId>, sending: Boolean, progress: ShareSendProgress?, hasMessage: Boolean): Boolean {
+        if (sending || selected.isEmpty()) return false
+        if (progress?.isStuck == true) return false
+        return images.isNotEmpty() || hasMessage
     }
 
-    /**
-     * Routes the share to the picked chat with [message] as its text, replacing what was shared.
-     * False when nothing is picked or there is no share left to route.
-     */
-    fun confirm(message: String): Boolean {
-        val chatId = _selected.value ?: return false
-        val routed = shares.route(chatId, message)
-        chosen = routed
-        return routed
+    private fun select(chatId: ChatId) {
+        if (chatId !in _selected.value) _selected.update { ShareRecipientSelection(it).toggle(chatId).first.ids }
+    }
+
+    /** Picks [chatId], or drops it when already picked. A full selection refuses new picks. */
+    fun toggle(chatId: ChatId) {
+        if (sender.sending.value != null) return
+        val (next, result) = ShareRecipientSelection(_selected.value).toggle(chatId)
+        if (result == ShareRecipientSelection.Toggle.LimitReached) {
+            _limitHits.update { it + 1 }
+            return
+        }
+        _selected.value = next.ids
+        // The set changed under a failed send; the next send starts from the new set.
+        if (sender.progress.value?.failed?.isNotEmpty() == true) sender.reset()
+    }
+
+    /** Sends to every picked chat that hasn't got the share, and closes once all have. */
+    fun send() {
+        if (sendJob?.isActive == true) return
+        val recipients = _selected.value
+        if (recipients.isEmpty()) return
+        started = true
+        val message = messageState.text.toString()
+        sendJob = viewModelScope.launch {
+            if (sender.send(recipients, images, message)) {
+                // Past this point every image has been encoded and posted, so the copies can go.
+                shares.discard()
+                _done.value = true
+            }
+        }
     }
 
     override fun onCleared() {
-        // Left without choosing (back, close): nothing was asked for, so the share is dropped and
-        // its copied images with it. Cleared rather than on dispose, so a rotation keeps it.
-        if (!chosen) shares.discard()
+        // Left without sending (back, close): nothing was asked for, so the share is dropped and
+        // its copied images with it. Once a send started the images belong to it, so they stay.
+        if (_done.value) return
+        if (started) shares.release() else shares.discard()
     }
 }
 

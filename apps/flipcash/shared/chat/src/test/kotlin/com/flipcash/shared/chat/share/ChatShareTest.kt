@@ -87,29 +87,6 @@ class ChatShareTest {
     private val share = PendingChatShare("hi", emptyList())
 
     @Test
-    fun routedShareIsTakenExactlyOnce() {
-        val shares = PendingChatShares().apply { offer(share) }
-        assertTrue(shares.route(chatA))
-        assertEquals(share.copy(chatId = chatA), shares.take(chatA))
-        assertNull(shares.take(chatA))
-        assertNull(shares.pending.value)
-    }
-
-    @Test
-    fun routingWithTextReplacesTheSharedText() {
-        val shares = PendingChatShares().apply { offer(share) }
-        assertTrue(shares.route(chatA, "  edited  "))
-        assertEquals("edited", shares.take(chatA)?.text)
-    }
-
-    @Test
-    fun routingWithBlankTextClearsIt() {
-        val shares = PendingChatShares().apply { offer(share) }
-        shares.route(chatA, "   ")
-        assertNull(shares.take(chatA)?.text)
-    }
-
-    @Test
     fun incomingHoldsFromExpectUntilOfferedOrCancelled() {
         val shares = PendingChatShares()
         assertEquals(false, shares.incoming.value)
@@ -123,17 +100,13 @@ class ChatShareTest {
     }
 
     @Test
-    fun otherChatDoesNotTakeIt() {
-        val shares = PendingChatShares().apply { offer(share) }
-        shares.route(chatA)
-        assertNull(shares.take(chatB))
-        assertNotNull(shares.pending.value)
-    }
-
-    @Test
-    fun unroutedShareIsNotTaken() {
-        val shares = PendingChatShares().apply { offer(share) }
-        assertNull(shares.take(chatA))
+    fun releaseClearsWithoutDeletingTheCopies() {
+        val file = File.createTempFile("share", ".jpg").apply { writeText("x") }
+        val shares = PendingChatShares().apply { offer(PendingChatShare(null, listOf(Uri.fromFile(file)))) }
+        shares.release()
+        assertNull(shares.pending.value)
+        assertTrue(file.exists())
+        file.delete()
     }
 
     @Test
