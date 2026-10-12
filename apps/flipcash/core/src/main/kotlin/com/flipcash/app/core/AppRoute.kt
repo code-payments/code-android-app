@@ -364,7 +364,7 @@ sealed interface AppRoute : NavKey, Parcelable {
             // Chat pushes the transcript on top of it.
             val openOnProfile: Boolean = false,
             // Open on a private group's Join Requests, over its profile so back lands there. Set by
-            // the chat list's join-requests row.
+            // the Requests screen's hosted rows.
             val openOnJoinRequests: Boolean = false,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
@@ -395,6 +395,14 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         @Parcelize
         data object ArchivedChats : Messaging
+
+        /**
+         * Join requests in both directions, behind the Requests button on the Chats header. Pushed
+         * for the reason [ArchivedChats] is.
+         */
+        @Serializable
+        @Parcelize
+        data object Requests : Messaging
 
         /**
          * Another person's profile, opened on its own rather than from inside a chat — the

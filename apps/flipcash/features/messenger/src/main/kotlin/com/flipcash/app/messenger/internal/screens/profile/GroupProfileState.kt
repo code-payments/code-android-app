@@ -258,26 +258,6 @@ internal sealed interface PrivateGroupJoin {
     }
 }
 
-/** How long ago a join request went in, as "Requested 2h ago" states it. */
-internal sealed interface RequestAge {
-    data object JustNow : RequestAge
-    data class Minutes(val count: Long) : RequestAge
-    data class Hours(val count: Long) : RequestAge
-    data class Days(val count: Long) : RequestAge
-
-    companion object {
-        fun of(at: Instant, now: Instant): RequestAge {
-            val elapsed = (now - at).coerceAtLeast(Duration.ZERO)
-            return when {
-                elapsed < 1.minutes -> JustNow
-                elapsed < 1.hours -> Minutes(elapsed.inWholeMinutes)
-                elapsed < 1.days -> Hours(elapsed.inWholeHours)
-                else -> Days(elapsed.inWholeDays)
-            }
-        }
-    }
-}
-
 /** How long ago a member joined, as a private group's Members list words it (node 11210:70). */
 internal sealed interface JoinAge {
     data object JustNow : JoinAge
