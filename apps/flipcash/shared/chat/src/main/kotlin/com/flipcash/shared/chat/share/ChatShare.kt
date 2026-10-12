@@ -105,9 +105,30 @@ class PendingChatShares @Inject constructor() {
     private val _pending = MutableStateFlow<PendingChatShare?>(null)
     val pending: StateFlow<PendingChatShare?> = _pending.asStateFlow()
 
+    private val _incoming = MutableStateFlow(false)
+
+    /**
+     * True from the moment a share intent arrives until its images are copied and it is either
+     * [offer]ed or given up on ([cancelIncoming]). Copying is asynchronous, so without this the
+     * first screen of a share launch is chosen before [pending] is known and the app opens on its
+     * ordinary start screen with the picker pushed over it a beat later.
+     */
+    val incoming: StateFlow<Boolean> = _incoming.asStateFlow()
+
+    /** Marks a share as on its way in, before [pending] holds it. */
+    fun expectIncoming() {
+        _incoming.value = true
+    }
+
+    /** The share that was expected turned out to hold nothing to stage. */
+    fun cancelIncoming() {
+        _incoming.value = false
+    }
+
     /** Holds [share], dropping (and deleting the files of) any share it replaces. */
     fun offer(share: PendingChatShare) {
         _pending.getAndUpdateCompat { share }?.deleteFiles()
+        _incoming.value = false
     }
 
     /** Claims the share for presenting, once. Null when there is none or it was already claimed. */
@@ -135,6 +156,19 @@ class PendingChatShares @Inject constructor() {
     }
 
     /**
+     * [route] with the message the user ended up with in the picker, which replaces the shared text.
+     * A blank [text] clears it.
+     */
+    fun route(chatId: ChatId, text: String?): Boolean {
+        var routed = false
+        _pending.update { current ->
+            routed = current != null
+            current?.copy(chatId = chatId, text = text?.trim()?.takeIf { it.isNotEmpty() })
+        }
+        return routed
+    }
+
+    /**
      * Removes and returns the share routed to [chatId]. Null for any other chat, and for every
      * call after the first.
      */
@@ -155,6 +189,7 @@ class PendingChatShares @Inject constructor() {
     /** Drops the held share and deletes its files: the user backed out, or can't receive it. */
     fun discard() {
         _pending.getAndUpdateCompat { null }?.deleteFiles()
+        _incoming.value = false
     }
 
     private inline fun MutableStateFlow<PendingChatShare?>.getAndUpdateCompat(

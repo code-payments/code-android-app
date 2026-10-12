@@ -96,6 +96,33 @@ class ChatShareTest {
     }
 
     @Test
+    fun routingWithTextReplacesTheSharedText() {
+        val shares = PendingChatShares().apply { offer(share) }
+        assertTrue(shares.route(chatA, "  edited  "))
+        assertEquals("edited", shares.take(chatA)?.text)
+    }
+
+    @Test
+    fun routingWithBlankTextClearsIt() {
+        val shares = PendingChatShares().apply { offer(share) }
+        shares.route(chatA, "   ")
+        assertNull(shares.take(chatA)?.text)
+    }
+
+    @Test
+    fun incomingHoldsFromExpectUntilOfferedOrCancelled() {
+        val shares = PendingChatShares()
+        assertEquals(false, shares.incoming.value)
+        shares.expectIncoming()
+        assertEquals(true, shares.incoming.value)
+        shares.offer(share)
+        assertEquals(false, shares.incoming.value)
+        shares.expectIncoming()
+        shares.cancelIncoming()
+        assertEquals(false, shares.incoming.value)
+    }
+
+    @Test
     fun otherChatDoesNotTakeIt() {
         val shares = PendingChatShares().apply { offer(share) }
         shares.route(chatA)

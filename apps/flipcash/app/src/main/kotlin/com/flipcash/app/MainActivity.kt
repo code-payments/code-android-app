@@ -228,6 +228,8 @@ class MainActivity : FragmentActivity() {
     private fun receiveShare(intent: Intent) {
         val action = intent.action
         if (action != Intent.ACTION_SEND && action != Intent.ACTION_SEND_MULTIPLE) return
+        // Before the copy starts, so the launch route is not chosen while the share is in flight.
+        pendingChatShares.expectIncoming()
         lifecycleScope.launch {
             receiveChatShare(applicationContext, intent, pendingChatShares)
         }

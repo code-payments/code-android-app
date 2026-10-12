@@ -15,6 +15,18 @@ import com.flipcash.shared.chat.share.toChatShareRequest
  * first [MAX_STAGED_PHOTOS] are copied, since the composer would refuse the rest.
  */
 suspend fun receiveChatShare(context: Context, intent: Intent, shares: PendingChatShares): Boolean {
+    val staged = try {
+        stageChatShare(context, intent, shares)
+    } catch (t: Throwable) {
+        shares.cancelIncoming()
+        throw t
+    }
+    // Whatever the outcome, nobody should keep waiting for a share that is not coming.
+    if (!staged) shares.cancelIncoming()
+    return staged
+}
+
+private suspend fun stageChatShare(context: Context, intent: Intent, shares: PendingChatShares): Boolean {
     val resolver = context.contentResolver
     val request = intent.toChatShareRequest { runCatching { resolver.getType(it) }.getOrNull() }
         ?: return false
