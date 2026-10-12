@@ -355,7 +355,8 @@ class MessagingSendEncryptionTest {
 
         delegate.sendMessage(chatId, "hello", replyToMessageId = null)
 
-        coVerify { metadata.upsert(stored) }
+        coVerify { metadata.upsertKeepingMembership(stored) }
+        coVerify(exactly = 0) { metadata.upsert(any<ChatMetadata>()) }
         coVerify { members.upsert(chatId, stored.members) }
     }
 
@@ -370,7 +371,7 @@ class MessagingSendEncryptionTest {
 
         assertIs<SendMessageError.Denied>(result.exceptionOrNull())
         coVerify { messages.denyPending(chatId, clientMessageId) }
-        coVerify(exactly = 0) { metadata.upsert(any<ChatMetadata>()) }
+        coVerify(exactly = 0) { metadata.upsertKeepingMembership(any()) }
     }
 
     @Test
@@ -382,7 +383,7 @@ class MessagingSendEncryptionTest {
 
         delegate.sendMessage(chatId, "hello", replyToMessageId = null)
 
-        coVerify(exactly = 0) { metadata.upsert(any<ChatMetadata>()) }
+        coVerify(exactly = 0) { metadata.upsertKeepingMembership(any()) }
     }
 
     @Test

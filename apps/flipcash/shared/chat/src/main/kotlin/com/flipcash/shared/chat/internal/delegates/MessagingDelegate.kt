@@ -669,7 +669,8 @@ class MessagingDelegate @Inject constructor(
             trace(tag = TAG, message = "Couldn't re-read $chatId after a denied send", type = TraceType.Silent)
             return
         }
-        metadataDataSource.upsert(metadata)
+        // A removal may already have landed from the stream; don't write the caller back in.
+        metadataDataSource.upsertKeepingMembership(metadata)
         memberDataSource.upsert(chatId, metadata.members)
     }
 
