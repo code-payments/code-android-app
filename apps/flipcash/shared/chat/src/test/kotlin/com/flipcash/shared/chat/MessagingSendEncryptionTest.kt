@@ -331,6 +331,20 @@ class MessagingSendEncryptionTest {
     }
 
     @Test
+    fun `Denied settles the send without a retry`() = runTest {
+        storedChat(chat())
+        answerSends()
+        coEvery { controller.sendMessage(chatId, any(), any()) } returns
+            Result.failure(SendMessageError.Denied())
+
+        val result = delegate.sendMessage(chatId, "hello", replyToMessageId = null)
+
+        assertIs<SendMessageError.Denied>(result.exceptionOrNull())
+        coVerify { messages.denyPending(chatId, clientMessageId) }
+        coVerify(exactly = 0) { messages.failPending(any(), any()) }
+    }
+
+    @Test
     fun `a retry seals the stored plaintext again`() = runTest {
         storedChat(chat())
         val wires = answerSends()

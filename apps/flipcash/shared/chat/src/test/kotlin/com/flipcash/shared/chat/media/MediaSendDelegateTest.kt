@@ -10,6 +10,7 @@ import com.flipcash.app.persistence.sources.PendingMediaRecord
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.ModerationResult
+import com.flipcash.services.models.SendMessageError
 import com.flipcash.services.models.blob.EncryptedConstraints
 import com.flipcash.services.models.blob.MimeTypeConstraints
 import com.flipcash.services.models.blob.UploadPolicy
@@ -217,6 +218,19 @@ class MediaSendDelegateTest {
         assertEquals(listOf(ids[0], ids[2]), sent.map { hex(it.first) })
         coVerify(exactly = 1) { messageDataSource.failPending(chatId, match { hex(it) == ids[1] }) }
         assertEquals(setOf(ids[1]), records.keys) // kept for retry
+    }
+
+    @Test
+    fun `a denied post settles the row and drops the stored photo`() = runTest {
+        val (delegate, uploads) = delegate()
+        sendResult = { Result.failure(SendMessageError.Denied()) }
+        val ids = delegate.sendMedia(chatId, listOf(stage(uploads, "a")), "", null).getOrThrow()
+        runCurrent()
+
+        coVerify { messageDataSource.denyPending(chatId, match { hex(it) == ids[0] }) }
+        coVerify(exactly = 0) { messageDataSource.failPending(any(), any()) }
+        assertNull(records[ids[0]])
+        assertEquals(MediaSendProgress.Failed(false), delegate.progressOf(ids[0]))
     }
 
     @Test
