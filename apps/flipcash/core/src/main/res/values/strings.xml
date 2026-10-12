@@ -1133,13 +1133,14 @@
     <string name="error_title_failedToDenyJoinRequest">Couldn\'t Deny</string>
     <string name="error_description_failedToDenyJoinRequest">Something went wrong. Please try again</string>
     <string name="title_joinRequests">Join Requests</string>
+    <!-- The Requests button on the Chats header and the screen behind it. -->
+    <string name="title_requests">Requests</string>
+    <string name="header_waitingOnYou">Waiting on you</string>
+    <string name="header_sentRequests">Sent</string>
+    <string name="title_noPendingRequests">No pending requests</string>
     <plurals name="subtitle_joinRequestsWaiting">
         <item quantity="one">%1$d person is waiting</item>
         <item quantity="other">%1$d people are waiting</item>
-    </plurals>
-    <plurals name="subtitle_joinRequestsForGroup">
-        <item quantity="one">%1$d person wants to join %2$s</item>
-        <item quantity="other">%1$d people want to join %2$s</item>
     </plurals>
     <string name="subtitle_requestedJustNow">requested just now</string>
     <string name="subtitle_requestedMinutesAgo">requested %1$dm ago</string>

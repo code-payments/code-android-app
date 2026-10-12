@@ -29,9 +29,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.flipcash.app.messenger.internal.screens.profile.RequestAge
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.LobbyMember
+import com.flipcash.shared.chat.RequestAge
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.common.ui.profile.chatterName
 import com.getcode.theme.CodeTheme
