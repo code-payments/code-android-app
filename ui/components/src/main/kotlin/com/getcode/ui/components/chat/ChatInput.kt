@@ -348,6 +348,11 @@ fun ChatInput(
     // A control after the field, outside it (send cash). Makes way while the field holds text.
     // Null for none.
     trailingOutside: (@Composable () -> Unit)? = null,
+    // A control that joins the leading one in the row of controls once the text is stacked over it,
+    // such as the formatting toggle. Hidden while the field is a single row. Null for none.
+    stackedLeading: (@Composable () -> Unit)? = null,
+    // Applied to the text as it is drawn, for styling it without changing what is stored.
+    outputTransformation: androidx.compose.foundation.text.input.OutputTransformation? = null,
 ) {
     val textStyle = CodeTheme.typography.textMedium.copy(
         fontSize = 16.sp,
@@ -501,6 +506,7 @@ fun ChatInput(
                             .focusRequester(focusRequester),
                         state = state,
                         enabled = enabled,
+                        outputTransformation = outputTransformation,
                         textStyle = textStyle,
                         cursorBrush = SolidColor(CodeTheme.colors.textMain),
                         keyboardOptions = KeyboardOptions.Default.copy(
@@ -527,11 +533,18 @@ fun ChatInput(
                         },
                     )
                 }
-                if (leading != null) Box(
+                if (leading != null || stackedLeading != null) Box(
                     Modifier
                         .layoutId(Slot.Leading)
                         .onSizeChanged { leadingWidth = it.width }
-                ) { leading() }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        leading?.invoke()
+                        if (stacked && stackedLeading != null) {
+                            Box(Modifier.padding(start = metrics.controlSpacing)) { stackedLeading() }
+                        }
+                    }
+                }
                 Box(
                     modifier = Modifier
                         .layoutId(Slot.Send)
