@@ -1320,9 +1320,10 @@ internal class ChatViewModel @AssistedInject constructor(
                         undecryptableHint = undecryptableHint(
                             encryption = message.encryption,
                             isFromSelf = message.isFromSelf,
-                            // Only a DM is encrypted, so the sender of an incoming one is the
-                            // participant.
-                            senderName = stateFlow.value.participant?.name
+                            // A group has no participant: its sender is this message's author,
+                            // and a DM's is the participant.
+                            senderName = sender?.displayName
+                                ?: stateFlow.value.participant?.name
                                 ?: resources.getString(R.string.title_unnamedUser),
                         ) ?: UndecryptableHint.UpdateApp,
                     )
