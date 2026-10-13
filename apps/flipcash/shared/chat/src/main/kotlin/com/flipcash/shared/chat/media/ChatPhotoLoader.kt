@@ -104,7 +104,9 @@ class ChatPhotoLoader internal constructor(
     suspend fun open(photo: ChatPhoto, downloaded: ByteArray): ByteArray {
         if (!photo.sealed) return downloaded
         val expected = photo.rendition.blob?.sizeBytes ?: throw ChatPhotoUnavailable.Open(BlobOpenFailure.Length)
-        if (metadata.isPrivate(photo.chatId)) {
+        // A chat not stored yet can't say which key opens it; guessing DM would fail a group photo for good.
+        val isPrivate = metadata.privacyOf(photo.chatId) ?: throw ChatPhotoUnavailable.Open(BlobOpenFailure.KeyPending)
+        if (isPrivate) {
             return groupCrypto.openBlob(
                 chatId = photo.chatId,
                 senderId = photo.senderId,
