@@ -1,6 +1,10 @@
 package com.flipcash.app.tipping
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.graphics.Color
+import com.getcode.ui.components.CircularIconButton
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -530,32 +534,34 @@ private fun RequestsMenu(needsDecision: Boolean, onRequests: () -> Unit) {
     } else {
         stringResource(R.string.action_moreProfileActions)
     }
-    Box {
-        // Pulled in from the corner so the dot sits just above and right of the top dot, as a
-        // badge on the glyph rather than off the button's padding.
-        WithNotificationDot(isShown = needsDecision, offset = DpOffset((-3).dp, (-1).dp)) {
-            Icon(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable { expanded = true }
-                    .clearAndSetSemantics {
-                        contentDescription = description
-                        role = Role.Button
-                    }
-                    .testTag("chats_overflow_menu")
-                    .padding(CodeTheme.dimens.grid.x1)
-                    .size(CodeTheme.dimens.staticGrid.x5),
-                imageVector = Icons.Rounded.MoreVert,
-                contentDescription = null,
-                tint = CodeTheme.colors.textMain,
-            )
+    val density = LocalDensity.current
+    var anchorHeight by remember { mutableStateOf(0.dp) }
+    Box(modifier = Modifier.onSizeChanged { anchorHeight = with(density) { it.height.toDp() } }) {
+        // The group info screen's ⋯ button and menu, so the two overflow menus look the same.
+        WithNotificationDot(isShown = needsDecision, offset = DpOffset(0.dp, 0.dp)) {
+            CircularIconButton(
+                modifier = Modifier.clearAndSetSemantics {
+                    contentDescription = description
+                    role = Role.Button
+                },
+                onClick = { expanded = true },
+                testTag = "chats_overflow_menu",
+            ) { size ->
+                Icon(
+                    imageVector = Icons.Rounded.MoreVert,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.requiredSize(size),
+                )
+            }
         }
-        // Same surface as the profile's overflow menu.
+        // Opens over the button, as the group info menu does.
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             containerColor = CodeTheme.colors.brandLight,
             shape = CodeTheme.shapes.extraLarge,
+            offset = DpOffset(x = 0.dp, y = -anchorHeight),
         ) {
             val requestsDescription = if (needsDecision) {
                 stringResource(R.string.content_description_requestsWaiting)
