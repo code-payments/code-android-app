@@ -166,12 +166,12 @@ internal fun FormatToggleButton(formatting: ComposerFormatting) {
 @Composable
 internal fun FormatStrip(formatting: ComposerFormatting, field: TextFieldState) {
     // Reads the field so the buttons follow the selection and the text.
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val resources = androidx.compose.ui.platform.LocalResources.current
     @Suppress("UNUSED_VARIABLE") val tick = field.text to field.selection
     fun inline(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, res: Int, f: InlineFormat) =
-        FormatAction(id, icon, context.getString(res), formatting.isActive(f), formatting.isEnabled(f)) { formatting.toggle(f) }
+        FormatAction(id, icon, resources.getString(res), formatting.isActive(f), formatting.isEnabled(f)) { formatting.toggle(f) }
     fun line(id: String, icon: androidx.compose.ui.graphics.vector.ImageVector, res: Int, f: LineFormat) =
-        FormatAction(id, icon, context.getString(res), formatting.isActive(f), true) { formatting.toggle(f) }
+        FormatAction(id, icon, resources.getString(res), formatting.isActive(f), true) { formatting.toggle(f) }
     com.getcode.ui.components.chat.ComposerFormatStrip(
         inline = listOf(
             inline("bold", Icons.Rounded.FormatBold, CoreR.string.description_chatFormatBold, InlineFormat.Bold),
