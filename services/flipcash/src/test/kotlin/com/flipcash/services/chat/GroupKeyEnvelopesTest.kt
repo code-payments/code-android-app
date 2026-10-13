@@ -125,6 +125,15 @@ class GroupKeyEnvelopesTest {
     }
 
     @Test
+    fun `a failed re-wrap still returns the key`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(stored(creatorKeys, memberPk, creatorId))
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        coEvery { controller.setKeyEnvelope(chatId, any()) } returns Result.failure(IOException("offline"))
+
+        assertContentEquals(groupKey, memberEnvelopes.key(chatId).getOrThrow())
+    }
+
+    @Test
     fun `the key is fetched once`() = runTest {
         coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(stored(memberKeys, memberPk, memberId))
 
