@@ -54,7 +54,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.pluralStringResource
+import com.getcode.theme.extraLarge
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -174,8 +181,8 @@ fun ChatsScreen() {
                 // anything drawn inside it would leave the tab bar over the entry screen.
                 // Join requests in either direction; the dot only while someone waits on the viewer.
                 leadingContent = {
-                    if (state.showsRequestsButton) {
-                        RequestsButton(needsDecision = state.needsDecision) {
+                    if (state.showsRequestsMenu) {
+                        RequestsMenu(waitingCount = state.waitingCount) {
                             navigator.push(AppRoute.Messaging.Requests)
                         }
                     }
@@ -510,28 +517,76 @@ private fun ChatFilterRow(
 }
 
 /**
- * The way into Requests, on the leading side of the header. The dot marks someone waiting on the
- * viewer; sent requests alone show the button bare.
+ * The header's leading overflow menu, whose one item is the way into Requests. The dot marks
+ * someone waiting on the viewer; sent requests alone show the button bare.
  */
 @Composable
-private fun RequestsButton(needsDecision: Boolean, onClick: () -> Unit) {
-    val description = stringResource(R.string.title_requests)
-    WithNotificationDot(isShown = needsDecision) {
-        Icon(
-            modifier = Modifier
-                .clip(CircleShape)
-                .clickable(onClick = onClick)
-                .clearAndSetSemantics {
-                    contentDescription = description
-                    role = Role.Button
-                }
-                .testTag("requests_button")
-                .padding(CodeTheme.dimens.grid.x1)
-                .size(CodeTheme.dimens.staticGrid.x5),
-            imageVector = Icons.Outlined.PersonAdd,
-            contentDescription = null,
-            tint = CodeTheme.colors.textMain,
-        )
+private fun RequestsMenu(waitingCount: Int, onRequests: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val description = if (waitingCount > 0) {
+        stringResource(R.string.content_description_moreWithRequests)
+    } else {
+        stringResource(R.string.action_moreProfileActions)
+    }
+    Box {
+        WithNotificationDot(isShown = waitingCount > 0) {
+            Icon(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { expanded = true }
+                    .clearAndSetSemantics {
+                        contentDescription = description
+                        role = Role.Button
+                    }
+                    .testTag("chats_overflow_menu")
+                    .padding(CodeTheme.dimens.grid.x1)
+                    .size(CodeTheme.dimens.staticGrid.x5),
+                imageVector = Icons.Rounded.MoreVert,
+                contentDescription = null,
+                tint = CodeTheme.colors.textMain,
+            )
+        }
+        // Same surface as the profile's overflow menu.
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = CodeTheme.colors.brandLight,
+            shape = CodeTheme.shapes.extraLarge,
+        ) {
+            DropdownMenuItem(
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.PersonAdd,
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textMain,
+                    )
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.title_requests),
+                            style = CodeTheme.typography.textSmall,
+                            color = CodeTheme.colors.textMain,
+                        )
+                        if (waitingCount > 0) {
+                            Text(
+                                text = pluralStringResource(
+                                    R.plurals.subtitle_peopleWaiting,
+                                    waitingCount,
+                                    waitingCount,
+                                ),
+                                style = CodeTheme.typography.caption,
+                                color = CodeTheme.colors.textSecondary,
+                            )
+                        }
+                    }
+                },
+                onClick = {
+                    expanded = false
+                    onRequests()
+                },
+            )
+        }
     }
 }
 

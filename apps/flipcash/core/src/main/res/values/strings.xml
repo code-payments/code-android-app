@@ -1142,6 +1142,11 @@
         <item quantity="one">%1$d person is waiting</item>
         <item quantity="other">%1$d people are waiting</item>
     </plurals>
+    <plurals name="subtitle_peopleWaiting">
+        <item quantity="one">%1$d person waiting</item>
+        <item quantity="other">%1$d people waiting</item>
+    </plurals>
+    <string name="content_description_moreWithRequests">More, people waiting to join</string>
     <string name="subtitle_requestedJustNow">requested just now</string>
     <string name="subtitle_requestedMinutesAgo">requested %1$dm ago</string>
     <string name="subtitle_requestedHoursAgo">requested %1$dh ago</string>

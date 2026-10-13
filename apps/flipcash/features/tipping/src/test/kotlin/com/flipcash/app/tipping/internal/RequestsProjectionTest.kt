@@ -90,10 +90,12 @@ class RequestsProjectionTest {
     }
 
     @Test
-    fun `the Requests button shows for a request either way, the dot only for one to decide`() {
-        assertFalse(ChatsViewModel.State().showsRequestsButton)
-        assertTrue(ChatsViewModel.State(needsDecision = true).showsRequestsButton)
-        assertTrue(ChatsViewModel.State(hasSentRequests = true).showsRequestsButton)
+    fun `the overflow menu shows for a request either way, the dot only for one to decide`() {
+        assertFalse(ChatsViewModel.State().showsRequestsMenu)
+        assertTrue(ChatsViewModel.State(waitingCount = 2).showsRequestsMenu)
+        assertTrue(ChatsViewModel.State(waitingCount = 2).needsDecision)
+        assertTrue(ChatsViewModel.State(hasSentRequests = true).showsRequestsMenu)
+        assertFalse(ChatsViewModel.State(hasSentRequests = true).needsDecision)
     }
 
     @Test
