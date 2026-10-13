@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -84,13 +86,26 @@ fun RequestsScreen() {
                             .padding(bottom = padding.calculateBottomPadding()),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                            text = stringResource(R.string.title_noPendingRequests),
-                            style = CodeTheme.typography.textMedium,
-                            color = CodeTheme.colors.textSecondary,
-                            textAlign = TextAlign.Center,
-                        )
+                        // Join Requests' empty state, without its Share Group button: there's no
+                        // one group to share.
+                        Column(
+                            modifier = Modifier.padding(horizontal = 40.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.title_noRequests),
+                                style = CodeTheme.typography.textLarge,
+                                color = CodeTheme.colors.textMain,
+                                textAlign = TextAlign.Center,
+                            )
+                            Text(
+                                text = stringResource(R.string.subtitle_noRequests),
+                                style = CodeTheme.typography.textSmall,
+                                color = CodeTheme.colors.textSecondary,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
                 }
             }

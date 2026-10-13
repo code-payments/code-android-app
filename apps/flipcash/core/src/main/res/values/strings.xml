@@ -1138,7 +1138,8 @@
     <string name="title_requests">Requests</string>
     <string name="header_waitingOnYou">Waiting on you</string>
     <string name="header_sentRequests">Sent</string>
-    <string name="title_noPendingRequests">No pending requests</string>
+    <string name="title_noRequests">No requests right now</string>
+    <string name="subtitle_noRequests">Requests to join your private groups, and the ones you send, show up here</string>
     <plurals name="subtitle_joinRequestsWaiting">
         <item quantity="one">%1$d person is waiting</item>
         <item quantity="other">%1$d people are waiting</item>
