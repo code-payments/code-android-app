@@ -26,6 +26,7 @@ import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.tipping.FindByUsernameScreen
 import com.flipcash.app.tipping.ArchivedChatsScreen
+import com.flipcash.app.tipping.RequestsScreen
 import com.flipcash.app.tipping.NewChatScreen
 import com.flipcash.app.tipping.NewGroupFlowScreen
 import com.flipcash.app.tipping.ChatsScreen
@@ -138,6 +139,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address, key.origin) }
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
     annotatedEntry<AppRoute.Messaging.ArchivedChats> { ArchivedChatsScreen() }
+    annotatedEntry<AppRoute.Messaging.Requests> { RequestsScreen() }
     annotatedEntry<AppRoute.Messaging.FindByUsername> { FindByUsernameScreen() }
     annotatedEntry<AppRoute.Messaging.NewGroup> { key ->
         NewGroupFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
@@ -151,6 +153,9 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.PhotoViewer> { key -> ChatPhotoViewerScreen(key.chatId, key.messageId) }
     annotatedEntry<AppRoute.Messaging.E2eeDmInfo> { E2eeLearnMoreScreen(forGroup = false) }
     annotatedEntry<AppRoute.Messaging.E2eeGroupInfo> { E2eeLearnMoreScreen(forGroup = true) }
+    annotatedEntry<AppRoute.Messaging.E2eePrivateGroupInfo> {
+        E2eeLearnMoreScreen(forGroup = true, isPrivate = true)
+    }
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info>(testTag = "token_info_screen") { key ->

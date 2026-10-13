@@ -1,6 +1,7 @@
 package com.flipcash.app.persistence.sources
 
 import com.flipcash.services.chat.ChatContentCrypto
+import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.chat.OpenedContent
 import com.flipcash.services.models.chat.ChatId
@@ -16,6 +17,7 @@ import javax.inject.Inject
  */
 class IncomingMessageOpener @Inject constructor(
     private val crypto: ChatContentCrypto,
+    private val groupCrypto: GroupContentCrypto,
 ) {
     /**
      * [messages] with each encrypted one opened and its [ChatMessage.encryption] set. A message
@@ -23,7 +25,8 @@ class IncomingMessageOpener @Inject constructor(
      * opened again.
      *
      * [peerId] is the other member of the DM when it's stored; a message from the viewer can't be
-     * opened without it, and is left [MessageEncryption.KeyPending] to be opened once it is.
+     * opened without it, and is left [MessageEncryption.KeyPending] to be opened once it is. A
+     * private group's message is sealed under the chat key and needs no peer.
      */
     suspend fun open(
         chatId: ChatId,
@@ -56,6 +59,9 @@ class IncomingMessageOpener @Inject constructor(
         message: ChatMessage,
         sealed: MessageContent.Encrypted,
     ): ChatMessage {
+        if (sealed.scheme == GroupContentCrypto.SCHEME_CHAT_KEY_XCHACHA20POLY1305) {
+            return message.withOpened(sealed, groupCrypto.open(chatId, message.senderId, sealed))
+        }
         val peer = when (val sender = message.senderId) {
             null -> null
             selfId -> peerId
@@ -65,17 +71,20 @@ class IncomingMessageOpener @Inject constructor(
             return message.copy(content = listOf(sealed), encryption = MessageEncryption.KeyPending)
         }
 
-        return when (val opened = crypto.open(chatId, selfId, peer, message.senderId, sealed)) {
-            is OpenedContent.Plaintext -> message.copy(
+        return message.withOpened(sealed, crypto.open(chatId, selfId, peer, message.senderId, sealed))
+    }
+
+    private fun ChatMessage.withOpened(sealed: MessageContent.Encrypted, opened: OpenedContent): ChatMessage =
+        when (opened) {
+            is OpenedContent.Plaintext -> copy(
                 content = listOf(opened.content),
                 encryption = MessageEncryption.Decrypted(sealed),
             )
-            OpenedContent.KeyPending -> message.copy(encryption = MessageEncryption.KeyPending)
-            is OpenedContent.Undecryptable -> message.copy(
+            OpenedContent.KeyPending -> copy(encryption = MessageEncryption.KeyPending)
+            is OpenedContent.Undecryptable -> copy(
                 encryption = MessageEncryption.Undecryptable(opened.reason),
             )
         }
-    }
 
     /**
      * The ciphertext of a message as the server sent it. A message that already carries an

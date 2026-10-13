@@ -478,9 +478,10 @@ class NotificationService : FirebaseMessagingService(),
             ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
             ?: NotificationCompat.MessagingStyle(selfPerson)
 
-        // The server can't read an end-to-end encrypted DM, so its body is a stand-in. The opened
-        // text is the message itself, with no sender prefix to strip.
-        val opened = if (!styling.isGroupConversation) openPushedMessage(chatId, metadata) else null
+        // The server can't read an end-to-end encrypted DM or private group, so its body is a
+        // stand-in. The opened text is the message itself, with no sender prefix to strip; a group
+        // line takes its sender from the Person. Unencrypted messages open to null and keep the body.
+        val opened = openPushedMessage(chatId, metadata)
         style.addMessage(opened ?: planMessageBody(body, senderNames), System.currentTimeMillis(), senderPerson)
 
         // After the extract above, not before: a re-post rebuilds the style from the notification

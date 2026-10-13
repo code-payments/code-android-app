@@ -7,6 +7,7 @@ import com.flipcash.services.chat.ChatContentCrypto
 import com.flipcash.services.chat.carriesMedia
 import com.flipcash.services.chat.checkBlobSealing
 import com.flipcash.services.chat.E2eePolicy
+import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.BlobId
@@ -101,6 +102,7 @@ internal class DmOutgoingEncryption @Inject constructor(
     private val chatController: ChatController,
     private val metadataDataSource: ChatMetadataDataSource,
     private val memberDataSource: ChatMemberDataSource,
+    private val groupCrypto: GroupContentCrypto,
 ) : OutgoingEncryption {
 
     override suspend fun prepare(
@@ -121,15 +123,19 @@ internal class DmOutgoingEncryption @Inject constructor(
 
         val selfId = userManager.accountId
             ?: return Result.failure(IllegalStateException("No account to encrypt from"))
-        val peerId = chat.members.firstOrNull { it.userId != selfId }?.userId
-            ?: return Result.failure(IllegalStateException("No peer in $chatId to encrypt to"))
-        // A DM message is one Text, one photo, or one Reply around either. Anything else can't be
-        // sealed, and sending it in plaintext would break the chat's promise.
+        // A sealed message is one Text, one photo, or one Reply around either. Anything else can't
+        // be sealed, and sending it in plaintext would break the chat's promise.
         val single = content.singleOrNull()
             ?: return Result.failure(IllegalArgumentException("Can't encrypt ${content.size} content items"))
 
-        return crypto.seal(chatId, peerId, single)
-            .map { sealed -> Outgoing(plaintext = content, wire = listOf(sealed), isSealed = true) }
+        val sealed = if (chat.isPrivate) {
+            groupCrypto.seal(chatId, selfId, single)
+        } else {
+            val peerId = chat.members.firstOrNull { it.userId != selfId }?.userId
+                ?: return Result.failure(IllegalStateException("No peer in $chatId to encrypt to"))
+            crypto.seal(chatId, peerId, single)
+        }
+        return sealed.map { Outgoing(plaintext = content, wire = listOf(it), isSealed = true) }
     }
 
     override suspend fun blobSealer(chatId: ChatId): Result<BlobSealer?> {
@@ -139,6 +145,13 @@ internal class DmOutgoingEncryption @Inject constructor(
 
         val selfId = userManager.accountId
             ?: return Result.failure(IllegalStateException("No account to encrypt from"))
+        if (chat.isPrivate) {
+            return Result.success(
+                BlobSealer(chatId) { blobId, plaintext ->
+                    groupCrypto.sealBlob(chatId, selfId, blobId.bytes, plaintext).getOrThrow()
+                }
+            )
+        }
         val peerId = chat.members.firstOrNull { it.userId != selfId }?.userId
             ?: return Result.failure(IllegalStateException("No peer in $chatId to encrypt to"))
         return Result.success(

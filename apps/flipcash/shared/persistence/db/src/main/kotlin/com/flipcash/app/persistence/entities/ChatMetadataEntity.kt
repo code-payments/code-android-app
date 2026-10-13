@@ -73,6 +73,10 @@ data class ChatMetadataEntity(
     // behaviourally for now; carried so a chat rebuilt from Room agrees with the network value.
     @ColumnInfo(name = "use_e2ee", defaultValue = "0")
     val useE2ee: Boolean = false,
+    // A private group: the host admits each member and messages are end-to-end encrypted. Set at
+    // creation and never changed, so the upsert only ever turns it on.
+    @ColumnInfo(name = "is_private", defaultValue = "0")
+    val isPrivate: Boolean = false,
     // Group description, up to 160 characters; null when unset or on a DM.
     @ColumnInfo(name = "description")
     val description: String? = null,

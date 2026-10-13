@@ -1,6 +1,15 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
+import com.flipcash.shared.chat.RequestAge
+import com.getcode.theme.White10
+import com.getcode.theme.White05
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -8,6 +17,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.unit.Dp
+import dev.chrisbanes.haze.HazeState
+import androidx.compose.ui.text.style.TextAlign
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Clock
+import androidx.compose.runtime.produceState
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -106,6 +124,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
     val isMember = group?.isMember == true
+    // A private group's non-member has no chat to open: no envelope, no transcript. The profile is
+    // where they ask in, and where they wait.
+    val privateJoin = PrivateGroupJoin.resolve(
+        isPrivate = group?.isPrivate == true,
+        isMember = group?.isMember,
+        requestedAt = state.lobbyRequestedAt,
+    )
 
     // Each time the screen is entered, not once per flow: the view model outlives this screen, and
     // who is chatting moves between visits.
@@ -158,7 +183,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     var pinnedHeight by remember { mutableStateOf(0.dp) }
     // Opened from the chat, back already returns to it, so nothing is pinned: Leave Chat sits at
     // the foot of the page instead.
-    val clearance = if (openedFromChat) 0.dp else pinnedHeight
+    val clearance = if (openedFromChat && privateJoin == null) 0.dp else pinnedHeight
     val hazeState = rememberHazeState()
 
     CodeScaffold { padding ->
@@ -227,6 +252,32 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                     },
                 )
 
+                if (group?.isPrivate == true) {
+                    PrivateGroupNote(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.staticGrid.x3),
+                        memberCount = group.memberCount,
+                    )
+                }
+
+                // The host's way into Join Requests; gone when nobody is waiting.
+                AnimatedVisibility(
+                    visible = state.isLobbyHost && state.joinRequests.isNotEmpty(),
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+                ) {
+                    var shownCount by remember { mutableStateOf(state.joinRequests.size) }
+                    if (state.joinRequests.isNotEmpty()) shownCount = state.joinRequests.size
+                    JoinRequestsCard(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.staticGrid.x4),
+                        count = shownCount,
+                        onClick = { flowNavigator.navigateTo(ChatStep.JoinRequests) },
+                    )
+                }
+
                 val unknownName = stringResource(R.string.title_unnamedUser)
                 val chatters = remember(state.chatters, unknownName) {
                     state.chatters.mapNotNull { chatter ->
@@ -240,6 +291,51 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         )
                     }
                 }
+                // A private group's members see its roster instead of a sample: creator first,
+                // then the newest joins, with the count opening the full list (node 11210:68).
+                // Until the server lists the roster, the grid shows who this device knows,
+                // without a count: there is no full list to open.
+                val hasRoster = state.members.isNotEmpty()
+                val gridMembers = if (hasRoster) state.members else state.knownMembers
+                val members = remember(gridMembers, unknownName) {
+                    gridMembers.take(MembersGridLimit).map { member ->
+                        val profile = member.userProfile
+                        ChattingGridItem(
+                            userId = member.userId,
+                            name = chatterName(profile.displayName, profile.username, unknownName),
+                            picture = profile.profilePicture,
+                            isHost = member.userId == group?.creator,
+                        )
+                    }
+                }
+                AnimatedVisibility(
+                    visible = group?.isPrivate == true && members.isNotEmpty(),
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+                ) {
+                    GroupChattingGrid(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.staticGrid.x6),
+                        chatters = members,
+                        title = stringResource(R.string.title_members),
+                        count = if (hasRoster) {
+                            (group?.memberCount ?: state.members.size.toLong()).toString()
+                        } else null,
+                        onShowAll = { flowNavigator.navigateTo(ChatStep.Members) },
+                        onOpen = { item ->
+                            val member = gridMembers.firstOrNull { it.userId == item.userId }
+                                ?: return@GroupChattingGrid
+                            flowNavigator.navigateTo(
+                                ChatStep.Profile(
+                                    contact = ChatParticipant.TipUser(item.userId, member.userProfile),
+                                    origin = ProfileOrigin.GroupMember,
+                                )
+                            )
+                        },
+                    )
+                }
+
                 // The sample lands after the header; opening the grid in place moves the
                 // requirements card down with it rather than jumping it.
                 AnimatedVisibility(
@@ -268,7 +364,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 }
 
                 AnimatedVisibility(
-                    visible = requirements != null && namesReady,
+                    visible = requirements != null && namesReady && group?.isPrivate != true,
                     enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                     exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
                 ) {
@@ -355,12 +451,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         GroupProfileMenu(
                             expanded = menuOpen,
                             items = groupProfileMenuActions(isMember),
+                            isPrivate = group?.isPrivate == true,
                             anchorHeight = anchorHeight,
                             onDismiss = { menuOpen = false },
                             onItem = { item ->
                                 when (item) {
-                                    GroupProfileMenuAction.Encryption ->
-                                        navigator.push(AppRoute.Messaging.E2eeGroupInfo)
+                                    GroupProfileMenuAction.Encryption -> navigator.push(
+                                        if (group?.isPrivate == true) {
+                                            AppRoute.Messaging.E2eePrivateGroupInfo
+                                        } else {
+                                            AppRoute.Messaging.E2eeGroupInfo
+                                        }
+                                    )
                                     // The picker handles muting and unmuting both; pushed on the
                                     // outer navigator, as it is a top-level route.
                                     GroupProfileMenuAction.Mute -> state.chatId?.let { chatId ->
@@ -378,7 +480,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
             // Open Chat in every standing, as in the design: a viewer short of a minimum is told
             // so, and buys, on the chat's own gate.
-            if (!openedFromChat) {
+            if (privateJoin != null) {
+                PrivateJoinBar(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    join = privateJoin,
+                    hostName = state.hostName,
+                    lobbyCall = state.lobbyCall,
+                    onRequest = { viewModel.dispatchEvent(ChatViewModel.Event.RequestToJoin) },
+                    onCancel = { viewModel.dispatchEvent(ChatViewModel.Event.CancelJoinRequest) },
+                    hazeState = hazeState,
+                    onHeightChanged = { pinnedHeight = it },
+                )
+            } else if (!openedFromChat) {
                 ProfilePinnedActionBar(
                     modifier = Modifier.align(Alignment.BottomCenter),
                     text = stringResource(R.string.action_openChat),
@@ -399,6 +512,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 private fun GroupProfileMenu(
     expanded: Boolean,
     items: List<GroupProfileMenuAction>,
+    isPrivate: Boolean,
     anchorHeight: androidx.compose.ui.unit.Dp,
     onDismiss: () -> Unit,
     onItem: (GroupProfileMenuAction) -> Unit,
@@ -416,7 +530,7 @@ private fun GroupProfileMenu(
             }
             val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
             DropdownMenuItem(
-                leadingIcon = { Icon(imageVector = item.icon(), contentDescription = null, tint = tint) },
+                leadingIcon = { Icon(imageVector = item.icon(isPrivate), contentDescription = null, tint = tint) },
                 text = {
                     Text(
                         text = stringResource(item.labelRes()),
@@ -435,3 +549,155 @@ private fun GroupProfileMenu(
 
 /** How long the requirement amounts wait for their token's name before showing without it. */
 private val RuleNameHold = 1500.milliseconds
+
+/** Four rows of portraits; the count beside the title opens the rest. */
+private const val MembersGridLimit = 16
+
+/** "Private group · 48 members" over "The host approves who joins", behind a lock. */
+@Composable
+private fun PrivateGroupNote(memberCount: Long, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                modifier = Modifier.size(14.dp),
+                imageVector = Icons.Filled.Lock,
+                contentDescription = null,
+                tint = CodeTheme.colors.textSecondary,
+            )
+            Text(
+                text = stringResource(
+                    R.string.subtitle_privateGroupMembers,
+                    pluralStringResource(R.plurals.subtitle_memberCount, memberCount.toInt(), memberCount.toString()),
+                ),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+        Text(
+            text = stringResource(R.string.subtitle_hostApprovesJoins),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+        )
+    }
+}
+
+/**
+ * A private group's pinned action for a non-member: Request to Join, or a disabled Request Sent
+ * with Cancel Request under it and how long the request has waited above it.
+ */
+@Composable
+private fun PrivateJoinBar(
+    join: PrivateGroupJoin,
+    hostName: String?,
+    lobbyCall: LobbyCall?,
+    onRequest: () -> Unit,
+    onCancel: () -> Unit,
+    hazeState: HazeState,
+    onHeightChanged: (Dp) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (join) {
+        PrivateGroupJoin.Request -> ProfilePinnedActionBar(
+            modifier = modifier,
+            text = stringResource(R.string.action_requestToJoin),
+            onClick = onRequest,
+            isLoading = lobbyCall == LobbyCall.Request,
+            enabled = lobbyCall == null,
+            hazeState = hazeState,
+            onHeightChanged = onHeightChanged,
+        )
+        is PrivateGroupJoin.Requested -> {
+            // Ticks so "2m ago" does not stand still while the screen stays up.
+            val now by produceState(Clock.System.now()) {
+                while (true) {
+                    delay(1.minutes)
+                    value = Clock.System.now()
+                }
+            }
+            // "Request Sent" for the first minute, then how long the request has waited.
+            val label = when (val age = RequestAge.of(join.at, now)) {
+                RequestAge.JustNow -> stringResource(R.string.action_requestSent)
+                is RequestAge.Minutes -> stringResource(R.string.action_requestedMinutesAgo, age.count)
+                is RequestAge.Hours -> stringResource(R.string.action_requestedHoursAgo, age.count)
+                is RequestAge.Days -> stringResource(R.string.action_requestedDaysAgo, age.count)
+            }
+            ProfilePinnedActionBar(
+                modifier = modifier,
+                text = label,
+                onClick = {},
+                enabled = false,
+                above = {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset),
+                        text = if (hostName != null) {
+                            stringResource(R.string.subtitle_requestPendingHost, hostName)
+                        } else {
+                            stringResource(R.string.subtitle_requestPendingHostUnnamed)
+                        },
+                        style = CodeTheme.typography.caption,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+                },
+                secondaryText = stringResource(R.string.action_cancelRequest),
+                onSecondaryClick = onCancel,
+                isSecondaryLoading = lobbyCall == LobbyCall.Cancel,
+                hazeState = hazeState,
+                onHeightChanged = onHeightChanged,
+            )
+        }
+    }
+}
+
+/** Node 11205:68 — the host's Join Requests row: title, "3 people are waiting", grey count, chevron. */
+@Composable
+private fun JoinRequestsCard(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(White05)
+            .clickable(onClick = onClick)
+            .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x3),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.title_joinRequests),
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
+            Text(
+                text = pluralStringResource(R.plurals.subtitle_joinRequestsWaiting, count, count),
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+        // Grey rather than the unread badge's colour: a count of people waiting, not unread messages.
+        Box(
+            modifier = Modifier
+                .heightIn(min = 20.dp)
+                .clip(CircleShape)
+                .background(White10)
+                .padding(horizontal = 7.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = count.toString(),
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textMain,
+            )
+        }
+        Icon(
+            painter = painterResource(R.drawable.ic_chevron_right),
+            contentDescription = null,
+            tint = CodeTheme.colors.textSecondary,
+        )
+    }
+}

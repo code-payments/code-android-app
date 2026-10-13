@@ -10,6 +10,13 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.isMutedAt
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.LobbyRequests
+import com.flipcash.shared.chat.HostLobbies
+import com.flipcash.shared.chat.ChatSummary
+import com.flipcash.services.models.chat.LobbyMember
+import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatFeeds
 import com.flipcash.shared.chat.ChatListEntry
@@ -38,6 +45,8 @@ internal class ChatsViewModel @Inject constructor(
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,
     private val archiveStore: ChatArchiveStore,
+    private val lobbyRequests: LobbyRequests,
+    private val hostLobbies: HostLobbies,
 ) : BaseViewModel<ChatsViewModel.State, ChatsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -54,7 +63,11 @@ internal class ChatsViewModel @Inject constructor(
         // Whether a pull from the top has brought the chips on. Held here rather than in the
         // screen so it survives opening a chat and coming back.
         val chipsRevealed: Boolean = false,
+        // Someone waits in a private group the viewer hosts: the dot on the overflow menu and on
+        // its Requests item.
+        val needsDecision: Boolean = false,
     ) {
+
         /** The chips stay once revealed, and always show under a filter other than All. */
         val showsChips: Boolean get() = chipsRevealed || filter != ChatListFilter.All
 
@@ -85,6 +98,8 @@ internal class ChatsViewModel @Inject constructor(
         data class FilterSelected(val filter: ChatListFilter) : Event
 
         data object ChipsRevealed : Event
+
+        data class RequestsUpdated(val needsDecision: Boolean) : Event
     }
 
     fun selectFilter(filter: ChatListFilter) = dispatchEvent(Event.FilterSelected(filter))
@@ -100,6 +115,10 @@ internal class ChatsViewModel @Inject constructor(
     }
 
     init {
+        // No push says a join request was answered; an admitted group only shows up once the feed
+        // is synced, which refresh() does when GetChat says a request has left its lobby.
+        viewModelScope.launch { lobbyRequests.refresh() }
+
         val selfId = { userManager.accountId }
 
         fun content(
@@ -155,6 +174,21 @@ internal class ChatsViewModel @Inject constructor(
             .flowOn(dispatchers.Default)
             .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
+
+        // The viewer's hosted private groups, archived ones included; each one's lobby is fetched
+        // once per chat-list load, since LobbyUpdate only reaches a running stream.
+        val hostedGroups = chatCoordinator.chatListFeeds()
+            .map { feeds -> hostedPrivateGroups(feeds.main + feeds.archived, selfId()) }
+            .distinctUntilChanged()
+        hostedGroups
+            .onEach { groups -> groups.keys.forEach { chatId -> viewModelScope.launch { hostLobbies.load(chatId) } } }
+            .launchIn(viewModelScope)
+        combine(hostedGroups, hostLobbies.state) { hosted, lobbies ->
+            Event.RequestsUpdated(needsDecision = hostedRequests(hosted.keys, lobbies).isNotEmpty())
+        }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -166,7 +200,30 @@ internal class ChatsViewModel @Inject constructor(
                 // A chip can only be tapped once the row is on screen, so choosing one reveals it.
                 is Event.FilterSelected -> { state -> state.copy(filter = event.filter, chipsRevealed = true) }
                 Event.ChipsRevealed -> { state -> state.copy(chipsRevealed = true) }
+                is Event.RequestsUpdated -> { state ->
+                    state.copy(needsDecision = event.needsDecision)
+                }
             }
         }
     }
 }
+
+/** Private groups [selfId] created, by id, with their titles. */
+internal fun hostedPrivateGroups(summaries: List<ChatSummary>, selfId: ID?): Map<ChatId, String> {
+    selfId ?: return emptyMap()
+    return summaries
+        .map { it.metadata }
+        .filter { it.isPrivate && it.creator == selfId }
+        .associate { it.chatId to it.title.orEmpty() }
+}
+
+/**
+ * The hosted groups with someone waiting, each with its waiting list, the group whose newest
+ * request is the most recent first.
+ */
+internal fun hostedRequests(
+    hosted: Collection<ChatId>,
+    lobbies: Map<ChatId, List<LobbyMember>>,
+): List<Pair<ChatId, List<LobbyMember>>> = hosted
+    .mapNotNull { chatId -> lobbies[chatId]?.takeIf { it.isNotEmpty() }?.let { chatId to it } }
+    .sortedByDescending { (_, waiting) -> waiting.maxOf { it.enteredAt } }

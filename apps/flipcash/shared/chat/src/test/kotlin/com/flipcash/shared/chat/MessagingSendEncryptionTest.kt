@@ -9,6 +9,9 @@ import com.flipcash.services.chat.ChatContentCrypto
 import com.flipcash.services.chat.ChatKeySource
 import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.chat.FakeChatCipher
+import com.flipcash.services.chat.GroupContentCrypto
+import com.flipcash.services.chat.GroupKeySource
+import com.flipcash.services.chat.OpenedBlob
 import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.chat.OpenedContent
 import com.flipcash.services.controllers.ChatController
@@ -73,6 +76,10 @@ class MessagingSendEncryptionTest {
     private val keys = Keys(selfKeys, peerKeys.publicKey)
     private val peerCrypto = ChatContentCrypto(FakeChatCipher, Keys(peerKeys, selfKeys.publicKey))
 
+    private val groupKey = ByteArray(32) { 5 }
+    private var groupKeyResult: Result<ByteArray> = Result.success(groupKey)
+    private val groupCrypto = GroupContentCrypto(FakeChatCipher, GroupKeySource { groupKeyResult })
+
     private val controller = mockk<ChatMessagingController>(relaxed = true)
     private val chatController = mockk<ChatController>(relaxed = true)
     private val messages = mockk<ChatMessageDataSource>(relaxed = true)
@@ -82,7 +89,12 @@ class MessagingSendEncryptionTest {
         every { it.accountId } returns selfId
     }
 
-    private fun chat(type: ChatType = ChatType.CONTACT_DM, useE2ee: Boolean = true, peer: ID = peerId) =
+    private fun chat(
+        type: ChatType = ChatType.CONTACT_DM,
+        useE2ee: Boolean = true,
+        peer: ID = peerId,
+        isPrivate: Boolean = false,
+    ) =
         ChatMetadata(
             chatId = chatId,
             type = type,
@@ -90,6 +102,7 @@ class MessagingSendEncryptionTest {
             lastMessage = null,
             lastActivity = Instant.fromEpochSeconds(0),
             useE2ee = useE2ee,
+            isPrivate = isPrivate,
         )
 
     private fun member(id: ID) = ChatMember(userId = id, userProfile = UserProfile.Empty, pointers = emptyList())
@@ -130,6 +143,7 @@ class MessagingSendEncryptionTest {
                 chatController = chatController,
                 metadataDataSource = metadata,
                 memberDataSource = members,
+                groupCrypto = groupCrypto,
             ),
         )
     }
@@ -209,6 +223,7 @@ class MessagingSendEncryptionTest {
         chatController = chatController,
         metadataDataSource = metadata,
         memberDataSource = members,
+        groupCrypto = groupCrypto,
     )
 
     @Test
@@ -448,5 +463,59 @@ class MessagingSendEncryptionTest {
         assertIs<IOException>(result.exceptionOrNull())
         coVerify(exactly = 0) { controller.editMessage(any(), any(), any(), any()) }
         assertEquals(emptyMap(), delegate.observePendingMutations(chatId).first())
+    }
+
+    private fun privateGroup() = chat(type = ChatType.GROUP, isPrivate = true)
+
+    private suspend fun openAsGroupMember(wire: List<MessageContent>): MessageContent {
+        val sealed = assertIs<MessageContent.Encrypted>(wire.single())
+        assertEquals(GroupContentCrypto.SCHEME_CHAT_KEY_XCHACHA20POLY1305, sealed.scheme)
+        return assertIs<OpenedContent.Plaintext>(groupCrypto.open(chatId, selfId, sealed)).content
+    }
+
+    @Test
+    fun `text in a private group goes out sealed under the group key`() = runTest {
+        storedChat(privateGroup())
+        val wires = answerSends()
+
+        delegate.sendMessage(chatId, "hello group", replyToMessageId = null).getOrThrow()
+
+        assertEquals(MessageContent.Text("hello group"), openAsGroupMember(wires.single()))
+        val stored = slot<ChatMessage>()
+        coVerify { messages.confirmPending(chatId, clientMessageId, capture(stored)) }
+        assertEquals(listOf(MessageContent.Text("hello group")), stored.captured.content)
+    }
+
+    @Test
+    fun `a photo in a private group goes out sealed under the group key`() = runTest {
+        storedChat(privateGroup())
+
+        val result = outgoing().prepare(chatId, listOf(photo), blobSealedFor = chatId).getOrThrow()
+
+        assertEquals(true, result.isSealed)
+        assertEquals(photo, openAsGroupMember(result.wire))
+    }
+
+    @Test
+    fun `a private group's photo bytes are sealed under the group key`() = runTest {
+        storedChat(privateGroup())
+        val blobId = BlobId(ByteArray(16) { 7 })
+        val bytes = byteArrayOf(1, 2, 3)
+
+        val sealer = checkNotNull(outgoing().blobSealer(chatId).getOrThrow())
+        val sealed = sealer.sealing(bytes).seal(blobId)
+
+        val opened = groupCrypto.openBlob(chatId, selfId, blobId.bytes, bytes.size.toLong(), sealed)
+        assertEquals(bytes.toList(), assertIs<OpenedBlob.Plaintext>(opened).bytes.toList())
+    }
+
+    @Test
+    fun `a private group send without the group key fails so it can be retried`() = runTest {
+        storedChat(privateGroup())
+        groupKeyResult = Result.failure(IOException("offline"))
+        answerSends()
+
+        assertEquals(true, delegate.sendMessage(chatId, "hello group", replyToMessageId = null).isFailure)
+        coVerify(exactly = 0) { controller.sendMessage(chatId, any(), any()) }
     }
 }

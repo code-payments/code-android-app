@@ -62,14 +62,21 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.chat.E2eePolicy
+import com.flipcash.services.models.EnterLobbyError
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.chat.SampledChatter
 import com.flipcash.app.messenger.internal.screens.profile.GroupBalanceRequirements
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileStanding
+import com.flipcash.app.messenger.internal.screens.profile.JoinRequestCall
+import com.flipcash.app.messenger.internal.screens.profile.LobbyCall
+import com.flipcash.app.messenger.internal.screens.profile.knownPrivateGroupMembers
+import com.flipcash.app.messenger.internal.screens.profile.postersNewestFirst
+import com.flipcash.app.messenger.internal.screens.profile.privateGroupMembers
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
@@ -92,6 +99,9 @@ import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.FeaturedGroupsStore
+import com.flipcash.shared.chat.GroupRosters
+import com.flipcash.shared.chat.HostLobbies
+import com.flipcash.shared.chat.LobbyRequests
 import com.flipcash.shared.chat.media.ChatMediaUploadState
 import com.flipcash.shared.chat.media.ChatMediaUploads
 import com.flipcash.shared.chat.media.MediaSendProgress
@@ -170,6 +180,7 @@ import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 import java.util.Optional
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
@@ -258,6 +269,9 @@ internal class ChatViewModel @AssistedInject constructor(
     private val userProfileDataSource: UserProfileDataSource,
     private val rosterSearch: RosterSearchSource,
     private val featuredGroups: FeaturedGroupsStore,
+    private val lobbyRequests: LobbyRequests,
+    private val hostLobbies: HostLobbies,
+    private val groupRosters: GroupRosters,
     private val dispatchers: DispatcherProvider,
     // Last and defaulted so the transcript tests, which draw no pictures, need not supply one.
     @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
@@ -461,6 +475,32 @@ internal class ChatViewModel @AssistedInject constructor(
         /** A leave is out, so the profile's Leave Chat shows a spinner and cannot be tapped again. */
         val leaving: Boolean = false,
         /**
+         * When this account asked to join this private group, while the request is waiting on the
+         * host. Null when there is no request, or none this device knows of.
+         */
+        val lobbyRequestedAt: Instant? = null,
+        /**
+         * The lobby call that is out, so only its own button spins. Kept apart because the
+         * Requested bar appears before a request settles, and a Cancel button first drawn as a
+         * spinner keeps the spinner's size.
+         */
+        val lobbyCall: LobbyCall? = null,
+        /** A private group's host, by name, for "once <host> approves"; null until known. */
+        val hostName: String? = null,
+        /** The viewer created this private group, so its lobby is theirs to answer. */
+        val isLobbyHost: Boolean = false,
+        /** Who is waiting to join, newest first. Empty unless [isLobbyHost]. */
+        val joinRequests: List<LobbyMember> = emptyList(),
+        /** A private group's full roster, creator first, for its Members grid and list. */
+        val members: List<ChatMember> = emptyList(),
+        /**
+         * A private group's creator, the viewer and its posters, from this device: the Members
+         * grid's stand-in while the server won't list [members].
+         */
+        val knownMembers: List<ChatMember> = emptyList(),
+        /** Approve or Deny calls out, by the requester's user id, so only that row waits. */
+        val joinRequestCalls: Map<ID, JoinRequestCall> = emptyMap(),
+        /**
          * What the group's profile pins and states about the viewer's balance, decided with the
          * live balance and rates. Null until they arrive, and for anything that is not a group.
          */
@@ -557,6 +597,13 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val obscuresTranscript: Boolean
             get() = isOutsideGroup && !readsFromOutside
+
+        /**
+         * The host's Join Requests anchor under the title bar (node 11354:70): only while someone is
+         * waiting, and not while a message action has taken the bar over.
+         */
+        val showsJoinRequestsAnchor: Boolean
+            get() = isLobbyHost && joinRequests.isNotEmpty() && selection == null && editing == null
 
         /** Whether the chat's speaker rules let this viewer speak. See [speakerBlock]. */
         val canSpeak: Boolean
@@ -734,7 +781,39 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** The group's profile came on screen: sample its chatters and fill in a missing cover. */
         data object GroupProfileOpened : Event
+
+        /** A private group's Request to Join: EnterLobby. */
+        data object RequestToJoin : Event
+
+        /** A private group's Cancel Request: LeaveLobby. */
+        data object CancelJoinRequest : Event
+
+        /** A lobby call went out ([busy]) or came back. */
+        data class LobbyCallChanged(val call: LobbyCall?) : Event
+
+        /** This chat's waiting request, from [LobbyRequests]; null when there is none. */
+        data class OnLobbyRequestResolved(val requestedAt: Instant?) : Event
+
+        data class OnHostNameResolved(val name: String?) : Event
+
+        /** The viewer's host standing and this group's lobby, from [HostLobbies]. */
+        data class OnJoinRequestsResolved(val isHost: Boolean, val members: List<LobbyMember>) : Event
+
+        /** Join Requests came on screen: refetch, since LobbyUpdate is best-effort. */
+        data object JoinRequestsOpened : Event
+        data class ApproveJoinRequest(val member: LobbyMember) : Event
+        data class DenyJoinRequest(val member: LobbyMember) : Event
+        data class JoinRequestCallChanged(val userId: ID, val call: JoinRequestCall?) : Event
         data class OnChattersLoaded(val chatters: List<SampledChatter>) : Event
+
+        /** A private group's roster from [GroupRosters], already in display order. */
+        data class OnMembersResolved(val members: List<ChatMember>) : Event
+
+        /** A private group's members as this device knows them, for the grid until the roster loads. */
+        data class OnKnownMembersResolved(val members: List<ChatMember>) : Event
+
+        /** The Members list came on screen: refetch, since a roster read can lag the stream. */
+        data object MembersOpened : Event
         data class OnProfileStandingResolved(val standing: GroupProfileStanding?) : Event
         data class OnRuleTokensResolved(val tokens: Map<List<Byte>, RuleCurrency>) : Event
 
@@ -1245,9 +1324,10 @@ internal class ChatViewModel @AssistedInject constructor(
                         undecryptableHint = undecryptableHint(
                             encryption = message.encryption,
                             isFromSelf = message.isFromSelf,
-                            // Only a DM is encrypted, so the sender of an incoming one is the
-                            // participant.
-                            senderName = stateFlow.value.participant?.name
+                            // A group has no participant: its sender is this message's author,
+                            // and a DM's is the participant.
+                            senderName = sender?.displayName
+                                ?: stateFlow.value.participant?.name
                                 ?: resources.getString(R.string.title_unnamedUser),
                         ) ?: UndecryptableHint.UpdateApp,
                     )
@@ -1602,6 +1682,30 @@ internal class ChatViewModel @AssistedInject constructor(
                 }
             }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * EnterLobby's refusals that the viewer can act on get the leave dialog's sheet: a full lobby
+     * and too many pending requests. Already a member says nothing; the synced feed flips the
+     * profile to the member layout. Anything else is a plain failure.
+     */
+    private fun showLobbyError(group: ChatSubject.Group, error: Throwable) {
+        val message = when (error) {
+            is EnterLobbyError.LobbyFull -> R.string.prompt_description_lobbyFull
+            is EnterLobbyError.TooManyLobbies -> R.string.prompt_description_tooManyLobbies
+            is EnterLobbyError.AlreadyMember -> return
+            else -> {
+                BottomBarManager.showError(
+                    title = resources.getString(R.string.error_title_failedToRequestJoin),
+                    message = resources.getString(R.string.error_description_failedToRequestJoin),
+                )
+                return
+            }
+        }
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.prompt_title_lobbyClosed, group.title),
+            message = resources.getString(message),
+        )
     }
 
     /**
@@ -2477,7 +2581,14 @@ internal class ChatViewModel @AssistedInject constructor(
                         R.string.prompt_title_leaveChat,
                         group.title,
                     ),
-                    message = resources.getString(R.string.prompt_description_leaveChat),
+                    // A private group has no invite link back in: rejoining is a new request.
+                    message = resources.getString(
+                        if (group.isPrivate) {
+                            R.string.prompt_description_leavePrivateChat
+                        } else {
+                            R.string.prompt_description_leaveChat
+                        }
+                    ),
                     actions = listOf(
                         BottomBarAction(text = resources.getString(R.string.action_leaveChat)) {
                             dispatchEvent(Event.LeaveConfirmed)
@@ -2485,6 +2596,202 @@ internal class ChatViewModel @AssistedInject constructor(
                     ),
                     showCancel = true,
                 )
+            }
+            .launchIn(viewModelScope)
+
+        // A private group's request, as LobbyRequests keeps it. Observed so a cancel elsewhere, or a
+        // refresh that finds the request answered, puts Request to Join back.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatId -> lobbyRequests.observe().map { it[chatId] } }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnLobbyRequestResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // A private group's request line names its host; only the creator's id travels with the
+        // metadata, so the name comes from the profiles the transcript also reads.
+        stateFlow.map { (it.subject as? ChatSubject.Group)?.takeIf { group -> group.isPrivate }?.creator }
+            .distinctUntilChanged()
+            .flatMapLatest { creator ->
+                if (creator == null) {
+                    flowOf(null)
+                } else {
+                    chatCoordinator.requestSenderProfile(creator)
+                    chatCoordinator.observeSenderProfiles().map { profiles ->
+                        profiles[creator.hexEncodedString()]?.let { profile ->
+                            profile.displayName.takeIf { it.isNotBlank() } ?: profile.username
+                        }
+                    }
+                }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnHostNameResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // The host's side of a private group: its lobby, kept by HostLobbies and loaded whenever the
+        // viewer turns out to be the creator, so the profile card and the in-chat anchor have it.
+        stateFlow.map { state ->
+            (state.subject as? ChatSubject.Group)
+                ?.takeIf { it.isPrivate && it.creator != null && it.creator == userManager.accountId }
+                ?.chatId
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { chatId ->
+                if (chatId == null) {
+                    flowOf(Event.OnJoinRequestsResolved(isHost = false, members = emptyList()))
+                } else {
+                    viewModelScope.launch { hostLobbies.load(chatId) }
+                    hostLobbies.state.map { Event.OnJoinRequestsResolved(isHost = true, members = it[chatId].orEmpty()) }
+                }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
+
+        // A private group's roster, for its members only (GetRoster is denied to a requester).
+        // Loaded when the viewer turns out to be a member and again each time the profile or the
+        // Members list opens; RosterUpdate keeps it current in between.
+        stateFlow.map { state ->
+            (state.subject as? ChatSubject.Group)
+                ?.takeIf { it.isPrivate && it.isMember == true }
+                ?.let { it.chatId to it.creator }
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { group ->
+                if (group == null) {
+                    flowOf(Event.OnMembersResolved(emptyList()))
+                } else {
+                    val (chatId, creator) = group
+                    viewModelScope.launch {
+                        groupRosters.load(chatId)
+                            .onFailure { trace("failed to load roster - ${it.localizedMessage}") }
+                    }
+                    groupRosters.state.map {
+                        Event.OnMembersResolved(privateGroupMembers(it[chatId].orEmpty(), creator))
+                    }
+                }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
+
+        // Until roster reads open (GetRoster off, SampleChatters DENIED for a private group), the
+        // grid draws who this device knows: the creator, the viewer and everyone who has posted.
+        stateFlow.map { state ->
+            (state.subject as? ChatSubject.Group)
+                ?.takeIf { it.isPrivate && it.isMember == true }
+                ?.let { it.chatId to it.creator }
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { group ->
+                if (group == null) {
+                    flowOf(Event.OnKnownMembersResolved(emptyList()))
+                } else {
+                    val (chatId, creator) = group
+                    val selfId = userManager.accountId
+                    combine(
+                        chatCoordinator.observeMessages(chatId).map(::postersNewestFirst).distinctUntilChanged(),
+                        senderProfiles.filterNotNull(),
+                    ) { posters, profiles ->
+                        (listOfNotNull(creator, selfId) + posters)
+                            .filter { profiles[it.hexEncodedString()] == null }
+                            .forEach(chatCoordinator::requestSenderProfile)
+                        Event.OnKnownMembersResolved(knownPrivateGroupMembers(creator, selfId, posters, profiles))
+                    }
+                }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
+
+        merge(
+            eventFlow.filterIsInstance<Event.GroupProfileOpened>(),
+            eventFlow.filterIsInstance<Event.MembersOpened>(),
+        ).onEach {
+            val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+            if (group.isPrivate && group.isMember == true) groupRosters.load(group.chatId)
+        }.launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.JoinRequestsOpened>()
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                if (stateFlow.value.isLobbyHost) hostLobbies.load(chatId)
+            }
+            .launchIn(viewModelScope)
+
+        // Each row's call runs on its own, so one slow Approve does not hold up the rest.
+        eventFlow.filterIsInstance<Event.ApproveJoinRequest>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val userId = event.member.userProfile.userId ?: return@onEach
+                if (userId in stateFlow.value.joinRequestCalls) return@onEach
+                dispatchEvent(Event.JoinRequestCallChanged(userId, JoinRequestCall.Approve))
+                viewModelScope.launch {
+                    hostLobbies.approve(chatId, event.member).onFailure {
+                        trace("failed to admit lobby member - ${it.localizedMessage}")
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToApproveJoinRequest),
+                            message = resources.getString(R.string.error_description_failedToApproveJoinRequest),
+                        )
+                    }
+                    dispatchEvent(Event.JoinRequestCallChanged(userId, null))
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.DenyJoinRequest>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val userId = event.member.userProfile.userId ?: return@onEach
+                if (userId in stateFlow.value.joinRequestCalls) return@onEach
+                dispatchEvent(Event.JoinRequestCallChanged(userId, JoinRequestCall.Deny))
+                viewModelScope.launch {
+                    hostLobbies.deny(chatId, userId).onFailure {
+                        trace("failed to deny lobby member - ${it.localizedMessage}")
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToDenyJoinRequest),
+                            message = resources.getString(R.string.error_description_failedToDenyJoinRequest),
+                        )
+                    }
+                    dispatchEvent(Event.JoinRequestCallChanged(userId, null))
+                }
+            }
+            .launchIn(viewModelScope)
+
+        // No push says a request was answered, so the profile asks each time it comes up.
+        eventFlow.filterIsInstance<Event.GroupProfileOpened>()
+            .onEach {
+                val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+                if (group.isPrivate && group.isMember != true) lobbyRequests.refresh(listOf(group.chatId))
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.RequestToJoin>()
+            .onEach {
+                val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+                if (stateFlow.value.lobbyCall != null) return@onEach
+                dispatchEvent(Event.LobbyCallChanged(LobbyCall.Request))
+                lobbyRequests.request(group.chatId).onFailure { error ->
+                    trace("failed to enter lobby - ${error.localizedMessage}")
+                    showLobbyError(group, error)
+                }
+                dispatchEvent(Event.LobbyCallChanged(null))
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.CancelJoinRequest>()
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                if (stateFlow.value.lobbyCall != null) return@onEach
+                dispatchEvent(Event.LobbyCallChanged(LobbyCall.Cancel))
+                lobbyRequests.cancel(chatId).onFailure {
+                    trace("failed to leave lobby - ${it.localizedMessage}")
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_failedToCancelJoinRequest),
+                        message = resources.getString(R.string.error_description_failedToCancelJoinRequest),
+                    )
+                }
+                dispatchEvent(Event.LobbyCallChanged(null))
             }
             .launchIn(viewModelScope)
 
@@ -3153,8 +3460,25 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.GateFundingTapped,
                 Event.GroupInfoOpened,
                 Event.InviteCardFollowed,
-                Event.LeaveChat, Event.GroupProfileOpened -> { state -> state }
+                Event.LeaveChat, Event.GroupProfileOpened,
+                Event.RequestToJoin, Event.CancelJoinRequest,
+                Event.JoinRequestsOpened, is Event.ApproveJoinRequest, is Event.DenyJoinRequest -> { state -> state }
+                is Event.OnJoinRequestsResolved -> { state ->
+                    state.copy(isLobbyHost = event.isHost, joinRequests = event.members)
+                }
+                is Event.JoinRequestCallChanged -> { state ->
+                    val calls = state.joinRequestCalls.toMutableMap()
+                    val call = event.call
+                    if (call == null) calls.remove(event.userId) else calls[event.userId] = call
+                    state.copy(joinRequestCalls = calls)
+                }
+                is Event.LobbyCallChanged -> { state -> state.copy(lobbyCall = event.call) }
+                is Event.OnLobbyRequestResolved -> { state -> state.copy(lobbyRequestedAt = event.requestedAt) }
+                is Event.OnHostNameResolved -> { state -> state.copy(hostName = event.name) }
                 is Event.OnChattersLoaded -> { state -> state.copy(chatters = event.chatters) }
+                is Event.OnMembersResolved -> { state -> state.copy(members = event.members) }
+                is Event.OnKnownMembersResolved -> { state -> state.copy(knownMembers = event.members) }
+                Event.MembersOpened -> { state -> state }
                 is Event.OnProfileStandingResolved -> { state -> state.copy(profileStanding = event.standing) }
                 is Event.OnRuleTokensResolved -> { state -> state.copy(ruleTokens = event.tokens) }
                 Event.LeaveConfirmed -> { state -> state.copy(leaving = true) }

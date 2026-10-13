@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.screens.profile
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Feedback
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,8 +29,9 @@ internal enum class GroupProfileMenuAction {
         Report -> R.string.title_report
     }
 
-    fun icon(): ImageVector = when (this) {
-        Encryption -> Icons.Outlined.LockOpen
+    /** A private group is end-to-end encrypted, so its Encryption row shows a closed lock. */
+    fun icon(isPrivate: Boolean = false): ImageVector = when (this) {
+        Encryption -> if (isPrivate) Icons.Filled.Lock else Icons.Outlined.LockOpen
         Mute -> Icons.Outlined.NotificationsOff
         Report -> Icons.Outlined.Feedback
     }

@@ -12,6 +12,8 @@ import com.flipcash.app.persistence.sources.PendingMessage
 import com.flipcash.services.chat.ChatContentCrypto
 import com.flipcash.services.chat.ChatKeySource
 import com.flipcash.services.chat.E2eePolicy
+import com.flipcash.services.chat.GroupContentCrypto
+import com.flipcash.services.chat.GroupKeySource
 import com.flipcash.services.chat.FakeChatCipher
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
@@ -114,6 +116,8 @@ class ChatShareGatewayTest {
     private val outgoing = DmOutgoingEncryption(
         policy = E2eePolicy(),
         crypto = ChatContentCrypto(FakeChatCipher, keys),
+        // Every chat shared to here is a DM or public group, so no group key is ever asked for.
+        groupCrypto = GroupContentCrypto(FakeChatCipher, GroupKeySource { error("no private groups") }),
         userManager = userManager,
         chatController = chatController,
         metadataDataSource = metadata,

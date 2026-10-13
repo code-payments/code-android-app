@@ -53,8 +53,13 @@ fun NewChatScreen() {
                 icon = R.drawable.ic_group_3,
                 onClick = {
                     analytics.track(GroupEvents.newOpened())
-                    navigator.push(AppRoute.Messaging.NewGroup)
+                    navigator.push(AppRoute.Messaging.NewGroup())
                 },
+            )
+            ChoiceRow(
+                label = stringResource(R.string.action_createPrivateGroup),
+                icon = R.drawable.ic_lock,
+                onClick = { navigator.push(AppRoute.Messaging.NewGroup(isPrivate = true)) },
             )
         }
     }

@@ -1,5 +1,8 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.SampledChatter
@@ -14,8 +17,14 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.solana.keys.Mint
+import com.getcode.utils.hexEncodedString
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /**
  * The one action pinned to the bottom of a group's profile.
@@ -234,3 +243,88 @@ internal fun gateFunding(
 }
 
 private const val MICRO_SCALE = 6
+
+/**
+ * What a private group's profile offers a viewer who is not in it. Null for a public group and for
+ * a member, who get the usual layout.
+ */
+internal sealed interface PrivateGroupJoin {
+    data object Request : PrivateGroupJoin
+    data class Requested(val at: Instant) : PrivateGroupJoin
+
+    companion object {
+        fun resolve(isPrivate: Boolean, isMember: Boolean?, requestedAt: Instant?): PrivateGroupJoin? = when {
+            !isPrivate || isMember == true -> null
+            requestedAt != null -> Requested(requestedAt)
+            else -> Request
+        }
+    }
+}
+
+/** How long ago a member joined, as a private group's Members list words it (node 11210:70). */
+internal sealed interface JoinAge {
+    data object JustNow : JoinAge
+    data class Minutes(val count: Long) : JoinAge
+    data class Hours(val count: Long) : JoinAge
+    data object Yesterday : JoinAge
+    data class Days(val count: Long) : JoinAge
+    data object LastWeek : JoinAge
+    data class Weeks(val count: Long) : JoinAge
+    data object LastMonth : JoinAge
+    data class Months(val count: Long) : JoinAge
+
+    companion object {
+        fun of(at: Instant, now: Instant): JoinAge {
+            val elapsed = (now - at).coerceAtLeast(Duration.ZERO)
+            val days = elapsed.inWholeDays
+            return when {
+                elapsed < 1.minutes -> JustNow
+                elapsed < 1.hours -> Minutes(elapsed.inWholeMinutes)
+                elapsed < 1.days -> Hours(elapsed.inWholeHours)
+                days < 2 -> Yesterday
+                days < 7 -> Days(days)
+                days < 14 -> LastWeek
+                days < 30 -> Weeks(days / 7)
+                days < 60 -> LastMonth
+                else -> Months(days / 30)
+            }
+        }
+    }
+}
+
+/**
+ * A private group's roster in the order its grid and list show it: the creator first, then the
+ * most recently joined. A member with no join time sorts last.
+ */
+internal fun privateGroupMembers(members: List<ChatMember>, creator: ID?): List<ChatMember> {
+    val (host, rest) = members.partition { creator != null && it.userId == creator }
+    return host + rest.sortedByDescending { it.joinedAt }
+}
+
+/** The distinct senders in [messages], the most recent poster first. */
+internal fun postersNewestFirst(messages: List<ChatMessage>): List<ID> = messages
+    .sortedByDescending { it.timestamp }
+    .mapNotNull { it.senderId }
+    .distinct()
+
+/**
+ * A private group's members as this device knows them, for its Members grid while the server
+ * won't list the roster: the creator, then the viewer, then everyone who has posted, newest
+ * first, each once. Anyone [profiles] can't name is left out rather than shown unnamed.
+ */
+internal fun knownPrivateGroupMembers(
+    creator: ID?,
+    selfId: ID?,
+    posters: List<ID>,
+    profiles: Map<String, UserProfile>,
+): List<ChatMember> = (listOfNotNull(creator, selfId) + posters)
+    .distinct()
+    .mapNotNull { userId ->
+        profiles[userId.hexEncodedString()]?.let { ChatMember(userId, it, pointers = emptyList()) }
+    }
+
+/** A lobby call in flight from a private group's profile. */
+enum class LobbyCall { Request, Cancel }
+
+/** An Approve or Deny out for one row of Join Requests. */
+enum class JoinRequestCall { Approve, Deny }

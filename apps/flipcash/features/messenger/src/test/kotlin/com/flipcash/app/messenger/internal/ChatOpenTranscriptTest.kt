@@ -119,6 +119,9 @@ class ChatOpenTranscriptTest {
         userProfileDataSource = mockk(relaxed = true),
         rosterSearch = mockk(relaxed = true),
         featuredGroups = featuredGroups,
+        lobbyRequests = mockk(relaxed = true),
+        hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
+        groupRosters = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
         identifier = identifier,
     )
