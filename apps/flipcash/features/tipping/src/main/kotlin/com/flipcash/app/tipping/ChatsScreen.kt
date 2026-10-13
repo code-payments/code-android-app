@@ -538,7 +538,8 @@ private fun RequestsMenu(needsDecision: Boolean, onRequests: () -> Unit) {
     var anchorHeight by remember { mutableStateOf(0.dp) }
     Box(modifier = Modifier.onSizeChanged { anchorHeight = with(density) { it.height.toDp() } }) {
         // The group info screen's ⋯ button and menu, so the two overflow menus look the same.
-        WithNotificationDot(isShown = needsDecision, offset = DpOffset(0.dp, 0.dp)) {
+        // Keeps the old 11dp dot's centre now that it is 7dp.
+        WithNotificationDot(isShown = needsDecision, offset = DpOffset(2.dp, (-2).dp)) {
             CircularIconButton(
                 modifier = Modifier.clearAndSetSemantics {
                     contentDescription = description
@@ -585,7 +586,7 @@ private fun RequestsMenu(needsDecision: Boolean, onRequests: () -> Unit) {
                             NotificationDot(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .offset(x = 4.dp, y = (-4).dp),
+                                    .offset(x = 2.dp, y = (-2).dp),
                                 ring = CodeTheme.colors.brandLight,
                             )
                         }

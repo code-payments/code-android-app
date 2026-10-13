@@ -13,23 +13,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.UnreadDot
 
 /**
- * Node 11440:189 — a small filled dot that marks an icon as needing attention, ringed in the
- * background colour so it reads as cut out of the icon. No count.
+ * A small filled dot that marks an icon as needing attention, ringed in the background colour so
+ * it reads as cut out of the icon. No count. Blue and 7dp across, as on iOS (`NotificationDot`).
  */
 @Composable
 fun NotificationDot(
     modifier: Modifier = Modifier,
-    color: Color = CodeTheme.colors.success,
+    color: Color = UnreadDot,
     ring: Color = CodeTheme.colors.background,
 ) {
-    // The ring sits outside the fill: the design's 11dp dot plus a 2dp stroke.
+    // The ring sits outside the fill: the dot plus a 2dp stroke.
     Box(
         modifier = modifier
             .background(ring, CircleShape)
             .padding(2.dp)
-            .size(11.dp)
+            .size(7.dp)
             .background(color, CircleShape),
     )
 }
@@ -43,7 +44,7 @@ fun NotificationDot(
 fun WithNotificationDot(
     isShown: Boolean,
     modifier: Modifier = Modifier,
-    offset: DpOffset = DpOffset(5.dp, (-5).dp),
+    offset: DpOffset = DpOffset(3.dp, (-3).dp),
     content: @Composable () -> Unit,
 ) {
     Box(modifier = modifier) {
