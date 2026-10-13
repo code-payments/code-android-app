@@ -1146,8 +1146,6 @@
         <item quantity="one">%1$d person is waiting</item>
         <item quantity="other">%1$d people are waiting</item>
     </plurals>
-    <string name="content_description_moreWithRequests">More, people waiting to join</string>
-    <string name="content_description_requestsWaiting">Requests, people waiting to join</string>
     <string name="subtitle_requestedJustNow">requested just now</string>
     <string name="subtitle_requestedMinutesAgo">requested %1$dm ago</string>
     <string name="subtitle_requestedHoursAgo">requested %1$dh ago</string>
@@ -1160,10 +1158,10 @@
     <string name="subtitle_noJoinRequests">When someone asks to join %1$s, they\'ll show up here</string>
     <string name="action_shareGroup">Share Group</string>
     <!-- In-chat Join Requests anchor (nodes 11354:70, 11354:81). -->
-    <string name="title_wantsToJoin">%1$s wants to join</string>
+    <string name="title_wantsToJoin">%1$s Wants To Join</string>
     <plurals name="title_peopleWantToJoin">
-        <item quantity="one">%1$d person wants to join</item>
-        <item quantity="other">%1$d people want to join</item>
+        <item quantity="one">%1$d Person Wants To Join</item>
+        <item quantity="other">%1$d People Want To Join</item>
     </plurals>
     <string name="subtitle_namesAnd">and</string>
     <string name="title_requestedJustNow">Requested just now</string>
