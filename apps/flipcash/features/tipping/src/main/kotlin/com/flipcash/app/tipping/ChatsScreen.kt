@@ -538,16 +538,16 @@ private fun RequestsMenu(needsDecision: Boolean, onRequests: () -> Unit) {
     var anchorHeight by remember { mutableStateOf(0.dp) }
     Box(modifier = Modifier.onSizeChanged { anchorHeight = with(density) { it.height.toDp() } }) {
         // The group info screen's ⋯ button and menu, so the two overflow menus look the same.
-        // Keeps the old 11dp dot's centre now that it is 7dp.
-        WithNotificationDot(isShown = needsDecision, offset = DpOffset(2.dp, (-2).dp)) {
-            CircularIconButton(
-                modifier = Modifier.clearAndSetSemantics {
-                    contentDescription = description
-                    role = Role.Button
-                },
-                onClick = { expanded = true },
-                testTag = "chats_overflow_menu",
-            ) { size ->
+        CircularIconButton(
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = description
+                role = Role.Button
+            },
+            onClick = { expanded = true },
+            testTag = "chats_overflow_menu",
+        ) { size ->
+            // Inside the circle, just above and right of the top dot, as iOS badges its last dot.
+            WithNotificationDot(isShown = needsDecision, offset = DpOffset(3.dp, (-4).dp)) {
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
                     contentDescription = null,
