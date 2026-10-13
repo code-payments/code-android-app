@@ -118,15 +118,17 @@ class GroupKeyEnvelopes @Inject constructor(
         val groupKey = runCatching { cipher.unwrapGroupKey(own, creatorPk, chatId.bytes, payload) }
             .getOrElse { return Result.failure(UntrustedEnvelope("Creator-wrapped envelope did not open", it)) }
 
+        // The self-wrapped copy only saves the next launch a trip through the creator's envelope, so
+        // failing to store it doesn't cost the key that just opened.
         val selfWrapped = runCatching {
             cipher.wrapGroupKey(own, own.publicKey, chatId.bytes, groupKey).toKeyEnvelope()
-        }.getOrElse { return Result.failure(it) }
+        }.getOrElse { return Result.success(groupKey) }
         return chatController.setKeyEnvelope(chatId, selfWrapped).fold(
             onSuccess = { Result.success(groupKey) },
             onFailure = { error ->
                 // Another device re-wrapped first; its envelope stands, so read that one.
                 if (error is SetKeyEnvelopeError.AlreadySet && !retried) fetchKey(chatId, own, retried = true)
-                else Result.failure(error)
+                else Result.success(groupKey)
             },
         )
     }
