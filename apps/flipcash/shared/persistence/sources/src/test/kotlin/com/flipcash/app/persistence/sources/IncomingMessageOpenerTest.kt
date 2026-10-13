@@ -178,12 +178,12 @@ class IncomingMessageOpenerTest {
     }
 
     @Test
-    fun `a private group message under an untrusted envelope is undecryptable`() = runTest {
+    fun `a private group message under an untrusted envelope is unsupported`() = runTest {
         val sealed = group.seal(chatId, senderId = peer, content = MessageContent.Text("group")).getOrThrow()
         groupKeyResult = Result.failure(UntrustedEnvelope("wrapped by a stranger"))
 
         assertEquals(
-            MessageEncryption.Undecryptable(UndecryptableReason.Authentication),
+            MessageEncryption.Undecryptable(UndecryptableReason.Unsupported),
             open(message(sealed)).single().encryption,
         )
     }
