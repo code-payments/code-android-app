@@ -1,10 +1,6 @@
 package com.flipcash.app.tipping
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.ui.graphics.Color
-import com.getcode.ui.components.CircularIconButton
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -53,22 +49,9 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.offset
-import com.getcode.ui.components.NotificationDot
-import com.getcode.theme.extraLarge
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -101,7 +84,6 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.toast.LocalFloatingToastHost
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.components.WithNotificationDot
 import com.getcode.ui.components.TopScrollEdge
 import com.getcode.ui.components.SwipeAction
 import com.getcode.ui.components.SwipeActionRow
@@ -186,13 +168,6 @@ fun ChatsScreen() {
                 // Node 9442:5779 — the only way to start a chat with someone who has never paid
                 // you. A pushed route rather than an in-place screen: this list is a tab home, and
                 // anything drawn inside it would leave the tab bar over the entry screen.
-                // Always shown: Requests has its own empty state. The dot only while someone waits
-                // on the viewer.
-                leadingContent = {
-                    RequestsMenu(needsDecision = state.needsDecision) {
-                        navigator.push(AppRoute.Messaging.Requests)
-                    }
-                },
                 endContent = {
                     AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
                 },
@@ -519,92 +494,6 @@ private fun ChatFilterRow(
             onClick = { onSelect(ChatListFilter.Groups) },
             count = groupsCount,
         )
-    }
-}
-
-/**
- * The header's leading overflow menu, whose one item is the way into Requests. The dot, on the
- * menu and on its Requests item, marks someone waiting on the viewer.
- */
-@Composable
-private fun RequestsMenu(needsDecision: Boolean, onRequests: () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val description = if (needsDecision) {
-        stringResource(R.string.content_description_moreWithRequests)
-    } else {
-        stringResource(R.string.action_moreProfileActions)
-    }
-    val density = LocalDensity.current
-    var anchorHeight by remember { mutableStateOf(0.dp) }
-    Box(modifier = Modifier.onSizeChanged { anchorHeight = with(density) { it.height.toDp() } }) {
-        // The group info screen's ⋯ button and menu, so the two overflow menus look the same.
-        // Keeps the old 11dp dot's centre now that it is 7dp.
-        WithNotificationDot(isShown = needsDecision, offset = DpOffset(2.dp, (-2).dp)) {
-            CircularIconButton(
-                modifier = Modifier.clearAndSetSemantics {
-                    contentDescription = description
-                    role = Role.Button
-                },
-                onClick = { expanded = true },
-                testTag = "chats_overflow_menu",
-            ) { size ->
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.requiredSize(size),
-                )
-            }
-        }
-        // Opens over the button, as the group info menu does.
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            containerColor = CodeTheme.colors.brandLight,
-            shape = CodeTheme.shapes.extraLarge,
-            offset = DpOffset(x = 0.dp, y = -anchorHeight),
-        ) {
-            val requestsDescription = if (needsDecision) {
-                stringResource(R.string.content_description_requestsWaiting)
-            } else {
-                stringResource(R.string.title_requests)
-            }
-            DropdownMenuItem(
-                modifier = Modifier.clearAndSetSemantics {
-                    contentDescription = requestsDescription
-                    role = Role.Button
-                },
-                leadingIcon = {
-                    Box {
-                        Icon(
-                            imageVector = Icons.Outlined.PersonAdd,
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                        )
-                        if (needsDecision) {
-                            // Ringed in the menu's surface, so it reads as cut out of the glyph.
-                            NotificationDot(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = 2.dp, y = (-2).dp),
-                                ring = CodeTheme.colors.brandLight,
-                            )
-                        }
-                    }
-                },
-                text = {
-                    Text(
-                        text = stringResource(R.string.title_requests),
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textMain,
-                    )
-                },
-                onClick = {
-                    expanded = false
-                    onRequests()
-                },
-            )
-        }
     }
 }
 
