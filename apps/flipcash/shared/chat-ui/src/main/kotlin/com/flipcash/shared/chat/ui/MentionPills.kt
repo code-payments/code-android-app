@@ -21,6 +21,7 @@ import com.flipcash.libs.textformat.FormatStyle
 import com.flipcash.libs.textformat.RangeKind
 import com.flipcash.libs.textformat.StyledSpan
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
@@ -96,6 +97,7 @@ internal fun buildMentionedText(
     mentionStyle: SpanStyle,
     onMentionClick: ((String) -> Unit)?,
     formatStyles: FormatStyles = FormatStyles(),
+    onMaskedLinkClick: ((label: String, url: String) -> Unit)? = null,
 ): MentionedText {
     // Out of order or overlapping only if the caller handed over ranges from other text.
     val ordered = mentions.sortedBy { it.start }.fold(emptyList<DetectedMention>()) { kept, mention ->
@@ -166,8 +168,17 @@ internal fun buildMentionedText(
                 ?: display.substring(link.start, link.end).let { shown ->
                     detectUrls(shown).firstOrNull()?.url ?: shown
                 }
+            // A masked link's label is not its address, so the open warning is told the label.
+            val listener = onMaskedLinkClick.takeIf { link.target != null }?.let { masked ->
+                val label = display.substring(link.start, link.end)
+                LinkInteractionListener { masked(label, url) }
+            }
             addLink(
-                LinkAnnotation.Url(url = url, styles = TextLinkStyles(style = linkStyle)),
+                LinkAnnotation.Url(
+                    url = url,
+                    styles = TextLinkStyles(style = linkStyle),
+                    linkInteractionListener = listener,
+                ),
                 start = laidOut(link.start),
                 end = laidOut(link.end),
             )
