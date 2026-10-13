@@ -113,7 +113,10 @@ fun RequestsScreen() {
             if (state.hosted.isNotEmpty()) {
                 item(key = "hosted_header") {
                     SectionHeader(
-                        modifier = Modifier.animateItem(),
+                        // The rows' inset: SectionHeader sets only vertical padding.
+                        modifier = Modifier
+                            .animateItem()
+                            .padding(horizontal = CodeTheme.dimens.inset),
                         title = stringResource(R.string.header_waitingOnYou),
                     )
                 }
@@ -136,7 +139,10 @@ fun RequestsScreen() {
             if (state.sent.isNotEmpty()) {
                 item(key = "sent_header") {
                     SectionHeader(
-                        modifier = Modifier.animateItem(),
+                        // The rows' inset: SectionHeader sets only vertical padding.
+                        modifier = Modifier
+                            .animateItem()
+                            .padding(horizontal = CodeTheme.dimens.inset),
                         title = stringResource(R.string.header_sentRequests),
                     )
                 }

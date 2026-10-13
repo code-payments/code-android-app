@@ -104,6 +104,19 @@ internal fun JoinRequestsScreen(viewModel: ChatViewModel) {
                     .padding(innerPadding),
                 contentPadding = PaddingValues(vertical = CodeTheme.dimens.grid.x2),
             ) {
+                // Above the rows, as on iOS, so it's read before Approve and scrolls away with the list.
+                item {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.grid.x1, bottom = CodeTheme.dimens.grid.x3),
+                        text = stringResource(R.string.subtitle_joinRequestsFooter),
+                        style = CodeTheme.typography.caption,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 items(state.joinRequests, key = { it.publicKey.byteArray.toList() }) { member ->
                     val userId = member.userProfile.userId
                     JoinRequestRow(
@@ -122,18 +135,6 @@ internal fun JoinRequestsScreen(viewModel: ChatViewModel) {
                         },
                         onDeny = { viewModel.dispatchEvent(ChatViewModel.Event.DenyJoinRequest(member)) },
                         onApprove = { viewModel.dispatchEvent(ChatViewModel.Event.ApproveJoinRequest(member)) },
-                    )
-                }
-                item {
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(top = CodeTheme.dimens.grid.x10),
-                        text = stringResource(R.string.subtitle_joinRequestsFooter),
-                        style = CodeTheme.typography.caption,
-                        color = CodeTheme.colors.textSecondary,
-                        textAlign = TextAlign.Center,
                     )
                 }
             }
