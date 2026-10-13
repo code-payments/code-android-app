@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.WavingHand
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -68,6 +70,9 @@ fun chatterName(displayName: String?, username: String?, fallback: String): Stri
  * Who has been talking in a public group: a "Chatting" heading over portraits four to a row, the
  * host badged. Draws nothing for an empty list, heading included.
  *
+ * A private group's Members grid passes its own [title] and a [count] that opens the full list
+ * through [onShowAll].
+ *
  * Rows are built by hand rather than as a lazy grid so it can sit inside the profile's own scroll.
  * A short last row leaves its empty cells blank to keep the columns aligned. The order is the
  * caller's; the grid does not sort.
@@ -77,6 +82,9 @@ fun GroupChattingGrid(
     chatters: List<ChattingGridItem>,
     onOpen: (ChattingGridItem) -> Unit,
     modifier: Modifier = Modifier,
+    title: String = stringResource(R.string.title_chatting),
+    count: String? = null,
+    onShowAll: () -> Unit = {},
 ) {
     if (chatters.isEmpty()) return
 
@@ -84,11 +92,35 @@ fun GroupChattingGrid(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(SectionSpacing),
     ) {
-        Text(
-            text = stringResource(R.string.title_chatting),
-            style = CodeTheme.typography.textLarge,
-            color = CodeTheme.colors.textMain,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.textMain,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            if (count != null) {
+                Row(
+                    modifier = Modifier.clickable(role = Role.Button, onClick = onShowAll),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = count,
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textSecondary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(RowSpacing)) {
             chatters.chunked(Columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(ColumnSpacing)) {

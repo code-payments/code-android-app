@@ -72,6 +72,8 @@ class ChatsViewModelArchiveTest {
                 resources = FakeResourceHelper(R::class.java),
                 dispatchers = TestDispatchers(testScheduler),
                 archiveStore = ChatArchiveStore.None,
+                lobbyRequests = mockk(relaxed = true),
+                hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
             )
 
             val states = mutableListOf<ChatsViewModel.State>()

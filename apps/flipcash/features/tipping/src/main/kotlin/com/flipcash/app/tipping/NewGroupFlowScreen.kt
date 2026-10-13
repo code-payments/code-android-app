@@ -2,6 +2,7 @@ package com.flipcash.app.tipping
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +60,12 @@ fun NewGroupFlowScreen(
     // to reach it.
     var createdChat by remember { mutableStateOf<ChatId?>(null) }
 
+    // Created here, before any step asks for it, so the steps' flowSharedViewModel resolves this
+    // instance — the flow's store owner is this entry's — and it is born knowing which form it is.
+    hiltViewModel<CreateGroupViewModel, CreateGroupViewModel.Factory>(
+        creationCallback = { factory -> factory.create(route.isPrivate) },
+    )
+
     FlowHost<NewGroupStep, Parcelable>(
         initialStack = route.rememberInitialStack(),
         resultStateRegistry = resultStateRegistry,
@@ -78,7 +85,14 @@ fun NewGroupFlowScreen(
                     navigator.popUntil {
                         it !is AppRoute.Messaging.NewGroup && it !is AppRoute.Messaging.NewChat
                     }
-                    navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId)))
+                    // A private group opens on its profile (surface 6): nothing can happen in the
+                    // chat until the host approves someone, and the profile is where requests are.
+                    navigator.push(
+                        AppRoute.Messaging.Chat(
+                            identifier = ChatIdentifier.ByChatId(chatId),
+                            openOnProfile = route.isPrivate,
+                        )
+                    )
                 }
             }
         },

@@ -5,6 +5,8 @@ import com.flipcash.app.persistence.sources.IncomingMessageOpener
 import com.flipcash.services.chat.ChatContentCrypto
 import com.flipcash.services.chat.ChatKeySource
 import com.flipcash.services.chat.FakeChatCipher
+import com.flipcash.services.chat.GroupContentCrypto
+import com.flipcash.services.chat.GroupKeySource
 import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.chat.ChatId
@@ -25,7 +27,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.time.Instant
 
-/** What a DM push shows: the opened plaintext, or `null` so the server's body stays. */
+/** What a DM or private group push shows: the opened plaintext, or `null` so the server's body stays. */
 class MessagingPushDecryptionTest {
 
     private val chatId = ChatId(ByteArray(32) { 7 })
@@ -43,6 +45,9 @@ class MessagingPushDecryptionTest {
 
     private val selfSide = Keys(selfKeys, peerKeys.publicKey)
     private val theirs = ChatContentCrypto(FakeChatCipher, Keys(peerKeys, selfKeys.publicKey))
+    private val groupKey = ByteArray(32) { 5 }
+    private var groupKeyResult: Result<ByteArray> = Result.success(groupKey)
+    private val group = GroupContentCrypto(FakeChatCipher, GroupKeySource { groupKeyResult })
     private val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
     private val messagingController = mockk<ChatMessagingController>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true) {
@@ -60,7 +65,7 @@ class MessagingPushDecryptionTest {
         stateHolder = mockk(relaxed = true),
         analytics = mockk(relaxed = true),
         senderResolver = mockk(relaxed = true),
-        incoming = IncomingMessageOpener(ChatContentCrypto(FakeChatCipher, selfSide)),
+        incoming = IncomingMessageOpener(ChatContentCrypto(FakeChatCipher, selfSide), group),
     )
 
     private suspend fun sealedFromPeer(content: MessageContent) =
@@ -156,5 +161,20 @@ class MessagingPushDecryptionTest {
     @Test
     fun `nothing to open without a message or its id`() = runTest {
         assertNull(delegate.openPushedMessage(chatId, message = null, messageId = null))
+    }
+
+    @Test
+    fun `a private group message shows its plaintext`() = runTest {
+        val sealed = group.seal(chatId, senderId = peer, content = MessageContent.Text("group hello")).getOrThrow()
+
+        assertEquals("group hello", delegate.openPushedMessage(chatId, message(sealed), messageId = null))
+    }
+
+    @Test
+    fun `a private group message keeps the server's body until the key is available`() = runTest {
+        val sealed = group.seal(chatId, senderId = peer, content = MessageContent.Text("group hello")).getOrThrow()
+        groupKeyResult = Result.failure(IOException("offline"))
+
+        assertNull(delegate.openPushedMessage(chatId, message(sealed), messageId = null))
     }
 }

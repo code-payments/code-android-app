@@ -253,6 +253,10 @@ fun AppBarWithTitle(
     // the sheet-root Close, which sits on the trailing edge.
     leadingDismiss: Boolean = false,
     hazeState: HazeState? = null,
+    // A screen's own leading control, for a root screen with no back or close to put there. Ignored
+    // when [onBackIconClicked] asks for the nav control. A centred title keeps its place whether
+    // this draws anything or not: the base reserves a back button's width either way.
+    leadingContent: @Composable () -> Unit = { },
     endContent: @Composable RowScope.() -> Unit = { },
 ) {
     val navigator = LocalCodeNavigator.current
@@ -286,6 +290,8 @@ fun AppBarWithTitle(
                 } else if (!showClose) {
                     AppBarDefaults.UpNavigation(hazeState = hazeState) { onBackIconClicked() }
                 }
+            } else {
+                leadingContent()
             }
         },
         titleRegion = {

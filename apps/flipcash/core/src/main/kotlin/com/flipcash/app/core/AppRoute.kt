@@ -363,9 +363,16 @@ sealed interface AppRoute : NavKey, Parcelable {
             // profile is the flow's root, so back returns to wherever the tap came from, and Open
             // Chat pushes the transcript on top of it.
             val openOnProfile: Boolean = false,
+            // Open on a private group's Join Requests as the flow's root, so back returns to the
+            // Requests screen that set it, the way iOS does.
+            val openOnJoinRequests: Boolean = false,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
-                get() = listOf(if (openOnProfile) ChatStep.GroupProfile else ChatStep.Conversation)
+                get() = when {
+                    openOnJoinRequests -> listOf(ChatStep.JoinRequests)
+                    openOnProfile -> listOf(ChatStep.GroupProfile)
+                    else -> listOf(ChatStep.Conversation)
+                }
         }
 
         /**
@@ -390,6 +397,14 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object ArchivedChats : Messaging
 
         /**
+         * Join requests in both directions, behind the Requests button on the Chats header. Pushed
+         * for the reason [ArchivedChats] is.
+         */
+        @Serializable
+        @Parcelize
+        data object Requests : Messaging
+
+        /**
          * Another person's profile, opened on its own rather than from inside a chat — the
          * destination of a `flipcash.com/{username}` or `flipcash.com/{uuid}` link.
          *
@@ -412,14 +427,18 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object FindByUsername : Messaging
 
         /**
-         * Node 10153:22901 — creating a public group, from the empty form to its invite link.
+         * Node 10153:22901 — creating a public group, from the empty form to its invite link; node
+         * 11203:65 is the same flow for a private one.
          *
          * The three screens share one draft, so they are steps of a flow rather than routes; see
          * [NewGroupStep].
          */
         @Serializable
         @Parcelize
-        data object NewGroup : Messaging, FlowRoute {
+        data class NewGroup(
+            /** Node 11203:65: approval to join, end-to-end encrypted, no balance requirement. */
+            val isPrivate: Boolean = false,
+        ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
                 get() = listOf(NewGroupStep.Form)
         }
@@ -513,6 +532,14 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         @Parcelize
         data object E2eeGroupInfo :
+            Messaging,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.WrapContentSheet
+
+        /** [E2eeGroupInfo] for a private group, which is end-to-end encrypted (node 11210:71). */
+        @Serializable
+        @Parcelize
+        data object E2eePrivateGroupInfo :
             Messaging,
             com.getcode.navigation.Sheet,
             com.getcode.navigation.WrapContentSheet

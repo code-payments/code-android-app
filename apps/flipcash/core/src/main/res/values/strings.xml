@@ -931,6 +931,8 @@
     <string name="action_addToChat">Add %1$s to Chat</string>
     <string name="action_leaveChat">Leave Chat</string>
     <string name="prompt_title_leaveChat">Leave %1$s?</string>
+    <!-- A private group: coming back means a new request, not an invite link (node 11206:98). -->
+    <string name="prompt_description_leavePrivateChat">You’ll lose access to the conversation. To rejoin, you’ll need to request again and wait for the host to approve</string>
     <string name="prompt_description_leaveChat">You won’t receive messages from this group any more. You can join again with an invite link</string>
     <string name="error_title_failedToLeave">Something Went Wrong</string>
     <string name="error_description_failedToLeave">We were unable to leave this group. Please try again</string>
@@ -1019,6 +1021,10 @@
     <string name="item_e2eeSheet_beforeEncryption">Messages sent before encryption became available</string>
     <string name="item_e2eeSheet_messagesAndMediaInDms">Messages and media in 1:1 chats</string>
     <string name="item_e2eeSheet_publicGroupChatsIncludingThis">Public group chats, including this one</string>
+    <!-- A private group (node 11210:71). -->
+    <string name="subtitle_e2eeSheet_privateGroup">Messages and media in this group are end-to-end encrypted. Only its members can read them, and the host approves everyone who joins.</string>
+    <string name="item_e2eeSheet_groupDetails">The group’s name, photo, description and cover</string>
+    <string name="item_e2eeSheet_groupMembers">Who is in the group, and how many</string>
 
     <!-- Cash link card: the state of the link a message carries, read without claiming it -->
     <string name="label_linkCard_cash">Cash</string>
@@ -1103,6 +1109,80 @@
          (node 10127:117987). -->
     <string name="title_startNewChat">New Chat</string>
     <string name="action_createPublicGroup">Create a Public Group</string>
+    <string name="action_createPrivateGroup">Create a Private Group</string>
+    <string name="title_newPrivateGroup">New Private Group</string>
+    <string name="action_requestToJoin">Request to Join</string>
+    <string name="action_requestSent">Request Sent</string>
+    <string name="action_cancelRequest">Cancel Request</string>
+    <string name="subtitle_privateGroupMembers">Private group · %1$s</string>
+    <string name="subtitle_hostApprovesJoins">The host approves who joins</string>
+    <string name="action_requestedMinutesAgo">Requested %1$dm ago</string>
+    <string name="action_requestedHoursAgo">Requested %1$dh ago</string>
+    <string name="action_requestedDaysAgo">Requested %1$dd ago</string>
+    <string name="subtitle_requestPendingHost">You\'ll be able to open the chat once %1$s approves</string>
+    <string name="subtitle_requestPendingHostUnnamed">You\'ll be able to open the chat once the host approves</string>
+    <string name="prompt_title_lobbyClosed">%1$s isn\'t taking requests right now</string>
+    <string name="prompt_description_lobbyFull">Too many people are waiting for the host to respond. Try again later</string>
+    <string name="prompt_description_tooManyLobbies">You have too many pending requests. Cancel one to request another</string>
+    <string name="error_title_failedToRequestJoin">Couldn\'t Send Request</string>
+    <string name="error_description_failedToRequestJoin">Something went wrong. Please try again</string>
+    <string name="error_title_failedToCancelJoinRequest">Couldn\'t Cancel Request</string>
+    <string name="error_description_failedToCancelJoinRequest">Something went wrong. Please try again</string>
+    <string name="error_title_failedToApproveJoinRequest">Couldn\'t Approve</string>
+    <string name="error_description_failedToApproveJoinRequest">Something went wrong. Please try again</string>
+    <string name="error_title_failedToDenyJoinRequest">Couldn\'t Deny</string>
+    <string name="error_description_failedToDenyJoinRequest">Something went wrong. Please try again</string>
+    <string name="title_joinRequests">Join Requests</string>
+    <!-- The Requests button on the Chats header and the screen behind it. -->
+    <string name="title_requests">Requests</string>
+    <string name="header_waitingOnYou">Waiting on you</string>
+    <string name="header_sentRequests">Sent</string>
+    <string name="title_noRequests">No requests right now</string>
+    <string name="subtitle_noRequests">Requests to join your private groups, and the ones you send, show up here</string>
+    <plurals name="subtitle_joinRequestsWaiting">
+        <item quantity="one">%1$d person is waiting</item>
+        <item quantity="other">%1$d people are waiting</item>
+    </plurals>
+    <string name="content_description_moreWithRequests">More, people waiting to join</string>
+    <string name="content_description_requestsWaiting">Requests, people waiting to join</string>
+    <string name="subtitle_requestedJustNow">requested just now</string>
+    <string name="subtitle_requestedMinutesAgo">requested %1$dm ago</string>
+    <string name="subtitle_requestedHoursAgo">requested %1$dh ago</string>
+    <string name="subtitle_requestedYesterday">requested yesterday</string>
+    <string name="subtitle_requestedDaysAgo">requested %1$dd ago</string>
+    <string name="action_deny">Deny</string>
+    <string name="action_approve">Approve</string>
+    <string name="subtitle_joinRequestsFooter">Approving shares the group key with them from this device.</string>
+    <string name="title_noJoinRequests">No requests right now</string>
+    <string name="subtitle_noJoinRequests">When someone asks to join %1$s, they\'ll show up here</string>
+    <string name="action_shareGroup">Share Group</string>
+    <!-- In-chat Join Requests anchor (nodes 11354:70, 11354:81). -->
+    <string name="title_wantsToJoin">%1$s wants to join</string>
+    <plurals name="title_peopleWantToJoin">
+        <item quantity="one">%1$d person wants to join</item>
+        <item quantity="other">%1$d people want to join</item>
+    </plurals>
+    <string name="subtitle_namesAnd">and</string>
+    <string name="title_requestedJustNow">Requested just now</string>
+    <string name="title_requestedYesterday">Requested yesterday</string>
+    <string name="action_review">Review</string>
+    <!-- A private group's members (nodes 11210:68, 11210:70). -->
+    <string name="title_members">Members</string>
+    <plurals name="header_memberCount">
+        <item quantity="one">%1$d MEMBER</item>
+        <item quantity="other">%1$d MEMBERS</item>
+    </plurals>
+    <string name="label_host">Host</string>
+    <string name="subtitle_joinedJustNow">Joined just now</string>
+    <string name="subtitle_joinedMinutesAgo">Joined %1$dm ago</string>
+    <string name="subtitle_joinedHoursAgo">Joined %1$dh ago</string>
+    <string name="subtitle_joinedYesterday">Joined yesterday</string>
+    <string name="subtitle_joinedDaysAgo">Joined %1$dd ago</string>
+    <string name="subtitle_joinedLastWeek">Joined last week</string>
+    <string name="subtitle_joinedWeeksAgo">Joined %1$d weeks ago</string>
+    <string name="subtitle_joinedLastMonth">Joined last month</string>
+    <string name="subtitle_joinedMonthsAgo">Joined %1$d months ago</string>
+    <string name="subtitle_privateGroupFootnote">Only people you approve can join. Messages are end-to-end encrypted.</string>
     <string name="action_findByUsername">Find Someone by Username</string>
 
     <!-- Creating a public group (node 10153:22901). -->
@@ -1133,6 +1213,7 @@
     <string name="error_description_groupRulesInvalid">Try a different balance requirement</string>
     <string name="error_title_groupCreateDenied">Can\'t Create This Group</string>
     <string name="error_description_groupCreateDenied">Your account isn\'t able to create public groups</string>
+    <string name="error_description_privateGroupCreateDenied">Your account isn\'t able to create private groups</string>
     <!-- Anything StartChat can fail on that the form cannot explain: an unrecognised result, or the
          transport. The key survives a retry, so trying again resumes the same attempt. -->
     <string name="error_title_groupCreateFailed">Something Went Wrong</string>
