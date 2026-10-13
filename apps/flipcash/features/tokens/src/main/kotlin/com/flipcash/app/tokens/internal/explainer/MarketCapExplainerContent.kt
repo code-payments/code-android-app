@@ -230,7 +230,7 @@ internal fun MarketCapExplainerBody(
                         text = value,
                         style = CodeTheme.typography.textMedium,
                         color = when (tone) {
-                            Tone.Positive -> CodeTheme.colors.successText
+                            Tone.Positive -> CodeTheme.colors.success
                             Tone.Negative -> CodeTheme.colors.errorText
                             Tone.Neutral -> CodeTheme.colors.textMain
                         },

@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.SystemGreen
 import com.getcode.theme.White
 
 object CodeToggleSwitchDefaults {
@@ -22,10 +21,10 @@ object CodeToggleSwitchDefaults {
             disabledUncheckedTrackColor = CodeTheme.colors.toggleUncheckedTrackColor.copy(DISABLED_ALPHA),
             checkedThumbColor = White,
             uncheckedThumbColor = White,
-            checkedTrackColor = SystemGreen,
+            checkedTrackColor = CodeTheme.colors.success,
             uncheckedTrackColor = CodeTheme.colors.toggleUncheckedTrackColor,
             uncheckedBorderColor = Color.White.copy(0.15f),
-            checkedBorderColor = SystemGreen,
+            checkedBorderColor = CodeTheme.colors.success,
             disabledUncheckedBorderColor = CodeTheme.colors.toggleUncheckedTrackColor.copy(DISABLED_ALPHA),
             disabledCheckedBorderColor = Color(0xFF2A8A4B),
         )

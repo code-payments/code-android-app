@@ -3,7 +3,6 @@ package com.flipcash.app.theme.internal
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import com.getcode.theme.BannerSuccess
 import com.getcode.theme.BetaIndicator
 import com.getcode.theme.Black40
 import com.getcode.theme.BrandAccent
@@ -108,7 +107,7 @@ private val colors = with(Flipcash2ColorSpec) {
         error = Error,
         errorText = TextError,
         success = success,
-        successText = success,
+        successText = successText,
         textMain = Color.White,
         textSecondary = secondaryText,
         textTertiary = White10,
@@ -125,7 +124,7 @@ private val colors = with(Flipcash2ColorSpec) {
         bannerThemed = bannerThemed,
         bannerError = Error,
         bannerWarning = warning,
-        bannerSuccess = BannerSuccess,
+        bannerSuccess = bannerThemed,
         scrim = Black40,
         accessKey = accessKey,
         contactAvatar = contactAvatar,

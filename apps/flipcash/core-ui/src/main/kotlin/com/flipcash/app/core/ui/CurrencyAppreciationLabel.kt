@@ -45,7 +45,7 @@ fun CurrencyAppreciationLabel(
 ) {
     val hasAppreciation = appreciation.toDouble() >= 0
     val changeColor = if (hasAppreciation) {
-        CodeTheme.colors.successText
+        CodeTheme.colors.success
     } else {
         CodeTheme.colors.errorText
     }
