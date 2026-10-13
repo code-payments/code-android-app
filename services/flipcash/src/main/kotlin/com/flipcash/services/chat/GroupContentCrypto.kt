@@ -60,8 +60,9 @@ class GroupContentCrypto @Inject constructor(
         }
         senderId ?: return OpenedContent.Undecryptable(UndecryptableReason.Authentication)
         val groupKey = keys.key(chatId).getOrElse { cause ->
+            // No resend opens a key wrapped by a stranger, so this matches iOS's "update the app".
             return if (cause is UntrustedEnvelope) {
-                OpenedContent.Undecryptable(UndecryptableReason.Authentication)
+                OpenedContent.Undecryptable(UndecryptableReason.Unsupported)
             } else {
                 OpenedContent.KeyPending
             }
