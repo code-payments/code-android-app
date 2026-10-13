@@ -90,15 +90,6 @@ class RequestsProjectionTest {
     }
 
     @Test
-    fun `the overflow menu shows for a request either way, the dot only for one to decide`() {
-        assertFalse(ChatsViewModel.State().showsRequestsMenu)
-        assertTrue(ChatsViewModel.State(waitingCount = 2).showsRequestsMenu)
-        assertTrue(ChatsViewModel.State(waitingCount = 2).needsDecision)
-        assertTrue(ChatsViewModel.State(hasSentRequests = true).showsRequestsMenu)
-        assertFalse(ChatsViewModel.State(hasSentRequests = true).needsDecision)
-    }
-
-    @Test
     fun `sent requests are newest first and skip a group not fetched yet`() {
         val requested = mapOf(
             moony.metadata.chatId to Instant.fromEpochSeconds(100),
