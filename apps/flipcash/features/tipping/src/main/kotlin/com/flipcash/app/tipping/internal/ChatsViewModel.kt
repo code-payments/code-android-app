@@ -63,13 +63,17 @@ internal class ChatsViewModel @Inject constructor(
         // Whether a pull from the top has brought the chips on. Held here rather than in the
         // screen so it survives opening a chat and coming back.
         val chipsRevealed: Boolean = false,
-        // Someone waits in a private group the viewer hosts: the Requests button's dot.
-        val needsDecision: Boolean = false,
+        // How many people wait across the private groups the viewer hosts: the overflow menu's
+        // dot, and the Requests item's secondary line.
+        val waitingCount: Int = 0,
         // The viewer has asked to join a private group and not heard back.
         val hasSentRequests: Boolean = false,
     ) {
-        /** The Requests button in the header: while a request is pending in either direction. */
-        val showsRequestsButton: Boolean get() = needsDecision || hasSentRequests
+        /** Someone waits on the viewer to let them in. */
+        val needsDecision: Boolean get() = waitingCount > 0
+
+        /** The overflow menu in the header: while a request is pending in either direction. */
+        val showsRequestsMenu: Boolean get() = needsDecision || hasSentRequests
 
         /** The chips stay once revealed, and always show under a filter other than All. */
         val showsChips: Boolean get() = chipsRevealed || filter != ChatListFilter.All
@@ -102,7 +106,7 @@ internal class ChatsViewModel @Inject constructor(
 
         data object ChipsRevealed : Event
 
-        data class RequestsUpdated(val needsDecision: Boolean, val hasSentRequests: Boolean) : Event
+        data class RequestsUpdated(val waitingCount: Int, val hasSentRequests: Boolean) : Event
     }
 
     fun selectFilter(filter: ChatListFilter) = dispatchEvent(Event.FilterSelected(filter))
@@ -188,7 +192,7 @@ internal class ChatsViewModel @Inject constructor(
             .launchIn(viewModelScope)
         combine(
             combine(hostedGroups, hostLobbies.state) { hosted, lobbies ->
-                hostedRequests(hosted.keys, lobbies).isNotEmpty()
+                hostedRequests(hosted.keys, lobbies).sumOf { (_, waiting) -> waiting.size }
             },
             lobbyRequests.observe().map { it.isNotEmpty() },
             Event::RequestsUpdated,
@@ -208,7 +212,7 @@ internal class ChatsViewModel @Inject constructor(
                 is Event.FilterSelected -> { state -> state.copy(filter = event.filter, chipsRevealed = true) }
                 Event.ChipsRevealed -> { state -> state.copy(chipsRevealed = true) }
                 is Event.RequestsUpdated -> { state ->
-                    state.copy(needsDecision = event.needsDecision, hasSentRequests = event.hasSentRequests)
+                    state.copy(waitingCount = event.waitingCount, hasSentRequests = event.hasSentRequests)
                 }
             }
         }
