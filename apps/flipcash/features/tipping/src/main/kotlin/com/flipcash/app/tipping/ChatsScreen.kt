@@ -60,7 +60,10 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.offset
+import com.getcode.ui.components.NotificationDot
 import com.getcode.theme.extraLarge
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -179,12 +182,11 @@ fun ChatsScreen() {
                 // Node 9442:5779 — the only way to start a chat with someone who has never paid
                 // you. A pushed route rather than an in-place screen: this list is a tab home, and
                 // anything drawn inside it would leave the tab bar over the entry screen.
-                // Join requests in either direction; the dot only while someone waits on the viewer.
+                // Always shown: Requests has its own empty state. The dot only while someone waits
+                // on the viewer.
                 leadingContent = {
-                    if (state.showsRequestsMenu) {
-                        RequestsMenu(waitingCount = state.waitingCount) {
-                            navigator.push(AppRoute.Messaging.Requests)
-                        }
+                    RequestsMenu(needsDecision = state.needsDecision) {
+                        navigator.push(AppRoute.Messaging.Requests)
                     }
                 },
                 endContent = {
@@ -517,19 +519,21 @@ private fun ChatFilterRow(
 }
 
 /**
- * The header's leading overflow menu, whose one item is the way into Requests. The dot marks
- * someone waiting on the viewer; sent requests alone show the button bare.
+ * The header's leading overflow menu, whose one item is the way into Requests. The dot, on the
+ * menu and on its Requests item, marks someone waiting on the viewer.
  */
 @Composable
-private fun RequestsMenu(waitingCount: Int, onRequests: () -> Unit) {
+private fun RequestsMenu(needsDecision: Boolean, onRequests: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    val description = if (waitingCount > 0) {
+    val description = if (needsDecision) {
         stringResource(R.string.content_description_moreWithRequests)
     } else {
         stringResource(R.string.action_moreProfileActions)
     }
     Box {
-        WithNotificationDot(isShown = waitingCount > 0) {
+        // Pulled in from the corner so the dot sits just above and right of the top dot, as a
+        // badge on the glyph rather than off the button's padding.
+        WithNotificationDot(isShown = needsDecision, offset = DpOffset((-3).dp, (-1).dp)) {
             Icon(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -553,33 +557,40 @@ private fun RequestsMenu(waitingCount: Int, onRequests: () -> Unit) {
             containerColor = CodeTheme.colors.brandLight,
             shape = CodeTheme.shapes.extraLarge,
         ) {
+            val requestsDescription = if (needsDecision) {
+                stringResource(R.string.content_description_requestsWaiting)
+            } else {
+                stringResource(R.string.title_requests)
+            }
             DropdownMenuItem(
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Outlined.PersonAdd,
-                        contentDescription = null,
-                        tint = CodeTheme.colors.textMain,
-                    )
+                modifier = Modifier.clearAndSetSemantics {
+                    contentDescription = requestsDescription
+                    role = Role.Button
                 },
-                text = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.title_requests),
-                            style = CodeTheme.typography.textSmall,
-                            color = CodeTheme.colors.textMain,
+                leadingIcon = {
+                    Box {
+                        Icon(
+                            imageVector = Icons.Outlined.PersonAdd,
+                            contentDescription = null,
+                            tint = CodeTheme.colors.textMain,
                         )
-                        if (waitingCount > 0) {
-                            Text(
-                                text = pluralStringResource(
-                                    R.plurals.subtitle_peopleWaiting,
-                                    waitingCount,
-                                    waitingCount,
-                                ),
-                                style = CodeTheme.typography.caption,
-                                color = CodeTheme.colors.textSecondary,
+                        if (needsDecision) {
+                            // Ringed in the menu's surface, so it reads as cut out of the glyph.
+                            NotificationDot(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 4.dp, y = (-4).dp),
+                                ring = CodeTheme.colors.brandLight,
                             )
                         }
                     }
+                },
+                text = {
+                    Text(
+                        text = stringResource(R.string.title_requests),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textMain,
+                    )
                 },
                 onClick = {
                     expanded = false
