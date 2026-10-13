@@ -137,7 +137,7 @@ internal class AppRouter(
             is DeeplinkType.GroupChatInvite -> DeeplinkAction.Navigate(
                 listOf(
                     AppRoute.Tabs.Chats,
-                    AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(type.chatId)),
+                    AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(type.chatId), isGroupLink = true),
                 )
             )
 

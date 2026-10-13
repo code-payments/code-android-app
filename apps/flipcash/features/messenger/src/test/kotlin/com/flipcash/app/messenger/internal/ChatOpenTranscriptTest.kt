@@ -38,7 +38,9 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -141,6 +143,28 @@ class ChatOpenTranscriptTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { chatCoordinator.loadMessages(any()) }
+    }
+
+    @Test
+    fun `a chat the server has no record of is marked not found`() = runTest {
+        coEvery { chatCoordinator.hydrateChat(chatId) } returns ChatHydration.Absent
+
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(openChat)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.stateFlow.value.chatNotFound)
+    }
+
+    @Test
+    fun `a chat on the device is not marked not found`() = runTest {
+        coEvery { chatCoordinator.hydrateChat(chatId) } returns ChatHydration.Stored
+
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(openChat)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.stateFlow.value.chatNotFound)
     }
 
     @Test

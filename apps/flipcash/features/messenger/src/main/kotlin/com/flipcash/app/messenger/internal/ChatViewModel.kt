@@ -501,6 +501,11 @@ internal class ChatViewModel @AssistedInject constructor(
         /** Approve or Deny calls out, by the requester's user id, so only that row waits. */
         val joinRequestCalls: Map<ID, JoinRequestCall> = emptyMap(),
         /**
+         * The server has no record of the opened chat. Held rather than sent as an event because
+         * the answer can arrive before the flow is collecting. Only a group link acts on it.
+         */
+        val chatNotFound: Boolean = false,
+        /**
          * What the group's profile pins and states about the viewer's balance, decided with the
          * live balance and rates. Null until they arrive, and for anything that is not a group.
          */
@@ -775,6 +780,9 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** The leave went through, so whatever is showing the group's profile should close. */
         data object LeftChat : Event
+
+        /** The server has no record of the opened chat. Only a group link treats this as an error. */
+        data object ChatNotFound : Event
 
         /** The leave did not go through; the profile stays up and the button comes back. */
         data object LeaveFailed : Event
@@ -1756,7 +1764,8 @@ internal class ChatViewModel @AssistedInject constructor(
      *
      * A chat the server has no record of is left unloaded. A DM opened on its derived id before
      * anyone has written in it — from a scanned tip card or a profile — has no messages, and asking
-     * for them comes back DENIED. The first tip loads the chat once it exists.
+     * for them comes back DENIED. The first tip loads the chat once it exists. [Event.ChatNotFound]
+     * still goes out, for the flow to close a group link that points nowhere.
      *
      * The transcript is fetched only for a viewer the gate lets through. A withheld group is drawn
      * as a placeholder rather than fetched, so asking for its messages would pull the very ones the
@@ -1770,7 +1779,7 @@ internal class ChatViewModel @AssistedInject constructor(
         when (val hydration = chatCoordinator.hydrateChat(chatId)) {
             ChatHydration.Stored,
             ChatHydration.Unavailable -> chatCoordinator.loadMessages(chatId)
-            ChatHydration.Absent -> Unit
+            ChatHydration.Absent -> dispatchEvent(Event.ChatNotFound)
             is ChatHydration.Fetched -> {
                 val membership = hydration.membership
                 if (membership.metadata.type == ChatType.GROUP) {
@@ -3483,6 +3492,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.OnRuleTokensResolved -> { state -> state.copy(ruleTokens = event.tokens) }
                 Event.LeaveConfirmed -> { state -> state.copy(leaving = true) }
                 Event.LeftChat, Event.LeaveFailed -> { state -> state.copy(leaving = false) }
+                Event.ChatNotFound -> { state -> state.copy(chatNotFound = true) }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the

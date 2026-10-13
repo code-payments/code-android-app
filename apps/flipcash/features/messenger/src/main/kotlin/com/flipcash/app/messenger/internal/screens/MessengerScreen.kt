@@ -226,6 +226,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                 AppRoute.Messaging.Chat(
                                     identifier = ChatIdentifier.ByChatId(action.chatId),
                                     openOnProfile = action.resolved,
+                                    isGroupLink = true,
                                 )
                             )
                         )
