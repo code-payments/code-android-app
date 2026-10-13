@@ -69,6 +69,8 @@ import com.flipcash.app.messenger.internal.screens.profile.GroupBalanceRequireme
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileStanding
 import com.flipcash.app.messenger.internal.screens.profile.JoinRequestCall
 import com.flipcash.app.messenger.internal.screens.profile.LobbyCall
+import com.flipcash.app.messenger.internal.screens.profile.knownPrivateGroupMembers
+import com.flipcash.app.messenger.internal.screens.profile.postersNewestFirst
 import com.flipcash.app.messenger.internal.screens.profile.privateGroupMembers
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
@@ -491,6 +493,11 @@ internal class ChatViewModel @AssistedInject constructor(
         val joinRequests: List<LobbyMember> = emptyList(),
         /** A private group's full roster, creator first, for its Members grid and list. */
         val members: List<ChatMember> = emptyList(),
+        /**
+         * A private group's creator, the viewer and its posters, from this device: the Members
+         * grid's stand-in while the server won't list [members].
+         */
+        val knownMembers: List<ChatMember> = emptyList(),
         /** Approve or Deny calls out, by the requester's user id, so only that row waits. */
         val joinRequestCalls: Map<ID, JoinRequestCall> = emptyMap(),
         /**
@@ -801,6 +808,9 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** A private group's roster from [GroupRosters], already in display order. */
         data class OnMembersResolved(val members: List<ChatMember>) : Event
+
+        /** A private group's members as this device knows them, for the grid until the roster loads. */
+        data class OnKnownMembersResolved(val members: List<ChatMember>) : Event
 
         /** The Members list came on screen: refetch, since a roster read can lag the stream. */
         data object MembersOpened : Event
@@ -2664,6 +2674,35 @@ internal class ChatViewModel @AssistedInject constructor(
             .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
 
+        // Until roster reads open (GetRoster off, SampleChatters DENIED for a private group), the
+        // grid draws who this device knows: the creator, the viewer and everyone who has posted.
+        stateFlow.map { state ->
+            (state.subject as? ChatSubject.Group)
+                ?.takeIf { it.isPrivate && it.isMember == true }
+                ?.let { it.chatId to it.creator }
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { group ->
+                if (group == null) {
+                    flowOf(Event.OnKnownMembersResolved(emptyList()))
+                } else {
+                    val (chatId, creator) = group
+                    val selfId = userManager.accountId
+                    combine(
+                        chatCoordinator.observeMessages(chatId).map(::postersNewestFirst).distinctUntilChanged(),
+                        senderProfiles.filterNotNull(),
+                    ) { posters, profiles ->
+                        (listOfNotNull(creator, selfId) + posters)
+                            .filter { profiles[it.hexEncodedString()] == null }
+                            .forEach(chatCoordinator::requestSenderProfile)
+                        Event.OnKnownMembersResolved(knownPrivateGroupMembers(creator, selfId, posters, profiles))
+                    }
+                }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
+
         merge(
             eventFlow.filterIsInstance<Event.GroupProfileOpened>(),
             eventFlow.filterIsInstance<Event.MembersOpened>(),
@@ -3437,6 +3476,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.OnHostNameResolved -> { state -> state.copy(hostName = event.name) }
                 is Event.OnChattersLoaded -> { state -> state.copy(chatters = event.chatters) }
                 is Event.OnMembersResolved -> { state -> state.copy(members = event.members) }
+                is Event.OnKnownMembersResolved -> { state -> state.copy(knownMembers = event.members) }
                 Event.MembersOpened -> { state -> state }
                 is Event.OnProfileStandingResolved -> { state -> state.copy(profileStanding = event.standing) }
                 is Event.OnRuleTokensResolved -> { state -> state.copy(ruleTokens = event.tokens) }

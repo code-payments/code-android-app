@@ -293,8 +293,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                 }
                 // A private group's members see its roster instead of a sample: creator first,
                 // then the newest joins, with the count opening the full list (node 11210:68).
-                val members = remember(state.members, unknownName) {
-                    state.members.take(MembersGridLimit).map { member ->
+                // Until the server lists the roster, the grid shows who this device knows,
+                // without a count: there is no full list to open.
+                val hasRoster = state.members.isNotEmpty()
+                val gridMembers = if (hasRoster) state.members else state.knownMembers
+                val members = remember(gridMembers, unknownName) {
+                    gridMembers.take(MembersGridLimit).map { member ->
                         val profile = member.userProfile
                         ChattingGridItem(
                             userId = member.userId,
@@ -315,10 +319,12 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                             .padding(top = CodeTheme.dimens.staticGrid.x6),
                         chatters = members,
                         title = stringResource(R.string.title_members),
-                        count = (group?.memberCount ?: state.members.size.toLong()).toString(),
+                        count = if (hasRoster) {
+                            (group?.memberCount ?: state.members.size.toLong()).toString()
+                        } else null,
                         onShowAll = { flowNavigator.navigateTo(ChatStep.Members) },
                         onOpen = { item ->
-                            val member = state.members.firstOrNull { it.userId == item.userId }
+                            val member = gridMembers.firstOrNull { it.userId == item.userId }
                                 ?: return@GroupChattingGrid
                             flowNavigator.navigateTo(
                                 ChatStep.Profile(

@@ -1,6 +1,8 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.SampledChatter
@@ -15,6 +17,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.solana.keys.Mint
+import com.getcode.utils.hexEncodedString
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.time.Duration
@@ -297,6 +300,28 @@ internal fun privateGroupMembers(members: List<ChatMember>, creator: ID?): List<
     val (host, rest) = members.partition { creator != null && it.userId == creator }
     return host + rest.sortedByDescending { it.joinedAt }
 }
+
+/** The distinct senders in [messages], the most recent poster first. */
+internal fun postersNewestFirst(messages: List<ChatMessage>): List<ID> = messages
+    .sortedByDescending { it.timestamp }
+    .mapNotNull { it.senderId }
+    .distinct()
+
+/**
+ * A private group's members as this device knows them, for its Members grid while the server
+ * won't list the roster: the creator, then the viewer, then everyone who has posted, newest
+ * first, each once. Anyone [profiles] can't name is left out rather than shown unnamed.
+ */
+internal fun knownPrivateGroupMembers(
+    creator: ID?,
+    selfId: ID?,
+    posters: List<ID>,
+    profiles: Map<String, UserProfile>,
+): List<ChatMember> = (listOfNotNull(creator, selfId) + posters)
+    .distinct()
+    .mapNotNull { userId ->
+        profiles[userId.hexEncodedString()]?.let { ChatMember(userId, it, pointers = emptyList()) }
+    }
 
 /** A lobby call in flight from a private group's profile. */
 enum class LobbyCall { Request, Cancel }
