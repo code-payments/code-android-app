@@ -8,7 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
@@ -63,7 +63,7 @@ import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 
 @Composable
@@ -83,18 +83,14 @@ fun ChatFlowScreen(
     // A group link the server has no record of: say so and leave, rather than sit on an empty chat
     // with a composer. Other opens ignore it (see AppRoute.Messaging.Chat.isGroupLink).
     if (route.isGroupLink) {
-        val resources = LocalContext.current.resources
-        val chatNotFound by viewModel.stateFlow
-            .map { it.chatNotFound }
-            .collectAsStateWithLifecycle(initialValue = false)
-        LaunchedEffect(chatNotFound) {
-            if (chatNotFound) {
-                BottomBarManager.showError(
-                    title = resources.getString(R.string.error_title_groupNotFound),
-                    message = resources.getString(R.string.error_description_groupNotFound),
-                )
-                keyboard.hideIfVisible { navigator.pop() }
-            }
+        val resources = LocalResources.current
+        LaunchedEffect(viewModel) {
+            viewModel.stateFlow.first { it.chatNotFound }
+            BottomBarManager.showError(
+                title = resources.getString(R.string.error_title_groupNotFound),
+                message = resources.getString(R.string.error_description_groupNotFound),
+            )
+            keyboard.hideIfVisible { navigator.pop() }
         }
     }
 
