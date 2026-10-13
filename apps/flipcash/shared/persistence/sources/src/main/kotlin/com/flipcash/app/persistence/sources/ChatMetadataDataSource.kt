@@ -12,7 +12,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.ViewerState
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -149,8 +149,11 @@ class ChatMetadataDataSource @Inject constructor(
     }
 
     /** Whether [chatId] is a stored private group, whose content is sealed under the chat key. */
-    suspend fun isPrivate(chatId: ChatId): Boolean =
-        observeById(chatId).first()?.isPrivate == true
+    suspend fun isPrivate(chatId: ChatId): Boolean = privacyOf(chatId) == true
+
+    /** Whether [chatId] is a private group, or null when it is not stored on this device. */
+    suspend fun privacyOf(chatId: ChatId): Boolean? =
+        observeById(chatId).firstOrNull()?.isPrivate
 
     /** [chatId]'s group name, or null when the chat is a DM or is not stored on this device. */
     suspend fun getTitle(chatId: ChatId): String? =

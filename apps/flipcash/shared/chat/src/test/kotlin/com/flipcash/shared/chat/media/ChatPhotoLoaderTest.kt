@@ -4,6 +4,7 @@ import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.chat.BlobOpenFailure
 import com.flipcash.services.chat.ChatContentCrypto
+import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.chat.OpenedBlob
 import com.flipcash.services.controllers.BlobStorageController
 import com.flipcash.services.models.UserProfile
@@ -42,8 +43,9 @@ class ChatPhotoLoaderTest {
             ChatMember(it, UserProfile(displayName = "n", socialAccounts = emptyList(), phoneNumber = null, email = null), emptyList())
         }
     }
-    private val metadata = mockk<ChatMetadataDataSource> { coEvery { isPrivate(any()) } returns false }
-    private val loader = ChatPhotoLoader(storage, crypto, user, members, mockk(), metadata) { now }
+    private val groupCrypto = mockk<GroupContentCrypto>()
+    private val metadata = mockk<ChatMetadataDataSource> { coEvery { privacyOf(any()) } returns false }
+    private val loader = ChatPhotoLoader(storage, crypto, user, members, groupCrypto, metadata) { now }
 
     private fun metadata(url: String, expiresAt: Instant? = null) = BlobMetadata(
         mimeType = "image/jpeg", sizeBytes = 3, downloadUrl = url, expiresAtMillis = expiresAt?.toEpochMilliseconds(),
@@ -110,5 +112,22 @@ class ChatPhotoLoaderTest {
 
         val failure = assertFailsWith<ChatPhotoUnavailable.Open> { loader.open(photo("u", sealed = true), byteArrayOf(1)) }
         assertEquals(BlobOpenFailure.Authentication, failure.reason)
+    }
+
+    @Test
+    fun `a sealed photo in a private group opens with the group key`() = runTest {
+        coEvery { metadata.privacyOf(chatId) } returns true
+        coEvery { groupCrypto.openBlob(chatId, peer, blobId.bytes, 3, any()) } returns
+            OpenedBlob.Plaintext(byteArrayOf(4, 5, 6))
+
+        assertEquals(listOf<Byte>(4, 5, 6), loader.open(photo("u", sealed = true), byteArrayOf(1)).toList())
+    }
+
+    @Test
+    fun `a sealed photo in a chat not stored yet waits for its key`() = runTest {
+        coEvery { metadata.privacyOf(chatId) } returns null
+
+        val failure = assertFailsWith<ChatPhotoUnavailable.Open> { loader.open(photo("u", sealed = true), byteArrayOf(1)) }
+        assertEquals(BlobOpenFailure.KeyPending, failure.reason)
     }
 }
