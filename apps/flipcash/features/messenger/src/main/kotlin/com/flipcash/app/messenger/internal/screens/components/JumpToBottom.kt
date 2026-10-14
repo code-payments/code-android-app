@@ -20,8 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -113,8 +114,10 @@ internal fun JumpToBottomButton(
         colorEffects(listOf(HazeColorEffect.tint(Color.White.copy(alpha = 0.12f))))
     }
     // Held so the pill doesn't read "0" while it scales out.
-    var lastCount by remember { mutableStateOf(unreadCount) }
-    if (unreadCount > 0) lastCount = unreadCount
+    var lastCount by remember { mutableIntStateOf(unreadCount) }
+    LaunchedEffect(unreadCount) { if (unreadCount > 0) lastCount = unreadCount }
+    // The effect runs a frame late; show the new count straight away rather than the old one.
+    val shownCount = if (unreadCount > 0) unreadCount else lastCount
 
     AnimatedVisibility(
         modifier = modifier,
@@ -168,7 +171,7 @@ internal fun JumpToBottomButton(
                         .padding(BadgeOutline),
                 ) {
                     Badge(
-                        count = lastCount,
+                        count = shownCount,
                         color = CodeTheme.colors.badgeFocus,
                         textStyle = CodeTheme.typography.caption.copy(
                             fontSize = 11.sp,
