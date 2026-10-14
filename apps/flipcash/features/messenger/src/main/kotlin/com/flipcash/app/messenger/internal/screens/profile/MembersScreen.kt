@@ -153,7 +153,7 @@ private fun MemberRow(
             } else if (age != null) {
                 Text(
                     text = joinAgeLabel(age),
-                    style = CodeTheme.typography.caption,
+                    style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
                     maxLines = 1,
                 )

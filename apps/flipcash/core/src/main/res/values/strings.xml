@@ -1176,8 +1176,8 @@
     <!-- A private group's members (nodes 11210:68, 11210:70). -->
     <string name="title_members">Members</string>
     <plurals name="header_memberCount">
-        <item quantity="one">%1$d MEMBER</item>
-        <item quantity="other">%1$d MEMBERS</item>
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
     </plurals>
     <string name="label_host">Host</string>
     <string name="subtitle_joinedJustNow">Joined just now</string>
