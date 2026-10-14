@@ -703,14 +703,11 @@ internal fun MessageList(
             val jumpVisible by remember(selecting) {
                 derivedStateOf { hasPositioned && !listState.restsOnNewest() && !selecting && !autoScrolling }
             }
-            // Centred on the `$` button's column: its trailing edge is the bar's side inset from the
-            // screen edge and it is OutsideSize wide, so the jump button's end padding is the inset plus
-            // half the difference in widths. With no `$` beside a composer, the plain inset.
+            // Centred on the `$` button's column, placed from the same inset value the bar's input row
+            // uses and in the same layout pass (see ComposerInsets). With no `$` beside a composer,
+            // the plain inset.
             val dollarColumn = state.typingConstraints.enabled && state.editing == null
-            val jumpEndPadding = if (dollarColumn) {
-                composerSideInset(hasComposer = true, keyboardOpen = keyboardOpenFraction()) +
-                    (ChatInputDefaults.OutsideSize - JumpToBottomButtonSize) / 2
-            } else CodeTheme.dimens.inset
+            val composerInsets = rememberComposerInsets()
             val jumpScope = rememberCoroutineScope()
             JumpToBottomButton(
                 visible = jumpVisible,
@@ -721,7 +718,13 @@ internal fun MessageList(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     // The scaffold already rides the keyboard, so the bar-height padding does too.
-                    .padding(end = jumpEndPadding, bottom = contentPadding.calculateBottomPadding() + 20.dp),
+                    .padding(bottom = contentPadding.calculateBottomPadding() + 20.dp)
+                    .alignedToDollarColumn(
+                        insets = composerInsets,
+                        dollarColumn = dollarColumn,
+                        columnWidth = ChatInputDefaults.OutsideSize,
+                        plainInset = CodeTheme.dimens.inset,
+                    ),
             )
         }
 

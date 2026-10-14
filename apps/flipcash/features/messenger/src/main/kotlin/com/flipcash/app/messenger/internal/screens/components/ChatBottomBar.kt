@@ -79,6 +79,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.offset
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Density
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
@@ -282,6 +286,7 @@ internal fun UserControlBottomBar(
             val keyboardOpen = keyboardOpenFraction()
             val hasComposer = state.typingConstraints.enabled
             val sideInset = composerSideInset(hasComposer, keyboardOpen)
+            val composerInsets = rememberComposerInsets()
             val restingDrop = if (hasComposer) lerp(CodeTheme.dimens.staticGrid.x2, 0.dp, keyboardOpen) else 0.dp
             // The part of the navigation bar's inset the keyboard isn't covering, so the bar only sinks
             // into it once the keyboard has cleared it.
@@ -411,7 +416,7 @@ internal fun UserControlBottomBar(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = sideInset),
+                                .composerSidePadding(composerInsets, hasComposer),
                         ) {
                             if (canType) {
                                 val chips = remember(state.composerPhotos, state.uploadStates) {
@@ -651,12 +656,79 @@ private fun DeactivatedChatBottomBar() {
 /**
  * The margin either side of the bar. Compact at rest once there is a composer, opening out to the
  * normal inset as the keyboard ([keyboardOpen], 0 to 1) comes up. The `$` button's trailing edge sits
- * this far from the screen edge, and the jump-to-bottom button aligns to it.
+ * this far from the screen edge. Composition-phase: the accessory cards use it; the input row and the
+ * jump-to-bottom button use [ComposerInsets] instead, which is read while laying out.
  */
 @Composable
 internal fun composerSideInset(hasComposer: Boolean, keyboardOpen: Float): Dp {
     val compactInset = CodeTheme.dimens.staticGrid.x6.coerceAtLeast(CodeTheme.dimens.inset)
     return if (hasComposer) lerp(compactInset, CodeTheme.dimens.inset, keyboardOpen) else CodeTheme.dimens.inset
+}
+
+/**
+ * The composer's side margin, readable in the layout phase. The bar's input row and the
+ * jump-to-bottom button both place from this one value, so a keyboard animation frame moves them
+ * together instead of each picking it up through its own recomposition.
+ */
+@Stable
+internal class ComposerInsets(
+    private val ime: WindowInsets,
+    private val imeSource: WindowInsets,
+    private val imeTarget: WindowInsets,
+    private val compact: Dp,
+    private val normal: Dp,
+) {
+    /** The margin in px, with the keyboard's animation state read at the call site's phase. */
+    fun Density.sidePx(hasComposer: Boolean): Int {
+        if (!hasComposer) return normal.roundToPx()
+        val now = ime.getBottom(this)
+        val full = maxOf(imeSource.getBottom(this), imeTarget.getBottom(this), now)
+        val open = if (full <= 0) 0f else now.toFloat() / full
+        return lerp(compact, normal, open).roundToPx()
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun rememberComposerInsets(): ComposerInsets {
+    val ime = WindowInsets.ime
+    val source = WindowInsets.imeAnimationSource
+    val target = WindowInsets.imeAnimationTarget
+    val compact = CodeTheme.dimens.staticGrid.x6.coerceAtLeast(CodeTheme.dimens.inset)
+    val normal = CodeTheme.dimens.inset
+    return remember(ime, source, target, compact, normal) { ComposerInsets(ime, source, target, compact, normal) }
+}
+
+/** Horizontal padding of [ComposerInsets.sidePx], resolved while laying out. */
+internal fun Modifier.composerSidePadding(insets: ComposerInsets, hasComposer: Boolean): Modifier =
+    layout { measurable, constraints ->
+        val side = with(insets) { sidePx(hasComposer) }
+        val placeable = measurable.measure(constraints.offset(horizontal = -2 * side))
+        layout((placeable.width + 2 * side).coerceIn(constraints.minWidth, constraints.maxWidth), placeable.height) {
+            placeable.place(side, 0)
+        }
+    }
+
+/**
+ * Moves a bottom-end aligned child so it is centred over the `$` button's column: the bar's margin
+ * plus half the difference between the column and the child, or just
+ * [plainInset] when no `$` sits beside a composer.
+ */
+internal fun Modifier.alignedToDollarColumn(
+    insets: ComposerInsets,
+    dollarColumn: Boolean,
+    columnWidth: Dp,
+    plainInset: Dp,
+): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints)
+    val end = if (dollarColumn) {
+        with(insets) { sidePx(hasComposer = true) } + (columnWidth.roundToPx() - placeable.width) / 2
+    } else {
+        plainInset.roundToPx()
+    }
+    layout(placeable.width, placeable.height) {
+        placeable.place(if (layoutDirection == LayoutDirection.Rtl) end else -end, 0)
+    }
 }
 
 /**
