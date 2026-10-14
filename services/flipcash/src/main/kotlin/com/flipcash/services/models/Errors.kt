@@ -905,3 +905,50 @@ class BlobRejectedException(val rejection: BlobRejection) :
 
 // Thrown when a blob did not reach READY within the client's polling window.
 class BlobNotReadyException : Exception("Blob did not become ready in time")
+
+sealed class CreatePollError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : CreatePollError("Denied")
+    class ChatNotSupported : CreatePollError("Chat does not support polls")
+    class EncryptionNotAllowed : CreatePollError("Encryption not allowed")
+    class EncryptionRequired : CreatePollError("Encryption required")
+    class OptionCountMismatch : CreatePollError("Option count mismatch")
+    class InvalidEndsAt : CreatePollError("Invalid end time")
+    class InvalidBalanceParameters : CreatePollError("Invalid balance parameters")
+    class TextModerated(val category: ModerationResult.FlaggedCategory) : CreatePollError("Poll text flagged: $category")
+    class Unrecognized : CreatePollError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : CreatePollError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetPollError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetPollError("Denied")
+    class NotFound : GetPollError("Not found")
+    class Unrecognized : GetPollError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetPollError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetPollsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetPollsError("Denied")
+    class Unrecognized : GetPollsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetPollsError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class VoteError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : VoteError("Denied")
+    class NotFound : VoteError("Not found")
+    class PollClosed : VoteError("Poll closed")
+    class InvalidSelection : VoteError("Invalid selection")
+    class Unrecognized : VoteError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : VoteError(message = cause?.message, cause = cause), NotifiableError
+}

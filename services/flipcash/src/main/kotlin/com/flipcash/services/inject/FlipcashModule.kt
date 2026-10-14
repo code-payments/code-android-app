@@ -27,6 +27,9 @@ import com.flipcash.services.internal.network.services.ChatMessagingService
 import com.flipcash.services.internal.network.services.EmailVerificationService
 import com.flipcash.services.internal.network.services.ContactListService
 import com.flipcash.services.internal.network.services.ModerationService
+import com.flipcash.services.internal.network.services.PollService
+import com.flipcash.services.internal.repositories.InternalPollRepository
+import com.flipcash.services.repository.PollRepository
 import com.flipcash.services.internal.network.services.PhoneVerificationService
 import com.flipcash.services.internal.network.services.ProfileService
 import com.flipcash.services.internal.network.services.PurchaseService
@@ -254,6 +257,11 @@ internal object FlipcashModule {
         socialAccountMapper: SocialAccountMapper,
     ): ProfileRepository =
         InternalProfileRepository(service, userProfileMapper, socialAccountMapper)
+
+    @Provides
+    internal fun providesPollRepository(
+        service: PollService,
+    ): PollRepository = InternalPollRepository(service)
 
     @Provides
     internal fun providesModerationRepository(
