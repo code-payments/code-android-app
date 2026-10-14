@@ -16,6 +16,8 @@ class StubAppUpdateController(
 
     override val updateToast: StateFlow<OptionalUpdate?> = MutableStateFlow(null)
 
+    override val updateProgress: StateFlow<Float?> = MutableStateFlow(null)
+
     override val updateDownloaded: StateFlow<Boolean> = MutableStateFlow(false)
 
     override suspend fun checkForUpdate() = Unit

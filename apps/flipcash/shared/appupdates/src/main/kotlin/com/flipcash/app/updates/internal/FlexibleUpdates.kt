@@ -32,12 +32,19 @@ internal class FlexibleUpdates(
     private val currentVersionCode: Int,
     private val isStoreBuild: () -> Boolean,
     private val isInForeground: () -> Boolean,
+    /** The marketing version for a Play version code, or null when it isn't known. */
+    private val versionNameFor: (versionCode: Int) -> String? = { null },
 ) {
     private val _update = MutableStateFlow<OptionalUpdate?>(null)
     val update: StateFlow<OptionalUpdate?> = _update.asStateFlow()
 
     private val _downloaded = MutableStateFlow(false)
     val downloaded: StateFlow<Boolean> = _downloaded.asStateFlow()
+
+    private val _progress = MutableStateFlow<Float?>(null)
+
+    /** How much of the download is done (0..1) while Play is fetching it, else null. */
+    val progress: StateFlow<Float?> = _progress.asStateFlow()
 
     private var info: AppUpdateInfo? = null
     private var listener: InstallStateUpdatedListener? = null
@@ -69,6 +76,7 @@ internal class FlexibleUpdates(
                 versionCode = info.availableVersionCode(),
                 priority = info.updatePriority(),
                 stalenessDays = info.clientVersionStalenessDays() ?: 0,
+                versionName = versionNameFor(info.availableVersionCode()),
             )
         } else {
             null
@@ -82,14 +90,27 @@ internal class FlexibleUpdates(
         if (listener == null) {
             val listener = InstallStateUpdatedListener { state ->
                 when (state.installStatus()) {
+                    InstallStatus.PENDING,
+                    InstallStatus.DOWNLOADING -> {
+                        val total = state.totalBytesToDownload()
+                        _progress.value = if (total > 0) {
+                            (state.bytesDownloaded().toFloat() / total).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        }
+                    }
                     InstallStatus.DOWNLOADED -> {
                         trace(tag = TAG, message = "Optional update downloaded")
+                        _progress.value = null
                         _downloaded.value = true
                         if (!isInForeground()) complete()
                     }
                     InstallStatus.INSTALLED,
                     InstallStatus.FAILED,
-                    InstallStatus.CANCELED -> unregister()
+                    InstallStatus.CANCELED -> {
+                        _progress.value = null
+                        unregister()
+                    }
                     else -> Unit
                 }
             }
@@ -117,6 +138,8 @@ internal class FlexibleUpdates(
     }
 
     private fun unregister() {
+        // A declined or failed attempt has no download to show.
+        if (!_downloaded.value) _progress.value = null
         listener?.let(manager::unregisterListener)
         listener = null
     }

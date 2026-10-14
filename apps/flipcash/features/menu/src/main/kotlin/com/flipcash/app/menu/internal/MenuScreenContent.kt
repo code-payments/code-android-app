@@ -55,6 +55,7 @@ import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.ProfileState
 import com.flipcash.app.theme.FlipcashThemeWrapper
+import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.core.R as CoreR
 import com.flipcash.features.menu.R
 import com.flipcash.services.models.UserProfile
@@ -268,7 +269,11 @@ private fun SettingsGear(
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null,
 ) {
+    // Any confirmed newer store build, whatever its priority; gone once the user is on it. The
+    // controller never offers one on debug or internal builds, so those never get the dot.
+    val updateAvailable by LocalAppUpdater.current.optionalUpdate.collectAsStateWithLifecycle()
     ProfileBarButton(
+        showDot = updateAvailable != null,
         icon = R.drawable.ic_settings_outline,
         contentDescription = stringResource(CoreR.string.title_settings),
         onClick = onClick,

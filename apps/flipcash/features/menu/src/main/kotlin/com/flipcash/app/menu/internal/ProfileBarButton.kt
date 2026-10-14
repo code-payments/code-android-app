@@ -8,7 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import com.getcode.ui.components.AppBarWithTitle
+import androidx.compose.ui.unit.DpOffset
 import com.getcode.ui.components.CircularIconButton
+import com.getcode.ui.components.WithNotificationDot
 import dev.chrisbanes.haze.HazeState
 
 /**
@@ -24,21 +26,25 @@ internal fun ProfileBarButton(
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null,
     testTag: String? = null,
+    showDot: Boolean = false,
 ) {
     AppBarWithTitle(
         modifier = modifier,
         endContent = {
-            CircularIconButton(
-                hazeState = hazeState,
-                onClick = onClick,
-                testTag = testTag,
-            ) { size ->
-                Icon(
-                    painter = painterResource(icon),
-                    contentDescription = contentDescription,
-                    tint = Color.White,
-                    modifier = Modifier.requiredSize(size),
-                )
+            // A round button's corner is already empty, so the dot sits on it with no offset.
+            WithNotificationDot(isShown = showDot, offset = DpOffset.Zero) {
+                CircularIconButton(
+                    hazeState = hazeState,
+                    onClick = onClick,
+                    testTag = testTag,
+                ) { size ->
+                    Icon(
+                        painter = painterResource(icon),
+                        contentDescription = contentDescription,
+                        tint = Color.White,
+                        modifier = Modifier.requiredSize(size),
+                    )
+                }
             }
         },
     )

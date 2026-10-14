@@ -16,6 +16,10 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.testing.FakeAppUpdateManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import com.flipcash.app.updates.internal.DebugUpdateDriver
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -35,6 +39,8 @@ object AppUpdateModule {
      */
     private const val DEBUG_OPTIONAL_UPDATE_MARKER = "debug-optional-update"
 
+    private const val DEBUG_VERSION_NAME = "2026.10.4"
+
     @Provides
     @ActivityScoped
     fun provideInAppUpdateManager(
@@ -50,6 +56,8 @@ object AppUpdateModule {
             FakeAppUpdateManager(context).apply {
                 setUpdateAvailable(versionInfo.versionCode + 1)
                 setUpdatePriority(5)
+                DebugUpdateDriver(this, File(context.filesDir, DEBUG_OPTIONAL_UPDATE_MARKER))
+                    .start(CoroutineScope(SupervisorJob() + Dispatchers.Default))
             }
         } else {
             AppUpdateManagerFactory.create(context)
@@ -61,6 +69,13 @@ object AppUpdateModule {
             isStoreBuild = {
                 debugOverride ||
                     (!BuildConfig.DEBUG && releaseStageProvider.resolvedStage == ReleaseStage.Production)
+            },
+            versionNameFor = { versionCode ->
+                releaseStageProvider.productionTrack
+                    ?.takeIf { it.versionCode == versionCode }
+                    ?.versionName
+                    // The fake offers versionCode + 1, which no manifest names.
+                    ?: DEBUG_VERSION_NAME.takeIf { debugOverride }
             },
             isInForeground = {
                 ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)

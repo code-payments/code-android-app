@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.flipcash.app.updates.ReleaseManifest
 import com.flipcash.app.updates.ReleaseStage
 import com.flipcash.app.updates.ReleaseStageProvider
+import com.flipcash.app.updates.TrackInfo
 import com.flipcash.app.updates.resolveStage
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -68,9 +69,14 @@ internal class GooglePlayReleaseStageProvider(private val context: Context) : Re
         }
     }
 
+    @Volatile
+    override var productionTrack: TrackInfo? = null
+        private set
+
     private fun resolveStage(manifestJson: String, versionCode: Int): ReleaseStage {
         return try {
             val manifest = json.decodeFromString<ReleaseManifest>(manifestJson)
+            productionTrack = manifest.tracks.production
             resolveStage(manifest, versionCode)
         } catch (e: Exception) {
             Timber.d(e, "Failed to parse release manifest")

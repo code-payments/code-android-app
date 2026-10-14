@@ -40,6 +40,9 @@ interface AppUpdateController {
     /** The flexible download has finished and [completeUpdate] will install it. */
     val updateDownloaded: StateFlow<Boolean>
 
+    /** Fraction (0..1) of the flexible download done while it runs, else null. */
+    val updateProgress: StateFlow<Float?>
+
     suspend fun checkForUpdate()
 
     /** Asks Play for an optional update. Leaves [availableUpdate] alone. */

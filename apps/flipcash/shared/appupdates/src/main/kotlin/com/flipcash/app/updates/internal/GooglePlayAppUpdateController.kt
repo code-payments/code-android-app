@@ -61,6 +61,9 @@ class GooglePlayAppUpdateController internal constructor(
     override val updateDownloaded: StateFlow<Boolean>
         get() = flexibleUpdates.downloaded
 
+    override val updateProgress: StateFlow<Float?>
+        get() = flexibleUpdates.progress
+
     override suspend fun checkForOptionalUpdate() = flexibleUpdates.check()
 
     override suspend fun startOptionalUpdate(): Result<Unit> =
