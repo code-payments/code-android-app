@@ -295,6 +295,7 @@ fun ContentBubble(
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
                     attention = attention,
+                    redacted = item.redacted,
                 )
 
                 // Ciphertext reaches a bubble only when it didn't open; an opened message carries
