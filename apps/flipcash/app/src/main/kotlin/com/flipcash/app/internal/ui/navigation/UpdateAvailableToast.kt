@@ -86,8 +86,14 @@ internal fun UpdateAvailableToast(
         }
 
         launch {
-            combine(updater.updateDownloaded, snapshotFlow { barVisibility.coversToast }) { downloaded, covered ->
-                downloaded && !covered
+            // Settings carries its own pinned "Restart" card, so the toast would sit on top of it.
+            val onSettings = snapshotFlow { navigator.currentRouteKey is AppRoute.Menu.Settings }
+            combine(
+                updater.updateDownloaded,
+                snapshotFlow { barVisibility.coversToast },
+                onSettings,
+            ) { downloaded, covered, settings ->
+                downloaded && !covered && !settings
             }.collectLatest { showReady ->
                 if (!showReady) return@collectLatest
                 val result = toasts.show(
