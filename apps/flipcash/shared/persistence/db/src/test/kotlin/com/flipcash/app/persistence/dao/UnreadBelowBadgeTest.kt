@@ -8,10 +8,10 @@ import com.flipcash.app.persistence.converters.MessageContentSerialized
 import com.flipcash.app.persistence.converters.MessagePointerSerialized
 import com.flipcash.app.persistence.entities.ChatMemberEntity
 import com.flipcash.app.persistence.entities.ChatMessageEntity
+import app.cash.turbine.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -85,53 +85,75 @@ class UnreadBelowBadgeTest {
             listOf(message(OTHER_HEX, 1), message(OTHER_HEX, 2), message(SELF_HEX, 3), message(OTHER_HEX, 4), message(OTHER_HEX, 5)),
         )
         open(readThrough = 2)
+        val dividerCount = messages.countInboundAfter(CHAT_HEX, SELF_HEX, 2)
 
-        assertEquals(messages.countInboundAfter(CHAT_HEX, SELF_HEX, 2), badge().first())
-        assertEquals(2, badge().first())
+        badge().test {
+            assertEquals(dividerCount, awaitItem())
+            assertEquals(2, dividerCount)
+            expectNoEvents()
+        }
     }
 
     @Test
-    fun `advancing the read pointer decrements`() = runTest {
+    fun `advancing the read pointer emits 3 then 1 and ignores a late lower advance`() = runTest {
         messages.upsert(listOf(message(OTHER_HEX, 1), message(OTHER_HEX, 2), message(OTHER_HEX, 3), message(OTHER_HEX, 4)))
         open(readThrough = 1)
-        assertEquals(3, badge().first())
 
-        members.advancePointer(CHAT_HEX, SELF_HEX, pointer(3))
-        assertEquals(1, badge().first())
+        badge().test {
+            assertEquals(3, awaitItem())
 
-        // The pointer keeps its max: a late, lower advance doesn't bring the count back.
-        members.advancePointer(CHAT_HEX, SELF_HEX, pointer(2))
-        assertEquals(1, badge().first())
+            members.advancePointer(CHAT_HEX, SELF_HEX, pointer(3))
+            assertEquals(1, awaitItem())
+
+            // The pointer keeps its max: a late, lower advance doesn't bring the count back.
+            members.advancePointer(CHAT_HEX, SELF_HEX, pointer(2))
+            expectNoEvents()
+        }
     }
 
     @Test
-    fun `an inbound arrival below increments`() = runTest {
+    fun `an inbound arrival below emits n then n plus 1`() = runTest {
         messages.upsert(listOf(message(OTHER_HEX, 1), message(OTHER_HEX, 2)))
         open(readThrough = 2)
-        assertEquals(0, badge().first())
 
-        messages.upsert(listOf(message(OTHER_HEX, 3)))
-        assertEquals(1, badge().first())
+        badge().test {
+            assertEquals(0, awaitItem())
+
+            messages.upsert(listOf(message(OTHER_HEX, 3)))
+            assertEquals(1, awaitItem())
+
+            messages.upsert(listOf(message(OTHER_HEX, 4)))
+            assertEquals(2, awaitItem())
+        }
     }
 
     @Test
-    fun `own send clears once the pointer reaches it, and own messages are never counted`() = runTest {
+    fun `own messages are never counted and the pointer reaching an own send clears the badge`() = runTest {
         messages.upsert(listOf(message(OTHER_HEX, 1), message(OTHER_HEX, 2), message(OTHER_HEX, 3)))
         open(readThrough = 0)
-        assertEquals(3, badge().first())
 
-        // MessagingDelegate.send advances the pointer to the id the server gives the sent message.
-        messages.upsert(listOf(message(SELF_HEX, 4)))
-        assertEquals(3, badge().first())
-        members.advancePointer(CHAT_HEX, SELF_HEX, pointer(4))
-        assertEquals(0, badge().first())
+        badge().test {
+            assertEquals(3, awaitItem())
+
+            // An own row changes nothing.
+            messages.upsert(listOf(message(SELF_HEX, 4)))
+            expectNoEvents()
+
+            // MessagingDelegate.send advances the pointer to the id the server gives the sent
+            // message on success, which is above every inbound id; that is what clears the badge.
+            members.advancePointer(CHAT_HEX, SELF_HEX, pointer(4))
+            assertEquals(0, awaitItem())
+        }
     }
 
     @Test
-    fun `no self row counts nothing`() = runTest {
+    fun `no self row emits 0`() = runTest {
         messages.upsert(listOf(message(OTHER_HEX, 1)))
 
-        assertEquals(0, badge().first())
+        badge().test {
+            assertEquals(0, awaitItem())
+            expectNoEvents()
+        }
     }
 
     private companion object {
