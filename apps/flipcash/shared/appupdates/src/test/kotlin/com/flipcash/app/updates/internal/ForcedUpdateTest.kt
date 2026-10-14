@@ -15,6 +15,7 @@ import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -38,7 +39,7 @@ import kotlin.test.assertTrue
 class ForcedUpdateTest {
 
     private val currentVersion = 10
-    private val fake = FakeAppUpdateManager(ApplicationProvider.getApplicationContext())
+    private val fake = spyk(FakeAppUpdateManager(ApplicationProvider.getApplicationContext()))
     private val activity = Robolectric.buildActivity(ComponentActivity::class.java).setup().get()
     private val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
 
@@ -162,7 +163,7 @@ class ForcedUpdateTest {
     }
 
     @Test
-    fun `an immediate update already under way is reported on the next check`() = runTest {
+    fun `an immediate update already under way resumes on the next check`() = runTest {
         fake.setUpdateAvailable(currentVersion + 1)
         flags(minimumVersion = currentVersion + 1)
         controller().run {
@@ -181,9 +182,8 @@ class ForcedUpdateTest {
             UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS,
             resumed.availableUpdate.value?.updateAvailability,
         )
-        // The resume branch then calls startUpdate(), but Play's fake reports IMMEDIATE as not
-        // allowed while one is under way, so the "type not allowed" guard stops it. Whether real
-        // Play does the same is unconfirmed; this asserts only the status the gate sees.
+        // Play's flow stays visible once opened, so count the starts rather than check visibility.
+        verify(exactly = 2) { fake.startUpdateFlow(any(), any(), any()) }
     }
 
     @Test

@@ -178,7 +178,9 @@ class GooglePlayAppUpdateController internal constructor(
             return@suspendCancellableCoroutine
         }
 
-        if (!info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
+        // Play reports IMMEDIATE as not allowed while one is already under way; resuming it is.
+        val resuming = info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS
+        if (!resuming && !info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
             cont.resume(Result.failure(IllegalStateException("Update type is not allowed")))
             return@suspendCancellableCoroutine
         }
