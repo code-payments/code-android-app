@@ -147,6 +147,33 @@ internal fun LinkCardView(
         return
     }
 
+    if (live is LinkCard.Message) {
+        // Sized by its content, not the voucher's aspect: the states run from a header and one line
+        // to a four-line excerpt over a button.
+        MessageLinkCard(
+            card = live,
+            shape = shape,
+            // A DM the reader isn't in opens nothing they could read.
+            onOpen = onClick?.takeUnless { live.state == LinkCard.Message.State.LockedDirect }
+                ?.let { click -> { click(live) } },
+            modifier = modifier
+                .semantics { linkCardShape = shape }
+                .addIf(onClick != null || onLongClick != null) {
+                    Modifier
+                        .clip(shape)
+                        .combinedClickable(
+                            onLongClick = onLongClick,
+                            onDoubleClick = onDoubleClick,
+                            onClick = {
+                                if (live.state != LinkCard.Message.State.LockedDirect) onClick?.invoke(live)
+                            },
+                            hapticFeedbackEnabled = false,
+                        )
+                },
+        )
+        return
+    }
+
     // The voucher's proportions, not its size: a bubble is a good deal narrower than the wallet's
     // card, and scaling the height with the width is what keeps it a card in chat instead of a
     // tall panel.
@@ -178,7 +205,7 @@ internal fun LinkCardView(
             )
             is LinkCard.TokenInfo -> TokenLinkCard(card = live, height = height, shape = shape)
             // Drawn above; unreachable here.
-            is LinkCard.GroupInvite, is LinkCard.User, is LinkCard.Web -> Unit
+            is LinkCard.GroupInvite, is LinkCard.User, is LinkCard.Web, is LinkCard.Message -> Unit
         }
     }
 }

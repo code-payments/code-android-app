@@ -1055,6 +1055,25 @@
     <!-- Web link card chip, shown to a viewer outside the group. -->
     <string name="action_webLinkCard_showPreview">Show preview · %1$s</string>
     <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
+    <string name="label_messageLink_unresolvedTitle">Flipcash</string>
+    <string name="label_messageLink_message">Message</string>
+    <string name="label_messageLink_kindPublicGroup">Public group</string>
+    <string name="label_messageLink_kindPrivateGroup">Private group</string>
+    <string name="label_messageLink_kindDirect">Direct message</string>
+    <string name="label_messageLink_you">You</string>
+    <string name="label_messageLink_byline">%1$s · %2$s</string>
+    <string name="label_messageLink_sent">%1$s sent</string>
+    <string name="label_messageLink_tipped">%1$s tipped</string>
+    <string name="label_messageLink_attachment">Attachment</string>
+    <plurals name="label_messageLink_reactions">
+        <item quantity="one">%1$s reaction</item>
+        <item quantity="other">%1$s reactions</item>
+    </plurals>
+    <string name="label_messageLink_lockedGroup">Only members of %1$s can read this message.</string>
+    <string name="label_messageLink_lockedDirect">Only the two people in this chat can read it.</string>
+    <string name="label_messageLink_membersHostedBy">%1$s · Hosted by %2$s</string>
+    <string name="action_messageLink_open">Open</string>
+    <string name="action_messageLink_request">Request</string>
 
     <!-- Chat message selection bar and its actions -->
     <string name="action_copy">Copy</string>

@@ -478,6 +478,15 @@ interface MessagingOperations {
     suspend fun openPushedChatMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): ChatMessage?
 
     /**
+     * [messageId] in a chat the viewer belongs to, readable: the stored copy when there is one,
+     * otherwise fetched and, if it is end-to-end encrypted, opened on this device. Nothing is stored.
+     *
+     * Fails with the fetch's error (`GetMessageError.NotFound`, `Denied`). Succeeds with a message
+     * that is still sealed when this device can't open it; the caller checks [ChatMessage.encryption].
+     */
+    suspend fun readMessage(chatId: ChatId, messageId: Long): Result<ChatMessage>
+
+    /**
      * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].
      *
      * [replyToMessageId] cites a message in the same chat, which wraps the body in

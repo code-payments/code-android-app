@@ -73,7 +73,8 @@ internal class MessageLinkPrefetcher(
         is LinkCard.Web -> if (!webLinks) null else WebLinks.cacheKey(card.url)
             ?.takeUnless { it in memory.webs }
             ?.let { key -> start(key) { web(card.url).onSuccess { memory.putWeb(key, it) } } }
-        is LinkCard.Cash, is LinkCard.TokenInfo -> null
+        // Held per visit, since who can read it changes with membership; resolved when drawn.
+        is LinkCard.Cash, is LinkCard.TokenInfo, is LinkCard.Message -> null
     }
 
     private fun start(key: Any, block: suspend () -> Unit): Deferred<Unit> =

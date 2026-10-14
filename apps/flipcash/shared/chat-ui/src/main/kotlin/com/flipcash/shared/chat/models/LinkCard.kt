@@ -2,6 +2,7 @@ package com.flipcash.shared.chat.models
 
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.asHandle
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MediaItem
 import com.getcode.opencode.model.core.ID
@@ -256,6 +257,99 @@ sealed interface LinkCard {
                 val imageUrl: String?,
                 val host: String,
             ) : State
+        }
+    }
+
+    /**
+     * A link to one message, `app.flipcash.com/chat/{chatId}/m/{seq}`.
+     *
+     * What the card may show depends on the source chat and the viewer, never on the link: a member
+     * reads the message, a public group's non-member reads what the group's rules let them, and a
+     * private group or DM shows a stranger nothing of the message at all. [isGroup] is read off the
+     * id's form (UUID for a group, base64url for a DM) so [State.Loading] already knows which.
+     */
+    data class Message(
+        override val url: String,
+        override val start: Int,
+        override val end: Int,
+        val chatId: ChatId,
+        val messageId: Long,
+        val isGroup: Boolean,
+        val state: State = State.Loading,
+    ) : LinkCard {
+
+        sealed interface State {
+            /** The lookup is out. Drawn as the skeleton, shimmering. */
+            data object Loading : State
+
+            /**
+             * Nothing to show beyond the URL: the lookup failed, or the message is deleted or not
+             * there. Drawn as the skeleton at rest; resolution failing is never an error on a card.
+             */
+            data object Unresolved : State
+
+            /** The viewer is in the chat, or the chat is a public group whose rules let them read. */
+            data class Resolved(
+                val source: Source,
+                val message: Excerpt,
+                /** The source message's reactions, counted; paid totals are left off the card. */
+                val reactionCount: Long,
+            ) : State
+
+            /**
+             * A public group the viewer hasn't joined. [message] is redacted when they are below
+             * the group's requirement, in which case the card offers Buy rather than Join.
+             */
+            data class Gated(
+                val source: Source,
+                val message: Excerpt,
+                val requirement: GroupInvite.Requirement?,
+            ) : State
+
+            /** A private group the viewer isn't in: the group's public record, and Request. */
+            data class LockedGroup(
+                val source: Source,
+                val memberCount: Long,
+                /** The creator's name, or null when it couldn't be read. */
+                val host: String?,
+            ) : State
+
+            /** A DM the viewer isn't in. Only that it is one; it never unlocks. */
+            data object LockedDirect : State
+        }
+
+        /** The chat the message is in, as the card's header names it. */
+        data class Source(
+            /** The group's title or the DM peer's name; null for an untitled group. */
+            val title: String?,
+            val kind: Kind,
+            val picture: MediaItem?,
+            /** How [picture] is read: the group's public profile, or the DM peer's profile. */
+            val pictureAccess: BlobAccessContext,
+        )
+
+        enum class Kind { DirectMessage, PublicGroup, PrivateGroup }
+
+        data class Excerpt(
+            /** The sender's name, or null when it couldn't be read. */
+            val author: String?,
+            val isFromSelf: Boolean,
+            val sentAt: kotlin.time.Instant,
+            val body: Body,
+        )
+
+        sealed interface Body {
+            /**
+             * The message's text. When [redacted] the server sent a placeholder in its place,
+             * which the card draws blurred and never copies or quotes.
+             */
+            data class Text(val text: String, val redacted: Boolean = false) : Body
+
+            /** A payment: the amount, pre-formatted, and whether it was sent or tipped. */
+            data class Cash(val amount: String, val tipped: Boolean) : Body
+
+            /** A photo or anything else with no text to excerpt. */
+            data object Other : Body
         }
     }
 }

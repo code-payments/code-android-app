@@ -36,6 +36,7 @@ internal object LinkCardModule {
         group: GroupLinkLookup,
         user: UserLinkLookup,
         web: WebLinkLookup,
+        message: MessageLinkLookup,
         memory: LinkCardMemory,
     ): LinkCardResolver =
         LinkCardResolver(
@@ -48,6 +49,7 @@ internal object LinkCardModule {
             group = { group(it) },
             user = { user(it) },
             web = web::invoke,
+            message = message::invoke,
             memory = memory,
         )
 }

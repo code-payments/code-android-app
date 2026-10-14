@@ -147,6 +147,16 @@ internal class LinkCardClassifier @Inject constructor(
                 },
                 state = LinkCard.User.State.Loading,
             )
+            // `/chat/{id}/m/{seq}`: the router has already matched the shape and told a group's
+            // UUID from a DM's base64url id.
+            is DeeplinkType.ChatMessage -> LinkCard.Message(
+                url = target,
+                start = link.start,
+                end = link.end,
+                chatId = type.chatId,
+                messageId = type.messageId,
+                isGroup = type.isGroup,
+            )
             else -> null
         }
     }

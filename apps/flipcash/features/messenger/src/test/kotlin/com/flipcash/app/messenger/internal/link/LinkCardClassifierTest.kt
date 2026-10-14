@@ -17,6 +17,7 @@ import org.robolectric.annotation.Config
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -44,8 +45,9 @@ class LinkCardClassifierTest {
                 "c", "cash" -> DeeplinkType.CashLink(link.entropyFragmentForTest().orEmpty())
                 "token" -> link.pathSegmentsForTest().getOrNull(1)
                     ?.let { DeeplinkType.TokenInfo(Mint(it)) }
-                // As `AppRouter` does: the id segment is checked, anything after it is not.
-                "chat" -> link.pathSegmentsForTest().getOrNull(1)
+                // As `AppRouter` does: a message link is matched first, on its exact shape;
+                // otherwise the id segment is checked and anything after it is not.
+                "chat" -> link.messageLinkForTest() ?: link.pathSegmentsForTest().getOrNull(1)
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?.let { DeeplinkType.GroupChatInvite(ChatId(it.bytes)) }
                 "tip" -> link.pathSegmentsForTest().getOrNull(1)
@@ -56,6 +58,17 @@ class LinkCardClassifierTest {
         }
 
         override fun dispatch(deepLink: DeepLink) = error("not used in classification tests")
+    }
+
+    private fun DeepLink.messageLinkForTest(): DeeplinkType.ChatMessage? {
+        val segments = pathSegmentsForTest()
+        if (segments.size != 4 || segments[2] != "m") return null
+        val seq = segments[3].toLongOrNull() ?: return null
+        val uuid = runCatching { UUID.fromString(segments[1]) }.getOrNull()
+        val chatId = uuid?.let { ChatId(it.bytes) }
+            ?: runCatching { ChatId(java.util.Base64.getUrlDecoder().decode(segments[1]).toList()) }.getOrNull()
+            ?: return null
+        return DeeplinkType.ChatMessage(chatId, seq, isGroup = uuid != null)
     }
 
     private fun fixture(): JSONObject = JSONObject(
@@ -206,6 +219,48 @@ class LinkCardClassifierTest {
         val url = "https://app.flipcash.com/chat/6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162/send"
 
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))))
+    }
+
+    @Test
+    fun `a group message link becomes a message card, not an invite`() {
+        val url = "https://app.flipcash.com/chat/6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162/m/42"
+
+        val card = cardFor(url)
+
+        val message = assertIs<LinkCard.Message>(card)
+        assertEquals(ChatId(UUID.fromString("6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162").bytes), message.chatId)
+        assertEquals(42L, message.messageId)
+        assertTrue(message.isGroup)
+        assertEquals(url, message.url)
+        assertEquals(LinkCard.Message.State.Loading, message.state)
+    }
+
+    @Test
+    fun `a DM message link becomes a message card`() {
+        val dmId = List(32) { it.toByte() }
+        val encoded = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(dmId.toByteArray())
+        val url = "https://app.flipcash.com/chat/$encoded/m/7"
+
+        val message = assertIs<LinkCard.Message>(cardFor(url))
+
+        assertEquals(ChatId(dmId), message.chatId)
+        assertEquals(7L, message.messageId)
+        assertFalse(message.isGroup)
+    }
+
+    /** The invite card wants the bare `/chat/{uuid}`, so a message link cut short gets no card. */
+    @Test
+    fun `a message link with no number gets no card`() {
+        val url = "https://app.flipcash.com/chat/6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162/m"
+
+        assertNull(cardFor(url))
+    }
+
+    @Test
+    fun `a message link off the app host is a web page`() {
+        val url = "https://example.com/chat/6f1c3a9e-2b7d-4e0a-9c55-1d2e3f405162/m/42"
+
+        assertIs<LinkCard.Web>(cardFor(url))
     }
 
     // Person cards

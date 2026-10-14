@@ -54,6 +54,9 @@ internal class LinkCardResolver(
     private val web: suspend (url: String) -> Result<LinkCard.Web.State> = {
         Result.failure(IllegalStateException("no web lookup"))
     },
+    private val message: suspend (card: LinkCard.Message) -> Result<LinkCard.Message.State> = {
+        Result.failure(IllegalStateException("no message lookup"))
+    },
     private val memory: LinkCardMemory = LinkCardMemory(),
 ) : LinkCardResolution {
 
@@ -75,6 +78,7 @@ internal class LinkCardResolver(
     private val groupQueries = mutableMapOf<ChatId, Deferred<LinkCard.GroupInvite.State>>()
     private val userQueries = mutableMapOf<LinkCard.User.Identity, Deferred<LinkCard.User.State>>()
     private val webQueries = mutableMapOf<String, Deferred<Result<LinkCard.Web.State>>>()
+    private val messageQueries = mutableMapOf<MessageKey, Deferred<LinkCard.Message.State>>()
 
     /**
      * The answers that have landed, readable without the lock and without suspending — which is the
@@ -94,6 +98,12 @@ internal class LinkCardResolver(
      * query maps above are still per visit, so each visit asks once and writes over what it found.
      */
     private val cashAnswers = ConcurrentHashMap<String, LinkCard.Cash.State.Resolved>()
+
+    /**
+     * Message answers are held per visit, like cash: what a card may show turns on the viewer's
+     * membership and the group's rules, both of which a join or a purchase moves.
+     */
+    private val messageAnswers = ConcurrentHashMap<MessageKey, LinkCard.Message.State>()
     private val tokenAnswers get() = memory.tokens
     private val groupAnswers get() = memory.groups
     private val userAnswers get() = memory.users
@@ -122,6 +132,7 @@ internal class LinkCardResolver(
         is LinkCard.GroupInvite -> groupAnswers[card.chatId]?.let { card.copy(state = it) }
         is LinkCard.User -> userAnswers[card.identity]?.let { card.copy(state = it) }
         is LinkCard.Web -> WebLinks.cacheKey(card.url)?.let { memory.webs[it] }?.let { card.copy(state = it) }
+        is LinkCard.Message -> messageAnswers[card.key]?.let { card.copy(state = it) }
     }
 
     override suspend fun resolve(card: LinkCard): LinkCard = when (card) {
@@ -130,6 +141,7 @@ internal class LinkCardResolver(
         is LinkCard.GroupInvite -> card.copy(state = groupState(card.chatId))
         is LinkCard.User -> card.copy(state = userState(card.identity))
         is LinkCard.Web -> card.copy(state = webState(card.url))
+        is LinkCard.Message -> card.copy(state = messageState(card))
     }
 
     /**
@@ -287,6 +299,18 @@ internal class LinkCardResolver(
             }
         }.getOrDefault(LinkCard.Web.State.None)
     }
+
+    private suspend fun messageState(card: LinkCard.Message): LinkCard.Message.State =
+        memoized(messageQueries, card.key) {
+            message(card).fold(
+                onSuccess = { state -> state.also { messageAnswers[card.key] = it } },
+                onFailure = { forget(messageQueries, card.key); LinkCard.Message.State.Unresolved },
+            )
+        }
+
+    private data class MessageKey(val chatId: ChatId, val messageId: Long)
+
+    private val LinkCard.Message.key get() = MessageKey(chatId, messageId)
 
     private suspend fun <K, V> memoized(
         queries: MutableMap<K, Deferred<V>>,

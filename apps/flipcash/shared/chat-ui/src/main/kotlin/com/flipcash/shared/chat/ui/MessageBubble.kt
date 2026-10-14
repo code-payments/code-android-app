@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -911,8 +912,12 @@ private fun BareLinkCard(
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
     val actionHandler = LocalChatActionHandler.current
+    val uriHandler = LocalUriHandler.current
     return { card ->
         when (card) {
+            // The transcript's handler follows a message link in the app: a jump in place when it
+            // points into this chat, a push with the way back otherwise.
+            is LinkCard.Message -> uriHandler.openUri(card.url)
             // The chat opens it, because only the chat knows whether this reader may collect it.
             // A voucher already being claimed would only start the same claim again.
             is LinkCard.Cash -> if ((card.state as? LinkCard.Cash.State.Resolved)?.claim != LinkCard.Cash.Claim.Claiming) {
