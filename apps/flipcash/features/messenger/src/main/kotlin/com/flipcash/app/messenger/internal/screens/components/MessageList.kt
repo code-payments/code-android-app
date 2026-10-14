@@ -680,7 +680,9 @@ internal fun MessageList(
                     }
                 }
             }
-            val jumpVisible = rememberJumpToBottomVisible(listState) { hasPositioned }
+            // Not while a message is raised: the backdrop is modal and the list can't be dragged, so
+            // the button must not scroll it either.
+            val jumpVisible = rememberJumpToBottomVisible(listState) { hasPositioned } && !selecting
             // Beside the list, not inside it: the list carries the haze source the glass samples.
             JumpToBottomHaze(
                 visible = jumpVisible,
