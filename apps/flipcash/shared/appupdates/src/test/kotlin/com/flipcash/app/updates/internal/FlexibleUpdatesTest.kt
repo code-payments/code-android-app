@@ -9,6 +9,8 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.google.android.play.core.appupdate.testing.FakeAppUpdateManager
 import io.mockk.mockk
+import io.mockk.spyk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -26,7 +28,8 @@ import kotlin.test.assertTrue
 class FlexibleUpdatesTest {
 
     private val currentVersion = 10
-    private val fake = FakeAppUpdateManager(ApplicationProvider.getApplicationContext())
+    // A spy, so the failure tests can see the install listener being let go.
+    private val fake = spyk(FakeAppUpdateManager(ApplicationProvider.getApplicationContext()))
     private var foreground = true
 
     private fun flexibleUpdates(isStoreBuild: Boolean = true) = FlexibleUpdates(
@@ -116,6 +119,81 @@ class FlexibleUpdatesTest {
 
         updates.complete()
 
+        assertTrue(fake.isInstallSplashScreenVisible)
+    }
+
+    @Test
+    fun `after declining Play's dialog, Update can start it again`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        val updates = flexibleUpdates()
+        updates.check()
+
+        updates.start(activity())
+        idleMain()
+        fake.userRejectsUpdate()
+        idleMain()
+
+        // The fake's flow task doesn't report the declined dialog, so the listener being let go
+        // isn't visible here; that Update works again and nothing is downloaded is.
+        assertFalse(fake.isConfirmationDialogVisible)
+        assertFalse(updates.downloaded.value)
+
+        assertTrue(updates.start(activity()).isSuccess)
+        idleMain()
+        assertTrue(fake.isConfirmationDialogVisible)
+    }
+
+    @Test
+    fun `a failed download lets the listener go and never offers Restart`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        val updates = flexibleUpdates()
+        updates.check()
+
+        updates.start(activity())
+        idleMain()
+        fake.userAcceptsUpdate()
+        fake.downloadStarts()
+        fake.downloadFails()
+
+        verify { fake.unregisterListener(any()) }
+        assertFalse(updates.downloaded.value)
+    }
+
+    @Test
+    fun `a cancelled download lets the listener go and never offers Restart`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        val updates = flexibleUpdates()
+        updates.check()
+
+        updates.start(activity())
+        idleMain()
+        fake.userAcceptsUpdate()
+        fake.downloadStarts()
+        fake.userCancelsDownload()
+
+        verify { fake.unregisterListener(any()) }
+        assertFalse(updates.downloaded.value)
+    }
+
+    @Test
+    fun `a download that finished while the app was gone offers Restart on the next check`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        flexibleUpdates().run {
+            check()
+            start(activity())
+        }
+        idleMain()
+        fake.userAcceptsUpdate()
+        fake.downloadStarts()
+        fake.downloadCompletes()
+
+        // A new process: nothing is listening, so only the check can see the finished download.
+        val resumed = flexibleUpdates()
+        assertFalse(resumed.downloaded.value)
+        resumed.check()
+
+        assertTrue(resumed.downloaded.value)
+        resumed.complete()
         assertTrue(fake.isInstallSplashScreenVisible)
     }
 

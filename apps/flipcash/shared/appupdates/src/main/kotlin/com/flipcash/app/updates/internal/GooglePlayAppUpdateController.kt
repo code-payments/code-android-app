@@ -42,10 +42,9 @@ class GooglePlayAppUpdateController internal constructor(
     private val dispatchers: DispatcherProvider,
     private val flexibleUpdates: FlexibleUpdates,
     private val toastSeenStore: UpdateToastSeenStore,
+    private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(context),
 ) : AppUpdateController {
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
-
-    private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(context)
 
     private val _availableUpdate = MutableStateFlow<UpdateInfo?>(null)
     override val availableUpdate: StateFlow<UpdateInfo?>
