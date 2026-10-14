@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
@@ -46,7 +45,7 @@ internal fun SystemMessageRow(text: String, modifier: Modifier = Modifier) {
     val slot = CodeTheme.dimens.staticGrid.x6
     // Centres the first line on the glyph slot. Row stays top-aligned, so a second line wraps
     // below with the glyph still beside the first.
-    val firstLineInset = with(LocalDensity.current) { (slot - SYSTEM_LINE_HEIGHT.toDp()) / 2 }
+    val firstLineInset = with(LocalDensity.current) { (slot - CodeTheme.typography.caption.lineHeight.toDp()) / 2 }
 
     Row(
         modifier = modifier
@@ -77,20 +76,13 @@ internal fun SystemMessageRow(text: String, modifier: Modifier = Modifier) {
                     .widthIn(max = transcriptBubbleMaxWidth(maxWidth, CodeTheme.dimens.inset))
                     .padding(top = firstLineInset),
                 text = text,
-                style = CodeTheme.typography.caption.copy(
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal,
-                    lineHeight = SYSTEM_LINE_HEIGHT,
-                ),
+                style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
             )
         }
     }
 }
 
-// No tokens for these: the 13/16 style, the 14dp glyph and the 6dp row padding are the design's own
-// numbers (EncryptedMarkerRow draws its glyphs at raw dp the same way).
-private val SYSTEM_LINE_HEIGHT = 16.sp
 private val SYSTEM_GLYPH_SIZE = 14.dp
 private val SYSTEM_ROW_VERTICAL_PADDING = 6.dp
 
