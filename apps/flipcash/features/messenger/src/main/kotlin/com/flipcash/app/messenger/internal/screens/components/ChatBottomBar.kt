@@ -287,8 +287,10 @@ internal fun UserControlBottomBar(
             // The part of the navigation bar's inset the keyboard isn't covering, so the bar only sinks
             // into it once the keyboard has cleared it.
             val restingRoom = WindowInsets.navigationBars.exclude(WindowInsets.ime)
-            // Toasts rest above the composer and as wide as its row, rather than the tab bar's.
-            ToastBottomClearance(buttonHeight)
+            // Toasts rest above the composer and as wide as its row, rather than the tab bar's. The
+            // bar's measured height includes the padding above the composer, which the host's own
+            // gap replaces.
+            ToastBottomClearance((buttonHeight - CodeTheme.dimens.staticGrid.x3).coerceAtLeast(0.dp))
             ToastHorizontalInset(sideInset)
             ChatUpdateToast(enabled = hasComposer)
             Box {
