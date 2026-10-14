@@ -1,6 +1,5 @@
 package com.flipcash.shared.chat.ui
 
-import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,8 +21,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -291,21 +288,10 @@ private fun Excerpt(body: Body) {
 @Composable
 private fun ExcerptText(body: Body.Text) {
     Text(
-        modifier = Modifier.then(
-            when {
-                !body.redacted -> Modifier
-                canBlur -> Modifier
-                    .blur(MessageLinkCardDefaults.REDACTED_BLUR, BlurredEdgeTreatment.Unbounded)
-                    .clearAndSetSemantics {}
-                // `blur` draws nothing below Android 12; cover the text with a solid block instead.
-                else -> Modifier
-                    .background(CodeTheme.colors.textSecondary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                    .clearAndSetSemantics {}
-            }
-        ),
+        modifier = if (body.redacted) Modifier.redactedText() else Modifier,
         text = flattenExcerpt(body.text),
         style = MessageLinkCardDefaults.bodyStyle,
-        color = if (body.redacted && !canBlur) Color.Transparent else MessageLinkCardDefaults.EXCERPT,
+        color = if (body.redacted) redactedTextColor(MessageLinkCardDefaults.EXCERPT) else MessageLinkCardDefaults.EXCERPT,
         maxLines = MessageLinkCardDefaults.BODY_LINES,
         overflow = TextOverflow.Ellipsis,
     )
@@ -446,8 +432,6 @@ internal object MessageLinkCardDefaults {
     val THUMBNAIL_RADIUS = 8.dp
     val BAR_HEIGHT = 10.dp
     val BUTTON_HEIGHT = 44.dp
-    val REDACTED_BLUR = 6.dp
-
     /** SF's chevron.right at 13 semibold is about 7 by 12. */
     val CHEVRON_WIDTH = 7.dp
     val CHEVRON_HEIGHT = 12.dp
@@ -563,6 +547,3 @@ private fun Preview_MessageLink_Deleted() = PreviewMessageCard(State.Deleted(pre
 private fun Preview_MessageLink_Unresolved() = PreviewMessageCard(State.Unresolved)
 
 // endregion
-
-/** `Modifier.blur` needs RenderEffect, which arrived in Android 12. */
-private val canBlur: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S

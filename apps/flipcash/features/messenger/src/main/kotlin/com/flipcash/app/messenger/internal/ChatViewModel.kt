@@ -456,6 +456,12 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val linkedAsGroup: Boolean = false,
         /**
+         * The linked message, drawn alone over the blurred transcript when a message link lands in
+         * a group that withholds its transcript from the viewer (flow 6). See [gatedLandingBubble].
+         * Null for any other visit, and cleared once the viewer can read the transcript itself.
+         */
+        val gatedLanding: ChatListItem.ContentBubble? = null,
+        /**
          * Where the "N Unread Messages" divider sits, read once per visit from the viewer's stored
          * READ pointer. Never re-read: the list advances that pointer as the reader scrolls, and a
          * boundary that followed it would slide the divider away from what was new at open.
@@ -1100,6 +1106,9 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** A jump whose message is neither stored nor on the server: nothing to scroll to. */
         data object JumpUnreachable : Event
+
+        /** The row a withheld landing draws over the blur changed. See [State.gatedLanding]. */
+        data class GatedLandingChanged(val item: ChatListItem.ContentBubble?) : Event
     }
 
     /**
@@ -1228,6 +1237,9 @@ internal class ChatViewModel @AssistedInject constructor(
      * anyone it omits (a sender who left, a member past the cap) is asked for one profile at a time.
      * See SenderResolver.
      */
+    /** The message a withheld landing peeked at; see [State.gatedLanding]. */
+    private val gatedLandingMessage = MutableStateFlow<ChatMessage?>(null)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val senderProfiles: StateFlow<Map<String, UserProfile>?> =
         stateFlow.map { it.chatType == ChatType.GROUP }
@@ -3049,10 +3061,26 @@ internal class ChatViewModel @AssistedInject constructor(
                 }
                 .onEach { (chatId, landing) ->
                     when (landing) {
-                        MessageLinkLanding.Readable -> resolveJump(chatId, openAtMessageId)
-                        MessageLinkLanding.Withheld -> dispatchEvent(Event.JumpUnreachable)
+                        MessageLinkLanding.Readable -> {
+                            gatedLandingMessage.value = null
+                            resolveJump(chatId, openAtMessageId)
+                        }
+                        MessageLinkLanding.Withheld -> {
+                            dispatchEvent(Event.JumpUnreachable)
+                            // A group the viewer is outside of still shows the linked message
+                            // itself, redacted as the server sees fit; nothing else is fetched.
+                            val state = stateFlow.value
+                            if (state.obscuresTranscript && !state.chatNotFound) {
+                                chatCoordinator.peekMessage(chatId, openAtMessageId)
+                                    .onSuccess { gatedLandingMessage.value = it }
+                            }
+                        }
                     }
                 }
+                .launchIn(viewModelScope)
+
+            gatedLandingItems()
+                .onEach { dispatchEvent(Event.GatedLandingChanged(it)) }
                 .launchIn(viewModelScope)
         }
 
@@ -3563,6 +3591,25 @@ internal class ChatViewModel @AssistedInject constructor(
         }
     }
 
+    /** [gatedLandingMessage] as the row it draws, named once its sender's profile resolves. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun gatedLandingItems(): Flow<ChatListItem.ContentBubble?> =
+        gatedLandingMessage
+            .flatMapLatest { message ->
+                if (message == null) return@flatMapLatest flowOf(null)
+                val senderId = message.senderId?.takeIf { !message.isFromSelf }
+                senderId?.let { chatCoordinator.requestSenderProfile(it) }
+                chatCoordinator.observeSenderProfiles()
+                    .onStart { chatCoordinator.currentSenderProfiles()?.let { emit(it) } }
+                    .map { profiles -> senderId?.let { profiles[it.hexEncodedString()] } }
+                    .onStart { emit(null) }
+                    .distinctUntilChanged()
+                    .map { profile ->
+                        gatedLandingBubble(message, profile, resources.getString(R.string.title_unnamedUser))
+                    }
+            }
+            .distinctUntilChanged()
+
     /**
      * Resolves the walk's bound for a jump to [messageId] and hands it to the list. A message the
      * device never stored is paged in from the server first, back from the oldest stored message so
@@ -3926,6 +3973,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     state.copy(jumpTarget = null, jumpBudget = null, openingAtMessage = false)
                 }
                 Event.JumpUnreachable -> { state -> state.copy(openingAtMessage = false) }
+                is Event.GatedLandingChanged -> { state -> state.copy(gatedLanding = event.item) }
                 is Event.UnreadBoundaryResolved -> { state ->
                     state.copy(
                         unreadBoundary = event.boundary,

@@ -21,6 +21,7 @@ import com.flipcash.app.persistence.sources.mediator.ChatMessageRemoteMediator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
@@ -423,6 +424,9 @@ class MessagingDelegate @Inject constructor(
         val peerId = if (fetched.senderId == selfId) getOtherMember(chatId)?.userId else null
         opener.open(chatId, selfId, peerId, listOf(fetched), stored = { null }).single()
     }
+
+    override suspend fun peekMessage(chatId: ChatId, messageId: Long): Result<ChatMessage> =
+        messagingController.getMessage(chatId, messageId, ViewMode.FULL_OR_REDACTED)
 
     /** Text, photos and replies to either are what DMs encrypt; anything else keeps the server's body. */
     private fun MessageContent.pushText(): String? = when (this) {
