@@ -13,6 +13,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -98,6 +99,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withTimeoutOrNull
@@ -118,6 +120,7 @@ internal fun MessageList(
     onJumpConsumed: () -> Unit = {},
     topBarBottom: Dp = 0.dp,
     unreadBelowCount: Int = 0,
+    onUserScrolled: () -> Unit = {},
     hazeState: HazeState? = null,
 ) {
     val keyboard = rememberKeyboardController()
@@ -150,6 +153,16 @@ internal fun MessageList(
         // True while the list is being carried to a new newest row, so the jump button stays down.
         var autoScrolling by remember { mutableStateOf(false) }
         HandleMessageReads(listState, messages, enabled = hasPositioned)
+        // The first drag or fling after the list has settled. Not isScrollInProgress, which is
+        // also true through the animated and instant scrolls the list makes itself (opening,
+        // auto-scroll, the jump button): only a finger starts a DragInteraction, and a fling
+        // starts from one.
+        val currentOnUserScrolled by rememberUpdatedState(onUserScrolled)
+        LaunchedEffect(listState, hasPositioned) {
+            if (!hasPositioned) return@LaunchedEffect
+            listState.interactionSource.interactions.filterIsInstance<DragInteraction.Start>().first()
+            currentOnUserScrolled()
+        }
 
         // Haptic feedback when a new incoming message arrives
         // Track the newest message key — only fire when it changes to an incoming message

@@ -191,6 +191,13 @@ class ChatMessageDataSource @Inject constructor(
             afterId = afterId,
         ) ?: 0
 
+    /** The newest stored, non-deleted message in [chatId] that someone other than [selfId] sent, or `null`. */
+    suspend fun newestInboundId(chatId: ChatId, selfId: ID): Long? =
+        db?.chatMessageDao()?.newestInboundId(
+            chatIdHex = mapper.chatIdHex(chatId),
+            selfIdHex = mapper.userIdHex(selfId),
+        )
+
     /**
      * [countInboundAfter] as a stream, so arrivals and pointer moves both update it. Resolved through
      * [FlipcashDatabase.observeInstance] like [hasEverTipped]: a subscriber that starts before the

@@ -517,6 +517,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
                         topBarBottom = barHeight,
                         unreadBelowCount = unreadBelowCount,
+                        onUserScrolled = { viewModel.dispatchEvent(ChatViewModel.Event.UserScrolledTranscript) },
                         hazeState = hazeState,
                     )
                 }

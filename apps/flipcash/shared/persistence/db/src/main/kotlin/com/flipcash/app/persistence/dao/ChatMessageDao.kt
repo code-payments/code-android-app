@@ -124,6 +124,18 @@ interface ChatMessageDao {
     fun observeInboundCountAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Flow<Int>
 
     /**
+     * The newest inbound, non-deleted message id in [chatIdHex], or `null` when there is none. Same
+     * WHERE clause as [countInboundAfter]: "an arrival" and "unread" must mean the same rows.
+     */
+    @Query(
+        "SELECT MAX(message_id) FROM chat_messages " +
+            "WHERE chat_id_hex = :chatIdHex " +
+            "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
+            "AND is_deleted = 0"
+    )
+    suspend fun newestInboundId(chatIdHex: String, selfIdHex: String): Long?
+
+    /**
      * The first stored message in [chatIdHex] after [afterId] that [selfIdHex] did not send,
      * tombstones included, or `null` when only the viewer's own messages follow. The unread divider
      * sits above it: the viewer's own messages right after their pointer are not unread.

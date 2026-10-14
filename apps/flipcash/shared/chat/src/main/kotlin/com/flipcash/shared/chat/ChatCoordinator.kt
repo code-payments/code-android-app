@@ -342,6 +342,18 @@ interface MessagingOperations {
      */
     fun observeUnreadBelow(chatId: ChatId): Flow<Int>
 
+    /**
+     * The newest inbound, non-deleted message id stored in [chatId], or `null` when there is none.
+     * Read when a chat opens: inbound messages past it are the ones that arrived after the open.
+     */
+    suspend fun newestInboundId(chatId: ChatId): Long?
+
+    /**
+     * How many inbound, non-deleted messages in [chatId] sit past [afterId], live, whatever the
+     * read pointer says. [afterId] below every stored id counts them all.
+     */
+    fun observeInboundAfter(chatId: ChatId, afterId: Long): Flow<Int>
+
     /** How many stored messages in [chatId] sit past [messageId]. Bounds the walk to the unread divider. */
     suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int
 

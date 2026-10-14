@@ -425,6 +425,19 @@ internal class ChatViewModel @AssistedInject constructor(
         /** How many stored messages sit past the boundary, which bounds the walk that opens at it. */
         val unreadWalkBudget: Int = 0,
         /**
+         * Whether the jump-to-bottom badge is still holding the number the chat opened with (see
+         * [unreadBadgeCount]). Starts true; released by the first drag or fling the viewer makes
+         * on the transcript after it has settled ([Event.UserScrolledTranscript]), or by their own
+         * message being confirmed ([Event.OwnMessageSent]). Programmatic scrolls never release it.
+         */
+        val unreadBadgeFrozen: Boolean = true,
+        /**
+         * The newest inbound message id stored when the chat opened, or [NO_INBOUND_AT_OPEN]; null
+         * until the open has resolved. Inbound messages past it are the arrivals the frozen badge
+         * adds to the divider's count.
+         */
+        val newestInboundIdAtOpen: Long? = null,
+        /**
          * True while the delete confirmation is up.
          *
          * The sheet is modal, so nothing behind it should still read as the focus: the selected
@@ -995,7 +1008,17 @@ internal class ChatViewModel @AssistedInject constructor(
         data class JumpResolved(val messageId: Long, val budget: Int) : Event
 
         /** The chat's unread boundary, read once when its id became known. */
-        data class UnreadBoundaryResolved(val boundary: UnreadBoundary, val walkBudget: Int) : Event
+        data class UnreadBoundaryResolved(
+            val boundary: UnreadBoundary,
+            val walkBudget: Int,
+            val newestInboundId: Long = NO_INBOUND_AT_OPEN,
+        ) : Event
+
+        /** The viewer dragged or flung the settled transcript; releases the badge's freeze. */
+        data object UserScrolledTranscript : Event
+
+        /** The server confirmed a message the viewer sent; the read pointer has moved past everything. */
+        data object OwnMessageSent : Event
         data object JumpConsumed : Event
     }
 
@@ -1048,20 +1071,20 @@ internal class ChatViewModel @AssistedInject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /**
-     * How many inbound messages sit past the viewer's READ pointer, for the jump-to-bottom badge.
-     * The pointer is the one the read reporter advances, so the badge falls as rows are read and
-     * cannot disagree with it. An outside viewer's pointer never moves, so it counts nothing.
+     * The jump-to-bottom badge: see [unreadBadgeCount]. Its live term counts inbound messages past
+     * the viewer's READ pointer, the one the read reporter advances, so once released the badge
+     * falls as rows are read and cannot disagree with it.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     val unreadBelowCount = stateFlow.mapNotNull { it.chatId }
         .distinctUntilChanged()
         .flatMapLatest { chatId ->
-            combine(
-                chatCoordinator.observeUnreadBelow(chatId),
-                stateFlow.map { it.isOutsideGroup }.distinctUntilChanged(),
-            ) { count, outside -> if (outside) 0 else count }
+            unreadBadgeCounts(
+                state = stateFlow,
+                live = chatCoordinator.observeUnreadBelow(chatId),
+                arrivalsAfter = { afterId -> chatCoordinator.observeInboundAfter(chatId, afterId) },
+            )
         }
-        .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     /**
@@ -2886,11 +2909,14 @@ internal class ChatViewModel @AssistedInject constructor(
         stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
             .onEach { chatId ->
+                // Before the boundary: an arrival between the two is counted twice rather than
+                // missed.
+                val newestInbound = chatCoordinator.newestInboundId(chatId) ?: NO_INBOUND_AT_OPEN
                 val boundary = chatCoordinator.resolveUnreadBoundary(chatId)
                 val budget = (boundary as? UnreadBoundary.At)
                     ?.let { chatCoordinator.countMessagesAfter(chatId, it.readThrough) }
                     ?: 0
-                dispatchEvent(Event.UnreadBoundaryResolved(boundary, budget))
+                dispatchEvent(Event.UnreadBoundaryResolved(boundary, budget, newestInbound))
             }
             // The list waits on this, and on main it queued behind the transcript's first frame.
             .flowOn(dispatchers.IO)
@@ -3073,6 +3099,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     }
                     sent
                         .onSuccess {
+                            dispatchEvent(Event.OwnMessageSent)
                             trace("message sent successfully")
                             analytics.track(ChatEvents.sentMessage(chatType.analytics, null))
                         }
@@ -3101,11 +3128,17 @@ internal class ChatViewModel @AssistedInject constructor(
                             viewModelScope.launch {
                                 if (content.photoBody() != null) {
                                     chatCoordinator.retryMedia(chatId, pendingId)
-                                        .onSuccess { trace("retry photo sent successfully") }
+                                        .onSuccess {
+                                            dispatchEvent(Event.OwnMessageSent)
+                                            trace("retry photo sent successfully")
+                                        }
                                         .onFailure { trace("retry photo failed - ${it.localizedMessage}") }
                                 } else {
                                     chatCoordinator.retryMessage(chatId, pendingId, listOf(content))
-                                        .onSuccess { trace("retry message sent successfully") }
+                                        .onSuccess {
+                                            dispatchEvent(Event.OwnMessageSent)
+                                            trace("retry message sent successfully")
+                                        }
                                         .onFailure { trace("retry message failed - ${it.localizedMessage}") }
                                 }
                             }
@@ -3718,7 +3751,14 @@ internal class ChatViewModel @AssistedInject constructor(
                 }
                 Event.JumpConsumed -> { state -> state.copy(jumpTarget = null, jumpBudget = null) }
                 is Event.UnreadBoundaryResolved -> { state ->
-                    state.copy(unreadBoundary = event.boundary, unreadWalkBudget = event.walkBudget)
+                    state.copy(
+                        unreadBoundary = event.boundary,
+                        unreadWalkBudget = event.walkBudget,
+                        newestInboundIdAtOpen = event.newestInboundId,
+                    )
+                }
+                Event.UserScrolledTranscript, Event.OwnMessageSent -> { state ->
+                    state.copy(unreadBadgeFrozen = false)
                 }
             }
     }

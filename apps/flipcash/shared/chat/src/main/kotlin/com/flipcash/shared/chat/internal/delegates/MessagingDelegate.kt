@@ -239,6 +239,21 @@ class MessagingDelegate @Inject constructor(
             }
             .distinctUntilChanged()
 
+    override suspend fun newestInboundId(chatId: ChatId): Long? {
+        val selfId = userManager.accountId ?: return null
+        return messageDataSource.newestInboundId(chatId, selfId)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeInboundAfter(chatId: ChatId, afterId: Long): Flow<Int> =
+        userManager.state.map { it.accountId }
+            .distinctUntilChanged()
+            .flatMapLatest { selfId ->
+                if (selfId == null) flowOf(0)
+                else messageDataSource.observeInboundCountAfter(chatId, selfId, afterId)
+            }
+            .distinctUntilChanged()
+
     override suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int =
         messageDataSource.countAfter(chatId, messageId)
 
