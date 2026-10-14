@@ -11,14 +11,16 @@ import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.internal.ui.AppNavigationBarVisibility
 import com.flipcash.app.updates.LocalAppUpdater
-import com.flipcash.app.updates.UpdateToastTiming
 import com.flipcash.app.updates.showUpdateToast
 import com.flipcash.core.R
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.utils.lifecycle.RepeatOnLifecycle
 import com.getcode.ui.components.toast.FloatingToastHostState
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import com.flipcash.app.updates.UpdateToastScene
+import com.flipcash.app.updates.awaitOneTimeToast
+import com.flipcash.app.updates.readyToastAllowed
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.runningFold
@@ -64,40 +66,41 @@ internal fun UpdateAvailableToast(
             .runningFold(RouteChange(previous = null, current = null, sequence = -1)) { last, key ->
                 RouteChange(previous = last.current, current = key, sequence = last.sequence + 1)
             }
-        // Settings sits over a tab home and carries its own version card. Leaving it cancels the
-        // dwell timer before the version is marked seen, so the toast can still show elsewhere.
         val onHome = snapshotFlow {
             barVisibility.selectedTab in updateToastTabs &&
                 barVisibility.shown &&
-                !barVisibility.coversToast &&
-                navigator.currentRouteKey !is AppRoute.Menu.Settings
+                !barVisibility.coversToast
         }
+        val onSettings = snapshotFlow { navigator.currentRouteKey is AppRoute.Menu.Settings }
         var handled = -1
         launch {
-            combine(routes, onHome, updater.updateToast) { route, home, toast -> Triple(route, home, toast) }
-                .collectLatest { (route, home, toast) ->
-                    val cameBack = route.sequence != handled && route.previous.isPushedRoute()
-                    handled = route.sequence
-                    if (toast == null || !home) return@collectLatest
-                    delay(if (cameBack) UpdateToastTiming.SETTLE_MILLIS else UpdateToastTiming.DWELL_MILLIS)
+            combine(routes, combine(onHome, onSettings, ::UpdateToastScene), updater.updateToast) { route, scene, toast ->
+                Triple(route, scene, toast)
+            }.collectLatest { (route, scene, toast) ->
+                val cameBack = route.sequence != handled && route.previous.isPushedRoute()
+                handled = route.sequence
+                awaitOneTimeToast(toast, scene, cameBack) { shownFor ->
                     // Outside collectLatest: marking the version seen re-emits, which would take the
                     // toast straight back down.
                     this@RepeatOnLifecycle.launch {
-                        updater.showUpdateToast(toasts, toast, message = message, actionLabel = update)
+                        updater.showUpdateToast(toasts, shownFor, message = message, actionLabel = update)
                     }
                 }
+            }
+        }
+
+        // A toast already up when Settings opens goes away. Once shown it stays seen.
+        launch {
+            onSettings.filter { it }.collect { toasts.current?.dismiss() }
         }
 
         launch {
             // Settings carries its own pinned "Restart" card, so the toast would sit on top of it.
-            val onSettings = snapshotFlow { navigator.currentRouteKey is AppRoute.Menu.Settings }
-            combine(
-                updater.updateDownloaded,
-                snapshotFlow { barVisibility.coversToast },
-                onSettings,
-            ) { downloaded, covered, settings ->
-                downloaded && !covered && !settings
-            }.collectLatest { showReady ->
+            readyToastAllowed(
+                downloaded = updater.updateDownloaded,
+                covered = snapshotFlow { barVisibility.coversToast },
+                onSettings = onSettings,
+            ).collectLatest { showReady ->
                 if (!showReady) return@collectLatest
                 val result = toasts.show(
                     message = ready,
