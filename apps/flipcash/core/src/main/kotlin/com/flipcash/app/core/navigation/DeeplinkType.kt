@@ -33,6 +33,22 @@ sealed interface DeeplinkType: Parcelable {
     @Serializable data class GroupChatInvite(val chatId: ChatId): DeeplinkType, Navigatable
 
     /**
+     * One message in a chat — `app.flipcash.com/chat/{chatId}/m/{seq}`.
+     *
+     * [messageId] is the message's per-chat sequence number, its canonical identity together with
+     * [chatId]. The chat id takes the form `/chat/{id}` already accepts: a dashed UUID for a
+     * group, base64url for a DM. [isGroup] records which form the link used, because the two open
+     * differently: a group the server has no record of is a dead link, while a DM on its derived id
+     * has no record until someone writes in it.
+     */
+    @Serializable
+    data class ChatMessage(
+        val chatId: ChatId,
+        val messageId: Long,
+        val isGroup: Boolean,
+    ) : DeeplinkType, Navigatable
+
+    /**
      * A tip card addressed by account id — the older `app.flipcash.com/tip/{uuid}` that links
      * already shared still carry.
      */
@@ -74,6 +90,7 @@ sealed interface DeeplinkType: Parcelable {
             is Tipcard,
             is Profile,
             is GroupChatInvite,
+            is ChatMessage,
             -> true
 
             is Login,
