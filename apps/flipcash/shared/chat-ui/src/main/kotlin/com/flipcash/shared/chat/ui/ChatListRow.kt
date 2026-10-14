@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
@@ -34,6 +33,19 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+/**
+ * Metrics of [ChatListRow], matching iOS `RecipientRow`: 20 leading/trailing and 14 top/bottom
+ * insets around a 44 avatar, 12 between avatar and text, 2 between title and subtitle. That
+ * makes a 72 row when the text column is no taller than the avatar.
+ */
+object ChatListRowDefaults {
+    val AvatarSize = 44.dp
+    internal val HorizontalInset = 20.dp
+    internal val VerticalInset = 14.dp
+    internal val AvatarToText = 12.dp
+    internal val TitleToSubtitle = 2.dp
+}
+
 @Composable
 fun ChatListRow(
     avatar: @Composable () -> Unit,
@@ -54,21 +66,19 @@ fun ChatListRow(
                 .fillMaxWidth()
                 .testTag("send_contact_row")
                 .clickable(onClick = onClick)
-                .padding(vertical = CodeTheme.dimens.inset)
-                .padding(end = CodeTheme.dimens.inset),
+                .padding(
+                    horizontal = ChatListRowDefaults.HorizontalInset,
+                    vertical = ChatListRowDefaults.VerticalInset,
+                ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            horizontalArrangement = Arrangement.spacedBy(ChatListRowDefaults.AvatarToText),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Spacer used by the unread indicator that we moved
-                // left for spacing compatibility and easy add back later
-                Box(modifier = Modifier.requiredWidth(CodeTheme.dimens.inset))
-                avatar()
-            }
+            avatar()
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(ChatListRowDefaults.TitleToSubtitle),
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
@@ -88,8 +98,10 @@ fun ChatListRow(
                     .fillMaxWidth()
                     .height(1.dp)
                     .padding(
-                        start = CodeTheme.dimens.inset + CodeTheme.dimens.staticGrid.x8 + CodeTheme.dimens.grid.x3,
-                        end = CodeTheme.dimens.inset,
+                        start = ChatListRowDefaults.HorizontalInset +
+                            ChatListRowDefaults.AvatarSize +
+                            ChatListRowDefaults.AvatarToText,
+                        end = ChatListRowDefaults.HorizontalInset,
                     ),
             )
         }
