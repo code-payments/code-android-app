@@ -684,7 +684,9 @@ internal fun MessageList(
             }
             // Not while a message is raised: the backdrop is modal and the list can't be dragged, so
             // the button must not scroll it either.
-            val jumpVisible by remember {
+            // Keyed on selecting: it is a plain Boolean, not state, so the derivation would keep the
+            // value it first read.
+            val jumpVisible by remember(selecting) {
                 derivedStateOf { hasPositioned && !listState.restsOnNewest() && !selecting && !autoScrolling }
             }
             // Beside the list, not inside it: the list carries the haze source the glass samples.
