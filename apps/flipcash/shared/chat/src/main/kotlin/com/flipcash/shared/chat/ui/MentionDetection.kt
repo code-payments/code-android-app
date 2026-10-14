@@ -19,23 +19,35 @@ data class DetectedMention(
  * iOS's `MentionDetector` is the reference, and the pattern is the same one.
  *
  * The character before the `@` must not be a handle character, `.` or `@`, so an email address or
- * `@@name` is not a mention. The handle ends at the first character a handle cannot hold, and a
+ * `@@name` is not a mention. A single `_` may stand between them, so `_@jeff_` is an italic
+ * mention; `jeff_@gmail.com` and `__@jeff__` are still not. The handle ends at the first character a handle cannot hold, and a
  * handle running straight into more handle characters or another `@` is dropped rather than cut
  * short. A handle inside a link (`x.com/@jeff`) is left to the link.
  */
 fun detectMentions(text: String, links: List<DetectedUrl>): List<DetectedMention> {
     if ('@' !in text) return emptyList()
     return MENTION_PATTERN.findAll(text).mapNotNull { match ->
-        val mention = match.groups[1] ?: return@mapNotNull null
-        val handle = match.groups[2] ?: return@mapNotNull null
+        val opener = match.groups[1]?.value.orEmpty()
+        val mention = match.groups[2] ?: return@mapNotNull null
+        val handle = match.groups[3] ?: return@mapNotNull null
         val start = mention.range.first
-        val end = mention.range.last + 1
+        var end = mention.range.last + 1
+        var username = handle.value
+        // `_@jeff_`: the final `_` closes the italic the leading one opened, as long as a handle
+        // of at least two characters is left. Without a leading `_` nothing is trimmed.
+        if (opener.isNotEmpty() && username.endsWith('_') && username.length - 1 >= MIN_HANDLE_LENGTH) {
+            username = username.dropLast(1)
+            end--
+        }
         if (links.any { it.start < end && start < it.end }) return@mapNotNull null
-        DetectedMention(start = start, end = end, username = handle.value.lowercase())
+        DetectedMention(start = start, end = end, username = username.lowercase())
     }.toList()
 }
 
+private const val MIN_HANDLE_LENGTH = 2
+
 // The preceding character is matched and left out of the mention's range, as iOS does for want of
-// a lookbehind in Swift Regex, so the two platforms run one pattern.
+// a lookbehind in Swift Regex, so the two platforms run one pattern. One `_` may sit between that
+// character and the `@` (text-format spec, rule 6); it is not part of the mention.
 private val MENTION_PATTERN =
-    Regex("""(?:^|[^A-Za-z0-9_.@])(@([A-Za-z0-9_]{2,15}))(?![A-Za-z0-9_@])""")
+    Regex("""(?:^|[^A-Za-z0-9_.@])(_?)(@([A-Za-z0-9_]{2,15}))(?![A-Za-z0-9_@])""")

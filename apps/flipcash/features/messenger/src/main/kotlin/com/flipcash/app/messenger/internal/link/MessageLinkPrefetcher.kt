@@ -5,7 +5,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.shared.chat.MessageLinkPrefetch
 import com.flipcash.shared.chat.models.LinkCard
-import com.flipcash.shared.chat.ui.detectUrls
+import com.flipcash.shared.chat.ui.cardLinks
 import com.flipcash.shared.chat.ui.linkableText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -53,7 +53,7 @@ internal class MessageLinkPrefetcher(
             .asSequence()
             .filterNot { it.redacted }
             .flatMap { it.content.asSequence() }
-            .mapNotNull { content -> content.linkableText()?.let { classifier.firstCard(detectUrls(it)) } }
+            .mapNotNull { content -> content.linkableText()?.let { classifier.firstCard(cardLinks(it)) } }
             .mapNotNull { card -> lookup(card, webAllowed) }
             .toList()
 

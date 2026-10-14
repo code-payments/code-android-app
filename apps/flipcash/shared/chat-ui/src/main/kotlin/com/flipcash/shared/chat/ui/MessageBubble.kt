@@ -84,6 +84,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.cornerRadius
+import com.getcode.theme.monospace
 import com.getcode.theme.tiny
 import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.core.addIf
@@ -535,6 +536,15 @@ private fun TextBubble(
             color = CodeTheme.colors.textMain,
             textDecoration = TextDecoration.None,
         )
+        val codeFamily = CodeTheme.typography.textMedium.monospace().fontFamily
+        val codeBackground = CodeTheme.colors.textMain.copy(alpha = 0.12f)
+        val formatStyles = remember(codeFamily, codeBackground) {
+            FormatStyles(
+                code = SpanStyle(fontFamily = codeFamily, background = codeBackground),
+                codeBlock = SpanStyle(fontFamily = codeFamily, background = codeBackground),
+            )
+        }
+        val quoteBarColor = CodeTheme.colors.textSecondary
         // Read through the latest handler, so a recomposition that hands over a new lambda does
         // not rebuild the body; only whether mentions can be tapped at all is part of its key.
         val currentOnMentionClick by rememberUpdatedState(onMentionClick)
@@ -543,7 +553,7 @@ private fun TextBubble(
         val mentioned = if (isTombstone) {
             null
         } else {
-            remember(bodyString, mentions, linkStyle, mentionStyle, mentionsTappable) {
+            remember(bodyString, mentions, linkStyle, mentionStyle, mentionsTappable, formatStyles) {
                 buildMentionedText(
                     text = bodyString,
                     mentions = mentions,
@@ -554,11 +564,13 @@ private fun TextBubble(
                     } else {
                         null
                     },
+                    formatStyles = formatStyles,
                 )
             }
         }
         val body = mentioned?.text ?: AnnotatedString(bodyString)
         val handles = mentioned?.handles.orEmpty()
+        val quoteBars = mentioned?.quoteBars.orEmpty()
         val bodyStyle = CodeTheme.typography.textMedium.copy(
             fontWeight = FontWeight.Medium,
             fontStyle = if (isTombstone) FontStyle.Italic else FontStyle.Normal,
@@ -625,10 +637,15 @@ private fun TextBubble(
                     .padding(horizontal = bodyInset)
                     .widestLine(measurer, laidOut, bodyStyle, inlineContent)
                     .then(
-                        if (handles.isEmpty()) {
+                        if (handles.isEmpty() && quoteBars.isEmpty()) {
                             Modifier
                         } else {
-                            Modifier.drawBehind { bodyLayout?.let { drawMentionPills(it, handles) } }
+                            Modifier.drawBehind {
+                                bodyLayout?.let {
+                                    drawMentionPills(it, handles)
+                                    drawQuoteBars(it, quoteBars, quoteBarColor)
+                                }
+                            }
                         }
                     ),
                 text = laidOut,
