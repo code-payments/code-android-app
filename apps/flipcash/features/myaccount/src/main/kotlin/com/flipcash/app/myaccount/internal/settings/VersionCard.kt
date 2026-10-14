@@ -45,7 +45,7 @@ private val UpdateTextGreen = Color(0xFF73EAA4)
 /**
  * The compact version card at the bottom of Settings (Figma, A8 columns of section 11435:162).
  * Inline it takes the You tab's stat card fill and the version-tap beta toggle ([onClick]); pinned
- * (a [VersionCardState.pinned] state) it sits on the glass strip SettingsScreen draws behind it and takes no taps.
+ * (a [VersionCardState.pinned] state) it draws its own glass over the list and takes no taps.
  */
 @Composable
 internal fun VersionCard(
