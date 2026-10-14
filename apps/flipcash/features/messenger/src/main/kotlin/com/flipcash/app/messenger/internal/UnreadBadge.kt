@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal
 
-import com.flipcash.shared.chat.UnreadBoundary
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -35,13 +34,13 @@ internal fun arrivalCutoff(readPointer: Long?, newestInbound: Long?): Long =
  */
 internal fun unreadBadgeCount(
     frozen: Boolean,
-    boundary: UnreadBoundary,
+    openCount: Int,
     arrivalsSinceOpen: Int,
     live: Int,
     outsideGroup: Boolean,
 ): Int = when {
     outsideGroup -> 0
-    frozen -> ((boundary as? UnreadBoundary.At)?.count ?: 0) + arrivalsSinceOpen
+    frozen -> openCount + arrivalsSinceOpen
     else -> live
 }
 
@@ -60,9 +59,9 @@ internal fun unreadBadgeCounts(
         .distinctUntilChanged()
         .flatMapLatest { openedAt -> if (openedAt == null) flowOf(0) else arrivalsAfter(openedAt) }
     val inputs = state
-        .map { Triple(it.unreadBadgeFrozen, it.unreadBoundary, it.isOutsideGroup) }
+        .map { Triple(it.unreadBadgeFrozen, it.unreadBadgeOpenCount, it.isOutsideGroup) }
         .distinctUntilChanged()
-    return combine(inputs, arrivals, live) { (frozen, boundary, outside), arrived, liveCount ->
-        unreadBadgeCount(frozen, boundary, arrived, liveCount, outside)
+    return combine(inputs, arrivals, live) { (frozen, openCount, outside), arrived, liveCount ->
+        unreadBadgeCount(frozen, openCount, arrived, liveCount, outside)
     }.distinctUntilChanged()
 }

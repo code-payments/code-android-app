@@ -432,9 +432,15 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val unreadBadgeFrozen: Boolean = true,
         /**
-         * The [arrivalCutoff] recorded once the open's reads have landed: the later of the read
-         * pointer and the newest inbound id stored, or [NO_INBOUND_AT_OPEN]; null until then.
-         * Inbound messages past it are the arrivals the frozen badge adds to the divider's count.
+         * The divider's count as it stood at open, kept apart from [unreadBoundary] so the badge
+         * holds it when the boundary is later cleared (sending under [UnreadDividerLifetime.UntilSend]).
+         */
+        val unreadBadgeOpenCount: Int = 0,
+        /**
+         * The [arrivalCutoff] recorded once the opening load has landed: the later of the read
+         * pointer and the newest inbound id stored, or [NO_INBOUND_AT_OPEN]; null until then, while
+         * nothing counts as an arrival. Inbound messages past it are the arrivals the frozen badge
+         * adds to the divider's count.
          */
         val newestInboundIdAtOpen: Long? = null,
         /**
@@ -1008,11 +1014,13 @@ internal class ChatViewModel @AssistedInject constructor(
         data class JumpResolved(val messageId: Long, val budget: Int) : Event
 
         /** The chat's unread boundary, read once when its id became known. */
-        data class UnreadBoundaryResolved(
-            val boundary: UnreadBoundary,
-            val walkBudget: Int,
-            val newestInboundId: Long = NO_INBOUND_AT_OPEN,
-        ) : Event
+        data class UnreadBoundaryResolved(val boundary: UnreadBoundary, val walkBudget: Int) : Event
+
+        /**
+         * The opening load has landed and the arrival cutoff ([arrivalCutoff]) was read after it.
+         * Inbound messages past it are the arrivals the frozen badge adds.
+         */
+        data class ArrivalCutoffRecorded(val cutoff: Long) : Event
 
         /** The viewer dragged or flung the settled transcript; releases the badge's freeze. */
         data object UserScrolledTranscript : Event
@@ -1832,6 +1840,22 @@ internal class ChatViewModel @AssistedInject constructor(
      * the gate says so, off [State.readsFromOutside], rather than here, where the balance that
      * decides it has not arrived yet.
      */
+    /**
+     * Reads the badge's arrival cutoff once the opening load has landed, so history that load
+     * stores is never an arrival. A message that arrives during the load is not counted either.
+     * The reads wait for the account and database, so -1 only ever means "ready, with no read
+     * pointer and no inbound stored".
+     */
+    private suspend fun recordArrivalCutoff(chatId: ChatId) {
+        val cutoff = withContext(dispatchers.IO) {
+            arrivalCutoff(
+                readPointer = chatCoordinator.selfReadPointer(chatId),
+                newestInbound = chatCoordinator.newestInboundId(chatId),
+            )
+        }
+        dispatchEvent(Event.ArrivalCutoffRecorded(cutoff))
+    }
+
     private suspend fun openTranscript(chatId: ChatId) {
         when (val hydration = chatCoordinator.hydrateChat(chatId)) {
             ChatHydration.Stored,
@@ -1900,7 +1924,10 @@ internal class ChatViewModel @AssistedInject constructor(
                     featuredGroups.peek(chatId)
                         ?.takeIf { chatCoordinator.observeMetadata(chatId).first() == null }
                         ?.let { dispatchEvent(Event.OnGroupResolved(ChatMembership(metadata = it, isMember = null))) }
-                    viewModelScope.launch { openTranscript(chatId) }
+                    viewModelScope.launch {
+                        openTranscript(chatId)
+                        recordArrivalCutoff(chatId)
+                    }
                     // A feed row has no cover, so fetch it now rather than when the group's
                     // profile opens: the profile would otherwise draw an empty cover through GetChat.
                     viewModelScope.launch {
@@ -2910,18 +2937,11 @@ internal class ChatViewModel @AssistedInject constructor(
         stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
             .onEach { chatId ->
-                // These reads wait for the account and database, so -1 only ever means "ready, with
-                // no read pointer and no inbound stored". They come before the boundary: an arrival
-                // between the two is counted twice rather than missed.
-                val cutoff = arrivalCutoff(
-                    readPointer = chatCoordinator.selfReadPointer(chatId),
-                    newestInbound = chatCoordinator.newestInboundId(chatId),
-                )
                 val boundary = chatCoordinator.resolveUnreadBoundary(chatId)
                 val budget = (boundary as? UnreadBoundary.At)
                     ?.let { chatCoordinator.countMessagesAfter(chatId, it.readThrough) }
                     ?: 0
-                dispatchEvent(Event.UnreadBoundaryResolved(boundary, budget, cutoff))
+                dispatchEvent(Event.UnreadBoundaryResolved(boundary, budget))
             }
             // The list waits on this, and on main it queued behind the transcript's first frame.
             .flowOn(dispatchers.IO)
@@ -3759,9 +3779,10 @@ internal class ChatViewModel @AssistedInject constructor(
                     state.copy(
                         unreadBoundary = event.boundary,
                         unreadWalkBudget = event.walkBudget,
-                        newestInboundIdAtOpen = event.newestInboundId,
+                        unreadBadgeOpenCount = (event.boundary as? UnreadBoundary.At)?.count ?: 0,
                     )
                 }
+                is Event.ArrivalCutoffRecorded -> { state -> state.copy(newestInboundIdAtOpen = event.cutoff) }
                 Event.UserScrolledTranscript, Event.OwnMessageSent -> { state ->
                     state.copy(unreadBadgeFrozen = false)
                 }
