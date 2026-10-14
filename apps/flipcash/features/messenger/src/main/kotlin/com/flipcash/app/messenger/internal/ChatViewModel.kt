@@ -1803,7 +1803,8 @@ internal class ChatViewModel @AssistedInject constructor(
                 chatId,
                 resources.getString(R.string.message_cash_link_thanks),
                 messageId,
-            ).onFailure { trace("claim reply failed to send - ${it.localizedMessage}") }
+            ).onSuccess { dispatchEvent(Event.OwnMessageSent) }
+                .onFailure { trace("claim reply failed to send - ${it.localizedMessage}") }
         }
     }
 
