@@ -1,6 +1,7 @@
 package com.flipcash.app.myaccount.internal.settings
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -77,28 +78,36 @@ internal fun SettingsScreen(
             listState = listState,
             topPadding = topPadding,
             card = card,
-            bottomPadding = if (card.pinned) navBars + pinnedHeight + pinnedGap * 2 else navBars,
+            bottomPadding = if (card.pinned) pinnedHeight + pinnedGap else navBars,
             onUpdate = { scope.launch { updater.startOptionalUpdate() } },
             onRestart = updater::completeUpdate,
             modifier = Modifier.hazeSource(hazeState),
         )
         if (card.pinned) {
-            VersionCard(
+            // The card is 30dp above the screen bottom (Figma), and an opaque strip behind it runs to
+            // the screen edge so no list row shows in the gap below it.
+            val bottomGap = 30.dp.coerceAtLeast(navBars)
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = navBars + pinnedGap)
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .onSizeChanged { pinnedHeight = with(density) { it.height.toDp() } },
-                state = card,
-                versionName = state.appVersionInfo.versionName,
-                versionCode = state.appVersionInfo.versionCode,
-                releaseTrack = state.releaseTrack,
-                // The beta toggle lives on the inline card only.
-                onClick = {},
-                onUpdate = { scope.launch { updater.startOptionalUpdate() } },
-                onRestart = updater::completeUpdate,
-                hazeState = hazeState,
-            )
+                    .fillMaxWidth()
+                    .onSizeChanged { pinnedHeight = with(density) { it.height.toDp() } }
+                    .background(CodeTheme.colors.background)
+                    .padding(top = pinnedGap, bottom = bottomGap)
+                    .padding(horizontal = 20.dp),
+            ) {
+                VersionCard(
+                    state = card,
+                    versionName = state.appVersionInfo.versionName,
+                    versionCode = state.appVersionInfo.versionCode,
+                    releaseTrack = state.releaseTrack,
+                    // The beta toggle lives on the inline card only.
+                    onClick = {},
+                    onUpdate = { scope.launch { updater.startOptionalUpdate() } },
+                    onRestart = updater::completeUpdate,
+                    hazeState = hazeState,
+                )
+            }
         }
     }
 }

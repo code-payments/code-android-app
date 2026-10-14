@@ -3,7 +3,21 @@ package com.flipcash.app.myaccount.internal.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
@@ -23,9 +37,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White10
 import com.getcode.ui.components.CapsuleProgressBar
-import com.getcode.ui.components.glass.floatingGlass
 import com.getcode.ui.core.noRippleClickable
-import dev.chrisbanes.haze.HazeState
 
 /** Flipcash2 spec text green (#73EAA4); the theme's `successText` still resolves to the fill green. */
 private val UpdateTextGreen = Color(0xFF73EAA4)
@@ -33,7 +45,7 @@ private val UpdateTextGreen = Color(0xFF73EAA4)
 /**
  * The compact version card at the bottom of Settings (Figma, A8 columns of section 11435:162).
  * Inline it takes the You tab's stat card fill and the version-tap beta toggle ([onClick]); pinned
- * (a [VersionCardState.pinned] state) it floats on glass over [hazeState] and takes no taps.
+ * (a [VersionCardState.pinned] state) it sits on the glass strip SettingsScreen draws behind it and takes no taps.
  */
 @Composable
 internal fun VersionCard(
@@ -47,9 +59,9 @@ internal fun VersionCard(
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null,
 ) {
-    val shape = CodeTheme.shapes.medium
+    val shape = if (state.pinned) RoundedCornerShape(12.dp) else CodeTheme.shapes.medium
     val surface = if (state.pinned) {
-        Modifier.floatingGlass(hazeState, shape)
+        Modifier.pinnedGlass(hazeState, shape)
     } else {
         Modifier
             .clip(shape)
@@ -62,13 +74,34 @@ internal fun VersionCard(
         if (state == VersionCardState.Debug) "" else releaseTrack,
     )
 
-    Column(
+    // Pinned heights and offsets are the Figma frames' (11455:184, 11455:198, 11479:13510).
+    val hasBar = state is VersionCardState.Downloading || state is VersionCardState.Ready
+    val pinnedHeight = if (state is VersionCardState.Ready) 78.dp else 70.dp
+    val pinnedTop = when (state) {
+        is VersionCardState.Downloading -> 15.dp
+        is VersionCardState.Ready -> 11.dp
+        else -> 0.dp
+    }
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .then(surface)
-            .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x3),
+            .then(if (state.pinned) Modifier.height(pinnedHeight) else Modifier),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (state.pinned) {
+                    Modifier.padding(top = pinnedTop, start = 16.dp, end = 16.dp)
+                } else {
+                    Modifier.padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x3)
+                },
+            )
+            .then(if (state.pinned && !hasBar) Modifier.fillMaxHeight() else Modifier),
+        verticalArrangement = if (state.pinned && !hasBar) Arrangement.Center else Arrangement.Top,
+    ) {
+        Row(verticalAlignment = if (state is VersionCardState.Downloading) Alignment.Top else Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 val (title, caption, captionColor) = when (state) {
                     VersionCardState.Debug,
@@ -120,36 +153,59 @@ internal fun VersionCard(
                     color = CodeTheme.colors.textSecondary,
                 )
                 is VersionCardState.Available -> ProfileActionButton(
+                    modifier = Modifier.widthIn(min = 86.dp),
                     text = stringResource(R.string.action_update),
                     onClick = onUpdate,
                 )
                 is VersionCardState.Downloading -> Text(
                     text = "${(state.fraction * 100).toInt()}%",
                     style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textSecondary,
+                    color = Color.White.copy(alpha = 0.5f),
                 )
                 is VersionCardState.Ready -> ProfileActionButton(
+                    modifier = Modifier.widthIn(min = 86.dp),
                     text = stringResource(R.string.action_restart),
                     onClick = onRestart,
                     contentColor = UpdateTextGreen,
                 )
             }
         }
-        when (state) {
-            is VersionCardState.Downloading -> CapsuleProgressBar(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
-                fraction = state.fraction,
-                // White while partial: a green partial bar reads as done.
-                color = Color.White,
-            )
-            is VersionCardState.Ready -> CapsuleProgressBar(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
-                fraction = 1f,
-                color = CodeTheme.colors.success,
-            )
-            else -> Unit
-        }
     }
+    when (state) {
+        is VersionCardState.Downloading -> CapsuleProgressBar(
+            modifier = Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+            fraction = state.fraction,
+            // White while partial: a green partial bar reads as done.
+            color = Color.White,
+            height = 4.dp,
+        )
+        is VersionCardState.Ready -> CapsuleProgressBar(
+            modifier = Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+            fraction = 1f,
+            color = CodeTheme.colors.success,
+            height = 4.dp,
+        )
+        else -> Unit
+    }
+    }
+}
+
+/** Figma pinned card: #1C1C1D at 62% over a Haze blur, 1dp white 10% stroke. */
+@Composable
+private fun Modifier.pinnedGlass(hazeState: HazeState?, shape: Shape): Modifier {
+    val tint = Color(0xFF1C1C1D).copy(alpha = 0.62f)
+    val backdrop = CodeTheme.colors.background
+    val fill = if (hazeState != null) {
+        val style = HazeBlurStyle {
+            blurRadius(24.dp)
+            backgroundColor(backdrop)
+            colorEffects(listOf(HazeColorEffect.tint(tint)))
+        }
+        Modifier.hazeBlur(HazeInput.Sources(hazeState), style)
+    } else {
+        Modifier.background(tint.compositeOver(backdrop), shape)
+    }
+    return this.clip(shape).then(fill).border(1.dp, Color.White.copy(alpha = 0.10f), shape)
 }
 
 @Preview

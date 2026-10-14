@@ -64,10 +64,13 @@ internal fun UpdateAvailableToast(
             .runningFold(RouteChange(previous = null, current = null, sequence = -1)) { last, key ->
                 RouteChange(previous = last.current, current = key, sequence = last.sequence + 1)
             }
+        // Settings sits over a tab home and carries its own version card. Leaving it cancels the
+        // dwell timer before the version is marked seen, so the toast can still show elsewhere.
         val onHome = snapshotFlow {
             barVisibility.selectedTab in updateToastTabs &&
                 barVisibility.shown &&
-                !barVisibility.coversToast
+                !barVisibility.coversToast &&
+                navigator.currentRouteKey !is AppRoute.Menu.Settings
         }
         var handled = -1
         launch {
