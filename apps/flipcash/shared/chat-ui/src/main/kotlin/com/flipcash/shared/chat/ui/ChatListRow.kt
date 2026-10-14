@@ -35,15 +35,16 @@ import kotlin.time.Instant
 
 /**
  * Metrics of [ChatListRow], matching iOS `RecipientRow`: 20 leading/trailing and 14 top/bottom
- * insets around a 44 avatar, 12 between avatar and text, 2 between title and subtitle. That
- * makes a 72 row when the text column is no taller than the avatar.
+ * insets around a 44 avatar and 12 between avatar and text. iOS spaces title and subtitle by 2
+ * on natural line heights; the pinned 20/18 line heights here already add that, so the gap is 0.
+ * That makes a 72 row when the text column is no taller than the avatar.
  */
 object ChatListRowDefaults {
     val AvatarSize = 44.dp
     internal val HorizontalInset = 20.dp
     internal val VerticalInset = 14.dp
     internal val AvatarToText = 12.dp
-    internal val TitleToSubtitle = 2.dp
+    internal val TitleToSubtitle = 0.dp
 }
 
 @Composable
