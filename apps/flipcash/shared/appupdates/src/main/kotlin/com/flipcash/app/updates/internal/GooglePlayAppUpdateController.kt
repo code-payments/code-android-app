@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.updates.AppUpdateController
+import com.flipcash.app.updates.OptionalUpdate
+import com.flipcash.app.updates.isToastEligible
 import com.flipcash.app.updates.UpdateInfo
 import com.flipcash.app.userflags.Field
 import com.flipcash.app.userflags.FieldOverride
@@ -22,28 +24,52 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import javax.inject.Inject
 import kotlin.coroutines.resume
 
 @ActivityScoped
-class GooglePlayAppUpdateController @Inject constructor(
+class GooglePlayAppUpdateController internal constructor(
     @field:ActivityContext
     private val context: Context,
     private val versionInfo: VersionInfo,
     private val userFlags: UserFlagsCoordinator,
     private val dispatchers: DispatcherProvider,
+    private val flexibleUpdates: FlexibleUpdates,
+    private val toastSeenStore: UpdateToastSeenStore,
+    private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(context),
 ) : AppUpdateController {
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
-
-    private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(context)
 
     private val _availableUpdate = MutableStateFlow<UpdateInfo?>(null)
     override val availableUpdate: StateFlow<UpdateInfo?>
         get() = _availableUpdate.asStateFlow()
+
+    override val optionalUpdate: StateFlow<OptionalUpdate?>
+        get() = flexibleUpdates.update
+
+    override val updateToast: StateFlow<OptionalUpdate?> =
+        combine(flexibleUpdates.update, toastSeenStore.lastShownVersionCode) { update, lastShown ->
+            update?.takeIf { it.isToastEligible(lastShown) }
+        }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    override val updateDownloaded: StateFlow<Boolean>
+        get() = flexibleUpdates.downloaded
+
+    override suspend fun checkForOptionalUpdate() = flexibleUpdates.check()
+
+    override suspend fun startOptionalUpdate(): Result<Unit> =
+        flexibleUpdates.start(context as ComponentActivity)
+
+    override fun completeUpdate() = flexibleUpdates.complete()
+
+    override suspend fun markUpdateToastShown(update: OptionalUpdate) =
+        toastSeenStore.markShown(update.versionCode)
 
     override suspend fun checkForUpdate() {
         trace(
@@ -152,7 +178,9 @@ class GooglePlayAppUpdateController @Inject constructor(
             return@suspendCancellableCoroutine
         }
 
-        if (!info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
+        // Play reports IMMEDIATE as not allowed while one is already under way; resuming it is.
+        val resuming = info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS
+        if (!resuming && !info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
             cont.resume(Result.failure(IllegalStateException("Update type is not allowed")))
             return@suspendCancellableCoroutine
         }

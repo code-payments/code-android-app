@@ -538,6 +538,10 @@
     <string name="title_updateRequired">Update Required</string>
     <string name="subtitle_updateRequired">The latest features of Flipcash require you to update to the latest version</string>
     <string name="action_updateNow">Update Now</string>
+    <string name="title_newVersionAvailable">New version available</string>
+    <string name="action_update">Update</string>
+    <string name="title_updateReady">Update ready</string>
+    <string name="action_restart">Restart</string>
 
     <string name="label_billCreatorBackground">Background</string>
     <string name="label_billCreatorTextures">Texture</string>

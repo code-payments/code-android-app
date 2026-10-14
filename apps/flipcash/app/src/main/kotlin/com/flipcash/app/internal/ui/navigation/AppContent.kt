@@ -125,6 +125,7 @@ internal fun AppContent(
     LaunchedEffect(toasts, barVisibility) {
         snapshotFlow { barVisibility.coversToast }.collect { toasts.isCovered = it }
     }
+    UpdateAvailableToast(navigator = codeNavigator, barVisibility = barVisibility, toasts = toasts)
 
     // A tab press replaces the whole back stack (tab-bar semantics — see AppNavigationBar), so every
     // tab home was destroyed and rebuilt on each switch: the wallet re-fetched its balances and the

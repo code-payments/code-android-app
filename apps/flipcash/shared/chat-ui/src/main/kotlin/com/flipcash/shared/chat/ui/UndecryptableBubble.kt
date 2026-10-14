@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -95,6 +96,15 @@ fun unsupportedContentHint(content: MessageContent): UndecryptableHint? = when (
     }
     else -> null
 }
+
+/** The update action on the [UndecryptableHint.UpdateApp] bubble: its label and what a tap does. */
+data class UpdateAppAction(val label: String, val onClick: () -> Unit)
+
+/**
+ * The update action every [UndecryptableHint.UpdateApp] bubble in a transcript shows, or null while
+ * no newer store build is known. The chat screen provides it.
+ */
+val LocalUpdateAppAction = compositionLocalOf<UpdateAppAction?> { null }
 
 /**
  * A message this client can't show. [UndecryptableHint.UpdateApp] draws as
