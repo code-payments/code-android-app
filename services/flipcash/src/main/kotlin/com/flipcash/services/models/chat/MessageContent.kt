@@ -33,6 +33,10 @@ sealed interface MessageContent {
      * recognise arrives as [WidgetContent.Unsupported] and is rendered as an unsupported message.
      */
     data class Widget(val widget: WidgetContent) : MessageContent
+    /**
+     * A notice the server wrote about the chat, such as "Alex joined the group". [fallbackText] is
+     * the only part this client reads; see `displayText` in chat-ui for what a row draws.
+     */
     data class System(val fallbackText: String) : MessageContent
     data class Deleted(
         val deletedTs: Instant,
@@ -64,4 +68,21 @@ sealed interface MessageContent {
         override fun toString(): String =
             "Encrypted(scheme=$scheme, nonce=${nonce.size} bytes, ciphertext=${ciphertext.size} bytes)"
     }
+}
+
+/**
+ * Whether this text is nothing but white space, by the definition iOS shares
+ * (`CharacterSet.whitespacesAndNewlines`): the Unicode White_Space property, U+0009-000D, U+0020,
+ * U+0085, U+00A0, U+1680, U+2000-200A, U+2028, U+2029, U+202F, U+205F and U+3000. An empty string is
+ * blank.
+ *
+ * Not `String.isBlank()`: Kotlin's `Char.isWhitespace()` counts U+001C-001F, which iOS does not, and
+ * leaves out U+0085, which it does. A notice must be drawn or dropped the same way on both.
+ */
+fun String.isSystemBlank(): Boolean = all { it.isSystemWhitespace() }
+
+private fun Char.isSystemWhitespace(): Boolean = when (code) {
+    in 0x0009..0x000D, 0x0020, 0x0085, 0x00A0, 0x1680, in 0x2000..0x200A,
+    0x2028, 0x2029, 0x202F, 0x205F, 0x3000 -> true
+    else -> false
 }

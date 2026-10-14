@@ -6,6 +6,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.handle
+import com.flipcash.shared.chat.models.displayText
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.media.ChatMediaText
 import com.getcode.opencode.model.core.ID
@@ -191,7 +192,8 @@ private fun MessageContent.previewText(
             else -> message
         }
     }
-    is MessageContent.System -> null
+    // The notice's own words, with no You: prefix and no sender name; it has no sender.
+    is MessageContent.System -> displayText()
 
     // A widget this client can't draw previews as nothing, as an undecryptable message does.
     is MessageContent.Widget -> when (widget) {

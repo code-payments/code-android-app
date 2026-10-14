@@ -1193,7 +1193,7 @@ internal class ChatViewModel @AssistedInject constructor(
      * separator config re-runs only [messages]' separator pass, not the per-message lookups here.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val mappedMessages: Flow<PagingData<ChatListItem.ContentBubble>> =
+    private val mappedMessages: Flow<PagingData<ChatListItem.TranscriptMessage>> =
         combine(
             messageStream,
             pendingMutations,
@@ -1207,7 +1207,15 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
-                message.content.flatMapIndexed { index, content ->
+                message.content.flatMapIndexed<MessageContent, ChatListItem.TranscriptMessage> { index, content ->
+                    // A notice has no sender, receipt, capabilities or link card, so it skips all of
+                    // that and becomes its own kind of row.
+                    if (content is MessageContent.System) {
+                        return@flatMapIndexed listOfNotNull(
+                            systemMessageItem(message.messageId, index, message.timestamp, content),
+                        )
+                    }
+
                     val enriched = if (content is MessageContent.Cash && content.tokenName.isBlank()) {
                         val token = tokenCoordinator.getTokenMetadata(content.mint).getOrNull()?.token
                         if (token != null) {
@@ -1356,7 +1364,9 @@ internal class ChatViewModel @AssistedInject constructor(
         .let { pages ->
             combine(pages, reactionOverlay) { data, overlay ->
                 if (overlay.isEmpty()) return@combine data
-                data.map { bubble ->
+                data.map { item ->
+                    if (item !is ChatListItem.ContentBubble) return@map item
+                    val bubble = item
                     val live = overlay[bubble.messageId] ?: return@map bubble
                     bubble.copy(
                         // Only the row the "Edited" marker also lands on carries the pill row, so a
@@ -1538,9 +1548,9 @@ internal class ChatViewModel @AssistedInject constructor(
      * Nothing reads from this presenter, so it never asks for more than the first page.
      */
     private fun initTranscriptPrefetch() {
-        val presenter = object : PagingDataPresenter<ChatListItem.ContentBubble>(dispatchers.Default) {
+        val presenter = object : PagingDataPresenter<ChatListItem.TranscriptMessage>(dispatchers.Default) {
             override suspend fun presentPagingDataEvent(
-                event: PagingDataEvent<ChatListItem.ContentBubble>,
+                event: PagingDataEvent<ChatListItem.TranscriptMessage>,
             ) = Unit
         }
         pagingScope.launch { mappedMessages.collectLatest { presenter.collectFrom(it) } }

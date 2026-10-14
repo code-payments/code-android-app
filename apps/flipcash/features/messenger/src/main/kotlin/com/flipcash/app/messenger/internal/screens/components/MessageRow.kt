@@ -301,6 +301,10 @@ internal fun MessageRow(
                 )
             }
 
+            is ChatListItem.SystemMessage -> Box(insertionModifier) {
+                SystemMessageRow(item.text)
+            }
+
             is ChatListItem.ContentBubble -> {
                 val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
                 // Bound to a local: `sender` is a property of another module's public API, so

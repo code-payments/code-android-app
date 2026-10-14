@@ -382,4 +382,17 @@ class ChatSummaryPreviewTest {
     fun `a widget this client can't draw has nothing to preview`() {
         assertNull(preview(listOf(MessageContent.Widget(WidgetContent.Unsupported))))
     }
+
+    @Test
+    fun `a group notice previews as its own text with no prefix`() {
+        assertEquals(
+            "Alex joined the group",
+            groupReference(listOf(MessageContent.System("Alex joined the group")), senderId = null).lastMessagePreview,
+        )
+    }
+
+    @Test
+    fun `a notice with blank text has no preview`() {
+        assertNull(groupReference(listOf(MessageContent.System("  \u0085")), senderId = null).lastMessagePreview)
+    }
 }

@@ -118,4 +118,18 @@ class ReceiptHandoffTest {
         val rows = listOf(send, mine(1, ReceiptStatus.SENT))
         assertEquals(listOf(false, true), shown(rows, settlingKey = send.messageKey, read = readUpTo(1)))
     }
+
+    @Test
+    fun `a notice takes no receipt and does not take one from a send`() {
+        val notice = ChatListItem.SystemMessage(messageId = 3, contentIndex = 0, timestamp = Instant.fromEpochSeconds(180), text = "Sam left")
+        val rows: List<ChatListItem> = listOf(notice, mine(2, ReceiptStatus.SENT), mine(1, ReceiptStatus.SENT))
+        // Newest first. The notice is newer than both sends and takes no line itself; the send just
+        // below it keeps the line, and the older send still yields to it.
+        assertEquals(
+            listOf(true, false),
+            listOf(1, 2).map { i ->
+                shouldShowReceiptLabel(i, rows[i] as ChatListItem.ContentBubble, { rows.getOrNull(it) }, null, null)
+            },
+        )
+    }
 }

@@ -28,7 +28,7 @@ class UnreadSeparatorsTest {
         timestamp = at,
     )
 
-    private suspend fun items(boundary: UnreadBoundary, vararg newestFirst: ChatListItem.ContentBubble) =
+    private suspend fun items(boundary: UnreadBoundary, vararg newestFirst: ChatListItem.TranscriptMessage) =
         flowOf(PagingData.from(newestFirst.toList()).withSeparators(boundary, SeparatorConfig.DayOnly))
             .asSnapshot()
 
@@ -69,4 +69,13 @@ class UnreadSeparatorsTest {
     }
 
     private fun List<ChatListItem>.dropDates() = filterNot { it is ChatListItem.DateSeparator }
+
+    @Test
+    fun `a notice that starts a new day gets a date separator above it`() = runTest {
+        val notice = ChatListItem.SystemMessage(messageId = 3, contentIndex = 0, timestamp = day2, text = "Alex joined")
+        assertEquals(
+            listOf(notice, ChatListItem.DateSeparator(day2), r1),
+            items(UnreadBoundary.None, notice, r1),
+        )
+    }
 }
