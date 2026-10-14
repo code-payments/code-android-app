@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,6 +67,7 @@ import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
 import com.flipcash.app.messenger.internal.screens.components.JoinRequestsAnchor
+import com.flipcash.app.messenger.internal.screens.components.ReturnToChatChip
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
 import com.getcode.theme.CodeTheme
@@ -103,8 +106,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // Links a sender typed are the ones that can lead anywhere, so only the transcript asks before
     // leaving. The cash card goes through [uriHandler] above: it is ours, and opens directly.
     val trustedWebsites = LocalTrustedWebsites.current
-    val transcriptUriHandler = remember(context, uriHandler, trustedWebsites) {
-        ExternalLinkUriHandler(context, uriHandler, trustedWebsites)
+    // A message link is followed in the app before anything else sees it: through the system it
+    // would come back as a cold deeplink, which replaces the stack and loses this chat.
+    val transcriptUriHandler = remember(context, uriHandler, trustedWebsites, viewModel) {
+        val external = ExternalLinkUriHandler(context, uriHandler, trustedWebsites)
+        object : UriHandler {
+            override fun openUri(uri: String) {
+                if (!viewModel.followMessageLink(uri)) external.openUri(uri)
+            }
+        }
     }
 
     val userManager = LocalUserManager.current
@@ -434,6 +444,21 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             .padding(top = CodeTheme.dimens.grid.x2),
                     )
                 }
+                // Held through the exit for the same reason as the requests above.
+                var lastReturnTitle by remember { mutableStateOf(state.returnToTitle) }
+                state.returnToTitle?.let { lastReturnTitle = it }
+                AnimatedVisibility(
+                    visible = state.returnToTitle != null,
+                    enter = slideInVertically { -it } + fadeIn(),
+                    exit = slideOutVertically { -it } + fadeOut(),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) {
+                    ReturnToChatChip(
+                        title = lastReturnTitle.orEmpty(),
+                        onClick = { keyboard.hideIfVisible { navigator.pop() } },
+                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+                    )
+                }
             }
         },
         bottomBar = {
@@ -515,6 +540,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         webPreviewImageLoader = viewModel.webPreviewImageLoader,
                         webLinkPreviewsEnabled = webLinkPreviewsEnabled,
                         onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
+                        onLandedMessageLeft = {
+                            viewModel.dispatchEvent(ChatViewModel.Event.ReturnChipDismissed)
+                        },
                         topBarBottom = barHeight,
                         unreadBelowCount = unreadBelowCount,
                         onUserScrolled = { viewModel.dispatchEvent(ChatViewModel.Event.UserScrolledTranscript) },
