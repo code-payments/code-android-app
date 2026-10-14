@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
+import android.os.Build
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
@@ -231,17 +232,20 @@ private fun Excerpt(excerpt: LinkCard.Message.Excerpt) {
     when (body) {
         is Body.Text -> Text(
             modifier = Modifier.then(
-                if (body.redacted) {
-                    Modifier
+                when {
+                    !body.redacted -> Modifier
+                    canBlur -> Modifier
                         .blur(MessageLinkCardDefaults.REDACTED_BLUR, BlurredEdgeTreatment.Unbounded)
                         .clearAndSetSemantics {}
-                } else {
-                    Modifier
+                    // `blur` draws nothing below Android 12; cover the text with a solid block instead.
+                    else -> Modifier
+                        .background(CodeTheme.colors.textSecondary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                        .clearAndSetSemantics {}
                 }
             ),
             text = body.text,
             style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
+            color = if (body.redacted && !canBlur) Color.Transparent else CodeTheme.colors.textMain,
             maxLines = MessageLinkCardDefaults.BODY_LINES,
             overflow = TextOverflow.Ellipsis,
         )
@@ -434,3 +438,6 @@ private fun Preview_MessageLink_LockedDirect() = PreviewMessageCard(State.Locked
 private fun Preview_MessageLink_Unresolved() = PreviewMessageCard(State.Unresolved)
 
 // endregion
+
+/** `Modifier.blur` needs RenderEffect, which arrived in Android 12. */
+private val canBlur: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
