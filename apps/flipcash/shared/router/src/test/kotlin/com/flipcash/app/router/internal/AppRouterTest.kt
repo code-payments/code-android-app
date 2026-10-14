@@ -527,6 +527,21 @@ class AppRouterTest {
     }
 
     @Test
+    fun `a message link built by Linkify routes back to the same chat and message`() {
+        val group = router.classify(DeepLink(Linkify.message(groupChatId, 1180)))
+        assertIs<DeeplinkType.ChatMessage>(group)
+        assertEquals(groupChatId, group.chatId)
+        assertEquals(1180L, group.messageId)
+        assertTrue(group.isGroup)
+
+        val dm = router.classify(DeepLink(Linkify.message(sampleChatId, 9)))
+        assertIs<DeeplinkType.ChatMessage>(dm)
+        assertEquals(sampleChatId, dm.chatId)
+        assertEquals(9L, dm.messageId)
+        assertEquals(false, dm.isGroup)
+    }
+
+    @Test
     fun `a message link with a non-numeric or negative seq is not claimed as a message`() {
         // A DM's tail has nothing else to fall to; a group's falls through to the invite, which
         // ignores the tail as it did before the message route existed.

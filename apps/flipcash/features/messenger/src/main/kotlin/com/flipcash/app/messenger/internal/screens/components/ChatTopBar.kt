@@ -24,6 +24,9 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Feedback
+import com.flipcash.app.messenger.internal.screens.openMessageShare
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.automirrored.outlined.Forward
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -113,6 +116,11 @@ internal fun ChatTopBar(
                     // Resolved here rather than in the bar: reporting is its own top-level
                     // flow now, so it needs the chat's id, and this is the nearest scope holding
                     // both that and the navigator.
+                    onShareMessage = {
+                        keyboard.hideIfVisible {
+                            navigator.openMessageShare(target.selection.messageId)
+                        }
+                    },
                     onReport = {
                         state.chatId?.let { chatId ->
                             navigator.push(
@@ -265,6 +273,7 @@ private fun MessageSelectionBar(
     selection: ChatListItem.ContentBubble,
     keyboard: KeyboardController,
     dispatch: (ChatViewModel.Event) -> Unit,
+    onShareMessage: () -> Unit,
     onReport: () -> Unit,
 ) {
     val capabilities = selection.capabilities
@@ -275,7 +284,8 @@ private fun MessageSelectionBar(
     // is the one choice that would leave that bubble's bar empty. Delete follows: putting the one
     // action with a confirmation behind a menu makes it a three-tap job. Report goes last: it is
     // the rarest of the five and the only one that is never about your own message, so it is the
-    // right one to collapse into the overflow on a narrow screen.
+    // right one to collapse into the overflow on a narrow screen. Share to Chat follows Reply: the
+    // card it sends is the point of a message link. Copy Message Link always sits in the overflow.
     val actions = buildList {
         if (MessageCapability.Reply in capabilities) {
             add(
@@ -284,6 +294,19 @@ private fun MessageSelectionBar(
                     icon = Icons.AutoMirrored.Outlined.Reply,
                     testTag = "action_reply_message",
                     onClick = { dispatch(ChatViewModel.Event.ReplyRequested(selection)) },
+                )
+            )
+        }
+        if (MessageCapability.Link in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_shareMessageToChat),
+                    icon = Icons.AutoMirrored.Outlined.Forward,
+                    testTag = "action_share_message",
+                    onClick = {
+                        dispatch(ChatViewModel.Event.ShareMessageRequested)
+                        onShareMessage()
+                    },
                 )
             )
         }
@@ -340,6 +363,19 @@ private fun MessageSelectionBar(
                 )
             )
         }
+        if (MessageCapability.Link in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_copyMessageLink),
+                    icon = Icons.Outlined.Link,
+                    testTag = "action_copy_message_link",
+                    onClick = {
+                        dispatch(ChatViewModel.Event.CopyMessageLink(selection.messageId))
+                    },
+                    overflowOnly = true,
+                )
+            )
+        }
     }
 
     AppBarWithTitle(
@@ -369,6 +405,8 @@ private data class MessageAction(
     val icon: ImageVector,
     val testTag: String,
     val onClick: () -> Unit,
+    /** Kept in the overflow at any width, rather than taking an icon when there is room. */
+    val overflowOnly: Boolean = false,
 )
 
 /**
@@ -408,9 +446,14 @@ private fun MessageActions(actions: List<MessageAction>) {
 
     BoxWithConstraints {
         val capacity = inlineActionCapacity(maxWidth, buttonSize, spacing)
+        val (candidates, pinnedToOverflow) = actions.partition { !it.overflowOnly }
         // The overflow needs a slot of its own, so it only pays for itself when it is holding
         // something — the last action is not displaced by a menu that would contain only it.
-        val inline = if (actions.size <= capacity) actions else actions.take(capacity - 1)
+        val inline = if (pinnedToOverflow.isEmpty() && candidates.size <= capacity) {
+            candidates
+        } else {
+            candidates.take(capacity - 1)
+        }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(spacing),
@@ -426,7 +469,7 @@ private fun MessageActions(actions: List<MessageAction>) {
                     )
                 }
             }
-            MessageOverflow(actions.drop(inline.size))
+            MessageOverflow(candidates.drop(inline.size) + pinnedToOverflow)
         }
     }
 }

@@ -115,9 +115,18 @@ internal fun CodeNavigator.openGroupInvite() {
     }
 }
 
+/** Opens the sheet on a message's link; the chat picked first opens once the sends are out. */
+internal fun CodeNavigator.openMessageShare(messageId: Long) {
+    navigateForResult<GroupInviteResult>(ChatStep.ShareMessage(messageId)) { result ->
+        if (result is NavResultOrCanceled.ReturnValue) {
+            navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
+        }
+    }
+}
+
 /**
- * What [GroupInviteSheet] hands out: a group's invite link, or a person's profile link. The two
- * differ in their copy, in what the Share tile gives the system share sheet, and in whether the
+ * What [GroupInviteSheet] hands out: a group's invite link, a person's profile link, or a link to
+ * one message. They differ in their copy, in what the Share tile gives the system share sheet, and in whether the
  * group's analytics fire; the rest of the sheet is the same.
  */
 internal sealed interface ShareToChatsSubject {
@@ -136,6 +145,12 @@ internal sealed interface ShareToChatsSubject {
         val displayName: String?,
         val preview: TipCodePreview?,
     ) : ShareToChatsSubject
+
+    /**
+     * A message, handed out as its link. The sheet's URL is the link itself, so nothing else is
+     * carried: the recipient's app draws the message card from it.
+     */
+    data object Message : ShareToChatsSubject
 }
 
 /**
@@ -262,6 +277,7 @@ internal fun GroupInviteSheet(
                                                 username = subject.username,
                                                 preview = subject.preview,
                                             )
+                                            ShareToChatsSubject.Message -> Shareable.MessageLink(inviteUrl)
                                         }
                                     )
                                 }
@@ -273,7 +289,7 @@ internal fun GroupInviteSheet(
                             label = stringResource(
                                 when {
                                     copied -> R.string.action_inviteLinkCopied
-                                    subject is ShareToChatsSubject.User -> R.string.action_copyLink
+                                    subject !is ShareToChatsSubject.Group -> R.string.action_copyLink
                                     else -> R.string.action_copyInviteLink
                                 }
                             ),
@@ -347,7 +363,11 @@ internal fun GroupInviteSheet(
                 }
                 .onSizeChanged { headerHeight = with(density) { it.height.toDp() } },
             title = stringResource(
-                if (subject is ShareToChatsSubject.User) R.string.title_shareProfileToChats else R.string.title_invitePeople
+                when (subject) {
+                    is ShareToChatsSubject.User -> R.string.title_shareProfileToChats
+                    is ShareToChatsSubject.Message -> R.string.title_shareMessageToChats
+                    is ShareToChatsSubject.Group -> R.string.title_invitePeople
+                }
             ),
             titleAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(HeaderPadding),
@@ -375,7 +395,7 @@ internal fun GroupInviteSheet(
                     hazeState = hazeState,
                     sending = state.sending,
                     sendLabel = stringResource(
-                        if (subject is ShareToChatsSubject.User) R.string.action_send else R.string.action_invite
+                        if (subject is ShareToChatsSubject.Group) R.string.action_invite else R.string.action_send
                     ),
                     onMessageChanged = onMessageChanged,
                     onInvite = onInvite,

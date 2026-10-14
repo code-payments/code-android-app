@@ -116,6 +116,7 @@ internal class InternalShareSheetController(
                 is Shareable.TokenInfo -> Unit
                 is Shareable.Invite -> Unit
                 is Shareable.GroupInvite -> Unit
+                is Shareable.MessageLink -> Unit
                 is Shareable.Profile -> Unit
                 is Shareable.TipCodeImage -> Unit
             }
@@ -219,6 +220,8 @@ internal class InternalShareSheetController(
 
             is Shareable.Profile -> shareProfile(shareable)
 
+            is Shareable.MessageLink -> shareMessageLink(shareable)
+
             is Shareable.TipCodeImage -> shareTipCodeImage(shareable)
         }
     }
@@ -267,6 +270,20 @@ internal class InternalShareSheetController(
         val share = Intent.createChooser(intent, null).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
             putExtra(Intent.EXTRA_CHOSEN_COMPONENT_INTENT_SENDER, pi.intentSender)
+        }
+
+        context.startActivity(share)
+    }
+
+    private fun shareMessageLink(shareable: Shareable.MessageLink) {
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, shareable.url)
+            type = "text/plain"
+        }
+
+        val share = Intent.createChooser(intent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
 
         context.startActivity(share)

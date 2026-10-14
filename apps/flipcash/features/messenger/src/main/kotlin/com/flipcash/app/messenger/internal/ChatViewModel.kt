@@ -1018,6 +1018,13 @@ internal class ChatViewModel @AssistedInject constructor(
         // flow, and the bar's caller has already captured the message to push the route with.
         data object ReportRequested : Event
 
+        /** Puts a link to [messageId] on the clipboard — `Linkify.message`. */
+        data class CopyMessageLink(val messageId: Long) : Event
+
+        // Dismisses the bar, as ReportRequested does: the share sheet is opened by the bar's caller,
+        // which has the navigator and has already captured the message.
+        data object ShareMessageRequested : Event
+
         data object SubmitEdit : Event
         data object CancelEdit : Event
         data object EditingEnded : Event
@@ -2654,6 +2661,16 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             .launchIn(viewModelScope)
 
+        eventFlow.filterIsInstance<Event.CopyMessageLink>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                clipboardManager.setText(
+                    text = Linkify.message(chatId, event.messageId),
+                    label = resources.getString(R.string.title_clipboardLabelMessageLink),
+                )
+            }
+            .launchIn(viewModelScope)
+
         eventFlow.filterIsInstance<Event.CopyMessage>()
             .onEach { event ->
                 clipboardManager.setText(
@@ -3898,6 +3915,12 @@ internal class ChatViewModel @AssistedInject constructor(
                     state.copy(selection = null, confirmingDelete = false)
                 }
                 Event.ReportRequested -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
+                is Event.CopyMessageLink -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
+                Event.ShareMessageRequested -> { state ->
                     state.copy(selection = null, confirmingDelete = false)
                 }
                 is Event.EditMessage -> { state ->

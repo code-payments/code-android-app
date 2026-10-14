@@ -27,6 +27,13 @@ enum class MessageCapability {
     Edit,
     Delete,
     Report,
+
+    /**
+     * Share or copy a link to the message (`app.flipcash.com/chat/{chatId}/m/{seq}`). Any message a
+     * participant sent and the server confirmed has a sequence to point at; a tombstone, a system
+     * notice and a widget are left out because the card they would resolve to has nothing to show.
+     */
+    Link,
 }
 
 /**
@@ -94,15 +101,15 @@ data class MessagePolicy(
  *
  * | Message | Capabilities |
  * |---|---|
- * | Own text, confirmed, inside both windows | Copy, Reply, Edit, Delete |
- * | Own text, confirmed, past the edit window | Copy, Reply, Delete |
- * | Own text, confirmed, past both windows | Copy, Reply |
+ * | Own text, confirmed, inside both windows | Copy, Reply, Edit, Delete, Link |
+ * | Own text, confirmed, past the edit window | Copy, Reply, Delete, Link |
+ * | Own text, confirmed, past both windows | Copy, Reply, Link |
  * | Own text, unconfirmed (`eventSequence == 0`) | none |
- * | Another participant's text | Copy, Reply, Report |
- * | Own photo, confirmed, inside the delete window | Reply, Delete |
- * | Another participant's photo | Reply, Report |
- * | Own cash or tip message | Reply |
- * | Another participant's cash or tip message | Reply, Report |
+ * | Another participant's text | Copy, Reply, Report, Link |
+ * | Own photo, confirmed, inside the delete window | Reply, Delete, Link |
+ * | Another participant's photo | Reply, Report, Link |
+ * | Own cash or tip message | Reply, Link |
+ * | Another participant's cash or tip message | Reply, Report, Link |
  * | A tombstone | none |
  * | A system notice | none |
  * | A widget (server-sent), viewer may speak | Reply |
@@ -121,8 +128,8 @@ data class MessagePolicy(
  * wrote, or that no longer exists, cannot. Your own messages are left out because reporting one is
  * not a thing anyone does, and a row that is always present is a row people stop reading.
  *
- * A viewer who cannot post in the chat — someone reading a group from outside it — keeps only Copy
- * and Report. Reply, Edit and Delete all post into the chat, and the gate that stands where their
+ * A viewer who cannot post in the chat — someone reading a group from outside it — keeps only Copy,
+ * Report and Link. Reply, Edit and Delete all post into the chat, and the gate that stands where their
  * composer would is the only way in.
  *
  * @param canPost whether the viewer may post in this chat. False for a viewer outside a group,
@@ -146,7 +153,7 @@ fun resolveCapabilities(
  * a set resolved while the viewer could post has to narrow at the menu if they have since left.
  */
 fun Set<MessageCapability>.readOnly(): Set<MessageCapability> = filterTo(mutableSetOf()) {
-    it == MessageCapability.Copy || it == MessageCapability.Report
+    it == MessageCapability.Copy || it == MessageCapability.Report || it == MessageCapability.Link
 }
 
 private fun resolveForParticipant(
@@ -173,6 +180,7 @@ private fun resolveForParticipant(
         return buildSet {
             if (canSpeak) add(MessageCapability.Reply)
             if (!message.isFromSelf) add(MessageCapability.Report)
+            add(MessageCapability.Link)
         }
     }
 
@@ -200,6 +208,7 @@ private fun resolveForParticipant(
         } else {
             add(MessageCapability.Report)
         }
+        add(MessageCapability.Link)
     }.withinWindows(message.timestamp, policy, now)
 }
 
@@ -229,7 +238,8 @@ fun Set<MessageCapability>.withinWindows(
         // Reporting has no window on purpose: the edit and delete windows exist because the
         // server enforces them, and nothing in the contract limits how old a reportable message
         // may be.
-        MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report -> true
+        MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report,
+        MessageCapability.Link -> true
     }
 }
 
