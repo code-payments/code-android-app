@@ -127,7 +127,10 @@ internal fun ClientMessageId.asClientMessageId(): MessagingModel.ClientMessageId
 internal fun MessageContent.asContent(): MessagingModel.Content {
     return when (this) {
         is MessageContent.Text -> MessagingModel.Content.newBuilder()
-            .setText(MessagingModel.TextContent.newBuilder().setText(text))
+            .setText(
+                MessagingModel.TextContent.newBuilder().setText(text)
+                    .apply { this@asContent.linkPreview?.let { addLinkPreviews(it.asLinkPreview()) } }
+            )
             .build()
         is MessageContent.Cash -> MessagingModel.Content.newBuilder()
             .setCash(
@@ -191,6 +194,14 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
             .build()
     }
 }
+
+internal fun com.flipcash.services.models.chat.LinkPreview.asLinkPreview(): MessagingModel.LinkPreview =
+    MessagingModel.LinkPreview.newBuilder()
+        .setUrl(url)
+        .setTitle(title)
+        .setDescription(description)
+        .apply { this@asLinkPreview.image?.let { setImage(it.asMediaItem()) } }
+        .build()
 
 internal fun com.flipcash.services.models.chat.MediaItem.asMediaItem(): com.codeinc.flipcash.gen.blob.v1.Model.Media {
     return com.codeinc.flipcash.gen.blob.v1.Model.Media.newBuilder()

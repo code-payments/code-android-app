@@ -45,6 +45,7 @@ import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.services.models.chat.ImageMetadata
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.isSystemBlank
 import com.flipcash.services.models.chat.WidgetContent
@@ -171,9 +172,20 @@ internal fun Common.PagingToken.toPagingToken(): PagingToken = value.toByteArray
 
 // -- Messaging models --
 
+internal fun MessagingModel.LinkPreview.toLinkPreview(): LinkPreview = LinkPreview(
+    url = url,
+    title = title,
+    description = description,
+    image = if (hasImage()) image.toMediaItem() else null,
+)
+
 internal fun MessagingModel.Content.toMessageContent(): MessageContent {
     return when (typeCase) {
-        MessagingModel.Content.TypeCase.TEXT -> MessageContent.Text(text.text)
+        MessagingModel.Content.TypeCase.TEXT -> MessageContent.Text(
+            text = text.text,
+            // One is all this client renders; the contract has any further ones ignored.
+            linkPreview = text.linkPreviewsList.firstOrNull()?.toLinkPreview(),
+        )
         MessagingModel.Content.TypeCase.CASH -> MessageContent.Cash(
             intentId = cash.intentId.value.toByteArray().toList(),
             amount = Fiat(

@@ -2,6 +2,7 @@ package com.flipcash.services.chat
 
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
 import com.flipcash.services.internal.network.extensions.asContent
+import com.flipcash.services.internal.network.extensions.asMediaItem
 import com.flipcash.services.internal.network.extensions.toMessageContent
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MessageContent
@@ -208,10 +209,10 @@ sealed interface OpenedBlob {
 }
 
 internal fun MessageContent.isSealable(): Boolean = when (this) {
-    is MessageContent.Text -> true
+    is MessageContent.Text -> linkPreview?.image?.let { SealedMediaContract.isValid(it.asMediaItem()) } != false
     is MessageContent.Media -> SealedMediaContract.isValid(asContent().media)
     is MessageContent.Reply -> content.isNotEmpty() &&
-        (content.all { it is MessageContent.Text } || content.singleOrNull()?.let {
+        (content.all { it is MessageContent.Text && it.isSealable() } || content.singleOrNull()?.let {
             it is MessageContent.Media && it.isSealable()
         } == true)
     else -> false
@@ -222,11 +223,13 @@ internal fun MessageContent.isSealable(): Boolean = when (this) {
  * anything else takes the same "update" path as a type this client has never heard of.
  */
 internal fun MessagingModel.Content.isRenderable(): Boolean = when (typeCase) {
-    MessagingModel.Content.TypeCase.TEXT -> true
+    // A preview whose image metadata breaks the sealed-photo rules makes the message unsupported.
+    MessagingModel.Content.TypeCase.TEXT ->
+        text.linkPreviewsList.all { !it.hasImage() || SealedMediaContract.isValid(it.image) }
     MessagingModel.Content.TypeCase.MEDIA -> SealedMediaContract.isValid(media)
     MessagingModel.Content.TypeCase.REPLY ->
         reply.contentCount > 0 &&
-            (reply.contentList.all { it.typeCase == MessagingModel.Content.TypeCase.TEXT } ||
+            (reply.contentList.all { it.typeCase == MessagingModel.Content.TypeCase.TEXT && it.isRenderable() } ||
                 (reply.contentCount == 1 &&
                     reply.getContent(0).typeCase == MessagingModel.Content.TypeCase.MEDIA &&
                     reply.getContent(0).isRenderable()))

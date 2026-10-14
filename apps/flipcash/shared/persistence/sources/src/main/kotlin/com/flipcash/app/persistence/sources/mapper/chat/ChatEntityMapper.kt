@@ -390,7 +390,7 @@ class ChatEntityMapper @Inject constructor() {
 // region Serialization helpers
 
 private fun MessageContent.toSerialized(): MessageContentSerialized = when (this) {
-    is MessageContent.Text -> MessageContentSerialized.Text(text)
+    is MessageContent.Text -> MessageContentSerialized.Text(text, linkPreview)
     is MessageContent.Cash -> MessageContentSerialized.Cash(
         intentId = intentId.base58,
         quarks = amount.quarks,
@@ -428,7 +428,7 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
     is MessageContentSerialized.WidgetShareProfile -> MessageContent.Widget(
         username?.let { WidgetContent.ShareProfile(it) } ?: WidgetContent.Unsupported,
     )
-    is MessageContentSerialized.Text -> MessageContent.Text(text)
+    is MessageContentSerialized.Text -> MessageContent.Text(text, linkPreview)
     is MessageContentSerialized.Cash -> MessageContent.Cash(
         intentId = intentId.decodeBase58().toList(),
         amount = Fiat(

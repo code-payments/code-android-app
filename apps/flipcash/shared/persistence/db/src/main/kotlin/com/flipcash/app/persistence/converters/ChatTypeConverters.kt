@@ -3,6 +3,7 @@ package com.flipcash.app.persistence.converters
 import androidx.room.TypeConverter
 import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.services.models.VerifiableContactMethod
+import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.services.models.chat.MediaItem
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -190,7 +191,11 @@ class ChatTypeConverters {
 sealed interface MessageContentSerialized {
     @Serializable
     @SerialName("text")
-    data class Text(val text: String) : MessageContentSerialized
+    // [linkPreview] defaults to null so rows stored before previews existed still decode.
+    data class Text(
+        val text: String,
+        val linkPreview: LinkPreview? = null,
+    ) : MessageContentSerialized
 
     @Serializable
     @SerialName("cash")
