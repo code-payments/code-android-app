@@ -31,6 +31,7 @@ class UnreadBelowObservationTest {
     private val chatId = ChatId("aabbccdd")
     private val selfId = listOf<Byte>(1, 2, 3)
 
+    private val messagingController = mockk<com.flipcash.services.controllers.ChatMessagingController>(relaxed = true)
     private val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
     private val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
     private val account = MutableStateFlow(UserManager.State(accountId = selfId))
@@ -45,7 +46,7 @@ class UnreadBelowObservationTest {
 
     private val delegate = MessagingDelegate(
         chatController = mockk(relaxed = true),
-        messagingController = mockk(relaxed = true),
+        messagingController = messagingController,
         metadataDataSource = mockk(relaxed = true),
         messageDataSource = messageDataSource,
         memberDataSource = memberDataSource,
@@ -94,6 +95,19 @@ class UnreadBelowObservationTest {
             assertEquals(0, awaitItem())
             account.value = UserManager.State(accountId = selfId)
             assertEquals(3, awaitItem())
+        }
+    }
+
+    @Test
+    fun `a failed load of the newest page does not announce a landing, a later success does`() = runTest {
+        delegate.newestPageLoads().test {
+            coEvery { messagingController.getMessages(chatId) } returns Result.failure(IllegalStateException("offline"))
+            delegate.loadMessages(chatId)
+            expectNoEvents()
+
+            coEvery { messagingController.getMessages(chatId) } returns Result.success(emptyList())
+            delegate.loadMessages(chatId)
+            assertEquals(chatId, awaitItem())
         }
     }
 

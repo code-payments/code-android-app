@@ -430,6 +430,14 @@ interface MessagingOperations {
     suspend fun loadMessages(chatId: ChatId)
 
     /**
+     * Emits a chat's id each time a load of its newest page succeeds and has been stored, whichever
+     * path performed it (the open, the feed sync, a push, an outside reader). Never replays and
+     * emits nothing for a failed load, so a collector started before the load sees only the loads
+     * that happen after it.
+     */
+    fun newestPageLoads(): Flow<ChatId>
+
+    /**
      * Persists a message the server delivered inside a push payload, without an RPC.
      *
      * Idempotent on `eventSequence`: a copy that is not newer than the stored row is

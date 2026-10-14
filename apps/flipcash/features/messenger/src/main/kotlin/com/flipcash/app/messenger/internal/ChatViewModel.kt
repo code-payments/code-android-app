@@ -185,6 +185,7 @@ import kotlin.time.Instant
 import java.util.Optional
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -1841,8 +1842,9 @@ internal class ChatViewModel @AssistedInject constructor(
      * decides it has not arrived yet.
      */
     /**
-     * Reads the badge's arrival cutoff once the opening load has landed, so history that load
-     * stores is never an arrival. A message that arrives during the load is not counted either.
+     * Reads the badge's arrival cutoff once the first successful load of the newest page has
+     * landed, so history that load stores is never an arrival. A message that arrives during the
+     * load is not counted either.
      * The reads wait for the account and database, so -1 only ever means "ready, with no read
      * pointer and no inbound stored".
      */
@@ -1924,10 +1926,14 @@ internal class ChatViewModel @AssistedInject constructor(
                     featuredGroups.peek(chatId)
                         ?.takeIf { chatCoordinator.observeMetadata(chatId).first() == null }
                         ?.let { dispatchEvent(Event.OnGroupResolved(ChatMembership(metadata = it, isMember = null))) }
-                    viewModelScope.launch {
-                        openTranscript(chatId)
+                    // Subscribed before any load can start, so the first one to land is not missed.
+                    // Whichever path loads the newest page (this open, the feed sync, an outside
+                    // reader's load) ends the wait; a load that fails or is skipped does not.
+                    viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                        chatCoordinator.newestPageLoads().first { it == chatId }
                         recordArrivalCutoff(chatId)
                     }
+                    viewModelScope.launch { openTranscript(chatId) }
                     // A feed row has no cover, so fetch it now rather than when the group's
                     // profile opens: the profile would otherwise draw an empty cover through GetChat.
                     viewModelScope.launch {

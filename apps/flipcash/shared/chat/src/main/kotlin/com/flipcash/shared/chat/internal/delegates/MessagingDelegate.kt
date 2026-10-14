@@ -54,6 +54,7 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -313,6 +314,10 @@ class MessagingDelegate @Inject constructor(
             .distinctUntilChanged()
     }
 
+    private val newestPageLoaded = MutableSharedFlow<ChatId>(extraBufferCapacity = 16)
+
+    override fun newestPageLoads(): Flow<ChatId> = newestPageLoaded
+
     override suspend fun loadMessages(chatId: ChatId) {
         messagingController.getMessages(chatId)
             .onSuccess { messages ->
@@ -328,6 +333,7 @@ class MessagingDelegate @Inject constructor(
                 // what the feed already stored: the list rebuilds only for a real change.
                 val head = messages.maxOfOrNull { it.eventSequence } ?: 0L
                 metadataDataSource.applyCatchUp(chatId, head, messages.maxByOrNull { it.messageId })
+                newestPageLoaded.tryEmit(chatId)
             }
     }
 
