@@ -222,6 +222,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -648,6 +649,32 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val obscuresTranscript: Boolean
             get() = isOutsideGroup && !readsFromOutside
+
+        /**
+         * What a message link's landing may do here, or null while that is not known yet.
+         *
+         * A link carries a chat id before the open has said what the chat is or where the viewer
+         * stands in it, and paging toward the message in that window would fetch a withheld
+         * group's transcript, the one [obscuresTranscript] is there to keep off the device. So a
+         * group waits on its membership and, for a non-member, on [groupAccess] settling, and
+         * reads as [MessageLinkLanding.Readable] only where the transcript would be fetched anyway.
+         */
+        val messageLinkLanding: MessageLinkLanding?
+            get() = when {
+                chatNotFound -> MessageLinkLanding.Withheld
+                subject is ChatSubject.Group -> when (subject.isMember) {
+                    true -> MessageLinkLanding.Readable
+                    null -> null
+                    false -> when (groupAccess) {
+                        null, GroupAccess.Undetermined -> null
+                        else -> if (readsFromOutside) MessageLinkLanding.Readable
+                        else MessageLinkLanding.Withheld
+                    }
+                }
+                chatType == ChatType.TIP_DM || chatType == ChatType.CONTACT_DM ->
+                    MessageLinkLanding.Readable
+                else -> null
+            }
 
         /**
          * The host's Join Requests anchor under the title bar (node 11354:70): only while someone is
@@ -2993,11 +3020,27 @@ internal class ChatViewModel @AssistedInject constructor(
 
         // A message link's landing. Started here rather than dispatched as JumpToMessage: eventFlow
         // is replay-0 and the chat id is not known yet, so the request waits on the open instead.
+        // Held until the gate settles (see State.messageLinkLanding). A withheld landing gives up
+        // the open-at-message hold, but keeps listening: a viewer who buys in from the gate can
+        // still be walked to the message.
         if (openAtMessageId != null) {
-            viewModelScope.launch {
-                val chatId = stateFlow.mapNotNull { it.chatId }.first()
-                resolveJump(chatId, openAtMessageId)
-            }
+            stateFlow
+                .mapNotNull { state ->
+                    val chatId = state.chatId ?: return@mapNotNull null
+                    state.messageLinkLanding?.let { chatId to it }
+                }
+                .distinctUntilChanged()
+                .transformWhile { landing ->
+                    emit(landing)
+                    landing.second != MessageLinkLanding.Readable
+                }
+                .onEach { (chatId, landing) ->
+                    when (landing) {
+                        MessageLinkLanding.Readable -> resolveJump(chatId, openAtMessageId)
+                        MessageLinkLanding.Withheld -> dispatchEvent(Event.JumpUnreachable)
+                    }
+                }
+                .launchIn(viewModelScope)
         }
 
         // Read once per chat id. The list holds read reporting until this lands, so the pointer
@@ -3915,4 +3958,13 @@ private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
         )
     }
     return copy(quickReactionStrip = strip)
+}
+
+/** See [ChatViewModel.State.messageLinkLanding]. */
+internal enum class MessageLinkLanding {
+    /** The transcript is the viewer's to read, so the landing pages to the message and walks there. */
+    Readable,
+
+    /** The transcript is withheld from the viewer, or the chat is gone: nothing is fetched for it. */
+    Withheld,
 }

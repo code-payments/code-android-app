@@ -658,4 +658,64 @@ class ChatViewModelStateTest {
         assertTrue(state.canSpeak)
         assertFalse(state.speakerBlocksReactions)
     }
+
+    @Test
+    fun `a message link waits while the viewer's standing in a group is unknown`() {
+        // A chat id alone, before the open says what it is: paging now could fetch a withheld group.
+        assertNull(ChatViewModel.State(chatId = groupChatId).messageLinkLanding)
+        assertNull(ChatViewModel.State(subject = group(isMember = null)).messageLinkLanding)
+        assertNull(ChatViewModel.State(subject = group(isMember = false)).messageLinkLanding)
+        assertNull(
+            ChatViewModel.State(
+                subject = group(isMember = false),
+                groupAccess = GroupAccess.Undetermined,
+            ).messageLinkLanding
+        )
+    }
+
+    @Test
+    fun `a message link lands where the transcript is the viewer's to read`() {
+        assertEquals(
+            MessageLinkLanding.Readable,
+            ChatViewModel.State(subject = group(isMember = true)).messageLinkLanding,
+        )
+        assertEquals(
+            MessageLinkLanding.Readable,
+            ChatViewModel.State(
+                subject = group(isMember = false),
+                groupAccess = GroupAccess.Eligible,
+            ).messageLinkLanding,
+        )
+        assertEquals(
+            MessageLinkLanding.Readable,
+            ChatViewModel.State(chatType = ChatType.TIP_DM).messageLinkLanding,
+        )
+        assertEquals(
+            MessageLinkLanding.Readable,
+            ChatViewModel.State(subject = dm, chatType = ChatType.CONTACT_DM).messageLinkLanding,
+        )
+    }
+
+    @Test
+    fun `a message link into a withheld group fetches nothing`() {
+        assertEquals(
+            MessageLinkLanding.Withheld,
+            ChatViewModel.State(
+                subject = group(isMember = false),
+                groupAccess = GroupAccess.Blocked(unmet),
+            ).messageLinkLanding,
+        )
+        // No listener rules: eligible to join, but nothing to read from outside.
+        assertEquals(
+            MessageLinkLanding.Withheld,
+            ChatViewModel.State(
+                subject = group(isMember = false, rules = ChatRules(emptyList(), emptyList())),
+                groupAccess = GroupAccess.Eligible,
+            ).messageLinkLanding,
+        )
+        assertEquals(
+            MessageLinkLanding.Withheld,
+            ChatViewModel.State(chatNotFound = true).messageLinkLanding,
+        )
+    }
 }
