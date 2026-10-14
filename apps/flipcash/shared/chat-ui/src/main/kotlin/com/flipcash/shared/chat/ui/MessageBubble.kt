@@ -559,8 +559,7 @@ private fun TextBubble(
         }
         val body = mentioned?.text ?: AnnotatedString(bodyString)
         val handles = mentioned?.handles.orEmpty()
-        val bodyStyle = CodeTheme.typography.textMedium.copy(
-            fontWeight = FontWeight.Medium,
+        val bodyStyle = CodeTheme.typography.textMessage.copy(
             fontStyle = if (isTombstone) FontStyle.Italic else FontStyle.Normal,
         )
         val bodyColor = if (isTombstone) {

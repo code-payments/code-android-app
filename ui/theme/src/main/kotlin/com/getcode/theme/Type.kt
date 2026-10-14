@@ -24,6 +24,13 @@ private val Avenir = FontFamily(
     Font(R.font.avenir_next_demi, FontWeight.Black)
 )
 
+// The true Medium face. `Avenir` deliberately renders FontWeight.Medium as Demi (many call sites
+// depend on that), so styles that need iOS's real Medium use this family instead.
+private val AvenirMedium = FontFamily(
+    Font(R.font.avenir_next_medium, FontWeight.Normal),
+    Font(R.font.avenir_next_medium, FontWeight.Medium),
+)
+
 private val RobotoMono = FontFamily(
     Font(R.font.roboto_mono_variable, FontWeight.Light),
     Font(R.font.roboto_mono_variable, FontWeight.Normal),
@@ -44,6 +51,7 @@ data class CodeTypography(
     val textLarge: TextStyle,
     val textMedium: TextStyle,
     val textSmall: TextStyle,
+    val textMessage: TextStyle,
     val caption: TextStyle,
     val linkMedium: TextStyle,
     val linkSmall: TextStyle,
@@ -92,7 +100,7 @@ val codeTypography = CodeTypography(
     displayExtraSmall = TextStyle(
         fontFamily = Avenir,
         fontSize = 20.sp,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.SemiBold,
         lineHeight = 26.sp
     ),
     screenTitle = TextStyle(
@@ -128,10 +136,18 @@ val codeTypography = CodeTypography(
         fontWeight = FontWeight.SemiBold,
         lineHeight = 18.sp,
     ),
+    // Mirrors iOS appTextMessage (16 Medium): chat message body text.
+    textMessage = TextStyle(
+        fontFamily = AvenirMedium,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Medium,
+        lineHeight = 20.sp
+    ),
+    // Mirrors iOS appTextCaption (12 Medium).
     caption = TextStyle(
         fontSize = 12.sp,
         lineHeight = 18.sp,
-        fontFamily = Avenir,
+        fontFamily = AvenirMedium,
         fontWeight = FontWeight.Medium,
     ),
     linkMedium = TextStyle(
