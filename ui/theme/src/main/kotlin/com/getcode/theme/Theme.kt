@@ -29,6 +29,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     secondary = BrandAccent,
     tertiary = BrandAccent,
     indicator = BrandIndicator,
+    badgeFocus = BadgeFocus,
     action = Gray50,
     onAction = White,
     background = Brand,
@@ -132,6 +133,8 @@ class ColorScheme(
     secondary: Color,
     tertiary: Color,
     indicator: Color,
+    /** Fill of a count badge that asks for attention, e.g. the unread count on jump-to-bottom (Figma badge/focus). */
+    badgeFocus: Color,
     action: Color,
     onAction: Color,
     background: Color,
@@ -218,6 +221,8 @@ class ColorScheme(
         private set
     var indicator by mutableStateOf(indicator)
         private set
+    var badgeFocus by mutableStateOf(badgeFocus)
+        private set
     var action by mutableStateOf(action)
         private set
     var onAction by mutableStateOf(onAction)
@@ -286,6 +291,7 @@ class ColorScheme(
         secondary = other.secondary
         tertiary = other.tertiary
         indicator = other.indicator
+        badgeFocus = other.badgeFocus
         action = other.action
         onAction = other.onAction
         border = other.border
@@ -333,6 +339,7 @@ class ColorScheme(
         secondary = secondary,
         tertiary = tertiary,
         indicator = indicator,
+        badgeFocus = badgeFocus,
         action = action,
         onAction = onAction,
         border = border,

@@ -1,0 +1,203 @@
+package com.flipcash.app.messenger.internal.screens.components
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.flipcash.features.messenger.R
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.Badge
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+
+/** Past this many rows from the newest, a tap jumps rather than animates (from the old Flipchat). */
+internal const val JumpToBottomAnimateMaxRows = 100
+
+/**
+ * How long the transcript has to stay off the newest row before the button appears. The insertion
+ * push and the typing row move the list through a transient non-zero offset on the way back to
+ * rest; hiding is immediate, showing is not, so those frames don't flash the button.
+ */
+private const val ShowDelayMillis = 120L
+
+private val ButtonSize = 48.dp
+private val BadgeOutline = 2.dp
+private val HazeHeight = 112.dp
+
+/** Whether a tap at [firstVisibleIndex] rows from the newest jumps instead of animating. */
+internal fun jumpsToBottom(firstVisibleIndex: Int): Boolean = firstVisibleIndex > JumpToBottomAnimateMaxRows
+
+/** Scrolls [this] to the newest row: a jump from far away, an animation from near. */
+internal suspend fun LazyListState.scrollToNewest() {
+    if (jumpsToBottom(firstVisibleItemIndex)) scrollToItem(0) else animateScrollToItem(0)
+}
+
+/**
+ * Whether the jump-to-bottom button should be up: the list has settled where this visit opens it,
+ * and is not resting on the newest row. Reads [restsOnNewest] as it stands, so it is true for the
+ * frames a spring leaves the offset non-zero; those are held back by [ShowDelayMillis].
+ */
+@Composable
+internal fun rememberJumpToBottomVisible(listState: LazyListState, hasPositioned: () -> Boolean): Boolean {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(listState) {
+        snapshotFlow { hasPositioned() && !listState.restsOnNewest() }.collectLatest { away ->
+            if (away) {
+                delay(ShowDelayMillis)
+                visible = true
+            } else {
+                visible = false
+            }
+        }
+    }
+    return visible
+}
+
+/**
+ * The haze behind the button: the chat background fading in toward the composer, so the button
+ * and the rows it floats over read apart. Sits beside the transcript, never inside its haze
+ * source, and takes no touches.
+ */
+@Composable
+internal fun JumpToBottomHaze(visible: Boolean, modifier: Modifier = Modifier) {
+    val background = CodeTheme.colors.background
+    AnimatedVisibility(
+        modifier = modifier,
+        visible = visible,
+        enter = fadeIn(tween(200)),
+        exit = fadeOut(tween(200)),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(HazeHeight)
+                .background(
+                    Brush.verticalGradient(
+                        0f to background.copy(alpha = 0f),
+                        0.5f to background.copy(alpha = 0.75f),
+                        1f to background.copy(alpha = 0.95f),
+                    )
+                ),
+        )
+    }
+}
+
+/**
+ * A 48dp glass circle with a down chevron, and the unread count at its top-trailing corner.
+ *
+ * Hidden by [AnimatedVisibility] rather than alpha, so it is not tappable while it is away.
+ * [hazeState] must belong to a `hazeSource` that does not contain this button.
+ */
+@Composable
+internal fun JumpToBottomButton(
+    visible: Boolean,
+    unreadCount: Int,
+    hazeState: HazeState?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val background = CodeTheme.colors.background
+    // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
+    val glass = HazeBlurStyle {
+        blurRadius(20.dp)
+        backgroundColor(background)
+        colorEffects(listOf(HazeColorEffect.tint(Color.White.copy(alpha = 0.12f))))
+    }
+    // Held so the pill doesn't read "0" while it scales out.
+    var lastCount by remember { mutableStateOf(unreadCount) }
+    if (unreadCount > 0) lastCount = unreadCount
+
+    AnimatedVisibility(
+        modifier = modifier,
+        visible = visible,
+        enter = fadeIn(tween(200)) + scaleIn(tween(200), initialScale = 0.8f),
+        exit = fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.8f),
+    ) {
+        Box {
+            Box(
+                modifier = Modifier
+                    .size(ButtonSize)
+                    .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
+                    .clip(CircleShape)
+                    .then(
+                        if (hazeState != null) Modifier.hazeBlur(HazeInput.Sources(hazeState), glass)
+                        else Modifier.background(Color.White.copy(alpha = 0.12f).compositeOver(background))
+                    )
+                    .border(0.5.dp, CodeTheme.colors.divider, CircleShape)
+                    .clickable(onClick = onClick),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = stringResource(R.string.action_jumpToBottom),
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+            AnimatedVisibility(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    // The pill's centre sits on the circle's top-trailing corner.
+                    .offset(x = 4.dp, y = (-4).dp),
+                visible = unreadCount > 0,
+                enter = fadeIn(tween(200)) + scaleIn(tween(200)),
+                exit = fadeOut(tween(150)) + scaleOut(tween(150)),
+            ) {
+                // The outline is the chat background, so the pill reads as cut out of the button.
+                Box(
+                    Modifier
+                        .background(background, CircleShape)
+                        .padding(BadgeOutline),
+                ) {
+                    Badge(
+                        count = lastCount,
+                        color = CodeTheme.colors.badgeFocus,
+                        textStyle = CodeTheme.typography.caption.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}

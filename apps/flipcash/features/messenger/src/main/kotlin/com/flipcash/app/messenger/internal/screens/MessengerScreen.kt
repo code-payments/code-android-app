@@ -96,6 +96,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val mediaProgress = viewModel.mediaSendProgress.collectAsStateWithLifecycle()
     val mediaProgressOf = remember(mediaProgress) { { mediaProgress.value } }
     val otherReadPointer by viewModel.otherReadPointer.collectAsStateWithLifecycle(null)
+    val unreadBelowCount by viewModel.unreadBelowCount.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
@@ -515,6 +516,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         webLinkPreviewsEnabled = webLinkPreviewsEnabled,
                         onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
                         topBarBottom = barHeight,
+                        unreadBelowCount = unreadBelowCount,
+                        hazeState = hazeState,
                     )
                 }
             }

@@ -3,6 +3,7 @@ package com.flipcash.app.theme.internal
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import com.getcode.theme.BadgeFocus
 import com.getcode.theme.BetaIndicator
 import com.getcode.theme.Black40
 import com.getcode.theme.BrandAccent
@@ -95,6 +96,7 @@ private val colors = with(Flipcash2ColorSpec) {
         secondary = secondary,
         tertiary = BrandAccent,
         indicator = notification,
+        badgeFocus = BadgeFocus,
         action = Gray50,
         onAction = White,
         background = primary,

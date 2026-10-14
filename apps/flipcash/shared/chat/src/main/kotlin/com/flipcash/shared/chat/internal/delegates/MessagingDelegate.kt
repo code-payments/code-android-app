@@ -58,6 +58,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
@@ -219,6 +220,17 @@ class MessagingDelegate @Inject constructor(
         // fetched, so the count could come out short. No divider beats a wrong one.
         if (!messageDataSource.hasAtOrBelow(chatId, boundary)) return UnreadBoundary.None
         return UnreadBoundary.At(readThrough = boundary, count = count)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeUnreadBelow(chatId: ChatId): Flow<Int> {
+        val selfId = userManager.accountId ?: return flowOf(0)
+        return memberDataSource.observeSelfReadPointer(chatId, selfId)
+            .flatMapLatest { readThrough ->
+                if (readThrough == null) flowOf(0)
+                else messageDataSource.observeInboundCountAfter(chatId, selfId, readThrough)
+            }
+            .distinctUntilChanged()
     }
 
     override suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int =

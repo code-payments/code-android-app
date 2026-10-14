@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
@@ -66,6 +67,7 @@ import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.features.messenger.R
+import dev.chrisbanes.haze.HazeState
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.shared.chat.UnreadBoundary
@@ -115,6 +117,8 @@ internal fun MessageList(
     webLinkPreviewsEnabled: Boolean = true,
     onJumpConsumed: () -> Unit = {},
     topBarBottom: Dp = 0.dp,
+    unreadBelowCount: Int = 0,
+    hazeState: HazeState? = null,
 ) {
     val keyboard = rememberKeyboardController()
     val listState = rememberLazyListState()
@@ -440,240 +444,260 @@ internal fun MessageList(
             }
         }
 
-        LazyColumn(
-            // NB: no sheetResignmentBehavior, unlike every other scrolling list in the app. The
-            // conversation is a full-screen destination, not a sheet, so there is no dismiss drag
-            // for the guard to hand the gesture back to — back is the only way out. It would also
-            // read this list wrong: the guard expects a top-anchored list, where index0/offset0 is
-            // the edge a downward drag overscrolls past, and this one is reverseLayout, where
-            // index0/offset0 is the resting position and a downward drag scrolls into history.
-            modifier = modifier
-                // The backdrop is modal. While a message is selected or being edited the rest of
-                // the transcript sits behind it, so a tap there dismisses what is up rather than
-                // reaching the message it landed on — the exit iOS gives its held blur.
-                .pointerInput(state.selection != null, state.editing != null) {
-                    detectTapGestures {
-                        when {
-                            state.editing != null -> onAction(ChatAction.CancelEdit)
-                            state.selection != null -> onAction(ChatAction.ClearSelection)
-                            else -> keyboard.hide()
-                        }
-                    }
-                }
-                .holdFocusedMessageInPlace(focusPin, imeInsets, listBottomPadPx),
-            state = listState,
-            reverseLayout = true,
-            // The transcript can't be dragged for as long as the backdrop is up — selection and
-            // edit alike. It is behind the same scrim the taps above dismiss, so a drag there has
-            // no more business reaching it than a tap does. Arriving messages still move it — see
-            // the auto-scroll effect below, which caps how far.
-            userScrollEnabled = !selecting,
-            contentPadding = PaddingValues(
-                top = CodeTheme.dimens.inset + contentPadding.calculateTopPadding(),
-                bottom = listBottomPad,
-                start = CodeTheme.dimens.inset,
-                end = CodeTheme.dimens.inset,
-            ),
-            verticalArrangement = Arrangement.Top,
-        ) {
-            items(
-                count = messages.itemCount,
-                key = messages.itemKey { it.itemKey }
-            ) { index ->
-                val item = messages[index] ?: return@items
-
-                // Cross-item bookkeeping, so it stays with the list rather than the row: a message
-                // animates in once, the first time it is laid out after the initial page.
-                // The newest row opening from under the typing dots: see TypingRowModel.
-                // Decided here too: the list can lay this row out before the composition above
-                // has seen it arrive. See TypingRowModel.arrive.
-                val grow = if (index == 0) {
-                    arriveUnderDots()
-                    if (typingRow.takeAnchor()) SideEffect { listState.requestScrollToItem(0, 0) }
-                    typingRow.growFor(item.itemKey)
-                } else {
-                    null
-                }
-                val animateInsertion = index == 0 && hasLoaded && item.itemKey !in animatedKeys &&
-                    // A message growing out of the dots doesn't rise in as well.
-                    grow?.handoff == null
-                if (animateInsertion) animatedKeys.add(item.itemKey)
-
-                val bubble = item as? ChatListItem.ContentBubble
-                // Selecting or editing a message pushes the rest of the transcript behind a blur,
-                // leaving the one message sharp — the same treatment iOS holds from its context
-                // menu through the edit that can follow it.
-                val focused = when {
-                    // The delete confirmation is modal, so nothing behind it is the focus: the
-                    // selected message drops back with the rest rather than sitting sharp and
-                    // half-clipped where the sheet cuts across it.
-                    state.confirmingDelete -> false
-                    state.editing != null -> bubble?.messageId == state.editing.messageId
-                    // Every row of the message stays sharp, so a split message is focused whole.
-                    state.selection != null -> bubble?.messageKey == state.selection.messageKey
-                    else -> true
-                }
-
-                // Every row of a message split around its card is focused, but only the pressed
-                // one hosts the quick strip — one strip per message, as iOS gives one per context
-                // menu — and it spans the rows the others measure.
-                val inSelection = focused && bubble != null &&
-                    bubble.messageKey == state.selection?.messageKey
-                if (inSelection) {
-                    DisposableEffect(selectedRowBounds, item.itemKey) {
-                        onDispose { selectedRowBounds.remove(item.itemKey) }
-                    }
-                }
-                val hostsStrip = inSelection && item.itemKey == state.selection?.itemKey
-
-                var growing by remember { mutableStateOf(grow != null) }
-                val growProgress = remember { Animatable(if (grow != null) 0f else 1f) }
-                val contentAlpha = remember { Animatable(if (grow?.handoff != null) 0f else 1f) }
-                val dotsAlpha = remember { Animatable(if (grow?.handoff != null) 1f else 0f) }
-                LaunchedEffect(grow) {
-                    grow ?: return@LaunchedEffect
-                    coroutineScope {
-                        val spec = if (grow.handoff != null) {
-                            ChatAnimations.fromTyping
-                        } else {
-                            ChatAnimations.insertionPush
-                        }
-                        launch { growProgress.animateTo(1f, spec) }
-                        if (grow.handoff != null) {
-                            launch {
-                                contentAlpha.animateTo(
-                                    1f,
-                                    tween(
-                                        durationMillis = ChatAnimations.fromTypingTextFadeMs,
-                                        delayMillis = ChatAnimations.fromTypingTextDelayMs,
-                                    ),
-                                )
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(
+                // NB: no sheetResignmentBehavior, unlike every other scrolling list in the app. The
+                // conversation is a full-screen destination, not a sheet, so there is no dismiss drag
+                // for the guard to hand the gesture back to — back is the only way out. It would also
+                // read this list wrong: the guard expects a top-anchored list, where index0/offset0 is
+                // the edge a downward drag overscrolls past, and this one is reverseLayout, where
+                // index0/offset0 is the resting position and a downward drag scrolls into history.
+                modifier = modifier
+                    // The backdrop is modal. While a message is selected or being edited the rest of
+                    // the transcript sits behind it, so a tap there dismisses what is up rather than
+                    // reaching the message it landed on — the exit iOS gives its held blur.
+                    .pointerInput(state.selection != null, state.editing != null) {
+                        detectTapGestures {
+                            when {
+                                state.editing != null -> onAction(ChatAction.CancelEdit)
+                                state.selection != null -> onAction(ChatAction.ClearSelection)
+                                else -> keyboard.hide()
                             }
-                            launch { dotsAlpha.animateTo(0f, tween(ChatAnimations.fromTypingDotsFadeMs)) }
                         }
                     }
-                    growing = false
-                    typingRow.finished(grow.key)
-                }
-                val handoff = grow?.handoff?.takeIf { growing }?.let { from ->
-                    remember(from) {
-                        TypingHandoff(
-                            from = from,
-                            progress = { growProgress.value },
-                            contentAlpha = { contentAlpha.value },
-                            dotsAlpha = { dotsAlpha.value },
-                        )
+                    .holdFocusedMessageInPlace(focusPin, imeInsets, listBottomPadPx),
+                state = listState,
+                reverseLayout = true,
+                // The transcript can't be dragged for as long as the backdrop is up — selection and
+                // edit alike. It is behind the same scrim the taps above dismiss, so a drag there has
+                // no more business reaching it than a tap does. Arriving messages still move it — see
+                // the auto-scroll effect below, which caps how far.
+                userScrollEnabled = !selecting,
+                contentPadding = PaddingValues(
+                    top = CodeTheme.dimens.inset + contentPadding.calculateTopPadding(),
+                    bottom = listBottomPad,
+                    start = CodeTheme.dimens.inset,
+                    end = CodeTheme.dimens.inset,
+                ),
+                verticalArrangement = Arrangement.Top,
+            ) {
+                items(
+                    count = messages.itemCount,
+                    key = messages.itemKey { it.itemKey }
+                ) { index ->
+                    val item = messages[index] ?: return@items
+
+                    // Cross-item bookkeeping, so it stays with the list rather than the row: a message
+                    // animates in once, the first time it is laid out after the initial page.
+                    // The newest row opening from under the typing dots: see TypingRowModel.
+                    // Decided here too: the list can lay this row out before the composition above
+                    // has seen it arrive. See TypingRowModel.arrive.
+                    val grow = if (index == 0) {
+                        arriveUnderDots()
+                        if (typingRow.takeAnchor()) SideEffect { listState.requestScrollToItem(0, 0) }
+                        typingRow.growFor(item.itemKey)
+                    } else {
+                        null
                     }
-                }
+                    val animateInsertion = index == 0 && hasLoaded && item.itemKey !in animatedKeys &&
+                        // A message growing out of the dots doesn't rise in as well.
+                        grow?.handoff == null
+                    if (animateInsertion) animatedKeys.add(item.itemKey)
 
-                // Every item is wrapped alike, so a row keeps its state as it moves off index 0.
-                Column(
-                    modifier = Modifier.addIf(grow != null && growing) {
-                        Modifier.openFromTypingRow(grow?.fromPx ?: 0) { growProgress.value }
-                    },
-                ) {
-                MessageRow(
-                    index = index,
-                    item = item,
-                    messages = messages,
-                    separatorConfig = separatorConfig,
-                    otherReadPointer = otherReadPointer,
-                    settlingKey = settlingKey,
-                    selecting = selecting,
-                    focused = focused,
-                    // The pressed row is also the only one that lifts, as iOS lifts only the held bubble.
-                    raised = hostsStrip,
-                    animateInsertion = animateInsertion,
-                    showsSenderGutter = isGroup,
-                    topBarBottom = topBarBottom,
-                    quickReactionStrip = if (hostsStrip) state.quickReactionStrip else emptyList(),
-                    stripAnchor = if (hostsStrip) {
-                        QuickReactionStripPlacement.messageBounds(selectedRowBounds.values)
-                    } else {
-                        null
-                    },
-                    onBubbleBounds = if (inSelection) {
-                        { bounds -> selectedRowBounds[item.itemKey] = bounds }
-                    } else {
-                        null
-                    },
-                    attention = if (bubble != null && bubble.messageId == attentionId) {
-                        readAttention
-                    } else {
-                        NoAttention
-                    },
-                    typingHandoff = handoff,
-                )
+                    val bubble = item as? ChatListItem.ContentBubble
+                    // Selecting or editing a message pushes the rest of the transcript behind a blur,
+                    // leaving the one message sharp — the same treatment iOS holds from its context
+                    // menu through the edit that can follow it.
+                    val focused = when {
+                        // The delete confirmation is modal, so nothing behind it is the focus: the
+                        // selected message drops back with the rest rather than sitting sharp and
+                        // half-clipped where the sheet cuts across it.
+                        state.confirmingDelete -> false
+                        state.editing != null -> bubble?.messageId == state.editing.messageId
+                        // Every row of the message stays sharp, so a split message is focused whole.
+                        state.selection != null -> bubble?.messageKey == state.selection.messageKey
+                        else -> true
+                    }
 
-                // Under the newest row, not in place of it. A message growing out of the dots
-                // draws what is left of them itself.
-                if (index == 0 && (showDots || dotsVisible) && !typingFrame.handedOff && handoff == null) {
-                    TypingRow(
-                        avatars = dotsAvatars,
-                        // The newest row already keeps the tight gap under it; the dots add the rest.
-                        gapAbove = when (gapAboveTypingRow(item, typingFrame.lastTypists)) {
-                            RowGap.Tight -> 0.dp
-                            RowGap.Normal -> CodeTheme.dimens.grid.x2 - CodeTheme.dimens.grid.x1
-                            RowGap.Wide -> CodeTheme.dimens.grid.x3 - CodeTheme.dimens.grid.x1
+                    // Every row of a message split around its card is focused, but only the pressed
+                    // one hosts the quick strip — one strip per message, as iOS gives one per context
+                    // menu — and it spans the rows the others measure.
+                    val inSelection = focused && bubble != null &&
+                        bubble.messageKey == state.selection?.messageKey
+                    if (inSelection) {
+                        DisposableEffect(selectedRowBounds, item.itemKey) {
+                            onDispose { selectedRowBounds.remove(item.itemKey) }
+                        }
+                    }
+                    val hostsStrip = inSelection && item.itemKey == state.selection?.itemKey
+
+                    var growing by remember { mutableStateOf(grow != null) }
+                    val growProgress = remember { Animatable(if (grow != null) 0f else 1f) }
+                    val contentAlpha = remember { Animatable(if (grow?.handoff != null) 0f else 1f) }
+                    val dotsAlpha = remember { Animatable(if (grow?.handoff != null) 1f else 0f) }
+                    LaunchedEffect(grow) {
+                        grow ?: return@LaunchedEffect
+                        coroutineScope {
+                            val spec = if (grow.handoff != null) {
+                                ChatAnimations.fromTyping
+                            } else {
+                                ChatAnimations.insertionPush
+                            }
+                            launch { growProgress.animateTo(1f, spec) }
+                            if (grow.handoff != null) {
+                                launch {
+                                    contentAlpha.animateTo(
+                                        1f,
+                                        tween(
+                                            durationMillis = ChatAnimations.fromTypingTextFadeMs,
+                                            delayMillis = ChatAnimations.fromTypingTextDelayMs,
+                                        ),
+                                    )
+                                }
+                                launch { dotsAlpha.animateTo(0f, tween(ChatAnimations.fromTypingDotsFadeMs)) }
+                            }
+                        }
+                        growing = false
+                        typingRow.finished(grow.key)
+                    }
+                    val handoff = grow?.handoff?.takeIf { growing }?.let { from ->
+                        remember(from) {
+                            TypingHandoff(
+                                from = from,
+                                progress = { growProgress.value },
+                                contentAlpha = { contentAlpha.value },
+                                dotsAlpha = { dotsAlpha.value },
+                            )
+                        }
+                    }
+
+                    // Every item is wrapped alike, so a row keeps its state as it moves off index 0.
+                    Column(
+                        modifier = Modifier.addIf(grow != null && growing) {
+                            Modifier.openFromTypingRow(grow?.fromPx ?: 0) { growProgress.value }
                         },
-                        model = typingRow,
-                        presence = { dotsPresence.value },
-                        // Dots carried under a newer message keep their place.
-                        enters = Snapshot.withoutReadObservation { dotsPresence.value == 0f },
+                    ) {
+                    MessageRow(
+                        index = index,
+                        item = item,
+                        messages = messages,
+                        separatorConfig = separatorConfig,
+                        otherReadPointer = otherReadPointer,
+                        settlingKey = settlingKey,
+                        selecting = selecting,
+                        focused = focused,
+                        // The pressed row is also the only one that lifts, as iOS lifts only the held bubble.
+                        raised = hostsStrip,
+                        animateInsertion = animateInsertion,
+                        showsSenderGutter = isGroup,
+                        topBarBottom = topBarBottom,
+                        quickReactionStrip = if (hostsStrip) state.quickReactionStrip else emptyList(),
+                        stripAnchor = if (hostsStrip) {
+                            QuickReactionStripPlacement.messageBounds(selectedRowBounds.values)
+                        } else {
+                            null
+                        },
+                        onBubbleBounds = if (inSelection) {
+                            { bounds -> selectedRowBounds[item.itemKey] = bounds }
+                        } else {
+                            null
+                        },
+                        attention = if (bubble != null && bubble.messageId == attentionId) {
+                            readAttention
+                        } else {
+                            NoAttention
+                        },
+                        typingHandoff = handoff,
                     )
-                }
-                }
-            }
 
-            // Show trailing separator and contact info once messages are available
-            // (from Room cache) or after the refresh settles (for empty conversations).
-            // This prevents these items from being the only content before messages
-            // load, which would cause the list to start at the wrong scroll position.
-            if (messages.itemCount > 0 || refreshSettled) {
-                // Node 10127:117171. Emitted before the info card, and so drawn below it: this list
-                // is reverseLayout, where the last item is the topmost one. The blur over this list
-                // is what makes it a preview; see GatedTranscriptPlaceholder for why it is drawn
-                // rather than fetched.
-                if (messages.itemCount == 0 && state.obscuresTranscript) {
-                    item(key = "gated-transcript-placeholder") {
-                        GatedTranscriptPlaceholder(
-                            modifier = Modifier.fillParentMaxWidth().then(behindBackdrop),
+                    // Under the newest row, not in place of it. A message growing out of the dots
+                    // draws what is left of them itself.
+                    if (index == 0 && (showDots || dotsVisible) && !typingFrame.handedOff && handoff == null) {
+                        TypingRow(
+                            avatars = dotsAvatars,
+                            // The newest row already keeps the tight gap under it; the dots add the rest.
+                            gapAbove = when (gapAboveTypingRow(item, typingFrame.lastTypists)) {
+                                RowGap.Tight -> 0.dp
+                                RowGap.Normal -> CodeTheme.dimens.grid.x2 - CodeTheme.dimens.grid.x1
+                                RowGap.Wide -> CodeTheme.dimens.grid.x3 - CodeTheme.dimens.grid.x1
+                            },
+                            model = typingRow,
+                            presence = { dotsPresence.value },
+                            // Dots carried under a newer message keep their place.
+                            enters = Snapshot.withoutReadObservation { dotsPresence.value == 0f },
                         )
                     }
+                    }
                 }
 
-                // Trailing date separator for the oldest loaded message.
-                // This replaces the `after == null` boundary from insertSeparators
-                // which Paging 3 defers until endOfPaginationReached, causing a
-                // visible frame delay where the message appears without its separator.
-                if (messages.itemCount > 0) {
-                    val oldest = messages.peek(messages.itemCount - 1)
-                    val oldestTimestamp = when (oldest) {
-                        is ChatListItem.TranscriptMessage -> oldest.timestamp
-                        is ChatListItem.DateSeparator -> null // already a separator
-                        is ChatListItem.UnreadDivider -> null // carries the oldest message's date
-                        is ChatListItem.EncryptedMarker -> null // carries it too, as `above`
-                        null -> null
+                // Show trailing separator and contact info once messages are available
+                // (from Room cache) or after the refresh settles (for empty conversations).
+                // This prevents these items from being the only content before messages
+                // load, which would cause the list to start at the wrong scroll position.
+                if (messages.itemCount > 0 || refreshSettled) {
+                    // Node 10127:117171. Emitted before the info card, and so drawn below it: this list
+                    // is reverseLayout, where the last item is the topmost one. The blur over this list
+                    // is what makes it a preview; see GatedTranscriptPlaceholder for why it is drawn
+                    // rather than fetched.
+                    if (messages.itemCount == 0 && state.obscuresTranscript) {
+                        item(key = "gated-transcript-placeholder") {
+                            GatedTranscriptPlaceholder(
+                                modifier = Modifier.fillParentMaxWidth().then(behindBackdrop),
+                            )
+                        }
                     }
-                    if (oldestTimestamp != null) {
-                        item(key = "trailing-date-${oldestTimestamp.epochSeconds}") {
-                            Box(
-                                modifier = Modifier
-                                    .padding(bottom = CodeTheme.dimens.grid.x2)
-                                    .then(behindBackdrop),
-                            ) {
-                                DateSeparatorRow(oldestTimestamp)
+
+                    // Trailing date separator for the oldest loaded message.
+                    // This replaces the `after == null` boundary from insertSeparators
+                    // which Paging 3 defers until endOfPaginationReached, causing a
+                    // visible frame delay where the message appears without its separator.
+                    if (messages.itemCount > 0) {
+                        val oldest = messages.peek(messages.itemCount - 1)
+                        val oldestTimestamp = when (oldest) {
+                            is ChatListItem.TranscriptMessage -> oldest.timestamp
+                            is ChatListItem.DateSeparator -> null // already a separator
+                            is ChatListItem.UnreadDivider -> null // carries the oldest message's date
+                            is ChatListItem.EncryptedMarker -> null // carries it too, as `above`
+                            null -> null
+                        }
+                        if (oldestTimestamp != null) {
+                            item(key = "trailing-date-${oldestTimestamp.epochSeconds}") {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(bottom = CodeTheme.dimens.grid.x2)
+                                        .then(behindBackdrop),
+                                ) {
+                                    DateSeparatorRow(oldestTimestamp)
+                                }
                             }
                         }
                     }
-                }
 
-                // Room at the start of history for the quick reaction strip, made only while a
-                // message near the start needs it: the strip sits above the message it acts on.
-                item(key = "history-start") {
-                    Spacer(Modifier.height(with(LocalDensity.current) { historyStartRoom.toDp() }))
+                    // Room at the start of history for the quick reaction strip, made only while a
+                    // message near the start needs it: the strip sits above the message it acts on.
+                    item(key = "history-start") {
+                        Spacer(Modifier.height(with(LocalDensity.current) { historyStartRoom.toDp() }))
+                    }
                 }
             }
+            val jumpVisible = rememberJumpToBottomVisible(listState) { hasPositioned }
+            // Beside the list, not inside it: the list carries the haze source the glass samples.
+            JumpToBottomHaze(
+                visible = jumpVisible,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = contentPadding.calculateBottomPadding()),
+            )
+            val jumpScope = rememberCoroutineScope()
+            JumpToBottomButton(
+                visible = jumpVisible,
+                // No count until the list has settled: reads are gated on it, and so is the badge.
+                unreadCount = if (hasPositioned) unreadBelowCount else 0,
+                hazeState = hazeState,
+                onClick = { jumpScope.launch { listState.scrollToNewest() } },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    // The scaffold already rides the keyboard, so the bar-height padding does too.
+                    .padding(end = CodeTheme.dimens.inset, bottom = contentPadding.calculateBottomPadding() + 20.dp),
+            )
         }
 
         // Scroll to bottom when the newest message changes (sent or received)
@@ -885,7 +909,7 @@ private suspend fun LazyListState.alignBelowTopBar(index: Int) {
 }
 
 /** Whether the transcript rests on its newest row, with nothing of it scrolled out of view. */
-private fun LazyListState.restsOnNewest(): Boolean =
+internal fun LazyListState.restsOnNewest(): Boolean =
     firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset == 0
 
 /**

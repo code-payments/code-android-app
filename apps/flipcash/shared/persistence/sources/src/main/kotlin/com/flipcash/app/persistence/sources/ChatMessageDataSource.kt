@@ -191,6 +191,14 @@ class ChatMessageDataSource @Inject constructor(
             afterId = afterId,
         ) ?: 0
 
+    /** [countInboundAfter] as a stream, so arrivals and pointer moves both update it. */
+    fun observeInboundCountAfter(chatId: ChatId, selfId: ID, afterId: Long): Flow<Int> =
+        db?.chatMessageDao()?.observeInboundCountAfter(
+            chatIdHex = mapper.chatIdHex(chatId),
+            selfIdHex = mapper.userIdHex(selfId),
+            afterId = afterId,
+        ) ?: emptyFlow()
+
     /** The first stored message in [chatId] past [afterId] that [selfId] did not send, or `null`. */
     suspend fun firstNotSentByAfter(chatId: ChatId, selfId: ID, afterId: Long): Long? =
         db?.chatMessageDao()?.firstNotSentByAfter(

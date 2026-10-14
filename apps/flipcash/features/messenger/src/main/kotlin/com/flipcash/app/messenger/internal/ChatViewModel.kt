@@ -1048,6 +1048,23 @@ internal class ChatViewModel @AssistedInject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /**
+     * How many inbound messages sit past the viewer's READ pointer, for the jump-to-bottom badge.
+     * The pointer is the one the read reporter advances, so the badge falls as rows are read and
+     * cannot disagree with it. An outside viewer's pointer never moves, so it counts nothing.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val unreadBelowCount = stateFlow.mapNotNull { it.chatId }
+        .distinctUntilChanged()
+        .flatMapLatest { chatId ->
+            combine(
+                chatCoordinator.observeUnreadBelow(chatId),
+                stateFlow.map { it.isOutsideGroup }.distinctUntilChanged(),
+            ) { count, outside -> if (outside) 0 else count }
+        }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    /**
      * Re-runs the transcript mapping when the windows change, so a message resolved under the
      * defaults (both open, before the flags arrive) narrows as soon as the server's answer lands.
      */
