@@ -246,7 +246,7 @@ internal fun MessageRow(
         // and on the empty side of an outgoing row it is reaching for nothing. The one row that
         // leads with the bubble itself — an incoming message in a DM — keeps its leading edge live.
         leadingGutter = replyGutterFor(
-            width = CodeTheme.dimens.staticGrid.x6,
+            width = CodeTheme.dimens.staticGrid.x5,
             isFromSelf = bubble?.isFromSelf == true,
             showsSenderGutter = showsSenderGutter,
         ),
@@ -330,7 +330,7 @@ internal fun MessageRow(
                                 bottom = CodeTheme.dimens.grid.x1,
                             ),
                             text = sender.displayName,
-                            style = CodeTheme.typography.textSmall,
+                            style = CodeTheme.typography.caption,
                             color = CodeTheme.colors.textSecondary,
                         )
                     }
@@ -348,7 +348,7 @@ internal fun MessageRow(
                         // row that reserved no gutter would sit out at the inset and then jump inward
                         // when the name arrived.
                         if (showsSenderGutter && !item.isFromSelf) {
-                            Box(modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x6)) {
+                            Box(modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5)) {
                                 if (sender != null && runStart) {
                                     ContactAvatar(
                                         image = sender.picture,
@@ -620,7 +620,7 @@ private fun SwipeToReplyAffordance(
 @Composable
 private fun senderNameInset(showsGutter: Boolean): Dp =
     if (showsGutter) {
-        CodeTheme.dimens.staticGrid.x6 + CodeTheme.dimens.grid.x1 + CodeTheme.dimens.grid.x1
+        CodeTheme.dimens.staticGrid.x5 + CodeTheme.dimens.grid.x1 + CodeTheme.dimens.grid.x1
     } else {
         CodeTheme.dimens.grid.x1
     }

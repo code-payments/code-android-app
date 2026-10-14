@@ -45,7 +45,7 @@ val CashBillDecor = Color(0xFFA9A9B1)
 val BetaIndicator = Color(0xFFFEF383)
 
 val TextMain = White
-val TextSecondary = BrandLight
+val TextSecondary = White.copy(alpha = 0.5f)
 val TextTertiary = BrandMuted
 val TextError = Alert
 

@@ -213,7 +213,7 @@ private fun WebPreview(
             preview.description?.let { description ->
                 Text(
                     text = description,
-                    style = CodeTheme.typography.textSmall,
+                    style = CodeTheme.typography.caption,
                     color = CodeTheme.colors.textSecondary,
                     maxLines = DESCRIPTION_LINES,
                     overflow = TextOverflow.Ellipsis,
