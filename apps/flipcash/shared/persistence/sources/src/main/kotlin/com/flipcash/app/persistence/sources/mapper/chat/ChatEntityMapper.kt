@@ -412,6 +412,7 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         username = (widget as? WidgetContent.ShareProfile)?.username,
     )
     is MessageContent.System -> MessageContentSerialized.System(fallbackText = fallbackText)
+    MessageContent.Unsupported -> MessageContentSerialized.Unsupported
     is MessageContent.Deleted -> MessageContentSerialized.Deleted(
         deletedAt = deletedTs.epochSeconds,
         deletedBy = deletedBy?.hexEncodedString(),
@@ -449,6 +450,7 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
         caption = caption?.let { MessageContent.Text(it.text) },
     )
     is MessageContentSerialized.System -> MessageContent.System(fallbackText = fallbackText)
+    MessageContentSerialized.Unsupported -> MessageContent.Unsupported
     is MessageContentSerialized.Deleted -> MessageContent.Deleted(
         deletedTs = Instant.fromEpochSeconds(deletedAt),
         deletedBy = deletedBy?.hexToIdExt(),

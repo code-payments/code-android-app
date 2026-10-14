@@ -214,7 +214,8 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
                 else -> WidgetContent.Unsupported
             }
         )
-        else -> MessageContent.Text("")
+        // A content type added after this build renders as unsupported, not as an empty message.
+        else -> MessageContent.Unsupported
     }
 }
 

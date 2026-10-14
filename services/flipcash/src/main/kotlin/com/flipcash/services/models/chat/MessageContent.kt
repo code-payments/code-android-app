@@ -38,6 +38,12 @@ sealed interface MessageContent {
      * the only part this client reads; see `displayText` in chat-ui for what a row draws.
      */
     data class System(val fallbackText: String) : MessageContent
+
+    /**
+     * A `messaging.v1.Content.type` this client does not recognise. Rendered as an unsupported
+     * message, as an unrecognised [WidgetContent] is.
+     */
+    data object Unsupported : MessageContent
     data class Deleted(
         val deletedTs: Instant,
         val deletedBy: ID?,

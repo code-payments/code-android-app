@@ -295,6 +295,7 @@ fun ContentBubble(
                 is MessageContent.Encrypted -> UndecryptableBubble(
                     modifier = modifier,
                     hint = item.undecryptableHint,
+                    maxWidth = bubbleMaxWidth,
                 )
 
                 is MessageContent.Media -> MediaMessageBubble(
@@ -325,9 +326,17 @@ fun ContentBubble(
 
                     WidgetContent.Unsupported -> UndecryptableBubble(
                         modifier = modifier,
-                        hint = UndecryptableHint.UpdateApp,
+                        hint = item.undecryptableHint,
+                        maxWidth = bubbleMaxWidth,
                     )
                 }
+
+                // A content type added after this build, drawn as an unknown widget is.
+                MessageContent.Unsupported -> UndecryptableBubble(
+                    modifier = modifier,
+                    hint = item.undecryptableHint,
+                    maxWidth = bubbleMaxWidth,
+                )
             }
         }
     }

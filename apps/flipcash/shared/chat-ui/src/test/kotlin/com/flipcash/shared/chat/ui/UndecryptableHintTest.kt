@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.ui
 import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.chat.UndecryptableReason
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -47,5 +48,24 @@ class UndecryptableHintTest {
 
         assertNull(hint(MessageEncryption.Decrypted(sealed)))
         assertNull(hint(MessageEncryption.KeyPending))
+    }
+
+    @Test
+    fun `a content type this build doesn't know asks for an update`() {
+        assertEquals(UndecryptableHint.UpdateApp, unsupportedContentHint(MessageContent.Unsupported))
+    }
+
+    @Test
+    fun `a widget this build doesn't know asks for an update`() {
+        assertEquals(
+            UndecryptableHint.UpdateApp,
+            unsupportedContentHint(MessageContent.Widget(WidgetContent.Unsupported)),
+        )
+    }
+
+    @Test
+    fun `content this build can draw has no unsupported hint`() {
+        assertNull(unsupportedContentHint(MessageContent.Text("hi")))
+        assertNull(unsupportedContentHint(MessageContent.Widget(WidgetContent.ShareProfile("ada"))))
     }
 }

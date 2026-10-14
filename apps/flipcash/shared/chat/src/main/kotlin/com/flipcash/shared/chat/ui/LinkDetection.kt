@@ -173,5 +173,6 @@ fun MessageContent.linkableText(): String? = when (this) {
     is MessageContent.System,
     is MessageContent.Widget,
     is MessageContent.Encrypted,
+    MessageContent.Unsupported,
     -> null
 }

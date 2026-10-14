@@ -167,6 +167,8 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
             .build()
         // Server-authored and receive-only: no client path builds one, so reaching this is a bug.
         is MessageContent.Widget -> error("Widget messages are receive-only and are never sent by a client")
+        // Only ever decoded from a type this build doesn't know, so it has no wire form to send.
+        is MessageContent.Unsupported -> error("Unsupported content is decode-only; it has no wire form")
         is MessageContent.System -> MessagingModel.Content.newBuilder()
             .setSystem(MessagingModel.SystemContent.newBuilder().setFallbackText(fallbackText))
             .build()
