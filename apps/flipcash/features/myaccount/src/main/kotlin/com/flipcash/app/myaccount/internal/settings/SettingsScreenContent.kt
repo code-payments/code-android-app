@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.getcode.libs.biometrics.Biometrics
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.BetaIndicator
+import com.getcode.ui.components.BottomScrollEdge
 import com.getcode.ui.components.ListItem
 import com.getcode.ui.components.ListItemDefaults
 import com.getcode.ui.components.text.SectionHeader
@@ -82,6 +83,12 @@ internal fun SettingsScreen(
             onUpdate = { scope.launch { updater.startOptionalUpdate() } },
             onRestart = updater::completeUpdate,
             modifier = Modifier.hazeSource(hazeState),
+        )
+        // Rows fade out toward the bottom on scroll, under the pinned card when it shows.
+        BottomScrollEdge(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            hazeState = hazeState,
+            listState = listState,
         )
         if (card.pinned) {
             // The card floats 30dp above the screen bottom (Figma) on its own glass; the list scrolls

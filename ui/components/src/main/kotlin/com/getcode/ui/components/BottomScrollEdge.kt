@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -41,6 +42,30 @@ fun BottomScrollEdge(
     height: Dp = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + fade,
 ) {
     val visible by remember(scrollState) { derivedStateOf { scrollState.canScrollForward } }
+    BottomScrollEdge(hazeState = hazeState, visible = visible, modifier = modifier, height = height)
+}
+
+/** [BottomScrollEdge] for a lazy list: shows while the list has more to scroll to. */
+@Composable
+fun BottomScrollEdge(
+    hazeState: HazeState,
+    listState: LazyListState,
+    modifier: Modifier = Modifier,
+    fade: Dp = 40.dp,
+    height: Dp = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + fade,
+) {
+    val visible by remember(listState) { derivedStateOf { listState.canScrollForward } }
+    BottomScrollEdge(hazeState = hazeState, visible = visible, modifier = modifier, height = height)
+}
+
+/** [BottomScrollEdge] shown whenever [visible] is true. */
+@Composable
+fun BottomScrollEdge(
+    hazeState: HazeState,
+    visible: Boolean,
+    height: Dp,
+    modifier: Modifier = Modifier,
+) {
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
 
     AnimatedVisibility(visible = visible, modifier = modifier, enter = fadeIn(), exit = fadeOut()) {
