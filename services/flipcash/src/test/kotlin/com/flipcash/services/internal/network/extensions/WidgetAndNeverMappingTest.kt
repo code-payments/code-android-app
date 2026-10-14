@@ -42,6 +42,16 @@ class WidgetAndNeverMappingTest {
     }
 
     @Test
+    fun `a content type this build doesn't know maps to unsupported, not empty text`() {
+        assertEquals(MessageContent.Unsupported, MessagingModel.Content.getDefaultInstance().toMessageContent())
+    }
+
+    @Test
+    fun `unsupported content can't be built for sending`() {
+        assertFailsWith<IllegalStateException> { MessageContent.Unsupported.asContent() }
+    }
+
+    @Test
     fun `a widget can't be built for sending`() {
         assertFailsWith<IllegalStateException> {
             MessageContent.Widget(WidgetContent.ShareProfile("alice")).asContent()

@@ -147,8 +147,10 @@ sealed interface ChatListItem {
          */
         val canReact: Boolean = false,
         /**
-         * The line under the bubble when [content] is ciphertext that didn't open. See
-         * [undecryptableHint][com.flipcash.shared.chat.ui.undecryptableHint].
+         * What the bubble tells the reader when [content] is ciphertext that didn't open, or
+         * content this build can't draw. See
+         * [undecryptableHint][com.flipcash.shared.chat.ui.undecryptableHint] and
+         * [unsupportedContentHint][com.flipcash.shared.chat.ui.unsupportedContentHint].
          */
         val undecryptableHint: UndecryptableHint = UndecryptableHint.UpdateApp,
         /** What a photo message needs beyond its content to load and gate its photo. */
@@ -223,6 +225,7 @@ sealed interface ChatListItem {
                 is MessageContent.System -> "system-message"
                 is MessageContent.Widget -> "widget-message"
                 is MessageContent.Encrypted -> "encrypted-message"
+                MessageContent.Unsupported -> "unsupported-message"
             }
         }
     }

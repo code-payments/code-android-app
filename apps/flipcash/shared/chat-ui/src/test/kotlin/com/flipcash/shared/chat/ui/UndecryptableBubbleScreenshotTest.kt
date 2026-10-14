@@ -24,12 +24,12 @@ import java.io.File
 
 /**
  * Renders the bubble for a message this client can't read, with each hint, to a PNG for
- * comparison with the design (node 10416:1576). Not an assertion test — it writes to
+ * comparison with the design (node 10416:1576; the update hint, component 11420:13397). Not an assertion test — it writes to
  * `build/screenshots/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w402dp-h400dp-xhdpi")
+@Config(sdk = [34], qualifiers = "w402dp-h640dp-xhdpi")
 class UndecryptableBubbleScreenshotTest {
 
     @get:Rule
@@ -47,7 +47,12 @@ class UndecryptableBubbleScreenshotTest {
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    UndecryptableBubble(hint = UndecryptableHint.UpdateApp)
+                    UndecryptableBubble(hint = UndecryptableHint.UpdateApp, maxWidth = 258.dp)
+                    UndecryptableBubble(
+                        hint = UndecryptableHint.UpdateApp,
+                        maxWidth = 258.dp,
+                        actionLabel = "Update Flipcash",
+                    )
                     UndecryptableBubble(hint = UndecryptableHint.AskToResend("Grace"))
                     UndecryptableBubble(hint = UndecryptableHint.TrySendingAgain)
                 }

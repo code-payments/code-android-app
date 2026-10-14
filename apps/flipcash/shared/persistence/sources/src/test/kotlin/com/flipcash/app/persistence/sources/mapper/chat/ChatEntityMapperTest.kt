@@ -10,6 +10,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.handle
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -174,6 +175,39 @@ class ChatEntityMapperTest {
         assertEquals(1, restored.scheme)
         assertEquals(true, encrypted.nonce.contentEquals(restored.nonce))
         assertEquals(true, encrypted.ciphertext.contentEquals(restored.ciphertext))
+    }
+
+    @Test
+    fun `unsupported content survives the round trip through the message row`() {
+        val message = ChatMessage(
+            messageId = 1,
+            senderId = listOf(0xAB.toByte()),
+            content = listOf(MessageContent.Unsupported),
+            timestamp = Instant.fromEpochSeconds(1_000),
+            unreadSeq = 1,
+        )
+
+        val entity = mapper.toEntity(CHAT_HEX, message)
+
+        assertEquals(listOf<MessageContent>(MessageContent.Unsupported), mapper.toMessage(entity).content)
+    }
+
+    @Test
+    fun `an unknown widget survives the round trip through the message row as unsupported`() {
+        val message = ChatMessage(
+            messageId = 1,
+            senderId = listOf(0xAB.toByte()),
+            content = listOf(MessageContent.Widget(WidgetContent.Unsupported)),
+            timestamp = Instant.fromEpochSeconds(1_000),
+            unreadSeq = 1,
+        )
+
+        val entity = mapper.toEntity(CHAT_HEX, message)
+
+        assertEquals(
+            listOf<MessageContent>(MessageContent.Widget(WidgetContent.Unsupported)),
+            mapper.toMessage(entity).content,
+        )
     }
 
     private fun groupMetadata() = ChatMetadata(

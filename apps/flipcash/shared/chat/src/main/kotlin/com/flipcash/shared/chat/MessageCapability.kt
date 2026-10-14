@@ -181,7 +181,8 @@ private fun resolveForParticipant(
 
     // A widget is the server's too: nothing to copy, no user sender to report, nothing of the
     // viewer's to edit or delete. Replying to it is speaking, so it follows the speaker rules.
-    if (contents.all { it is MessageContent.Widget }) {
+    // Content this build can't read is treated the same way: nothing to copy or edit.
+    if (contents.all { it is MessageContent.Widget || it is MessageContent.Unsupported }) {
         return if (canSpeak) setOf(MessageCapability.Reply) else emptySet()
     }
 

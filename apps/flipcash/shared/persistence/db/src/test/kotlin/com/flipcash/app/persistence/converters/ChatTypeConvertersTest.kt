@@ -85,6 +85,14 @@ class ChatTypeConvertersTest {
     }
 
     @Test
+    fun `fromMessageContentList and toMessageContentList roundtrip unsupported content`() {
+        val original = listOf(MessageContentSerialized.Unsupported)
+        val serialized = converter.toMessageContentList(original)
+        val deserialized = converter.fromMessageContentList(serialized)
+        assertEquals(original, deserialized)
+    }
+
+    @Test
     fun `fromMessageContentList returns null for null input`() {
         assertNull(converter.fromMessageContentList(null))
     }

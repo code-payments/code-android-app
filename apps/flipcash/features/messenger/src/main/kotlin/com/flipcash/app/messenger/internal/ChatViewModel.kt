@@ -143,6 +143,7 @@ import com.flipcash.shared.chat.readOnly
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.ui.UndecryptableHint
 import com.flipcash.shared.chat.ui.undecryptableHint
+import com.flipcash.shared.chat.ui.unsupportedContentHint
 import com.flipcash.shared.chat.ui.detectMentions
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
@@ -1329,7 +1330,9 @@ internal class ChatViewModel @AssistedInject constructor(
                         canReact = canReact(message, canSpeak = canPost && canReactToMessages),
                         photo = stateFlow.value.chatId?.takeIf { content.photoBody() != null }
                             ?.let { chatId -> message.photoContext(chatId, previewing) },
-                        undecryptableHint = undecryptableHint(
+                        // Content this build can't draw asks for an update even when the sealed
+                        // message around it opened.
+                        undecryptableHint = unsupportedContentHint(enriched) ?: undecryptableHint(
                             encryption = message.encryption,
                             isFromSelf = message.isFromSelf,
                             // A group has no participant: its sender is this message's author,
@@ -1459,6 +1462,9 @@ internal class ChatViewModel @AssistedInject constructor(
                         WidgetContent.Unsupported -> ""
                     }
                 )
+
+                // Cited as an unsupported widget is: with nothing this build can name.
+                MessageContent.Unsupported -> ChatQuoteSnippet.Text("")
 
                 // A reply to a reply cites the inner body, not the nested citation.
                 is MessageContent.Reply -> when (val inner = body.content.firstOrNull()) {

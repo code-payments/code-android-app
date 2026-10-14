@@ -198,6 +198,9 @@ private fun MessageContent.previewText(
         is WidgetContent.ShareProfile -> resources.getString(R.string.label_chat_preview_sharedProfile)
         WidgetContent.Unsupported -> null
     }
+
+    // Previews as nothing, as an unsupported widget does.
+    MessageContent.Unsupported -> null
 }
 
 private const val MAX_REPLY_UNWRAP_DEPTH = 4

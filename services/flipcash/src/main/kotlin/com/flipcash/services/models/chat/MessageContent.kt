@@ -34,6 +34,12 @@ sealed interface MessageContent {
      */
     data class Widget(val widget: WidgetContent) : MessageContent
     data class System(val fallbackText: String) : MessageContent
+
+    /**
+     * A `messaging.v1.Content.type` this client does not recognise. Rendered as an unsupported
+     * message, as an unrecognised [WidgetContent] is.
+     */
+    data object Unsupported : MessageContent
     data class Deleted(
         val deletedTs: Instant,
         val deletedBy: ID?,
