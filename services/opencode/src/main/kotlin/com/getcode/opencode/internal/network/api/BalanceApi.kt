@@ -34,15 +34,19 @@ internal class BalanceApi @Inject constructor(
      * @param owners The owner accounts to fetch balance data for (min 1, max 1024).
      * @param mints Optional filter to limit the response to balances for these mints.
      *   When empty, balances for all mints held by each owner are returned.
+     * @param excludePerMintBalances When true, `OwnerBalance.balances_by_mint` comes back empty;
+     *   owner totals still cover every mint.
      * @return The [OcpBalanceService.GetBalancesResponse]
      */
     suspend fun getBalances(
         owners: List<PublicKey>,
         mints: List<PublicKey> = emptyList(),
+        excludePerMintBalances: Boolean = false,
     ): OcpBalanceService.GetBalancesResponse {
         val request = OcpBalanceService.GetBalancesRequest.newBuilder()
             .addAllOwners(owners.map { it.asSolanaAccountId() })
             .addAllMints(mints.map { it.asSolanaAccountId() })
+            .setExcludePerMintBalances(excludePerMintBalances)
             .build()
 
         request.validate().orThrow()

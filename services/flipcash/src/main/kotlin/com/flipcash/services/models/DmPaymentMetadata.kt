@@ -78,9 +78,9 @@ fun buildTipDmPaymentMetadata(
                         .setAction(
                             when (action) {
                                 TipAction.SEND ->
-                                    FlipcashIntentModel.ChatMetadata.DmPayment.Action.SEND
+                                    FlipcashIntentModel.PaymentAction.SEND
                                 TipAction.TIP ->
-                                    FlipcashIntentModel.ChatMetadata.DmPayment.Action.TIP
+                                    FlipcashIntentModel.PaymentAction.TIP
                             }
                         )
                 )
