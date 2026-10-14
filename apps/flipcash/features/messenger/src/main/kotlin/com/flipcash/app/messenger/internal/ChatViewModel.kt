@@ -255,6 +255,11 @@ internal class ChatViewModel @AssistedInject constructor(
      * back to it. Null for any other open.
      */
     @Assisted private val returnToTitle: String? = null,
+    /**
+     * Whether the link that opened this visit named a group (a dashed UUID id) rather than a DM.
+     * See [State.linkedAsGroup].
+     */
+    @Assisted private val linkedAsGroup: Boolean = false,
     private val chatCoordinator: ChatCoordinator,
     private val mediaUploads: ChatMediaUploads,
     private val e2eePolicy: E2eePolicy,
@@ -294,6 +299,7 @@ internal class ChatViewModel @AssistedInject constructor(
     initialState = State(
         openingAtMessage = openAtMessageId != null,
         returnToTitle = returnToTitle,
+        linkedAsGroup = linkedAsGroup,
     ),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
@@ -443,6 +449,12 @@ internal class ChatViewModel @AssistedInject constructor(
          * the message away or sending.
          */
         val returnToTitle: String? = null,
+        /**
+         * Whether a message link opened this visit with a group's id. The open can mark the chat a
+         * tip DM before the group resolves, and a landing that believed it would page a withheld
+         * group's history, so [messageLinkLanding] waits on the group for such a link.
+         */
+        val linkedAsGroup: Boolean = false,
         /**
          * Where the "N Unread Messages" divider sits, read once per visit from the viewer's stored
          * READ pointer. Never re-read: the list advances that pointer as the reader scrolls, and a
@@ -662,15 +674,19 @@ internal class ChatViewModel @AssistedInject constructor(
         val messageLinkLanding: MessageLinkLanding?
             get() = when {
                 chatNotFound -> MessageLinkLanding.Withheld
+                // A null membership is a group hydrated by id, which the device holds no row for;
+                // like the gate, read it as outside (see ChatMembership.isMember).
                 subject is ChatSubject.Group -> when (subject.isMember) {
                     true -> MessageLinkLanding.Readable
-                    null -> null
-                    false -> when (groupAccess) {
+                    null, false -> when (groupAccess) {
                         null, GroupAccess.Undetermined -> null
                         else -> if (readsFromOutside) MessageLinkLanding.Readable
                         else MessageLinkLanding.Withheld
                     }
                 }
+                // The open can call a group a tip DM before the group resolves, so a link that
+                // named a group never reads as one.
+                linkedAsGroup -> null
                 chatType == ChatType.TIP_DM || chatType == ChatType.CONTACT_DM ->
                     MessageLinkLanding.Readable
                 else -> null
@@ -3575,6 +3591,7 @@ internal class ChatViewModel @AssistedInject constructor(
             identifier: ChatIdentifier?,
             openAtMessageId: Long?,
             returnToTitle: String?,
+            linkedAsGroup: Boolean,
         ): ChatViewModel
     }
 

@@ -663,13 +663,44 @@ class ChatViewModelStateTest {
     fun `a message link waits while the viewer's standing in a group is unknown`() {
         // A chat id alone, before the open says what it is: paging now could fetch a withheld group.
         assertNull(ChatViewModel.State(chatId = groupChatId).messageLinkLanding)
-        assertNull(ChatViewModel.State(subject = group(isMember = null)).messageLinkLanding)
         assertNull(ChatViewModel.State(subject = group(isMember = false)).messageLinkLanding)
         assertNull(
             ChatViewModel.State(
                 subject = group(isMember = false),
                 groupAccess = GroupAccess.Undetermined,
             ).messageLinkLanding
+        )
+    }
+
+    @Test
+    fun `a message link into a group hydrated by id waits on access, not membership`() {
+        // A group the device holds no row for resolves with isMember = null and keeps it, so
+        // waiting on membership would hold the landing forever; seen on device.
+        assertNull(ChatViewModel.State(subject = group(isMember = null)).messageLinkLanding)
+        assertEquals(
+            MessageLinkLanding.Withheld,
+            ChatViewModel.State(
+                subject = group(isMember = null),
+                groupAccess = GroupAccess.Blocked(unmet),
+            ).messageLinkLanding,
+        )
+    }
+
+    @Test
+    fun `a group's message link waits for the group even after the open calls it a tip DM`() {
+        // OnTipDmDetected can mark the chat a tip DM before the group resolves; seen on device as
+        // a gated group's history being paged.
+        assertNull(
+            ChatViewModel.State(linkedAsGroup = true, chatType = ChatType.TIP_DM).messageLinkLanding
+        )
+        assertEquals(
+            MessageLinkLanding.Withheld,
+            ChatViewModel.State(
+                linkedAsGroup = true,
+                chatType = ChatType.GROUP,
+                subject = group(isMember = false),
+                groupAccess = GroupAccess.Blocked(unmet),
+            ).messageLinkLanding,
         )
     }
 

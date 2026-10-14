@@ -77,7 +77,14 @@ fun ChatFlowScreen(
     // first frame already has what the open can draw from memory (a group's name and picture). The
     // steps get this instance from flowSharedViewModel: the flow's store owner is this entry's.
     val viewModel = hiltViewModel<ChatViewModel, ChatViewModel.Factory>(
-        creationCallback = { factory -> factory.create(route.identifier, route.jumpToMessageId, route.returnToTitle) },
+        creationCallback = { factory ->
+            factory.create(
+                route.identifier,
+                route.jumpToMessageId,
+                route.returnToTitle,
+                linkedAsGroup = route.jumpToMessageId != null && route.isGroupLink,
+            )
+        },
     )
 
     // A group link the server has no record of: say so and leave, rather than sit on an empty chat
