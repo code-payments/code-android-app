@@ -281,8 +281,7 @@ internal fun UserControlBottomBar(
             // doesn't move anything, since nothing here animates on its own.
             val keyboardOpen = keyboardOpenFraction()
             val hasComposer = state.typingConstraints.enabled
-            val compactInset = CodeTheme.dimens.staticGrid.x6.coerceAtLeast(CodeTheme.dimens.inset)
-            val sideInset = if (hasComposer) lerp(compactInset, CodeTheme.dimens.inset, keyboardOpen) else CodeTheme.dimens.inset
+            val sideInset = composerSideInset(hasComposer, keyboardOpen)
             val restingDrop = if (hasComposer) lerp(CodeTheme.dimens.staticGrid.x2, 0.dp, keyboardOpen) else 0.dp
             // The part of the navigation bar's inset the keyboard isn't covering, so the bar only sinks
             // into it once the keyboard has cleared it.
@@ -647,6 +646,17 @@ private fun DeactivatedChatBottomBar() {
             textAlign = TextAlign.Center,
         )
     }
+}
+
+/**
+ * The margin either side of the bar. Compact at rest once there is a composer, opening out to the
+ * normal inset as the keyboard ([keyboardOpen], 0 to 1) comes up. The `$` button's trailing edge sits
+ * this far from the screen edge, and the jump-to-bottom button aligns to it.
+ */
+@Composable
+internal fun composerSideInset(hasComposer: Boolean, keyboardOpen: Float): Dp {
+    val compactInset = CodeTheme.dimens.staticGrid.x6.coerceAtLeast(CodeTheme.dimens.inset)
+    return if (hasComposer) lerp(compactInset, CodeTheme.dimens.inset, keyboardOpen) else CodeTheme.dimens.inset
 }
 
 /**

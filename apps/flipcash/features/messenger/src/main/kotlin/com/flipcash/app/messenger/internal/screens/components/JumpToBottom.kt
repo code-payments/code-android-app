@@ -49,7 +49,7 @@ import dev.chrisbanes.haze.blur.hazeBlur
 /** Past this many rows from the newest, a tap jumps rather than animates (from the old Flipchat). */
 internal const val JumpToBottomAnimateMaxRows = 100
 
-private val ButtonSize = 48.dp
+internal val JumpToBottomButtonSize = 48.dp
 private val BadgeOutline = 2.dp
 
 /** Whether a tap at [firstVisibleIndex] rows from the newest jumps instead of animating. */
@@ -96,7 +96,7 @@ internal fun JumpToBottomButton(
         Box {
             Box(
                 modifier = Modifier
-                    .size(ButtonSize)
+                    .size(JumpToBottomButtonSize)
                     .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
                     .clip(CircleShape)
                     .then(
