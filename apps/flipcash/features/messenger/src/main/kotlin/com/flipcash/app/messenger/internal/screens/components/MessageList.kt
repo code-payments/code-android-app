@@ -702,11 +702,6 @@ internal fun MessageList(
             val jumpVisible by remember(selecting) {
                 derivedStateOf { hasPositioned && !listState.restsOnNewest() && !selecting && !autoScrolling }
             }
-            // Beside the list, not inside it: the list carries the haze source the glass samples.
-            JumpToBottomHaze(
-                visible = jumpVisible,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = contentPadding.calculateBottomPadding()),
-            )
             val jumpScope = rememberCoroutineScope()
             JumpToBottomButton(
                 visible = jumpVisible,

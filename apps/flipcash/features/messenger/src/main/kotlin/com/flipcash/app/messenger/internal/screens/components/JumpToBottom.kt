@@ -10,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.layout
@@ -53,7 +51,6 @@ internal const val JumpToBottomAnimateMaxRows = 100
 
 private val ButtonSize = 48.dp
 private val BadgeOutline = 2.dp
-private val HazeHeight = 112.dp
 
 /** Whether a tap at [firstVisibleIndex] rows from the newest jumps instead of animating. */
 internal fun jumpsToBottom(firstVisibleIndex: Int): Boolean = firstVisibleIndex > JumpToBottomAnimateMaxRows
@@ -61,35 +58,6 @@ internal fun jumpsToBottom(firstVisibleIndex: Int): Boolean = firstVisibleIndex 
 /** Scrolls [this] to the newest row: a jump from far away, an animation from near. */
 internal suspend fun LazyListState.scrollToNewest() {
     if (jumpsToBottom(firstVisibleItemIndex)) scrollToItem(0) else animateScrollToItem(0)
-}
-
-/**
- * The haze behind the button: the chat background fading in toward the composer, so the button
- * and the rows it floats over read apart. Sits beside the transcript, never inside its haze
- * source, and takes no touches.
- */
-@Composable
-internal fun JumpToBottomHaze(visible: Boolean, modifier: Modifier = Modifier) {
-    val background = CodeTheme.colors.background
-    AnimatedVisibility(
-        modifier = modifier,
-        visible = visible,
-        enter = fadeIn(tween(200)),
-        exit = fadeOut(tween(200)),
-    ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(HazeHeight)
-                .background(
-                    Brush.verticalGradient(
-                        0f to background.copy(alpha = 0f),
-                        0.5f to background.copy(alpha = 0.75f),
-                        1f to background.copy(alpha = 0.95f),
-                    )
-                ),
-        )
-    }
 }
 
 /**
