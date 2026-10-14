@@ -76,4 +76,18 @@ class SenderRunTest {
         assertTrue(startsSenderRun(unnamedAlice, older = unnamedBob))
         assertFalse(startsSenderRun(unnamedAlice, older = unnamedAlice))
     }
+
+    private val notice = ChatListItem.SystemMessage(
+        messageId = 2L,
+        contentIndex = 0,
+        timestamp = Instant.fromEpochMilliseconds(1_000),
+        text = "Sam left the group",
+    )
+
+    @Test
+    fun `a notice between two bubbles from one sender splits the run`() {
+        // The bubble above the notice is Alice's, but the notice is not: the later bubble restarts
+        // the run and wears the name and picture again.
+        assertTrue(startsSenderRun(bubble(alice), older = notice))
+    }
 }

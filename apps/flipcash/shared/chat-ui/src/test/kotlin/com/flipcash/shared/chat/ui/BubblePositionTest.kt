@@ -182,4 +182,19 @@ class BubblePositionTest {
             positionsOf(items),
         )
     }
+
+    @Test
+    fun `a notice between two bubbles from one sender solos both`() {
+        val notice = ChatListItem.SystemMessage(messageId = 2, contentIndex = 0, timestamp = start + 10.seconds, text = "Sam left")
+        val items: List<ChatListItem> = listOf(
+            bubble(3, secondsIn = 20, sender = alice, senderId = listOf<Byte>(1)),
+            notice,
+            bubble(1, secondsIn = 0, sender = alice, senderId = listOf<Byte>(1)),
+        )
+
+        assertEquals(
+            listOf(BubblePosition.Solo, BubblePosition.Solo),
+            listOf(0, 2).map { bubblePositionOf(it, items[it] as ChatListItem.ContentBubble, items, SeparatorConfig.DayOnly) },
+        )
+    }
 }

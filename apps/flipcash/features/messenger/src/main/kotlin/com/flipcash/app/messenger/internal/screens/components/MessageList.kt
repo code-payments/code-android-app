@@ -649,7 +649,7 @@ internal fun MessageList(
                 if (messages.itemCount > 0) {
                     val oldest = messages.peek(messages.itemCount - 1)
                     val oldestTimestamp = when (oldest) {
-                        is ChatListItem.ContentBubble -> oldest.timestamp
+                        is ChatListItem.TranscriptMessage -> oldest.timestamp
                         is ChatListItem.DateSeparator -> null // already a separator
                         is ChatListItem.UnreadDivider -> null // carries the oldest message's date
                         is ChatListItem.EncryptedMarker -> null // carries it too, as `above`
@@ -680,7 +680,7 @@ internal fun MessageList(
         LaunchedEffect(listState, messages) {
             snapshotFlow {
                 if (messages.itemCount == 0) null
-                else (messages.peek(0) as? ChatListItem.ContentBubble)?.itemKey
+                else (messages.peek(0) as? ChatListItem.TranscriptMessage)?.itemKey
             }
                 .filterNotNull()
                 .distinctUntilChanged()
@@ -700,7 +700,7 @@ internal fun MessageList(
                         listState.firstVisibleItemScrollOffset == 0
                     // Always scroll for own messages; only near-bottom for incoming
                     val nearBottom = listState.firstVisibleItemIndex <= 5
-                    val newest = messages.peek(0) as? ChatListItem.ContentBubble
+                    val newest = messages.peek(0) as? ChatListItem.TranscriptMessage
                     val editing = editingMessageId
                     if (editing != null) {
                         // A message arriving mid-edit still moves the transcript, or it would land

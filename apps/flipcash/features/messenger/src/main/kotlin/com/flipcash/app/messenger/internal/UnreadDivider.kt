@@ -30,11 +30,13 @@ internal val UNREAD_DIVIDER_LIFETIME = UnreadDividerLifetime.UntilClose
  * the divider; otherwise a transcript would draw a second one under the same fixed key.
  */
 internal fun unreadDividerBetween(
-    newer: ChatListItem.ContentBubble,
-    older: ChatListItem.ContentBubble?,
+    newer: ChatListItem.TranscriptMessage,
+    older: ChatListItem.TranscriptMessage?,
     boundary: UnreadBoundary,
 ): Boolean {
     if (boundary !is UnreadBoundary.At || newer.isFromSelf) return false
+    // A notice is treated as already read: it is never counted, so it never opens the unread run.
+    if (newer is ChatListItem.SystemMessage) return false
     if (older != null && older.messageId < 1) return false
     val olderId = older?.messageId ?: Long.MIN_VALUE
     return olderId <= boundary.readThrough && boundary.readThrough < newer.messageId
@@ -47,8 +49,8 @@ internal fun unreadDividerBetween(
  * its last row takes the Encrypted marker, carrying whatever separator the gap would have had.
  */
 internal fun separatorBetween(
-    newer: ChatListItem.ContentBubble?,
-    older: ChatListItem.ContentBubble?,
+    newer: ChatListItem.TranscriptMessage?,
+    older: ChatListItem.TranscriptMessage?,
     boundary: UnreadBoundary,
     config: SeparatorConfig,
     oldestEncryptedId: Long? = null,
@@ -64,8 +66,8 @@ internal fun separatorBetween(
 }
 
 private fun plainSeparatorBetween(
-    newer: ChatListItem.ContentBubble,
-    older: ChatListItem.ContentBubble?,
+    newer: ChatListItem.TranscriptMessage,
+    older: ChatListItem.TranscriptMessage?,
     boundary: UnreadBoundary,
     config: SeparatorConfig,
 ): ChatListItem? {
@@ -81,11 +83,11 @@ private fun plainSeparatorBetween(
     } else null
 }
 
-internal fun PagingData<ChatListItem.ContentBubble>.withSeparators(
+internal fun PagingData<ChatListItem.TranscriptMessage>.withSeparators(
     boundary: UnreadBoundary,
     config: SeparatorConfig,
     oldestEncryptedId: Long? = null,
 ): PagingData<ChatListItem> =
-    insertSeparators { newer: ChatListItem.ContentBubble?, older: ChatListItem.ContentBubble? ->
+    insertSeparators { newer: ChatListItem.TranscriptMessage?, older: ChatListItem.TranscriptMessage? ->
         separatorBetween(newer, older, boundary, config, oldestEncryptedId)
     }

@@ -107,12 +107,11 @@ fun transcriptBubbleMaxWidth(rowWidth: Dp, rowInset: Dp): Dp =
 
 /**
  * The widest a bubble carrying [content] grows in a row [rowWidth] wide, inset by [rowInset] on each
- * side. A system notice spans the row, and a cash card keeps its own narrower fraction of the inset
+ * side. A cash card keeps its own narrower fraction of the inset
  * row (iOS's `ChatViewController.cashCardWidthFraction` matches it); everything else takes
  * [transcriptBubbleMaxWidth].
  */
 fun bubbleMaxWidth(content: MessageContent, rowWidth: Dp, rowInset: Dp): Dp = when (content) {
-    is MessageContent.System -> rowWidth
     is MessageContent.Cash -> rowWidth * CASH_CARD_WIDTH_FRACTION
     else -> transcriptBubbleMaxWidth(rowWidth = rowWidth, rowInset = rowInset)
 }
@@ -308,6 +307,7 @@ fun ContentBubble(
                     onLongClick = onLongClick?.takeIf { interactive },
                     onDoubleClick = onDoubleClick?.takeIf { interactive },
                 )
+                // Unreachable: the transcript emits System content as ChatListItem.SystemMessage.
                 is MessageContent.System -> Unit
                 // A widget variant this client doesn't know draws as any message it can't show.
                 is MessageContent.Widget -> when (val widget = content.widget) {

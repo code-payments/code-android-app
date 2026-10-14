@@ -92,4 +92,13 @@ class RowGapTest {
     fun `a status line under a bubble ends the run with a normal gap`() {
         assertEquals(RowGap.Normal, rowGapBelow(bubble(alice), bubble(alice), config, carriesReceipt = true))
     }
+
+    @Test
+    fun `a notice sits a normal gap from either neighbour`() {
+        val notice = ChatListItem.SystemMessage(messageId = 2L, contentIndex = 0, timestamp = noon, text = "Sam left")
+        // Same sender and close in time would be Tight if the notice were a bubble from them.
+        assertEquals(RowGap.Normal, rowGapBelow(bubble(alice), notice, config))
+        assertEquals(RowGap.Normal, rowGapBelow(notice, bubble(alice), config))
+        assertEquals(RowGap.Normal, rowGapBelow(notice, notice, config))
+    }
 }

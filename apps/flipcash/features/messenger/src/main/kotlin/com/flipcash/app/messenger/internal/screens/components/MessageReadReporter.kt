@@ -43,9 +43,10 @@ internal fun HandleMessageReads(
             var highestId = 0L
             for (info in visibleRange) {
                 if (info.index !in 0 until count) continue
-                val bubble = messages.peek(info.index) as? ChatListItem.ContentBubble ?: continue
-                if (!bubble.isFromSelf && bubble.messageId > highestId) {
-                    highestId = bubble.messageId
+                // A notice counts as read once seen, or the pointer would stall under a newest one.
+                val message = messages.peek(info.index) as? ChatListItem.TranscriptMessage ?: continue
+                if (!message.isFromSelf && message.messageId > highestId) {
+                    highestId = message.messageId
                 }
             }
             if (highestId > 0L) highestId else null

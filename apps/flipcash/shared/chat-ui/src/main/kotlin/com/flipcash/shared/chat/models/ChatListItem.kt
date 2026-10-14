@@ -48,16 +48,46 @@ sealed interface ChatListItem {
         override val itemContentType: Any = "encrypted-marker"
     }
 
+    /**
+     * A row that stands for one message in the transcript: a [ContentBubble], or a [SystemMessage]
+     * notice. Separators, auto-scroll and the read pointer care about the message, not how it is
+     * drawn; sender runs, receipts and bubble corners are bubble-only and cast to [ContentBubble].
+     */
+    sealed interface TranscriptMessage : ChatListItem {
+        val messageId: Long
+        val timestamp: Instant
+        val isFromSelf: Boolean
+    }
+
+    /**
+     * A server notice such as "Alex joined the group": no bubble, no sender and no gestures.
+     *
+     * Not a [ContentBubble], so every `as? ContentBubble` that groups runs, places receipts or
+     * rounds corners passes over it without comparing senders. [contentIndex] is non-zero only for
+     * the second and later contents of one message, which keeps the key unique.
+     */
+    data class SystemMessage(
+        override val messageId: Long,
+        val contentIndex: Int,
+        override val timestamp: Instant,
+        val text: String,
+    ) : TranscriptMessage {
+        override val isFromSelf: Boolean = false
+        override val itemKey: Any =
+            if (contentIndex == 0) "sys-$messageId" else "sys-$messageId-$contentIndex"
+        override val itemContentType: Any = "system-message"
+    }
+
     /** Whether this is the unread divider, alone or drawn above the Encrypted marker. */
     val holdsUnreadDivider: Boolean
         get() = this is UnreadDivider || (this is EncryptedMarker && above is UnreadDivider)
 
     data class ContentBubble(
-        val messageId: Long,
+        override val messageId: Long,
         val contentIndex: Int,
         val content: MessageContent,
-        val isFromSelf: Boolean,
-        val timestamp: Instant,
+        override val isFromSelf: Boolean,
+        override val timestamp: Instant,
         val receiptStatus: ReceiptStatus? = null,
         val pendingClientIdHex: String? = null,
         /** Drives the corner-pinned "Edited" marker. */
@@ -153,7 +183,7 @@ sealed interface ChatListItem {
         val undecryptableHint: UndecryptableHint = UndecryptableHint.UpdateApp,
         /** What a photo message needs beyond its content to load and gate its photo. */
         val photo: PhotoMessageContext? = null,
-    ) : ChatListItem {
+    ) : TranscriptMessage {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the
          * pipeline supplies it; [sender] covers a caller that builds a bubble from a resolved
@@ -220,6 +250,7 @@ sealed interface ChatListItem {
                 is MessageContent.Cash -> "cash-bubble"
                 is MessageContent.Media -> "media"
                 is MessageContent.Reply -> "reply-message"
+                // Unreachable: System content is emitted as a SystemMessage, not a bubble.
                 is MessageContent.System -> "system-message"
                 is MessageContent.Widget -> "widget-message"
                 is MessageContent.Encrypted -> "encrypted-message"

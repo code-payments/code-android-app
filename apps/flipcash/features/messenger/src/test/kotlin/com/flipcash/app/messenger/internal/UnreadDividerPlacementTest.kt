@@ -18,6 +18,13 @@ class UnreadDividerPlacementTest {
 
     private val noon = Instant.fromEpochMilliseconds(1_700_000_000_000)
 
+    private fun system(id: Long) = ChatListItem.SystemMessage(
+        messageId = id,
+        contentIndex = 0,
+        timestamp = noon,
+        text = "Alex joined the group",
+    )
+
     private fun row(id: Long, self: Boolean = false, part: MessagePart? = null) = ChatListItem.ContentBubble(
         messageId = id,
         contentIndex = 0,
@@ -28,7 +35,7 @@ class UnreadDividerPlacementTest {
     )
 
     /** Oldest first, as the table reads; returns the id the divider sits above, or null. */
-    private fun dividerAbove(boundary: UnreadBoundary, vararg oldestFirst: ChatListItem.ContentBubble): Long? {
+    private fun dividerAbove(boundary: UnreadBoundary, vararg oldestFirst: ChatListItem.TranscriptMessage): Long? {
         val newestFirst = oldestFirst.reversed()
         return newestFirst.indices.firstNotNullOfOrNull { i ->
             val newer = newestFirst[i]
@@ -115,5 +122,18 @@ class UnreadDividerPlacementTest {
             ChatListItem.DateSeparator(newer.timestamp),
             separatorBetween(newer, older, UnreadBoundary.None, SeparatorConfig.DayOnly),
         )
+    }
+
+    @Test
+    fun `a notice after the pointer never takes the divider`() {
+        assertEquals(false, unreadDividerBetween(newer = system(3), older = row(2), boundary = UnreadBoundary.At(2, 1)))
+        assertEquals(null, dividerAbove(UnreadBoundary.At(2, 1), row(1), row(2), system(3)))
+    }
+
+    @Test
+    fun `the divider lands below a notice that follows the pointer`() {
+        // Pointer at 2, then a notice, then the first counted message: firstNotSentByAfter now skips
+        // the notice, so the resolved boundary is 3 and the divider sits above 4, under the notice.
+        assertEquals(4L, dividerAbove(UnreadBoundary.At(3, 1), row(1), row(2), system(3), row(4)))
     }
 }

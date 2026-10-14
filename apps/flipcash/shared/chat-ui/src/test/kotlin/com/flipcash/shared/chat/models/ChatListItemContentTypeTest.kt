@@ -46,7 +46,10 @@ class ChatListItemContentTypeTest {
     @Test
     fun `cash keeps a content type of its own`() {
         assertEquals("text-bubble", bubble(MessageContent.Text("hello")).itemContentType)
-        assertEquals("system-message", bubble(MessageContent.System("joined")).itemContentType)
+        assertEquals(
+            "system-message",
+            ChatListItem.SystemMessage(messageId = 1, contentIndex = 0, timestamp = sentAt, text = "joined").itemContentType,
+        )
     }
 
     @Test
