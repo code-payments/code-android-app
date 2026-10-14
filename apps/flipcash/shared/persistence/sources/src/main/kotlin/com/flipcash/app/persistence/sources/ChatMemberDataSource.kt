@@ -9,9 +9,12 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
 import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -68,16 +71,20 @@ class ChatMemberDataSource @Inject constructor(
     /**
      * [getSelfReadPointerOrNull] as a stream, so the pointer the read reporter advances is the one
      * observers see. Pointer values only: a profile or roster write touches the self row without
-     * moving the pointer, and must not wake anyone downstream.
+     * moving the pointer, and must not wake anyone downstream. Resolved through
+     * [FlipcashDatabase.observeInstance], so a subscriber that starts before the per-user DB exists
+     * sees `null` until it does, and follows an account switch onto the new DB.
      */
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observeSelfReadPointer(chatId: ChatId, selfId: ID): Flow<Long?> =
-        db?.chatMemberDao()
-            ?.observeMember(mapper.chatIdHex(chatId), mapper.userIdHex(selfId))
-            ?.map { self ->
-                self?.let { mapper.pointers(it).firstOrNull { p -> p.type == PointerType.READ }?.value ?: 0L }
-            }
-            ?.distinctUntilChanged()
-            ?: emptyFlow()
+        FlipcashDatabase.observeInstance().flatMapLatest { database ->
+            database?.chatMemberDao()
+                ?.observeMember(mapper.chatIdHex(chatId), mapper.userIdHex(selfId))
+                ?.map { self ->
+                    self?.let { mapper.pointers(it).firstOrNull { p -> p.type == PointerType.READ }?.value ?: 0L }
+                }
+                ?: flowOf(null)
+        }.distinctUntilChanged()
 
     suspend fun upsert(chatId: ChatId, members: List<ChatMember>) {
         val database = db ?: return

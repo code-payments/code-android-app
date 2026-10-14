@@ -8,6 +8,8 @@ import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import app.cash.turbine.test
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -26,8 +28,10 @@ class UnreadBelowObservationTest {
 
     private val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
     private val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
+    private val account = MutableStateFlow(UserManager.State(accountId = selfId))
     private val userManager = mockk<UserManager>(relaxed = true).also {
-        every { it.accountId } returns selfId
+        every { it.accountId } answers { account.value.accountId }
+        every { it.state } returns account
     }
 
     init {
@@ -66,5 +70,25 @@ class UnreadBelowObservationTest {
         every { memberDataSource.observeSelfReadPointer(chatId, selfId) } returns flowOf(null)
 
         assertEquals(0, delegate.observeUnreadBelow(chatId).first())
+    }
+
+    @Test
+    fun `subscribing before the account is ready counts 0, then the count once it is`() = runTest {
+        account.value = UserManager.State(accountId = null)
+        every { memberDataSource.observeSelfReadPointer(chatId, selfId) } returns flowOf(2L)
+        every { messageDataSource.observeInboundCountAfter(chatId, selfId, 2) } returns flowOf(3)
+
+        delegate.observeUnreadBelow(chatId).test {
+            assertEquals(0, awaitItem())
+
+            account.value = UserManager.State(accountId = selfId)
+            assertEquals(3, awaitItem())
+
+            // Ready -> not ready -> ready resubscribes rather than keeping the old stream.
+            account.value = UserManager.State(accountId = null)
+            assertEquals(0, awaitItem())
+            account.value = UserManager.State(accountId = selfId)
+            assertEquals(3, awaitItem())
+        }
     }
 }

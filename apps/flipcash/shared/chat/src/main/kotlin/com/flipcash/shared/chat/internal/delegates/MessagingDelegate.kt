@@ -223,15 +223,21 @@ class MessagingDelegate @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun observeUnreadBelow(chatId: ChatId): Flow<Int> {
-        val selfId = userManager.accountId ?: return flowOf(0)
-        return memberDataSource.observeSelfReadPointer(chatId, selfId)
-            .flatMapLatest { readThrough ->
-                if (readThrough == null) flowOf(0)
-                else messageDataSource.observeInboundCountAfter(chatId, selfId, readThrough)
+    override fun observeUnreadBelow(chatId: ChatId): Flow<Int> =
+        // The account id is set during login, and the per-user DB is made then too (the data
+        // sources wait on it): a screen that subscribes before either is ready counts 0 until they
+        // are, and starts over if the account changes.
+        userManager.state.map { it.accountId }
+            .distinctUntilChanged()
+            .flatMapLatest { selfId ->
+                if (selfId == null) flowOf(0)
+                else memberDataSource.observeSelfReadPointer(chatId, selfId)
+                    .flatMapLatest { readThrough ->
+                        if (readThrough == null) flowOf(0)
+                        else messageDataSource.observeInboundCountAfter(chatId, selfId, readThrough)
+                    }
             }
             .distinctUntilChanged()
-    }
 
     override suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int =
         messageDataSource.countAfter(chatId, messageId)

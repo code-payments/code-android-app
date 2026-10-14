@@ -191,13 +191,20 @@ class ChatMessageDataSource @Inject constructor(
             afterId = afterId,
         ) ?: 0
 
-    /** [countInboundAfter] as a stream, so arrivals and pointer moves both update it. */
+    /**
+     * [countInboundAfter] as a stream, so arrivals and pointer moves both update it. Resolved through
+     * [FlipcashDatabase.observeInstance] like [hasEverTipped]: a subscriber that starts before the
+     * per-user DB exists counts 0 until it does, rather than completing empty for good.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observeInboundCountAfter(chatId: ChatId, selfId: ID, afterId: Long): Flow<Int> =
-        db?.chatMessageDao()?.observeInboundCountAfter(
-            chatIdHex = mapper.chatIdHex(chatId),
-            selfIdHex = mapper.userIdHex(selfId),
-            afterId = afterId,
-        ) ?: emptyFlow()
+        FlipcashDatabase.observeInstance().flatMapLatest { database ->
+            database?.chatMessageDao()?.observeInboundCountAfter(
+                chatIdHex = mapper.chatIdHex(chatId),
+                selfIdHex = mapper.userIdHex(selfId),
+                afterId = afterId,
+            ) ?: flowOf(0)
+        }.distinctUntilChanged()
 
     /** The first stored message in [chatId] past [afterId] that [selfId] did not send, or `null`. */
     suspend fun firstNotSentByAfter(chatId: ChatId, selfId: ID, afterId: Long): Long? =
