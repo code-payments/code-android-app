@@ -1,10 +1,6 @@
 package com.flipcash.app.myaccount.internal.settings
 
 import androidx.compose.foundation.layout.Box
-import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.blur.hazeBlur
-import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import androidx.compose.foundation.background
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -88,32 +84,17 @@ internal fun SettingsScreen(
             modifier = Modifier.hazeSource(hazeState),
         )
         if (card.pinned) {
-            // The card is 30dp above the screen bottom (Figma). Behind it a blur that ramps from clear
-            // to full runs to the screen edge (Figma's "Bottom haze"), so rows fade out under the
-            // card rather than reading clearly in the gap below it.
+            // The card floats 30dp above the screen bottom (Figma) on its own glass; the list scrolls
+            // behind it and leaves room through bottomPadding.
             val bottomGap = 30.dp.coerceAtLeast(navBars)
-            val material = HazeMaterials.thick(containerColor = CodeTheme.colors.background)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .onSizeChanged { pinnedHeight = with(density) { it.height.toDp() } },
+                    .onSizeChanged { pinnedHeight = with(density) { it.height.toDp() } }
+                    .padding(top = pinnedGap, bottom = bottomGap)
+                    .padding(horizontal = 20.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .hazeBlur(
-                            HazeInput.Sources(hazeState),
-                            material.then {
-                                progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
-                            },
-                        ),
-                )
-                Box(
-                    modifier = Modifier
-                        .padding(top = pinnedGap, bottom = bottomGap)
-                        .padding(horizontal = 20.dp),
-                ) {
                 VersionCard(
                     state = card,
                     versionName = state.appVersionInfo.versionName,
@@ -125,7 +106,6 @@ internal fun SettingsScreen(
                     onRestart = updater::completeUpdate,
                     hazeState = hazeState,
                 )
-                }
             }
         }
     }
