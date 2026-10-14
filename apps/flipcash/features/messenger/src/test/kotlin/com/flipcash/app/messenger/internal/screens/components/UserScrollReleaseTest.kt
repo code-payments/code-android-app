@@ -63,7 +63,7 @@ class UserScrollReleaseTest {
         val boundary = UnreadBoundary.At(readThrough = 10, count = 30)
         val newestFirst = (40L downTo 1L).map(::bubble)
         val loaded = LoadState.NotLoading(endOfPaginationReached = true)
-        val page = PagingData.from(newestFirst, LoadStates(loaded, loaded, loaded))
+        val page = PagingData.from<ChatListItem.TranscriptMessage>(newestFirst, LoadStates(loaded, loaded, loaded))
         val paged = flowOf(page.withSeparators(boundary, SeparatorConfig.DayOnly))
         var released = 0
 

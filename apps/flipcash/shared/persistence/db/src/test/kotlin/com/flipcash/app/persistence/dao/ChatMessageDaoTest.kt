@@ -301,6 +301,35 @@ class ChatMessageDaoTest {
         assertEquals(0, unread(pointer = 1))
     }
 
+    @Test
+    fun `a system notice leaves the badge count, arrival cutoff, divider and own-send range unchanged`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SENDER_HEX, 2)))
+        val before = listOf(
+            unread(pointer = 1),
+            dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, 1).first(),
+            dao.newestInboundId(CHAT_HEX, SELF_HEX),
+            dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1),
+            dao.getInboundMessagesInRange(CHAT_HEX, SELF_HEX, 0, 10).map { it.messageId },
+        )
+
+        dao.upsert(
+            text(5, "").copy(
+                senderIdHex = null,
+                contentJson = listOf(MessageContentSerialized.System("Alex joined the group")),
+            ),
+        )
+
+        val after = listOf(
+            unread(pointer = 1),
+            dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, 1).first(),
+            dao.newestInboundId(CHAT_HEX, SELF_HEX),
+            dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1),
+            dao.getInboundMessagesInRange(CHAT_HEX, SELF_HEX, 0, 10).map { it.messageId },
+        )
+        assertEquals(before, after)
+        assertEquals(listOf<Any?>(1, 1, 2L, 2L, listOf(1L, 2L)), after)
+    }
+
     private suspend fun firstNotOwn(pointer: Long) = dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, pointer)
 
     @Test
