@@ -456,6 +456,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     ReturnToChatChip(
                         title = lastReturnTitle.orEmpty(),
                         onClick = { keyboard.hideIfVisible { navigator.pop() } },
+                        hazeState = hazeState,
                         modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
                     )
                 }

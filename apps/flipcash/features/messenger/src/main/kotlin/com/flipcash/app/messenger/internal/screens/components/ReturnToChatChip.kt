@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -25,25 +26,45 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.ChatInputDefaults
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /**
  * The way back after a message link was followed here from another chat (concept node 11478:144,
- * Landing): "Back to {chat}" under the title bar. 36 high, fully rounded, white at 12%, the values
- * node 11493:201 lists for it.
+ * Landing): "Back to {chat}" under the title bar. 36 high and fully rounded, the values node
+ * 11493:201 lists for it. The ground is [JoinRequestsAnchor]'s — the composer's ultra-thin haze with
+ * the divider hairline — rather than the flat white 12% the node lists: the chip floats over the
+ * transcript, and over a light row (a cash card) a flat tint left the label unreadable. The flat
+ * tint stays as the stand-in when there is no [HazeState] to sample.
  */
 @Composable
 internal fun ReturnToChatChip(
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
 ) {
     val shape = RoundedCornerShape(ChipHeight / 2)
+    val ground = if (hazeState != null) {
+        Modifier
+            .hazeBlur(
+                HazeInput.Sources(hazeState),
+                HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background),
+            )
+            .background(ChatInputDefaults.ContainerColor)
+    } else {
+        Modifier.background(Color.White.copy(alpha = 0.12f))
+    }
     Row(
         modifier = modifier
             .height(ChipHeight)
             .widthIn(max = ChipMaxWidth)
             .clip(shape)
-            .background(Color.White.copy(alpha = 0.12f))
+            .then(ground)
+            .border(CodeTheme.dimens.border, CodeTheme.colors.divider, shape)
             .clickable(onClick = onClick)
             .padding(start = CodeTheme.dimens.grid.x2, end = CodeTheme.dimens.grid.x3)
             .testTag("return_to_chat_chip"),
