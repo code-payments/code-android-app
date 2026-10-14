@@ -33,20 +33,6 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-/**
- * Metrics of [ChatListRow], matching iOS `RecipientRow`: 20 leading/trailing and 14 top/bottom
- * insets around a 44 avatar and 12 between avatar and text. iOS spaces title and subtitle by 2
- * on natural line heights; the pinned 20/18 line heights here already add that, so the gap is 0.
- * That makes a 72 row when the text column is no taller than the avatar.
- */
-object ChatListRowDefaults {
-    val AvatarSize = 44.dp
-    internal val HorizontalInset = 20.dp
-    internal val VerticalInset = 14.dp
-    internal val AvatarToText = 12.dp
-    internal val TitleToSubtitle = 0.dp
-}
-
 @Composable
 fun ChatListRow(
     avatar: @Composable () -> Unit,
@@ -68,18 +54,15 @@ fun ChatListRow(
                 .testTag("send_contact_row")
                 .clickable(onClick = onClick)
                 .padding(
-                    horizontal = ChatListRowDefaults.HorizontalInset,
-                    vertical = ChatListRowDefaults.VerticalInset,
+                    horizontal = CodeTheme.dimens.staticGrid.x4,
+                    vertical = CodeTheme.dimens.staticGrid.x3,
                 ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ChatListRowDefaults.AvatarToText),
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
         ) {
             avatar()
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(ChatListRowDefaults.TitleToSubtitle),
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
@@ -99,10 +82,10 @@ fun ChatListRow(
                     .fillMaxWidth()
                     .height(1.dp)
                     .padding(
-                        start = ChatListRowDefaults.HorizontalInset +
-                            ChatListRowDefaults.AvatarSize +
-                            ChatListRowDefaults.AvatarToText,
-                        end = ChatListRowDefaults.HorizontalInset,
+                        start = CodeTheme.dimens.staticGrid.x4 +
+                            CodeTheme.dimens.staticGrid.x9 +
+                            CodeTheme.dimens.staticGrid.x2,
+                        end = CodeTheme.dimens.staticGrid.x4,
                     ),
             )
         }

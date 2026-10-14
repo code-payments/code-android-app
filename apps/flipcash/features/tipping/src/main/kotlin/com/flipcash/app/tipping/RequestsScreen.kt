@@ -40,7 +40,6 @@ import com.flipcash.app.tipping.internal.SentRequest
 import com.flipcash.features.tipping.R
 import com.flipcash.shared.chat.RequestAge
 import com.flipcash.shared.chat.ui.ChatListRow
-import com.flipcash.shared.chat.ui.ChatListRowDefaults
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.SubtitleText
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -219,7 +218,7 @@ private fun RequestRow(
                 displayName = chat.name.orEmpty(),
                 access = chat.avatarAccess,
                 modifier = Modifier
-                    .requiredSize(ChatListRowDefaults.AvatarSize)
+                    .requiredSize(CodeTheme.dimens.staticGrid.x9)
                     .clip(CircleShape),
             )
         },

@@ -16,7 +16,6 @@ import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ui.ChatListRow
-import com.flipcash.shared.chat.ui.ChatListRowDefaults
 import com.flipcash.shared.chat.ui.ChatRowSubtitle
 import com.flipcash.shared.chat.ui.ChatRowTrailing
 import com.flipcash.shared.chat.ui.ConversationReference
@@ -42,7 +41,7 @@ internal fun TipChatRow(
                 displayName = chat.name.orEmpty(),
                 access = chat.avatarAccess,
                 modifier = Modifier
-                    .requiredSize(ChatListRowDefaults.AvatarSize)
+                    .requiredSize(CodeTheme.dimens.staticGrid.x9)
                     .clip(CircleShape),
             )
         },
