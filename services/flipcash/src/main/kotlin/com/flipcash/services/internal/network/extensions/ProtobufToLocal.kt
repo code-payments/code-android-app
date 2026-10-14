@@ -185,6 +185,7 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
                 MessagingModel.CashContent.Verb.TIPPED -> MessageContent.Cash.Action.TIPPED
                 else -> MessageContent.Cash.Action.SENT
             },
+            receiver = if (cash.hasReceiver()) cash.receiver.value.toByteArray().toList() else null,
         )
         MessagingModel.Content.TypeCase.REPLY -> MessageContent.Reply(
             repliedMessageId = reply.repliedMessageId.value,

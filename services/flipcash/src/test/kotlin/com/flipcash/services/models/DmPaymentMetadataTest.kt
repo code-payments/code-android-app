@@ -34,11 +34,11 @@ class DmPaymentMetadataTest {
             decoded.chat.dmPayment.location,
         )
         assertEquals(
-            FlipcashIntentModel.ChatMetadata.DmPayment.Action.TIP,
+            FlipcashIntentModel.PaymentAction.TIP,
             decoded.chat.dmPayment.action,
         )
         assertNotEquals(
-            FlipcashIntentModel.ChatMetadata.DmPayment.Action.DEFAULT,
+            FlipcashIntentModel.PaymentAction.DEFAULT,
             decoded.chat.dmPayment.action,
         )
         assertEquals(chatId.bytes.toByteString(), decoded.chat.chatId.value)
@@ -59,11 +59,11 @@ class DmPaymentMetadataTest {
             decoded.chat.dmPayment.location,
         )
         assertEquals(
-            FlipcashIntentModel.ChatMetadata.DmPayment.Action.SEND,
+            FlipcashIntentModel.PaymentAction.SEND,
             decoded.chat.dmPayment.action,
         )
         assertNotEquals(
-            FlipcashIntentModel.ChatMetadata.DmPayment.Action.DEFAULT,
+            FlipcashIntentModel.PaymentAction.DEFAULT,
             decoded.chat.dmPayment.action,
         )
     }

@@ -14,6 +14,8 @@ sealed interface MessageContent {
         val tokenName: String = "",
         val tokenImageUrl: String = "",
         val action: Action = Action.SENT,
+        /** The group-payment recipient (`CashContent.receiver`); null for DM cash and older messages. */
+        val receiver: ID? = null,
     ) : MessageContent {
         enum class Action {
             SENT,
