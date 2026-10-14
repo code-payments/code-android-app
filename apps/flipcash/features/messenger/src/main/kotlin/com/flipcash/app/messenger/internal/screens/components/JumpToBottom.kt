@@ -44,20 +44,9 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.snapshotFlow
 
 /** Past this many rows from the newest, a tap jumps rather than animates (from the old Flipchat). */
 internal const val JumpToBottomAnimateMaxRows = 100
-
-/**
- * How long the transcript has to stay off the newest row before the button appears. The insertion
- * push and the typing row move the list through a transient non-zero offset on the way back to
- * rest; hiding is immediate, showing is not, so those frames don't flash the button.
- */
-private const val ShowDelayMillis = 120L
 
 private val ButtonSize = 48.dp
 private val BadgeOutline = 2.dp
@@ -69,27 +58,6 @@ internal fun jumpsToBottom(firstVisibleIndex: Int): Boolean = firstVisibleIndex 
 /** Scrolls [this] to the newest row: a jump from far away, an animation from near. */
 internal suspend fun LazyListState.scrollToNewest() {
     if (jumpsToBottom(firstVisibleItemIndex)) scrollToItem(0) else animateScrollToItem(0)
-}
-
-/**
- * Whether the jump-to-bottom button should be up: the list has settled where this visit opens it,
- * and is not resting on the newest row. Reads [restsOnNewest] as it stands, so it is true for the
- * frames a spring leaves the offset non-zero; those are held back by [ShowDelayMillis].
- */
-@Composable
-internal fun rememberJumpToBottomVisible(listState: LazyListState, hasPositioned: () -> Boolean): Boolean {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(listState) {
-        snapshotFlow { hasPositioned() && !listState.restsOnNewest() }.collectLatest { away ->
-            if (away) {
-                delay(ShowDelayMillis)
-                visible = true
-            } else {
-                visible = false
-            }
-        }
-    }
-    return visible
 }
 
 /**

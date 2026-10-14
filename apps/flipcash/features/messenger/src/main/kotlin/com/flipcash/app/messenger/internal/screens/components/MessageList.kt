@@ -147,6 +147,8 @@ internal fun MessageList(
         // rebuilt under the amount-entry step, and this visit's opening must not replay on the way
         // back.
         var hasPositioned by rememberSaveable { mutableStateOf(false) }
+        // True while the list is being carried to a new newest row, so the jump button stays down.
+        var autoScrolling by remember { mutableStateOf(false) }
         HandleMessageReads(listState, messages, enabled = hasPositioned)
 
         // Haptic feedback when a new incoming message arrives
@@ -682,7 +684,9 @@ internal fun MessageList(
             }
             // Not while a message is raised: the backdrop is modal and the list can't be dragged, so
             // the button must not scroll it either.
-            val jumpVisible = rememberJumpToBottomVisible(listState) { hasPositioned } && !selecting
+            val jumpVisible by remember {
+                derivedStateOf { hasPositioned && !listState.restsOnNewest() && !selecting && !autoScrolling }
+            }
             // Beside the list, not inside it: the list carries the haze source the glass samples.
             JumpToBottomHaze(
                 visible = jumpVisible,
@@ -711,66 +715,78 @@ internal fun MessageList(
                 .filterNotNull()
                 .distinctUntilChanged()
                 .collectLatest { newestKey ->
-                    // The paged snapshot changes before the list lays it out, so wait for the next
-                    // layout pass; until then the scroll position describes the old list.
-                    withTimeoutOrNull(NextLayoutTimeoutMs) {
-                        snapshotFlow { listState.layoutInfo }.drop(1).first()
-                    }
-                    // Opening from under the typing dots already moves the transcript. Checked after
-                    // the layout, by which point the composition that decided it has run.
-                    if (typingRow.grows(newestKey)) return@collectLatest
-                    // The list holds its position by key, so a message arriving at index 0 leaves
-                    // the one that was newest (now index 1) where it sat. Sitting at offset 0 means
-                    // the transcript was resting on the newest message.
-                    val atBottom = listState.firstVisibleItemIndex == 1 &&
-                        listState.firstVisibleItemScrollOffset == 0
-                    // Always scroll for own messages; only near-bottom for incoming
-                    val nearBottom = listState.firstVisibleItemIndex <= 5
-                    val newest = messages.peek(0) as? ChatListItem.TranscriptMessage
-                    val editing = editingMessageId
-                    if (editing != null) {
-                        // A message arriving mid-edit still moves the transcript, or it would land
-                        // off the bottom edge with nothing to say it had arrived. What it can't do
-                        // is carry the row being edited away: the scroll stops at the point that
-                        // row would pass under the top bar, and the pin holds it there.
-                        if (newest?.isFromSelf == true || nearBottom) {
-                            val room = listState.layoutInfo.headroomAbove(messages, editing)
-                            // Negative is toward index 0. The list settles on the newest message by
-                            // itself if that comes before the cap.
-                            if (room > 0) listState.animateScrollBy(-room.toFloat())
+                    // The state still describes the pre-insert layout here. A list resting on the
+                    // newest row, or near it, or a send, is about to be carried to the new row; the
+                    // button stays down for that instead of flashing for the insertion push. Scrolled
+                    // far up nothing moves, so the button must stay.
+                    val carried = listState.restsOnNewest() ||
+                        listState.firstVisibleItemIndex <= 4 ||
+                        (messages.peek(0) as? ChatListItem.TranscriptMessage)?.isFromSelf == true
+                    if (carried) autoScrolling = true
+                    try {
+                        // The paged snapshot changes before the list lays it out, so wait for the next
+                        // layout pass; until then the scroll position describes the old list.
+                        withTimeoutOrNull(NextLayoutTimeoutMs) {
+                            snapshotFlow { listState.layoutInfo }.drop(1).first()
                         }
-                        return@collectLatest
-                    }
-                    // Resting on the newest message, the arrival pushes the transcript up as iOS
-                    // does: every row rides up by the new row's height on the insertion spring,
-                    // while the new row rises into its slot. Placement animations can't do this —
-                    // the move is a scroll, and a jump in scroll position resets them.
-                    if (atBottom && (newest?.isFromSelf == true || nearBottom)) {
-                        val height = listState.measuredHeight(0)
-                        if (height != null) {
-                            // Negative is toward index 0.
-                            listState.animateScrollBy(-height.toFloat(), ChatAnimations.insertionPush)
-                            // The row above can resize under the scroll (its receipt moving on), so
-                            // settle exactly on the newest message rather than a few pixels short.
-                            if (listState.firstVisibleItemIndex != 0 ||
-                                listState.firstVisibleItemScrollOffset != 0
-                            ) {
-                                listState.requestScrollToItem(0, 0)
+                        // Opening from under the typing dots already moves the transcript. Checked after
+                        // the layout, by which point the composition that decided it has run.
+                        if (typingRow.grows(newestKey)) return@collectLatest
+                        // The list holds its position by key, so a message arriving at index 0 leaves
+                        // the one that was newest (now index 1) where it sat. Sitting at offset 0 means
+                        // the transcript was resting on the newest message.
+                        val atBottom = listState.firstVisibleItemIndex == 1 &&
+                            listState.firstVisibleItemScrollOffset == 0
+                        // Always scroll for own messages; only near-bottom for incoming
+                        val nearBottom = listState.firstVisibleItemIndex <= 5
+                        val newest = messages.peek(0) as? ChatListItem.TranscriptMessage
+                        val editing = editingMessageId
+                        if (editing != null) {
+                            // A message arriving mid-edit still moves the transcript, or it would land
+                            // off the bottom edge with nothing to say it had arrived. What it can't do
+                            // is carry the row being edited away: the scroll stops at the point that
+                            // row would pass under the top bar, and the pin holds it there.
+                            if (newest?.isFromSelf == true || nearBottom) {
+                                val room = listState.layoutInfo.headroomAbove(messages, editing)
+                                // Negative is toward index 0. The list settles on the newest message by
+                                // itself if that comes before the cap.
+                                if (room > 0) listState.animateScrollBy(-room.toFloat())
                             }
                             return@collectLatest
                         }
-                    }
-                    when {
-                        // Own message: anchor the new bubble during the next measure pass
-                        // rather than animating to it. An animated scroll resolves its target
-                        // offset up front, so the previous message's receipt collapsing out
-                        // from under it moves the target mid-flight and the list overshoots
-                        // and corrects — read as the bubble bouncing. iOS never hand-rolls
-                        // this scroll at all: ChatLayout's keepContentOffsetAtBottomOnBatchUpdates
-                        // pins the bottom edge across the one batch that both inserts the new
-                        // cell and reconfigures the old one's receipt away.
-                        newest?.isFromSelf == true -> listState.requestScrollToItem(0, 0)
-                        nearBottom -> listState.animateScrollToItem(0)
+                        // Resting on the newest message, the arrival pushes the transcript up as iOS
+                        // does: every row rides up by the new row's height on the insertion spring,
+                        // while the new row rises into its slot. Placement animations can't do this —
+                        // the move is a scroll, and a jump in scroll position resets them.
+                        if (atBottom && (newest?.isFromSelf == true || nearBottom)) {
+                            val height = listState.measuredHeight(0)
+                            if (height != null) {
+                                // Negative is toward index 0.
+                                listState.animateScrollBy(-height.toFloat(), ChatAnimations.insertionPush)
+                                // The row above can resize under the scroll (its receipt moving on), so
+                                // settle exactly on the newest message rather than a few pixels short.
+                                if (listState.firstVisibleItemIndex != 0 ||
+                                    listState.firstVisibleItemScrollOffset != 0
+                                ) {
+                                    listState.requestScrollToItem(0, 0)
+                                }
+                                return@collectLatest
+                            }
+                        }
+                        when {
+                            // Own message: anchor the new bubble during the next measure pass
+                            // rather than animating to it. An animated scroll resolves its target
+                            // offset up front, so the previous message's receipt collapsing out
+                            // from under it moves the target mid-flight and the list overshoots
+                            // and corrects — read as the bubble bouncing. iOS never hand-rolls
+                            // this scroll at all: ChatLayout's keepContentOffsetAtBottomOnBatchUpdates
+                            // pins the bottom edge across the one batch that both inserts the new
+                            // cell and reconfigures the old one's receipt away.
+                            newest?.isFromSelf == true -> listState.requestScrollToItem(0, 0)
+                            nearBottom -> listState.animateScrollToItem(0)
+                        }
+                    } finally {
+                        autoScrolling = false
                     }
                 }
         }
