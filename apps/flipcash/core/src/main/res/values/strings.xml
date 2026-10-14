@@ -1300,6 +1300,10 @@
     <string name="subtitle_shareNoChats">Start a chat in Flipcash, then share again.</string>
     <string name="label_shareAttachedCount">%1$d attached</string>
     <string name="action_jumpToBottom">Jump to latest message</string>
+    <plurals name="action_jumpToBottomUnread">
+        <item quantity="one">Jump to latest message, %1$d unread</item>
+        <item quantity="other">Jump to latest message, %1$d unread</item>
+    </plurals>
     <string name="hint_addAMessage">Add a message\u2026</string>
     <string name="title_tipIntro">Receive Tips From Everyone</string>
     <string name="subtitle_tipIntro">Add your name to receive tips</string>

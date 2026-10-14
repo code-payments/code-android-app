@@ -12,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
@@ -32,8 +31,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.features.messenger.R
@@ -136,7 +138,11 @@ internal fun JumpToBottomButton(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = stringResource(R.string.action_jumpToBottom),
+                    contentDescription = if (unreadCount > 0) {
+                        pluralStringResource(R.plurals.action_jumpToBottomUnread, unreadCount, unreadCount)
+                    } else {
+                        stringResource(R.string.action_jumpToBottom)
+                    },
                     tint = Color.White,
                     modifier = Modifier.size(28.dp),
                 )
@@ -144,8 +150,13 @@ internal fun JumpToBottomButton(
             AnimatedVisibility(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    // The pill's centre sits on the circle's top-trailing corner.
-                    .offset(x = 4.dp, y = (-4).dp),
+                    // The pill, outline included, is centred on the top-trailing corner of the button's
+                    // bounds: placed half its own size out, without changing the size it reports.
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints)
+                        val dx = if (layoutDirection == LayoutDirection.Rtl) -placeable.width / 2 else placeable.width / 2
+                        layout(placeable.width, placeable.height) { placeable.place(dx, -placeable.height / 2) }
+                    },
                 visible = unreadCount > 0,
                 enter = fadeIn(tween(200)) + scaleIn(tween(200)),
                 exit = fadeOut(tween(150)) + scaleOut(tween(150)),
