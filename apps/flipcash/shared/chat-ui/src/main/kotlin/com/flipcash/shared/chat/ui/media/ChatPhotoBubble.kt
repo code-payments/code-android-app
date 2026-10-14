@@ -155,7 +155,7 @@ fun ChatPhotoBubble(
             ) {
                 Text(
                     text = caption.orEmpty(),
-                    style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.Medium),
+                    style = CodeTheme.typography.textMessage,
                     color = CodeTheme.colors.textMain,
                     modifier = Modifier.testTag(PHOTO_CAPTION_TAG),
                 )
