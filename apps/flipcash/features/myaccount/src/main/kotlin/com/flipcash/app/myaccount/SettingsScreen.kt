@@ -23,7 +23,6 @@ import com.getcode.ui.components.TopScrollEdge
 import com.getcode.ui.components.toast.LocalFloatingToastHost
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
-import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -64,7 +63,7 @@ fun SettingsScreen() {
                 viewModel = viewModel,
                 listState = listState,
                 topPadding = topPadding,
-                modifier = Modifier.hazeSource(hazeState),
+                hazeState = hazeState,
             )
             TopScrollEdge(hazeState = hazeState, listState = listState, height = topPadding)
         }

@@ -7,11 +7,14 @@ package com.flipcash.app.updates
  *
  * @param stalenessDays how long Play has known about the update on this device. Play reports null
  * until a day has passed, which counts as 0.
+ * @param versionName the version to show for the update, or null when it can't be named.
  */
 data class OptionalUpdate(
     val versionCode: Int,
     val priority: Int,
     val stalenessDays: Int,
+    /** The marketing version ("2026.10.4"), when the release manifest names this exact build. */
+    val versionName: String? = null,
 )
 
 /** When the one-time "New version available" toast appears. One place, so both hosts agree. */

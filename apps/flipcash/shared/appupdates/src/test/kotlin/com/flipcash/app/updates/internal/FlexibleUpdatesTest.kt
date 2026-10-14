@@ -123,6 +123,61 @@ class FlexibleUpdatesTest {
     }
 
     @Test
+    fun `download progress follows the bytes Play reports, then clears when downloaded`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        val updates = flexibleUpdates()
+        updates.check()
+        assertNull(updates.progress.value)
+
+        updates.start(activity())
+        idleMain()
+        fake.userAcceptsUpdate()
+        fake.downloadStarts()
+        fake.setTotalBytesToDownload(200)
+        fake.setBytesDownloaded(50)
+        assertEquals(0.25f, updates.progress.value)
+
+        fake.setBytesDownloaded(100)
+        assertEquals(0.5f, updates.progress.value)
+        fake.downloadCompletes()
+
+        assertNull(updates.progress.value)
+        assertTrue(updates.downloaded.value)
+    }
+
+    @Test
+    fun `a failed download clears the progress`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        val updates = flexibleUpdates()
+        updates.check()
+        updates.start(activity())
+        idleMain()
+        fake.userAcceptsUpdate()
+        fake.downloadStarts()
+        fake.downloadFails()
+
+        assertNull(updates.progress.value)
+    }
+
+    @Test
+    fun `names the update only when the manifest names that build`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        val named = FlexibleUpdates(
+            manager = fake,
+            currentVersionCode = currentVersion,
+            isStoreBuild = { true },
+            isInForeground = { true },
+            versionNameFor = { if (it == currentVersion + 1) "2026.10.4" else null },
+        )
+        named.check()
+        assertEquals("2026.10.4", named.update.value?.versionName)
+
+        val unnamed = flexibleUpdates()
+        unnamed.check()
+        assertNull(unnamed.update.value?.versionName)
+    }
+
+    @Test
     fun `after declining Play's dialog, Update can start it again`() = runTest {
         fake.setUpdateAvailable(currentVersion + 1)
         val updates = flexibleUpdates()

@@ -2,6 +2,9 @@ package com.flipcash.app.updates
 
 interface ReleaseStageProvider {
     val resolvedStage: ReleaseStage?
+
+    /** The production track from the release manifest, once one has been read. */
+    val productionTrack: TrackInfo?
     suspend fun loadCachedStage(versionCode: Int): ReleaseStage?
     suspend fun fetchAndCache(versionCode: Int)
 }

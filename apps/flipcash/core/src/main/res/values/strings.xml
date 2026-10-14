@@ -136,7 +136,15 @@
 
     <string name="error_description_failedToCollect">Something went wrong. The cash could not be collected</string>
 
-    <string name="subtitle_appVersionInfoFooter">Version %1$s • Build %2$s%3$s</string>
+    <string name="title_versionCard">Flipcash %1$s</string>
+    <string name="subtitle_versionCardBuild">Build %1$s%2$s</string>
+    <string name="label_upToDate">Up to date ✓</string>
+    <string name="label_debugBuild">Debug</string>
+    <string name="subtitle_versionAvailable">%1$s available</string>
+    <string name="title_updateDownloading">Downloading %1$s</string>
+    <string name="title_updateDownloadingUnnamed">Downloading update</string>
+    <string name="title_updateReadyNamed">%1$s is ready</string>
+    <string name="subtitle_restartToFinishUpdating">Restart to finish updating</string>
 
     <string name="title_labsAreEmpty">No Beta Features</string>
     <string name="subtitle_labsAreEmpty">There are no beta features available right now.</string>
