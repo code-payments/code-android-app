@@ -104,8 +104,36 @@ class UnreadBadgeTest {
     }
 
     @Test
-    fun `with no inbound at open every later inbound counts as an arrival`() = runTest {
-        open(UnreadBoundary.None, newestInbound = NO_INBOUND_AT_OPEN)
+    fun `history loaded after open below the read pointer is not an arrival`() = runTest {
+        // Empty cache at open: no inbound stored, but the member row says the viewer read through 40.
+        open(UnreadBoundary.None, newestInbound = arrivalCutoff(readPointer = 40, newestInbound = null))
+        live.value = 0
+
+        badge().test {
+            assertEquals(0, awaitItem())
+
+            // The history fetch lands rows at or below 40; the DB counts only ids past the cutoff.
+            arrivals.value = 0
+            expectNoEvents()
+
+            arrivals.value = 1
+            live.value = 1
+            assertEquals(1, awaitItem())
+        }
+        assertEquals(listOf(40L), askedAfter.distinct())
+    }
+
+    @Test
+    fun `the cutoff is the later of the read pointer and the newest inbound`() {
+        assertEquals(40L, arrivalCutoff(readPointer = 40, newestInbound = null))
+        assertEquals(40L, arrivalCutoff(readPointer = 40, newestInbound = 25))
+        assertEquals(55L, arrivalCutoff(readPointer = 40, newestInbound = 55))
+        assertEquals(55L, arrivalCutoff(readPointer = null, newestInbound = 55))
+    }
+
+    @Test
+    fun `with neither a pointer nor inbound at open every later inbound counts as an arrival`() = runTest {
+        open(UnreadBoundary.None, newestInbound = arrivalCutoff(readPointer = null, newestInbound = null))
         live.value = 0
 
         badge().test {

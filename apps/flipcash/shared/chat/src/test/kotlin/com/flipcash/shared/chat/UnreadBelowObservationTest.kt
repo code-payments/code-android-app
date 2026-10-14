@@ -98,6 +98,26 @@ class UnreadBelowObservationTest {
     }
 
     @Test
+    fun `the read pointer for the open waits for the account and the database`() = runTest {
+        account.value = UserManager.State(accountId = null)
+        val databaseUp = CompletableDeferred<Unit>()
+        coEvery { messageDataSource.awaitDatabase() } coAnswers { databaseUp.await() }
+        coEvery { memberDataSource.getSelfReadPointerOrNull(chatId, selfId) } returns 40
+
+        val pointer = async { delegate.selfReadPointer(chatId) }
+        advanceUntilIdle()
+        assertFalse(pointer.isCompleted, "no account yet")
+
+        account.value = UserManager.State(accountId = selfId)
+        advanceUntilIdle()
+        assertFalse(pointer.isCompleted, "no database yet")
+
+        databaseUp.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(40L, pointer.await())
+    }
+
+    @Test
     fun `the open snapshot waits for the account and the database instead of reporting no inbound`() = runTest {
         account.value = UserManager.State(accountId = null)
         val databaseUp = CompletableDeferred<Unit>()

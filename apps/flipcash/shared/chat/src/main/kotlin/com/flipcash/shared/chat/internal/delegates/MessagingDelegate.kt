@@ -257,6 +257,11 @@ class MessagingDelegate @Inject constructor(
         return messageDataSource.newestInboundId(chatId, selfId)
     }
 
+    override suspend fun selfReadPointer(chatId: ChatId): Long? {
+        val selfId = awaitReady()
+        return memberDataSource.getSelfReadPointerOrNull(chatId, selfId)
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun observeInboundAfter(chatId: ChatId, afterId: Long): Flow<Int> =
         userManager.state.map { it.accountId }

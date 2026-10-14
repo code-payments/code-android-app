@@ -432,9 +432,9 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val unreadBadgeFrozen: Boolean = true,
         /**
-         * The newest inbound message id stored when the chat opened, or [NO_INBOUND_AT_OPEN]; null
-         * until the open has resolved. Inbound messages past it are the arrivals the frozen badge
-         * adds to the divider's count.
+         * The [arrivalCutoff] recorded once the open's reads have landed: the later of the read
+         * pointer and the newest inbound id stored, or [NO_INBOUND_AT_OPEN]; null until then.
+         * Inbound messages past it are the arrivals the frozen badge adds to the divider's count.
          */
         val newestInboundIdAtOpen: Long? = null,
         /**
@@ -2910,15 +2910,18 @@ internal class ChatViewModel @AssistedInject constructor(
         stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
             .onEach { chatId ->
-                // Both calls wait for the account and database, so -1 only ever means "ready, and
-                // no inbound stored". Before the boundary: an arrival between the two is counted
-                // twice rather than missed.
-                val newestInbound = chatCoordinator.newestInboundId(chatId) ?: NO_INBOUND_AT_OPEN
+                // These reads wait for the account and database, so -1 only ever means "ready, with
+                // no read pointer and no inbound stored". They come before the boundary: an arrival
+                // between the two is counted twice rather than missed.
+                val cutoff = arrivalCutoff(
+                    readPointer = chatCoordinator.selfReadPointer(chatId),
+                    newestInbound = chatCoordinator.newestInboundId(chatId),
+                )
                 val boundary = chatCoordinator.resolveUnreadBoundary(chatId)
                 val budget = (boundary as? UnreadBoundary.At)
                     ?.let { chatCoordinator.countMessagesAfter(chatId, it.readThrough) }
                     ?: 0
-                dispatchEvent(Event.UnreadBoundaryResolved(boundary, budget, newestInbound))
+                dispatchEvent(Event.UnreadBoundaryResolved(boundary, budget, cutoff))
             }
             // The list waits on this, and on main it queued behind the transcript's first frame.
             .flowOn(dispatchers.IO)

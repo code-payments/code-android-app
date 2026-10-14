@@ -10,10 +10,20 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /**
- * [ChatViewModel.State.newestInboundIdAtOpen] for a chat with no inbound message stored at open:
- * below any real message id, so every inbound message that comes later counts as an arrival.
+ * [ChatViewModel.State.newestInboundIdAtOpen] for a chat with neither an inbound message nor a read
+ * pointer at open: below any real message id, so every inbound message that comes later counts as
+ * an arrival.
  */
 internal const val NO_INBOUND_AT_OPEN = -1L
+
+/**
+ * The id past which an inbound message counts as an arrival after the open: the later of the
+ * viewer's [readPointer] and the [newestInbound] id stored, each null when absent. The pointer
+ * matters when the cache is empty at open: history that loads afterwards sits at or below it and
+ * is not new, where [newestInbound] alone would count all of it.
+ */
+internal fun arrivalCutoff(readPointer: Long?, newestInbound: Long?): Long =
+    maxOf(readPointer ?: NO_INBOUND_AT_OPEN, newestInbound ?: NO_INBOUND_AT_OPEN)
 
 /**
  * What the jump-to-bottom badge shows.

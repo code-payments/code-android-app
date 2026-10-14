@@ -350,6 +350,13 @@ interface MessagingOperations {
     suspend fun newestInboundId(chatId: ChatId): Long?
 
     /**
+     * The viewer's stored READ pointer in [chatId], or `null` when their member row is not stored.
+     * Read with [newestInboundId] when a chat opens: history older than the pointer is not an
+     * arrival even when it loads after the open. Suspends until the account and database are ready.
+     */
+    suspend fun selfReadPointer(chatId: ChatId): Long?
+
+    /**
      * How many inbound, non-deleted messages in [chatId] sit past [afterId], live, whatever the
      * read pointer says. [afterId] below every stored id counts them all.
      */
