@@ -37,7 +37,9 @@ interface ChatMessageDao {
     suspend fun getLatest(chatIdHex: String): ChatMessageEntity?
 
     /**
-     * The newest message that still has content — tombstones skipped.
+     * The newest message that still has content — tombstones skipped, and so is a message whose
+     * content list is empty (`'[]'`; a NULL column too), such as a system notice with no text.
+     * Nothing renders such a message, so it must not become a blank preview or an unread dot.
      *
      * This is what the conversation list previews and what its unread check reads, so deleting the
      * newest message falls the row back to the one before it instead of reading "Message deleted".
@@ -45,7 +47,7 @@ interface ChatMessageDao {
      * the newest id including tombstones, or a delete would regress the read pointer and leave the
      * chat unread forever.
      */
-    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 AND content_json IS NOT NULL AND content_json != '[]' AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
     suspend fun getLatestVisible(chatIdHex: String): ChatMessageEntity?
 
     /**
@@ -59,6 +61,7 @@ interface ChatMessageDao {
         "SELECT * FROM chat_messages WHERE rowid IN (" +
             "SELECT (SELECT m.rowid FROM chat_messages m " +
             "WHERE m.chat_id_hex = c.chat_id_hex AND m.is_deleted = 0 " +
+            "AND m.content_json IS NOT NULL AND m.content_json != '[]' " +
             "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
             "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
             "FROM (SELECT DISTINCT chat_id_hex FROM chat_messages) c)"
@@ -74,6 +77,7 @@ interface ChatMessageDao {
         "SELECT * FROM chat_messages WHERE rowid IN (" +
             "SELECT (SELECT m.rowid FROM chat_messages m " +
             "WHERE m.chat_id_hex = c.chat_id_hex AND m.is_deleted = 0 " +
+            "AND m.content_json IS NOT NULL AND m.content_json != '[]' " +
             "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
             "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
             "FROM (SELECT DISTINCT chat_id_hex FROM chat_messages) c)"
@@ -111,11 +115,14 @@ interface ChatMessageDao {
      * The first stored message in [chatIdHex] after [afterId] that [selfIdHex] did not send,
      * tombstones included, or `null` when only the viewer's own messages follow. The unread divider
      * sits above it: the viewer's own messages right after their pointer are not unread.
+     *
+     * Senderless rows, such as system notices, are stepped over like the viewer's own, matching
+     * [countInboundAfter], so the divider lands above the first message that was counted.
      */
     @Query(
         "SELECT MIN(message_id) FROM chat_messages " +
             "WHERE chat_id_hex = :chatIdHex AND message_id > :afterId " +
-            "AND (sender_id_hex IS NULL OR sender_id_hex != :selfIdHex)"
+            "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex"
     )
     suspend fun firstNotSentByAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Long?
 

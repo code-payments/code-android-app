@@ -868,4 +868,88 @@ class ChatMessageDaoTest {
         const val CLIENT_HEX = "eeff"
         const val SECOND_CLIENT_HEX = "ef01"
     }
+
+    private fun emptyContent(messageId: Long) = text(messageId, "").copy(contentJson = emptyList(), senderIdHex = null)
+
+    @Test
+    fun `an empty content list is stored as a bracket pair`() = runTest {
+        dao.upsert(emptyContent(1))
+
+        val stored = db.openHelper.readableDatabase
+            .query("SELECT content_json FROM chat_messages WHERE message_id = 1")
+            .use { it.moveToFirst(); it.getString(0) }
+        assertEquals("[]", stored)
+    }
+
+    @Test
+    fun `getLatestVisible skips a newest row with empty content and previews the one before`() = runTest {
+        dao.upsert(listOf(text(1, "one"), text(2, "two"), emptyContent(3)))
+
+        assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        // getLatest keeps the read anchor on the empty row, so the pointer can still reach it.
+        assertEquals(3L, dao.getLatest(CHAT_HEX)?.messageId)
+    }
+
+    @Test
+    fun `getLatestVisible skips a row whose content column is null`() = runTest {
+        dao.upsert(listOf(text(1, "one"), text(2, "two").copy(contentJson = null)))
+
+        assertEquals(1L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+    }
+
+    @Test
+    fun `getLatestVisible is null when every message has empty content`() = runTest {
+        dao.upsert(listOf(emptyContent(1), emptyContent(2)))
+
+        assertNull(dao.getLatestVisible(CHAT_HEX))
+    }
+
+    @Test
+    fun `the all-chats latest-visible queries skip empty content too`() = runTest {
+        dao.upsert(listOf(text(1, "one"), emptyContent(2)))
+        dao.upsert(listOf(emptyContent(3).copy(chatIdHex = OTHER_HEX)))
+
+        assertEquals(listOf(1L), dao.getLatestVisibleForAllChats().map { it.messageId })
+        assertEquals(listOf(1L), dao.observeLatestVisibleForAllChats().first().map { it.messageId })
+    }
+
+    @Test
+    fun `a system notice with text is the latest visible message`() = runTest {
+        dao.upsert(listOf(text(1, "one"), text(2, "x").copy(
+            senderIdHex = null,
+            contentJson = listOf(MessageContentSerialized.System("Alex joined the group")),
+        )))
+
+        assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+    }
+
+    @Test
+    fun `firstNotSentByAfter skips a senderless row`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), text(2, "system").copy(senderIdHex = null), from(SENDER_HEX, 3)))
+
+        assertEquals(3L, firstNotOwn(pointer = 1))
+    }
+
+    @Test
+    fun `only senderless rows past the pointer count nothing and place no divider`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), text(2, "system").copy(senderIdHex = null)))
+
+        assertEquals(0, unread(pointer = 1))
+        assertNull(firstNotOwn(pointer = 1))
+    }
+
+    @Test
+    fun `firstNotSentByAfter returns a tombstone from another member`() = runTest {
+        dao.upsert(listOf(from(SELF_HEX, 1), tombstone(2).copy(senderIdHex = SENDER_HEX), from(SENDER_HEX, 3)))
+
+        assertEquals(2L, firstNotOwn(pointer = 1))
+    }
+
+    @Test
+    fun `the divider lands below a senderless row that follows the pointer`() = runTest {
+        dao.upsert(listOf(from(SELF_HEX, 1), text(2, "system").copy(senderIdHex = null), from(SENDER_HEX, 3)))
+
+        assertEquals(3L, firstNotOwn(pointer = 1))
+        assertEquals(1, unread(pointer = 1))
+    }
 }

@@ -46,6 +46,7 @@ import com.flipcash.services.models.chat.ImageMetadata
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.isSystemBlank
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MetadataUpdate
@@ -267,7 +268,10 @@ internal fun MessagingModel.Message.toChatMessage(): ChatMessage {
     return ChatMessage(
         messageId = messageId.value,
         senderId = if (hasSenderId()) senderId.toId() else null,
-        content = contentList.map { it.toMessageContent() },
+        // A notice with no text has nothing to draw. The content goes and the message stays: read
+        // pointers, paging and the unread divider anchor on message ids.
+        content = contentList.map { it.toMessageContent() }
+            .filterNot { it is MessageContent.System && it.fallbackText.isSystemBlank() },
         timestamp = Instant.fromEpochSeconds(ts.seconds, ts.nanos),
         unreadSeq = unreadSeq,
         lastEditedTs = if (hasLastEditedTs()) Instant.fromEpochSeconds(lastEditedTs.seconds, lastEditedTs.nanos) else null,
