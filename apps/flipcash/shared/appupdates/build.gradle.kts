@@ -14,6 +14,11 @@ dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
+    // ProcessLifecycleOwner: a flexible update that finishes downloading in the background installs.
+    implementation(libs.androidx.lifecycle.process)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(testFixtures(project(":libs:coroutines")))
 }
