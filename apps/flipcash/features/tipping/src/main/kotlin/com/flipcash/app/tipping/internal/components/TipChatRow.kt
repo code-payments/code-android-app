@@ -41,7 +41,7 @@ internal fun TipChatRow(
                 displayName = chat.name.orEmpty(),
                 access = chat.avatarAccess,
                 modifier = Modifier
-                    .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                    .requiredSize(CodeTheme.dimens.staticGrid.x9)
                     .clip(CircleShape),
             )
         },

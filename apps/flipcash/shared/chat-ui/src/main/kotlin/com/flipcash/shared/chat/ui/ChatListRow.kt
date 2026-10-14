@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
@@ -54,19 +53,14 @@ fun ChatListRow(
                 .fillMaxWidth()
                 .testTag("send_contact_row")
                 .clickable(onClick = onClick)
-                .padding(vertical = CodeTheme.dimens.inset)
-                .padding(end = CodeTheme.dimens.inset),
+                .padding(
+                    horizontal = CodeTheme.dimens.staticGrid.x4,
+                    vertical = CodeTheme.dimens.staticGrid.x3,
+                ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Spacer used by the unread indicator that we moved
-                // left for spacing compatibility and easy add back later
-                Box(modifier = Modifier.requiredWidth(CodeTheme.dimens.inset))
-                avatar()
-            }
+            avatar()
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -88,8 +82,10 @@ fun ChatListRow(
                     .fillMaxWidth()
                     .height(1.dp)
                     .padding(
-                        start = CodeTheme.dimens.inset + CodeTheme.dimens.staticGrid.x8 + CodeTheme.dimens.grid.x3,
-                        end = CodeTheme.dimens.inset,
+                        start = CodeTheme.dimens.staticGrid.x4 +
+                            CodeTheme.dimens.staticGrid.x9 +
+                            CodeTheme.dimens.staticGrid.x2,
+                        end = CodeTheme.dimens.staticGrid.x4,
                     ),
             )
         }

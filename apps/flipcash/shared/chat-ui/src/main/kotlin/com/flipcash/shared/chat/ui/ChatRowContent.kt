@@ -37,7 +37,7 @@ fun RowScope.ChatRowTrailing(
         )
         Text(
             text = formatLastActivity(lastActivity),
-            style = CodeTheme.typography.caption,
+            style = CodeTheme.typography.textSmall,
             color = activityTextColor,
         )
     }
