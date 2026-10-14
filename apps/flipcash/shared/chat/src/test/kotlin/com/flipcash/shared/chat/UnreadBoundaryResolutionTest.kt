@@ -9,6 +9,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -28,6 +29,7 @@ class UnreadBoundaryResolutionTest {
     private val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true).also {
         every { it.accountId } returns selfId
+        every { it.state } returns MutableStateFlow(UserManager.State(accountId = selfId))
     }
 
     init {
@@ -95,13 +97,6 @@ class UnreadBoundaryResolutionTest {
         coEvery { messageDataSource.countInboundAfter(chatId, selfId, 1) } returns 2
         coEvery { messageDataSource.firstNotSentByAfter(chatId, selfId, 1) } returns 3
         coEvery { messageDataSource.hasAtOrBelow(chatId, 2) } returns false
-
-        assertEquals(UnreadBoundary.None, delegate.resolveUnreadBoundary(chatId))
-    }
-
-    @Test
-    fun `signed out is no divider`() = runTest {
-        every { userManager.accountId } returns null
 
         assertEquals(UnreadBoundary.None, delegate.resolveUnreadBoundary(chatId))
     }
