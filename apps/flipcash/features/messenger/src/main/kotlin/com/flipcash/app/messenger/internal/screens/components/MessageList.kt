@@ -5,6 +5,7 @@ import com.getcode.ui.core.addIf
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.coroutineScope
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Column
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.rememberCoroutineScope
@@ -268,17 +269,18 @@ internal fun MessageList(
         val readAttention: () -> Float = remember { { attention.value } }
 
         // The message a jump landed on has been scrolled off screen: the reader has moved on from
-        // it, and a message link's chip back to where they came from goes with it.
+        // it, and a message link's chip back to where they came from goes with it. Only the
+        // reader's own drag counts: while pages load, peek answers placeholders for rows on
+        // screen, and the landed message reads as gone without anything having moved.
         LaunchedEffect(attentionId) {
             val landed = attentionId ?: return@LaunchedEffect
-            val onScreen = snapshotFlow {
-                listState.layoutInfo.visibleItemsInfo.any { item ->
+            listState.interactionSource.interactions.first { it is DragInteraction.Start }
+            snapshotFlow {
+                listState.layoutInfo.visibleItemsInfo.none { item ->
                     item.index < messages.itemCount &&
                         (messages.peek(item.index) as? ChatListItem.ContentBubble)?.messageId == landed
                 }
-            }
-            onScreen.first { it }
-            onScreen.first { !it }
+            }.first { it }
             onLandedMessageLeft()
         }
 
