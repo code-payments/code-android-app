@@ -29,6 +29,11 @@ private val Avenir = FontFamily(
 private val AvenirMedium = FontFamily(
     Font(R.font.avenir_next_medium, FontWeight.Normal),
     Font(R.font.avenir_next_medium, FontWeight.Medium),
+    // Heavier overrides (e.g. caption.copy(fontWeight = Bold)) stay on Demi, as they did under Avenir.
+    Font(R.font.avenir_next_demi, FontWeight.SemiBold),
+    Font(R.font.avenir_next_demi, FontWeight.Bold),
+    Font(R.font.avenir_next_demi, FontWeight.ExtraBold),
+    Font(R.font.avenir_next_demi, FontWeight.Black),
 )
 
 private val RobotoMono = FontFamily(
