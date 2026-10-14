@@ -91,6 +91,8 @@ import com.flipcash.app.messenger.internal.mention.mentionRowCap
 import com.flipcash.app.messenger.internal.requiresStaff
 import com.flipcash.app.messenger.internal.screens.profile.GateFunding
 import com.flipcash.features.messenger.R
+import com.getcode.ui.components.toast.ToastBottomClearance
+import com.getcode.ui.components.toast.ToastHorizontalInset
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -285,6 +287,10 @@ internal fun UserControlBottomBar(
             // The part of the navigation bar's inset the keyboard isn't covering, so the bar only sinks
             // into it once the keyboard has cleared it.
             val restingRoom = WindowInsets.navigationBars.exclude(WindowInsets.ime)
+            // Toasts rest above the composer and as wide as its row, rather than the tab bar's.
+            ToastBottomClearance(buttonHeight)
+            ToastHorizontalInset(sideInset)
+            ChatUpdateToast(enabled = hasComposer)
             Box {
                 // The transcript runs under the bar and dissolves into the background here, from the
                 // bar's top edge to the bottom of the screen (or the keyboard's top edge). The bar has no

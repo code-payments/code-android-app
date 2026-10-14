@@ -138,6 +138,7 @@ fun ContentBubble(
     attention: () -> Float = { 0f },
 ) {
     val actionHandler = LocalChatActionHandler.current
+    val updateAction = LocalUpdateAppAction.current
     val jumbo = remember(item) { item.rendersBareEmoji() }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val bubbleMaxWidth = bubbleMaxWidth(
@@ -296,6 +297,8 @@ fun ContentBubble(
                     modifier = modifier,
                     hint = item.undecryptableHint,
                     maxWidth = bubbleMaxWidth,
+                    actionLabel = updateAction?.label,
+                    onAction = { updateAction?.onClick?.invoke() },
                 )
 
                 is MessageContent.Media -> MediaMessageBubble(
@@ -328,6 +331,8 @@ fun ContentBubble(
                         modifier = modifier,
                         hint = item.undecryptableHint,
                         maxWidth = bubbleMaxWidth,
+                        actionLabel = updateAction?.label,
+                        onAction = { updateAction?.onClick?.invoke() },
                     )
                 }
 
@@ -336,6 +341,8 @@ fun ContentBubble(
                     modifier = modifier,
                     hint = item.undecryptableHint,
                     maxWidth = bubbleMaxWidth,
+                    actionLabel = updateAction?.label,
+                    onAction = { updateAction?.onClick?.invoke() },
                 )
             }
         }

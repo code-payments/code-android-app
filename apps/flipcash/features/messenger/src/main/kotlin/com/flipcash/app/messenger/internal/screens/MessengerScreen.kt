@@ -22,6 +22,11 @@ import com.flipcash.shared.chat.ui.media.ChatPhotoSources
 import com.flipcash.shared.chat.ui.media.chatPhotoTranscript
 import com.flipcash.shared.chat.ui.media.LocalChatMediaProgress
 import com.flipcash.shared.chat.ui.media.LocalChatPhotoSources
+import com.flipcash.shared.chat.ui.LocalUpdateAppAction
+import com.flipcash.shared.chat.ui.UpdateAppAction
+import com.flipcash.app.updates.LocalAppUpdater
+import com.flipcash.features.messenger.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -143,6 +148,16 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     }
                 }
             }
+    }
+
+    // The unsupported-message bubble offers the update whenever Play has one, with none of the
+    // toast's priority, staleness or once-per-version rules.
+    val updater = LocalAppUpdater.current
+    val optionalUpdate by updater.optionalUpdate.collectAsStateWithLifecycle()
+    val updateLabel = stringResource(R.string.action_updateFlipcash)
+    val updateAppAction = remember(optionalUpdate != null, updater, updateLabel) {
+        if (optionalUpdate == null) null
+        else UpdateAppAction(label = updateLabel, onClick = { scope.launch { updater.startOptionalUpdate() } })
     }
 
     val chatActionHandler = { action: ChatAction ->
@@ -472,6 +487,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 LocalUriHandler provides transcriptUriHandler,
                 LocalChatMediaProgress provides mediaProgressOf,
                 LocalChatPhotoSources provides photoSources,
+                LocalUpdateAppAction provides updateAppAction,
             ) {
                 // Held for the saved link previews, 300 ms at most and the first chat only.
                 if (previewsReady) {

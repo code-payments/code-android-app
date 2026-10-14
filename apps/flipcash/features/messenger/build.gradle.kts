@@ -16,6 +16,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:chat-ui"))
     implementation(project(":apps:flipcash:shared:amount-entry"))
+    implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:featureflags"))

@@ -114,6 +114,25 @@ class FloatingToastHostState {
         coverings.remove(owner)
     }
 
+    private val insets = mutableStateMapOf<Any, Dp>()
+
+    /**
+     * The side padding a screen has asked the host to give its toast, so a toast resting above a
+     * wider bottom row (the chat composer) can match that row's width. Null when no screen has
+     * asked, and the host uses the navigation bar's ([FloatingChrome.horizontalInset]).
+     */
+    val horizontalInset: Dp?
+        get() = insets.values.maxOrNull()
+
+    /** Records that [owner] wants toasts inset [inset] from each side; [clearHorizontalInset] withdraws it. */
+    fun setHorizontalInset(owner: Any, inset: Dp) {
+        insets[owner] = inset
+    }
+
+    fun clearHorizontalInset(owner: Any) {
+        insets.remove(owner)
+    }
+
     private var nextSlot = 0L
 
     /**
@@ -166,7 +185,7 @@ val LocalFloatingToastHost = staticCompositionLocalOf<FloatingToastHostState?> {
 
 /**
  * Shows [hostState]'s current toast as a [FloatingToast], inset like the navigation bar so it is
- * never wider than it. Place it at the bottom of the screen, above the bar, and compose it *before*
+ * never wider than it, unless a screen sets [FloatingToastHostState.horizontalInset]. Place it at the bottom of the screen, above the bar, and compose it *before*
  * the bar so the bar draws over it.
  *
  * A toast slides up by its own height while fading in, and leaves the same way in reverse. A
@@ -203,7 +222,7 @@ fun FloatingToastHost(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = FloatingChrome.horizontalInset),
+            .padding(horizontal = hostState.horizontalInset ?: FloatingChrome.horizontalInset),
         contentAlignment = Alignment.BottomCenter,
     ) {
         AnimatedContent(
@@ -312,5 +331,19 @@ fun ToastBottomClearance(height: Dp) {
     DisposableEffect(host, owner, height) {
         host.setBottomClearance(owner, height)
         onDispose { host.clearBottomClearance(owner) }
+    }
+}
+
+/**
+ * Asks the root host to inset its toasts [inset] from each side, for as long as the screen is
+ * composed, in place of the navigation bar's inset. A no-op where no root host is installed.
+ */
+@Composable
+fun ToastHorizontalInset(inset: Dp) {
+    val host = LocalFloatingToastHost.current ?: return
+    val owner = remember { Any() }
+    DisposableEffect(host, owner, inset) {
+        host.setHorizontalInset(owner, inset)
+        onDispose { host.clearHorizontalInset(owner) }
     }
 }
