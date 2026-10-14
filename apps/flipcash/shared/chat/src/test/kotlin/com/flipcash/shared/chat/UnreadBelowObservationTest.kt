@@ -9,12 +9,17 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import app.cash.turbine.test
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * The jump-to-bottom badge opens at the unread divider's number: [MessagingDelegate.observeUnreadBelow]
@@ -90,5 +95,45 @@ class UnreadBelowObservationTest {
             account.value = UserManager.State(accountId = selfId)
             assertEquals(3, awaitItem())
         }
+    }
+
+    @Test
+    fun `the open snapshot waits for the account and the database instead of reporting no inbound`() = runTest {
+        account.value = UserManager.State(accountId = null)
+        val databaseUp = CompletableDeferred<Unit>()
+        coEvery { messageDataSource.awaitDatabase() } coAnswers { databaseUp.await() }
+        coEvery { messageDataSource.newestInboundId(chatId, selfId) } returns 15
+
+        val newest = async { delegate.newestInboundId(chatId) }
+        advanceUntilIdle()
+        assertFalse(newest.isCompleted, "no account yet")
+
+        account.value = UserManager.State(accountId = selfId)
+        advanceUntilIdle()
+        assertFalse(newest.isCompleted, "no database yet")
+
+        databaseUp.complete(Unit)
+        advanceUntilIdle()
+        assertTrue(newest.isCompleted)
+        assertEquals(15L, newest.await())
+    }
+
+    @Test
+    fun `the unread boundary waits for the account and the database`() = runTest {
+        account.value = UserManager.State(accountId = null)
+        val databaseUp = CompletableDeferred<Unit>()
+        coEvery { messageDataSource.awaitDatabase() } coAnswers { databaseUp.await() }
+        coEvery { memberDataSource.getSelfReadPointerOrNull(chatId, selfId) } returns 2
+        coEvery { messageDataSource.countInboundAfter(chatId, selfId, 2) } returns 3
+        coEvery { messageDataSource.firstNotSentByAfter(chatId, selfId, 2) } returns 3
+
+        val boundary = async { delegate.resolveUnreadBoundary(chatId) }
+        advanceUntilIdle()
+        assertFalse(boundary.isCompleted)
+
+        account.value = UserManager.State(accountId = selfId)
+        databaseUp.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(3, (boundary.await() as UnreadBoundary.At).count)
     }
 }

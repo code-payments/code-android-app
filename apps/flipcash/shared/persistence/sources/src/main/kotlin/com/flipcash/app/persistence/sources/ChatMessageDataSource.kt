@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -190,6 +192,11 @@ class ChatMessageDataSource @Inject constructor(
             selfIdHex = mapper.userIdHex(selfId),
             afterId = afterId,
         ) ?: 0
+
+    /** Returns once the per-user database exists; reads that must not mistake "not open yet" for "empty" call this first. */
+    suspend fun awaitDatabase() {
+        FlipcashDatabase.observeInstance().filterNotNull().first()
+    }
 
     /** The newest stored, non-deleted message in [chatId] that someone other than [selfId] sent, or `null`. */
     suspend fun newestInboundId(chatId: ChatId, selfId: ID): Long? =

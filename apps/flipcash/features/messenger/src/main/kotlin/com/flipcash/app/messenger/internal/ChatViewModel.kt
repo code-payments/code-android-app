@@ -2909,8 +2909,9 @@ internal class ChatViewModel @AssistedInject constructor(
         stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
             .onEach { chatId ->
-                // Before the boundary: an arrival between the two is counted twice rather than
-                // missed.
+                // Both calls wait for the account and database, so -1 only ever means "ready, and
+                // no inbound stored". Before the boundary: an arrival between the two is counted
+                // twice rather than missed.
                 val newestInbound = chatCoordinator.newestInboundId(chatId) ?: NO_INBOUND_AT_OPEN
                 val boundary = chatCoordinator.resolveUnreadBoundary(chatId)
                 val budget = (boundary as? UnreadBoundary.At)

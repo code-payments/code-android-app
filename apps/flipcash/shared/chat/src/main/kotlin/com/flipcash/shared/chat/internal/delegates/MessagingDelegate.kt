@@ -57,6 +57,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -205,8 +207,19 @@ class MessagingDelegate @Inject constructor(
     override suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int? =
         messageDataSource.distanceFromNewest(chatId, messageId)
 
+    /**
+     * Suspends until there is an account and a per-user database. The open snapshot reads once, so
+     * "not ready yet" must not look like "nothing stored": a null here would become "no inbound
+     * messages at open" and every stored row would later count as an arrival.
+     */
+    private suspend fun awaitReady(): ID {
+        val selfId = userManager.state.map { it.accountId }.filterNotNull().first()
+        messageDataSource.awaitDatabase()
+        return selfId
+    }
+
     override suspend fun resolveUnreadBoundary(chatId: ChatId): UnreadBoundary {
-        val selfId = userManager.accountId ?: return UnreadBoundary.None
+        val selfId = awaitReady()
         val readThrough = memberDataSource.getSelfReadPointerOrNull(chatId, selfId)
             ?: return UnreadBoundary.None
         val count = messageDataSource.countInboundAfter(chatId, selfId, readThrough)
@@ -240,7 +253,7 @@ class MessagingDelegate @Inject constructor(
             .distinctUntilChanged()
 
     override suspend fun newestInboundId(chatId: ChatId): Long? {
-        val selfId = userManager.accountId ?: return null
+        val selfId = awaitReady()
         return messageDataSource.newestInboundId(chatId, selfId)
     }
 

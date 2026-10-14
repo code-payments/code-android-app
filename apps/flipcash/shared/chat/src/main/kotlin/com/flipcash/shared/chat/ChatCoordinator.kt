@@ -345,6 +345,7 @@ interface MessagingOperations {
     /**
      * The newest inbound, non-deleted message id stored in [chatId], or `null` when there is none.
      * Read when a chat opens: inbound messages past it are the ones that arrived after the open.
+     * Suspends until the account and the database are ready, so `null` only ever means "ready, and none".
      */
     suspend fun newestInboundId(chatId: ChatId): Long?
 
