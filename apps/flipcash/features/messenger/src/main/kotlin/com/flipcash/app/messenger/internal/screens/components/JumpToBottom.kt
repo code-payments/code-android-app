@@ -27,9 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -40,10 +38,9 @@ import androidx.compose.ui.unit.sp
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
+import com.getcode.ui.components.chat.ChatInputDefaults
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 
 /** Past this many rows from the newest, a tap jumps rather than animates (from the old Flipchat). */
@@ -75,12 +72,7 @@ internal fun JumpToBottomButton(
     modifier: Modifier = Modifier,
 ) {
     val background = CodeTheme.colors.background
-    // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
-    val glass = HazeBlurStyle {
-        blurRadius(20.dp)
-        backgroundColor(background)
-        colorEffects(listOf(HazeColorEffect.tint(Color.White.copy(alpha = 0.12f))))
-    }
+    val glass = chatGlassMaterial()
     // Held so the pill doesn't read "0" while it scales out.
     var lastCount by remember { mutableIntStateOf(unreadCount) }
     LaunchedEffect(unreadCount) { if (unreadCount > 0) lastCount = unreadCount }
@@ -97,13 +89,17 @@ internal fun JumpToBottomButton(
             Box(
                 modifier = Modifier
                     .size(JumpToBottomButtonSize)
-                    .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
                     .clip(CircleShape)
                     .then(
-                        if (hazeState != null) Modifier.hazeBlur(HazeInput.Sources(hazeState), glass)
-                        else Modifier.background(Color.White.copy(alpha = 0.12f).compositeOver(background))
+                        if (hazeState != null) {
+                            Modifier
+                                .hazeBlur(HazeInput.Sources(hazeState), glass)
+                                .background(ChatInputDefaults.ContainerColor)
+                        } else {
+                            Modifier.background(Color.White.copy(alpha = 0.1f))
+                        }
                     )
-                    .border(0.5.dp, CodeTheme.colors.divider, CircleShape)
+                    .border(CodeTheme.dimens.border, ChatInputDefaults.RimBrush, CircleShape)
                     .clickable(onClick = onClick),
                 contentAlignment = Alignment.Center,
             ) {

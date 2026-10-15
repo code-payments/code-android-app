@@ -41,7 +41,6 @@ import com.getcode.ui.theme.CodeButton
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
-import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import kotlinx.coroutines.delay
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
@@ -65,10 +64,7 @@ internal fun JoinRequestsAnchor(
     val shape = CodeTheme.shapes.medium
     val ground = if (hazeState != null) {
         Modifier
-            .hazeBlur(
-                HazeInput.Sources(hazeState),
-                HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background),
-            )
+            .hazeBlur(HazeInput.Sources(hazeState), chatGlassMaterial())
             .background(ChatInputDefaults.ContainerColor)
     } else {
         Modifier.background(Color.White.copy(alpha = 0.1f))

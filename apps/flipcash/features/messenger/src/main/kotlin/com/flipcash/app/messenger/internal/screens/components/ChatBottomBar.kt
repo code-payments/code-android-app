@@ -109,7 +109,6 @@ import com.getcode.ui.utils.rememberKeyboardController
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
-import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /** The ramp's shape: clear for most of its height, then a late rise into the background. */
 private val ComposerFadeCurve = CubicBezierEasing(0.42f, 0.18f, 0.17f, 1.04f)
@@ -201,7 +200,7 @@ internal fun UserControlBottomBar(
     val focusRequester = remember { FocusRequester() }
     var buttonHeight by remember { mutableStateOf(0.dp) }
     var mentionListHeight by remember { mutableStateOf(0.dp) }
-    val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
+    val material = chatGlassMaterial()
 
     // The attach menu and the camera are one surface over the keyboard, which stays up behind it.
     var attachPhase by remember { mutableStateOf(AttachPhase.Collapsed) }
