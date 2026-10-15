@@ -28,6 +28,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlin.test.assertFalse
@@ -57,6 +58,8 @@ class ChatTypingGateTest {
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
         every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
+        // No load ever lands; a relaxed Flow completes empty and fails the open's first { }.
+        every { newestPageLoads() } returns MutableSharedFlow()
     }
     private val tipPaymentDelegate = mockk<TipPaymentDelegate>(relaxed = true)
     private val transactionController = mockk<TransactionController>(relaxed = true)
