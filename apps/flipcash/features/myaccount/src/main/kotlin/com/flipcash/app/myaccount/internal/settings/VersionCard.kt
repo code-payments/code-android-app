@@ -129,7 +129,22 @@ internal fun VersionCard(
                         CodeTheme.colors.textSecondary,
                     )
                 }
-                Text(text = title, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textMain)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = title, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textMain)
+                    if (state == VersionCardState.Debug) {
+                        // Sits right after the title, centred on its line (Figma, Android debug build).
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 6.dp)
+                                .clip(CircleShape)
+                                .background(White10)
+                                .padding(horizontal = CodeTheme.dimens.grid.x2, vertical = CodeTheme.dimens.grid.x1),
+                            text = stringResource(R.string.label_debugBuild),
+                            style = CodeTheme.typography.caption,
+                            color = CodeTheme.colors.textSecondary,
+                        )
+                    }
+                }
                 Text(
                     modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                     text = caption,
@@ -138,15 +153,7 @@ internal fun VersionCard(
                 )
             }
             when (state) {
-                VersionCardState.Debug -> Text(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(White10)
-                        .padding(horizontal = CodeTheme.dimens.grid.x2, vertical = CodeTheme.dimens.grid.x1),
-                    text = stringResource(R.string.label_debugBuild),
-                    style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textSecondary,
-                )
+                VersionCardState.Debug -> Unit
                 VersionCardState.UpToDate -> Text(
                     text = stringResource(R.string.label_upToDate),
                     style = CodeTheme.typography.caption,

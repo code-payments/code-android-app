@@ -207,7 +207,7 @@ private fun SettingsScreenContent(
                     onRestart = onRestart,
                     modifier = Modifier
                         .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x3),
+                        .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x3),
                 )
             }
         }
