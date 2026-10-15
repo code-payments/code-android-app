@@ -57,9 +57,7 @@ class TraceInitializer: Initializer<Unit> {
 
                 ErrorUtils.addReporter(BugsnagErrorReporter())
                 TraceManager.addSink(BugsnagBreadcrumbSink())
-                TraceManager.setOnUserIdChanged { id ->
-                    Bugsnag.setUser(id, null, null)
-                }
+                forwardUserIdOffThread()
 
                 stageProvider.fetchAndCache(versionCode)
                 if (stageProvider.resolvedStage == ReleaseStage.Internal) {
