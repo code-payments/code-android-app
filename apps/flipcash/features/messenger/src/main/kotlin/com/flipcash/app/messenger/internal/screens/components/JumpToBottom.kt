@@ -1,7 +1,12 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -10,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,13 +28,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,17 +48,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.Badge
+import com.flipcash.shared.chat.ui.ChatAnimations
+import com.getcode.ui.components.unreadCountLabel
 import com.getcode.ui.components.chat.ChatInputDefaults
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
+import kotlinx.coroutines.delay
+import androidx.compose.material3.Text
+import kotlin.math.sqrt
 
 /** Past this many rows from the newest, a tap jumps rather than animates (from the old Flipchat). */
 internal const val JumpToBottomAnimateMaxRows = 100
 
 internal val JumpToBottomButtonSize = 48.dp
 private val BadgeOutline = 2.dp
+
+/** Past this the label reads "99+", so counts at or above it are the same state to animate. */
+private const val BadgeCountCap = 100
+private val BadgeMinSize = 20.dp
+
+/**
+ * How far in from the button's bounding-box corner, on both axes, the badge's centre sits so it is on
+ * the circle's edge at 45 degrees: the edge point is r/sqrt(2) from the circle's centre, and the
+ * corner is r from it on each axis.
+ */
+internal fun jumpToBottomBadgeInset(buttonSize: Dp): Dp = buttonSize / 2 * (1f - (1f / sqrt(2f)))
 
 /**
  * How far above the screen's bottom the jump button sits so its bottom edge is twice [composerGap]
@@ -91,8 +116,10 @@ internal fun JumpToBottomButton(
     AnimatedVisibility(
         modifier = modifier,
         visible = visible,
-        enter = fadeIn(tween(200)) + scaleIn(tween(200), initialScale = 0.8f),
-        exit = fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.8f),
+        enter = fadeIn(ChatAnimations.jumpEnter) +
+            scaleIn(ChatAnimations.jumpEnter, initialScale = ChatAnimations.jumpScale),
+        exit = fadeOut(ChatAnimations.jumpExit) +
+            scaleOut(ChatAnimations.jumpExit, targetScale = ChatAnimations.jumpScale),
     ) {
         Box {
             Box(
@@ -123,34 +150,89 @@ internal fun JumpToBottomButton(
                     modifier = Modifier.size(28.dp),
                 )
             }
+            // While the button is up the badge follows the count; once the button starts leaving it
+            // keeps what it showed, so a count cleared by the jump doesn't shrink it on the way out.
+            var heldBadge by remember { mutableStateOf(unreadCount > 0) }
+            LaunchedEffect(visible, unreadCount) { if (visible) heldBadge = unreadCount > 0 }
+            val badgeWanted = if (visible) unreadCount > 0 else heldBadge
+            // Springs carry no delay, so the badge is held back after the button instead.
+            var badgeShown by remember { mutableStateOf(false) }
+            LaunchedEffect(badgeWanted) {
+                if (badgeWanted) delay(ChatAnimations.badgeEnterDelayMs)
+                badgeShown = badgeWanted
+            }
+            val capped = unreadCount.coerceAtMost(BadgeCountCap)
+            var previousCapped by remember { mutableIntStateOf(capped) }
+            val bump = remember { Animatable(1f) }
+            LaunchedEffect(capped) {
+                val rose = previousCapped > 0 && capped > previousCapped
+                previousCapped = capped
+                if (rose) {
+                    bump.animateTo(ChatAnimations.badgeBumpScale, ChatAnimations.badgeBump)
+                    bump.animateTo(1f, ChatAnimations.badgeBump)
+                }
+            }
+            val inset = with(LocalDensity.current) { jumpToBottomBadgeInset(JumpToBottomButtonSize).roundToPx() }
             AnimatedVisibility(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    // The pill, outline included, is centred on the top-trailing corner of the button's
-                    // bounds: placed half its own size out, without changing the size it reports.
+                    // The pill, outline included, is centred on the circle's edge at 45 degrees: its
+                    // centre starts on the bounding box's corner, then moves [inset] in on both axes.
+                    // Placed without changing the size it reports.
                     .layout { measurable, constraints ->
                         val placeable = measurable.measure(constraints)
-                        val dx = if (layoutDirection == LayoutDirection.Rtl) -placeable.width / 2 else placeable.width / 2
-                        layout(placeable.width, placeable.height) { placeable.place(dx, -placeable.height / 2) }
+                        val rtl = layoutDirection == LayoutDirection.Rtl
+                        val dx = (placeable.width / 2 - inset) * if (rtl) -1 else 1
+                        layout(placeable.width, placeable.height) {
+                            placeable.place(IntOffset(dx, -placeable.height / 2 + inset))
+                        }
                     },
-                visible = unreadCount > 0,
-                enter = fadeIn(tween(200)) + scaleIn(tween(200)),
-                exit = fadeOut(tween(150)) + scaleOut(tween(150)),
+                visible = badgeShown,
+                enter = scaleIn(ChatAnimations.badgeEnter, initialScale = 0f),
+                // It leaves with the button, which is already scaling and fading away.
+                exit = ExitTransition.None,
             ) {
                 // The outline is the chat background, so the pill reads as cut out of the button.
                 Box(
                     Modifier
+                        .graphicsLayer {
+                            scaleX = bump.value
+                            scaleY = bump.value
+                        }
                         .background(background, CircleShape)
                         .padding(BadgeOutline),
                 ) {
-                    Badge(
-                        count = shownCount,
-                        color = CodeTheme.colors.badgeFocus,
-                        textStyle = CodeTheme.typography.caption.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        ),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(CodeTheme.colors.badgeFocus)
+                            // Never narrower than tall, so a single digit is a circle.
+                            .defaultMinSize(minWidth = BadgeMinSize, minHeight = BadgeMinSize)
+                            .padding(horizontal = CodeTheme.dimens.grid.x1, vertical = 3.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        AnimatedContent(
+                            targetState = shownCount.coerceAtMost(BadgeCountCap),
+                            transitionSpec = {
+                                if (targetState > initialState) {
+                                    (slideInVertically { it } + fadeIn()) togetherWith
+                                        (slideOutVertically { -it } + fadeOut())
+                                } else {
+                                    fadeIn() togetherWith fadeOut()
+                                }
+                            },
+                            label = "unreadCount",
+                        ) { count ->
+                            Text(
+                                text = unreadCountLabel(count),
+                                style = CodeTheme.typography.caption.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                ),
+                                color = Color.White,
+                            )
+                        }
+                    }
                 }
             }
         }

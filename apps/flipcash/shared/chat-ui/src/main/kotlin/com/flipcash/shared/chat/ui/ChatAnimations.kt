@@ -2,6 +2,7 @@ package com.flipcash.shared.chat.ui
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.SpringSpec
@@ -109,6 +110,23 @@ object ChatAnimations {
     // express — only a rate, and a linear one is what reads as a light going out.
     const val attentionHoldMs = 250L
     val attentionFade: TweenSpec<Float> = tween(durationMillis = 750, easing = LinearEasing)
+
+    // The jump-to-bottom button. Stiffness is (2pi / response)^2, damping ratio is 1 - bounce.
+    // Entering — iOS jumpEnter: .spring(response: 0.3, bounce: 0.25), from 80%.
+    val jumpEnter: SpringSpec<Float> = spring(dampingRatio = 0.75f, stiffness = 439f)
+    const val jumpScale = 0.8f
+    // Leaving — iOS jumpExit: .easeIn(duration: 0.15), to 80%. An accelerating tween with no bounce,
+    // so the button doesn't rebound as it goes.
+    val jumpExit: TweenSpec<Float> = tween(durationMillis = 150, easing = FastOutLinearInEasing)
+    // Its unread badge arriving, [badgeEnterDelayMs] after the button — iOS badgeEnter:
+    // .spring(response: 0.25, bounce: 0.4), from 0, delayed 0.06s. Springs carry no delay in Compose,
+    // so the caller holds the badge back that long.
+    val badgeEnter: SpringSpec<Float> = spring(dampingRatio = 0.6f, stiffness = 631f)
+    const val badgeEnterDelayMs = 60L
+    // The badge's 1 -> [badgeBumpScale] -> 1 bump when the count goes up. iOS badgeBump is the same
+    // spring as badgeEnter: .spring(response: 0.25, bounce: 0.4).
+    val badgeBump: SpringSpec<Float> = spring(dampingRatio = 0.6f, stiffness = 631f)
+    const val badgeBumpScale = 1.15f
 
     // Receipt label exit when a new message is sent — the row closes the gap on [reflow] while the
     // line fades out fast enough to be gone before the bubble below reaches it. iOS

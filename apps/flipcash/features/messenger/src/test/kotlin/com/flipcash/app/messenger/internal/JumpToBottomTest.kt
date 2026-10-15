@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal
 
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.messenger.internal.screens.components.jumpToBottomBadgeInset
 import com.flipcash.app.messenger.internal.screens.components.jumpToBottomBottomOffset
 import com.flipcash.app.messenger.internal.screens.components.jumpsToBottom
 import com.getcode.ui.components.unreadCountLabel
@@ -36,5 +37,11 @@ class JumpToBottomTest {
         // The button's bottom edge rises (offset - barHeight) above the bar's top; the circle's top is
         // barPad below it. The gap between the two is the sum.
         assertEquals(gap * 2, (offset - barHeight) + barPad)
+    }
+
+    @Test
+    fun `badge centre sits on the circle's edge at 45 degrees`() {
+        // 48/2 * (1 - 1/sqrt(2)) = 7.03dp in from the bounding box's corner on both axes.
+        assertEquals(7.03f, jumpToBottomBadgeInset(48.dp).value, 0.01f)
     }
 }
