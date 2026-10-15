@@ -1,4 +1,4 @@
-package com.flipcash.app.messenger.internal.link
+package com.flipcash.shared.chat.link
 
 import org.json.JSONArray
 import org.json.JSONObject

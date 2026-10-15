@@ -2,6 +2,11 @@
 
 package com.flipcash.shared.chat.internal.delegates
 
+import com.flipcash.shared.chat.link.OutgoingLinkPreview
+import com.flipcash.shared.chat.link.LinkPreviewImages
+import com.flipcash.shared.chat.link.LinkPreviewChecks
+import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.services.models.SendMessageError
 import androidx.core.app.NotificationManagerCompat
 import androidx.paging.ExperimentalPagingApi
@@ -103,6 +108,7 @@ class MessagingDelegate @Inject constructor(
     private val outgoing: OutgoingEncryption = OutgoingEncryption.None,
     /** Opens encrypted pushes; without it, every push keeps the server's body. */
     private val incoming: IncomingMessageOpener? = null,
+    private val previewImages: LinkPreviewImages = LinkPreviewImages.None,
 ) : MessagingOperations {
 
     private val webGate = WebPreviewGate(stateHolder, metadataDataSource)
@@ -395,6 +401,7 @@ class MessagingDelegate @Inject constructor(
         chatId: ChatId,
         content: String,
         replyToMessageId: Long?,
+        linkPreview: OutgoingLinkPreview?,
     ): Result<ChatMessage> {
         if (content.isBlank()) {
             return Result.failure(IllegalArgumentException("Cannot send a blank message"))
@@ -403,19 +410,35 @@ class MessagingDelegate @Inject constructor(
         val senderId = userManager.accountId
             ?: return Result.failure(IllegalStateException("Cannot send message without an account"))
 
-        val body = listOf(MessageContent.Text(content))
-        // The optimistic row and the request carry the same payload, so the quote renders before
-        // the server answers rather than appearing when it does.
-        val payload = replyToMessageId
-            ?.let { listOf(MessageContent.Reply(repliedMessageId = it, content = body)) }
-            ?: body
+        val preview = linkPreview?.takeIf { LinkPreviewChecks.wholeLink(content, it.url) }
+        fun payload(image: MediaItem?): List<MessageContent> {
+            val body = listOf(
+                MessageContent.Text(
+                    text = content,
+                    linkPreview = preview?.let { LinkPreview(it.url, it.title, it.description, image) },
+                ),
+            )
+            // The optimistic row and the request carry the same payload, so the quote renders
+            // before the server answers rather than appearing when it does.
+            return replyToMessageId
+                ?.let { listOf(MessageContent.Reply(repliedMessageId = it, content = body)) }
+                ?: body
+        }
+
         val (_, clientMessageId) = messageDataSource.insertPending(
             chatId = chatId,
-            content = payload,
+            content = payload(image = null),
             senderId = senderId,
         )
+        if (preview == null) linkPreview?.imageUploadId?.let(previewImages::discard)
 
-        return send(chatId, payload, clientMessageId)
+        val image = preview?.imageUploadId?.let { previewImages.settle(it) }
+            ?: return send(chatId, payload(image = null), clientMessageId)
+
+        // Rewritten with the image, so a retry of a failed send keeps it.
+        val withImage = payload(image.item)
+        messageDataSource.insertPending(chatId, withImage, senderId, clientMessageId, ordinal = 0)
+        return send(chatId, withImage, clientMessageId)
     }
 
     override suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage> {
@@ -436,11 +459,12 @@ class MessagingDelegate @Inject constructor(
         payload: List<MessageContent>,
         clientMessageId: ClientMessageId,
     ): Result<ChatMessage> {
-        val prepared = outgoing.prepare(chatId, payload).getOrElse { cause ->
-            trace(tag = TAG, message = "Couldn't prepare send in $chatId", type = TraceType.Error, error = cause)
-            messageDataSource.failPending(chatId, clientMessageId)
-            return Result.failure(cause)
-        }
+        val prepared = outgoing.prepare(chatId, payload, blobSealedFor = payload.previewImageSealedFor(chatId))
+            .getOrElse { cause ->
+                trace(tag = TAG, message = "Couldn't prepare send in $chatId", type = TraceType.Error, error = cause)
+                messageDataSource.failPending(chatId, clientMessageId)
+                return Result.failure(cause)
+            }
 
         return messagingController.sendMessage(chatId, prepared.wire, clientMessageId)
             .map(prepared::echo)
@@ -488,7 +512,13 @@ class MessagingDelegate @Inject constructor(
             ),
         )
 
-        val prepared = outgoing.prepare(chatId, content, wasEncrypted = stored.encryption != null)
+        // A sealed message's preview image was sealed for this chat along with it.
+        val prepared = outgoing.prepare(
+            chatId,
+            content,
+            wasEncrypted = stored.encryption != null,
+            blobSealedFor = chatId.takeIf { stored.encryption != null },
+        )
             .getOrElse { cause ->
                 clearMutation(chatId, messageId)
                 return Result.failure(cause)
@@ -736,4 +766,21 @@ class MessagingDelegate @Inject constructor(
     private companion object {
         const val TAG = "MessagingDelegate"
     }
+}
+
+/**
+ * The chat a preview image in this payload was sealed for, read from the item [sendMessage] built:
+ * a sealed image carries its metadata with no download url, a plain one carries none. Read off the
+ * content so a retry, which only has the stored row, answers the same as the first attempt.
+ */
+private fun List<MessageContent>.previewImageSealedFor(chatId: ChatId): ChatId? {
+    val image = firstNotNullOfOrNull { content ->
+        when (content) {
+            is MessageContent.Text -> content.linkPreview?.image
+            is MessageContent.Reply -> content.content.filterIsInstance<MessageContent.Text>().firstNotNullOfOrNull { it.linkPreview?.image }
+            else -> null
+        }
+    } ?: return null
+    val blob = image.renditions.firstOrNull()?.blob
+    return chatId.takeIf { blob != null && blob.downloadUrl.isEmpty() }
 }

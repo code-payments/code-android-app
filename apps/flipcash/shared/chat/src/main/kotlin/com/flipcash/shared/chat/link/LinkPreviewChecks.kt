@@ -1,4 +1,4 @@
-package com.flipcash.app.messenger.internal.link
+package com.flipcash.shared.chat.link
 
 /**
  * The checks a sender runs before attaching a `messaging.v1.LinkPreview` to a text message: the
@@ -9,7 +9,7 @@ package com.flipcash.app.messenger.internal.link
  * Lengths are Unicode code points, as the contract counts them. Neither [String.length] (UTF-16
  * units) nor a grapheme count agrees with that, so nothing here uses them for a limit.
  */
-internal object LinkPreviewChecks {
+object LinkPreviewChecks {
 
     const val URL_MAX = 2048
     const val TITLE_MAX = 256

@@ -25,6 +25,7 @@ import com.flipcash.shared.chat.media.ChatMediaUploadState
 import com.flipcash.shared.chat.media.ChatMediaUploads
 import com.flipcash.shared.chat.media.MediaSendProgress
 import com.flipcash.shared.chat.media.UploadedPhoto
+import com.flipcash.shared.chat.media.toMediaItem
 import com.getcode.opencode.model.core.RandomId
 import com.getcode.utils.TraceType
 import com.getcode.utils.hexEncodedString
@@ -430,30 +431,15 @@ class MediaSendDelegate internal constructor(
             ),
         )
 
-    /**
-     * What goes to the server. A sealed photo carries the full metadata its contract needs; a plain
-     * one only its id, the server filling in the rest from the bytes.
-     */
-    private fun sentContent(record: PendingMediaRecord, photo: UploadedPhoto): List<MessageContent> {
-        val sealed = photo.sealedFor != null
-        val blob = if (sealed) {
-            BlobMetadata(
-                mimeType = JPEG,
-                sizeBytes = photo.sizeBytes,
-                downloadUrl = "",
-                image = ImageMetadata(photo.width, photo.height, photo.blurhash.orEmpty()),
-            )
-        } else null
-        return wrap(
+    /** What goes to the server. */
+    private fun sentContent(record: PendingMediaRecord, photo: UploadedPhoto): List<MessageContent> =
+        wrap(
             record.replyToMessageId,
             MessageContent.Media(
-                items = listOf(
-                    MediaItem(listOf(MediaItemRendition(MediaItemRendition.Role.ORIGINAL, photo.blobId, blob))),
-                ),
+                items = listOf(photo.toMediaItem()),
                 caption = record.caption?.let { MessageContent.Text(it) },
             ),
         )
-    }
 
     private fun wrap(replyTo: Long?, media: MessageContent.Media): List<MessageContent> =
         listOf(replyTo?.let { MessageContent.Reply(it, listOf(media)) } ?: media)

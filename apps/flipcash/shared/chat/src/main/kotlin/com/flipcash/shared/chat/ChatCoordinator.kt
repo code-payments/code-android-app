@@ -22,6 +22,7 @@ import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.repository.ReactorsPage
+import com.flipcash.shared.chat.link.OutgoingLinkPreview
 import com.flipcash.shared.chat.media.ChatMediaSending
 import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionPill
@@ -471,11 +472,16 @@ interface MessagingOperations {
      * [replyToMessageId] cites a message in the same chat, which wraps the body in
      * [MessageContent.Reply]. It defaults to `null` so a caller with no message to cite — the
      * notification quick-reply replies to a conversation, not to a message — is unchanged.
+     *
+     * [linkPreview] rides on the text when its url stands in [content] as a whole link, and is
+     * dropped otherwise. Its image is waited for after the pending row is written, so the text
+     * shows as sending at once; an image that fails to upload sends the preview without it.
      */
     suspend fun sendMessage(
         chatId: ChatId,
         content: String,
         replyToMessageId: Long? = null,
+        linkPreview: OutgoingLinkPreview? = null,
     ): Result<ChatMessage>
 
     /** Retries a failed pending message: resets to SENDING and re-sends to the server. */
