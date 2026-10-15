@@ -15,6 +15,7 @@ val BrandAccent = Color(0xFF443091)
 val BrandIndicator = Color(0xFF31BB00)
 // iOS unreadIndicator: the fill of a notification dot.
 val UnreadDot = Color(0xFF0A84FF)
+val BadgeFocus = Color(0xFF0A84FF)
 val BrandSlideToConfirm = Color(0xFF11142A)
 val BrandToggleUncheckedTrackColor = Color(0xFF201D2F)
 

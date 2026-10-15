@@ -54,10 +54,14 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
@@ -204,8 +208,19 @@ class MessagingDelegate @Inject constructor(
     override suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int? =
         messageDataSource.distanceFromNewest(chatId, messageId)
 
+    /**
+     * Suspends until there is an account and a per-user database. The open snapshot reads once, so
+     * "not ready yet" must not look like "nothing stored": a null here would become "no inbound
+     * messages at open" and every stored row would later count as an arrival.
+     */
+    private suspend fun awaitReady(): ID {
+        val selfId = userManager.state.map { it.accountId }.filterNotNull().first()
+        messageDataSource.awaitDatabase()
+        return selfId
+    }
+
     override suspend fun resolveUnreadBoundary(chatId: ChatId): UnreadBoundary {
-        val selfId = userManager.accountId ?: return UnreadBoundary.None
+        val selfId = awaitReady()
         val readThrough = memberDataSource.getSelfReadPointerOrNull(chatId, selfId)
             ?: return UnreadBoundary.None
         val count = messageDataSource.countInboundAfter(chatId, selfId, readThrough)
@@ -220,6 +235,43 @@ class MessagingDelegate @Inject constructor(
         if (!messageDataSource.hasAtOrBelow(chatId, boundary)) return UnreadBoundary.None
         return UnreadBoundary.At(readThrough = boundary, count = count)
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeUnreadBelow(chatId: ChatId): Flow<Int> =
+        // The account id is set during login, and the per-user DB is made then too (the data
+        // sources wait on it): a screen that subscribes before either is ready counts 0 until they
+        // are, and starts over if the account changes.
+        userManager.state.map { it.accountId }
+            .distinctUntilChanged()
+            .flatMapLatest { selfId ->
+                if (selfId == null) flowOf(0)
+                else memberDataSource.observeSelfReadPointer(chatId, selfId)
+                    .flatMapLatest { readThrough ->
+                        if (readThrough == null) flowOf(0)
+                        else messageDataSource.observeInboundCountAfter(chatId, selfId, readThrough)
+                    }
+            }
+            .distinctUntilChanged()
+
+    override suspend fun newestInboundId(chatId: ChatId): Long? {
+        val selfId = awaitReady()
+        return messageDataSource.newestInboundId(chatId, selfId)
+    }
+
+    override suspend fun selfReadPointer(chatId: ChatId): Long? {
+        val selfId = awaitReady()
+        return memberDataSource.getSelfReadPointerOrNull(chatId, selfId)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeInboundAfter(chatId: ChatId, afterId: Long): Flow<Int> =
+        userManager.state.map { it.accountId }
+            .distinctUntilChanged()
+            .flatMapLatest { selfId ->
+                if (selfId == null) flowOf(0)
+                else messageDataSource.observeInboundCountAfter(chatId, selfId, afterId)
+            }
+            .distinctUntilChanged()
 
     override suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int =
         messageDataSource.countAfter(chatId, messageId)
@@ -262,6 +314,10 @@ class MessagingDelegate @Inject constructor(
             .distinctUntilChanged()
     }
 
+    private val newestPageLoaded = MutableSharedFlow<ChatId>(extraBufferCapacity = 16)
+
+    override fun newestPageLoads(): Flow<ChatId> = newestPageLoaded
+
     override suspend fun loadMessages(chatId: ChatId) {
         messagingController.getMessages(chatId)
             .onSuccess { messages ->
@@ -277,6 +333,7 @@ class MessagingDelegate @Inject constructor(
                 // what the feed already stored: the list rebuilds only for a real change.
                 val head = messages.maxOfOrNull { it.eventSequence } ?: 0L
                 metadataDataSource.applyCatchUp(chatId, head, messages.maxByOrNull { it.messageId })
+                newestPageLoaded.tryEmit(chatId)
             }
     }
 

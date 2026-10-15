@@ -334,6 +334,34 @@ interface MessagingOperations {
      */
     suspend fun resolveUnreadBoundary(chatId: ChatId): UnreadBoundary
 
+    /**
+     * How many inbound messages in [chatId] sit past the viewer's stored READ pointer, live — the
+     * jump-to-bottom badge. Read from the same pointer the read reporter advances and counted with
+     * the divider's own query, so the two cannot disagree. 0 when the divider would resolve to
+     * [UnreadBoundary.None] for want of a pointer, which includes a viewer outside the group.
+     */
+    fun observeUnreadBelow(chatId: ChatId): Flow<Int>
+
+    /**
+     * The newest inbound, non-deleted message id stored in [chatId], or `null` when there is none.
+     * Read when a chat opens: inbound messages past it are the ones that arrived after the open.
+     * Suspends until the account and the database are ready, so `null` only ever means "ready, and none".
+     */
+    suspend fun newestInboundId(chatId: ChatId): Long?
+
+    /**
+     * The viewer's stored READ pointer in [chatId], or `null` when their member row is not stored.
+     * Read with [newestInboundId] when a chat opens: history older than the pointer is not an
+     * arrival even when it loads after the open. Suspends until the account and database are ready.
+     */
+    suspend fun selfReadPointer(chatId: ChatId): Long?
+
+    /**
+     * How many inbound, non-deleted messages in [chatId] sit past [afterId], live, whatever the
+     * read pointer says. [afterId] below every stored id counts them all.
+     */
+    fun observeInboundAfter(chatId: ChatId, afterId: Long): Flow<Int>
+
     /** How many stored messages in [chatId] sit past [messageId]. Bounds the walk to the unread divider. */
     suspend fun countMessagesAfter(chatId: ChatId, messageId: Long): Int
 
@@ -400,6 +428,14 @@ interface MessagingOperations {
 
     /** Fetches the full message history for [chatId] from the server and persists locally. */
     suspend fun loadMessages(chatId: ChatId)
+
+    /**
+     * Emits a chat's id each time a load of its newest page succeeds and has been stored, whichever
+     * path performed it (the open, the feed sync, a push, an outside reader). Never replays and
+     * emits nothing for a failed load, so a collector started before the load sees only the loads
+     * that happen after it.
+     */
+    fun newestPageLoads(): Flow<ChatId>
 
     /**
      * Persists a message the server delivered inside a push payload, without an RPC.

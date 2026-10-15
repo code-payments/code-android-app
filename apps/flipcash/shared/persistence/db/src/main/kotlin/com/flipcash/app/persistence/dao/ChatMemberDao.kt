@@ -56,6 +56,10 @@ interface ChatMemberDao {
     @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex AND user_id_hex = :userIdHex LIMIT 1")
     suspend fun getMember(chatIdHex: String, userIdHex: String): ChatMemberEntity?
 
+    /** [getMember] as a stream: one row, so a large group's roster is not loaded to watch the viewer's pointer. */
+    @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex AND user_id_hex = :userIdHex LIMIT 1")
+    fun observeMember(chatIdHex: String, userIdHex: String): Flow<ChatMemberEntity?>
+
     /**
      * Resolves the chat id of a DM that [userIdHex] is a member of, of the given [chatType]
      * (e.g. `"TIP_DM"`). Reuses the already-synced `chat_members` ↔ `chat_metadata` data — no

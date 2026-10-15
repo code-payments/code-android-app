@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -190,6 +192,33 @@ class ChatMessageDataSource @Inject constructor(
             selfIdHex = mapper.userIdHex(selfId),
             afterId = afterId,
         ) ?: 0
+
+    /** Returns once the per-user database exists; reads that must not mistake "not open yet" for "empty" call this first. */
+    suspend fun awaitDatabase() {
+        FlipcashDatabase.observeInstance().filterNotNull().first()
+    }
+
+    /** The newest stored, non-deleted message in [chatId] that someone other than [selfId] sent, or `null`. */
+    suspend fun newestInboundId(chatId: ChatId, selfId: ID): Long? =
+        db?.chatMessageDao()?.newestInboundId(
+            chatIdHex = mapper.chatIdHex(chatId),
+            selfIdHex = mapper.userIdHex(selfId),
+        )
+
+    /**
+     * [countInboundAfter] as a stream, so arrivals and pointer moves both update it. Resolved through
+     * [FlipcashDatabase.observeInstance] like [hasEverTipped]: a subscriber that starts before the
+     * per-user DB exists counts 0 until it does, rather than completing empty for good.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observeInboundCountAfter(chatId: ChatId, selfId: ID, afterId: Long): Flow<Int> =
+        FlipcashDatabase.observeInstance().flatMapLatest { database ->
+            database?.chatMessageDao()?.observeInboundCountAfter(
+                chatIdHex = mapper.chatIdHex(chatId),
+                selfIdHex = mapper.userIdHex(selfId),
+                afterId = afterId,
+            ) ?: flowOf(0)
+        }.distinctUntilChanged()
 
     /** The first stored message in [chatId] past [afterId] that [selfId] did not send, or `null`. */
     suspend fun firstNotSentByAfter(chatId: ChatId, selfId: ID, afterId: Long): Long? =

@@ -229,6 +229,28 @@ class ChatMessageDaoTest {
     private suspend fun unread(pointer: Long) = dao.countInboundAfter(CHAT_HEX, SELF_HEX, pointer)
 
     @Test
+    fun `newestInboundId is the highest id among others' messages`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 3), from(SENDER_HEX, 15), from(SENDER_HEX, 7)))
+
+        assertEquals(15L, dao.newestInboundId(CHAT_HEX, SELF_HEX))
+    }
+
+    @Test
+    fun `newestInboundId ignores the viewer's own and deleted rows`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 3), from(SELF_HEX, 20), tombstone(30).copy(senderIdHex = SENDER_HEX)))
+
+        assertEquals(3L, dao.newestInboundId(CHAT_HEX, SELF_HEX))
+    }
+
+    @Test
+    fun `newestInboundId is null for an empty chat`() = runTest {
+        dao.upsert(listOf(from(SELF_HEX, 1)))
+
+        assertNull(dao.newestInboundId(CHAT_HEX, SELF_HEX))
+        assertNull(dao.newestInboundId(OTHER_HEX, SELF_HEX))
+    }
+
+    @Test
     fun `countInboundAfter counts only others' messages past the pointer`() = runTest {
         dao.upsert(listOf(from(SENDER_HEX, 1), from(SELF_HEX, 2), from(SENDER_HEX, 3), from(SENDER_HEX, 4)))
 
@@ -277,6 +299,35 @@ class ChatMessageDaoTest {
         dao.upsert(from(SENDER_HEX, 3).copy(chatIdHex = OTHER_HEX))
 
         assertEquals(0, unread(pointer = 1))
+    }
+
+    @Test
+    fun `a system notice leaves the badge count, arrival cutoff, divider and own-send range unchanged`() = runTest {
+        dao.upsert(listOf(from(SENDER_HEX, 1), from(SENDER_HEX, 2)))
+        val before = listOf(
+            unread(pointer = 1),
+            dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, 1).first(),
+            dao.newestInboundId(CHAT_HEX, SELF_HEX),
+            dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1),
+            dao.getInboundMessagesInRange(CHAT_HEX, SELF_HEX, 0, 10).map { it.messageId },
+        )
+
+        dao.upsert(
+            text(5, "").copy(
+                senderIdHex = null,
+                contentJson = listOf(MessageContentSerialized.System("Alex joined the group")),
+            ),
+        )
+
+        val after = listOf(
+            unread(pointer = 1),
+            dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, 1).first(),
+            dao.newestInboundId(CHAT_HEX, SELF_HEX),
+            dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1),
+            dao.getInboundMessagesInRange(CHAT_HEX, SELF_HEX, 0, 10).map { it.messageId },
+        )
+        assertEquals(before, after)
+        assertEquals(listOf<Any?>(1, 1, 2L, 2L, listOf(1L, 2L)), after)
     }
 
     private suspend fun firstNotOwn(pointer: Long) = dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, pointer)

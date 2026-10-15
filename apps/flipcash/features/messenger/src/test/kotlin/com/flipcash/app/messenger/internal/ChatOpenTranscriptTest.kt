@@ -30,6 +30,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -62,6 +63,8 @@ class ChatOpenTranscriptTest {
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
         every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
+        // No load ever lands unless a test emits one.
+        every { newestPageLoads() } returns MutableSharedFlow()
     }
     private val tipPaymentDelegate = mockk<TipPaymentDelegate>(relaxed = true)
     private val transactionController = mockk<TransactionController>(relaxed = true)
@@ -267,4 +270,37 @@ class ChatOpenTranscriptTest {
         assertNull(viewModel.stateFlow.value.subject)
     }
 
+    @Test
+    fun `the badge cutoff is recorded after the first successful newest-page load, not on open`() = runTest {
+        val loads = MutableSharedFlow<ChatId>(extraBufferCapacity = 8)
+        var newestInbound: Long? = null
+        every { chatCoordinator.newestPageLoads() } returns loads
+        coEvery { chatCoordinator.hydrateChat(chatId) } returns ChatHydration.Stored
+        coEvery { chatCoordinator.selfReadPointer(chatId) } returns null
+        coEvery { chatCoordinator.newestInboundId(chatId) } coAnswers { newestInbound }
+
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(openChat)
+        advanceUntilIdle()
+        // Opened, nothing loaded yet: no cutoff, so nothing counts as an arrival.
+        assertNull(viewModel.stateFlow.value.newestInboundIdAtOpen)
+
+        // A backfill page stores history, and a load for another chat lands. Neither is the
+        // newest page of this chat, so the cutoff still waits.
+        newestInbound = 12
+        loads.emit(ChatId(UUID.randomUUID().bytes))
+        advanceUntilIdle()
+        assertNull(viewModel.stateFlow.value.newestInboundIdAtOpen)
+
+        // The newest page lands: the history it stored is behind the cutoff.
+        loads.emit(chatId)
+        advanceUntilIdle()
+        assertEquals(12L, viewModel.stateFlow.value.newestInboundIdAtOpen)
+
+        // Later loads do not move it.
+        newestInbound = 15
+        loads.emit(chatId)
+        advanceUntilIdle()
+        assertEquals(12L, viewModel.stateFlow.value.newestInboundIdAtOpen)
+    }
 }
