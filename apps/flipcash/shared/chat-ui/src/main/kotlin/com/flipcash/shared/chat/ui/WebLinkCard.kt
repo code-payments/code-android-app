@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.shared.chat.media.ChatPhoto
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -91,6 +92,17 @@ internal class WebLinkCardState(
 internal fun rememberWebLinkCard(card: LinkCard.Web): WebLinkCardState {
     val mode = LocalWebLinkPreviewMode.current
     var asked by rememberSaveable(card.url) { mutableStateOf(false) }
+    // A preview the sender built comes resolved, and drawing it contacts no site, so it needs no tap.
+    (card.state as? LinkCard.Web.State.Resolved)?.let { built ->
+        return WebLinkCardState(
+            url = card.url,
+            resolved = built.takeIf { mode != WebLinkPreviewMode.Off },
+            chipHost = null,
+            loading = false,
+            host = chipHostOf(card.url),
+            ask = {},
+        )
+    }
     val fetching = mode == WebLinkPreviewMode.Automatic || (mode == WebLinkPreviewMode.TapToLoad && asked)
     val live = rememberResolvedCard(
         card = card,
@@ -192,7 +204,7 @@ private fun WebPreview(
                 hapticFeedbackEnabled = false,
             ),
     ) {
-        PreviewImage(preview.imageUrl)
+        PreviewImage(preview)
         Column(
             modifier = Modifier.padding(CodeTheme.dimens.staticGrid.x2),
         ) {
@@ -288,8 +300,34 @@ private fun WebPlaceholder(
  * loader keeps cookies and follows any redirect. A picture that fails to load takes its slot with
  * it, so the card closes up around the text rather than leaving a hole.
  */
+/**
+ * The image of a preview the sender built: a chat photo, sealed for the chat when the message is,
+ * drawn through the app's own loader rather than the web one. A failure closes the slot as above.
+ */
 @Composable
-private fun PreviewImage(imageUrl: String?) {
+private fun SenderPreviewImage(photo: ChatPhoto) {
+    var failed by remember(photo) { mutableStateOf(false) }
+    if (failed) return
+    AsyncImage(
+        model = photo,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        onError = { failed = true },
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(IMAGE_ASPECT)
+            .background(CodeTheme.colors.textSecondary.copy(alpha = 0.15f))
+            .testTag(WEB_LINK_IMAGE_TAG),
+    )
+}
+
+@Composable
+private fun PreviewImage(preview: LinkCard.Web.State.Resolved) {
+    preview.photo?.let { photo ->
+        SenderPreviewImage(photo)
+        return
+    }
+    val imageUrl = preview.imageUrl
     val loader = LocalWebPreviewImageLoader.current ?: return
     // The loader handles file and content addresses too, and the address came from a page.
     if (imageUrl == null || !imageUrl.startsWith("https://")) return

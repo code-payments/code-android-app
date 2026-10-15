@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
 import com.flipcash.libs.coroutines.TestDispatcherProvider
@@ -154,6 +155,20 @@ class MessageLinkPrefetcherTest {
         var asked = 0
         prefetcher(memory, web = { asked++; Result.success(page) })
             .prefetch(listOf(message(pageText)), wait = 1.seconds)
+
+        assertEquals(0, asked)
+        assertTrue(memory.webs.isEmpty())
+    }
+
+    @Test
+    fun `a web link whose sender built its preview is not fetched`() = runTest {
+        val memory = LinkCardMemory()
+        var asked = 0
+        val sent = message(pageText).copy(
+            content = listOf(MessageContent.Text(pageText, linkPreview = LinkPreview(pageUrl, "An article", "", null))),
+        )
+        prefetcher(memory, web = { asked++; Result.success(page) })
+            .prefetch(listOf(sent), wait = 1.seconds, webLinks = true)
 
         assertEquals(0, asked)
         assertTrue(memory.webs.isEmpty())

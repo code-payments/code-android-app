@@ -80,6 +80,7 @@ class WebLinkCardTest {
         uriHandler: UriHandler = RecordingUriHandler(),
         imageLoader: ImageLoader? = null,
         onLongClick: (() -> Unit)? = null,
+        seed: LinkCard.Web = card(),
     ) {
         composeTestRule.setContent {
             DesignSystem {
@@ -89,15 +90,15 @@ class WebLinkCardTest {
                     LocalWebPreviewImageLoader provides imageLoader,
                     LocalUriHandler provides uriHandler,
                 ) {
-                    Card(onLongClick)
+                    Card(onLongClick, seed)
                 }
             }
         }
     }
 
     @Composable
-    private fun Card(onLongClick: (() -> Unit)?) {
-        val state = rememberWebLinkCard(card())
+    private fun Card(onLongClick: (() -> Unit)?, seed: LinkCard.Web = card()) {
+        val state = rememberWebLinkCard(seed)
         WebLinkCard(state = state, onLongClick = onLongClick, onDoubleClick = null)
     }
 
@@ -116,6 +117,27 @@ class WebLinkCardTest {
         composeTestRule.onNodeWithText("A description").assertIsDisplayed()
         composeTestRule.onNodeWithText("example.com").assertIsDisplayed()
         composeTestRule.onAllNodesWithText("og:site_name").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a preview the sender built draws outside the group with no tap and nothing asked`() {
+        val resolution = resolving(LinkCard.Web.State.None)
+        setCard(resolution, mode = WebLinkPreviewMode.TapToLoad, seed = card(resolved))
+
+        composeTestRule.waitForIdle()
+        assertEquals(0, resolution.calls.get())
+        composeTestRule.onNodeWithText("The title").assertIsDisplayed()
+        composeTestRule.onAllNodesWithTag(WEB_LINK_CHIP_TAG).assertCountEquals(0)
+    }
+
+    @Test
+    fun `with previews off a preview the sender built draws nothing`() {
+        val resolution = resolving(resolved)
+        setCard(resolution, mode = WebLinkPreviewMode.Off, seed = card(resolved))
+
+        composeTestRule.waitForIdle()
+        assertEquals(0, resolution.calls.get())
+        composeTestRule.onAllNodesWithTag(WEB_LINK_CARD_TAG).assertCountEquals(0)
     }
 
     @Test

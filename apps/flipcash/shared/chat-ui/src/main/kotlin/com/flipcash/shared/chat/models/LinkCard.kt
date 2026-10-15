@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.models
 
+import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.asHandle
 import com.flipcash.services.models.chat.ChatId
@@ -249,12 +250,16 @@ sealed interface LinkCard {
             /** The host answered with nothing to show. Cached; draws nothing. */
             data object None : State
 
-            /** [host] comes from the URL after redirects, never from the page. */
+            /**
+             * [host] comes from the URL after redirects, never from the page. A preview the sender
+             * built has its image as [photo], a chat photo, and no [imageUrl].
+             */
             data class Resolved(
                 val title: String,
                 val description: String?,
                 val imageUrl: String?,
                 val host: String,
+                val photo: ChatPhoto? = null,
             ) : State
         }
     }

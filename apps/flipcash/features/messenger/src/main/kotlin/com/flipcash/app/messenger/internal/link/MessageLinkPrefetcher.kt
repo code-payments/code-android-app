@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.shared.chat.ui.linkPreview
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
@@ -53,6 +54,8 @@ internal class MessageLinkPrefetcher(
             .asSequence()
             .filterNot { it.redacted }
             .flatMap { it.content.asSequence() }
+            // The sender built this one's preview; the reader fetches nothing for it.
+            .filter { it.linkPreview() == null }
             .mapNotNull { content -> content.linkableText()?.let { classifier.firstCard(detectUrls(it)) } }
             .mapNotNull { card -> lookup(card, webAllowed) }
             .toList()

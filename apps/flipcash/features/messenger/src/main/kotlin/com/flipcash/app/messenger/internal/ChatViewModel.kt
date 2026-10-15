@@ -1,5 +1,9 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.shared.chat.media.ChatPhoto
+import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.services.models.chat.LinkPreview
+import com.flipcash.shared.chat.ui.linkPreview
 import android.content.ClipboardManager
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
@@ -1301,6 +1305,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     val linkableText = enriched.linkableText()
                     val links = linkableText?.let(::detectUrls).orEmpty()
                     val linkCard = linkCardClassifier.firstCard(links)
+                        .withSenderPreview(content.linkPreview(), message, stateFlow.value.chatId)
 
                     // Detected over the whole text, beside the links, so a handle inside a link
                     // stays the link's. Nothing is looked up until one is tapped.
@@ -3858,4 +3863,28 @@ private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
         )
     }
     return copy(quickReactionStrip = strip)
+}
+
+/**
+ * The web card resolved from the preview its sender built, when the preview is for this card's
+ * link: the reader then fetches nothing. Any other card, or a preview for another link, is left as
+ * classified.
+ */
+private fun LinkCard?.withSenderPreview(preview: LinkPreview?, message: ChatMessage, chatId: ChatId?): LinkCard? {
+    if (this !is LinkCard.Web || preview == null || preview.url != url) return this
+    val rendition = preview.image?.let { it.rendition(MediaItemRendition.Role.ORIGINAL) ?: it.renditions.firstOrNull() }
+    val photo = if (rendition != null && chatId != null) {
+        ChatPhoto(chatId, rendition, message.senderId, sealed = message.encryption != null)
+    } else {
+        null
+    }
+    return copy(
+        state = LinkCard.Web.State.Resolved(
+            title = preview.title,
+            description = preview.description.ifEmpty { null },
+            imageUrl = null,
+            host = Uri.parse(url).host.orEmpty().lowercase().removePrefix("www."),
+            photo = photo,
+        ),
+    )
 }
