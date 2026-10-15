@@ -133,6 +133,7 @@ import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.models.splitAroundLinkCard
 import coil3.ImageLoader
+import com.flipcash.app.messenger.internal.link.ComposerLinkPreview
 import com.flipcash.app.messenger.internal.link.WebPreviewImages
 import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionPill
@@ -198,6 +199,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -279,6 +281,7 @@ internal class ChatViewModel @AssistedInject constructor(
     @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
     linkCardMemory: LinkCardMemory? = null,
     featureFlags: FeatureFlagController = NoOpFeatureFlagController,
+    private val composerLinkPreview: ComposerLinkPreview? = null,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -3099,6 +3102,22 @@ internal class ChatViewModel @AssistedInject constructor(
     }
 
     private fun initSendHandlers() {
+        composerLinkPreview?.let { preview ->
+            stateFlow.mapNotNull { it.chatId }
+                .distinctUntilChanged()
+                .onEach { chatId ->
+                    coroutineScope {
+                        // An edit keeps the message's own preview, so its text builds none.
+                        val draft = combine(
+                            snapshotFlow { stateFlow.value.chatInputState.text.toString() },
+                            stateFlow.map { it.editing != null }.distinctUntilChanged(),
+                        ) { text, editing -> if (editing) "" else text }
+                        preview.bind(this, chatId, draft)
+                    }
+                }
+                .launchIn(viewModelScope)
+        }
+
         // Send text message
         eventFlow.filterIsInstance<Event.SendMessage>()
             .onEach {
@@ -3110,6 +3129,15 @@ internal class ChatViewModel @AssistedInject constructor(
                 // Read here, not in the reducer: the reply strip comes down with the draft, and
                 // both are the composer emptying itself once the message is on its way.
                 val replyToMessageId = stateFlow.value.replyingTo?.messageId
+
+                // Taken before the draft empties, which would otherwise drop it. A photo message
+                // carries no link preview.
+                val linkPreview = if (photos.isEmpty()) {
+                    composerLinkPreview?.take(textToSend)
+                } else {
+                    composerLinkPreview?.clear()
+                    null
+                }
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
                 if (replyToMessageId != null) dispatchEvent(Event.CancelReply)
@@ -3123,7 +3151,12 @@ internal class ChatViewModel @AssistedInject constructor(
 
                 viewModelScope.launch {
                     val sent = if (photos.isEmpty()) {
-                        chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
+                        chatCoordinator.sendMessage(
+                            chatId,
+                            textToSend,
+                            replyToMessageId,
+                            linkPreview = linkPreview,
+                        )
                     } else {
                         chatCoordinator.sendMedia(chatId, photos.map { it.id }, textToSend.trim(), replyToMessageId)
                             .onFailure { dispatchEvent(Event.PhotosRestored(photos)) }
