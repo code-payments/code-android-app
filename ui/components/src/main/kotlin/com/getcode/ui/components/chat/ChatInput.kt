@@ -154,6 +154,13 @@ object ChatInputDefaults {
         @Composable get() = oneLineFieldHeight(FieldPadding, AccessorySize)
 
     /**
+     * The gap between the `$` / cancel slot and the field. The jump-to-bottom button rides twice this
+     * above the `$` button, so it is named here rather than repeated.
+     */
+    val OutsideSpacing: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
+
+    /**
      * The corner of the thumbnails the composer's header holds. The field's own corner is this plus
      * the header inset, and the photo chips draw with it, so the two curves share a centre.
      */
@@ -231,7 +238,7 @@ internal fun composerMetrics(): ComposerMetrics {
         stackedTextTopInset = 16.dp,
         stackedTextGap = 8.dp,
         controlSpacing = grid.x2,
-        outsideSpacing = grid.x2,
+        outsideSpacing = ChatInputDefaults.OutsideSpacing,
     )
 }
 

@@ -718,7 +718,13 @@ internal fun MessageList(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     // The scaffold already rides the keyboard, so the bar-height padding does too.
-                    .padding(bottom = contentPadding.calculateBottomPadding() + 20.dp)
+                    .padding(
+                        bottom = jumpToBottomBottomOffset(
+                            barHeight = contentPadding.calculateBottomPadding(),
+                            barVerticalPadding = composerBarVerticalPadding,
+                            composerGap = ChatInputDefaults.OutsideSpacing,
+                        ),
+                    )
                     .alignedToDollarColumn(
                         insets = composerInsets,
                         dollarColumn = dollarColumn,
