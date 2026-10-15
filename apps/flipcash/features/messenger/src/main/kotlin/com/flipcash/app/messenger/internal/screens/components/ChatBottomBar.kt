@@ -293,7 +293,7 @@ internal fun UserControlBottomBar(
             // Toasts rest above the composer and as wide as its row, rather than the tab bar's. The
             // bar's measured height includes the padding above the composer, which the host's own
             // gap replaces.
-            ToastBottomClearance((buttonHeight - CodeTheme.dimens.staticGrid.x3).coerceAtLeast(0.dp))
+            ToastBottomClearance((buttonHeight - composerBarVerticalPadding).coerceAtLeast(0.dp))
             ToastHorizontalInset(sideInset)
             ChatUpdateToast(enabled = hasComposer)
             Box {
@@ -327,7 +327,7 @@ internal fun UserControlBottomBar(
                                 placeable.place(0, 0)
                             }
                         }
-                        .padding(vertical = CodeTheme.dimens.staticGrid.x3)
+                        .padding(vertical = composerBarVerticalPadding)
                         .navigationBarsPadding()
                         // typingConstraints.enabled starts false and only resolves a frame or two after
                         // open, once Room confirms whether the chat has a cash message. Rendering the
@@ -651,6 +651,10 @@ private fun DeactivatedChatBottomBar() {
         )
     }
 }
+
+/** The bar's padding above and below its controls; the `$` circle's top sits this far under the bar's top. */
+internal val composerBarVerticalPadding: Dp
+    @Composable get() = CodeTheme.dimens.staticGrid.x3
 
 /**
  * The margin either side of the bar. Compact at rest once there is a composer, opening out to the

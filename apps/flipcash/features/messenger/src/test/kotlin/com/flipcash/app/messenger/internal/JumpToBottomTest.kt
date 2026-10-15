@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal
 
+import androidx.compose.ui.unit.dp
+import com.flipcash.app.messenger.internal.screens.components.jumpToBottomBottomOffset
 import com.flipcash.app.messenger.internal.screens.components.jumpsToBottom
 import com.getcode.ui.components.unreadCountLabel
 import org.junit.Test
@@ -23,5 +25,16 @@ class JumpToBottomTest {
         assertFalse(jumpsToBottom(1))
         assertFalse(jumpsToBottom(100))
         assertTrue(jumpsToBottom(101))
+    }
+
+    @Test
+    fun `button's bottom edge is twice the composer gap above the dollar circle`() {
+        val barHeight = 80.dp
+        val barPad = 12.dp
+        val gap = 8.dp
+        val offset = jumpToBottomBottomOffset(barHeight, barPad, gap)
+        // The button's bottom edge rises (offset - barHeight) above the bar's top; the circle's top is
+        // barPad below it. The gap between the two is the sum.
+        assertEquals(gap * 2, (offset - barHeight) + barPad)
     }
 }

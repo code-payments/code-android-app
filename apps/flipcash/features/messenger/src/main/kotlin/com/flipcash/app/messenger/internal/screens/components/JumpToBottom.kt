@@ -32,6 +32,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +49,14 @@ internal const val JumpToBottomAnimateMaxRows = 100
 
 internal val JumpToBottomButtonSize = 48.dp
 private val BadgeOutline = 2.dp
+
+/**
+ * How far above the screen's bottom the jump button sits so its bottom edge is twice [composerGap]
+ * above the `$` circle's top edge. [barHeight] is the bar's height (the list's bottom padding); the
+ * circle starts [barVerticalPadding] under the bar's top, so that padding is taken back off.
+ */
+internal fun jumpToBottomBottomOffset(barHeight: Dp, barVerticalPadding: Dp, composerGap: Dp): Dp =
+    barHeight - barVerticalPadding + composerGap * 2
 
 /** Whether a tap at [firstVisibleIndex] rows from the newest jumps instead of animating. */
 internal fun jumpsToBottom(firstVisibleIndex: Int): Boolean = firstVisibleIndex > JumpToBottomAnimateMaxRows
