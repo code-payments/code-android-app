@@ -541,9 +541,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         webPreviewImageLoader = viewModel.webPreviewImageLoader,
                         webLinkPreviewsEnabled = webLinkPreviewsEnabled,
                         onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
-                        onLandedMessageLeft = {
-                            viewModel.dispatchEvent(ChatViewModel.Event.ReturnChipDismissed)
-                        },
                         topBarBottom = barHeight,
                         unreadBelowCount = unreadBelowCount,
                         onUserScrolled = { viewModel.dispatchEvent(ChatViewModel.Event.UserScrolledTranscript) },

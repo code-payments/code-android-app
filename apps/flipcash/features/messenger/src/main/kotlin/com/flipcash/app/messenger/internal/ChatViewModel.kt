@@ -445,8 +445,8 @@ internal class ChatViewModel @AssistedInject constructor(
         val openingAtMessage: Boolean = false,
         /**
          * The chat this visit can go back to, shown as a chip under the bar: set when a message
-         * link was followed here from another chat. Cleared once the reader moves on, by scrolling
-         * the message away or sending.
+         * link was followed here from another chat. It stays for the life of the screen: the chip
+         * goes only by being tapped or by leaving the chat.
          */
         val returnToTitle: String? = null,
         /**
@@ -1100,9 +1100,6 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** A jump whose message is neither stored nor on the server: nothing to scroll to. */
         data object JumpUnreachable : Event
-
-        /** The reader scrolled away from the message a link landed on; the chip back goes. */
-        data object ReturnChipDismissed : Event
     }
 
     /**
@@ -3767,8 +3764,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.SendMessage -> { state ->
                     val clears = lifetime == UnreadDividerLifetime.UntilSend &&
                         state.unreadBoundary is UnreadBoundary.At
-                    val sent = state.copy(returnToTitle = null)
-                    if (clears) sent.copy(unreadBoundary = UnreadBoundary.None) else sent
+                    if (clears) state.copy(unreadBoundary = UnreadBoundary.None) else state
                 }
                 is Event.RetryMessage -> { state -> state }
                 is Event.StagePhotos -> { state -> state }
@@ -3930,7 +3926,6 @@ internal class ChatViewModel @AssistedInject constructor(
                     state.copy(jumpTarget = null, jumpBudget = null, openingAtMessage = false)
                 }
                 Event.JumpUnreachable -> { state -> state.copy(openingAtMessage = false) }
-                Event.ReturnChipDismissed -> { state -> state.copy(returnToTitle = null) }
                 is Event.UnreadBoundaryResolved -> { state ->
                     state.copy(
                         unreadBoundary = event.boundary,

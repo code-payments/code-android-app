@@ -5,7 +5,6 @@ import com.getcode.ui.core.addIf
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.coroutineScope
-import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Column
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.rememberCoroutineScope
@@ -120,7 +119,6 @@ internal fun MessageList(
     webPreviewImageLoader: ImageLoader? = null,
     webLinkPreviewsEnabled: Boolean = true,
     onJumpConsumed: () -> Unit = {},
-    onLandedMessageLeft: () -> Unit = {},
     topBarBottom: Dp = 0.dp,
     unreadBelowCount: Int = 0,
     onUserScrolled: () -> Unit = {},
@@ -267,22 +265,6 @@ internal fun MessageList(
         // Read in the draw phase, so the fade repaints the one bubble without recomposing the list.
         // Remembered so the row keeps being handed the same reference and stays skippable.
         val readAttention: () -> Float = remember { { attention.value } }
-
-        // The message a jump landed on has been scrolled off screen: the reader has moved on from
-        // it, and a message link's chip back to where they came from goes with it. Only the
-        // reader's own drag counts: while pages load, peek answers placeholders for rows on
-        // screen, and the landed message reads as gone without anything having moved.
-        LaunchedEffect(attentionId) {
-            val landed = attentionId ?: return@LaunchedEffect
-            listState.interactionSource.interactions.first { it is DragInteraction.Start }
-            snapshotFlow {
-                listState.layoutInfo.visibleItemsInfo.none { item ->
-                    item.index < messages.itemCount &&
-                        (messages.peek(item.index) as? ChatListItem.ContentBubble)?.messageId == landed
-                }
-            }.first { it }
-            onLandedMessageLeft()
-        }
 
         // Walking the append path, rather than PagingConfig.jumpThreshold: a jump there routes
         // through PageFetcher::refresh with triggerRemoteRefresh set, so every tap would fire a
