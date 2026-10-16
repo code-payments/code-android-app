@@ -38,6 +38,7 @@ internal object LinkCardModule {
         web: WebLinkLookup,
         message: MessageLinkLookup,
         memory: LinkCardMemory,
+        classifier: LinkCardClassifier,
     ): LinkCardResolver =
         LinkCardResolver(
             // The resolver's own scope, ended by `ChatViewModel.onCleared`. A query outlives the
@@ -51,5 +52,6 @@ internal object LinkCardModule {
             web = web::invoke,
             message = message::invoke,
             memory = memory,
+            wholeCashLink = classifier::wholeCashLink,
         )
 }

@@ -350,6 +350,12 @@ sealed interface LinkCard {
             data class Cash(val amount: String, val tipped: Boolean) : Body
 
             /**
+             * A text message that is nothing but a cash link: the link's amount, pre-formatted, and
+             * its claim state, in place of the raw URL. A link with other text around it stays [Text].
+             */
+            data class CashLink(val amount: String, val claim: LinkCard.Cash.Claim) : Body
+
+            /**
              * A photo, drawn as a thumbnail beside its [caption]. [photo] is null for a reader
              * outside the chat's rules: the message then carries no blob, and only [blurHash] draws.
              */

@@ -1065,6 +1065,7 @@
     <string name="label_messageLink_byline">%1$s · %2$s</string>
     <string name="label_messageLink_sent">%1$s sent</string>
     <string name="label_messageLink_tipped">%1$s tipped</string>
+    <string name="label_messageLink_sentCashLink">%1$s sent a cash link</string>
     <string name="label_messageLink_attachment">Attachment</string>
     <plurals name="label_messageLink_reactions">
         <item quantity="one">%1$s reaction</item>

@@ -89,9 +89,11 @@ internal fun MessageLinkCard(
                 Header(state.source)
                 Excerpt(state.message)
                 Footer(
-                    leading = state.reactionCount.takeIf { it > 0 }?.let {
-                        pluralStringResource(R.plurals.label_messageLink_reactions, it.toInt(), it.toString())
-                    },
+                    // A cash link's footer says where its claim stands, as its own card's stub does.
+                    leading = (state.message.body as? Body.CashLink)?.let { claimCaption(it.claim) }
+                        ?: state.reactionCount.takeIf { it > 0 }?.let {
+                            pluralStringResource(R.plurals.label_messageLink_reactions, it.toInt(), it.toString())
+                        },
                     onOpen = onOpen,
                 )
             }
@@ -224,6 +226,7 @@ private fun Excerpt(excerpt: LinkCard.Message.Excerpt) {
             if (body.tipped) R.string.label_messageLink_tipped else R.string.label_messageLink_sent,
             author,
         )
+        body is Body.CashLink -> stringResource(R.string.label_messageLink_sentCashLink, author)
         else -> author
     }
     val time = formatLastActivity(excerpt.sentAt)
@@ -260,6 +263,12 @@ private fun ExcerptBody(body: Body) {
             overflow = TextOverflow.Ellipsis,
         )
         is Body.Cash -> Text(
+            text = body.amount,
+            style = CodeTheme.typography.displayExtraSmall,
+            color = CodeTheme.colors.textMain,
+            maxLines = 1,
+        )
+        is Body.CashLink -> Text(
             text = body.amount,
             style = CodeTheme.typography.displayExtraSmall,
             color = CodeTheme.colors.textMain,
@@ -324,6 +333,16 @@ private fun RequirementLine(requirement: LinkCard.GroupInvite.Requirement) {
         color = MessageLinkCardDefaults.SECONDARY,
     )
 }
+
+@Composable
+private fun claimCaption(claim: LinkCard.Cash.Claim): String = stringResource(
+    when (claim) {
+        LinkCard.Cash.Claim.Claimable -> R.string.label_linkCard_claim
+        LinkCard.Cash.Claim.Claiming -> R.string.label_linkCard_claiming
+        LinkCard.Cash.Claim.Claimed -> R.string.label_linkCard_claimed
+        LinkCard.Cash.Claim.Expired -> R.string.label_linkCard_expired
+    }
+)
 
 @Composable
 private fun Footer(leading: String?, onOpen: (() -> Unit)?) {

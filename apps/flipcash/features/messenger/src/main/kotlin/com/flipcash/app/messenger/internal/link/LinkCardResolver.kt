@@ -58,6 +58,8 @@ internal class LinkCardResolver(
         Result.failure(IllegalStateException("no message lookup"))
     },
     private val memory: LinkCardMemory = LinkCardMemory(),
+    /** The entropy when a message's whole text is one cash link; see [LinkCardClassifier.wholeCashLink]. */
+    private val wholeCashLink: (text: String) -> String? = { null },
 ) : LinkCardResolution {
 
     data class Snapshot(
@@ -303,10 +305,32 @@ internal class LinkCardResolver(
     private suspend fun messageState(card: LinkCard.Message): LinkCard.Message.State =
         memoized(messageQueries, card.key) {
             message(card).fold(
-                onSuccess = { state -> state.also { messageAnswers[card.key] = it } },
+                onSuccess = { state -> state.withCashLink().also { messageAnswers[card.key] = it } },
                 onFailure = { forget(messageQueries, card.key); LinkCard.Message.State.Unresolved },
             )
         }
+
+    /**
+     * Draws a linked message that is nothing but a cash link as that link's payment, through the
+     * same per-visit cash query a cash card in the transcript uses. A redacted body is a
+     * placeholder, so it is never read as a link; a link that does not resolve stays text.
+     */
+    private suspend fun LinkCard.Message.State.withCashLink(): LinkCard.Message.State {
+        val excerpt = when (this) {
+            is LinkCard.Message.State.Resolved -> message
+            is LinkCard.Message.State.Gated -> message
+            else -> return this
+        }
+        val text = excerpt.body as? LinkCard.Message.Body.Text ?: return this
+        if (text.redacted) return this
+        val entropy = wholeCashLink(text.text) ?: return this
+        val cash = cashState(entropy) as? LinkCard.Cash.State.Resolved ?: return this
+        val body = excerpt.copy(body = LinkCard.Message.Body.CashLink(cash.amount, cash.claim))
+        return when (this) {
+            is LinkCard.Message.State.Resolved -> copy(message = body)
+            is LinkCard.Message.State.Gated -> copy(message = body)
+        }
+    }
 
     private data class MessageKey(val chatId: ChatId, val messageId: Long)
 

@@ -91,6 +91,19 @@ internal class LinkCardClassifier @Inject constructor(
         return router.classify(DeepLink(target)) as? DeeplinkType.ChatMessage
     }
 
+    /**
+     * The entropy of [text] when the whole message is one cash link, or null. A message link's card
+     * draws such a message as the payment it carries rather than as a raw URL; a link with any
+     * other text around it is not one.
+     */
+    fun wholeCashLink(text: String): String? {
+        val url = text.trim().takeIf { it.isNotEmpty() && it.none(Char::isWhitespace) } ?: return null
+        val target = unwrapJumpTarget(url) ?: url
+        val host = runCatching { target.toUri().host }.getOrNull() ?: return null
+        if (host.lowercase() !in CARD_HOSTS) return null
+        return (router.classify(DeepLink(target)) as? DeeplinkType.CashLink)?.entropy?.takeIf { it.isNotBlank() }
+    }
+
     private fun classify(link: DetectedUrl): LinkCard? {
         val target = unwrapJumpTarget(link.url) ?: link.url
         val host = runCatching { target.toUri().host }.getOrNull() ?: return null

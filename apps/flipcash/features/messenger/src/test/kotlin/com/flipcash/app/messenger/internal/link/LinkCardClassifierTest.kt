@@ -193,6 +193,17 @@ class LinkCardClassifierTest {
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, hostile.length, hostile))))
     }
 
+    @Test
+    fun `a message that is only a cash link reads as that link`() {
+        val classifier = LinkCardClassifier(router)
+        val url = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
+
+        assertEquals("KNi8pQr1n5hRU65vKJGge3", classifier.wholeCashLink("  $url\n"))
+        assertNull(classifier.wholeCashLink("for lunch $url"))
+        assertNull(classifier.wholeCashLink("https://send.flipcash.com.evil.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"))
+        assertNull(classifier.wholeCashLink("https://app.flipcash.com/token/So11111111111111111111111111111111111111112"))
+    }
+
     /** Not in the canonical fixture yet; iOS holds the same case in its own classifier tests. */
     @Test
     fun `a group invite link becomes a group card`() {
