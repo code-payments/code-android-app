@@ -328,6 +328,18 @@ interface MessagingOperations {
     suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int?
 
     /**
+     * Stores the history of [chatId] back through [messageId], fetching older pages from the
+     * server until one reaches it. True once [messageId] is stored, false if the server has no
+     * such message or the walk gave up.
+     *
+     * Pages from the oldest stored message rather than fetching [messageId] alone: the transcript
+     * pages older history from its last loaded row, so a lone message stored past a gap would leave
+     * the gap unfilled and its distance from the newest message undercounted. A message link to
+     * old history is the caller.
+     */
+    suspend fun loadHistoryThrough(chatId: ChatId, messageId: Long): Boolean
+
+    /**
      * Where the "N unread" divider sits in [chatId], read from the viewer's stored READ pointer.
      * [UnreadBoundary.None] when the viewer's own member row is not stored or nothing inbound is
      * unread. Read once per visit: later pointer writes must not move it.

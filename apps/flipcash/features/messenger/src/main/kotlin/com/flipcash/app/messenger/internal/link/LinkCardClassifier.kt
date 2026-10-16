@@ -79,6 +79,18 @@ internal class LinkCardClassifier @Inject constructor(
             fragment == null &&
             pathSegments.first().lowercase() !in SECRET_SEGMENTS
 
+    /**
+     * The message a tapped link points at, when it is a message link on our hosts (wrapped in a
+     * jump link or not). The transcript follows these itself rather than through the system, so the
+     * hop keeps the chat it was tapped in to come back to.
+     */
+    fun messageLink(url: String): DeeplinkType.ChatMessage? {
+        val target = unwrapJumpTarget(url) ?: url
+        val host = runCatching { target.toUri().host }.getOrNull() ?: return null
+        if (host.lowercase() !in CARD_HOSTS) return null
+        return router.classify(DeepLink(target)) as? DeeplinkType.ChatMessage
+    }
+
     private fun classify(link: DetectedUrl): LinkCard? {
         val target = unwrapJumpTarget(link.url) ?: link.url
         val host = runCatching { target.toUri().host }.getOrNull() ?: return null

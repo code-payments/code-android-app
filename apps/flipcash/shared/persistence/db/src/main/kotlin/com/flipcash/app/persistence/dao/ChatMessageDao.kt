@@ -36,6 +36,10 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC LIMIT 1")
     suspend fun getLatest(chatIdHex: String): ChatMessageEntity?
 
+    /** The lowest message id stored for [chatIdHex], where paging back toward older history resumes. */
+    @Query("SELECT MIN(message_id) FROM chat_messages WHERE chat_id_hex = :chatIdHex")
+    suspend fun getOldestMessageId(chatIdHex: String): Long?
+
     /**
      * The newest message that still has content — tombstones skipped, and so is a message whose
      * content list is empty (`'[]'`; a NULL column too), such as a system notice with no text.

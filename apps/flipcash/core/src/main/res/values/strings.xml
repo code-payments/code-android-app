@@ -1181,6 +1181,8 @@
     <string name="title_requestedJustNow">Requested just now</string>
     <string name="title_requestedYesterday">Requested yesterday</string>
     <string name="action_review">Review</string>
+    <!-- A chip under a chat's title bar after a message link was followed there from another chat; %1$s is that chat's title. -->
+    <string name="action_backToChat">Back to %1$s</string>
     <!-- A private group's members (nodes 11210:68, 11210:70). -->
     <string name="title_members">Members</string>
     <plurals name="header_memberCount">
