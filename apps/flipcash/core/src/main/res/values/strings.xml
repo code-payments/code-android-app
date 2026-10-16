@@ -1511,8 +1511,7 @@
     <string name="placeholder_minimumToChat">Not set</string>
     <string name="title_shareProfileToChats">Share Profile</string>
     <string name="title_shareMessageToChats">Share Message</string>
-    <string name="action_shareMessageToChat">Share to Chat…</string>
-    <string name="action_copyMessageLink">Copy Message Link</string>
+    <string name="action_forwardMessage">Forward</string>
     <!-- Who the share sheet is for: display name, then @handle -->
     <string name="action_showProfileCard">Show Profile Card</string>
     <string name="action_copyLink">Copy Link</string>

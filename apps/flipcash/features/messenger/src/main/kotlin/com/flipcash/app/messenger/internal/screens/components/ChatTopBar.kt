@@ -25,7 +25,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Feedback
 import com.flipcash.app.messenger.internal.screens.openMessageShare
-import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.automirrored.outlined.Forward
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -279,14 +278,23 @@ private fun MessageSelectionBar(
     val capabilities = selection.capabilities
     val body = selection.plainText
 
-    // Order is priority: the first actions keep their icons when the bar runs out of room. Reply
-    // leads because it is the most common action and the only one a cash bubble offers — burying it
-    // is the one choice that would leave that bubble's bar empty. Delete follows: putting the one
-    // action with a confirmation behind a menu makes it a three-tap job. Report goes last: it is
-    // the rarest of the five and the only one that is never about your own message, so it is the
-    // right one to collapse into the overflow on a narrow screen. Share to Chat follows Reply: the
-    // card it sends is the point of a message link. Copy Message Link always sits in the overflow.
+    // Order is priority: the first actions keep their icons when the bar runs out of room, and it
+    // matches iOS's menu: Copy, Reply, Forward, Edit, Delete, Report. Report goes last: it is the
+    // rarest and the only one that is never about your own message, so it is the right one to
+    // collapse into the overflow on a narrow screen. Forward hands out the message's link; the
+    // sheet it opens has the Copy Link tile, so the bar has no copy-link row of its own.
+    // Copy and edit both act on the message's text, so a bubble without any is offered neither.
     val actions = buildList {
+        if (body != null && MessageCapability.Copy in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_copy),
+                    icon = Icons.Outlined.ContentCopy,
+                    testTag = "action_copy_message",
+                    onClick = { dispatch(ChatViewModel.Event.CopyMessage(body)) },
+                )
+            )
+        }
         if (MessageCapability.Reply in capabilities) {
             add(
                 MessageAction(
@@ -300,12 +308,24 @@ private fun MessageSelectionBar(
         if (MessageCapability.Link in capabilities) {
             add(
                 MessageAction(
-                    label = stringResource(R.string.action_shareMessageToChat),
+                    label = stringResource(R.string.action_forwardMessage),
                     icon = Icons.AutoMirrored.Outlined.Forward,
                     testTag = "action_share_message",
                     onClick = {
                         dispatch(ChatViewModel.Event.ShareMessageRequested)
                         onShareMessage()
+                    },
+                )
+            )
+        }
+        if (body != null && MessageCapability.Edit in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_edit),
+                    icon = Icons.Outlined.Edit,
+                    testTag = "action_edit_message",
+                    onClick = {
+                        dispatch(ChatViewModel.Event.EditMessage(selection.messageId, body))
                     },
                 )
             )
@@ -324,29 +344,6 @@ private fun MessageSelectionBar(
                 )
             )
         }
-        // Copy and edit both act on the message's text, so a bubble without any is offered neither.
-        if (body != null && MessageCapability.Copy in capabilities) {
-            add(
-                MessageAction(
-                    label = stringResource(R.string.action_copy),
-                    icon = Icons.Outlined.ContentCopy,
-                    testTag = "action_copy_message",
-                    onClick = { dispatch(ChatViewModel.Event.CopyMessage(body)) },
-                )
-            )
-        }
-        if (body != null && MessageCapability.Edit in capabilities) {
-            add(
-                MessageAction(
-                    label = stringResource(R.string.action_edit),
-                    icon = Icons.Outlined.Edit,
-                    testTag = "action_edit_message",
-                    onClick = {
-                        dispatch(ChatViewModel.Event.EditMessage(selection.messageId, body))
-                    },
-                )
-            )
-        }
         if (MessageCapability.Report in capabilities) {
             add(
                 MessageAction(
@@ -360,19 +357,6 @@ private fun MessageSelectionBar(
                         dispatch(ChatViewModel.Event.ReportRequested)
                         onReport()
                     },
-                )
-            )
-        }
-        if (MessageCapability.Link in capabilities) {
-            add(
-                MessageAction(
-                    label = stringResource(R.string.action_copyMessageLink),
-                    icon = Icons.Outlined.Link,
-                    testTag = "action_copy_message_link",
-                    onClick = {
-                        dispatch(ChatViewModel.Event.CopyMessageLink(selection.messageId))
-                    },
-                    overflowOnly = true,
                 )
             )
         }
@@ -405,8 +389,6 @@ private data class MessageAction(
     val icon: ImageVector,
     val testTag: String,
     val onClick: () -> Unit,
-    /** Kept in the overflow at any width, rather than taking an icon when there is room. */
-    val overflowOnly: Boolean = false,
 )
 
 /**
@@ -446,14 +428,9 @@ private fun MessageActions(actions: List<MessageAction>) {
 
     BoxWithConstraints {
         val capacity = inlineActionCapacity(maxWidth, buttonSize, spacing)
-        val (candidates, pinnedToOverflow) = actions.partition { !it.overflowOnly }
         // The overflow needs a slot of its own, so it only pays for itself when it is holding
         // something — the last action is not displaced by a menu that would contain only it.
-        val inline = if (pinnedToOverflow.isEmpty() && candidates.size <= capacity) {
-            candidates
-        } else {
-            candidates.take(capacity - 1)
-        }
+        val inline = if (actions.size <= capacity) actions else actions.take(capacity - 1)
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(spacing),
@@ -469,7 +446,7 @@ private fun MessageActions(actions: List<MessageAction>) {
                     )
                 }
             }
-            MessageOverflow(candidates.drop(inline.size) + pinnedToOverflow)
+            MessageOverflow(actions.drop(inline.size))
         }
     }
 }
