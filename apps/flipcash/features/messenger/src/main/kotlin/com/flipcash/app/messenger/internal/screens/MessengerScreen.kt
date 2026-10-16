@@ -90,7 +90,6 @@ import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val webLinkPreviewsEnabled by viewModel.webLinkPreviewsEnabled.collectAsStateWithLifecycle()
     val previewsReady by viewModel.previewsReady.collectAsStateWithLifecycle()
     val messages = viewModel.messages.collectAsLazyPagingItems()
     val mediaProgress = viewModel.mediaSendProgress.collectAsStateWithLifecycle()
@@ -512,8 +511,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         otherReadPointer = otherReadPointer,
                         onAction = chatActionHandler,
                         linkCardResolution = viewModel.linkCardResolution,
-                        webPreviewImageLoader = viewModel.webPreviewImageLoader,
-                        webLinkPreviewsEnabled = webLinkPreviewsEnabled,
                         onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
                         topBarBottom = barHeight,
                         unreadBelowCount = unreadBelowCount,

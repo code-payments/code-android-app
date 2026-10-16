@@ -49,11 +49,9 @@ import com.flipcash.shared.chat.PendingMutation
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.OutgoingEncryption
-import com.flipcash.shared.chat.internal.WebPreviewGate
 import com.flipcash.shared.chat.media.ChatMediaText
 import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.chat.MessageLinkPrefetch
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -104,14 +102,11 @@ class MessagingDelegate @Inject constructor(
     private val stateHolder: ChatStateHolder,
     private val analytics: FlipcashAnalytics,
     private val senderResolver: SenderResolver,
-    private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
     private val outgoing: OutgoingEncryption = OutgoingEncryption.None,
     /** Opens encrypted pushes; without it, every push keeps the server's body. */
     private val incoming: IncomingMessageOpener? = null,
     private val previewImages: LinkPreviewImages = LinkPreviewImages.None,
 ) : MessagingOperations {
-
-    private val webGate = WebPreviewGate(stateHolder, metadataDataSource)
 
     /**
      * Edits and deletes awaiting a server answer, per chat, keyed by message id.
@@ -327,8 +322,6 @@ class MessagingDelegate @Inject constructor(
     override suspend fun loadMessages(chatId: ChatId) {
         messagingController.getMessages(chatId)
             .onSuccess { messages ->
-                // Not waited on: this page is what the open transcript is waiting for.
-                linkPrefetch.prefetch(messages, webLinks = webGate.allows(chatId))
                 messageDataSource.upsert(chatId, messages)
 
                 // Seat the event-log cursor at the newest page's frontier. It is what marks this
@@ -346,7 +339,6 @@ class MessagingDelegate @Inject constructor(
     override suspend fun applyPushedMessage(chatId: ChatId, message: ChatMessage) {
         // The DAO's upsert already drops a copy older than the stored row, so the only
         // ordering this has to protect is the metadata below it.
-        linkPrefetch.prefetch(listOf(message), MessageLinkPrefetch.LIVE_WAIT)
         messageDataSource.upsert(chatId, listOf(message))
 
         // Deliberately not advancing the event-log cursor. A push carries one message, not

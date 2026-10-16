@@ -75,7 +75,7 @@ class ComposerLinkPreviewTest {
             val scope = CoroutineScope(Dispatchers.Default)
             val preview = ComposerLinkPreview(
                 classifier = classifier,
-                lookup = WebLinkLookup(pages, enabled = { true }, dispatchers = dispatchers),
+                lookup = WebLinkLookup(pages, dispatchers = dispatchers),
                 imageClient = mock(),
                 uploads = mock(),
                 images = mock(),

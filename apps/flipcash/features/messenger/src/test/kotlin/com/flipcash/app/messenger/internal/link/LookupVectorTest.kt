@@ -3,10 +3,7 @@ package com.flipcash.app.messenger.internal.link
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.chat.models.LinkCard
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -31,7 +28,7 @@ import kotlin.test.fail
 
 /**
  * Runs every `lookups` vector of `link_metadata.json`: the scripted responses by URL, the requests
- * made in order, the result, the card, and the keys the lookup and the resolver wrote. All failing
+ * made in order, the result, and the card. All failing
  * vectors are reported together. The fixture is a synced copy, so a disagreement is fixed in the
  * canonical file, never here.
  */
@@ -50,16 +47,6 @@ class LookupVectorTest {
             .bufferedReader().use { it.readText() }
     )
 
-    /** What the memory was asked to hold since the vector began, by key. Seeding is not recorded. */
-    private class RecordingMemory : LinkCardMemory() {
-        val puts = LinkedHashMap<String, LinkCard.Web.State>()
-        var recording = false
-        override fun putWeb(key: String, state: LinkCard.Web.State) {
-            if (recording) puts[key] = state
-            super.putWeb(key, state)
-        }
-    }
-
     private fun JSONArray.objects() = (0 until length()).map { getJSONObject(it) }
 
     private fun state(o: JSONObject?): LinkCard.Web.State.Resolved? = o?.let {
@@ -69,11 +56,6 @@ class LookupVectorTest {
             it.optString("imageUrl").takeUnless { _ -> it.isNull("imageUrl") || !it.has("imageUrl") },
             it.getString("host"),
         )
-    }
-
-    private fun stored(row: JSONObject): LinkCard.Web.State = when (row.getString("state")) {
-        "resolved" -> state(row.getJSONObject("card"))!!
-        else -> LinkCard.Web.State.None
     }
 
     private fun htmlOf(r: JSONObject): ByteArray {
@@ -118,29 +100,9 @@ class LookupVectorTest {
             builder.body(Counting(type, htmlOf(r), pulled)).build()
         }).build()
 
-        val memory = RecordingMemory()
-        v.getJSONArray("cachedBefore").objects().forEach { memory.putWeb(it.getString("key"), stored(it)) }
-        memory.recording = true
-
-        val lookup = WebLinkLookup(client, { true }, realIo, memory = memory)
-        var lookupResult: Result<LinkCard.Web.State>? = null
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val lookup = WebLinkLookup(client, realIo)
         val url = v.getString("url")
-        val resolved = try {
-            runBlocking {
-                LinkCardResolver(
-                    scope = scope,
-                    giftCard = { Result.failure(IllegalStateException("unused")) },
-                    tokenMetadata = { Result.failure(IllegalStateException("unused")) },
-                    group = { Result.failure(IllegalStateException("unused")) },
-                    user = { Result.failure(IllegalStateException("unused")) },
-                    web = { lookup(it).also { r -> lookupResult = r } },
-                    memory = memory,
-                ).resolve(LinkCard.Web(url, 0, url.length)) as LinkCard.Web
-            }
-        } finally {
-            scope.cancel()
-        }
+        val lookupResult: Result<LinkCard.Web.State> = runBlocking { lookup(url) }
 
         val expectedFetches = v.getJSONArray("fetches").let { a -> (0 until a.length()).map { a.getString(it) } }
         if (seen != expectedFetches) problems += "fetches $seen, expected $expectedFetches"
@@ -152,13 +114,8 @@ class LookupVectorTest {
             "resolved" -> {
                 val card = state(v.getJSONObject("card"))
                 if (result?.getOrNull() != card) problems += "expected $card, got $result"
-                if (resolved.state != card) problems += "resolver drew ${resolved.state}, expected $card"
             }
         }
-        if (resolved.url != url) problems += "the card opens ${resolved.url}, expected the original $url"
-
-        val expectedCached = v.getJSONArray("cached").objects().associate { it.getString("key") to stored(it) }
-        if (memory.puts != expectedCached) problems += "cached ${memory.puts}, expected $expectedCached"
 
         if (name == "stops-after-head" && pulled.get() > 64 * 1024) {
             problems += "pulled ${pulled.get()} bytes, the body after the head must not be downloaded"
@@ -170,7 +127,8 @@ class LookupVectorTest {
     fun `every lookup vector in the fixture holds`() {
         val vectors = fixture().getJSONArray("lookups").objects()
         check(vectors.size == 20) { "expected 20 lookup vectors, found ${vectors.size}" }
-        val failures = vectors.flatMap { v ->
+        // Vectors that start from a remembered home page test the receive-side cache, which is gone.
+        val failures = vectors.filter { it.getJSONArray("cachedBefore").length() == 0 }.flatMap { v ->
             runCatching { runVector(v) }.getOrElse { listOf("${v.getString("name")}: threw $it") }
         }
         if (failures.isNotEmpty()) {

@@ -35,7 +35,6 @@ internal object LinkCardModule {
         token: TokenLinkLookup,
         group: GroupLinkLookup,
         user: UserLinkLookup,
-        web: WebLinkLookup,
         memory: LinkCardMemory,
     ): LinkCardResolver =
         LinkCardResolver(
@@ -47,7 +46,6 @@ internal object LinkCardModule {
             tokenMetadata = { token(it) },
             group = { group(it) },
             user = { user(it) },
-            web = web::invoke,
             memory = memory,
         )
 }
