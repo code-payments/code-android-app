@@ -24,12 +24,6 @@ import com.flipcash.shared.chat.ui.media.composerImageReceiver
 import com.flipcash.shared.chat.ui.media.deleteLeftoverCaptures
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -424,12 +418,7 @@ internal fun UserControlBottomBar(
                                 .composerSidePadding(composerInsets, hasComposer),
                         ) {
                             if (canType) {
-                                // The last card shown, kept while it animates out after the preview goes.
-                                val linkCardVisible = remember { MutableTransitionState(false) }
-                                var linkCard by remember { mutableStateOf(state.composerLink) }
-                                state.composerLink?.let { linkCard = it }
-                                linkCardVisible.targetState = state.composerLink != null
-                                val showsLinkCard = linkCardVisible.currentState || linkCardVisible.targetState
+                                val linkCard = state.composerLink
                                 val chips = remember(state.composerPhotos, state.uploadStates) {
                                     state.composerPhotos.map { photo ->
                                         ComposerPhotoChip(
@@ -549,7 +538,7 @@ internal fun UserControlBottomBar(
                                             }
                                         }
                                     } else null,
-                                    header = if (chips.isNotEmpty() || showsLinkCard) {
+                                    header = if (chips.isNotEmpty() || linkCard != null) {
                                         {
                                             Column {
                                                 if (chips.isNotEmpty()) {
@@ -561,22 +550,18 @@ internal fun UserControlBottomBar(
                                                         newestChipModifier = Modifier.onGloballyPositioned { newestChipCoordinates = it },
                                                     )
                                                 }
-                                                // Under the photos, as on iOS, inset like the first chip.
-                                                AnimatedVisibility(
-                                                    visibleState = linkCardVisible,
-                                                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-                                                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
-                                                ) {
-                                                    linkCard?.let { card ->
-                                                        ComposerLinkCard(
-                                                            state = card,
-                                                            onRemove = { dispatch(ChatViewModel.Event.RemoveLinkPreview) },
-                                                            modifier = Modifier.padding(
-                                                                start = CodeTheme.dimens.staticGrid.x3,
-                                                                top = if (chips.isNotEmpty()) CodeTheme.dimens.staticGrid.x2 else 0.dp,
-                                                            ),
-                                                        )
-                                                    }
+                                                // Under the photos, as on iOS, inset like the first chip. Like the
+                                                // photos it has no animation of its own: the field eases its height
+                                                // whenever the header's changes, which slides the card in and out with it.
+                                                linkCard?.let { card ->
+                                                    ComposerLinkCard(
+                                                        state = card,
+                                                        onRemove = { dispatch(ChatViewModel.Event.RemoveLinkPreview) },
+                                                        modifier = Modifier.padding(
+                                                            start = CodeTheme.dimens.staticGrid.x3,
+                                                            top = if (chips.isNotEmpty()) CodeTheme.dimens.staticGrid.x2 else 0.dp,
+                                                        ),
+                                                    )
                                                 }
                                             }
                                         }
