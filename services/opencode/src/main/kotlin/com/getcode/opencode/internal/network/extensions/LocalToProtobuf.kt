@@ -173,6 +173,30 @@ internal fun TransactionMetadata.asProtobufMetadata(): OcpTransactionService.Met
             }
         }
 
+        is TransactionMetadata.SendPublicMultiPayment -> {
+            builder.setSendPublicMultiPayment(
+                OcpTransactionService.SendPublicMultiPaymentMetadata.newBuilder()
+                    .setSource(source.asSolanaAccountId())
+                    .setMint(mint.asSolanaAccountId())
+                    .apply {
+                        payments.forEach { payment ->
+                            addPayments(
+                                OcpTransactionService.SendPublicMultiPaymentMetadata.Payment.newBuilder()
+                                    .setDestination(payment.destination.asSolanaAccountId())
+                                    .apply {
+                                        payment.destinationOwner?.let { setDestinationOwner(it.asSolanaAccountId()) }
+                                        payment.verifiedExchangeData?.let {
+                                            setClientExchangeData(it.asProtobufExchangeData())
+                                        }
+                                    }
+                                    .build()
+                            )
+                        }
+                    }
+                    .build()
+            )
+        }
+
         is TransactionMetadata.PublicDistribution -> {
             builder.setPublicDistribution(
                 OcpTransactionService.PublicDistributionMetadata.newBuilder()

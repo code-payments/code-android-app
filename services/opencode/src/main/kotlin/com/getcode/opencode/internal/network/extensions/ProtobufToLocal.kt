@@ -118,6 +118,19 @@ internal fun OcpTransactionService.Metadata.toMetadata(): TransactionMetadata {
             mint = receivePaymentsPublicly.mint.toMint(),
         )
 
+        OcpTransactionService.Metadata.TypeCase.SEND_PUBLIC_MULTI_PAYMENT -> TransactionMetadata.SendPublicMultiPayment(
+            source = sendPublicMultiPayment.source.toPublicKey(),
+            payments = sendPublicMultiPayment.paymentsList.map { payment ->
+                TransactionMetadata.SendPublicMultiPayment.Payment(
+                    destination = payment.destination.toPublicKey(),
+                    destinationOwner = if (payment.hasDestinationOwner()) payment.destinationOwner.toPublicKey() else null,
+                    exchangeData = if (payment.hasServerExchangeData()) payment.serverExchangeData.toModel() else null,
+                    verifiedExchangeData = if (payment.hasClientExchangeData()) payment.clientExchangeData.toModel() else null,
+                )
+            },
+            mint = sendPublicMultiPayment.mint.toMint(),
+        )
+
         OcpTransactionService.Metadata.TypeCase.TYPE_NOT_SET -> TransactionMetadata.Unknown
         OcpTransactionService.Metadata.TypeCase.PUBLIC_DISTRIBUTION -> TransactionMetadata.PublicDistribution(
             source = publicDistribution.source.toPublicKey(),

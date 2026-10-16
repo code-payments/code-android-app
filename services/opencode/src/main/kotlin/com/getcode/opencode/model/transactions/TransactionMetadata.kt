@@ -188,6 +188,48 @@ sealed interface TransactionMetadata {
     }
 
     /**
+     * Send payments publicly from the user's primary account to multiple OCP primary accounts.
+     *
+     * ```
+     * Action Specification:
+     *
+     * for payment in payments
+     *   actions.push_back(NoPrivacyTransferAction(PRIMARY, payment.destination, payment.ExchangeData.Quarks))
+     * ```
+     *
+     * Notes:
+     * - Every destination must be an OCP-managed PRIMARY account for [mint]. Withdrawals, indirect
+     *   sends and fee payments are not supported.
+     * - Destinations, and the owners of destinations, must be unique and cannot be the source or
+     *   its owner.
+     * - Every payment must share the same currency, verified core mint rate and, for launchpad
+     *   currencies, verified reserve state.
+     * - 2 to 10 payments.
+     *
+     * @param source The primary account where funds will be sent from
+     * @param payments The set of payments, each carrying its own exchange data
+     * @param mint The mint this intent operates against
+     */
+    data class SendPublicMultiPayment(
+        val source: PublicKey,
+        val payments: List<Payment>,
+        val mint: Mint,
+    ): TransactionMetadata {
+        /**
+         * @param destination The destination PRIMARY account
+         * @param destinationOwner Required when the destination PRIMARY account will be auto-opened
+         * @param exchangeData The server-provided exchange data for this share
+         * @param verifiedExchangeData The client-provided exchange data for this share
+         */
+        data class Payment(
+            val destination: PublicKey,
+            val destinationOwner: PublicKey? = null,
+            val exchangeData: ExchangeData.WithRate? = null,
+            val verifiedExchangeData: ExchangeData.Verified? = null,
+        )
+    }
+
+    /**
      * Distribute funds from a pool account publicly to one or more user-owned accounts.
      *
      * <p>
