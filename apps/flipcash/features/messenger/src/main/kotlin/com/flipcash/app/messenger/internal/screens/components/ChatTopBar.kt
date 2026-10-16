@@ -19,13 +19,13 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.Reply
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Feedback
+import androidx.compose.material.icons.filled.Feedback
 import com.flipcash.app.messenger.internal.screens.openMessageShare
-import androidx.compose.material.icons.automirrored.outlined.Forward
+import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -289,7 +289,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.action_copy),
-                    icon = Icons.Outlined.ContentCopy,
+                    icon = Icons.Filled.ContentCopy,
                     testTag = "action_copy_message",
                     onClick = { dispatch(ChatViewModel.Event.CopyMessage(body)) },
                 )
@@ -299,7 +299,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.action_reply),
-                    icon = Icons.AutoMirrored.Outlined.Reply,
+                    icon = Icons.AutoMirrored.Filled.Reply,
                     testTag = "action_reply_message",
                     onClick = { dispatch(ChatViewModel.Event.ReplyRequested(selection)) },
                 )
@@ -309,7 +309,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.action_forwardMessage),
-                    icon = Icons.AutoMirrored.Outlined.Forward,
+                    icon = Icons.AutoMirrored.Filled.Forward,
                     testTag = "action_share_message",
                     onClick = {
                         dispatch(ChatViewModel.Event.ShareMessageRequested)
@@ -334,7 +334,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.action_delete),
-                    icon = Icons.Outlined.Delete,
+                    icon = Icons.Filled.Delete,
                     testTag = "action_delete_message",
                     onClick = {
                         keyboard.hideIfVisible {
@@ -348,7 +348,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.title_report),
-                    icon = Icons.Outlined.Feedback,
+                    icon = Icons.Filled.Feedback,
                     testTag = "action_report_message",
                     // Unlike the others this one leaves the chat, so nothing on the way back
                     // dismisses the bar. Clearing it here means the transcript is at rest behind
