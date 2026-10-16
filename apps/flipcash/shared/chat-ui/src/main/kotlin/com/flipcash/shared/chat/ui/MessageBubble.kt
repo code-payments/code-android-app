@@ -147,6 +147,7 @@ fun ContentBubble(
             rowWidth = maxWidth,
             rowInset = CodeTheme.dimens.inset,
         )
+        val messageCardWidth = maxWidth * CASH_CARD_WIDTH_FRACTION
 
         // A split message's citation goes on its first row and its marker on its last, so the
         // pieces read as one message stacked rather than as three.
@@ -179,7 +180,9 @@ fun ContentBubble(
                     card = card,
                     isFromSelf = item.isFromSelf,
                     position = position,
-                    maxWidth = bubbleMaxWidth,
+                    // A message card takes the cash card's width rather than a bubble's, so its
+                    // states read as one fixed card against the prose either side (iOS matches).
+                    maxWidth = if (card is LinkCard.Message) messageCardWidth else bubbleMaxWidth,
                     quote = quote,
                     onQuoteClick = onQuoteClick,
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
