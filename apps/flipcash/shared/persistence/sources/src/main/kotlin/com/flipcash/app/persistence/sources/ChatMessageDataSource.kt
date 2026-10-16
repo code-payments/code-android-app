@@ -177,6 +177,10 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun getMessage(chatId: ChatId, messageId: Long): ChatMessage? =
         db?.chatMessageDao()?.getMessage(mapper.chatIdHex(chatId), messageId)?.let { toChatMessage(it) }
 
+    /** The lowest message id stored for [chatId], or `null` when none is. */
+    suspend fun oldestMessageId(chatId: ChatId): Long? =
+        db?.chatMessageDao()?.getOldestMessageId(mapper.chatIdHex(chatId))
+
     /** How far back [messageId] sits from the newest message in [chatId], or `null` if unknown. */
     suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int? {
         val dao = db?.chatMessageDao() ?: return null

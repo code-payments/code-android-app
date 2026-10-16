@@ -65,6 +65,7 @@ class MessageCapabilityTest {
                 MessageCapability.Reply,
                 MessageCapability.Edit,
                 MessageCapability.Delete,
+                MessageCapability.Link,
             ),
             resolveCapabilities(text(), now = sentAt),
         )
@@ -73,18 +74,18 @@ class MessageCapabilityTest {
     @Test
     fun `someone else's text message is copyable and reportable, not editable or deletable`() {
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(text(isFromSelf = false)),
         )
     }
 
     @Test
     fun `cash is never editable or deletable, by either party`() {
-        assertEquals(setOf(MessageCapability.Reply), resolveCapabilities(cash()))
+        assertEquals(setOf(MessageCapability.Reply, MessageCapability.Link), resolveCapabilities(cash()))
         // Reportable though: a payment is something a participant sent, and it is one of the
         // things most worth reporting.
         assertEquals(
-            setOf(MessageCapability.Reply, MessageCapability.Report),
+            setOf(MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(cash(isFromSelf = false)),
         )
     }
@@ -103,7 +104,7 @@ class MessageCapabilityTest {
                 it == MessageCapability.Report
             },
         )
-        assertEquals(emptySet(), resolveCapabilities(cash()) - MessageCapability.Reply)
+        assertEquals(emptySet(), resolveCapabilities(cash()) - MessageCapability.Reply - MessageCapability.Link)
     }
 
     @Test
@@ -146,11 +147,11 @@ class MessageCapabilityTest {
     @Test
     fun `where the viewer may speak, text and cash keep Reply`() {
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(text(isFromSelf = false), canSpeak = true),
         )
         assertEquals(
-            setOf(MessageCapability.Reply, MessageCapability.Report),
+            setOf(MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(cash(isFromSelf = false), canSpeak = true),
         )
     }
@@ -158,7 +159,7 @@ class MessageCapabilityTest {
     @Test
     fun `where the viewer may not speak, another's text loses Reply and keeps Copy and Report`() {
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Report),
+            setOf(MessageCapability.Copy, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(text(isFromSelf = false), canSpeak = false),
         )
     }
@@ -166,7 +167,7 @@ class MessageCapabilityTest {
     @Test
     fun `where the viewer may not speak, own text keeps Copy, Edit and Delete but not Reply`() {
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete),
+            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete, MessageCapability.Link),
             resolveCapabilities(text(), now = sentAt, canSpeak = false),
         )
     }
@@ -174,21 +175,21 @@ class MessageCapabilityTest {
     @Test
     fun `where the viewer may not speak, cash loses Reply and keeps Report`() {
         assertEquals(
-            setOf(MessageCapability.Report),
+            setOf(MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(cash(isFromSelf = false), canSpeak = false),
         )
-        assertEquals(emptySet(), resolveCapabilities(cash(), canSpeak = false))
+        assertEquals(setOf(MessageCapability.Link), resolveCapabilities(cash(), canSpeak = false))
     }
 
     @Test
     fun `a creator-gated viewer loses Reply but keeps Copy, Report and own Edit and Delete`() {
         // The panel passes canSpeak = false for any unmet speaker rule, creator included.
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Report),
+            setOf(MessageCapability.Copy, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(text(isFromSelf = false), canSpeak = false),
         )
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete),
+            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete, MessageCapability.Link),
             resolveCapabilities(text(), now = sentAt, canSpeak = false),
         )
     }
@@ -205,7 +206,7 @@ class MessageCapabilityTest {
     fun `a viewer with no speaker rules, as in a direct message, is unaffected`() {
         // canSpeak defaults true: a DM has no rules to fail.
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(text(isFromSelf = false)),
         )
         assertEquals(true, canReact(text(isFromSelf = false)))
@@ -228,7 +229,7 @@ class MessageCapabilityTest {
     @Test
     fun `reporting has no window, so an old message stays reportable`() {
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(
                 text(isFromSelf = false),
                 policy = MessagePolicy.Default,
@@ -272,6 +273,7 @@ class MessageCapabilityTest {
                 MessageCapability.Reply,
                 MessageCapability.Edit,
                 MessageCapability.Delete,
+                MessageCapability.Link,
             ),
             resolveCapabilities(reply, now = sentAt),
         )
@@ -287,12 +289,13 @@ class MessageCapabilityTest {
                 MessageCapability.Reply,
                 MessageCapability.Edit,
                 MessageCapability.Delete,
+                MessageCapability.Link,
             ),
             resolveCapabilities(text(), policy, now = sentAt + 14.minutes),
         )
 
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
             resolveCapabilities(text(), policy, now = sentAt + 16.minutes),
         )
     }
@@ -307,13 +310,14 @@ class MessageCapabilityTest {
                 MessageCapability.Reply,
                 MessageCapability.Edit,
                 MessageCapability.Delete,
+                MessageCapability.Link,
             ),
             resolveCapabilities(text(), policy, now = sentAt + 59.minutes),
         )
 
         // Edit survives: this policy sets no edit window, and an unset window is no limit.
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Edit),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Edit, MessageCapability.Link),
             resolveCapabilities(text(), policy, now = sentAt + 61.minutes),
         )
     }
@@ -323,11 +327,11 @@ class MessageCapabilityTest {
         val policy = MessagePolicy(editWindow = 15.minutes, deleteWindow = 60.minutes)
 
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
             resolveCapabilities(text(), policy, now = sentAt + 30.minutes),
         )
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Link),
             resolveCapabilities(text(), policy, now = sentAt + 90.minutes),
         )
     }
@@ -342,6 +346,7 @@ class MessageCapabilityTest {
                 MessageCapability.Reply,
                 MessageCapability.Edit,
                 MessageCapability.Delete,
+                MessageCapability.Link,
             ),
             resolveCapabilities(text(), unbounded, now = sentAt + 365.days),
         )
@@ -356,11 +361,11 @@ class MessageCapabilityTest {
         assertEquals(policy, MessagePolicy.Default)
 
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
             resolveCapabilities(text(), policy, now = sentAt + 30.minutes),
         )
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Link),
             resolveCapabilities(text(), policy, now = sentAt + 365.days),
         )
     }
@@ -383,6 +388,7 @@ class MessageCapabilityTest {
                 MessageCapability.Reply,
                 MessageCapability.Edit,
                 MessageCapability.Delete,
+                MessageCapability.Link,
             ),
             resolveCapabilities(text(), policy, now = sentAt + 60.minutes),
         )
@@ -425,21 +431,21 @@ class MessageCapabilityTest {
      * all post into the chat, and there is no composer for them to land in until the join does.
      */
     @Test
-    fun `a viewer who cannot post keeps only copy and report`() {
+    fun `a viewer who cannot post keeps only copy, report and link`() {
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Report),
+            setOf(MessageCapability.Copy, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(text(isFromSelf = false), canPost = false),
         )
         assertEquals(
-            setOf(MessageCapability.Report),
+            setOf(MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(cash(isFromSelf = false), canPost = false),
         )
         // Someone who left the group still has their own messages in its transcript.
         assertEquals(
-            setOf(MessageCapability.Copy),
+            setOf(MessageCapability.Copy, MessageCapability.Link),
             resolveCapabilities(text(), now = sentAt, canPost = false),
         )
-        assertEquals(emptySet(), resolveCapabilities(cash(), canPost = false))
+        assertEquals(setOf(MessageCapability.Link), resolveCapabilities(cash(), canPost = false))
     }
 
     @Test
@@ -513,11 +519,11 @@ class MessageCapabilityTest {
     @Test
     fun `own confirmed photo can be replied to and deleted but not copied or edited`() {
         assertEquals(
-            setOf(MessageCapability.Reply, MessageCapability.Delete),
+            setOf(MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
             resolveCapabilities(photo(), now = sentAt),
         )
         assertEquals(
-            setOf(MessageCapability.Reply, MessageCapability.Delete),
+            setOf(MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
             resolveCapabilities(photo(reply = true), now = sentAt),
         )
     }
@@ -525,7 +531,7 @@ class MessageCapabilityTest {
     @Test
     fun `own photo past the delete window can only be replied to`() {
         assertEquals(
-            setOf(MessageCapability.Reply),
+            setOf(MessageCapability.Reply, MessageCapability.Link),
             resolveCapabilities(photo(), now = sentAt + 49.hours),
         )
     }
@@ -533,7 +539,7 @@ class MessageCapabilityTest {
     @Test
     fun `another participant's photo can be replied to and reported`() {
         assertEquals(
-            setOf(MessageCapability.Reply, MessageCapability.Report),
+            setOf(MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
             resolveCapabilities(photo(isFromSelf = false), now = sentAt),
         )
     }
@@ -547,5 +553,15 @@ class MessageCapabilityTest {
     fun `a redacted photo takes no reactions`() {
         assertEquals(true, canReact(photo(isFromSelf = false)))
         assertEquals(false, canReact(photo(isFromSelf = false, redacted = true)))
+    }
+
+    @Test
+    fun `a link is offered on anything a participant sent and the server confirmed`() {
+        assertEquals(true, MessageCapability.Link in resolveCapabilities(text(isFromSelf = false)))
+        assertEquals(true, MessageCapability.Link in resolveCapabilities(cash(isFromSelf = false), canSpeak = false))
+        // A reader outside a public group may hand the link on; that is how most of them will travel.
+        assertEquals(true, MessageCapability.Link in resolveCapabilities(text(isFromSelf = false), canPost = false))
+        assertEquals(false, MessageCapability.Link in resolveCapabilities(text(eventSequence = 0)))
+        assertEquals(false, MessageCapability.Link in resolveCapabilities(widgetMessage))
     }
 }

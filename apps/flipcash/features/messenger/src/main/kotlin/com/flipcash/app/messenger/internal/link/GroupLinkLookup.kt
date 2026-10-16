@@ -7,6 +7,7 @@ import com.flipcash.app.messenger.internal.requiresStaff
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.shared.chat.FeaturedGroupsStore
@@ -48,28 +49,28 @@ internal class GroupLinkLookup @Inject constructor(
             // sitting empty through its own GetChat -- the same placeholder a featured group gets.
             featuredGroups.remember(listOf(chat))
 
-            val balance = chat.rules.balanceRequirement()
-            val staffOnly = chat.rules.requiresStaff()
-            val requirement = if (balance != null || staffOnly) {
-                val token = balance?.mints?.firstOrNull()?.let { mint ->
-                    tokenCoordinator.getTokenMetadata(Mint(mint.bytes)).getOrNull()?.token
-                }
-                LinkCard.GroupInvite.Requirement(
-                    amount = balance?.amount?.formatted(),
-                    currencyName = token?.takeUnless { it.isReserve }?.brandedName(resources),
-                    staffOnly = staffOnly,
-                )
-            } else {
-                null
-            }
-
             LinkCard.GroupInvite.State.Resolved(
                 title = chat.title?.takeIf { it.isNotBlank() },
                 picture = chat.picture,
                 memberCount = chat.rosterSummary.memberCount,
-                requirement = requirement,
+                requirement = requirement(chat.rules),
             )
         }
+
+    /** What [rules] ask of a reader, worded as the invite card words it; null when nothing. */
+    suspend fun requirement(rules: ChatRules?): LinkCard.GroupInvite.Requirement? {
+        val balance = rules.balanceRequirement()
+        val staffOnly = rules.requiresStaff()
+        if (balance == null && !staffOnly) return null
+        val token = balance?.mints?.firstOrNull()?.let { mint ->
+            tokenCoordinator.getTokenMetadata(Mint(mint.bytes)).getOrNull()?.token
+        }
+        return LinkCard.GroupInvite.Requirement(
+            amount = balance?.amount?.formatted(),
+            currencyName = token?.takeUnless { it.isReserve }?.brandedName(resources),
+            staffOnly = staffOnly,
+        )
+    }
 
     class NotAGroup(chatId: ChatId) : IllegalStateException("chat $chatId is not a group")
 }

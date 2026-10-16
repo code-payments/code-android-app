@@ -1053,6 +1053,28 @@
     <string name="label_linkCard_untitledGroup">Group Chat</string>
     <string name="action_linkCard_view">View</string>
     <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
+    <string name="label_messageLink_kindPrivateGroup">Private group</string>
+    <string name="label_messageLink_kindDirect">Direct message</string>
+    <string name="label_messageLink_you">You</string>
+    <string name="label_messageLink_someone">Someone</string>
+    <string name="label_messageLink_byline">%1$s · %2$s</string>
+    <string name="label_messageLink_sent">%1$s sent</string>
+    <string name="label_messageLink_tipped">%1$s tipped</string>
+    <string name="label_messageLink_sentCashLink">%1$s sent a cash link</string>
+    <string name="label_messageLink_attachment">Attachment</string>
+    <plurals name="label_messageLink_reactions">
+        <item quantity="one">%1$s reaction</item>
+        <item quantity="other">%1$s reactions</item>
+    </plurals>
+    <string name="label_messageLink_lockedGroup">Only members of %1$s can read this message.</string>
+    <string name="label_messageLink_deleted">This message was deleted.</string>
+    <string name="label_messageLink_settled">Settled on Solana</string>
+    <string name="label_messageLink_timeNow">now</string>
+    <string name="label_messageLink_timeMinutes">%1$dm</string>
+    <string name="label_messageLink_timeHours">%1$dh</string>
+    <string name="label_messageLink_lockedDirect">Only the two people in this chat can read it.</string>
+    <string name="label_messageLink_membersHostedBy">%1$s · Hosted by %2$s</string>
+    <string name="action_messageLink_request">Request</string>
 
     <!-- Chat message selection bar and its actions -->
     <string name="action_copy">Copy</string>
@@ -1073,6 +1095,7 @@
     <string name="title_messageNotDeleted">Message Not Deleted</string>
     <string name="description_messageNotDeleted">The message couldn\'t be deleted, so it is still visible to everyone.</string>
     <string name="title_clipboardLabelMessage">Message</string>
+    <string name="title_clipboardLabelMessageLink">Message Link</string>
     <string name="title_reactionNotAdded">Couldn\'t add reaction</string>
     <string name="title_reactionLimitReached">This message has the maximum number of reactions</string>
     <string name="title_reactionsCount">%1$d Reactions</string>
@@ -1179,6 +1202,8 @@
     <string name="title_requestedJustNow">Requested just now</string>
     <string name="title_requestedYesterday">Requested yesterday</string>
     <string name="action_review">Review</string>
+    <!-- A chip under a chat's title bar after a message link was followed there from another chat; %1$s is that chat's title. -->
+    <string name="action_backToChat">Back to %1$s</string>
     <!-- A private group's members (nodes 11210:68, 11210:70). -->
     <string name="title_members">Members</string>
     <plurals name="header_memberCount">
@@ -1483,6 +1508,8 @@
     <string name="action_claimUsername">Claim your username</string>
     <string name="placeholder_minimumToChat">Not set</string>
     <string name="title_shareProfileToChats">Share Profile</string>
+    <string name="title_shareMessageToChats">Share Message</string>
+    <string name="action_forwardMessage">Forward</string>
     <!-- Who the share sheet is for: display name, then @handle -->
     <string name="action_showProfileCard">Show Profile Card</string>
     <string name="action_copyLink">Copy Link</string>

@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.link
 import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.opencode.model.financial.Token
@@ -649,5 +650,58 @@ class LinkCardResolverTest {
         )
         assertNull(resolver.peek(webCard))
         assertEquals(webCard, resolver.resolve(webCard))
+    }
+
+    private fun messageCard(text: String, redacted: Boolean = false) = LinkCard.Message(
+        url = "https://app.flipcash.com/chat/x/m/42",
+        start = 0,
+        end = 10,
+        chatId = ChatId(List(32) { it.toByte() }),
+        messageId = 42,
+        isGroup = false,
+    ) to LinkCard.Message.State.Resolved(
+        source = LinkCard.Message.Source(
+            title = "Ted",
+            kind = LinkCard.Message.Kind.DirectMessage,
+            picture = null,
+            pictureAccess = BlobAccessContext.profile(null),
+        ),
+        message = LinkCard.Message.Excerpt(
+            author = "Ted",
+            isFromSelf = false,
+            sentAt = kotlin.time.Instant.fromEpochSeconds(0),
+            body = LinkCard.Message.Body.Text(text, redacted),
+        ),
+        reactionCount = 0,
+    )
+
+    private fun cashLinkResolver(scope: kotlinx.coroutines.CoroutineScope, state: LinkCard.Message.State) =
+        LinkCardResolver(
+            scope = scope,
+            giftCard = { Result.success(snapshot()) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
+            message = { Result.success(state) },
+            wholeCashLink = { it.takeIf { text -> text == card.url }?.let { card.entropy } },
+        )
+
+    @Test
+    fun `a linked message that is only a cash link draws as its payment`() = runTest {
+        val (message, state) = messageCard(card.url)
+        val resolved = (cashLinkResolver(backgroundScope, state).resolve(message) as LinkCard.Message).state
+
+        assertEquals(
+            LinkCard.Message.Body.CashLink("$15.00", LinkCard.Cash.Claim.Claimable),
+            (resolved as LinkCard.Message.State.Resolved).message.body,
+        )
+    }
+
+    @Test
+    fun `a redacted linked message is never read as a cash link`() = runTest {
+        val (message, state) = messageCard(card.url, redacted = true)
+        val resolved = (cashLinkResolver(backgroundScope, state).resolve(message) as LinkCard.Message).state
+
+        assertEquals(state, resolved)
     }
 }

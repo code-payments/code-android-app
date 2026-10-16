@@ -142,6 +142,15 @@ internal fun Scanner() {
                             ),
                         )
                     }
+                    // Same destination as the tapped /chat/{id}/m/{seq} link.
+                    is DeeplinkType.ChatMessage -> listOf(
+                        AppRoute.Tabs.Chats,
+                        AppRoute.Messaging.Chat(
+                            ChatIdentifier.ByChatId(deeplink.chatId),
+                            isGroupLink = deeplink.isGroup,
+                            jumpToMessageId = deeplink.messageId,
+                        ),
+                    )
                     else -> emptyList()
                 }
                 if (routes.isNotEmpty()) {

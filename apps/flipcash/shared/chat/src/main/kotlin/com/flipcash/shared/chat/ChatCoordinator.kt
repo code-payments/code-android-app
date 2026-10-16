@@ -329,6 +329,18 @@ interface MessagingOperations {
     suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int?
 
     /**
+     * Stores the history of [chatId] back through [messageId], fetching older pages from the
+     * server until one reaches it. True once [messageId] is stored, false if the server has no
+     * such message or the walk gave up.
+     *
+     * Pages from the oldest stored message rather than fetching [messageId] alone: the transcript
+     * pages older history from its last loaded row, so a lone message stored past a gap would leave
+     * the gap unfilled and its distance from the newest message undercounted. A message link to
+     * old history is the caller.
+     */
+    suspend fun loadHistoryThrough(chatId: ChatId, messageId: Long): Boolean
+
+    /**
      * Where the "N unread" divider sits in [chatId], read from the viewer's stored READ pointer.
      * [UnreadBoundary.None] when the viewer's own member row is not stored or nothing inbound is
      * unread. Read once per visit: later pointer writes must not move it.
@@ -465,6 +477,23 @@ interface MessagingOperations {
      * `null` when the message isn't encrypted or can't be opened or fetched. Nothing is stored.
      */
     suspend fun openPushedChatMessage(chatId: ChatId, message: ChatMessage?, messageId: Long?): ChatMessage?
+
+    /**
+     * [messageId] in a chat the viewer belongs to, readable: the stored copy when there is one,
+     * otherwise fetched and, if it is end-to-end encrypted, opened on this device. Nothing is stored.
+     *
+     * Fails with the fetch's error (`GetMessageError.NotFound`, `Denied`). Succeeds with a message
+     * that is still sealed when this device can't open it; the caller checks [ChatMessage.encryption].
+     */
+    suspend fun readMessage(chatId: ChatId, messageId: Long): Result<ChatMessage>
+
+    /**
+     * [messageId] as a viewer outside the chat may see it: `GetMessage` in `FULL_OR_REDACTED`, which
+     * keeps the sender, timestamp and reactions and swaps a withheld body for a same-shape
+     * placeholder, flagged [ChatMessage.redacted]. Nothing is stored: this is for a group whose
+     * transcript is withheld, where storing it would put it under the blur.
+     */
+    suspend fun peekMessage(chatId: ChatId, messageId: Long): Result<ChatMessage>
 
     /**
      * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].

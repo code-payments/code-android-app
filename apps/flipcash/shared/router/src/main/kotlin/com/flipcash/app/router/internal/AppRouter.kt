@@ -141,6 +141,19 @@ internal class AppRouter(
                 )
             )
 
+            // The chat, opened scrolled to the message. A group link keeps the invite's handling
+            // (gated preview, dead link closes); a DM link opens the way a DM does.
+            is DeeplinkType.ChatMessage -> DeeplinkAction.Navigate(
+                listOf(
+                    AppRoute.Tabs.Chats,
+                    AppRoute.Messaging.Chat(
+                        ChatIdentifier.ByChatId(type.chatId),
+                        isGroupLink = type.isGroup,
+                        jumpToMessageId = type.messageId,
+                    ),
+                )
+            )
+
             is DeeplinkType.Tipcard -> tipCard(TipCardOwner.ById(type.userId))
 
             is DeeplinkType.Profile -> profile(type.address)
@@ -235,6 +248,9 @@ internal class AppRouter(
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
             deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
+            // Before the invite, which matches any path under a group's `/chat/{uuid}` and would
+            // otherwise open a group's message link as the bare group.
+            deepLink.isChatMessage() -> deepLink.handleChatMessage()
             // Checked before the profile link, which is host-gated to the apex and so cannot
             // match this one, but the ordering is what keeps that true if either widens.
             deepLink.isGroupChatInvite() -> deepLink.handleGroupChatInvite()
@@ -434,6 +450,36 @@ private fun DeepLink.handleGroupChatInvite(): DeeplinkType.GroupChatInvite? {
     val chatId = runCatching { ChatId(UUID.fromString(segment).bytes) }.getOrNull() ?: return null
     return DeeplinkType.GroupChatInvite(chatId)
 }
+
+/**
+ * One message in a chat: `app.flipcash.com/chat/{chatId}/m/{seq}`, exactly four segments.
+ *
+ * The chat id is a dashed UUID for a group or base64url for a DM, the forms `/chat/{id}` and
+ * `/tip/chat/{id}` already take. A tail that doesn't fit (`/chat/{uuid}/m`, a non-numeric seq) is
+ * not claimed here, so a group's falls through to the invite as it did before this route existed.
+ */
+private fun DeepLink.isChatMessage(): Boolean =
+    chat.contains(pathSegments.getOrNull(0)) &&
+            pathSegments.size == CHAT_MESSAGE_SEGMENTS &&
+            pathSegments[2] == MESSAGE_SEGMENT &&
+            pathSegments[3].toLongOrNull()?.let { it >= 0 } == true
+
+private fun DeepLink.handleChatMessage(): DeeplinkType.ChatMessage? {
+    val segment = pathSegments.getOrNull(1) ?: return null
+    val messageId = pathSegments.getOrNull(3)?.toLongOrNull() ?: return null
+    val isGroup = segment.lowercase().isUuidShaped()
+    val chatId = runCatching {
+        if (isGroup) {
+            ChatId(UUID.fromString(segment).bytes)
+        } else {
+            ChatId(segment.decodeBase64UrlSafe().toList())
+        }
+    }.getOrNull()?.takeIf { it.bytes.isNotEmpty() } ?: return null
+    return DeeplinkType.ChatMessage(chatId = chatId, messageId = messageId, isGroup = isGroup)
+}
+
+private const val CHAT_MESSAGE_SEGMENTS = 4
+private const val MESSAGE_SEGMENT = "m"
 
 private fun DeepLink.handleTipCard(): DeeplinkType.Tipcard? {
     val uri = data.toUri()

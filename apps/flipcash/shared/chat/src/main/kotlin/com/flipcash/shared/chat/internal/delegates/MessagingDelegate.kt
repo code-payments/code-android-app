@@ -26,6 +26,7 @@ import com.flipcash.app.persistence.sources.mediator.ChatMessageRemoteMediator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
@@ -39,6 +40,7 @@ import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.DeleteMessageError
 import com.flipcash.services.models.EditMessageError
 import com.flipcash.services.models.GetChatError
+import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.chat.ChatHydration
 import com.flipcash.shared.chat.ChatHydrationState
@@ -54,6 +56,7 @@ import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
+import java.nio.ByteBuffer
 import com.getcode.utils.trace
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -220,6 +223,33 @@ class MessagingDelegate @Inject constructor(
         return selfId
     }
 
+    override suspend fun loadHistoryThrough(chatId: ChatId, messageId: Long): Boolean {
+        if (messageDataSource.getMessage(chatId, messageId) != null) return true
+        var oldest = messageDataSource.oldestMessageId(chatId)
+        var loaded = 0
+        while (loaded < MAX_HISTORY_LOAD) {
+            // Already past it: the target is older than what is stored and was never sent back.
+            if (oldest != null && oldest <= messageId) return false
+            val page = messagingController.getMessages(
+                chatId,
+                QueryOptions(
+                    limit = HISTORY_PAGE_SIZE,
+                    token = oldest?.toPagingToken(),
+                    descending = true,
+                ),
+            ).getOrNull() ?: return false
+            if (page.isEmpty()) return false
+            messageDataSource.upsert(chatId, page)
+            loaded += page.size
+            if (page.any { it.messageId <= messageId }) {
+                return messageDataSource.getMessage(chatId, messageId) != null
+            }
+            if (page.size < HISTORY_PAGE_SIZE) return false
+            oldest = page.minOf { it.messageId }
+        }
+        return false
+    }
+
     override suspend fun resolveUnreadBoundary(chatId: ChatId): UnreadBoundary {
         val selfId = awaitReady()
         val readThrough = memberDataSource.getSelfReadPointerOrNull(chatId, selfId)
@@ -380,6 +410,21 @@ class MessagingDelegate @Inject constructor(
         }
         return opened.takeIf { it.encryption is MessageEncryption.Decrypted }
     }
+
+    override suspend fun readMessage(chatId: ChatId, messageId: Long): Result<ChatMessage> = runCatching {
+        messageDataSource.getMessage(chatId, messageId)?.let { return@runCatching it }
+        val fetched = messagingController.getMessage(chatId, messageId).getOrThrow()
+        val opener = incoming
+        val selfId = userManager.accountId
+        if (opener == null || selfId == null || fetched.content.singleOrNull() !is MessageContent.Encrypted) {
+            return@runCatching fetched
+        }
+        val peerId = if (fetched.senderId == selfId) getOtherMember(chatId)?.userId else null
+        opener.open(chatId, selfId, peerId, listOf(fetched), stored = { null }).single()
+    }
+
+    override suspend fun peekMessage(chatId: ChatId, messageId: Long): Result<ChatMessage> =
+        messagingController.getMessage(chatId, messageId, ViewMode.FULL_OR_REDACTED)
 
     /** Text, photos and replies to either are what DMs encrypt; anything else keeps the server's body. */
     private fun MessageContent.pushText(): String? = when (this) {
@@ -757,6 +802,12 @@ class MessagingDelegate @Inject constructor(
 
     private companion object {
         const val TAG = "MessagingDelegate"
+
+        /** The transcript's page size. */
+        const val HISTORY_PAGE_SIZE = 50
+
+        /** The transcript's jump bound (MessageList MAX_JUMP_ITEMS): a walk this long gives up. */
+        const val MAX_HISTORY_LOAD = 5_000
     }
 }
 
@@ -776,3 +827,7 @@ private fun List<MessageContent>.previewImageSealedFor(chatId: ChatId): ChatId? 
     val blob = image.renditions.firstOrNull()?.blob
     return chatId.takeIf { blob != null && blob.downloadUrl.isEmpty() }
 }
+
+/** A message id as a paging token, as [ChatMessageRemoteMediator] writes it. */
+private fun Long.toPagingToken(): List<Byte> =
+    ByteBuffer.allocate(Long.SIZE_BYTES).putLong(this).array().toList()

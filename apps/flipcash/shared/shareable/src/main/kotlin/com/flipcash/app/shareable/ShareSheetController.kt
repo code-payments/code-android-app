@@ -88,6 +88,18 @@ sealed interface Shareable {
     }
 
     /**
+     * A link to one chat message — `app.flipcash.com/chat/{chatId}/m/{seq}`. Shared as the bare URL:
+     * the app on the other end draws the message card from it, and anything written around it would
+     * sit beside a card that already says what the message is.
+     *
+     * Carries the built [url] for the same reason as [GroupInvite]: building it is
+     * [com.flipcash.app.core.util.Linkify.message]'s job.
+     */
+    data class MessageLink(val url: String) : Shareable {
+        override val pendingData: ShareablePendingData? = null
+    }
+
+    /**
      * The tip code itself, as a file (see [TipCodeExport]) — what the "Download" action produces.
      *
      * Distinct from [Profile]: that shares the profile *link* and only uses an image as the Sharesheet's

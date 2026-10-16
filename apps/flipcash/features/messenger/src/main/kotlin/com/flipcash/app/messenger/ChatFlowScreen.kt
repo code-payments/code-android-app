@@ -20,6 +20,7 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.chat.GroupInviteResult
 import com.flipcash.features.messenger.R
@@ -77,7 +78,14 @@ fun ChatFlowScreen(
     // first frame already has what the open can draw from memory (a group's name and picture). The
     // steps get this instance from flowSharedViewModel: the flow's store owner is this entry's.
     val viewModel = hiltViewModel<ChatViewModel, ChatViewModel.Factory>(
-        creationCallback = { factory -> factory.create(route.identifier) },
+        creationCallback = { factory ->
+            factory.create(
+                route.identifier,
+                route.jumpToMessageId,
+                route.returnToTitle,
+                linkedAsGroup = route.jumpToMessageId != null && route.isGroupLink,
+            )
+        },
     )
 
     // A group link the server has no record of: say so and leave, rather than sit on an empty chat
@@ -128,6 +136,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.InviteToGroup> {
         FlowGroupInviteSheet()
+    }
+    annotatedEntry<ChatStep.ShareMessage> { step ->
+        FlowShareMessageSheet(step.messageId)
     }
 
     annotatedEntry<ChatStep.Profile> { step ->
@@ -291,6 +302,45 @@ private fun FlowGroupInviteSheet() {
         onToggle = inviteViewModel::toggle,
         onMessageChanged = inviteViewModel::onMessageChanged,
         onInvite = { state.shareableGroupInviteUrl?.let(inviteViewModel::invite) },
+        onDismiss = dismissSheet,
+    )
+}
+
+/**
+ * [ChatStep.ShareMessage]: the invite sheet handing out one message's link. Same send path and
+ * result as [FlowGroupInviteSheet]; the link is the whole subject.
+ */
+@Composable
+private fun FlowShareMessageSheet(messageId: Long) {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val inviteViewModel = hiltViewModel<GroupInviteViewModel>()
+    val inviteState by inviteViewModel.state.collectAsStateWithLifecycle()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val link = remember(state.chatId, messageId) {
+        state.chatId?.let { Linkify.message(it, messageId) }
+    }
+
+    // The chat the message is in stays in the list: sending a link to a message back into its own
+    // chat is how you point at something further up, and the card draws there like anywhere else.
+
+    val keyboard = rememberKeyboardController()
+    val resultBack = resultBackNavigator<GroupInviteResult>(exit = dismissSheet)
+    LaunchedEffect(inviteViewModel) {
+        inviteViewModel.invited.collect { chatId ->
+            keyboard.hideIfVisible { resultBack.returnValue(GroupInviteResult(chatId)) }
+        }
+    }
+
+    GroupInviteSheet(
+        inviteUrl = link,
+        subject = ShareToChatsSubject.Message,
+        state = inviteState,
+        onShare = {},
+        onCopy = { viewModel.dispatchEvent(ChatViewModel.Event.CopyMessageLink(messageId)) },
+        onToggle = inviteViewModel::toggle,
+        onMessageChanged = inviteViewModel::onMessageChanged,
+        onInvite = { link?.let(inviteViewModel::invite) },
         onDismiss = dismissSheet,
     )
 }

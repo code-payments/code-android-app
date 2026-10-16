@@ -371,6 +371,13 @@ sealed interface AppRoute : NavKey, Parcelable {
             // other open keeps the empty chat, because a DM on its derived id has no record either
             // until someone writes in it.
             val isGroupLink: Boolean = false,
+            // Open scrolled to this message (its per-chat sequence number) and flash it: a message
+            // link's landing.
+            val jumpToMessageId: Long? = null,
+            // The title of the chat a message link was followed from, when it was followed from
+            // inside the app. The conversation offers a chip back to it; a link from outside the
+            // app has nowhere to go back to and sets none.
+            val returnToTitle: String? = null,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
                 get() = when {

@@ -157,6 +157,31 @@ class ChatMessageActionReducerTest {
     }
 
     @Test
+    fun `copying a message link clears the bar`() {
+        val selected = reduce(
+            ChatViewModel.State(messagePolicy = unbounded),
+            ChatViewModel.Event.ToggleMessageSelection(bubble(1)),
+        )
+
+        val state = reduce(selected, ChatViewModel.Event.CopyMessageLink(1))
+
+        assertNull(state.selection)
+    }
+
+    @Test
+    fun `sharing a message to chats clears the bar`() {
+        // The share sheet opens over the chat; the bar would otherwise still be up when it closes.
+        val selected = reduce(
+            ChatViewModel.State(messagePolicy = unbounded),
+            ChatViewModel.Event.ToggleMessageSelection(bubble(1)),
+        )
+
+        val state = reduce(selected, ChatViewModel.Event.ShareMessageRequested)
+
+        assertNull(state.selection)
+    }
+
+    @Test
     fun `the delete confirmation holds the selection but drops the focus`() {
         // The bar still has its message, so the sheet's Cancel has something to return to. The
         // focus goes because the sheet is modal — a sharp bubble behind it reads as still live.
