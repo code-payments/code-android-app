@@ -25,6 +25,7 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatMutation
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
+import com.flipcash.services.models.chat.HoldingsSummary
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.LobbyMember
@@ -297,6 +298,7 @@ internal fun MessagingModel.EmojiReaction.toEmojiReaction(): EmojiReaction {
         selfReactor = if (hasSelfReactor()) selfReactor.toReactor() else null,
         sampleReactors = sampleReactorsList.map { it.toReactor() },
         version = version,
+        boostUsd = boostUsd,
     )
 }
 
@@ -305,6 +307,7 @@ internal fun MessagingModel.Reactor.toReactor(): Reactor {
         userId = userId.toId(),
         reactedAt = Instant.fromEpochSeconds(reactedTs.seconds, reactedTs.nanos),
         version = version,
+        boostUsd = boostUsd,
     )
 }
 
@@ -316,11 +319,14 @@ internal fun MessagingModel.ReactionUpdate.toReactionUpdate(): ReactionUpdate {
         action = when (action) {
             MessagingModel.ReactionUpdate.Action.ADDED -> ReactionUpdate.Action.ADDED
             MessagingModel.ReactionUpdate.Action.REMOVED -> ReactionUpdate.Action.REMOVED
+            MessagingModel.ReactionUpdate.Action.BOOSTED -> ReactionUpdate.Action.BOOSTED
             else -> ReactionUpdate.Action.UNKNOWN
         },
         count = count,
         version = version,
         reactedAt = Instant.fromEpochSeconds(reactedTs.seconds, reactedTs.nanos),
+        boostUsd = boostUsd,
+        actorBoostUsd = actorBoostUsd,
     )
 }
 
@@ -440,6 +446,16 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         useE2ee = useE2Ee,
         isPrivate = isPrivate,
         inLobby = inLobby,
+        holdingsSummary = if (hasHoldingsSummary()) holdingsSummary.toHoldingsSummary() else null,
+    )
+}
+
+internal fun ChatModel.HoldingsSummary.toHoldingsSummary(): HoldingsSummary {
+    return HoldingsSummary(
+        mint = mint.toMint(),
+        holdings = Fiat(quarks = quarks),
+        holderCount = holderCount,
+        asOf = Instant.fromEpochSeconds(asOf.seconds, asOf.nanos),
     )
 }
 
