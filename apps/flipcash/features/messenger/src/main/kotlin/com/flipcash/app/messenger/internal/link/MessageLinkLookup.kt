@@ -209,7 +209,7 @@ internal class MessageLinkLookup @Inject constructor(
             amount = amount.formatted(),
             tipped = action == MessageContent.Cash.Action.TIPPED,
         )
-        is MessageContent.Widget, is MessageContent.System -> LinkCard.Message.Body.Other
+        is MessageContent.Widget, is MessageContent.System, MessageContent.Unsupported -> LinkCard.Message.Body.Other
         is MessageContent.Deleted, is MessageContent.Encrypted -> null
     }
 
