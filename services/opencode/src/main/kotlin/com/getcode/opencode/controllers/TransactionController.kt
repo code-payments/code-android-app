@@ -167,6 +167,7 @@ class TransactionController @Inject constructor(
         verifiedState: VerifiedState,
         token: Token,
         source: AccountCluster,
+        appMetadata: ByteArray? = null,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
         val intent = runCatching {
@@ -182,6 +183,7 @@ class TransactionController @Inject constructor(
                 mint = token.address,
                 sourceCluster = source,
                 verifiedState = verifiedState,
+                appMetadata = appMetadata,
             )
         }.getOrElse { return Result.failure(it) }
 

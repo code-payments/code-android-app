@@ -209,11 +209,13 @@ sealed interface TransactionMetadata {
      * @param source The primary account where funds will be sent from
      * @param payments The set of payments, each carrying its own exchange data
      * @param mint The mint this intent operates against
+     * @param appMetadata Optional opaque app-defined metadata attached to the intent
      */
     data class SendPublicMultiPayment(
         val source: PublicKey,
         val payments: List<Payment>,
         val mint: Mint,
+        val appMetadata: ByteArray? = null,
     ): TransactionMetadata {
         /**
          * @param destination The destination PRIMARY account

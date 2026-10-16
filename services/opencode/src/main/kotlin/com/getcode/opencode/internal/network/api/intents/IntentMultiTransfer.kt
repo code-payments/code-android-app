@@ -57,6 +57,7 @@ internal class IntentMultiTransfer(
             mint: Mint,
             sourceCluster: AccountCluster,
             verifiedState: VerifiedState,
+            appMetadata: ByteArray? = null,
         ): IntentMultiTransfer {
             require(shares.size in MIN_PAYMENTS..MAX_PAYMENTS) {
                 "SendPublicMultiPayment requires $MIN_PAYMENTS..$MAX_PAYMENTS payments, got ${shares.size}"
@@ -72,6 +73,18 @@ internal class IntentMultiTransfer(
             }
             require(shares.none { it.destinationOwner == sourceCluster.authorityPublicKey }) {
                 "A destination owner cannot be the source owner"
+            }
+
+            require(shares.all { it.amount.mint == mint }) {
+                "Every payment must be denominated in the intent mint"
+            }
+            val shareCurrencies = shares.map { it.amount.nativeAmount.currencyCode }.distinct()
+            require(shareCurrencies.size == 1) {
+                "Every payment must use the same currency, got $shareCurrencies"
+            }
+            val verifiedCurrency = verifiedState.rateProto.exchangeRate.currencyCode
+            require(shareCurrencies.single().name.equals(verifiedCurrency, ignoreCase = true)) {
+                "Payment currency ${shareCurrencies.single().name} must match the verified rate currency $verifiedCurrency"
             }
 
             val actionGroup = buildActionGroup {
@@ -106,6 +119,7 @@ internal class IntentMultiTransfer(
                             verifiedExchangeData = verified,
                         )
                     },
+                    appMetadata = appMetadata,
                 ),
                 actionGroup = actionGroup,
             )
