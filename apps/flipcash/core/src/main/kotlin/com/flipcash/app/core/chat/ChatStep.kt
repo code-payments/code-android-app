@@ -66,6 +66,20 @@ sealed interface ChatStep : FlowStep, Parcelable {
         Sheet,
         com.getcode.navigation.FullscreenSheet
 
+    /**
+     * Sharing one message into the viewer's other chats — [InviteToGroup]'s sheet with the
+     * message's link as what it hands out. Returns the chat picked first, as that one does.
+     *
+     * @param messageId the message's per-chat sequence, the `{seq}` in its link.
+     */
+    @Parcelize
+    @Serializable
+    data class ShareMessage(val messageId: Long) :
+        ChatStep,
+        NavigationRetVal<GroupInviteResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
     @Parcelize
     @Serializable
     data class Profile(

@@ -1097,6 +1097,7 @@
     <string name="title_messageNotDeleted">Message Not Deleted</string>
     <string name="description_messageNotDeleted">The message couldn\'t be deleted, so it is still visible to everyone.</string>
     <string name="title_clipboardLabelMessage">Message</string>
+    <string name="title_clipboardLabelMessageLink">Message Link</string>
     <string name="title_reactionNotAdded">Couldn\'t add reaction</string>
     <string name="title_reactionLimitReached">This message has the maximum number of reactions</string>
     <string name="title_reactionsCount">%1$d Reactions</string>
@@ -1509,6 +1510,8 @@
     <string name="action_claimUsername">Claim your username</string>
     <string name="placeholder_minimumToChat">Not set</string>
     <string name="title_shareProfileToChats">Share Profile</string>
+    <string name="title_shareMessageToChats">Share Message</string>
+    <string name="action_forwardMessage">Forward</string>
     <!-- Who the share sheet is for: display name, then @handle -->
     <string name="action_showProfileCard">Show Profile Card</string>
     <string name="action_copyLink">Copy Link</string>

@@ -19,11 +19,13 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.Reply
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Feedback
+import androidx.compose.material.icons.filled.Feedback
+import com.flipcash.app.messenger.internal.screens.openMessageShare
+import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -113,6 +115,11 @@ internal fun ChatTopBar(
                     // Resolved here rather than in the bar: reporting is its own top-level
                     // flow now, so it needs the chat's id, and this is the nearest scope holding
                     // both that and the navigator.
+                    onShareMessage = {
+                        keyboard.hideIfVisible {
+                            navigator.openMessageShare(target.selection.messageId)
+                        }
+                    },
                     onReport = {
                         state.chatId?.let { chatId ->
                             navigator.push(
@@ -265,50 +272,49 @@ private fun MessageSelectionBar(
     selection: ChatListItem.ContentBubble,
     keyboard: KeyboardController,
     dispatch: (ChatViewModel.Event) -> Unit,
+    onShareMessage: () -> Unit,
     onReport: () -> Unit,
 ) {
     val capabilities = selection.capabilities
     val body = selection.plainText
 
-    // Order is priority: the first actions keep their icons when the bar runs out of room. Reply
-    // leads because it is the most common action and the only one a cash bubble offers — burying it
-    // is the one choice that would leave that bubble's bar empty. Delete follows: putting the one
-    // action with a confirmation behind a menu makes it a three-tap job. Report goes last: it is
-    // the rarest of the five and the only one that is never about your own message, so it is the
-    // right one to collapse into the overflow on a narrow screen.
+    // Order is priority: the first actions keep their icons when the bar runs out of room, and it
+    // matches iOS's menu: Copy, Reply, Forward, Edit, Delete, Report. Report goes last: it is the
+    // rarest and the only one that is never about your own message, so it is the right one to
+    // collapse into the overflow on a narrow screen. Forward hands out the message's link; the
+    // sheet it opens has the Copy Link tile, so the bar has no copy-link row of its own.
+    // Copy and edit both act on the message's text, so a bubble without any is offered neither.
     val actions = buildList {
+        if (body != null && MessageCapability.Copy in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_copy),
+                    icon = Icons.Filled.ContentCopy,
+                    testTag = "action_copy_message",
+                    onClick = { dispatch(ChatViewModel.Event.CopyMessage(body)) },
+                )
+            )
+        }
         if (MessageCapability.Reply in capabilities) {
             add(
                 MessageAction(
                     label = stringResource(R.string.action_reply),
-                    icon = Icons.AutoMirrored.Outlined.Reply,
+                    icon = Icons.AutoMirrored.Filled.Reply,
                     testTag = "action_reply_message",
                     onClick = { dispatch(ChatViewModel.Event.ReplyRequested(selection)) },
                 )
             )
         }
-        if (MessageCapability.Delete in capabilities) {
+        if (MessageCapability.Link in capabilities) {
             add(
                 MessageAction(
-                    label = stringResource(R.string.action_delete),
-                    icon = Icons.Outlined.Delete,
-                    testTag = "action_delete_message",
+                    label = stringResource(R.string.action_forwardMessage),
+                    icon = Icons.AutoMirrored.Filled.Forward,
+                    testTag = "action_share_message",
                     onClick = {
-                        keyboard.hideIfVisible {
-                            dispatch(ChatViewModel.Event.DeleteMessage(selection.messageId))
-                        }
+                        dispatch(ChatViewModel.Event.ShareMessageRequested)
+                        onShareMessage()
                     },
-                )
-            )
-        }
-        // Copy and edit both act on the message's text, so a bubble without any is offered neither.
-        if (body != null && MessageCapability.Copy in capabilities) {
-            add(
-                MessageAction(
-                    label = stringResource(R.string.action_copy),
-                    icon = Icons.Outlined.ContentCopy,
-                    testTag = "action_copy_message",
-                    onClick = { dispatch(ChatViewModel.Event.CopyMessage(body)) },
                 )
             )
         }
@@ -324,11 +330,25 @@ private fun MessageSelectionBar(
                 )
             )
         }
+        if (MessageCapability.Delete in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_delete),
+                    icon = Icons.Filled.Delete,
+                    testTag = "action_delete_message",
+                    onClick = {
+                        keyboard.hideIfVisible {
+                            dispatch(ChatViewModel.Event.DeleteMessage(selection.messageId))
+                        }
+                    },
+                )
+            )
+        }
         if (MessageCapability.Report in capabilities) {
             add(
                 MessageAction(
                     label = stringResource(R.string.title_report),
-                    icon = Icons.Outlined.Feedback,
+                    icon = Icons.Filled.Feedback,
                     testTag = "action_report_message",
                     // Unlike the others this one leaves the chat, so nothing on the way back
                     // dismisses the bar. Clearing it here means the transcript is at rest behind
