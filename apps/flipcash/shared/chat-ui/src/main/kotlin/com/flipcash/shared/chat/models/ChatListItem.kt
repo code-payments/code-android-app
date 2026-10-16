@@ -185,6 +185,13 @@ sealed interface ChatListItem {
         val undecryptableHint: UndecryptableHint = UndecryptableHint.UpdateApp,
         /** What a photo message needs beyond its content to load and gate its photo. */
         val photo: PhotoMessageContext? = null,
+        /**
+         * Whether [content] is the server's placeholder for a body the viewer may not read
+         * ([ChatMessage.redacted][com.flipcash.services.models.chat.ChatMessage.redacted]). Its
+         * text is drawn blurred and kept out of the accessibility tree, so it is never read,
+         * selected or copied.
+         */
+        val redacted: Boolean = false,
     ) : TranscriptMessage {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the

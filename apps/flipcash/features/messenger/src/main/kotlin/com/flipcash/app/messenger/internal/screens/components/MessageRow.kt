@@ -618,7 +618,7 @@ private fun SwipeToReplyAffordance(
  * does not, just the `grid.x1`.
  */
 @Composable
-private fun senderNameInset(showsGutter: Boolean): Dp =
+internal fun senderNameInset(showsGutter: Boolean): Dp =
     if (showsGutter) {
         CodeTheme.dimens.staticGrid.x5 + CodeTheme.dimens.grid.x1 + CodeTheme.dimens.grid.x1
     } else {

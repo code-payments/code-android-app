@@ -66,6 +66,7 @@ import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
+import com.flipcash.app.messenger.internal.screens.components.GatedLandingRow
 import com.flipcash.app.messenger.internal.screens.components.JoinRequestsAnchor
 import com.flipcash.app.messenger.internal.screens.components.ReturnToChatChip
 import com.flipcash.app.messenger.internal.screens.components.MessageList
@@ -547,6 +548,18 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         hazeState = hazeState,
                     )
                 }
+            }
+        }
+        // Outside the blur: a message link that lands where the transcript is withheld still shows
+        // the message it points at, over the placeholder rows, between the bars.
+        state.gatedLanding?.let { item ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(overlapPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                GatedLandingRow(item = item)
             }
         }
     }

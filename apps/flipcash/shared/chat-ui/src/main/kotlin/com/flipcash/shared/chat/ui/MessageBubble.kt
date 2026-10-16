@@ -140,7 +140,8 @@ fun ContentBubble(
 ) {
     val actionHandler = LocalChatActionHandler.current
     val updateAction = LocalUpdateAppAction.current
-    val jumbo = remember(item) { item.rendersBareEmoji() }
+    // A redacted placeholder is never drawn bare: it is not the message, only its shape.
+    val jumbo = remember(item) { !item.redacted && item.rendersBareEmoji() }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val bubbleMaxWidth = bubbleMaxWidth(
             content = item.content,
@@ -211,6 +212,7 @@ fun ContentBubble(
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
                     attention = attention,
+                    redacted = item.redacted,
                 )
 
                 // A tombstone is a text bubble with different words. Rendering it through the same
@@ -293,6 +295,7 @@ fun ContentBubble(
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
                     attention = attention,
+                    redacted = item.redacted,
                 )
 
                 // Ciphertext reaches a bubble only when it didn't open; an opened message carries
@@ -490,6 +493,7 @@ private fun TextBubble(
     onCardDoubleClick: (() -> Unit)? = null,
     interactive: Boolean = true,
     attention: () -> Float = { 0f },
+    redacted: Boolean = false,
 ) {
     if (jumbo) {
         JumboEmoji(
@@ -638,10 +642,12 @@ private fun TextBubble(
         // a message is the selection bar's Copy action instead — the same trade WhatsApp makes.
         // The citation sits inside the bubble, above the body, so the two move together and the
         // reply reads as one message rather than as a quote with a message under it.
+        val redaction = if (redacted) Modifier.redactedText() else Modifier
         val bodyText = @Composable {
             Text(
                 modifier = Modifier
                     .padding(horizontal = bodyInset)
+                    .then(redaction)
                     .widestLine(measurer, laidOut, bodyStyle, inlineContent)
                     .then(
                         if (handles.isEmpty()) {
@@ -653,7 +659,7 @@ private fun TextBubble(
                 text = laidOut,
                 inlineContent = inlineContent,
                 style = bodyStyle,
-                color = bodyColor,
+                color = if (redacted) redactedTextColor(bodyColor) else bodyColor,
                 onTextLayout = { bodyLayout = it },
             )
         }

@@ -487,6 +487,14 @@ interface MessagingOperations {
     suspend fun readMessage(chatId: ChatId, messageId: Long): Result<ChatMessage>
 
     /**
+     * [messageId] as a viewer outside the chat may see it: `GetMessage` in `FULL_OR_REDACTED`, which
+     * keeps the sender, timestamp and reactions and swaps a withheld body for a same-shape
+     * placeholder, flagged [ChatMessage.redacted]. Nothing is stored: this is for a group whose
+     * transcript is withheld, where storing it would put it under the blur.
+     */
+    suspend fun peekMessage(chatId: ChatId, messageId: Long): Result<ChatMessage>
+
+    /**
      * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].
      *
      * [replyToMessageId] cites a message in the same chat, which wraps the body in
