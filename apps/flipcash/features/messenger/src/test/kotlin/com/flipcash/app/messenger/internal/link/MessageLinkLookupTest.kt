@@ -268,14 +268,24 @@ class MessageLinkLookupTest {
     }
 
     @Test
-    fun `a message the server doesn't have is unresolved`() = runTest {
+    fun `a message the server doesn't have, in a chat it does, is deleted`() = runTest {
         val deps = Deps(chats = stored(null, isMember = null))
         org.mockito.kotlin.whenever(deps.chatController.getChat(groupId, ViewMode.REDACTED))
             .thenReturn(Result.success(chat()))
         org.mockito.kotlin.whenever(deps.messaging.getMessage(groupId, 42, ViewMode.FULL_OR_REDACTED))
             .thenReturn(Result.failure(GetMessageError.NotFound()))
 
-        assertEquals(LinkCard.Message.State.Unresolved, lookup(deps)(card()).getOrThrow())
+        val state = assertIs<LinkCard.Message.State.Deleted>(lookup(deps)(card()).getOrThrow())
+        assertEquals("Moony", state.source.title)
+    }
+
+    @Test
+    fun `a member's message that isn't stored is deleted`() = runTest {
+        val deps = Deps(chats = stored(chat(), isMember = true))
+        org.mockito.kotlin.whenever(deps.chats.readMessage(groupId, 42))
+            .thenReturn(Result.failure(GetMessageError.NotFound()))
+
+        assertIs<LinkCard.Message.State.Deleted>(lookup(deps)(card()).getOrThrow())
     }
 
     @Test

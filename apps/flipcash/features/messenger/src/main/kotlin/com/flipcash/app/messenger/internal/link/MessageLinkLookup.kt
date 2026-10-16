@@ -69,7 +69,8 @@ internal class MessageLinkLookup @Inject constructor(
     }
 
     private suspend fun member(chat: ChatMetadata, messageId: Long): LinkCard.Message.State {
-        val message = chats.readMessage(chat.chatId, messageId).getOrThrow()
+        val message = chats.readMessage(chat.chatId, messageId).getOrNullWhenMissing()
+            ?: return LinkCard.Message.State.Deleted(source(chat))
         if (message.isDeleted) return LinkCard.Message.State.Deleted(source(chat))
         val body = message.body() ?: return LinkCard.Message.State.Unresolved
         return LinkCard.Message.State.Resolved(
@@ -89,7 +90,8 @@ internal class MessageLinkLookup @Inject constructor(
                 host = chat.creator?.let { name(it) },
             )
         }
-        val message = messaging.getMessage(chatId, messageId, ViewMode.FULL_OR_REDACTED).getOrThrow()
+        val message = messaging.getMessage(chatId, messageId, ViewMode.FULL_OR_REDACTED).getOrNullWhenMissing()
+            ?: return LinkCard.Message.State.Deleted(source(chat))
         if (message.isDeleted) return LinkCard.Message.State.Deleted(source(chat))
         val body = message.body() ?: return LinkCard.Message.State.Unresolved
         return LinkCard.Message.State.Gated(
@@ -183,7 +185,13 @@ internal class MessageLinkLookup @Inject constructor(
     /** The card's body for this message, or null when there is nothing to show: deleted or sealed. */
     private fun ChatMessage.body(): LinkCard.Message.Body? = content.singleOrNull()?.body()
 
-    private val ChatMessage.isDeleted: Boolean get() = content.singleOrNull() is MessageContent.Deleted
+    /**
+     * The message, or null when the server says it isn't there. Its chat is, so the card names the
+     * chat and calls the message deleted, as iOS does.
+     */
+    private fun <T> Result<T>.getOrNullWhenMissing(): T? = getOrElse { if (it is GetMessageError.NotFound) null else throw it }
+
+    private val ChatMessage.isDeleted: Boolean get() = content.any { it is MessageContent.Deleted }
 
     private fun MessageContent.body(): LinkCard.Message.Body? = when (this) {
         is MessageContent.Text -> LinkCard.Message.Body.Text(text)
