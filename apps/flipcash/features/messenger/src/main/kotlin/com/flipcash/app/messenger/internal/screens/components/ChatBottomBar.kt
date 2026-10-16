@@ -24,6 +24,12 @@ import com.flipcash.shared.chat.ui.media.composerImageReceiver
 import com.flipcash.shared.chat.ui.media.deleteLeftoverCaptures
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -418,6 +424,12 @@ internal fun UserControlBottomBar(
                                 .composerSidePadding(composerInsets, hasComposer),
                         ) {
                             if (canType) {
+                                // The last card shown, kept while it animates out after the preview goes.
+                                val linkCardVisible = remember { MutableTransitionState(false) }
+                                var linkCard by remember { mutableStateOf(state.composerLink) }
+                                state.composerLink?.let { linkCard = it }
+                                linkCardVisible.targetState = state.composerLink != null
+                                val showsLinkCard = linkCardVisible.currentState || linkCardVisible.targetState
                                 val chips = remember(state.composerPhotos, state.uploadStates) {
                                     state.composerPhotos.map { photo ->
                                         ComposerPhotoChip(
@@ -537,15 +549,36 @@ internal fun UserControlBottomBar(
                                             }
                                         }
                                     } else null,
-                                    header = if (chips.isNotEmpty()) {
+                                    header = if (chips.isNotEmpty() || showsLinkCard) {
                                         {
-                                            ComposerPhotoChips(
-                                                chips = chips,
-                                                onRemove = { dispatch(ChatViewModel.Event.RemovePhoto(it)) },
-                                                onRetry = { dispatch(ChatViewModel.Event.RetryPhoto(it)) },
-                                                modifier = Modifier,
-                                                newestChipModifier = Modifier.onGloballyPositioned { newestChipCoordinates = it },
-                                            )
+                                            Column {
+                                                if (chips.isNotEmpty()) {
+                                                    ComposerPhotoChips(
+                                                        chips = chips,
+                                                        onRemove = { dispatch(ChatViewModel.Event.RemovePhoto(it)) },
+                                                        onRetry = { dispatch(ChatViewModel.Event.RetryPhoto(it)) },
+                                                        modifier = Modifier,
+                                                        newestChipModifier = Modifier.onGloballyPositioned { newestChipCoordinates = it },
+                                                    )
+                                                }
+                                                // Under the photos, as on iOS, inset like the first chip.
+                                                AnimatedVisibility(
+                                                    visibleState = linkCardVisible,
+                                                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                                                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
+                                                ) {
+                                                    linkCard?.let { card ->
+                                                        ComposerLinkCard(
+                                                            state = card,
+                                                            onRemove = { dispatch(ChatViewModel.Event.RemoveLinkPreview) },
+                                                            modifier = Modifier.padding(
+                                                                start = CodeTheme.dimens.staticGrid.x3,
+                                                                top = if (chips.isNotEmpty()) CodeTheme.dimens.staticGrid.x2 else 0.dp,
+                                                            ),
+                                                        )
+                                                    }
+                                                }
+                                            }
                                         }
                                     } else null,
                                     // One read of the edit state decides both the glyph and what the tap

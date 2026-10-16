@@ -138,6 +138,7 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.models.splitAroundLinkCard
 import coil3.ImageLoader
 import com.flipcash.app.messenger.internal.link.ComposerLinkPreview
+import com.flipcash.app.messenger.internal.link.ComposerLinkPreviewState
 import com.flipcash.app.messenger.internal.link.WebPreviewImages
 import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionPill
@@ -402,6 +403,8 @@ internal class ChatViewModel @AssistedInject constructor(
         val replyingTo: ChatQuote? = null,
         /** Photos staged in the composer, in the order they were added. Hidden, not dropped, while editing. */
         val stagedPhotos: List<StagedPhoto> = emptyList(),
+        /** The draft link's preview card, or null when the draft has no previewable link. */
+        val composerLink: ComposerLinkPreviewState? = null,
         /** Where each staged photo's upload is; a chip with no entry yet is still being picked up. */
         val uploadStates: Map<String, ChatMediaUploadState> = emptyMap(),
         /**
@@ -884,6 +887,10 @@ internal class ChatViewModel @AssistedInject constructor(
         /** The shot for [uri] was written, or, when not [saved], failed and leaves the composer. */
         data class CaptureFinished(val uri: Uri, val saved: Boolean) : Event
         data class RemovePhoto(val id: String) : Event
+        data class ComposerLinkChanged(val link: ComposerLinkPreviewState?) : Event
+
+        /** The × on the draft link's preview card. */
+        data object RemoveLinkPreview : Event
         data class RetryPhoto(val id: String) : Event
         data class UploadStatesChanged(val states: Map<String, ChatMediaUploadState>) : Event
 
@@ -3121,6 +3128,12 @@ internal class ChatViewModel @AssistedInject constructor(
                     }
                 }
                 .launchIn(viewModelScope)
+            preview.state
+                .onEach { dispatchEvent(Event.ComposerLinkChanged(it)) }
+                .launchIn(viewModelScope)
+            eventFlow.filterIsInstance<Event.RemoveLinkPreview>()
+                .onEach { preview.dismiss() }
+                .launchIn(viewModelScope)
         }
 
         // Send text message
@@ -3135,14 +3148,8 @@ internal class ChatViewModel @AssistedInject constructor(
                 // both are the composer emptying itself once the message is on its way.
                 val replyToMessageId = stateFlow.value.replyingTo?.messageId
 
-                // Taken before the draft empties, which would otherwise drop it. A photo message
-                // carries no link preview.
-                val linkPreview = if (photos.isEmpty()) {
-                    composerLinkPreview?.take(textToSend)
-                } else {
-                    composerLinkPreview?.clear()
-                    null
-                }
+                // Taken before the draft empties, which would otherwise drop it.
+                val linkPreview = composerLinkPreview?.take(textToSend)
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
                 if (replyToMessageId != null) dispatchEvent(Event.CancelReply)
@@ -3162,9 +3169,15 @@ internal class ChatViewModel @AssistedInject constructor(
                             replyToMessageId,
                             linkPreview = linkPreview,
                         )
-                    } else {
+                    } else if (linkPreview == null) {
                         chatCoordinator.sendMedia(chatId, photos.map { it.id }, textToSend.trim(), replyToMessageId)
                             .onFailure { dispatchEvent(Event.PhotosRestored(photos)) }
+                    } else {
+                        // A caption carries no preview, so the text follows the photos as its own
+                        // message. The reply goes on the photos, and the text goes either way.
+                        chatCoordinator.sendMedia(chatId, photos.map { it.id }, "", replyToMessageId)
+                            .onFailure { dispatchEvent(Event.PhotosRestored(photos)) }
+                        chatCoordinator.sendMessage(chatId, textToSend, null, linkPreview = linkPreview)
                     }
                     sent
                         .onSuccess {
@@ -3678,6 +3691,8 @@ internal class ChatViewModel @AssistedInject constructor(
                     )
                 }
                 is Event.UploadStatesChanged -> { state -> state.copy(uploadStates = event.states) }
+                is Event.ComposerLinkChanged -> { state -> state.copy(composerLink = event.link) }
+                Event.RemoveLinkPreview -> { state -> state }
                 is Event.PhotosSent -> { state ->
                     state.copy(stagedPhotos = state.stagedPhotos.filterNot { it.id in event.ids })
                 }

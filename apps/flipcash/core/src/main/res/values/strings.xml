@@ -1554,6 +1554,9 @@
     <string name="description_chatMediaShare">Share</string>
     <string name="title_chatMediaShare">Share photo</string>
     <string name="description_chatPhotoRemove">Remove photo</string>
+    <string name="description_chatLinkPreviewRemove">Remove link preview</string>
+    <string name="description_chatLinkPreviewLoading">Loading preview for %1$s</string>
+    <string name="description_chatLinkPreview">Preview for %1$s: %2$s</string>
     <string name="description_chatPhotoRetry">Retry photo upload</string>
     <string name="description_chatPhotoFailed">Photo can\'t be sent</string>
     <string name="description_chatPhotoUploadProgress">Photo upload progress</string>
