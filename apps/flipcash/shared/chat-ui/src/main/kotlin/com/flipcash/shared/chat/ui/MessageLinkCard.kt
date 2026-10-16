@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,10 @@ import androidx.compose.ui.draw.blur
 import android.os.Build
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import com.flipcash.shared.chat.media.ChatPhoto
+import com.flipcash.shared.common.ui.rememberBlurHashPainter
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -93,7 +98,7 @@ internal fun MessageLinkCard(
             is State.Gated -> {
                 Header(state.source)
                 Excerpt(state.message)
-                val redacted = (state.message.body as? Body.Text)?.redacted == true
+                val redacted = state.message.body.withheld
                 if (redacted) state.requirement?.let { RequirementLine(it) }
                 CardButton(
                     text = stringResource(if (redacted) R.string.action_buy else R.string.action_join),
@@ -108,7 +113,7 @@ internal fun MessageLinkCard(
                         state.source.title ?: stringResource(R.string.label_linkCard_untitledGroup),
                     ),
                     style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textSecondary,
+                    color = MessageLinkCardDefaults.SECONDARY,
                 )
                 val members = pluralStringResource(
                     R.plurals.subtitle_chatMemberCount,
@@ -120,7 +125,7 @@ internal fun MessageLinkCard(
                         ?.let { stringResource(R.string.label_messageLink_membersHostedBy, members, it) }
                         ?: members,
                     style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary,
+                    color = MessageLinkCardDefaults.SECONDARY,
                 )
                 CardButton(text = stringResource(R.string.action_messageLink_request), onClick = onOpen)
             }
@@ -132,7 +137,7 @@ internal fun MessageLinkCard(
                 Text(
                     text = stringResource(R.string.label_messageLink_lockedDirect),
                     style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textSecondary,
+                    color = MessageLinkCardDefaults.SECONDARY,
                 )
             }
         }
@@ -191,7 +196,7 @@ private fun HeaderRow(title: String, kind: String?, avatar: @Composable () -> Un
             Text(
                 text = it,
                 style = CodeTheme.typography.textSmall,
-                color = CodeTheme.colors.textSecondary,
+                color = MessageLinkCardDefaults.SECONDARY,
                 maxLines = 1,
             )
         }
@@ -211,11 +216,11 @@ private fun PlaceholderAvatar() {
 private fun Excerpt(excerpt: LinkCard.Message.Excerpt) {
     val author = when {
         excerpt.isFromSelf -> stringResource(R.string.label_messageLink_you)
-        else -> excerpt.author
+        else -> excerpt.author ?: stringResource(R.string.label_messageLink_someone)
     }
     val body = excerpt.body
     val byline = when {
-        body is Body.Cash && author != null -> stringResource(
+        body is Body.Cash -> stringResource(
             if (body.tipped) R.string.label_messageLink_tipped else R.string.label_messageLink_sent,
             author,
         )
@@ -223,12 +228,17 @@ private fun Excerpt(excerpt: LinkCard.Message.Excerpt) {
     }
     val time = formatLastActivity(excerpt.sentAt)
     Text(
-        text = byline?.let { stringResource(R.string.label_messageLink_byline, it, time) } ?: time,
+        text = stringResource(R.string.label_messageLink_byline, byline, time),
         style = CodeTheme.typography.textSmall,
-        color = CodeTheme.colors.textSecondary,
+        color = MessageLinkCardDefaults.SECONDARY,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
+    ExcerptBody(body)
+}
+
+@Composable
+private fun ExcerptBody(body: Body) {
     when (body) {
         is Body.Text -> Text(
             modifier = Modifier.then(
@@ -255,11 +265,49 @@ private fun Excerpt(excerpt: LinkCard.Message.Excerpt) {
             color = CodeTheme.colors.textMain,
             maxLines = 1,
         )
+        // The thumbnail trails its caption; with no caption it stands alone, unlabelled.
+        is Body.Photo -> Row(
+            horizontalArrangement = Arrangement.spacedBy(MessageLinkCardDefaults.GAP),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(Modifier.weight(1f)) { body.caption?.let { ExcerptBody(it) } }
+            ChatPhotoThumbnail(
+                photo = body.photo,
+                blurHash = body.blurHash,
+                modifier = Modifier
+                    .size(MessageLinkCardDefaults.THUMBNAIL)
+                    .clip(RoundedCornerShape(MessageLinkCardDefaults.THUMBNAIL_RADIUS)),
+            )
+        }
         Body.Other -> Text(
             text = stringResource(R.string.label_messageLink_attachment),
             style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textSecondary,
+            color = MessageLinkCardDefaults.SECONDARY,
         )
+    }
+}
+
+/** BlurHash underneath, the photo over it once it loads; a null [photo] leaves only the BlurHash. */
+@Composable
+private fun ChatPhotoThumbnail(photo: ChatPhoto?, blurHash: String?, modifier: Modifier = Modifier) {
+    val blur = rememberBlurHashPainter(blurHash)
+    Box(modifier.background(MessageLinkCardDefaults.BAR)) {
+        if (blur != null) {
+            Image(
+                painter = blur,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+        if (photo != null) {
+            AsyncImage(
+                model = photo,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
     }
 }
 
@@ -273,7 +321,7 @@ private fun RequirementLine(requirement: LinkCard.GroupInvite.Requirement) {
             stringResource(R.string.label_chat_balanceRequirement_anyToken, amount)
         },
         style = CodeTheme.typography.textSmall,
-        color = CodeTheme.colors.textSecondary,
+        color = MessageLinkCardDefaults.SECONDARY,
     )
 }
 
@@ -287,7 +335,7 @@ private fun Footer(leading: String?, onOpen: (() -> Unit)?) {
             modifier = Modifier.weight(1f),
             text = leading.orEmpty(),
             style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
+            color = MessageLinkCardDefaults.SECONDARY,
             maxLines = 1,
         )
         if (onOpen != null) {
@@ -333,11 +381,16 @@ internal object MessageLinkCardDefaults {
     /** Skeleton bars and the placeholder avatar. */
     val BAR = Color.White.copy(alpha = 0.12f)
 
+    /** Kind, byline, footer and dim lines: white at 60%, as iOS draws them. */
+    val SECONDARY = Color.White.copy(alpha = 0.6f)
+
     val SHAPE = RoundedCornerShape(12.dp)
     val PADDING = 12.dp
     val GAP = 6.dp
     val HEADER_GAP = 6.dp
-    val AVATAR = 20.dp
+    val AVATAR = 24.dp
+    val THUMBNAIL = 56.dp
+    val THUMBNAIL_RADIUS = 8.dp
     val BAR_HEIGHT = 10.dp
     val BUTTON_HEIGHT = 44.dp
     val REDACTED_BLUR = 6.dp

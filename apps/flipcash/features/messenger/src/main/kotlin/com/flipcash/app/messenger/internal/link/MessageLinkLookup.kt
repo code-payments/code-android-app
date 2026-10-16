@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.link
 
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
+import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.GetMessageError
@@ -9,6 +10,9 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.shared.chat.media.ChatPhoto
+import com.flipcash.shared.chat.ui.media.photoBody
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
@@ -47,6 +51,7 @@ internal class MessageLinkLookup @Inject constructor(
     private val chatController: ChatController,
     private val messaging: ChatMessagingController,
     private val profiles: ProfileController,
+    private val knownProfiles: UserProfileDataSource,
     private val userManager: UserManager,
     private val groups: GroupLinkLookup,
 ) {
@@ -68,7 +73,7 @@ internal class MessageLinkLookup @Inject constructor(
         val body = message.body() ?: return LinkCard.Message.State.Unresolved
         return LinkCard.Message.State.Resolved(
             source = source(chat),
-            message = excerpt(message, body, chat),
+            message = excerpt(message, body, chat, chat.chatId),
             reactionCount = message.reactions?.reactions?.sumOf { it.count } ?: 0,
         )
     }
@@ -87,7 +92,7 @@ internal class MessageLinkLookup @Inject constructor(
         val body = message.body() ?: return LinkCard.Message.State.Unresolved
         return LinkCard.Message.State.Gated(
             source = source(chat),
-            message = excerpt(message, body, chat = null),
+            message = excerpt(message, body, chat = null, chatId = chatId),
             requirement = groups.requirement(chat.rules),
         )
     }
@@ -118,6 +123,7 @@ internal class MessageLinkLookup @Inject constructor(
         message: ChatMessage,
         body: LinkCard.Message.Body,
         chat: ChatMetadata?,
+        chatId: ChatId,
     ): LinkCard.Message.Excerpt {
         val sender = message.senderId
         val isFromSelf = message.isFromSelf || (sender != null && sender == userManager.accountId)
@@ -128,12 +134,47 @@ internal class MessageLinkLookup @Inject constructor(
             author = author,
             isFromSelf = isFromSelf,
             sentAt = message.timestamp,
-            body = if (message.redacted && body is LinkCard.Message.Body.Text) body.copy(redacted = true) else body,
+            body = body.forReader(message, chatId),
         )
     }
 
+    /**
+     * Marks redacted text, and points a photo at its blob the way the transcript does (a sealed DM
+     * photo decrypts on load). A redacted message has no blob to point at, so it stays BlurHash only.
+     */
+    private fun LinkCard.Message.Body.forReader(message: ChatMessage, chatId: ChatId): LinkCard.Message.Body =
+        when (this) {
+            is LinkCard.Message.Body.Text -> if (message.redacted) copy(redacted = true) else this
+            is LinkCard.Message.Body.Photo -> copy(
+                caption = caption?.let { if (message.redacted) it.copy(redacted = true) else it },
+                photo = if (message.redacted) null else message.thumbnail()?.let { rendition ->
+                    ChatPhoto(
+                        chatId = chatId,
+                        rendition = rendition,
+                        senderId = message.senderId,
+                        sealed = message.encryption != null,
+                    )
+                },
+            )
+            else -> this
+        }
+
+    /** The smallest rendition that fills the card's thumbnail, as the transcript picks for a bubble. */
+    private fun ChatMessage.thumbnail(): MediaItemRendition? =
+        content.firstNotNullOfOrNull { it.photoBody() }
+            ?.items?.firstOrNull()
+            ?.let { it.renditionForSize(THUMBNAIL_PX) ?: it.rendition() }
+            ?.takeIf { it.blobId.bytes.isNotEmpty() }
+
+    /**
+     * A name the app already knows (any chat or saved profile) before a profile fetch, the order
+     * iOS uses, so a sender met elsewhere is named without a round-trip.
+     */
     private suspend fun name(userId: ID): String? =
-        profiles.getProfileForUser(userId).getOrNull()?.displayLabel()
+        knownProfiles.getCachedProfile(userId)?.displayLabel()
+            ?: profiles.getProfileForUser(userId).getOrNull()
+                ?.also { knownProfiles.store(userId, it) }
+                ?.displayLabel()
 
     private fun UserProfile.displayLabel(): String? = nameOrHandle(displayName, handle)
 
@@ -143,7 +184,11 @@ internal class MessageLinkLookup @Inject constructor(
     private fun MessageContent.body(): LinkCard.Message.Body? = when (this) {
         is MessageContent.Text -> LinkCard.Message.Body.Text(text)
         is MessageContent.Reply -> content.singleOrNull()?.body()
-        is MessageContent.Media -> caption?.let { LinkCard.Message.Body.Text(it.text) } ?: LinkCard.Message.Body.Other
+        is MessageContent.Media -> LinkCard.Message.Body.Photo(
+            caption = caption?.text?.takeIf { it.isNotEmpty() }?.let { LinkCard.Message.Body.Text(it) },
+            photo = null,
+            blurHash = items.firstOrNull()?.renditions?.firstNotNullOfOrNull { it.blob?.image?.blurhash?.takeIf(String::isNotEmpty) },
+        )
         is MessageContent.Cash -> LinkCard.Message.Body.Cash(
             amount = amount.formatted(),
             tipped = action == MessageContent.Cash.Action.TIPPED,
@@ -160,3 +205,6 @@ internal class MessageLinkLookup @Inject constructor(
         else -> false
     }
 }
+
+/** The card's 56dp thumbnail at up to 3x density. */
+private const val THUMBNAIL_PX = 168

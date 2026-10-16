@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.ProfileController
@@ -98,6 +99,7 @@ class MessageLinkLookupTest {
         val chatController: ChatController = mock(),
         val messaging: ChatMessagingController = mock(),
         val profiles: ProfileController = mock(),
+        val knownProfiles: UserProfileDataSource = mock(),
         val groups: GroupLinkLookup = mock(),
     )
 
@@ -106,6 +108,7 @@ class MessageLinkLookupTest {
         chatController = deps.chatController,
         messaging = deps.messaging,
         profiles = deps.profiles,
+        knownProfiles = deps.knownProfiles,
         userManager = mock<UserManager> { on { accountId } doReturn myId },
         groups = deps.groups,
     )
@@ -160,6 +163,38 @@ class MessageLinkLookupTest {
         val gated = assertIs<LinkCard.Message.State.Gated>(state)
         assertEquals(LinkCard.Message.Body.Text("•••", redacted = true), gated.message.body)
         assertEquals("Ada", gated.message.author)
+    }
+
+    @Test
+    fun `a sender outside the roster is named from a profile the app already has`() = runTest {
+        val deps = Deps(chats = stored(null, isMember = null))
+        org.mockito.kotlin.whenever(deps.chatController.getChat(groupId, ViewMode.REDACTED))
+            .thenReturn(Result.success(chat(members = emptyList())))
+        org.mockito.kotlin.whenever(deps.messaging.getMessage(groupId, 42, ViewMode.FULL_OR_REDACTED))
+            .thenReturn(Result.success(message()))
+        org.mockito.kotlin.whenever(deps.knownProfiles.getCachedProfile(senderId)).thenReturn(profile("Ted"))
+
+        val state = lookup(deps)(card()).getOrThrow()
+
+        assertEquals("Ted", assertIs<LinkCard.Message.State.Gated>(state).message.author)
+        org.mockito.kotlin.verify(deps.profiles, org.mockito.kotlin.never()).getProfileForUser(any())
+    }
+
+    @Test
+    fun `a redacted photo carries no blob, only its BlurHash`() = runTest {
+        val deps = Deps(chats = stored(null, isMember = null))
+        org.mockito.kotlin.whenever(deps.chatController.getChat(groupId, ViewMode.REDACTED))
+            .thenReturn(Result.success(chat()))
+        org.mockito.kotlin.whenever(deps.messaging.getMessage(groupId, 42, ViewMode.FULL_OR_REDACTED))
+            .thenReturn(Result.success(message(content = MessageContent.Media(emptyList(), caption = null), redacted = true)))
+        org.mockito.kotlin.whenever(deps.profiles.getProfileForUser(any()))
+            .thenReturn(Result.success(profile("Ada")))
+
+        val state = lookup(deps)(card()).getOrThrow()
+
+        val body = assertIs<LinkCard.Message.Body.Photo>(assertIs<LinkCard.Message.State.Gated>(state).message.body)
+        assertEquals(null, body.photo)
+        assertEquals(null, body.caption)
     }
 
     @Test

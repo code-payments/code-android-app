@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.models
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.asHandle
 import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MediaItem
 import com.getcode.opencode.model.core.ID
@@ -348,8 +349,26 @@ sealed interface LinkCard {
             /** A payment: the amount, pre-formatted, and whether it was sent or tipped. */
             data class Cash(val amount: String, val tipped: Boolean) : Body
 
-            /** A photo or anything else with no text to excerpt. */
+            /**
+             * A photo, drawn as a thumbnail beside its [caption]. [photo] is null for a reader
+             * outside the chat's rules: the message then carries no blob, and only [blurHash] draws.
+             */
+            data class Photo(
+                val caption: Text?,
+                val photo: ChatPhoto?,
+                val blurHash: String?,
+            ) : Body
+
+            /** Anything else with no text to excerpt. */
             data object Other : Body
+
+            /** Whether the server withheld this message's content from the reader. */
+            val withheld: Boolean
+                get() = when (this) {
+                    is Text -> redacted
+                    is Photo -> photo == null || caption?.redacted == true
+                    else -> false
+                }
         }
     }
 }
