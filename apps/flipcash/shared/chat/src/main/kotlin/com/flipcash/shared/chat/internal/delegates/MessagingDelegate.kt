@@ -412,6 +412,18 @@ class MessagingDelegate @Inject constructor(
         return opened.takeIf { it.encryption is MessageEncryption.Decrypted }
     }
 
+    override suspend fun readMessage(chatId: ChatId, messageId: Long): Result<ChatMessage> = runCatching {
+        messageDataSource.getMessage(chatId, messageId)?.let { return@runCatching it }
+        val fetched = messagingController.getMessage(chatId, messageId).getOrThrow()
+        val opener = incoming
+        val selfId = userManager.accountId
+        if (opener == null || selfId == null || fetched.content.singleOrNull() !is MessageContent.Encrypted) {
+            return@runCatching fetched
+        }
+        val peerId = if (fetched.senderId == selfId) getOtherMember(chatId)?.userId else null
+        opener.open(chatId, selfId, peerId, listOf(fetched), stored = { null }).single()
+    }
+
     /** Text, photos and replies to either are what DMs encrypt; anything else keeps the server's body. */
     private fun MessageContent.pushText(): String? = when (this) {
         is MessageContent.Text -> text

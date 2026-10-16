@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -146,6 +147,7 @@ fun ContentBubble(
             rowWidth = maxWidth,
             rowInset = CodeTheme.dimens.inset,
         )
+        val messageCardWidth = maxWidth * CASH_CARD_WIDTH_FRACTION
 
         // A split message's citation goes on its first row and its marker on its last, so the
         // pieces read as one message stacked rather than as three.
@@ -178,7 +180,9 @@ fun ContentBubble(
                     card = card,
                     isFromSelf = item.isFromSelf,
                     position = position,
-                    maxWidth = bubbleMaxWidth,
+                    // A message card takes the cash card's width rather than a bubble's, so its
+                    // states read as one fixed card against the prose either side (iOS matches).
+                    maxWidth = if (card is LinkCard.Message) messageCardWidth else bubbleMaxWidth,
                     quote = quote,
                     onQuoteClick = onQuoteClick,
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
@@ -911,8 +915,12 @@ private fun BareLinkCard(
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
     val actionHandler = LocalChatActionHandler.current
+    val uriHandler = LocalUriHandler.current
     return { card ->
         when (card) {
+            // The transcript's handler follows a message link in the app: a jump in place when it
+            // points into this chat, a push with the way back otherwise.
+            is LinkCard.Message -> uriHandler.openUri(card.url)
             // The chat opens it, because only the chat knows whether this reader may collect it.
             // A voucher already being claimed would only start the same claim again.
             is LinkCard.Cash -> if ((card.state as? LinkCard.Cash.State.Resolved)?.claim != LinkCard.Cash.Claim.Claiming) {
