@@ -1055,9 +1055,6 @@
     <!-- Web link card chip, shown to a viewer outside the group. -->
     <string name="action_webLinkCard_showPreview">Show preview · %1$s</string>
     <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
-    <string name="label_messageLink_unresolvedTitle">Flipcash</string>
-    <string name="label_messageLink_message">Message</string>
-    <string name="label_messageLink_kindPublicGroup">Public group</string>
     <string name="label_messageLink_kindPrivateGroup">Private group</string>
     <string name="label_messageLink_kindDirect">Direct message</string>
     <string name="label_messageLink_you">You</string>
@@ -1072,9 +1069,13 @@
         <item quantity="other">%1$s reactions</item>
     </plurals>
     <string name="label_messageLink_lockedGroup">Only members of %1$s can read this message.</string>
+    <string name="label_messageLink_deleted">This message was deleted.</string>
+    <string name="label_messageLink_settled">Settled on Solana</string>
+    <string name="label_messageLink_timeNow">now</string>
+    <string name="label_messageLink_timeMinutes">%1$dm</string>
+    <string name="label_messageLink_timeHours">%1$dh</string>
     <string name="label_messageLink_lockedDirect">Only the two people in this chat can read it.</string>
     <string name="label_messageLink_membersHostedBy">%1$s · Hosted by %2$s</string>
-    <string name="action_messageLink_open">Open</string>
     <string name="action_messageLink_request">Request</string>
 
     <!-- Chat message selection bar and its actions -->

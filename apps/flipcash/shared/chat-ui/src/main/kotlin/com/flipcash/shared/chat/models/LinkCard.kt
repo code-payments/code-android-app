@@ -284,10 +284,13 @@ sealed interface LinkCard {
             data object Loading : State
 
             /**
-             * Nothing to show beyond the URL: the lookup failed, or the message is deleted or not
-             * there. Drawn as the skeleton at rest; resolution failing is never an error on a card.
+             * Nothing to show beyond the URL: the lookup failed, or the message is not there. Drawn
+             * as the skeleton at rest; resolution failing is never an error on a card.
              */
             data object Unresolved : State
+
+            /** The message was deleted. Its chat still names itself; the message says only that. */
+            data class Deleted(val source: Source) : State
 
             /** The viewer is in the chat, or the chat is a public group whose rules let them read. */
             data class Resolved(

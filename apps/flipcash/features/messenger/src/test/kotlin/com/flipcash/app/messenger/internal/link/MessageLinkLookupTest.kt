@@ -258,12 +258,13 @@ class MessageLinkLookupTest {
     }
 
     @Test
-    fun `a deleted message is unresolved`() = runTest {
+    fun `a deleted message names its chat and nothing more`() = runTest {
         val deps = Deps(chats = stored(chat(), isMember = true))
         org.mockito.kotlin.whenever(deps.chats.readMessage(groupId, 42))
             .thenReturn(Result.success(message(content = MessageContent.Deleted(sentAt, senderId))))
 
-        assertEquals(LinkCard.Message.State.Unresolved, lookup(deps)(card()).getOrThrow())
+        val state = assertIs<LinkCard.Message.State.Deleted>(lookup(deps)(card()).getOrThrow())
+        assertEquals("Moony", state.source.title)
     }
 
     @Test

@@ -39,7 +39,7 @@ import kotlin.time.Instant
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w402dp-h2200dp-xhdpi")
+@Config(qualifiers = "w402dp-h3200dp-xhdpi")
 class MessageLinkCardScreenshotTest {
 
     @get:Rule
@@ -61,7 +61,24 @@ class MessageLinkCardScreenshotTest {
         State.Loading,
         State.Unresolved,
         State.Resolved(source(Kind.PublicGroup), excerpt(text), reactionCount = 12),
+        State.Resolved(
+            source(Kind.PublicGroup, "Release Channel"),
+            excerpt(Body.Text("v2.4 is out\n\n- Message links\n- Faster sync\n- Fixes")),
+            reactionCount = 0,
+        ),
+        State.Resolved(
+            source(Kind.PublicGroup),
+            excerpt(Body.Photo(caption = Body.Text("Sunset from the roof"), photo = null, blurHash = null)),
+            reactionCount = 0,
+        ),
+        State.Resolved(source(Kind.PublicGroup), excerpt(Body.Photo(caption = null, photo = null, blurHash = null)), reactionCount = 0),
         State.Resolved(source(Kind.DirectMessage, "Ada"), excerpt(Body.Cash("$5.00", tipped = true)), reactionCount = 0),
+        State.Resolved(
+            source(Kind.DirectMessage, "Ada"),
+            excerpt(Body.CashLink("$20.00", LinkCard.Cash.Claim.Claimed)),
+            reactionCount = 0,
+        ),
+        State.Deleted(source(Kind.PublicGroup)),
         State.Gated(source(Kind.PublicGroup), excerpt(text), requirement = null),
         State.Gated(
             source(Kind.PublicGroup),

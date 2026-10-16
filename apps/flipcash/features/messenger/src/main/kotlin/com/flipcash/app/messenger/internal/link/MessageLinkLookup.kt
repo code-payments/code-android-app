@@ -70,6 +70,7 @@ internal class MessageLinkLookup @Inject constructor(
 
     private suspend fun member(chat: ChatMetadata, messageId: Long): LinkCard.Message.State {
         val message = chats.readMessage(chat.chatId, messageId).getOrThrow()
+        if (message.isDeleted) return LinkCard.Message.State.Deleted(source(chat))
         val body = message.body() ?: return LinkCard.Message.State.Unresolved
         return LinkCard.Message.State.Resolved(
             source = source(chat),
@@ -89,6 +90,7 @@ internal class MessageLinkLookup @Inject constructor(
             )
         }
         val message = messaging.getMessage(chatId, messageId, ViewMode.FULL_OR_REDACTED).getOrThrow()
+        if (message.isDeleted) return LinkCard.Message.State.Deleted(source(chat))
         val body = message.body() ?: return LinkCard.Message.State.Unresolved
         return LinkCard.Message.State.Gated(
             source = source(chat),
@@ -180,6 +182,8 @@ internal class MessageLinkLookup @Inject constructor(
 
     /** The card's body for this message, or null when there is nothing to show: deleted or sealed. */
     private fun ChatMessage.body(): LinkCard.Message.Body? = content.singleOrNull()?.body()
+
+    private val ChatMessage.isDeleted: Boolean get() = content.singleOrNull() is MessageContent.Deleted
 
     private fun MessageContent.body(): LinkCard.Message.Body? = when (this) {
         is MessageContent.Text -> LinkCard.Message.Body.Text(text)
