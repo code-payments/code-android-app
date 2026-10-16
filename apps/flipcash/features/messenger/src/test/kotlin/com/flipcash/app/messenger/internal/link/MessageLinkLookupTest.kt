@@ -7,12 +7,15 @@ import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.GetMessageError
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EmojiReaction
+import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ViewMode
@@ -195,6 +198,21 @@ class MessageLinkLookupTest {
         val body = assertIs<LinkCard.Message.Body.Photo>(assertIs<LinkCard.Message.State.Gated>(state).message.body)
         assertEquals(null, body.photo)
         assertEquals(null, body.caption)
+    }
+
+    @Test
+    fun `a photo whose rendition came without metadata still loads by its blob id`() = runTest {
+        val rendition = MediaItemRendition(MediaItemRendition.Role.ORIGINAL, BlobId(byteArrayOf(9, 8, 7)), blob = null)
+        val photo = MessageContent.Media(listOf(MediaItem(listOf(rendition))), caption = MessageContent.Text("With words"))
+        val chats = stored(chat(), isMember = true)
+        org.mockito.kotlin.whenever(chats.readMessage(groupId, 42)).thenReturn(
+            Result.success(message(content = MessageContent.Reply(repliedMessageId = 41, content = listOf(photo)))),
+        )
+
+        val state = lookup(Deps(chats = chats))(card()).getOrThrow()
+
+        val body = assertIs<LinkCard.Message.Body.Photo>(assertIs<LinkCard.Message.State.Resolved>(state).message.body)
+        assertEquals(rendition, body.photo?.rendition)
     }
 
     @Test

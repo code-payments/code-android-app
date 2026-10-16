@@ -163,11 +163,15 @@ internal class MessageLinkLookup @Inject constructor(
             else -> this
         }
 
-    /** The smallest rendition that fills the card's thumbnail, as the transcript picks for a bubble. */
+    /**
+     * The smallest rendition that fills the card's thumbnail, as the transcript picks for a bubble.
+     * A rendition the server sent without its blob metadata is still loadable by id, so the first
+     * one stands in when none carries any, as it does in the transcript.
+     */
     private fun ChatMessage.thumbnail(): MediaItemRendition? =
         content.firstNotNullOfOrNull { it.photoBody() }
             ?.items?.firstOrNull()
-            ?.let { it.renditionForSize(THUMBNAIL_PX) ?: it.rendition() }
+            ?.let { it.renditionForSize(THUMBNAIL_PX) ?: it.rendition() ?: it.renditions.firstOrNull() }
             ?.takeIf { it.blobId.bytes.isNotEmpty() }
 
     /**
