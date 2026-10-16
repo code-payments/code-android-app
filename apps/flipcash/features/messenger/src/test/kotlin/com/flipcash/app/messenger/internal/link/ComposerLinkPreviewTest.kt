@@ -107,6 +107,15 @@ class ComposerLinkPreviewTest {
     }
 
     @Test
+    fun `a capitalised scheme gets no preview, since the send could not carry it`() =
+        withPreview(MutableStateFlow("Https://example.com/a")) { preview ->
+            settle()
+
+            assertNull(preview.state.value)
+            assertNull(preview.take("Https://example.com/a"))
+        }
+
+    @Test
     fun `removing keeps the preview off while the link stays`() {
         val draft = MutableStateFlow("look https://example.com/a")
         withPreview(draft) { preview ->

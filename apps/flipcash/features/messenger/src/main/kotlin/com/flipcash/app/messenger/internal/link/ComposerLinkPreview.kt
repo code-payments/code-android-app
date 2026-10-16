@@ -116,8 +116,14 @@ internal class ComposerLinkPreview @Inject constructor(
         _state.value = null
     }
 
+    /**
+     * The link to preview, only when the send could carry it. The detector lowercases a scheme the
+     * keyboard capitalised ("Https://"), and the server matches the preview's url against the text
+     * byte for byte, so such a link would show a card that is then dropped at send.
+     */
     private fun firstWebUrl(text: String): String? =
         (classifier.firstCard(detectUrls(text)) as? LinkCard.Web)?.url
+            ?.takeIf { LinkPreviewChecks.wholeLink(text, it) }
 
     private suspend fun prepare(scope: CoroutineScope, chatId: ChatId, url: String) {
         val host = hostOf(url)
