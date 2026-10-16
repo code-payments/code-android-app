@@ -1,5 +1,9 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.shared.chat.media.ChatPhoto
+import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.services.models.chat.LinkPreview
+import com.flipcash.shared.chat.ui.linkPreview
 import android.content.ClipboardManager
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
@@ -18,8 +22,6 @@ import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.map
 import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.featureflags.NoOpFeatureFlagController
 import com.flipcash.analytics.CashLinkChoice
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
@@ -132,8 +134,8 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.models.splitAroundLinkCard
-import coil3.ImageLoader
-import com.flipcash.app.messenger.internal.link.WebPreviewImages
+import com.flipcash.app.messenger.internal.link.ComposerLinkPreview
+import com.flipcash.app.messenger.internal.link.ComposerLinkPreviewState
 import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionStrip
@@ -198,6 +200,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -291,10 +294,9 @@ internal class ChatViewModel @AssistedInject constructor(
     private val hostLobbies: HostLobbies,
     private val groupRosters: GroupRosters,
     private val dispatchers: DispatcherProvider,
-    // Last and defaulted so the transcript tests, which draw no pictures, need not supply one.
-    @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
+    // Last and defaulted so the transcript tests, which hold no saved previews, need not supply one.
     linkCardMemory: LinkCardMemory? = null,
-    featureFlags: FeatureFlagController = NoOpFeatureFlagController,
+    private val composerLinkPreview: ComposerLinkPreview? = null,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(
         openingAtMessage = openAtMessageId != null,
@@ -304,12 +306,6 @@ internal class ChatViewModel @AssistedInject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
-
-    /**
-     * Whether web link previews are on. Observed rather than read once, because the flag can flip
-     * in the staff menu while a chat is open. Off means no web card is drawn at all.
-     */
-    val webLinkPreviewsEnabled: StateFlow<Boolean> = featureFlags.observe(FeatureFlag.WebLinkPreviews)
 
     /**
      * Whether the transcript may be drawn. Saved link previews load at app start, but a chat opened
@@ -415,6 +411,8 @@ internal class ChatViewModel @AssistedInject constructor(
         val replyingTo: ChatQuote? = null,
         /** Photos staged in the composer, in the order they were added. Hidden, not dropped, while editing. */
         val stagedPhotos: List<StagedPhoto> = emptyList(),
+        /** The draft link's preview card, or null when the draft has no previewable link. */
+        val composerLink: ComposerLinkPreviewState? = null,
         /** Where each staged photo's upload is; a chip with no entry yet is still being picked up. */
         val uploadStates: Map<String, ChatMediaUploadState> = emptyMap(),
         /**
@@ -951,6 +949,10 @@ internal class ChatViewModel @AssistedInject constructor(
         /** The shot for [uri] was written, or, when not [saved], failed and leaves the composer. */
         data class CaptureFinished(val uri: Uri, val saved: Boolean) : Event
         data class RemovePhoto(val id: String) : Event
+        data class ComposerLinkChanged(val link: ComposerLinkPreviewState?) : Event
+
+        /** The × on the draft link's preview card. */
+        data object RemoveLinkPreview : Event
         data class RetryPhoto(val id: String) : Event
         data class UploadStatesChanged(val states: Map<String, ChatMediaUploadState>) : Event
 
@@ -1413,6 +1415,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     val linkableText = enriched.linkableText()
                     val links = linkableText?.let(::detectUrls).orEmpty()
                     val linkCard = linkCardClassifier.firstCard(links)
+                        .withSenderPreview(content.linkPreview(), message, stateFlow.value.chatId)
 
                     // Detected over the whole text, beside the links, so a handle inside a link
                     // stays the link's. Nothing is looked up until one is tapped.
@@ -3262,6 +3265,28 @@ internal class ChatViewModel @AssistedInject constructor(
     }
 
     private fun initSendHandlers() {
+        composerLinkPreview?.let { preview ->
+            stateFlow.mapNotNull { it.chatId }
+                .distinctUntilChanged()
+                .onEach { chatId ->
+                    coroutineScope {
+                        // An edit keeps the message's own preview, so its text builds none.
+                        val draft = combine(
+                            snapshotFlow { stateFlow.value.chatInputState.text.toString() },
+                            stateFlow.map { it.editing != null }.distinctUntilChanged(),
+                        ) { text, editing -> if (editing) "" else text }
+                        preview.bind(this, chatId, draft)
+                    }
+                }
+                .launchIn(viewModelScope)
+            preview.state
+                .onEach { dispatchEvent(Event.ComposerLinkChanged(it)) }
+                .launchIn(viewModelScope)
+            eventFlow.filterIsInstance<Event.RemoveLinkPreview>()
+                .onEach { preview.dismiss() }
+                .launchIn(viewModelScope)
+        }
+
         // Send text message
         eventFlow.filterIsInstance<Event.SendMessage>()
             .onEach {
@@ -3273,6 +3298,9 @@ internal class ChatViewModel @AssistedInject constructor(
                 // Read here, not in the reducer: the reply strip comes down with the draft, and
                 // both are the composer emptying itself once the message is on its way.
                 val replyToMessageId = stateFlow.value.replyingTo?.messageId
+
+                // Taken before the draft empties, which would otherwise drop it.
+                val linkPreview = composerLinkPreview?.take(textToSend)
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
                 if (replyToMessageId != null) dispatchEvent(Event.CancelReply)
@@ -3286,10 +3314,21 @@ internal class ChatViewModel @AssistedInject constructor(
 
                 viewModelScope.launch {
                     val sent = if (photos.isEmpty()) {
-                        chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
-                    } else {
+                        chatCoordinator.sendMessage(
+                            chatId,
+                            textToSend,
+                            replyToMessageId,
+                            linkPreview = linkPreview,
+                        )
+                    } else if (linkPreview == null) {
                         chatCoordinator.sendMedia(chatId, photos.map { it.id }, textToSend.trim(), replyToMessageId)
                             .onFailure { dispatchEvent(Event.PhotosRestored(photos)) }
+                    } else {
+                        // A caption carries no preview, so the text follows the photos as its own
+                        // message. The reply goes on the photos, and the text goes either way.
+                        chatCoordinator.sendMedia(chatId, photos.map { it.id }, "", replyToMessageId)
+                            .onFailure { dispatchEvent(Event.PhotosRestored(photos)) }
+                        chatCoordinator.sendMessage(chatId, textToSend, null, linkPreview = linkPreview)
                     }
                     sent
                         .onSuccess {
@@ -3660,7 +3699,6 @@ internal class ChatViewModel @AssistedInject constructor(
         /** The longest the first draw of a transcript waits for saved link previews to load. */
         val PREVIEWS_WAIT = 300.milliseconds
 
-
         /**
          * How often a visible claimable voucher is re-asked about.
          *
@@ -3846,6 +3884,8 @@ internal class ChatViewModel @AssistedInject constructor(
                     )
                 }
                 is Event.UploadStatesChanged -> { state -> state.copy(uploadStates = event.states) }
+                is Event.ComposerLinkChanged -> { state -> state.copy(composerLink = event.link) }
+                Event.RemoveLinkPreview -> { state -> state }
                 is Event.PhotosSent -> { state ->
                     state.copy(stagedPhotos = state.stagedPhotos.filterNot { it.id in event.ids })
                 }
@@ -4041,6 +4081,30 @@ private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
         )
     }
     return copy(quickReactionStrip = strip)
+}
+
+/**
+ * The web card resolved from the preview its sender built, when the preview is for this card's
+ * link: the reader then fetches nothing. Any other card, or a preview for another link, is left as
+ * classified.
+ */
+private fun LinkCard?.withSenderPreview(preview: LinkPreview?, message: ChatMessage, chatId: ChatId?): LinkCard? {
+    if (this !is LinkCard.Web || preview == null || preview.url != url) return this
+    val rendition = preview.image?.let { it.rendition(MediaItemRendition.Role.ORIGINAL) ?: it.renditions.firstOrNull() }
+    val photo = if (rendition != null && chatId != null) {
+        ChatPhoto(chatId, rendition, message.senderId, sealed = message.encryption != null)
+    } else {
+        null
+    }
+    return copy(
+        state = LinkCard.Web.State.Resolved(
+            title = preview.title,
+            description = preview.description.ifEmpty { null },
+            imageUrl = null,
+            host = Uri.parse(url).host.orEmpty().lowercase().removePrefix("www."),
+            photo = photo,
+        ),
+    )
 }
 
 /** See [ChatViewModel.State.messageLinkLanding]. */

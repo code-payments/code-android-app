@@ -45,14 +45,7 @@ class WebCardOutlineTest {
         host = "example.com",
     )
 
-    private fun state(resolved: LinkCard.Web.State.Resolved?, loading: Boolean) = WebLinkCardState(
-        url = url,
-        resolved = resolved,
-        chipHost = null,
-        loading = loading,
-        host = "example.com",
-        ask = {},
-    )
+    private fun state(resolved: LinkCard.Web.State.Resolved) = WebLinkCardState(url = url, resolved = resolved)
 
     /**
      * The pixel at mid width on the panel's bottom row, and one a few rows above it. Both sit on the
@@ -72,27 +65,20 @@ class WebCardOutlineTest {
             }
         }
         repeat(5) { composeRule.mainClock.advanceTimeByFrame() }
-        val tag = if (state.loading) WEB_LINK_PLACEHOLDER_TAG else WEB_LINK_CARD_TAG
-        val pixels = composeRule.onNodeWithTag(tag).captureToImage().toPixelMap()
+        val pixels = composeRule.onNodeWithTag(WEB_LINK_CARD_TAG).captureToImage().toPixelMap()
         val x = pixels.width / 2
         return pixels[x, pixels.height - 1] to pixels[x, pixels.height - 4]
     }
 
     @Test
     fun `a bare resolved card draws an edge unlike its panel`() {
-        val (edge, inside) = edgeAndInside(state(resolved, loading = false), bare = true)
-        assertNotEquals(inside, edge, "the bottom row should be the outline, not the panel")
-    }
-
-    @Test
-    fun `a bare placeholder draws the same edge`() {
-        val (edge, inside) = edgeAndInside(state(null, loading = true), bare = true)
+        val (edge, inside) = edgeAndInside(state(resolved), bare = true)
         assertNotEquals(inside, edge, "the bottom row should be the outline, not the panel")
     }
 
     @Test
     fun `a card inside a bubble draws no outline`() {
-        val (edge, inside) = edgeAndInside(state(resolved, loading = false), bare = false)
+        val (edge, inside) = edgeAndInside(state(resolved), bare = false)
         assertEquals(inside, edge, "an in-bubble card's bottom row should be its panel")
     }
 }

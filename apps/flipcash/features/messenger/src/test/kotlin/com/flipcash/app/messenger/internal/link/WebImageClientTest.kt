@@ -62,8 +62,8 @@ class WebImageClientTest {
         val interceptor = Interceptor { chain -> chain.request().also { seen += it }.let(handler) }
     }
 
-    private fun client(script: Script, enabled: Boolean = true): OkHttpClient =
-        webImageClient(enabled = { enabled }).newBuilder().addInterceptor(script.interceptor).build()
+    private fun client(script: Script): OkHttpClient =
+        webImageClient().newBuilder().addInterceptor(script.interceptor).build()
 
     /** The bytes the caller would decode, or the failure it would see. */
     private fun load(
@@ -74,8 +74,8 @@ class WebImageClientTest {
         client.newCall(Request.Builder().url(url).apply(configure).build()).execute().use { it.body.bytes() }
     }
 
-    private fun load(script: Script, url: String = "https://example.com/a.png", enabled: Boolean = true) =
-        load(client(script, enabled), url)
+    private fun load(script: Script, url: String = "https://example.com/a.png") =
+        load(client(script), url)
 
     /** The client only requests port 443, so a test server is reached by moving the call after the checks. */
     private fun portTo(port: Int) = Interceptor { chain ->
@@ -273,13 +273,6 @@ class WebImageClientTest {
         assertTrue(load(Script { reply(it, code = 404) }).isFailure)
         assertTrue(load(Script { reply(it, code = 503) }).isFailure)
         assertTrue(load(Script { throw IOException("down") }).isFailure)
-    }
-
-    @Test
-    fun `with the flag off nothing is requested`() {
-        val script = Script { reply(it) }
-        assertTrue(load(script, enabled = false).isFailure)
-        assertTrue(script.seen.isEmpty())
     }
 
     @Test

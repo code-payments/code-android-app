@@ -394,7 +394,7 @@ fun ChatListItem.ContentBubble.rendersBare(): Boolean =
 
 /**
  * [rendersBare], plus the case only composition can answer: a message that is nothing but a web
- * link whose card has resolved, or is loading behind a placeholder, draws as the card alone (see [TextBubble]), so its "Edited" marker
+ * link whose card has resolved, draws as the card alone (see [TextBubble]), so its "Edited" marker
  * comes out below it like a Flipcash card row's. Asks the same [rememberWebLinkCard] the bubble
  * does, so the two agree on every frame.
  *
@@ -406,7 +406,7 @@ fun ChatListItem.ContentBubble.rememberRendersBare(): Boolean {
     if (rendersBare()) return true
     val web = linkOnlyWebCard() ?: return false
     val state = rememberWebLinkCard(web)
-    return state.resolved != null || state.loading
+    return state.resolved != null
 }
 
 /**
@@ -515,14 +515,14 @@ private fun TextBubble(
     val surround = if (quote != null) BubbleDefaults.surroundInset else BubbleDefaults.paddingHorizontal
     val bodyInset = BubbleDefaults.paddingHorizontal - surround
     // Asked here rather than in the card so the bubble can widen for a card that draws: the image
-    // would otherwise be squeezed to the text's width. A chip, a card still loading and an empty
-    // answer leave the bubble text-sized.
+    // would otherwise be squeezed to the text's width. A link with no preview leaves the bubble
+    // text-sized.
     val web = webCard?.let { rememberWebLinkCard(it) }
     val cardDrawn = web?.resolved != null
     // A link-only message holds the card's place while its lookup runs, so the link never shows
     // and the card then fills the same slot. An empty or failed answer ends the wait, and the text
     // bubble with the link takes over.
-    if (web != null && webCardAlone && (cardDrawn || web.loading)) {
+    if (web != null && webCardAlone && cardDrawn) {
         BareWebCard(
             web = web,
             isFromSelf = isFromSelf,
@@ -718,9 +718,7 @@ private fun TextBubble(
  * Laid out as [BareLinkCard] is -- through [Bubble] with `bare`, so the jump flash and the width
  * ceiling stay where every bubble gets them, and a reply's citation above the card.
  *
- * Only reached while the card is resolved or its lookup is running, when [WebLinkCard] draws a
- * placeholder in its place. Should the answer come back empty, [TextBubble] draws the text bubble
- * with the link again.
+ * Only reached while the card is resolved; a link with no preview draws as the text bubble.
  */
 @Composable
 private fun BareWebCard(

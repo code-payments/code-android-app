@@ -234,18 +234,15 @@ internal fun LinkCardView(
  * answer.
  */
 @Composable
-internal fun rememberResolvedCard(card: LinkCard, fetch: Boolean = true): LinkCard {
+internal fun rememberResolvedCard(card: LinkCard): LinkCard {
     val resolution = LocalLinkCardResolution.current
     val revision by resolution.revision.collectAsState()
     var live by remember(card) { mutableStateOf(resolution.peek(card) ?: card) }
 
     // Keyed on the card, so a row recomposed onto a different message drops the previous link's
     // query instead of finishing it into the new card.
-    //
-    // [fetch] false still peeks, since a held answer costs no request, but asks nothing: a web card
-    // outside the group waits for a tap before this device contacts the site.
-    LaunchedEffect(card, revision, fetch) {
-        if (fetch) live = resolution.resolve(card)
+    LaunchedEffect(card, revision) {
+        live = resolution.resolve(card)
     }
 
     return live

@@ -2,6 +2,7 @@ package com.flipcash.app.persistence.converters
 
 import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.services.models.VerifiableContactMethod
+import com.flipcash.services.models.chat.LinkPreview
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -81,6 +82,24 @@ class ChatTypeConvertersTest {
         val original = listOf(MessageContentSerialized.Text("hello"))
         val serialized = converter.toMessageContentList(original)
         val deserialized = converter.fromMessageContentList(serialized)
+        assertEquals(original, deserialized)
+    }
+
+    @Test
+    fun `text row stored before link previews existed still decodes`() {
+        val old = """[{"type":"text","text":"hello"}]"""
+        assertEquals(listOf(MessageContentSerialized.Text("hello")), converter.fromMessageContentList(old))
+    }
+
+    @Test
+    fun `text with a link preview round-trips`() {
+        val original = listOf(
+            MessageContentSerialized.Text(
+                "see https://example.com",
+                LinkPreview(url = "https://example.com", title = "Example", description = "A page"),
+            ),
+        )
+        val deserialized = converter.fromMessageContentList(converter.toMessageContentList(original))
         assertEquals(original, deserialized)
     }
 

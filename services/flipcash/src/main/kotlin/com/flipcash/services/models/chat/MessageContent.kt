@@ -6,7 +6,12 @@ import com.getcode.solana.keys.Mint
 import kotlin.time.Instant
 
 sealed interface MessageContent {
-    data class Text(val text: String) : MessageContent
+    /**
+     * [linkPreview] is the sender-built preview of a link in [text] (`TextContent.link_previews`,
+     * first entry; later ones are ignored). Only a message's text and a reply's text body carry
+     * one; a media caption never does.
+     */
+    data class Text(val text: String, val linkPreview: LinkPreview? = null) : MessageContent
     data class Cash(
         val intentId: ID,
         val amount: Fiat,

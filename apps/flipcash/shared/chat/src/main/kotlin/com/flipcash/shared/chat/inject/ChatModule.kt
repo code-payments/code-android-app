@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.inject
 
+import com.flipcash.shared.chat.link.LinkPreviewImages
+import com.flipcash.shared.chat.link.UploadedLinkPreviewImages
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
@@ -70,6 +72,11 @@ abstract class ChatModule {
     abstract fun bindChatMediaSending(
         impl: MediaSendDelegate
     ): ChatMediaSending
+
+    @Binds
+    internal abstract fun bindLinkPreviewImages(
+        impl: UploadedLinkPreviewImages
+    ): LinkPreviewImages
 
     @Binds
     internal abstract fun bindOutgoingEncryption(
