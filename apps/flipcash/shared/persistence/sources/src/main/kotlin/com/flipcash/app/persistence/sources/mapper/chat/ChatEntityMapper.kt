@@ -411,7 +411,14 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
     is MessageContent.Widget -> MessageContentSerialized.WidgetShareProfile(
         username = (widget as? WidgetContent.ShareProfile)?.username,
     )
-    is MessageContent.System -> MessageContentSerialized.System(fallbackText = fallbackText)
+    is MessageContent.System -> when (val event = event) {
+        is MessageContent.SystemEvent.UserJoined -> MessageContentSerialized.System(
+            fallbackText = fallbackText,
+            joinedUser = event.userId.hexEncodedString(),
+            admittedBy = event.admittedBy?.hexEncodedString(),
+        )
+        null -> MessageContentSerialized.System(fallbackText = fallbackText)
+    }
     MessageContent.Unsupported -> MessageContentSerialized.Unsupported
     is MessageContent.Deleted -> MessageContentSerialized.Deleted(
         deletedAt = deletedTs.epochSeconds,
@@ -449,7 +456,10 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
         items = items,
         caption = caption?.let { MessageContent.Text(it.text) },
     )
-    is MessageContentSerialized.System -> MessageContent.System(fallbackText = fallbackText)
+    is MessageContentSerialized.System -> MessageContent.System(
+        fallbackText = fallbackText,
+        event = joinedUser?.let { MessageContent.SystemEvent.UserJoined(it.hexToIdExt(), admittedBy?.hexToIdExt()) },
+    )
     MessageContentSerialized.Unsupported -> MessageContent.Unsupported
     is MessageContentSerialized.Deleted -> MessageContent.Deleted(
         deletedTs = Instant.fromEpochSeconds(deletedAt),

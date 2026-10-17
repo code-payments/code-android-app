@@ -2,6 +2,8 @@ package com.flipcash.app.messenger.internal
 
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.isSystemBlank
+import com.getcode.util.resources.ResourceHelper
+import io.mockk.mockk
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -15,8 +17,11 @@ class SystemMessageItemTest {
 
     private val at = Instant.fromEpochMilliseconds(1_700_000_000_000)
 
+    // A notice with no event never reaches a string resource.
+    private val NoNames = mockk<ResourceHelper>()
+
     private fun item(text: String, id: Long = 7, index: Int = 0) =
-        systemMessageItem(id, index, at, MessageContent.System(text))
+        systemMessageItem(id, index, at, MessageContent.System(text), NoNames, selfId = null) { null }
 
     @Test
     fun `a notice becomes exactly one row with its own text`() {

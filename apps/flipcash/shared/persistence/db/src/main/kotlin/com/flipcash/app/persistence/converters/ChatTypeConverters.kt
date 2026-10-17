@@ -235,9 +235,16 @@ sealed interface MessageContentSerialized {
     @SerialName("widget_share_profile")
     data class WidgetShareProfile(val username: String?) : MessageContentSerialized
 
+    // Mirrors MessageContent.System. [joinedUser] is set for a UserJoined event, and
+    // [admittedBy] when someone let them in; both hex-encoded. Rows stored before the event was
+    // kept have neither and decode as fallback-only.
     @Serializable
     @SerialName("system")
-    data class System(val fallbackText: String) : MessageContentSerialized
+    data class System(
+        val fallbackText: String,
+        val joinedUser: String? = null,
+        val admittedBy: String? = null,
+    ) : MessageContentSerialized
 
     // Mirrors MessageContent.Unsupported: a content type the build that stored it didn't know.
     @Serializable
