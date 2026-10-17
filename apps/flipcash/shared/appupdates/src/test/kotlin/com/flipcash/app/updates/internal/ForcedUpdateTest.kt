@@ -45,17 +45,22 @@ class ForcedUpdateTest {
 
     private fun idleMain() = shadowOf(Looper.getMainLooper()).idle()
 
+    private fun resolved(
+        minimumVersion: Int?,
+        override: FieldOverride<Int?> = FieldOverride.None,
+        isStaff: Boolean = false,
+    ): ResolvedUserFlags = mockk {
+        every { this@mockk.minimumVersion } returns ResolvedFlag(minimumVersion, override)
+        every { this@mockk.isStaff } returns ResolvedFlag(isStaff, FieldOverride.None)
+    }
+
     private fun flags(
         minimumVersion: Int?,
         override: FieldOverride<Int?> = FieldOverride.None,
         isStaff: Boolean = false,
-    ) {
-        val resolved = mockk<ResolvedUserFlags> {
-            every { this@mockk.minimumVersion } returns ResolvedFlag(minimumVersion, override)
-            every { this@mockk.isStaff } returns ResolvedFlag(isStaff, FieldOverride.None)
-        }
-        every { userFlags.resolvedFlags } returns MutableStateFlow(resolved)
-    }
+    ): MutableStateFlow<ResolvedUserFlags> =
+        MutableStateFlow(resolved(minimumVersion, override, isStaff))
+            .also { every { userFlags.resolvedFlags } returns it }
 
     private fun TestScope.controller() = GooglePlayAppUpdateController(
         context = activity,
@@ -126,6 +131,30 @@ class ForcedUpdateTest {
         assertEquals(UpdateAvailability.UPDATE_AVAILABLE, controller.availableUpdate.value?.updateAvailability)
         // The gate shows, but there's no newer build for Play to install.
         assertIs<NoUpdateAvailableException>(start(controller).exceptionOrNull())
+    }
+
+    @Test
+    fun `a minimum raised after the check shows the gate without another resume`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        val flags = flags(minimumVersion = currentVersion)
+        val controller = controller()
+        controller.check()
+        assertNull(controller.availableUpdate.value)
+
+        flags.value = resolved(minimumVersion = currentVersion + 1)
+        idleMain()
+
+        assertEquals(UpdateAvailability.UPDATE_AVAILABLE, controller.availableUpdate.value?.updateAvailability)
+    }
+
+    @Test
+    fun `building the controller checks nothing on its own`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        flags(minimumVersion = currentVersion + 1)
+        val controller = controller()
+        idleMain()
+
+        assertNull(controller.availableUpdate.value)
     }
 
     @Test
