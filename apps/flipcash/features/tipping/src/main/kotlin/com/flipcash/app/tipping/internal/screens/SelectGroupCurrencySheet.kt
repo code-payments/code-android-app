@@ -2,17 +2,21 @@ package com.flipcash.app.tipping.internal.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,13 +28,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.core.ui.TokenBalanceRowStyling
 import com.flipcash.app.core.ui.TokenBalanceStyle
 import com.flipcash.app.core.ui.TokenSelectionStyle
 import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
@@ -41,19 +45,16 @@ import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tipping.R
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White10
-import com.getcode.theme.White50
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeScaffold
 
 /**
- * Node 10127:118100 — which currency the group's balance requirement is denominated in, with the
- * Total Balance card over the token list (node 10370:997).
+ * Node 10127:118100 — which currency the group's balance requirement is denominated in: the token
+ * list with an "Any Community Currency" entry after the last token.
  *
  * The list comes from [SelectTokenViewModel] but the *selection* does not: that view model's own
  * selected mint is the wallet's global one, and choosing a currency for a group being drafted must
@@ -61,8 +62,8 @@ import com.getcode.ui.theme.CodeScaffold
  * to [CreateGroupViewModel]'s draft, and the list is driven with [TokenPurpose.Balance] — the one
  * purpose that isn't a `TriggersChange` and so leaves the global selection alone.
  *
- * The card and the tokens are one selection: picking either replaces the other, and while All is
- * chosen no token is marked.
+ * The entry and the tokens are one selection: picking either replaces the other, and while All is
+ * chosen no token is marked. USDF stays in the list; the contract can't say "community only".
  */
 @Composable
 internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
@@ -72,6 +73,14 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
 
     val tokenViewModel = hiltViewModel<SelectTokenViewModel>()
     val tokenState by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
+
+    val rowStyling = rememberTokenBalanceRowStyling(
+        // Pill balances, dividers and a radio mark per row, which is
+        // TokenListPresentation.Default's treatment — the compact Sheet presentation drops
+        // all three, and this sheet shows all three.
+        balanceDisplayStyle = TokenBalanceStyle.Pill(),
+        selectionStyle = TokenSelectionStyle.Checkbox,
+    )
 
     CodeScaffold(
         topBar = {
@@ -87,51 +96,21 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
                 .fillMaxWidth()
                 .padding(padding),
             tokens = tokenState.tokens,
-            styling = rememberTokenBalanceRowStyling(
-                // Pill balances, dividers and a radio mark per row, which is
-                // TokenListPresentation.Default's treatment — the compact Sheet presentation drops
-                // all three, and this sheet shows all three.
-                balanceDisplayStyle = TokenBalanceStyle.Pill(),
-                selectionStyle = TokenSelectionStyle.Checkbox,
-            ),
+            styling = rowStyling,
             selectedToken = (state.currency as? GroupCurrency.Specific)?.mint,
             showSelections = true,
             presentation = TokenListPresentation.Default,
-            header = {
-                Column {
-                    AllCurrenciesCard(
-                        modifier = Modifier.padding(
-                            start = CardMargin,
-                            end = CardMargin,
-                            top = CodeTheme.dimens.grid.x3,
-                        ),
-                        selected = state.currency == GroupCurrency.All,
-                        total = state.totalBalance,
-                        amount = state.amount,
-                        satisfied = state.allCurrenciesSatisfied,
-                        onClick = {
-                            viewModel.dispatchEvent(
-                                CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All)
-                            )
-                            dismissSheet()
-                        },
-                    )
-
-                    // A label over nothing reads as a list that failed to load.
-                    if (!tokenState.tokens.isNullOrEmpty()) {
-                        Text(
-                            modifier = Modifier.padding(
-                                start = CodeTheme.dimens.inset,
-                                end = CodeTheme.dimens.inset,
-                                top = CodeTheme.dimens.grid.x5,
-                                bottom = CodeTheme.dimens.grid.x1,
-                            ),
-                            text = stringResource(R.string.title_specificCurrency),
-                            style = CodeTheme.typography.textSmall,
-                            color = White50,
+            footer = {
+                AnyCurrencyRow(
+                    selected = state.currency == GroupCurrency.All,
+                    styling = rowStyling,
+                    onClick = {
+                        viewModel.dispatchEvent(
+                            CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All)
                         )
-                    }
-                }
+                        dismissSheet()
+                    },
+                )
             },
             onTokenSelected = { token ->
                 viewModel.dispatchEvent(
@@ -154,78 +133,62 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
 }
 
 /**
- * The Total Balance card — node 10370:997 selected, 10372:1015 with a token picked instead, and
- * 10372:1126 when the total falls short.
- *
- * The subtitle reports the total against the amount whichever currency is selected, so a creator
- * choosing between All and a token can see what All would come to before picking it.
+ * The "Any Community Currency" entry, last in the list. It is the same radio selection as the token
+ * rows above it, so it takes its metrics from the same [TokenBalanceRowStyling] [TokenList] hands
+ * them (name style, icon size, vertical padding, check mark) and keeps the divider the rows have.
+ * The navigation-bar inset sits below it so the last row clears the gesture bar when scrolled to
+ * the end.
  */
 @Composable
-private fun AllCurrenciesCard(
+private fun AnyCurrencyRow(
     selected: Boolean,
-    total: Fiat,
-    amount: Fiat?,
-    satisfied: Boolean?,
+    styling: TokenBalanceRowStyling,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(CardCornerRadius)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(White05)
-            .border(
-                width = CodeTheme.dimens.border,
-                color = if (selected) White50 else CardOutline,
-                shape = shape,
-            )
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .padding(
-                horizontal = CodeTheme.dimens.inset - CardMargin,
-                vertical = CodeTheme.dimens.grid.x3,
-            ),
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AllCurrenciesIcon()
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(styling.contentPadding),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AllCurrenciesIcon(
+                    discSize = styling.iconSize,
+                    iconSize = styling.iconSize * (AllCurrenciesIconSize / AllCurrenciesDiscSize),
+                )
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.title_totalBalance),
-                style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = CodeTheme.colors.textMain,
-            )
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(R.string.title_anyCommunityCurrency),
+                    style = styling.nameTextStyle,
+                    color = CodeTheme.colors.textMain,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
 
-            val totalText = total.formatted()
-            Text(
-                text = when {
-                    amount == null -> stringResource(R.string.subtitle_totalBalance, totalText)
-                    satisfied == false -> stringResource(
-                        R.string.subtitle_totalBalanceNeeds,
-                        totalText,
-                        amount.formatted(rule = Fiat.FormattingRule.Truncated),
-                    )
-                    else -> stringResource(
-                        R.string.subtitle_totalBalanceMeets,
-                        totalText,
-                        amount.formatted(rule = Fiat.FormattingRule.Truncated),
-                    )
-                },
-                style = CodeTheme.typography.caption,
-                color = if (satisfied == false) CodeTheme.colors.errorText else White50,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            Image(
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .padding(start = CodeTheme.dimens.grid.x3),
+                painter = painterResource(
+                    if (selected) R.drawable.ic_checked else R.drawable.ic_unchecked
+                ),
+                contentDescription = null,
             )
         }
 
-        // The token rows' own mark, so the card reads as one more option in the same list.
-        Image(
-            painter = painterResource(
-                if (selected) R.drawable.ic_checked else R.drawable.ic_unchecked
-            ),
-            contentDescription = null,
-        )
+        HorizontalDivider(color = CodeTheme.colors.dividerVariant)
+        Spacer(Modifier.windowInsetsPadding(WindowInsets.navigationBars))
     }
 }
 
@@ -252,12 +215,5 @@ internal fun AllCurrenciesIcon(
     }
 }
 
-private val CardCornerRadius = 12.dp
-
-// The token rows pad their contents by `inset`. The card's margin and its own padding add up to the
-// same, so its icon and check line up with the rows' icons and radios.
-private val CardMargin: Dp
-    @Composable get() = CodeTheme.dimens.grid.x2
-private val CardOutline = White.copy(alpha = 0.15f)
 private val AllCurrenciesDiscSize = 32.dp
 private val AllCurrenciesIconSize = 20.dp

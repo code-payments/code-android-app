@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -35,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -311,7 +313,7 @@ private fun IdentityCard(
 }
 
 /**
- * The balance rule: which currency, and how much of it.
+ * The balance rule: which currency (its own section, over the amount), and how much of it.
  */
 @Composable
 private fun RequirementSection(
@@ -326,6 +328,20 @@ private fun RequirementSection(
     ) {
         Text(
             modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x3),
+            text = stringResource(R.string.title_communityCurrency),
+            style = LabelStyle,
+            color = White50,
+        )
+
+        MintRow(state = state, onClick = onChangeCurrency)
+
+        Text(
+            // Its own section: the extra top inset is the gap between sections, not a label's.
+            modifier = Modifier.padding(
+                start = CodeTheme.dimens.grid.x3,
+                end = CodeTheme.dimens.grid.x3,
+                top = CodeTheme.dimens.grid.x3,
+            ),
             text = stringResource(R.string.title_minimumBalanceRequired),
             style = LabelStyle,
             color = White50,
@@ -339,8 +355,6 @@ private fun RequirementSection(
                 .padding(CodeTheme.dimens.grid.x3),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
         ) {
-            MintRow(state = state, onClick = onChangeCurrency)
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
@@ -384,29 +398,40 @@ private fun RequirementSection(
 
         Text(
             modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x3),
-            text = stringResource(
-                if (unsatisfied) {
-                    R.string.error_description_groupRuleNotSelfSatisfied
-                } else {
-                    R.string.subtitle_groupBalanceRequirement
-                }
-            ),
+            text = when {
+                unsatisfied -> stringResource(R.string.error_description_groupRuleNotSelfSatisfied)
+                state.currency == GroupCurrency.All ->
+                    stringResource(R.string.subtitle_groupBalanceRequirementAny)
+                // A picked token that has left the list has no name; the rule still holds for it.
+                else -> state.currencyName?.let {
+                    stringResource(R.string.subtitle_groupBalanceRequirementToken, it)
+                } ?: stringResource(R.string.subtitle_groupBalanceRequirement)
+            },
             style = CodeTheme.typography.caption.copy(fontSize = 13.sp, lineHeight = 17.sp),
             color = if (unsatisfied) CodeTheme.colors.errorText else White50,
         )
     }
 }
 
+/**
+ * The currency row, dressed as the group info screen's Token row: 56 high, 16 in from the edges,
+ * a 32 icon and the name, and a chevron in textSecondary on the 12-radius card background.
+ */
 @Composable
 private fun MintRow(state: CreateGroupViewModel.State, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(MintRowRadius))
+            .background(White05)
+            .height(MintRowHeight)
+            .clickable(onClick = onClick)
+            .padding(horizontal = MintRowInset),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val allCurrencies = state.currency == GroupCurrency.All
-        if (allCurrencies) {
-            // Node 10364:1059 — the sheet's card glyph, scaled to the row.
+        val anyCurrency = state.currency == GroupCurrency.All
+        if (anyCurrency) {
             AllCurrenciesIcon(discSize = MintIconSize, iconSize = AllCurrenciesGlyphSize)
         } else {
             AsyncImage(
@@ -424,25 +449,24 @@ private fun MintRow(state: CreateGroupViewModel.State, onClick: () -> Unit) {
 
         // A picked token whose balance has since left the list has no name to show, so the row
         // falls back to the sheet's own title rather than rendering a blank, tappable line.
-        val name = if (allCurrencies) {
-            stringResource(R.string.title_totalBalance)
+        val name = if (anyCurrency) {
+            stringResource(R.string.title_anyCommunityCurrency)
         } else {
             state.currencyName
         }
         Text(
+            modifier = Modifier.weight(1f),
             text = name ?: stringResource(R.string.title_selectCurrency),
-            style = CodeTheme.typography.textMedium.copy(
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-            ),
-            color = if (name == null) White50 else CodeTheme.colors.textMain,
+            style = CodeTheme.typography.textMedium,
+            color = if (name == null) CodeTheme.colors.textSecondary else CodeTheme.colors.textMain,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
 
         Icon(
-            painter = painterResource(R.drawable.ic_chevron_down_small),
+            painter = painterResource(R.drawable.ic_chevron_right),
             contentDescription = null,
-            tint = CodeTheme.colors.textMain,
-            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+            tint = CodeTheme.colors.textSecondary,
         )
     }
 }
@@ -469,8 +493,11 @@ private fun AmountChip(
 
 private val AvatarSize = 74.dp
 private val CameraIconSize = 40.dp
-private val MintIconSize = 20.dp
-private val AllCurrenciesGlyphSize = 12.dp
+private val MintIconSize = 32.dp
+private val AllCurrenciesGlyphSize = 20.dp
+private val MintRowHeight = 56.dp
+private val MintRowInset = 16.dp
+private val MintRowRadius = 12.dp
 private val ChipHeight = 60.dp
 
 private val LabelStyle

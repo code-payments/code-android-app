@@ -157,10 +157,8 @@ class CreateGroupStateTest {
             balances = listOf(held(1, "BadBoys", 60.0), held(2, "Other", 50.0)),
         )
 
-        assertEquals(Fiat(110.0), state.totalBalance)
         assertIs<GroupAccess.Eligible>(state.access)
         assertTrue(state.canCreate)
-        assertEquals(true, state.allCurrenciesSatisfied)
     }
 
     @Test
@@ -173,16 +171,5 @@ class CreateGroupStateTest {
 
         assertIs<GroupAccess.Blocked>(state.access)
         assertFalse(state.canCreate)
-        assertEquals(false, state.allCurrenciesSatisfied)
-    }
-
-    @Test
-    fun `the header card measures the total even while a token is picked`() {
-        // Node 10372:1015: the card still says whether All would meet the amount.
-        val state = state(balances = listOf(held(1, "BadBoys", 10.0), held(2, "Other", 95.0)))
-
-        assertFalse(state.selfSatisfied)
-        assertEquals(true, state.allCurrenciesSatisfied)
-        assertNull(state(amount = null).allCurrenciesSatisfied)
     }
 }
