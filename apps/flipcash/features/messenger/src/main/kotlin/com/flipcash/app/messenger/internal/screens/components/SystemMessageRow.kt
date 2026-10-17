@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -57,7 +58,14 @@ internal fun SystemMessageRow(text: String, modifier: Modifier = Modifier) {
         Text(
             modifier = Modifier.widthIn(max = SYSTEM_TEXT_MAX_WIDTH),
             text = text,
-            style = CodeTheme.typography.caption,
+            // Centred in each 18sp line box, as iOS does with its baseline offset. The default
+            // proportional split sits the glyphs high, off the glyph's centre.
+            style = CodeTheme.typography.caption.copy(
+                lineHeightStyle = LineHeightStyle(
+                    alignment = LineHeightStyle.Alignment.Center,
+                    trim = LineHeightStyle.Trim.None,
+                ),
+            ),
             color = CodeTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
         )
