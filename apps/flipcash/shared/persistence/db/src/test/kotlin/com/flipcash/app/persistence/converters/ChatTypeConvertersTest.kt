@@ -165,6 +165,27 @@ class ChatTypeConvertersTest {
         assertEquals(com.flipcash.app.persistence.entities.MessageStatus.SENT, result)
     }
 
+    @Test
+    fun `a cash row written before token quarks were kept decodes them as null`() {
+        val legacyJson = """[{"type":"cash","intentId":"abc","quarks":250000,"currencyCode":"USD","mint":"m","action":"SENT"}]"""
+
+        val result = converter.fromMessageContentList(legacyJson)!!.single() as MessageContentSerialized.Cash
+
+        assertNull(result.tokenQuarks)
+        assertEquals(250_000L, result.quarks)
+    }
+
+    @Test
+    fun `cash token quarks roundtrip alongside the fiat quarks`() {
+        val original = listOf(
+            MessageContentSerialized.Cash(intentId = "abc", quarks = 250_000L, tokenQuarks = 7_654_321L)
+        )
+
+        val deserialized = converter.fromMessageContentList(converter.toMessageContentList(original))
+
+        assertEquals(original, deserialized)
+    }
+
     // endregion
 
     // region UserProfile

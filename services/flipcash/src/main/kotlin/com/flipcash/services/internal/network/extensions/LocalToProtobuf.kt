@@ -138,7 +138,7 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                     .setIntentId(Common.IntentId.newBuilder().setValue(intentId.toByteString()))
                     .setAmount(
                         Common.CryptoPaymentAmount.newBuilder()
-                            .setQuarks(amount.quarks)
+                            .setQuarks(tokenQuarks ?: amount.quarks)
                             .setMint(Common.PublicKey.newBuilder().setValue(mint.bytes.toByteString()))
                     )
                     .setVerb(
