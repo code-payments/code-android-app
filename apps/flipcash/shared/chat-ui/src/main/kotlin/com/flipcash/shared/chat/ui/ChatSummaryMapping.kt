@@ -7,6 +7,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.models.displayText
+import com.flipcash.shared.chat.models.namedUsers
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.media.ChatMediaText
 import com.getcode.opencode.model.core.ID
@@ -67,6 +68,11 @@ fun ChatSummary.toConversationReference(
  */
 fun ChatSummary.unnamedGroupSender(selfId: ID?, senderProfiles: Map<String, UserProfile>): ID? {
     if (metadata.type != ChatType.GROUP) return null
+    // A notice has no sender; the users it names are what its preview needs. One per call is
+    // enough: the next is asked for when the list re-emits with the first named.
+    (metadata.lastMessage?.content?.firstOrNull() as? MessageContent.System)?.let { notice ->
+        return notice.namedUsers(selfId).firstOrNull { groupSenderName(it, senderProfiles) == null }
+    }
     val senderId = metadata.lastMessage?.senderId ?: return null
     if (senderId == selfId) return null
     return senderId.takeIf { groupSenderName(senderId, senderProfiles) == null }
@@ -100,7 +106,9 @@ private fun ChatSummary.formatPreview(
         null
     }
     return lastMsg.content.firstOrNull()
-        ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources)
+        ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources) { content ->
+            content.displayText(resources, selfId) { groupSenderName(it, senderProfiles) }
+        }
 }
 
 /**
@@ -116,6 +124,7 @@ private fun MessageContent.previewText(
     tokensByMint: Map<Mint, Token>,
     resources: ResourceHelper,
     depth: Int = 0,
+    systemText: (MessageContent.System) -> String?,
 ): String? = when (this) {
     is MessageContent.Text -> {
         val message = text.takeIf { it.isNotEmpty() }
@@ -173,7 +182,7 @@ private fun MessageContent.previewText(
         null
     } else {
         content.firstOrNull()
-            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, depth + 1)
+            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, depth + 1, systemText)
     }
 
     // The feed carries the newest message that still has content, so a tombstone only
@@ -193,7 +202,7 @@ private fun MessageContent.previewText(
         }
     }
     // The notice's own words, with no You: prefix and no sender name; it has no sender.
-    is MessageContent.System -> displayText()
+    is MessageContent.System -> systemText(this)
 
     // A widget this client can't draw previews as nothing, as an undecryptable message does.
     is MessageContent.Widget -> when (widget) {

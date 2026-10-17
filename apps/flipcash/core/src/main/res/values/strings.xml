@@ -1003,6 +1003,11 @@
     <string name="label_chat_media_unavailable">This photo can’t be displayed</string>
     <string name="label_chat_preview_sentMessage">You: %1$s</string>
     <string name="label_chat_preview_senderMessage">%1$s: %2$s</string>
+    <string name="label_chat_system_joined">%1$s joined the group</string>
+    <string name="label_chat_system_joinedSelf">You joined the group</string>
+    <string name="label_chat_system_added">%1$s added %2$s</string>
+    <string name="label_chat_system_addedSelf">%1$s added you</string>
+    <string name="label_chat_system_selfAdded">You added %1$s</string>
     <string name="label_chat_preview_sentCash_bySender">%1$s sent %2$s</string>
     <string name="label_chat_preview_tippedCash_bySender">%1$s tipped %2$s</string>
     <string name="label_chat_preview_sharedProfile">Shared a profile</string>

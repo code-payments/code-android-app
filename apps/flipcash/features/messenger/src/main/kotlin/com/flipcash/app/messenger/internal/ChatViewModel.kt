@@ -1379,7 +1379,15 @@ internal class ChatViewModel @AssistedInject constructor(
                     // that and becomes its own kind of row.
                     if (content is MessageContent.System) {
                         return@flatMapIndexed listOfNotNull(
-                            systemMessageItem(message.messageId, index, message.timestamp, content),
+                            systemMessageItem(
+                                messageId = message.messageId,
+                                contentIndex = index,
+                                timestamp = message.timestamp,
+                                content = content,
+                                resources = resources,
+                                selfId = userManager.accountId,
+                                nameOf = { userId -> profiles.systemUserName(userId) },
+                            ),
                         )
                     }
 
@@ -1600,6 +1608,22 @@ internal class ChatViewModel @AssistedInject constructor(
             null -> ""
             else -> nameOrHandle(profile.displayName, profile.handle)
                 ?: resources.getString(R.string.title_unnamedUser)
+        }
+    }
+
+    /**
+     * A user a system notice names, as [quoteAuthorName] names a quote's author: asked for when the
+     * roster can't name them, and null until then, so the row reads as its fallback text rather
+     * than a placeholder. Null for a DM, which has no [senderProfiles].
+     */
+    private fun Map<String, UserProfile>?.systemUserName(userId: ID): String? {
+        val profiles = this ?: return null
+        val profile = profiles[userId.hexEncodedString()]
+        if (profile == null || profile.displayName.isBlank()) {
+            chatCoordinator.requestSenderProfile(userId)
+        }
+        return profile?.let {
+            nameOrHandle(it.displayName, it.handle) ?: resources.getString(R.string.title_unnamedUser)
         }
     }
 
