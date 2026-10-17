@@ -23,3 +23,11 @@ internal sealed interface GroupCurrency {
         override val mints: List<Mint> = listOf(mint)
     }
 }
+
+/**
+ * The rows the currency sheet offers as specific currencies: everything but USDF. Dollars aren't a
+ * community currency, and "Any Community Currency" already covers them in the USD total. The sheet
+ * is the only thing that sets [GroupCurrency.Specific], so a draft can't hold USDF.
+ */
+internal fun <T> List<T>.withoutUsdf(mintOf: (T) -> Mint): List<T> =
+    filterNot { mintOf(it) == Mint.usdf }

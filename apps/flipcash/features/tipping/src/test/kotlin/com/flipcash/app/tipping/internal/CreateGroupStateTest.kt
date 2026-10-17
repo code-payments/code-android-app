@@ -172,4 +172,11 @@ class CreateGroupStateTest {
         assertIs<GroupAccess.Blocked>(state.access)
         assertFalse(state.canCreate)
     }
+
+    @Test
+    fun `the currency list drops USDF and keeps every other token in order`() {
+        val tokens = listOf(mint(1), Mint.usdf, mint(2))
+
+        assertEquals(listOf(mint(1), mint(2)), tokens.withoutUsdf { it })
+    }
 }

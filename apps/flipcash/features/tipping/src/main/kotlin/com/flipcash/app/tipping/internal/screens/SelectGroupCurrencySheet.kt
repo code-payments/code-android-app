@@ -40,6 +40,7 @@ import com.flipcash.app.core.ui.TokenSelectionStyle
 import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.tipping.internal.CreateGroupViewModel
 import com.flipcash.app.tipping.internal.GroupCurrency
+import com.flipcash.app.tipping.internal.withoutUsdf
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.app.tokens.ui.TokenListPresentation
@@ -63,7 +64,8 @@ import com.getcode.ui.theme.CodeScaffold
  * purpose that isn't a `TriggersChange` and so leaves the global selection alone.
  *
  * The entry and the tokens are one selection: picking either replaces the other, and while All is
- * chosen no token is marked. USDF stays in the list; the contract can't say "community only".
+ * chosen no token is marked. USDF is left out of the list: dollars aren't a community currency, and
+ * the All entry already counts them.
  */
 @Composable
 internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
@@ -95,7 +97,7 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(padding),
-            tokens = tokenState.tokens,
+            tokens = tokenState.tokens?.withoutUsdf { it.token.address },
             styling = rowStyling,
             selectedToken = (state.currency as? GroupCurrency.Specific)?.mint,
             showSelections = true,
