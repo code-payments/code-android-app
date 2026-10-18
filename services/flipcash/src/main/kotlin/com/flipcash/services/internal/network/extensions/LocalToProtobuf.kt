@@ -147,6 +147,11 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                             MessageContent.Cash.Action.SENT -> MessagingModel.CashContent.Verb.SENT
                         }
                     )
+                    .apply {
+                        this@asContent.receiver?.let {
+                            setReceiver(Common.UserId.newBuilder().setValue(it.toByteString()))
+                        }
+                    }
             )
             .build()
         is MessageContent.Reply -> MessagingModel.Content.newBuilder()

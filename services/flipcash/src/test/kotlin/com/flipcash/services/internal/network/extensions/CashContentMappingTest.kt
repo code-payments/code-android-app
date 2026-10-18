@@ -7,10 +7,12 @@ import com.getcode.solana.keys.Mint
 import com.google.protobuf.ByteString
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 class CashContentMappingTest {
 
-    private fun cash(quarks: Long) = MessagingModel.Content.newBuilder()
+    private fun cash(quarks: Long, receiver: ByteArray? = null) = MessagingModel.Content.newBuilder()
         .setCash(
             MessagingModel.CashContent.newBuilder()
                 .setIntentId(Common.IntentId.newBuilder().setValue(ByteString.copyFrom(byteArrayOf(1, 2, 3))))
@@ -21,6 +23,7 @@ class CashContentMappingTest {
                         .setNativeAmount(2.5)
                         .setMint(Common.PublicKey.newBuilder().setValue(ByteString.copyFrom(Mint.usdc.bytes.toByteArray())))
                 )
+                .apply { receiver?.let { setReceiver(Common.UserId.newBuilder().setValue(ByteString.copyFrom(it))) } }
         )
         .build()
 
@@ -37,5 +40,23 @@ class CashContentMappingTest {
         val mapped = cash(7_654_321L).toMessageContent()
 
         assertEquals(7_654_321L, mapped.asContent().cash.amount.quarks)
+    }
+
+    @Test
+    fun `the receiver is parsed when present and null when absent`() {
+        val with = cash(1L, receiver = byteArrayOf(9, 8, 7)).toMessageContent() as MessageContent.Cash
+        val without = cash(1L).toMessageContent() as MessageContent.Cash
+
+        assertEquals(listOf<Byte>(9, 8, 7), with.receiver)
+        assertNull(without.receiver)
+    }
+
+    @Test
+    fun `the receiver is written back to the wire only when known`() {
+        val with = cash(1L, receiver = byteArrayOf(9, 8, 7)).toMessageContent().asContent().cash
+        val without = cash(1L).toMessageContent().asContent().cash
+
+        assertEquals(listOf<Byte>(9, 8, 7), with.receiver.value.toByteArray().toList())
+        assertFalse(without.hasReceiver())
     }
 }

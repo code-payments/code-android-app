@@ -177,7 +177,7 @@ class ChatEntityMapperTest {
         assertEquals(true, encrypted.ciphertext.contentEquals(restored.ciphertext))
     }
 
-    private fun cashMessage(tokenQuarks: Long?) = ChatMessage(
+    private fun cashMessage(tokenQuarks: Long?, receiver: List<Byte>? = null) = ChatMessage(
         messageId = 1,
         senderId = listOf(0xAB.toByte()),
         content = listOf(
@@ -186,6 +186,7 @@ class ChatEntityMapperTest {
                 amount = Fiat(quarks = 250_000L),
                 mint = com.getcode.solana.keys.Mint.usdc,
                 tokenQuarks = tokenQuarks,
+                receiver = receiver,
             )
         ),
         timestamp = Instant.fromEpochSeconds(1_000),
@@ -207,6 +208,18 @@ class ChatEntityMapperTest {
             .content.single() as MessageContent.Cash
 
         assertNull(restored.tokenQuarks)
+    }
+
+    @Test
+    fun `cash receiver survives the round trip, and its absence stays null`() {
+        val receiver = listOf<Byte>(9, 8, 7)
+        val with = mapper.toMessage(mapper.toEntity(CHAT_HEX, cashMessage(1L, receiver)))
+            .content.single() as MessageContent.Cash
+        val without = mapper.toMessage(mapper.toEntity(CHAT_HEX, cashMessage(1L)))
+            .content.single() as MessageContent.Cash
+
+        assertEquals(receiver, with.receiver)
+        assertNull(without.receiver)
     }
 
     @Test

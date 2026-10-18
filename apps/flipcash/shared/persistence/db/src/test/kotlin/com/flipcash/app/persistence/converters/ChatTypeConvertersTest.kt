@@ -172,13 +172,14 @@ class ChatTypeConvertersTest {
         val result = converter.fromMessageContentList(legacyJson)!!.single() as MessageContentSerialized.Cash
 
         assertNull(result.tokenQuarks)
+        assertNull(result.receiver)
         assertEquals(250_000L, result.quarks)
     }
 
     @Test
     fun `cash token quarks roundtrip alongside the fiat quarks`() {
         val original = listOf(
-            MessageContentSerialized.Cash(intentId = "abc", quarks = 250_000L, tokenQuarks = 7_654_321L)
+            MessageContentSerialized.Cash(intentId = "abc", quarks = 250_000L, tokenQuarks = 7_654_321L, receiver = "3mJr7AoUXx2Wqd")
         )
 
         val deserialized = converter.fromMessageContentList(converter.toMessageContentList(original))

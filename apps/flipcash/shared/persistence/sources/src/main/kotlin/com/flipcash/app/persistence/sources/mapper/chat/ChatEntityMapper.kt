@@ -400,6 +400,7 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         tokenImageUrl = tokenImageUrl,
         action = action.name,
         tokenQuarks = tokenQuarks,
+        receiver = receiver?.base58,
     )
     is MessageContent.Reply -> MessageContentSerialized.Reply(
         repliedMessageId = repliedMessageId,
@@ -449,6 +450,7 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
         action = MessageContent.Cash.Action.entries.firstOrNull { it.name == action }
             ?: MessageContent.Cash.Action.SENT,
         tokenQuarks = tokenQuarks,
+        receiver = receiver?.decodeBase58()?.toList(),
     )
     is MessageContentSerialized.Reply -> MessageContent.Reply(
         repliedMessageId = repliedMessageId,
