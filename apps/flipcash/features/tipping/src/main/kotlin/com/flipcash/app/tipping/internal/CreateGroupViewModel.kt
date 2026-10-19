@@ -37,7 +37,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
-import com.getcode.opencode.model.financial.sum
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -153,13 +152,6 @@ internal class CreateGroupViewModel @AssistedInject constructor(
             get() = token?.name
 
         /**
-         * Every holding added up, in USD — what an any-currency rule is measured against, and what
-         * the currency sheet's header card reports.
-         */
-        val totalBalance: Fiat
-            get() = balances.map { it.balance }.sum()
-
-        /**
          * The rules the draft describes, once it describes any.
          *
          * Listener only. A listener requirement is what gates *entry*, which is what this design
@@ -176,13 +168,6 @@ internal class CreateGroupViewModel @AssistedInject constructor(
          */
         val access: GroupAccess?
             get() = rules?.let(::accessFor)
-
-        /**
-         * Whether the total meets the amount — the header card's `meets` or `need`, which it shows
-         * whichever currency is selected. Null until there is an amount to measure against.
-         */
-        val allCurrenciesSatisfied: Boolean?
-            get() = amount?.let { accessFor(rulesFor(GroupCurrency.All, it)) is GroupAccess.Eligible }
 
         private fun accessFor(rules: ChatRules): GroupAccess = GroupAccess.evaluate(
             isMember = false,
