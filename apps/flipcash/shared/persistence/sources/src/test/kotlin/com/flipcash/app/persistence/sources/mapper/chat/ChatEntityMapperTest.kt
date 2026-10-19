@@ -177,6 +177,51 @@ class ChatEntityMapperTest {
         assertEquals(true, encrypted.ciphertext.contentEquals(restored.ciphertext))
     }
 
+    private fun cashMessage(tokenQuarks: Long?, receiver: List<Byte>? = null) = ChatMessage(
+        messageId = 1,
+        senderId = listOf(0xAB.toByte()),
+        content = listOf(
+            MessageContent.Cash(
+                intentId = listOf<Byte>(1, 2, 3),
+                amount = Fiat(quarks = 250_000L),
+                mint = com.getcode.solana.keys.Mint.usdc,
+                tokenQuarks = tokenQuarks,
+                receiver = receiver,
+            )
+        ),
+        timestamp = Instant.fromEpochSeconds(1_000),
+        unreadSeq = 1,
+    )
+
+    @Test
+    fun `cash token quarks survive the round trip without disturbing the fiat quarks`() {
+        val restored = mapper.toMessage(mapper.toEntity(CHAT_HEX, cashMessage(tokenQuarks = 7_654_321L)))
+            .content.single() as MessageContent.Cash
+
+        assertEquals(7_654_321L, restored.tokenQuarks)
+        assertEquals(250_000L, restored.amount.quarks)
+    }
+
+    @Test
+    fun `cash with unknown token quarks round trips as null`() {
+        val restored = mapper.toMessage(mapper.toEntity(CHAT_HEX, cashMessage(tokenQuarks = null)))
+            .content.single() as MessageContent.Cash
+
+        assertNull(restored.tokenQuarks)
+    }
+
+    @Test
+    fun `cash receiver survives the round trip, and its absence stays null`() {
+        val receiver = listOf<Byte>(9, 8, 7)
+        val with = mapper.toMessage(mapper.toEntity(CHAT_HEX, cashMessage(1L, receiver)))
+            .content.single() as MessageContent.Cash
+        val without = mapper.toMessage(mapper.toEntity(CHAT_HEX, cashMessage(1L)))
+            .content.single() as MessageContent.Cash
+
+        assertEquals(receiver, with.receiver)
+        assertNull(without.receiver)
+    }
+
     @Test
     fun `unsupported content survives the round trip through the message row`() {
         val message = ChatMessage(

@@ -138,7 +138,7 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                     .setIntentId(Common.IntentId.newBuilder().setValue(intentId.toByteString()))
                     .setAmount(
                         Common.CryptoPaymentAmount.newBuilder()
-                            .setQuarks(amount.quarks)
+                            .setQuarks(tokenQuarks ?: amount.quarks)
                             .setMint(Common.PublicKey.newBuilder().setValue(mint.bytes.toByteString()))
                     )
                     .setVerb(
@@ -147,6 +147,11 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                             MessageContent.Cash.Action.SENT -> MessagingModel.CashContent.Verb.SENT
                         }
                     )
+                    .apply {
+                        this@asContent.receiver?.let {
+                            setReceiver(Common.UserId.newBuilder().setValue(it.toByteString()))
+                        }
+                    }
             )
             .build()
         is MessageContent.Reply -> MessagingModel.Content.newBuilder()

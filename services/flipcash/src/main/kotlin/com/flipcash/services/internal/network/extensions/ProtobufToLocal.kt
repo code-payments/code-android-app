@@ -199,6 +199,7 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
                 else -> MessageContent.Cash.Action.SENT
             },
             receiver = if (cash.hasReceiver()) cash.receiver.value.toByteArray().toList() else null,
+            tokenQuarks = cash.amount.quarks,
         )
         MessagingModel.Content.TypeCase.REPLY -> MessageContent.Reply(
             repliedMessageId = reply.repliedMessageId.value,

@@ -19,8 +19,18 @@ sealed interface MessageContent {
         val tokenName: String = "",
         val tokenImageUrl: String = "",
         val action: Action = Action.SENT,
-        /** The group-payment recipient (`CashContent.receiver`); null for DM cash and older messages. */
+        /**
+         * Who was paid (`CashContent.receiver`). Always set in a group chat. In a DM it is set on
+         * new messages and unset on older ones, whose receiver is the DM member who is not the
+         * sender; null here means the message did not carry one.
+         */
         val receiver: ID? = null,
+        /**
+         * The on-chain token quarks of [mint] (`CryptoPaymentAmount.quarks`), as opposed to
+         * [amount], which is the native fiat value. Null means unknown: rows stored before this
+         * was kept have no value, so callers must not read null as zero.
+         */
+        val tokenQuarks: Long? = null,
     ) : MessageContent {
         enum class Action {
             SENT,

@@ -207,6 +207,12 @@ sealed interface MessageContentSerialized {
         val tokenName: String = "",
         val tokenImageUrl: String = "",
         val action: String = "SENT",
+        // On-chain token quarks of [mint]; [quarks] above is the fiat value. Defaults to null so
+        // rows stored before this existed still decode.
+        val tokenQuarks: Long? = null,
+        // Base58, like [intentId]. Null for rows stored before this existed, and for messages
+        // that carried no receiver.
+        val receiver: String? = null,
     ) : MessageContentSerialized
 
     @Serializable
