@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat
 
+import com.flipcash.shared.chat.link.LinkPreviewChecks
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
 import com.getcode.opencode.model.core.ID
@@ -63,7 +64,11 @@ fun ChatMessage.applying(mutation: PendingMutation?): ChatMessage {
 internal fun List<MessageContent>.replacingText(text: String): List<MessageContent> =
     map { content ->
         when (content) {
-            is MessageContent.Text -> MessageContent.Text(text)
+            // The preview stays while its link is still in the text; the server checks the same.
+            is MessageContent.Text -> MessageContent.Text(
+                text = text,
+                linkPreview = content.linkPreview?.takeIf { LinkPreviewChecks.wholeLink(text, it.url) },
+            )
             is MessageContent.Reply -> content.copy(content = content.content.replacingText(text))
             else -> content
         }

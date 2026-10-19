@@ -27,6 +27,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -57,6 +60,20 @@ class GooglePlayAppUpdateController internal constructor(
         combine(flexibleUpdates.update, toastSeenStore.lastShownVersionCode) { update, lastShown ->
             update?.takeIf { it.isToastEligible(lastShown) }
         }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    init {
+        // The resume check reads the minimum version cached from the last fetch, and the fetch that
+        // runs on the same resume lands after it. Checking again when the minimum moves is what
+        // lets a minimum raised while the app sat in the background block it on return. The first
+        // value is left to the resume check.
+        scope.launch {
+            userFlags.resolvedFlags
+                .map { it.minimumVersion.effectiveValue }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { checkForUpdate() }
+        }
+    }
 
     override val updateDownloaded: StateFlow<Boolean>
         get() = flexibleUpdates.downloaded

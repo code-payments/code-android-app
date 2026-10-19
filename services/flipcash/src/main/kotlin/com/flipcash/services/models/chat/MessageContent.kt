@@ -6,7 +6,12 @@ import com.getcode.solana.keys.Mint
 import kotlin.time.Instant
 
 sealed interface MessageContent {
-    data class Text(val text: String) : MessageContent
+    /**
+     * [linkPreview] is the sender-built preview of a link in [text] (`TextContent.link_previews`,
+     * first entry; later ones are ignored). Only a message's text and a reply's text body carry
+     * one; a media caption never does.
+     */
+    data class Text(val text: String, val linkPreview: LinkPreview? = null) : MessageContent
     data class Cash(
         val intentId: ID,
         val amount: Fiat,
@@ -36,16 +41,27 @@ sealed interface MessageContent {
      */
     data class Widget(val widget: WidgetContent) : MessageContent
     /**
-     * A notice the server wrote about the chat, such as "Alex joined the group". [fallbackText] is
-     * the only part this client reads; see `displayText` in chat-ui for what a row draws.
+     * A notice the server wrote about the chat, such as "Alex joined the group". [event] carries the
+     * users it is about, so a row can name them from their current profiles; [fallbackText] names
+     * no one and is drawn when [event] is null or a name isn't known yet. See `displayText` in
+     * chat-ui for what a row draws.
      */
-    data class System(val fallbackText: String) : MessageContent
+    data class System(
+        val fallbackText: String,
+        val event: SystemEvent? = null,
+    ) : MessageContent
 
     /**
      * A `messaging.v1.Content.type` this client does not recognise. Rendered as an unsupported
      * message, as an unrecognised [WidgetContent] is.
      */
     data object Unsupported : MessageContent
+
+    /** The `messaging.v1.SystemContent.type` variants this client recognises. */
+    sealed interface SystemEvent {
+        /** [userId] joined the chat; [admittedBy] let them in, or null when they joined on their own. */
+        data class UserJoined(val userId: ID, val admittedBy: ID?) : SystemEvent
+    }
     data class Deleted(
         val deletedTs: Instant,
         val deletedBy: ID?,

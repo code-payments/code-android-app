@@ -17,7 +17,11 @@ internal object SealedMediaContract {
 
     fun isValid(media: MessagingModel.MediaContent): Boolean {
         if (media.itemsCount != 1) return false
-        val item = media.getItems(0)
+        return isValid(media.getItems(0))
+    }
+
+    /** One photo: a single ORIGINAL rendition carrying its own image metadata. */
+    fun isValid(item: BlobModel.Media): Boolean {
         if (item.renditionsCount != 1) return false
         val rendition = item.getRenditions(0)
         if (rendition.role != BlobModel.Rendition.Role.ORIGINAL) return false
@@ -72,7 +76,9 @@ fun checkBlobSealing(sealedFor: ChatId?, sendChatId: ChatId, chatSeals: Boolean)
 /** Whether [this] carries a photo, directly or as the body of a reply. */
 fun MessageContent.carriesMedia(): Boolean = when (this) {
     is MessageContent.Media -> true
-    is MessageContent.Reply -> content.any { it is MessageContent.Media }
+    // A link preview's image is a chat photo too, sealed or not as the chat is.
+    is MessageContent.Text -> linkPreview?.image != null
+    is MessageContent.Reply -> content.any { it.carriesMedia() }
     else -> false
 }
 
@@ -87,6 +93,17 @@ internal fun MessageContent.withoutDownloadUrls(): MessageContent = when (this) 
             )
         },
     )
+    is MessageContent.Text -> linkPreview?.image?.let { image ->
+        copy(
+            linkPreview = linkPreview.copy(
+                image = image.copy(
+                    renditions = image.renditions.map { r ->
+                        r.copy(blob = r.blob?.copy(downloadUrl = "", expiresAtMillis = null))
+                    },
+                ),
+            ),
+        )
+    } ?: this
     is MessageContent.Reply -> copy(content = content.map { it.withoutDownloadUrls() })
     else -> this
 }

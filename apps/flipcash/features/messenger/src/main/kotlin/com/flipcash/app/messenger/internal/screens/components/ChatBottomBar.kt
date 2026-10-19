@@ -418,6 +418,7 @@ internal fun UserControlBottomBar(
                                 .composerSidePadding(composerInsets, hasComposer),
                         ) {
                             if (canType) {
+                                val linkCard = state.composerLink
                                 val chips = remember(state.composerPhotos, state.uploadStates) {
                                     state.composerPhotos.map { photo ->
                                         ComposerPhotoChip(
@@ -537,15 +538,32 @@ internal fun UserControlBottomBar(
                                             }
                                         }
                                     } else null,
-                                    header = if (chips.isNotEmpty()) {
+                                    header = if (chips.isNotEmpty() || linkCard != null) {
                                         {
-                                            ComposerPhotoChips(
-                                                chips = chips,
-                                                onRemove = { dispatch(ChatViewModel.Event.RemovePhoto(it)) },
-                                                onRetry = { dispatch(ChatViewModel.Event.RetryPhoto(it)) },
-                                                modifier = Modifier,
-                                                newestChipModifier = Modifier.onGloballyPositioned { newestChipCoordinates = it },
-                                            )
+                                            Column {
+                                                if (chips.isNotEmpty()) {
+                                                    ComposerPhotoChips(
+                                                        chips = chips,
+                                                        onRemove = { dispatch(ChatViewModel.Event.RemovePhoto(it)) },
+                                                        onRetry = { dispatch(ChatViewModel.Event.RetryPhoto(it)) },
+                                                        modifier = Modifier,
+                                                        newestChipModifier = Modifier.onGloballyPositioned { newestChipCoordinates = it },
+                                                    )
+                                                }
+                                                // Under the photos, as on iOS, inset like the first chip. Like the
+                                                // photos it has no animation of its own: the field eases its height
+                                                // whenever the header's changes, which slides the card in and out with it.
+                                                linkCard?.let { card ->
+                                                    ComposerLinkCard(
+                                                        state = card,
+                                                        onRemove = { dispatch(ChatViewModel.Event.RemoveLinkPreview) },
+                                                        modifier = Modifier.padding(
+                                                            start = CodeTheme.dimens.staticGrid.x3,
+                                                            top = if (chips.isNotEmpty()) CodeTheme.dimens.staticGrid.x2 else 0.dp,
+                                                        ),
+                                                    )
+                                                }
+                                            }
                                         }
                                     } else null,
                                     // One read of the edit state decides both the glyph and what the tap

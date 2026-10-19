@@ -494,6 +494,132 @@ class AppRouterTest {
 
     // endregion
 
+    // region classify + dispatch — ChatMessage
+
+    // A DM's id in the base64url form the tip chat link already carries.
+    private val dmSegment = Linkify.tipChatById(sampleChatId).substringAfterLast('/')
+
+    @Test
+    fun `a group message link classifies as a message, not as the group's invite`() {
+        val type = router.classify(DeepLink("https://app.flipcash.com/chat/$groupUuid/m/42"))
+        assertIs<DeeplinkType.ChatMessage>(type)
+        assertEquals(groupChatId, type.chatId)
+        assertEquals(42L, type.messageId)
+        assertTrue(type.isGroup)
+    }
+
+    @Test
+    fun `a group message link classifies regardless of the case the uuid was shared in`() {
+        val type = router.classify(
+            DeepLink("https://app.flipcash.com/chat/${groupUuid.toString().uppercase()}/m/7")
+        )
+        assertIs<DeeplinkType.ChatMessage>(type)
+        assertEquals(groupChatId, type.chatId)
+    }
+
+    @Test
+    fun `a DM message link classifies with its base64url chat id`() {
+        val type = router.classify(DeepLink("https://app.flipcash.com/chat/$dmSegment/m/3"))
+        assertIs<DeeplinkType.ChatMessage>(type)
+        assertEquals(sampleChatId, type.chatId)
+        assertEquals(3L, type.messageId)
+        assertEquals(false, type.isGroup)
+    }
+
+    @Test
+    fun `a message link built by Linkify routes back to the same chat and message`() {
+        val group = router.classify(DeepLink(Linkify.message(groupChatId, 1180)))
+        assertIs<DeeplinkType.ChatMessage>(group)
+        assertEquals(groupChatId, group.chatId)
+        assertEquals(1180L, group.messageId)
+        assertTrue(group.isGroup)
+
+        val dm = router.classify(DeepLink(Linkify.message(sampleChatId, 9)))
+        assertIs<DeeplinkType.ChatMessage>(dm)
+        assertEquals(sampleChatId, dm.chatId)
+        assertEquals(9L, dm.messageId)
+        assertEquals(false, dm.isGroup)
+    }
+
+    @Test
+    fun `a message link with a non-numeric or negative seq is not claimed as a message`() {
+        // A DM's tail has nothing else to fall to; a group's falls through to the invite, which
+        // ignores the tail as it did before the message route existed.
+        assertNull(router.classify(DeepLink("https://app.flipcash.com/chat/$dmSegment/m/abc")))
+        assertNull(router.classify(DeepLink("https://app.flipcash.com/chat/$dmSegment/m/-1")))
+        assertIs<DeeplinkType.GroupChatInvite>(
+            router.classify(DeepLink("https://app.flipcash.com/chat/$groupUuid/m/abc"))
+        )
+    }
+
+    @Test
+    fun `a group link without a seq still opens as the invite`() {
+        assertIs<DeeplinkType.GroupChatInvite>(
+            router.classify(DeepLink("https://app.flipcash.com/chat/$groupUuid/m"))
+        )
+        assertIs<DeeplinkType.GroupChatInvite>(
+            router.classify(DeepLink("https://app.flipcash.com/chat/$groupUuid"))
+        )
+    }
+
+    @Test
+    fun `a DM link without a message is still unrouted`() {
+        assertNull(router.classify(DeepLink("https://app.flipcash.com/chat/$dmSegment")))
+    }
+
+    @Test
+    fun `a tip chat link is not swallowed by the message matcher`() {
+        assertIs<DeeplinkType.TipChat>(router.classify(DeepLink(Linkify.tipChatById(sampleChatId))))
+    }
+
+    @Test
+    fun `a message link wrapped by the jump redirector unwraps`() {
+        val target = "https://app.flipcash.com/chat/$groupUuid/m/42"
+        val type = router.classify(
+            DeepLink("https://jump.flipcash.com/#source=" + URLEncoder.encode(target, "UTF-8"))
+        )
+        assertIs<DeeplinkType.ChatMessage>(type)
+        assertEquals(42L, type.messageId)
+    }
+
+    @Test
+    fun `dispatch opens a group message link on the group, jumping to the message`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink("https://app.flipcash.com/chat/$groupUuid/m/42"))
+
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertIs<AppRoute.Tabs.Chats>(action.routes[0])
+        val chat = action.routes[1]
+        assertIs<AppRoute.Messaging.Chat>(chat)
+        assertEquals(groupChatId, (chat.identifier as ChatIdentifier.ByChatId).chatId)
+        assertTrue(chat.isGroupLink)
+        assertEquals(42L, chat.jumpToMessageId)
+        assertNull(chat.returnToTitle)
+    }
+
+    @Test
+    fun `dispatch opens a DM message link as a DM, jumping to the message`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink("https://app.flipcash.com/chat/$dmSegment/m/3"))
+
+        assertIs<DeeplinkAction.Navigate>(action)
+        val chat = action.routes[1]
+        assertIs<AppRoute.Messaging.Chat>(chat)
+        assertEquals(sampleChatId, (chat.identifier as ChatIdentifier.ByChatId).chatId)
+        assertEquals(false, chat.isGroupLink)
+        assertEquals(3L, chat.jumpToMessageId)
+    }
+
+    @Test
+    fun `dispatch sends a message link through onboarding when logged out`() {
+        loggedOut()
+        val action = router.dispatch(DeepLink("https://app.flipcash.com/chat/$groupUuid/m/42"))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(listOf(AppRoute.OnboardingFlow()), action.routes)
+    }
+
+    // endregion
+
     // region classify + dispatch — profile links on the bare host
 
     @Test

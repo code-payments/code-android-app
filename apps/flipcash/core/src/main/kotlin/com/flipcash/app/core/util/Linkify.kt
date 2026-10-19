@@ -59,4 +59,18 @@ object Linkify {
      */
     fun groupChatInvite(chatId: ChatId): String? =
         chatId.bytes.toList().uuid?.let { "https://app.flipcash.com/chat/$it" }
+
+    /**
+     * A link to one message — `app.flipcash.com/chat/{chatId}/m/{seq}`, where [sequence] is the
+     * message's per-chat id.
+     *
+     * The chat id takes the form the router reads back: a group's dashed UUID, as in
+     * [groupChatInvite], and a DM's base64url, as in [tipChatById]. The id's form is how the router
+     * tells a group link from a DM one, so it has to be written that way rather than as either alone.
+     */
+    fun message(chatId: ChatId, sequence: Long): String {
+        val id = chatId.bytes.toList().uuid?.toString()
+            ?: chatId.bytes.encodeBase64(urlSafe = true)
+        return "https://app.flipcash.com/chat/$id/m/$sequence"
+    }
 }

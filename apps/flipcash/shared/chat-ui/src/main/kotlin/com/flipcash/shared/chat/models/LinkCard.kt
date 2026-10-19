@@ -2,6 +2,8 @@ package com.flipcash.shared.chat.models
 
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.asHandle
+import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MediaItem
 import com.getcode.opencode.model.core.ID
@@ -249,13 +251,137 @@ sealed interface LinkCard {
             /** The host answered with nothing to show. Cached; draws nothing. */
             data object None : State
 
-            /** [host] comes from the URL after redirects, never from the page. */
+            /**
+             * [host] comes from the URL after redirects, never from the page. A preview the sender
+             * built has its image as [photo], a chat photo, and no [imageUrl].
+             */
             data class Resolved(
                 val title: String,
                 val description: String?,
                 val imageUrl: String?,
                 val host: String,
+                val photo: ChatPhoto? = null,
             ) : State
+        }
+    }
+
+    /**
+     * A link to one message, `app.flipcash.com/chat/{chatId}/m/{seq}`.
+     *
+     * What the card may show depends on the source chat and the viewer, never on the link: a member
+     * reads the message, a public group's non-member reads what the group's rules let them, and a
+     * private group or DM shows a stranger nothing of the message at all. [isGroup] is read off the
+     * id's form (UUID for a group, base64url for a DM) so [State.Loading] already knows which.
+     */
+    data class Message(
+        override val url: String,
+        override val start: Int,
+        override val end: Int,
+        val chatId: ChatId,
+        val messageId: Long,
+        val isGroup: Boolean,
+        val state: State = State.Loading,
+    ) : LinkCard {
+
+        sealed interface State {
+            /** The lookup is out. Drawn as the skeleton, shimmering. */
+            data object Loading : State
+
+            /**
+             * Nothing to show beyond the URL: the lookup failed, or the message is not there. Drawn
+             * as the skeleton at rest; resolution failing is never an error on a card.
+             */
+            data object Unresolved : State
+
+            /** The message was deleted. Its chat still names itself; the message says only that. */
+            data class Deleted(val source: Source) : State
+
+            /** The viewer is in the chat, or the chat is a public group whose rules let them read. */
+            data class Resolved(
+                val source: Source,
+                val message: Excerpt,
+                /** The source message's reactions, counted; paid totals are left off the card. */
+                val reactionCount: Long,
+            ) : State
+
+            /**
+             * A public group the viewer hasn't joined. [message] is redacted when they are below
+             * the group's requirement, in which case the card offers Buy rather than Join.
+             */
+            data class Gated(
+                val source: Source,
+                val message: Excerpt,
+                val requirement: GroupInvite.Requirement?,
+            ) : State
+
+            /** A private group the viewer isn't in: the group's public record, and Request. */
+            data class LockedGroup(
+                val source: Source,
+                val memberCount: Long,
+                /** The creator's name, or null when it couldn't be read. */
+                val host: String?,
+            ) : State
+
+            /** A DM the viewer isn't in. Only that it is one; it never unlocks. */
+            data object LockedDirect : State
+        }
+
+        /** The chat the message is in, as the card's header names it. */
+        data class Source(
+            /** The group's title or the DM peer's name; null for an untitled group. */
+            val title: String?,
+            val kind: Kind,
+            val picture: MediaItem?,
+            /** How [picture] is read: the group's public profile, or the DM peer's profile. */
+            val pictureAccess: BlobAccessContext,
+        )
+
+        enum class Kind { DirectMessage, PublicGroup, PrivateGroup }
+
+        data class Excerpt(
+            /** The sender's name, or null when it couldn't be read. */
+            val author: String?,
+            val isFromSelf: Boolean,
+            val sentAt: kotlin.time.Instant,
+            val body: Body,
+        )
+
+        sealed interface Body {
+            /**
+             * The message's text. When [redacted] the server sent a placeholder in its place,
+             * which the card draws blurred and never copies or quotes.
+             */
+            data class Text(val text: String, val redacted: Boolean = false) : Body
+
+            /** A payment: the amount, pre-formatted, and whether it was sent or tipped. */
+            data class Cash(val amount: String, val tipped: Boolean) : Body
+
+            /**
+             * A text message that is nothing but a cash link: the link's amount, pre-formatted, and
+             * its claim state, in place of the raw URL. A link with other text around it stays [Text].
+             */
+            data class CashLink(val amount: String, val claim: LinkCard.Cash.Claim) : Body
+
+            /**
+             * A photo, drawn as a thumbnail beside its [caption]. [photo] is null for a reader
+             * outside the chat's rules: the message then carries no blob, and only [blurHash] draws.
+             */
+            data class Photo(
+                val caption: Text?,
+                val photo: ChatPhoto?,
+                val blurHash: String?,
+            ) : Body
+
+            /** Anything else with no text to excerpt. */
+            data object Other : Body
+
+            /** Whether the server withheld this message's content from the reader. */
+            val withheld: Boolean
+                get() = when (this) {
+                    is Text -> redacted
+                    is Photo -> photo == null || caption?.redacted == true
+                    else -> false
+                }
         }
     }
 }

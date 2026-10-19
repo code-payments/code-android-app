@@ -75,14 +75,13 @@ class WebLinkLookupTest {
         val interceptor = Interceptor { chain -> chain.request().also { seen += it }.let(handler) }
     }
 
-    private fun lookup(script: Script, enabled: Boolean = true) = WebLinkLookup(
+    private fun lookup(script: Script) = WebLinkLookup(
         client = webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(),
-        enabled = { enabled },
         dispatchers = realIo,
     )
 
-    private fun fetch(script: Script, url: String = "https://example.com/a", enabled: Boolean = true) =
-        runBlocking { lookup(script, enabled)(url) }
+    private fun fetch(script: Script, url: String = "https://example.com/a") =
+        runBlocking { lookup(script)(url) }
 
     /** The lookup only requests port 443, so a test server is reached by moving the call after the checks. */
     private fun portTo(port: Int) = Interceptor { chain ->
@@ -210,19 +209,19 @@ class WebLinkLookupTest {
             Thread.sleep(150)
             if (req.url.encodedPath.length < 4) redirect(req, "https://example.com${req.url.encodedPath}x") else reply(req)
         }
-        val slow = WebLinkLookup(webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(), { true }, realIo, deadline = 300.milliseconds)
+        val slow = WebLinkLookup(webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(), realIo, deadline = 300.milliseconds)
         val result = runBlocking { slow("https://example.com/") }
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() !is CancellationException)
         // The same hops inside a longer deadline resolve.
-        val fast = WebLinkLookup(webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(), { true }, realIo, deadline = 5.seconds)
+        val fast = WebLinkLookup(webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(), realIo, deadline = 5.seconds)
         assertTrue(runBlocking { fast("https://example.com/") }.getOrThrow() is LinkCard.Web.State.Resolved)
     }
 
     @Test
     fun `time spent waiting for a permit does not count against the deadline`() {
         val script = Script { req -> Thread.sleep(250); reply(req) }
-        val lookup = WebLinkLookup(webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(), { true }, realIo, deadline = 400.milliseconds)
+        val lookup = WebLinkLookup(webPreviewClient().newBuilder().addInterceptor(script.interceptor).build(), realIo, deadline = 400.milliseconds)
         val results = runBlocking(Dispatchers.IO) {
             (1..WebLinks.MAX_CONCURRENT + 1).map { async { lookup("https://example.com/$it") } }.awaitAll()
         }
@@ -257,13 +256,6 @@ class WebLinkLookupTest {
         assertEquals(WebLinks.USER_AGENT, request.header("User-Agent"))
         assertEquals("text/html,application/xhtml+xml", request.header("Accept"))
         assertEquals("identity", request.header("Accept-Encoding"))
-    }
-
-    @Test
-    fun `with the flag off the result is a failure and nothing is requested`() {
-        val script = Script { reply(it) }
-        assertTrue(fetch(script, enabled = false).isFailure)
-        assertTrue(script.seen.isEmpty())
     }
 
     @Test
@@ -321,7 +313,7 @@ class WebLinkLookupTest {
                 }
                 .build()
             val result = runBlocking {
-                WebLinkLookup(client, { true }, realIo)("https://$host/")
+                WebLinkLookup(client, realIo)("https://$host/")
             }
             assertEquals("gzip", sawEncoding, "OkHttp must not strip Content-Encoding")
             assertEquals("identity", server.takeRequest().headers["Accept-Encoding"])
@@ -363,7 +355,7 @@ class WebLinkLookupTest {
             }
             val client = webPreviewClient(Dns { host -> resolved += host; throw java.net.UnknownHostException(host) })
                 .newBuilder().proxySelector(selector).build()
-            val result = runBlocking { WebLinkLookup(client, { true }, realIo)("https://example.com/") }
+            val result = runBlocking { WebLinkLookup(client, realIo)("https://example.com/") }
             assertTrue(result.isFailure)
             assertEquals(0, proxy.requestCount)
             assertTrue(asked.isEmpty(), "proxy selector was consulted: $asked")
@@ -391,7 +383,7 @@ class WebLinkLookupTest {
                 .sslSocketFactory(clientCerts.sslSocketFactory(), clientCerts.trustManager)
                 .addInterceptor(portTo(server.port))
                 .build()
-            val result = runBlocking { WebLinkLookup(client, { true }, realIo)("https://$host/") }
+            val result = runBlocking { WebLinkLookup(client, realIo)("https://$host/") }
             assertEquals(LinkCard.Web.State.None, result.getOrThrow())
             assertEquals(1, server.requestCount)
         } finally {

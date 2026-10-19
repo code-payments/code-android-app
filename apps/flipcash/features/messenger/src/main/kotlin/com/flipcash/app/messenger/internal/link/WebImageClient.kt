@@ -17,12 +17,10 @@ import java.io.IOException
  * The client for a preview's picture, built under the same rules as [webPreviewClient]: no cookies,
  * no cache, no system proxy, [PublicOnlyDns], and no redirect followed by OkHttp itself.
  * [WebImageInterceptor] follows them by hand and holds the image to the page rules (decision 4).
- *
- * [enabled] is the kill switch: off, the call fails without a request.
  */
-internal fun webImageClient(dns: Dns = PublicOnlyDns(), enabled: () -> Boolean = { true }): OkHttpClient =
+internal fun webImageClient(dns: Dns = PublicOnlyDns()): OkHttpClient =
     webClientBuilder(dns)
-        .addInterceptor(WebImageInterceptor(enabled))
+        .addInterceptor(WebImageInterceptor())
         .build()
 
 /**
@@ -33,10 +31,9 @@ internal fun webImageClient(dns: Dns = PublicOnlyDns(), enabled: () -> Boolean =
  * `Accept-Encoding`) is not sent. A failure is an [IOException], which the loader treats as "no
  * image"; the card then draws without one.
  */
-internal class WebImageInterceptor(private val enabled: () -> Boolean) : Interceptor {
+internal class WebImageInterceptor : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        if (!enabled()) throw IOException("web previews off")
         var current = chain.request().url
         // The first request plus MAX_REDIRECTS redirects, as for pages.
         repeat(WebLinks.MAX_REDIRECTS + 1) {

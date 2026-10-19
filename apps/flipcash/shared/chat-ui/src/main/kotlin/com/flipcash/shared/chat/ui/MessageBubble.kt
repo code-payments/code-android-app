@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -139,13 +140,15 @@ fun ContentBubble(
 ) {
     val actionHandler = LocalChatActionHandler.current
     val updateAction = LocalUpdateAppAction.current
-    val jumbo = remember(item) { item.rendersBareEmoji() }
+    // A redacted placeholder is never drawn bare: it is not the message, only its shape.
+    val jumbo = remember(item) { !item.redacted && item.rendersBareEmoji() }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val bubbleMaxWidth = bubbleMaxWidth(
             content = item.content,
             rowWidth = maxWidth,
             rowInset = CodeTheme.dimens.inset,
         )
+        val messageCardWidth = maxWidth * CASH_CARD_WIDTH_FRACTION
 
         // A split message's citation goes on its first row and its marker on its last, so the
         // pieces read as one message stacked rather than as three.
@@ -178,7 +181,9 @@ fun ContentBubble(
                     card = card,
                     isFromSelf = item.isFromSelf,
                     position = position,
-                    maxWidth = bubbleMaxWidth,
+                    // A message card takes the cash card's width rather than a bubble's, so its
+                    // states read as one fixed card against the prose either side (iOS matches).
+                    maxWidth = if (card is LinkCard.Message) messageCardWidth else bubbleMaxWidth,
                     quote = quote,
                     onQuoteClick = onQuoteClick,
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
@@ -207,6 +212,7 @@ fun ContentBubble(
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
                     attention = attention,
+                    redacted = item.redacted,
                 )
 
                 // A tombstone is a text bubble with different words. Rendering it through the same
@@ -289,6 +295,7 @@ fun ContentBubble(
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
                     attention = attention,
+                    redacted = item.redacted,
                 )
 
                 // Ciphertext reaches a bubble only when it didn't open; an opened message carries
@@ -387,7 +394,7 @@ fun ChatListItem.ContentBubble.rendersBare(): Boolean =
 
 /**
  * [rendersBare], plus the case only composition can answer: a message that is nothing but a web
- * link whose card has resolved, or is loading behind a placeholder, draws as the card alone (see [TextBubble]), so its "Edited" marker
+ * link whose card has resolved, draws as the card alone (see [TextBubble]), so its "Edited" marker
  * comes out below it like a Flipcash card row's. Asks the same [rememberWebLinkCard] the bubble
  * does, so the two agree on every frame.
  *
@@ -399,7 +406,7 @@ fun ChatListItem.ContentBubble.rememberRendersBare(): Boolean {
     if (rendersBare()) return true
     val web = linkOnlyWebCard() ?: return false
     val state = rememberWebLinkCard(web)
-    return state.resolved != null || state.loading
+    return state.resolved != null
 }
 
 /**
@@ -486,6 +493,7 @@ private fun TextBubble(
     onCardDoubleClick: (() -> Unit)? = null,
     interactive: Boolean = true,
     attention: () -> Float = { 0f },
+    redacted: Boolean = false,
 ) {
     if (jumbo) {
         JumboEmoji(
@@ -507,14 +515,14 @@ private fun TextBubble(
     val surround = if (quote != null) BubbleDefaults.surroundInset else BubbleDefaults.paddingHorizontal
     val bodyInset = BubbleDefaults.paddingHorizontal - surround
     // Asked here rather than in the card so the bubble can widen for a card that draws: the image
-    // would otherwise be squeezed to the text's width. A chip, a card still loading and an empty
-    // answer leave the bubble text-sized.
+    // would otherwise be squeezed to the text's width. A link with no preview leaves the bubble
+    // text-sized.
     val web = webCard?.let { rememberWebLinkCard(it) }
     val cardDrawn = web?.resolved != null
     // A link-only message holds the card's place while its lookup runs, so the link never shows
     // and the card then fills the same slot. An empty or failed answer ends the wait, and the text
     // bubble with the link takes over.
-    if (web != null && webCardAlone && (cardDrawn || web.loading)) {
+    if (web != null && webCardAlone && cardDrawn) {
         BareWebCard(
             web = web,
             isFromSelf = isFromSelf,
@@ -634,10 +642,12 @@ private fun TextBubble(
         // a message is the selection bar's Copy action instead — the same trade WhatsApp makes.
         // The citation sits inside the bubble, above the body, so the two move together and the
         // reply reads as one message rather than as a quote with a message under it.
+        val redaction = if (redacted) Modifier.redactedText() else Modifier
         val bodyText = @Composable {
             Text(
                 modifier = Modifier
                     .padding(horizontal = bodyInset)
+                    .then(redaction)
                     .widestLine(measurer, laidOut, bodyStyle, inlineContent)
                     .then(
                         if (handles.isEmpty()) {
@@ -649,7 +659,7 @@ private fun TextBubble(
                 text = laidOut,
                 inlineContent = inlineContent,
                 style = bodyStyle,
-                color = bodyColor,
+                color = if (redacted) redactedTextColor(bodyColor) else bodyColor,
                 onTextLayout = { bodyLayout = it },
             )
         }
@@ -708,9 +718,7 @@ private fun TextBubble(
  * Laid out as [BareLinkCard] is -- through [Bubble] with `bare`, so the jump flash and the width
  * ceiling stay where every bubble gets them, and a reply's citation above the card.
  *
- * Only reached while the card is resolved or its lookup is running, when [WebLinkCard] draws a
- * placeholder in its place. Should the answer come back empty, [TextBubble] draws the text bubble
- * with the link again.
+ * Only reached while the card is resolved; a link with no preview draws as the text bubble.
  */
 @Composable
 private fun BareWebCard(
@@ -911,8 +919,12 @@ private fun BareLinkCard(
 @Composable
 private fun rememberLinkCardClick(): (LinkCard) -> Unit {
     val actionHandler = LocalChatActionHandler.current
+    val uriHandler = LocalUriHandler.current
     return { card ->
         when (card) {
+            // The transcript's handler follows a message link in the app: a jump in place when it
+            // points into this chat, a push with the way back otherwise.
+            is LinkCard.Message -> uriHandler.openUri(card.url)
             // The chat opens it, because only the chat knows whether this reader may collect it.
             // A voucher already being claimed would only start the same claim again.
             is LinkCard.Cash -> if ((card.state as? LinkCard.Cash.State.Resolved)?.claim != LinkCard.Cash.Claim.Claiming) {

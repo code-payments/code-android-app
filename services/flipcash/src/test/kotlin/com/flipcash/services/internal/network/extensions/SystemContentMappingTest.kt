@@ -3,6 +3,8 @@ package com.flipcash.services.internal.network.extensions
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
 import com.flipcash.services.models.chat.MessageContent
 import kotlin.test.Test
+import com.codeinc.flipcash.gen.common.v1.Common
+import com.google.protobuf.ByteString
 import kotlin.test.assertEquals
 
 /** The server's `SystemContent.fallback_text` reaching the app as a notice, and blank ones not. */
@@ -56,5 +58,58 @@ class SystemContentMappingTest {
             listOf(MessageContent.System("Sam left")),
             message(system(" "), system("Sam left")).toChatMessage().content,
         )
+    }
+
+    private fun userId(byte: Int) = Common.UserId.newBuilder().setValue(ByteString.copyFrom(byteArrayOf(byte.toByte()))).build()
+
+    private fun joined(build: MessagingModel.SystemContent.UserJoined.Builder.() -> Unit) = MessagingModel.Content.newBuilder()
+        .setSystem(
+            MessagingModel.SystemContent.newBuilder()
+                .setFallbackText("Someone joined")
+                .setUserJoined(MessagingModel.SystemContent.UserJoined.newBuilder().apply(build)),
+        )
+        .build()
+
+    @Test
+    fun `a direct join carries who joined`() {
+        assertEquals(
+            MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(listOf(2), admittedBy = null)),
+            joined {
+                setUserId(userId(2))
+                setDirect(MessagingModel.SystemContent.UserJoined.Direct.getDefaultInstance())
+            }.toMessageContent(),
+        )
+    }
+
+    @Test
+    fun `an admitted join carries who let them in`() {
+        assertEquals(
+            MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(listOf(2), admittedBy = listOf(3))),
+            joined {
+                setUserId(userId(2))
+                setAdmitted(MessagingModel.SystemContent.UserJoined.Admitted.newBuilder().setAdmittedBy(userId(3)))
+            }.toMessageContent(),
+        )
+    }
+
+    @Test
+    fun `a join with no method is a plain join`() {
+        assertEquals(
+            MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(listOf(2), admittedBy = null)),
+            joined { setUserId(userId(2)) }.toMessageContent(),
+        )
+    }
+
+    @Test
+    fun `a join missing its user is fallback only`() {
+        assertEquals(MessageContent.System("Someone joined"), joined { }.toMessageContent())
+    }
+
+    @Test
+    fun `a join round-trips to the wire`() {
+        listOf(null, listOf<Byte>(3)).forEach { admittedBy ->
+            val content = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(listOf(2), admittedBy))
+            assertEquals(content, content.asContent().toMessageContent())
+        }
     }
 }

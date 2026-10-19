@@ -46,6 +46,7 @@ import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.services.models.chat.ImageMetadata
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.isSystemBlank
 import com.flipcash.services.models.chat.WidgetContent
@@ -172,9 +173,20 @@ internal fun Common.PagingToken.toPagingToken(): PagingToken = value.toByteArray
 
 // -- Messaging models --
 
+internal fun MessagingModel.LinkPreview.toLinkPreview(): LinkPreview = LinkPreview(
+    url = url,
+    title = title,
+    description = description,
+    image = if (hasImage()) image.toMediaItem() else null,
+)
+
 internal fun MessagingModel.Content.toMessageContent(): MessageContent {
     return when (typeCase) {
-        MessagingModel.Content.TypeCase.TEXT -> MessageContent.Text(text.text)
+        MessagingModel.Content.TypeCase.TEXT -> MessageContent.Text(
+            text = text.text,
+            // One is all this client renders; the contract has any further ones ignored.
+            linkPreview = text.linkPreviewsList.firstOrNull()?.toLinkPreview(),
+        )
         MessagingModel.Content.TypeCase.CASH -> MessageContent.Cash(
             intentId = cash.intentId.value.toByteArray().toList(),
             amount = Fiat(
@@ -197,7 +209,10 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
             // An empty caption is no caption.
             caption = if (media.hasCaption() && media.caption.text.isNotEmpty()) MessageContent.Text(media.caption.text) else null,
         )
-        MessagingModel.Content.TypeCase.SYSTEM -> MessageContent.System(system.fallbackText)
+        MessagingModel.Content.TypeCase.SYSTEM -> MessageContent.System(
+            fallbackText = system.fallbackText,
+            event = system.toSystemEvent(),
+        )
         MessagingModel.Content.TypeCase.DELETED -> MessageContent.Deleted(
             deletedTs = Instant.fromEpochSeconds(deleted.deletedTs.seconds, deleted.deletedTs.nanos),
             deletedBy = if (deleted.hasDeletedBy()) deleted.deletedBy.toId() else null,
@@ -754,4 +769,20 @@ internal fun com.codeinc.flipcash.gen.blob.v1.Model.RejectionReason.toRejectionR
 internal fun com.codeinc.flipcash.gen.moderation.v1.Model.FlaggedCategory.toFlaggedCategory(): ModerationResult.FlaggedCategory {
     return ModerationResult.FlaggedCategory.entries.firstOrNull { it.name == name }
         ?: ModerationResult.FlaggedCategory.OTHER
+}
+
+// A variant this client doesn't know, or one missing the user it names, draws as its fallback text.
+private fun MessagingModel.SystemContent.toSystemEvent(): MessageContent.SystemEvent? = when (typeCase) {
+    MessagingModel.SystemContent.TypeCase.USER_JOINED -> userJoined
+        .takeIf { it.hasUserId() }
+        ?.let { joined ->
+            MessageContent.SystemEvent.UserJoined(
+                userId = joined.userId.toId(),
+                // An unset method renders as a plain join, as a direct one does.
+                admittedBy = joined.admitted
+                    .takeIf { joined.methodCase == MessagingModel.SystemContent.UserJoined.MethodCase.ADMITTED && it.hasAdmittedBy() }
+                    ?.admittedBy?.toId(),
+            )
+        }
+    else -> null
 }

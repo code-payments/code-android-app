@@ -390,7 +390,7 @@ class ChatEntityMapper @Inject constructor() {
 // region Serialization helpers
 
 private fun MessageContent.toSerialized(): MessageContentSerialized = when (this) {
-    is MessageContent.Text -> MessageContentSerialized.Text(text)
+    is MessageContent.Text -> MessageContentSerialized.Text(text, linkPreview)
     is MessageContent.Cash -> MessageContentSerialized.Cash(
         intentId = intentId.base58,
         quarks = amount.quarks,
@@ -411,7 +411,14 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
     is MessageContent.Widget -> MessageContentSerialized.WidgetShareProfile(
         username = (widget as? WidgetContent.ShareProfile)?.username,
     )
-    is MessageContent.System -> MessageContentSerialized.System(fallbackText = fallbackText)
+    is MessageContent.System -> when (val event = event) {
+        is MessageContent.SystemEvent.UserJoined -> MessageContentSerialized.System(
+            fallbackText = fallbackText,
+            joinedUser = event.userId.hexEncodedString(),
+            admittedBy = event.admittedBy?.hexEncodedString(),
+        )
+        null -> MessageContentSerialized.System(fallbackText = fallbackText)
+    }
     MessageContent.Unsupported -> MessageContentSerialized.Unsupported
     is MessageContent.Deleted -> MessageContentSerialized.Deleted(
         deletedAt = deletedTs.epochSeconds,
@@ -428,7 +435,7 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
     is MessageContentSerialized.WidgetShareProfile -> MessageContent.Widget(
         username?.let { WidgetContent.ShareProfile(it) } ?: WidgetContent.Unsupported,
     )
-    is MessageContentSerialized.Text -> MessageContent.Text(text)
+    is MessageContentSerialized.Text -> MessageContent.Text(text, linkPreview)
     is MessageContentSerialized.Cash -> MessageContent.Cash(
         intentId = intentId.decodeBase58().toList(),
         amount = Fiat(
@@ -449,7 +456,10 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
         items = items,
         caption = caption?.let { MessageContent.Text(it.text) },
     )
-    is MessageContentSerialized.System -> MessageContent.System(fallbackText = fallbackText)
+    is MessageContentSerialized.System -> MessageContent.System(
+        fallbackText = fallbackText,
+        event = joinedUser?.let { MessageContent.SystemEvent.UserJoined(it.hexToIdExt(), admittedBy?.hexToIdExt()) },
+    )
     MessageContentSerialized.Unsupported -> MessageContent.Unsupported
     is MessageContentSerialized.Deleted -> MessageContent.Deleted(
         deletedTs = Instant.fromEpochSeconds(deletedAt),

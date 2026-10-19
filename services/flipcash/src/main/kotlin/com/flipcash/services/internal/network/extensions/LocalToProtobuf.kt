@@ -127,7 +127,10 @@ internal fun ClientMessageId.asClientMessageId(): MessagingModel.ClientMessageId
 internal fun MessageContent.asContent(): MessagingModel.Content {
     return when (this) {
         is MessageContent.Text -> MessagingModel.Content.newBuilder()
-            .setText(MessagingModel.TextContent.newBuilder().setText(text))
+            .setText(
+                MessagingModel.TextContent.newBuilder().setText(text)
+                    .apply { this@asContent.linkPreview?.let { addLinkPreviews(it.asLinkPreview()) } }
+            )
             .build()
         is MessageContent.Cash -> MessagingModel.Content.newBuilder()
             .setCash(
@@ -169,9 +172,23 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
         is MessageContent.Widget -> error("Widget messages are receive-only and are never sent by a client")
         // Only ever decoded from a type this build doesn't know, so it has no wire form to send.
         is MessageContent.Unsupported -> error("Unsupported content is decode-only; it has no wire form")
-        is MessageContent.System -> MessagingModel.Content.newBuilder()
-            .setSystem(MessagingModel.SystemContent.newBuilder().setFallbackText(fallbackText))
-            .build()
+        is MessageContent.System -> {
+            val systemBuilder = MessagingModel.SystemContent.newBuilder().setFallbackText(fallbackText)
+            when (val event = event) {
+                is MessageContent.SystemEvent.UserJoined -> {
+                    val joined = MessagingModel.SystemContent.UserJoined.newBuilder()
+                        .setUserId(event.userId.asUserId())
+                    event.admittedBy?.let {
+                        joined.setAdmitted(MessagingModel.SystemContent.UserJoined.Admitted.newBuilder().setAdmittedBy(it.asUserId()))
+                    } ?: joined.setDirect(MessagingModel.SystemContent.UserJoined.Direct.getDefaultInstance())
+                    systemBuilder.setUserJoined(joined)
+                }
+                null -> Unit
+            }
+            MessagingModel.Content.newBuilder()
+                .setSystem(systemBuilder)
+                .build()
+        }
         is MessageContent.Deleted -> {
             val deletedBuilder = MessagingModel.DeletedContent.newBuilder()
                 .setDeletedTs(deletedTs.asTimestamp())
@@ -191,6 +208,14 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
             .build()
     }
 }
+
+internal fun com.flipcash.services.models.chat.LinkPreview.asLinkPreview(): MessagingModel.LinkPreview =
+    MessagingModel.LinkPreview.newBuilder()
+        .setUrl(url)
+        .setTitle(title)
+        .setDescription(description)
+        .apply { this@asLinkPreview.image?.let { setImage(it.asMediaItem()) } }
+        .build()
 
 internal fun com.flipcash.services.models.chat.MediaItem.asMediaItem(): com.codeinc.flipcash.gen.blob.v1.Model.Media {
     return com.codeinc.flipcash.gen.blob.v1.Model.Media.newBuilder()

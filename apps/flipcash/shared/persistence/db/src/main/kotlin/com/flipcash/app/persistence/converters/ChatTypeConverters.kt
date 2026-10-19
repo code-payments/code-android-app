@@ -3,6 +3,7 @@ package com.flipcash.app.persistence.converters
 import androidx.room.TypeConverter
 import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.services.models.VerifiableContactMethod
+import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.services.models.chat.MediaItem
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -190,7 +191,11 @@ class ChatTypeConverters {
 sealed interface MessageContentSerialized {
     @Serializable
     @SerialName("text")
-    data class Text(val text: String) : MessageContentSerialized
+    // [linkPreview] defaults to null so rows stored before previews existed still decode.
+    data class Text(
+        val text: String,
+        val linkPreview: LinkPreview? = null,
+    ) : MessageContentSerialized
 
     @Serializable
     @SerialName("cash")
@@ -230,9 +235,16 @@ sealed interface MessageContentSerialized {
     @SerialName("widget_share_profile")
     data class WidgetShareProfile(val username: String?) : MessageContentSerialized
 
+    // Mirrors MessageContent.System. [joinedUser] is set for a UserJoined event, and
+    // [admittedBy] when someone let them in; both hex-encoded. Rows stored before the event was
+    // kept have neither and decode as fallback-only.
     @Serializable
     @SerialName("system")
-    data class System(val fallbackText: String) : MessageContentSerialized
+    data class System(
+        val fallbackText: String,
+        val joinedUser: String? = null,
+        val admittedBy: String? = null,
+    ) : MessageContentSerialized
 
     // Mirrors MessageContent.Unsupported: a content type the build that stored it didn't know.
     @Serializable

@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.services.models.chat.LinkPreview
 import android.util.Patterns
 import com.flipcash.services.models.chat.MessageContent
 
@@ -164,6 +165,13 @@ private fun endsOnAsciiBoundary(text: String, end: Int): Boolean =
  *
  * Shared with the chat mapper so a card can only ever be offered for text the reader is looking at.
  */
+/** The preview the sender built for this content's text, from the same text [linkableText] reads. */
+fun MessageContent.linkPreview(): LinkPreview? = when (this) {
+    is MessageContent.Text -> linkPreview
+    is MessageContent.Reply -> content.filterIsInstance<MessageContent.Text>().firstOrNull()?.linkPreview
+    else -> null
+}
+
 fun MessageContent.linkableText(): String? = when (this) {
     is MessageContent.Text -> text
     is MessageContent.Reply -> content.filterIsInstance<MessageContent.Text>().firstOrNull()?.text

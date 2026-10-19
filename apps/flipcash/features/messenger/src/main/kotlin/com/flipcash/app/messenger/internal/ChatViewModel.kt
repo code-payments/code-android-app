@@ -1,5 +1,9 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.shared.chat.media.ChatPhoto
+import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.services.models.chat.LinkPreview
+import com.flipcash.shared.chat.ui.linkPreview
 import android.content.ClipboardManager
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
@@ -18,8 +22,6 @@ import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.map
 import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.featureflags.NoOpFeatureFlagController
 import com.flipcash.analytics.CashLinkChoice
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
@@ -132,8 +134,8 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.models.splitAroundLinkCard
-import coil3.ImageLoader
-import com.flipcash.app.messenger.internal.link.WebPreviewImages
+import com.flipcash.app.messenger.internal.link.ComposerLinkPreview
+import com.flipcash.app.messenger.internal.link.ComposerLinkPreviewState
 import com.flipcash.shared.chat.reactions.ReactionError
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionStrip
@@ -198,6 +200,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -222,6 +225,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -244,6 +248,21 @@ data class TypingConstraints(
 internal class ChatViewModel @AssistedInject constructor(
     /** The chat this view model opens on creation. Null opens nothing; tests open their own. */
     @Assisted private val identifier: ChatIdentifier?,
+    /**
+     * The message this visit opens scrolled to — a message link's landing — by its per-chat
+     * sequence number. Null opens where any other visit does.
+     */
+    @Assisted private val openAtMessageId: Long? = null,
+    /**
+     * The title of the chat a message link was followed from inside the app, offered as a chip
+     * back to it. Null for any other open.
+     */
+    @Assisted private val returnToTitle: String? = null,
+    /**
+     * Whether the link that opened this visit named a group (a dashed UUID id) rather than a DM.
+     * See [State.linkedAsGroup].
+     */
+    @Assisted private val linkedAsGroup: Boolean = false,
     private val chatCoordinator: ChatCoordinator,
     private val mediaUploads: ChatMediaUploads,
     private val e2eePolicy: E2eePolicy,
@@ -275,21 +294,18 @@ internal class ChatViewModel @AssistedInject constructor(
     private val hostLobbies: HostLobbies,
     private val groupRosters: GroupRosters,
     private val dispatchers: DispatcherProvider,
-    // Last and defaulted so the transcript tests, which draw no pictures, need not supply one.
-    @WebPreviewImages val webPreviewImageLoader: ImageLoader? = null,
+    // Last and defaulted so the transcript tests, which hold no saved previews, need not supply one.
     linkCardMemory: LinkCardMemory? = null,
-    featureFlags: FeatureFlagController = NoOpFeatureFlagController,
+    private val composerLinkPreview: ComposerLinkPreview? = null,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
-    initialState = State(),
+    initialState = State(
+        openingAtMessage = openAtMessageId != null,
+        returnToTitle = returnToTitle,
+        linkedAsGroup = linkedAsGroup,
+    ),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
-
-    /**
-     * Whether web link previews are on. Observed rather than read once, because the flag can flip
-     * in the staff menu while a chat is open. Off means no web card is drawn at all.
-     */
-    val webLinkPreviewsEnabled: StateFlow<Boolean> = featureFlags.observe(FeatureFlag.WebLinkPreviews)
 
     /**
      * Whether the transcript may be drawn. Saved link previews load at app start, but a chat opened
@@ -395,6 +411,8 @@ internal class ChatViewModel @AssistedInject constructor(
         val replyingTo: ChatQuote? = null,
         /** Photos staged in the composer, in the order they were added. Hidden, not dropped, while editing. */
         val stagedPhotos: List<StagedPhoto> = emptyList(),
+        /** The draft link's preview card, or null when the draft has no previewable link. */
+        val composerLink: ComposerLinkPreviewState? = null,
         /** Where each staged photo's upload is; a chip with no entry yet is still being picked up. */
         val uploadStates: Map<String, ChatMediaUploadState> = emptyMap(),
         /**
@@ -417,6 +435,30 @@ internal class ChatViewModel @AssistedInject constructor(
          * it. Set alongside [jumpTarget] and cleared with it.
          */
         val jumpBudget: Int? = null,
+        /**
+         * True while a visit opened at a message has not yet landed on it, or found it cannot. The
+         * list holds its unread-divider positioning until this clears, so the two don't both walk
+         * the transcript on open; a message that can't be reached falls back to that positioning.
+         */
+        val openingAtMessage: Boolean = false,
+        /**
+         * The chat this visit can go back to, shown as a chip under the bar: set when a message
+         * link was followed here from another chat. It stays for the life of the screen: the chip
+         * goes only by being tapped or by leaving the chat.
+         */
+        val returnToTitle: String? = null,
+        /**
+         * Whether a message link opened this visit with a group's id. The open can mark the chat a
+         * tip DM before the group resolves, and a landing that believed it would page a withheld
+         * group's history, so [messageLinkLanding] waits on the group for such a link.
+         */
+        val linkedAsGroup: Boolean = false,
+        /**
+         * The linked message, drawn alone over the blurred transcript when a message link lands in
+         * a group that withholds its transcript from the viewer (flow 6). See [gatedLandingBubble].
+         * Null for any other visit, and cleared once the viewer can read the transcript itself.
+         */
+        val gatedLanding: ChatListItem.ContentBubble? = null,
         /**
          * Where the "N Unread Messages" divider sits, read once per visit from the viewer's stored
          * READ pointer. Never re-read: the list advances that pointer as the reader scrolls, and a
@@ -623,6 +665,36 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val obscuresTranscript: Boolean
             get() = isOutsideGroup && !readsFromOutside
+
+        /**
+         * What a message link's landing may do here, or null while that is not known yet.
+         *
+         * A link carries a chat id before the open has said what the chat is or where the viewer
+         * stands in it, and paging toward the message in that window would fetch a withheld
+         * group's transcript, the one [obscuresTranscript] is there to keep off the device. So a
+         * group waits on its membership and, for a non-member, on [groupAccess] settling, and
+         * reads as [MessageLinkLanding.Readable] only where the transcript would be fetched anyway.
+         */
+        val messageLinkLanding: MessageLinkLanding?
+            get() = when {
+                chatNotFound -> MessageLinkLanding.Withheld
+                // A null membership is a group hydrated by id, which the device holds no row for;
+                // like the gate, read it as outside (see ChatMembership.isMember).
+                subject is ChatSubject.Group -> when (subject.isMember) {
+                    true -> MessageLinkLanding.Readable
+                    null, false -> when (groupAccess) {
+                        null, GroupAccess.Undetermined -> null
+                        else -> if (readsFromOutside) MessageLinkLanding.Readable
+                        else MessageLinkLanding.Withheld
+                    }
+                }
+                // The open can call a group a tip DM before the group resolves, so a link that
+                // named a group never reads as one.
+                linkedAsGroup -> null
+                chatType == ChatType.TIP_DM || chatType == ChatType.CONTACT_DM ->
+                    MessageLinkLanding.Readable
+                else -> null
+            }
 
         /**
          * The host's Join Requests anchor under the title bar (node 11354:70): only while someone is
@@ -877,6 +949,10 @@ internal class ChatViewModel @AssistedInject constructor(
         /** The shot for [uri] was written, or, when not [saved], failed and leaves the composer. */
         data class CaptureFinished(val uri: Uri, val saved: Boolean) : Event
         data class RemovePhoto(val id: String) : Event
+        data class ComposerLinkChanged(val link: ComposerLinkPreviewState?) : Event
+
+        /** The × on the draft link's preview card. */
+        data object RemoveLinkPreview : Event
         data class RetryPhoto(val id: String) : Event
         data class UploadStatesChanged(val states: Map<String, ChatMediaUploadState>) : Event
 
@@ -943,6 +1019,13 @@ internal class ChatViewModel @AssistedInject constructor(
         // Carries nothing because it does nothing but dismiss the bar: report is its own top-level
         // flow, and the bar's caller has already captured the message to push the route with.
         data object ReportRequested : Event
+
+        /** Puts a link to [messageId] on the clipboard — `Linkify.message`. */
+        data class CopyMessageLink(val messageId: Long) : Event
+
+        // Dismisses the bar, as ReportRequested does: the share sheet is opened by the bar's caller,
+        // which has the navigator and has already captured the message.
+        data object ShareMessageRequested : Event
 
         data object SubmitEdit : Event
         data object CancelEdit : Event
@@ -1029,6 +1112,12 @@ internal class ChatViewModel @AssistedInject constructor(
         /** The server confirmed a message the viewer sent; the read pointer has moved past everything. */
         data object OwnMessageSent : Event
         data object JumpConsumed : Event
+
+        /** A jump whose message is neither stored nor on the server: nothing to scroll to. */
+        data object JumpUnreachable : Event
+
+        /** The row a withheld landing draws over the blur changed. See [State.gatedLanding]. */
+        data class GatedLandingChanged(val item: ChatListItem.ContentBubble?) : Event
     }
 
     /**
@@ -1157,6 +1246,9 @@ internal class ChatViewModel @AssistedInject constructor(
      * anyone it omits (a sender who left, a member past the cap) is asked for one profile at a time.
      * See SenderResolver.
      */
+    /** The message a withheld landing peeked at; see [State.gatedLanding]. */
+    private val gatedLandingMessage = MutableStateFlow<ChatMessage?>(null)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val senderProfiles: StateFlow<Map<String, UserProfile>?> =
         stateFlow.map { it.chatType == ChatType.GROUP }
@@ -1181,6 +1273,31 @@ internal class ChatViewModel @AssistedInject constructor(
      * Null until the transcript has resolved them, which it has by the time their picture is
      * drawn — the picture is what this is reached from.
      */
+    /**
+     * Follows a tapped message link inside the app. True when [uri] was one: a message in this
+     * chat is jumped to in place, and one in another chat is pushed over this one with a chip back
+     * here. False leaves [uri] to the ordinary link handling.
+     */
+    fun followMessageLink(uri: String): Boolean {
+        val link = linkCardClassifier.messageLink(uri) ?: return false
+        val state = stateFlow.value
+        if (link.chatId == state.chatId) {
+            dispatchEvent(Event.JumpToMessage(link.messageId))
+        } else {
+            dispatchEvent(
+                Event.OpenScreen(
+                    AppRoute.Messaging.Chat(
+                        identifier = ChatIdentifier.ByChatId(link.chatId),
+                        isGroupLink = link.isGroup,
+                        jumpToMessageId = link.messageId,
+                        returnToTitle = state.subject?.title,
+                    )
+                )
+            )
+        }
+        return true
+    }
+
     fun memberParticipant(userId: ID): ChatParticipant.TipUser? =
         senderProfiles.value?.get(userId.hexEncodedString())
             ?.let { ChatParticipant.TipUser(userId, it) }
@@ -1262,7 +1379,15 @@ internal class ChatViewModel @AssistedInject constructor(
                     // that and becomes its own kind of row.
                     if (content is MessageContent.System) {
                         return@flatMapIndexed listOfNotNull(
-                            systemMessageItem(message.messageId, index, message.timestamp, content),
+                            systemMessageItem(
+                                messageId = message.messageId,
+                                contentIndex = index,
+                                timestamp = message.timestamp,
+                                content = content,
+                                resources = resources,
+                                selfId = userManager.accountId,
+                                nameOf = { userId -> profiles.systemUserName(userId) },
+                            ),
                         )
                     }
 
@@ -1298,6 +1423,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     val linkableText = enriched.linkableText()
                     val links = linkableText?.let(::detectUrls).orEmpty()
                     val linkCard = linkCardClassifier.firstCard(links)
+                        .withSenderPreview(content.linkPreview(), message, stateFlow.value.chatId)
 
                     // Detected over the whole text, beside the links, so a handle inside a link
                     // stays the link's. Nothing is looked up until one is tapped.
@@ -1482,6 +1608,22 @@ internal class ChatViewModel @AssistedInject constructor(
             null -> ""
             else -> nameOrHandle(profile.displayName, profile.handle)
                 ?: resources.getString(R.string.title_unnamedUser)
+        }
+    }
+
+    /**
+     * A user a system notice names, as [quoteAuthorName] names a quote's author: asked for when the
+     * roster can't name them, and null until then, so the row reads as its fallback text rather
+     * than a placeholder. Null for a DM, which has no [senderProfiles].
+     */
+    private fun Map<String, UserProfile>?.systemUserName(userId: ID): String? {
+        val profiles = this ?: return null
+        val profile = profiles[userId.hexEncodedString()]
+        if (profile == null || profile.displayName.isBlank()) {
+            chatCoordinator.requestSenderProfile(userId)
+        }
+        return profile?.let {
+            nameOrHandle(it.displayName, it.handle) ?: resources.getString(R.string.title_unnamedUser)
         }
     }
 
@@ -2546,6 +2688,16 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             .launchIn(viewModelScope)
 
+        eventFlow.filterIsInstance<Event.CopyMessageLink>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                clipboardManager.setText(
+                    text = Linkify.message(chatId, event.messageId),
+                    label = resources.getString(R.string.title_clipboardLabelMessageLink),
+                )
+            }
+            .launchIn(viewModelScope)
+
         eventFlow.filterIsInstance<Event.CopyMessage>()
             .onEach { event ->
                 clipboardManager.setText(
@@ -2926,17 +3078,55 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             .launchIn(viewModelScope)
 
-        // A distance the device cannot measure is a message it never stored, and no walk would
-        // reach it. Resolving here rather than in the list keeps the read off the composition and
-        // gives the walk a bound before it starts.
+        // Resolving here rather than in the list keeps the read off the composition and gives the
+        // walk a bound before it starts. See resolveJump for a message the device never stored.
         eventFlow.filterIsInstance<Event.JumpToMessage>()
             .onEach { event ->
                 val chatId = stateFlow.value.chatId ?: return@onEach
-                val distance = chatCoordinator.distanceFromNewest(chatId, event.messageId)
-                    ?: return@onEach
-                dispatchEvent(Event.JumpResolved(event.messageId, distance))
+                resolveJump(chatId, event.messageId)
             }
             .launchIn(viewModelScope)
+
+        // A message link's landing. Started here rather than dispatched as JumpToMessage: eventFlow
+        // is replay-0 and the chat id is not known yet, so the request waits on the open instead.
+        // Held until the gate settles (see State.messageLinkLanding). A withheld landing gives up
+        // the open-at-message hold, but keeps listening: a viewer who buys in from the gate can
+        // still be walked to the message.
+        if (openAtMessageId != null) {
+            stateFlow
+                .mapNotNull { state ->
+                    val chatId = state.chatId ?: return@mapNotNull null
+                    state.messageLinkLanding?.let { chatId to it }
+                }
+                .distinctUntilChanged()
+                .transformWhile { landing ->
+                    emit(landing)
+                    landing.second != MessageLinkLanding.Readable
+                }
+                .onEach { (chatId, landing) ->
+                    when (landing) {
+                        MessageLinkLanding.Readable -> {
+                            gatedLandingMessage.value = null
+                            resolveJump(chatId, openAtMessageId)
+                        }
+                        MessageLinkLanding.Withheld -> {
+                            dispatchEvent(Event.JumpUnreachable)
+                            // A group the viewer is outside of still shows the linked message
+                            // itself, redacted as the server sees fit; nothing else is fetched.
+                            val state = stateFlow.value
+                            if (state.obscuresTranscript && !state.chatNotFound) {
+                                chatCoordinator.peekMessage(chatId, openAtMessageId)
+                                    .onSuccess { gatedLandingMessage.value = it }
+                            }
+                        }
+                    }
+                }
+                .launchIn(viewModelScope)
+
+            gatedLandingItems()
+                .onEach { dispatchEvent(Event.GatedLandingChanged(it)) }
+                .launchIn(viewModelScope)
+        }
 
         // Read once per chat id. The list holds read reporting until this lands, so the pointer
         // it reads is the one the viewer arrived with.
@@ -3099,6 +3289,28 @@ internal class ChatViewModel @AssistedInject constructor(
     }
 
     private fun initSendHandlers() {
+        composerLinkPreview?.let { preview ->
+            stateFlow.mapNotNull { it.chatId }
+                .distinctUntilChanged()
+                .onEach { chatId ->
+                    coroutineScope {
+                        // An edit keeps the message's own preview, so its text builds none.
+                        val draft = combine(
+                            snapshotFlow { stateFlow.value.chatInputState.text.toString() },
+                            stateFlow.map { it.editing != null }.distinctUntilChanged(),
+                        ) { text, editing -> if (editing) "" else text }
+                        preview.bind(this, chatId, draft)
+                    }
+                }
+                .launchIn(viewModelScope)
+            preview.state
+                .onEach { dispatchEvent(Event.ComposerLinkChanged(it)) }
+                .launchIn(viewModelScope)
+            eventFlow.filterIsInstance<Event.RemoveLinkPreview>()
+                .onEach { preview.dismiss() }
+                .launchIn(viewModelScope)
+        }
+
         // Send text message
         eventFlow.filterIsInstance<Event.SendMessage>()
             .onEach {
@@ -3110,6 +3322,9 @@ internal class ChatViewModel @AssistedInject constructor(
                 // Read here, not in the reducer: the reply strip comes down with the draft, and
                 // both are the composer emptying itself once the message is on its way.
                 val replyToMessageId = stateFlow.value.replyingTo?.messageId
+
+                // Taken before the draft empties, which would otherwise drop it.
+                val linkPreview = composerLinkPreview?.take(textToSend)
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
                 if (replyToMessageId != null) dispatchEvent(Event.CancelReply)
@@ -3123,10 +3338,21 @@ internal class ChatViewModel @AssistedInject constructor(
 
                 viewModelScope.launch {
                     val sent = if (photos.isEmpty()) {
-                        chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
-                    } else {
+                        chatCoordinator.sendMessage(
+                            chatId,
+                            textToSend,
+                            replyToMessageId,
+                            linkPreview = linkPreview,
+                        )
+                    } else if (linkPreview == null) {
                         chatCoordinator.sendMedia(chatId, photos.map { it.id }, textToSend.trim(), replyToMessageId)
                             .onFailure { dispatchEvent(Event.PhotosRestored(photos)) }
+                    } else {
+                        // A caption carries no preview, so the text follows the photos as its own
+                        // message. The reply goes on the photos, and the text goes either way.
+                        chatCoordinator.sendMedia(chatId, photos.map { it.id }, "", replyToMessageId)
+                            .onFailure { dispatchEvent(Event.PhotosRestored(photos)) }
+                        chatCoordinator.sendMessage(chatId, textToSend, null, linkPreview = linkPreview)
                     }
                     sent
                         .onSuccess {
@@ -3445,15 +3671,57 @@ internal class ChatViewModel @AssistedInject constructor(
         }
     }
 
+    /** [gatedLandingMessage] as the row it draws, named once its sender's profile resolves. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun gatedLandingItems(): Flow<ChatListItem.ContentBubble?> =
+        gatedLandingMessage
+            .flatMapLatest { message ->
+                if (message == null) return@flatMapLatest flowOf(null)
+                val senderId = message.senderId?.takeIf { !message.isFromSelf }
+                senderId?.let { chatCoordinator.requestSenderProfile(it) }
+                chatCoordinator.observeSenderProfiles()
+                    .onStart { chatCoordinator.currentSenderProfiles()?.let { emit(it) } }
+                    .map { profiles -> senderId?.let { profiles[it.hexEncodedString()] } }
+                    .onStart { emit(null) }
+                    .distinctUntilChanged()
+                    .map { profile ->
+                        gatedLandingBubble(message, profile, resources.getString(R.string.title_unnamedUser))
+                    }
+            }
+            .distinctUntilChanged()
+
+    /**
+     * Resolves the walk's bound for a jump to [messageId] and hands it to the list. A message the
+     * device never stored is paged in from the server first, back from the oldest stored message so
+     * the transcript stays contiguous; a link to old history is the usual case.
+     */
+    private suspend fun resolveJump(chatId: ChatId, messageId: Long) {
+        val distance = chatCoordinator.distanceFromNewest(chatId, messageId)
+            ?: if (chatCoordinator.loadHistoryThrough(chatId, messageId)) {
+                chatCoordinator.distanceFromNewest(chatId, messageId)
+            } else {
+                null
+            }
+        if (distance == null) {
+            dispatchEvent(Event.JumpUnreachable)
+        } else {
+            dispatchEvent(Event.JumpResolved(messageId, distance))
+        }
+    }
+
     @AssistedFactory
     interface Factory {
-        fun create(identifier: ChatIdentifier?): ChatViewModel
+        fun create(
+            identifier: ChatIdentifier?,
+            openAtMessageId: Long?,
+            returnToTitle: String?,
+            linkedAsGroup: Boolean,
+        ): ChatViewModel
     }
 
     companion object {
         /** The longest the first draw of a transcript waits for saved link previews to load. */
         val PREVIEWS_WAIT = 300.milliseconds
-
 
         /**
          * How often a visible claimable voucher is re-asked about.
@@ -3640,6 +3908,8 @@ internal class ChatViewModel @AssistedInject constructor(
                     )
                 }
                 is Event.UploadStatesChanged -> { state -> state.copy(uploadStates = event.states) }
+                is Event.ComposerLinkChanged -> { state -> state.copy(composerLink = event.link) }
+                Event.RemoveLinkPreview -> { state -> state }
                 is Event.PhotosSent -> { state ->
                     state.copy(stagedPhotos = state.stagedPhotos.filterNot { it.id in event.ids })
                 }
@@ -3711,6 +3981,12 @@ internal class ChatViewModel @AssistedInject constructor(
                 Event.ReportRequested -> { state ->
                     state.copy(selection = null, confirmingDelete = false)
                 }
+                is Event.CopyMessageLink -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
+                Event.ShareMessageRequested -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
                 is Event.EditMessage -> { state ->
                     state.copy(
                         selection = null,
@@ -3780,7 +4056,11 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.JumpResolved -> { state ->
                     state.copy(jumpTarget = event.messageId, jumpBudget = event.budget)
                 }
-                Event.JumpConsumed -> { state -> state.copy(jumpTarget = null, jumpBudget = null) }
+                Event.JumpConsumed -> { state ->
+                    state.copy(jumpTarget = null, jumpBudget = null, openingAtMessage = false)
+                }
+                Event.JumpUnreachable -> { state -> state.copy(openingAtMessage = false) }
+                is Event.GatedLandingChanged -> { state -> state.copy(gatedLanding = event.item) }
                 is Event.UnreadBoundaryResolved -> { state ->
                     state.copy(
                         unreadBoundary = event.boundary,
@@ -3825,4 +4105,37 @@ private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
         )
     }
     return copy(quickReactionStrip = strip)
+}
+
+/**
+ * The web card resolved from the preview its sender built, when the preview is for this card's
+ * link: the reader then fetches nothing. Any other card, or a preview for another link, is left as
+ * classified.
+ */
+private fun LinkCard?.withSenderPreview(preview: LinkPreview?, message: ChatMessage, chatId: ChatId?): LinkCard? {
+    if (this !is LinkCard.Web || preview == null || preview.url != url) return this
+    val rendition = preview.image?.let { it.rendition(MediaItemRendition.Role.ORIGINAL) ?: it.renditions.firstOrNull() }
+    val photo = if (rendition != null && chatId != null) {
+        ChatPhoto(chatId, rendition, message.senderId, sealed = message.encryption != null)
+    } else {
+        null
+    }
+    return copy(
+        state = LinkCard.Web.State.Resolved(
+            title = preview.title,
+            description = preview.description.ifEmpty { null },
+            imageUrl = null,
+            host = Uri.parse(url).host.orEmpty().lowercase().removePrefix("www."),
+            photo = photo,
+        ),
+    )
+}
+
+/** See [ChatViewModel.State.messageLinkLanding]. */
+internal enum class MessageLinkLanding {
+    /** The transcript is the viewer's to read, so the landing pages to the message and walks there. */
+    Readable,
+
+    /** The transcript is withheld from the viewer, or the chat is gone: nothing is fetched for it. */
+    Withheld,
 }

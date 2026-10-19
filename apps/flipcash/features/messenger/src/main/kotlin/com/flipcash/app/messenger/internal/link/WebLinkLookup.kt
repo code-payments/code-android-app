@@ -114,10 +114,8 @@ internal fun Response.isEncoded() = headers.values("Content-Encoding")
 /** The client implementation of the spec's LinkMetadataSource. A server RPC replaces it. */
 internal class WebLinkLookup(
     private val client: OkHttpClient,
-    private val enabled: suspend () -> Boolean,
     private val dispatchers: DispatcherProvider,
     private val deadline: Duration = WebLinks.LOOKUP_DEADLINE,
-    private val memory: LinkCardMemory? = null,
 ) {
     private val inFlight = Semaphore(WebLinks.MAX_CONCURRENT)
 
@@ -135,7 +133,6 @@ internal class WebLinkLookup(
     }
 
     private suspend fun fetch(url: String): Result<LinkCard.Web.State> = withContext(dispatchers.IO) {
-        if (!enabled()) return@withContext Result.failure(IllegalStateException("web previews off"))
         runCatching {
             // One budget of redirects for the link and, if it is needed, the home page.
             val hops = Hops()
@@ -149,21 +146,16 @@ internal class WebLinkLookup(
 
     /**
      * The home page of [finalUrl]'s host, for a link that is private or has no card of its own (parity
-     * decisions P23, P24). A remembered answer for it is used without a request. Its answer is
-     * remembered under its own key too, None included. Running out of redirects there is the one
-     * answer that is not remembered for the home page: the link gets None and the home key nothing.
+     * decisions P23, P24).
      */
     private suspend fun homePage(finalUrl: HttpUrl, hops: Hops): LinkCard.Web.State {
         if (finalUrl.encodedPath == "/" && finalUrl.query == null) return LinkCard.Web.State.None
         val home = finalUrl.newBuilder().encodedPath("/").query(null).fragment(null).build()
-        val key = WebLinks.cacheKey(home.toString())
-        key?.let { k -> memory?.webs?.get(k)?.let { return it } }
         val state = when (val page = fetchPage(home, hops)) {
             is Page.Answer -> page.state
             is Page.Retry -> LinkCard.Web.State.None
             Page.OutOfRedirects -> return LinkCard.Web.State.None
         }
-        if (key != null) memory?.putWeb(key, state)
         return state
     }
 

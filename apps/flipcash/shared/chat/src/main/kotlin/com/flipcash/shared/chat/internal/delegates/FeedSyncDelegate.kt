@@ -13,7 +13,6 @@ import com.flipcash.app.persistence.sources.ChatFeedWriter
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
-import com.flipcash.app.persistence.sources.lastMessagesByChat
 import com.flipcash.app.persistence.sources.mediator.ChatFeedRemoteMediator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
@@ -35,7 +34,6 @@ import com.flipcash.shared.chat.internal.isRenderable
 import com.flipcash.shared.chat.internal.selfReadPointer
 import com.flipcash.shared.chat.internal.unreadCount
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.chat.MessageLinkPrefetch
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -86,12 +84,10 @@ class FeedSyncDelegate @Inject constructor(
     private val stateHolder: ChatStateHolder,
     private val userManager: UserManager,
     private val messagingController: ChatMessagingController,
-    private val linkPrefetch: MessageLinkPrefetch = MessageLinkPrefetch.None,
     private val archiveStore: ChatArchiveStore = ChatArchiveStore.None,
     private val feedWriter: ChatFeedWriter =
         ChatFeedWriter(metadataDataSource, memberDataSource, messageDataSource),
 ) : FeedOperations {
-
     companion object {
         private const val TAG = "FeedSyncDelegate"
 
@@ -534,13 +530,10 @@ class FeedSyncDelegate @Inject constructor(
 
     /**
      * Writes [chats] — whatever mix of DM and group chats the caller has in hand — in one
-     * transaction, so the list rebuilds once. Link prefetch and read stamps go first: neither
-     * blocks the list, and the stamps ride in with the rebuild.
+     * transaction, so the list rebuilds once. Read stamps go first: they do not block the list, and ride in with the rebuild.
      */
     internal suspend fun writeFeed(chats: List<ChatMetadata>) {
         if (chats.isEmpty()) return
-        // Not waited on: a preview is one message per chat, and the feed is not held for it.
-        linkPrefetch.prefetch(chats.lastMessagesByChat().values.flatten())
         stageReadStamps(chats)
         feedWriter.write(chats)
     }

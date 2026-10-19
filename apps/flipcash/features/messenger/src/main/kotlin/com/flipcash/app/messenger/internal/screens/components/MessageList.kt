@@ -77,11 +77,7 @@ import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LinkCardResolution
 import com.flipcash.shared.chat.models.LocalChatActionHandler
-import coil3.ImageLoader
 import com.flipcash.shared.chat.models.LocalLinkCardResolution
-import com.flipcash.shared.chat.models.LocalWebLinkPreviewMode
-import com.flipcash.shared.chat.models.LocalWebPreviewImageLoader
-import com.flipcash.shared.chat.models.WebLinkPreviewMode
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
@@ -116,8 +112,6 @@ internal fun MessageList(
     otherReadPointer: MessagePointer? = null,
     onAction: ChatActionHandler,
     linkCardResolution: LinkCardResolution,
-    webPreviewImageLoader: ImageLoader? = null,
-    webLinkPreviewsEnabled: Boolean = true,
     onJumpConsumed: () -> Unit = {},
     topBarBottom: Dp = 0.dp,
     unreadBelowCount: Int = 0,
@@ -137,14 +131,6 @@ internal fun MessageList(
     CompositionLocalProvider(
         LocalChatActionHandler provides onAction,
         LocalLinkCardResolution provides linkCardResolution,
-        // A viewer outside the group has not agreed to this device contacting a site a stranger
-        // linked, so the card waits for a tap.
-        LocalWebLinkPreviewMode provides when {
-            !webLinkPreviewsEnabled -> WebLinkPreviewMode.Off
-            state.isOutsideGroup -> WebLinkPreviewMode.TapToLoad
-            else -> WebLinkPreviewMode.Automatic
-        },
-        LocalWebPreviewImageLoader provides webPreviewImageLoader,
     ) {
         // Whether the list has settled where this visit opens it: at the unread divider, or at the
         // bottom when there is none. Saveable for the same reason refreshSettled is — the screen is
@@ -272,14 +258,20 @@ internal fun MessageList(
         // already in the database. Appending stays local until the PagingSource runs dry.
         LaunchedEffect(state.jumpTarget) {
             val target = state.jumpTarget ?: return@LaunchedEffect
-            val budget = (state.jumpBudget?.plus(JUMP_PAGE_SIZE) ?: MAX_JUMP_ITEMS)
-                .coerceAtMost(MAX_JUMP_ITEMS)
+            val budget = state.jumpBudget?.let(::walkBudget) ?: MAX_JUMP_ITEMS
 
+            // A message link's jump can resolve before the first page has laid out, and a walk
+            // over an empty list has no append to hint. A quote tap is past this already.
+            snapshotFlow { hasLoaded && listState.layoutInfo.visibleItemsInfo.isNotEmpty() }
+                .first { it }
             messages.walkUntil(budget) { indexOf(messages, target) }?.let {
                 listState.centerItem(it)
                 attentionId = target
                 attentionRequest++
             }
+            // A visit opened at a message is positioned once this lands, found or not: reads are
+            // released, and the unread divider's own positioning, held for it, stays out of it.
+            hasPositioned = true
             // Last, and it has to be: this clears jumpTarget, which is what this effect is keyed
             // on, so the coroutine is cancelled here. The flash runs in its own effect for the
             // same reason.
@@ -291,7 +283,11 @@ internal fun MessageList(
         // the list walks back to it the way a jump does and puts it just under the top bar, with
         // the unread messages running down from it. Reads are held until this settles, so the
         // bottom of the transcript is not marked read by the frame that passes through it.
-        LaunchedEffect(state.unreadBoundary) {
+        //
+        // A visit opened at a message (a message link) goes there instead: this stands down until
+        // that jump lands, and takes over only if the message can't be reached.
+        LaunchedEffect(state.unreadBoundary, state.openingAtMessage) {
+            if (state.openingAtMessage) return@LaunchedEffect
             when (val boundary = state.unreadBoundary) {
                 UnreadBoundary.Resolving -> return@LaunchedEffect
                 UnreadBoundary.None -> hasPositioned = true
@@ -300,8 +296,7 @@ internal fun MessageList(
                     snapshotFlow { hasLoaded && listState.layoutInfo.visibleItemsInfo.isNotEmpty() }
                         .first { it }
                     if (!listState.layoutInfo.showsUnreadDivider(messages)) {
-                        val budget = (state.unreadWalkBudget + JUMP_PAGE_SIZE)
-                            .coerceAtMost(MAX_JUMP_ITEMS)
+                        val budget = walkBudget(state.unreadWalkBudget)
                         // Not reached in budget: the chat stays at the bottom, as it would have
                         // opened without a divider.
                         messages.walkUntil(budget) { unreadDividerIndex(messages) }
@@ -897,6 +892,7 @@ private val LazyPagingItems<ChatListItem>.appendHintIndex: Int
  */
 private suspend fun LazyPagingItems<ChatListItem>.walkUntil(budget: Int, find: () -> Int?): Int? {
     var index = find()
+    var stalls = 0
     while (index == null && loadedCount <= budget) {
         // Touching the last loaded index is what emits the ViewportHint that drives one more
         // append. One page at a time: with placeholders on, itemCount is the whole chat, so hinting
@@ -915,12 +911,29 @@ private suspend fun LazyPagingItems<ChatListItem>.walkUntil(budget: Int, find: (
                 .first { (count, append) -> count > before || append.endOfPaginationReached }
                 .first > before
         }
-        if (progressed != true) break
+        // A write to the chat invalidates the PagingSource, and the hint goes to the generation it
+        // replaces: on open, the newest page's refresh lands just as a message link's walk starts.
+        // Touching again hints the new generation; only a pager that stays put is given up on.
+        if (progressed == false) break
+        if (progressed == null) {
+            if (++stalls == MAX_JUMP_STALLS) break
+            index = find()
+            continue
+        }
+        stalls = 0
 
         index = find()
     }
     return index
 }
+
+/**
+ * The rows a walk may load to cover [messages] messages. The walk counts rows, and a message can
+ * take more than one: a date separator, the unread divider, a bubble per part. Counting messages
+ * stopped a link to the oldest message of a 1,180-message chat some 30 rows short of it.
+ */
+private fun walkBudget(messages: Int): Int =
+    (messages * ROWS_PER_MESSAGE + JUMP_PAGE_SIZE).coerceAtMost(MAX_JUMP_ITEMS)
 
 /** The presented index of the unread divider, or `null` while it is still unloaded. */
 private fun unreadDividerIndex(messages: LazyPagingItems<ChatListItem>): Int? =
@@ -1042,5 +1055,9 @@ private val NoAttention: () -> Float = { 0f }
 private const val NextLayoutTimeoutMs = 250L
 private const val JUMP_PAGE_SIZE = 50
 private const val MAX_JUMP_ITEMS = 5_000
+private const val ROWS_PER_MESSAGE = 2
 private const val JUMP_STEP_TIMEOUT_MS = 2_000L
+
+/** Steps in a row that may pass without an append before a walk gives up. */
+private const val MAX_JUMP_STALLS = 3
 

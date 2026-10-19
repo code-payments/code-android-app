@@ -395,4 +395,25 @@ class ChatSummaryPreviewTest {
     fun `a notice with blank text has no preview`() {
         assertNull(groupReference(listOf(MessageContent.System("  \u0085")), senderId = null).lastMessagePreview)
     }
+
+    @Test
+    fun `a join notice names who joined from the roster`() {
+        every { resources.getString(R.string.label_chat_system_joined, "Alice") } returns "Alice joined the group"
+        val notice = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(other, admittedBy = null))
+        assertEquals("Alice joined the group", groupReference(listOf(notice), senderId = null).lastMessagePreview)
+    }
+
+    @Test
+    fun `a join notice naming someone unknown previews as its fallback and asks for them`() {
+        val stranger: ID = listOf(5)
+        val notice = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(stranger, admittedBy = null))
+        assertEquals("Someone joined", groupReference(listOf(notice), senderId = null).lastMessagePreview)
+        assertEquals(stranger, groupSummary(listOf(notice), senderId = null).unnamedGroupSender(self, emptyMap()))
+    }
+
+    @Test
+    fun `a join notice whose users are all named asks for no one`() {
+        val notice = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(self, admittedBy = other))
+        assertNull(groupSummary(listOf(notice), senderId = null).unnamedGroupSender(self, emptyMap()))
+    }
 }
