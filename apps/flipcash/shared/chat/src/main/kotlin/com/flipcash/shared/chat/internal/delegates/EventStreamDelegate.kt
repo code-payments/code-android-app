@@ -469,7 +469,8 @@ class EventStreamDelegate @Inject constructor(
                 reactionState(chatId, reactionUpdate.messageId).applyUpdate(
                     emoji = reactionUpdate.emoji.value,
                     actorIsSelf = reactionUpdate.actor == userManager.accountId,
-                    added = reactionUpdate.action == ReactionUpdate.Action.ADDED,
+                    // BOOSTED means the reaction still stands (boosts are permanent), so only REMOVED clears it.
+                    added = reactionUpdate.action != ReactionUpdate.Action.REMOVED,
                     count = reactionUpdate.count,
                     version = reactionUpdate.version,
                     reactedAt = reactionUpdate.reactedAt,

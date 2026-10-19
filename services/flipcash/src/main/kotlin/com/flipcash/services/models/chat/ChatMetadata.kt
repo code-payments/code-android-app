@@ -38,4 +38,8 @@ data class ChatMetadata(
     val isPrivate: Boolean = false,
     // Per-viewer: true while the viewer is waiting in this private group's lobby.
     val inLobby: Boolean = false,
+    // Periodic snapshot of what the group's members hold of its gating currency. Only set for
+    // public groups gated on a single Flipcash-launched currency above a server-side minimum
+    // holder count. No change events: refresh by refetching the chat.
+    val holdingsSummary: HoldingsSummary? = null,
 )

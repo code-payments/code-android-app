@@ -7,6 +7,7 @@ import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.IntentDistribution
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
+import com.getcode.opencode.internal.network.api.intents.IntentMultiTransfer
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
 import com.getcode.opencode.internal.extensions.exchangeDataFor
 import com.getcode.opencode.internal.solana.extensions.newInstance
@@ -153,6 +154,38 @@ class TransactionController @Inject constructor(
             verifiedState = verifiedState,
             appMetadata = appMetadata,
         )
+
+        return submitIntent(scope, intent, source.authority.keyPair)
+    }
+
+    /**
+     * Sends funds to several users' vaults in a single SendPublicMultiPayment intent. Each
+     * payment carries its own amount; all must share one verified state (rate and reserve).
+     */
+    suspend fun directMultiTransfer(
+        payments: List<Pair<PublicKey, LocalFiat>>,
+        verifiedState: VerifiedState,
+        token: Token,
+        source: AccountCluster,
+        appMetadata: ByteArray? = null,
+        scope: CoroutineScope = this.scope,
+    ): Result<IntentType> {
+        val intent = runCatching {
+            IntentMultiTransfer.create(
+                shares = payments.map { (destinationOwner, amount) ->
+                    val vault = TimelockDerivedAccounts.newInstance(owner = destinationOwner, token = token).vault.publicKey
+                    IntentMultiTransfer.Share(
+                        destination = vault,
+                        destinationOwner = destinationOwner,
+                        amount = amount,
+                    )
+                },
+                mint = token.address,
+                sourceCluster = source,
+                verifiedState = verifiedState,
+                appMetadata = appMetadata,
+            )
+        }.getOrElse { return Result.failure(it) }
 
         return submitIntent(scope, intent, source.authority.keyPair)
     }

@@ -6,6 +6,7 @@ import com.flipcash.services.internal.network.extensions.toChatId
 import com.flipcash.services.internal.network.extensions.toChatMessage
 import com.flipcash.services.internal.network.extensions.toChatRules
 import com.flipcash.services.internal.network.extensions.toChatType
+import com.flipcash.services.internal.network.extensions.toHoldingsSummary
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toMediaItem
 import com.flipcash.services.internal.network.extensions.toPointer
@@ -57,6 +58,7 @@ class ChatMetadataMapper @Inject constructor(
             useE2ee = from.useE2Ee,
             isPrivate = from.isPrivate,
             inLobby = from.inLobby,
+            holdingsSummary = if (from.hasHoldingsSummary()) from.holdingsSummary.toHoldingsSummary() else null,
         )
     }
 }
