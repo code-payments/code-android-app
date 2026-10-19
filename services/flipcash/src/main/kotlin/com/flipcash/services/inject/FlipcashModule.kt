@@ -34,6 +34,7 @@ import com.flipcash.services.internal.network.services.PhoneVerificationService
 import com.flipcash.services.internal.network.services.ProfileService
 import com.flipcash.services.internal.network.services.PurchaseService
 import com.flipcash.services.internal.network.services.PushService
+import com.flipcash.services.internal.network.services.CommunityService
 import com.flipcash.services.internal.network.services.ResolverService
 import com.flipcash.services.internal.network.services.ReportingService
 import com.flipcash.services.internal.network.services.SettingsService
@@ -51,6 +52,7 @@ import com.flipcash.services.internal.repositories.InternalModerationRepository
 import com.flipcash.services.internal.repositories.InternalProfileRepository
 import com.flipcash.services.internal.repositories.InternalPurchaseRepository
 import com.flipcash.services.internal.repositories.InternalPushRepository
+import com.flipcash.services.internal.repositories.InternalCommunityRepository
 import com.flipcash.services.internal.repositories.InternalResolverRepository
 import com.flipcash.services.internal.repositories.InternalReportingRepository
 import com.flipcash.services.internal.repositories.InternalSettingsRepository
@@ -68,6 +70,7 @@ import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
 import com.flipcash.services.repository.BlobStorageRepository
+import com.flipcash.services.repository.CommunityRepository
 import com.flipcash.services.repository.ResolverRepository
 import com.flipcash.services.repository.ReportingRepository
 import com.flipcash.services.repository.SettingsRepository
@@ -184,6 +187,13 @@ internal object FlipcashModule {
         service: ContactListService,
         contactMapper: ContactMapper,
     ): ContactListRepository = InternalContactListRepository(service, contactMapper)
+
+    @Provides
+    internal fun providesCommunityRepository(
+        service: CommunityService,
+        chatMapper: ChatMetadataMapper,
+        userProfileMapper: UserProfileMapper,
+    ): CommunityRepository = InternalCommunityRepository(service, chatMapper, userProfileMapper)
 
     @Provides
     internal fun providesResolverRepository(

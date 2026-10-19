@@ -1,5 +1,7 @@
 package com.flipcash.services.models
 
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.Emoji
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -58,6 +60,7 @@ sealed interface NotificationMetadata {
     data class DirectlySentCrypto(
         val phoneNumber: String? = null,
         val userId: ID? = null,
+        val boostedReaction: BoostedReaction? = null,
     ) : NotificationMetadata
 
     /**
@@ -77,6 +80,7 @@ sealed interface NotificationMetadata {
     data class ReceivedCrypto(
         val phoneNumber: String? = null,
         val userId: ID? = null,
+        val boostedReaction: BoostedReaction? = null,
     ) : NotificationMetadata
 
     /**
@@ -108,6 +112,19 @@ sealed interface NotificationMetadata {
 /**
  * The state of a swap as a whole.
  */
+/**
+ * Set on a sent/received payment notification when the payment boosted a reaction. A boost that
+ * paid one person names them as the notification's counterparty; one that paid both the
+ * message's sender and the group's creator names neither, and the notification amount is the
+ * whole boost.
+ */
+@Serializable
+data class BoostedReaction(
+    val chatId: ChatId,
+    val messageId: Long,
+    val emoji: Emoji,
+)
+
 enum class SwapState {
     UNKNOWN,
     PENDING,

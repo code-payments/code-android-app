@@ -305,6 +305,7 @@ internal class ChatMessagingService @Inject constructor(
                     RpcMessagingService.RemoveReactionResponse.Result.OK -> Result.success(response.reaction.toEmojiReaction())
                     RpcMessagingService.RemoveReactionResponse.Result.DENIED -> Result.failure(RemoveReactionError.Denied())
                     RpcMessagingService.RemoveReactionResponse.Result.MESSAGE_NOT_FOUND -> Result.failure(RemoveReactionError.MessageNotFound())
+                    RpcMessagingService.RemoveReactionResponse.Result.CANNOT_REMOVE_BOOSTED -> Result.failure(RemoveReactionError.CannotRemoveBoosted())
                     RpcMessagingService.RemoveReactionResponse.Result.UNRECOGNIZED -> Result.failure(RemoveReactionError.Unrecognized())
                     else -> Result.failure(RemoveReactionError.Other())
                 }

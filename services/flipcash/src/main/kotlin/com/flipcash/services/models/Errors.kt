@@ -587,6 +587,15 @@ sealed class StreamEventsError(
     data class Other(override val cause: Throwable? = null) : StreamEventsError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class GetCommunityError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class NotFound : GetCommunityError("Not found")
+    class Unrecognized : GetCommunityError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetCommunityError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class ResolveContactError(
     override val message: String? = null,
     override val cause: Throwable? = null
@@ -654,6 +663,8 @@ sealed class RemoveReactionError(
 ): CodeServerError(message, cause) {
     class Denied : RemoveReactionError("Denied")
     class MessageNotFound : RemoveReactionError("Message not found")
+    // Boosted reactions are permanent.
+    class CannotRemoveBoosted : RemoveReactionError("Cannot remove boosted reaction")
     class Unrecognized : RemoveReactionError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : RemoveReactionError(message = cause?.message, cause = cause), NotifiableError
 }
