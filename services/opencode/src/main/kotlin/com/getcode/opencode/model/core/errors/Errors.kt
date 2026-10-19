@@ -240,6 +240,7 @@ private fun KClass<out TransactionMetadata>.label(): String = when (this) {
     TransactionMetadata.OpenAccount::class -> "OpenAccount"
     TransactionMetadata.PublicPayment::class -> "PublicPayment"
     TransactionMetadata.SendPublicPayment::class -> "SendPublicPayment"
+    TransactionMetadata.SendPublicMultiPayment::class -> "SendPublicMultiPayment"
     TransactionMetadata.ReceivePublicPayment::class -> "ReceivePublicPayment"
     TransactionMetadata.PublicDistribution::class -> "PublicDistribution"
     TransactionMetadata.Unknown::class -> "Unknown"

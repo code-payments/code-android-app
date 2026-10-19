@@ -13,7 +13,10 @@ import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toMint
 import com.flipcash.services.internal.network.extensions.toPublicKey
 import com.flipcash.services.models.ActivityFeedNotification
+import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.NotificationMetadata
+import com.flipcash.services.models.chat.Emoji
+import com.flipcash.services.internal.network.extensions.toChatId
 import com.flipcash.services.models.NotificationState
 import com.flipcash.services.models.SwapState
 import com.flipcash.services.models.SwappedCryptoMetadata
@@ -51,6 +54,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                         userId = if (meta.destinationIdentifierCase ==
                             Model.DirectlySentCryptoNotificationMetadata.DestinationIdentifierCase.USER_ID
                         ) meta.userId.value.toByteArray().toList() else null,
+                        boostedReaction = if (meta.hasBoostedReaction()) meta.boostedReaction.toDomain() else null,
                     )
                 }
                 Model.Notification.AdditionalMetadataCase.RECEIVED_CRYPTO -> {
@@ -62,6 +66,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                         userId = if (meta.sourceIdentifierCase ==
                             Model.ReceivedCryptoNotificationMetadata.SourceIdentifierCase.USER_ID
                         ) meta.userId.value.toByteArray().toList() else null,
+                        boostedReaction = if (meta.hasBoostedReaction()) meta.boostedReaction.toDomain() else null,
                     )
                 }
                 Model.Notification.AdditionalMetadataCase.WITHDREW_CRYPTO -> NotificationMetadata.WithdrewCrypto(
@@ -162,3 +167,8 @@ private fun Model.SwapState.toDomain(): SwapState = when (this) {
     Model.SwapState.UNRECOGNIZED,
     null -> SwapState.UNKNOWN
 }
+private fun Model.BoostedReaction.toDomain(): BoostedReaction = BoostedReaction(
+    chatId = chatId.toChatId(),
+    messageId = messageId.value,
+    emoji = Emoji(emoji.value),
+)
