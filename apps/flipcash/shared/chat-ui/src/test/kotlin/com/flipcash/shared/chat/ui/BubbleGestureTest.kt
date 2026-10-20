@@ -126,7 +126,7 @@ class BubbleGestureTest {
         composeTestRule.onNodeWithTag("bubble_reply_quote").performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf<ChatAction>(ChatAction.JumpToMessage(1)), actions.toList())
+            assertEquals(listOf<ChatAction>(ChatAction.JumpToMessage(1, fromMessageId = 2)), actions.toList())
         }
     }
 

@@ -67,6 +67,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.originsReached
 import com.flipcash.features.messenger.R
 import dev.chrisbanes.haze.HazeState
 import com.flipcash.services.models.chat.ChatType
@@ -116,6 +117,9 @@ internal fun MessageList(
     topBarBottom: Dp = 0.dp,
     unreadBelowCount: Int = 0,
     onUserScrolled: () -> Unit = {},
+    onReturnToOrigin: () -> Unit = {},
+    onOriginsReached: (Set<Long>) -> Unit = {},
+    onReachedNewest: () -> Unit = {},
     hazeState: HazeState? = null,
 ) {
     val keyboard = rememberKeyboardController()
@@ -149,6 +153,49 @@ internal fun MessageList(
             if (!hasPositioned) return@LaunchedEffect
             listState.interactionSource.interactions.filterIsInstance<DragInteraction.Start>().first()
             currentOnUserScrolled()
+        }
+
+        // The return stack's drop rule, on scrolls the reader makes and on no others: every origin
+        // on top that they have scrolled down to or past is dropped. A finger is what starts a drag,
+        // and the fling it leaves keeps the scroll theirs until it settles; a jump never drags.
+        var fingerScrolling by remember { mutableStateOf(false) }
+        LaunchedEffect(listState) {
+            listState.interactionSource.interactions.collect { interaction ->
+                when (interaction) {
+                    is DragInteraction.Start -> fingerScrolling = true
+                    is DragInteraction.Stop, is DragInteraction.Cancel ->
+                        if (!listState.isScrollInProgress) fingerScrolling = false
+                }
+            }
+        }
+        LaunchedEffect(listState) {
+            snapshotFlow { listState.isScrollInProgress }.collect { if (!it) fingerScrolling = false }
+        }
+        val currentReturnStack by rememberUpdatedState(state.returnStack)
+        val currentOnOriginsReached by rememberUpdatedState(onOriginsReached)
+        LaunchedEffect(listState, messages) {
+            snapshotFlow { if (fingerScrolling) listState.firstVisibleItemIndex else null }
+                .filterNotNull()
+                .distinctUntilChanged()
+                .collect { firstVisible ->
+                    val stack = currentReturnStack
+                    if (stack.isEmpty()) return@collect
+                    val reached = stack.originsReached(firstVisible) { indexOf(messages, it) }
+                    if (reached.isNotEmpty()) currentOnOriginsReached(reached)
+                }
+        }
+        // At the newest message, by any scroll, there is nothing left to return to.
+        val currentOnReachedNewest by rememberUpdatedState(onReachedNewest)
+        LaunchedEffect(listState) {
+            snapshotFlow { hasPositioned && listState.restsOnNewest() }
+                .distinctUntilChanged()
+                .collect { atNewest -> if (atNewest && currentReturnStack.isNotEmpty()) currentOnReachedNewest() }
+        }
+        // A tap on the button that found no origin left in the chat goes to the bottom, as one with
+        // an empty stack does.
+        LaunchedEffect(state.newestRequests) {
+            if (state.newestRequests == 0) return@LaunchedEffect
+            listState.scrollToNewest()
         }
 
         // Haptic feedback when a new incoming message arrives
@@ -695,8 +742,14 @@ internal fun MessageList(
             // the button must not scroll it either.
             // Keyed on selecting: it is a plain Boolean, not state, so the derivation would keep the
             // value it first read.
-            val jumpVisible by remember(selecting) {
-                derivedStateOf { hasPositioned && !listState.restsOnNewest() && !selecting && !autoScrolling }
+            // Up as well while there is a message to return to, wherever the list rests; returning
+            // is a plain Boolean too, so it keys the derivation alongside selecting.
+            val returning = state.returnStack.isNotEmpty()
+            val jumpVisible by remember(selecting, returning) {
+                derivedStateOf {
+                    hasPositioned && !selecting &&
+                        (returning || (!listState.restsOnNewest() && !autoScrolling))
+                }
             }
             // Centred on the `$` button's column, placed from the same inset value the bar's input row
             // uses and in the same layout pass (see ComposerInsets). With no `$` beside a composer,
@@ -709,7 +762,9 @@ internal fun MessageList(
                 // No count until the list has settled: reads are gated on it, and so is the badge.
                 unreadCount = if (hasPositioned) unreadBelowCount else 0,
                 hazeState = hazeState,
-                onClick = { jumpScope.launch { listState.scrollToNewest() } },
+                onClick = {
+                    if (returning) onReturnToOrigin() else jumpScope.launch { listState.scrollToNewest() }
+                },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     // The scaffold already rides the keyboard, so the bar-height padding does too.
