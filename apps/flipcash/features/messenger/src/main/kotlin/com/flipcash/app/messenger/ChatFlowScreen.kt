@@ -461,10 +461,16 @@ private fun FlowReactionPickerScreen(messageId: Long, boost: Boolean) {
         onSelected = { emoji ->
             val chatId = chatState.chatId
             if (boost) {
-                // Dismissed first, then the paid sheet opens on the chat — the same order the
-                // reactors sheet uses to open a profile.
-                dismissSheet()
-                if (chatId != null) navigator.push(ChatStep.ReactionBoost(chatId, messageId, emoji))
+                // The picker's dismiss pops the top entry once its animation ends, so a push made
+                // alongside it gets popped instead of the picker. pendingSheetDismiss pops the
+                // picker first, then opens the paid sheet.
+                if (chatId != null) {
+                    navigator.pendingSheetDismiss = {
+                        navigator.push(ChatStep.ReactionBoost(chatId, messageId, emoji))
+                    }
+                } else {
+                    dismissSheet()
+                }
             } else {
                 chatViewModel.dispatchEvent(
                     ChatViewModel.Event.ToggleReaction(messageId, emoji, clearsSelection = true)
