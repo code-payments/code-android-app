@@ -4,7 +4,6 @@ import android.os.Parcelable
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.navigation.HalfSheet
 import com.getcode.navigation.Sheet
-import com.getcode.navigation.SolitarySheet
 import com.getcode.navigation.WrapContentSheet
 import com.getcode.navigation.flow.FlowStep
 import com.getcode.navigation.results.NavigationRetVal
@@ -184,15 +183,14 @@ sealed interface ChatStep : FlowStep, Parcelable {
 
     /**
      * The keypad behind [ReactionBoost]'s "…" chip, for an amount the presets don't cover. Returns
-     * the amount in whole US cents. Solitary, so the Paid Reactions sheet stays on the stack but is
-     * not drawn over the keypad.
+     * the amount in whole US cents. Opens over the Paid Reactions sheet, which stays up beneath it.
      */
     @Parcelize
     @Serializable
     data class ReactionBoostAmount(
         val chatId: ChatId,
         val messageId: Long,
-    ) : ChatStep, NavigationRetVal<ReactionBoostAmountResult>, Sheet, SolitarySheet
+    ) : ChatStep, NavigationRetVal<ReactionBoostAmountResult>, Sheet
 
     /**
      * Who reacted, and with what — opened by long-pressing a pill. A plain [Sheet] for the same

@@ -28,6 +28,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -121,6 +122,11 @@ internal class ModalBottomSheetScene<T : Any> constructor(
     private val returnNavKey = lastNavKey()
 
     override val entries: List<NavEntry<T>> = listOf(entry)
+
+    /** How many sheets sit beneath this one: 0 for a sheet over a plain screen. */
+    private val sheetDepth: Float = previousEntries
+        .count { it.metadata[NavMetadataKeys.IsSheet.key] as? Boolean ?: false }
+        .toFloat()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -297,7 +303,11 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                 LocalSheetOverhang provides sheetOverhang,
                 LocalScrimController provides scrim,
             ) {
-                BackHandler(enabled = effectiveProperties.dismissOnBackPress) {
+                // A sheet pushed over another sheet leaves the one beneath composed, and both
+                // register a back handler. Only the top of the stack may take back, or back would
+                // close the sheet underneath first.
+                val isTopOfStack = navigator.backStack.size == previousEntries.size + 1
+                BackHandler(enabled = effectiveProperties.dismissOnBackPress && isTopOfStack) {
                     dismiss(true)
                 }
 
@@ -312,7 +322,14 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                     }
                 }
 
-                Box(Modifier.fillMaxSize()) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        // NavDisplay draws its overlay scenes in reverse, so a sheet pushed over
+                        // another sheet would land under it. Every overlay scene is a sibling in
+                        // NavDisplay's parent, so stacking by depth puts the newest sheet on top.
+                        .zIndex(sheetDepth),
+                ) {
                     // Scrim tracks sheet position — drawn in draw phase to
                     // avoid recomposition on every animation frame.
                     val scrimBaseColor = CodeTheme.colors.scrim
