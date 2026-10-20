@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.update
@@ -82,7 +83,10 @@ internal class SearchViewModel @Inject constructor(
                 .map { it.toConversationReference(selfId, tokensByMint, resources, profiles) },
             profiles = profiles,
         )
-    }.flowOn(dispatchers.Default)
+    }
+        // Messages, links and currencies don't need the chat list, so they don't wait for it.
+        .onStart { emit(Directory(chats = emptyList(), profiles = emptyMap())) }
+        .flowOn(dispatchers.Default)
 
     private val transcripts = MutableStateFlow(Transcripts(emptyList(), emptyList(), emptyMap()))
 
