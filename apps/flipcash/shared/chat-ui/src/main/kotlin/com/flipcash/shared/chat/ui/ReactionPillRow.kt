@@ -62,6 +62,7 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import com.flipcash.core.R
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionSettler
+import com.flipcash.shared.chat.reactions.formatBoostCents
 import com.getcode.theme.CodeTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -222,6 +224,8 @@ fun ReactionPillRow(
     alignEnd: Boolean = false,
     maxLines: Int = 2,
     animateInitialPills: Boolean = false,
+    canBoost: Boolean = false,
+    onOpenBoost: () -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -240,6 +244,7 @@ fun ReactionPillRow(
     }
     val shown = settled.map { it.pill }
     val countDigits = settled.associate { it.pill.emoji to it.countDigits }
+    val boostDigits = settled.associate { it.pill.emoji to it.boostDigits }
     val grace = remember { TapGrace(clock) }
     val layoutBeat = beat
 
@@ -252,6 +257,8 @@ fun ReactionPillRow(
     val currentOnToggle by rememberUpdatedState(onToggle)
     val currentOnPillLongClick by rememberUpdatedState(onPillLongClick)
     val currentOnOpenPicker by rememberUpdatedState(onOpenPicker)
+    val currentCanBoost by rememberUpdatedState(canBoost)
+    val currentOnOpenBoost by rememberUpdatedState(onOpenBoost)
     // Watches every touch on the row before the pills see it: each one holds the beat, and one
     // that lands during the tap grace on something the beat moved goes to what was there before.
     val touches = Modifier.pointerInput(settler, grace) {
@@ -265,7 +272,9 @@ fun ReactionPillRow(
             }
             if (up == null) {
                 // A long-press, or a cancel: only a pill has anything to do on a long-press.
-                if (target.key != null && target.key != PLUS_KEY && target.key != MORE_KEY) currentOnPillLongClick()
+                if (target.key != null && target.key != PLUS_KEY && target.key != MORE_KEY && target.key != BOOST_KEY) {
+                    currentOnPillLongClick()
+                }
                 do {
                     val event = awaitPointerEvent(PointerEventPass.Initial)
                     event.changes.forEach { it.consume() }
@@ -276,6 +285,7 @@ fun ReactionPillRow(
             when (target.key) {
                 null -> Unit
                 PLUS_KEY -> if (currentCanReact) currentOnOpenPicker()
+                BOOST_KEY -> if (currentCanBoost) currentOnOpenBoost()
                 MORE_KEY -> expanded = true
                 else -> if (currentCanReact) currentOnToggle(target.key)
             }
@@ -305,6 +315,7 @@ fun ReactionPillRow(
                         ReactionPillChip(
                             pill = item.pill,
                             countDigits = countDigits[item.pill.emoji] ?: ReactionSettler.MIN_COUNT_DIGITS,
+                            boostDigits = boostDigits[item.pill.emoji] ?: 0,
                             height = pillHeight,
                             horizontalPadding = pillPadding,
                             // A previewer (canReact == false) can still open the reactors sheet
@@ -335,6 +346,13 @@ fun ReactionPillRow(
             }.first().measure(loose)
         }
 
+        // The "$" chip leads the row whenever the row shows at all; it doesn't animate in or out.
+        val boostPlaceable = if (canBoost && shown.isNotEmpty()) {
+            subcompose("boost") {
+                BoostChip(size = plusSize, onClick = onOpenBoost)
+            }.first().measure(loose)
+        } else null
+
         // Leaving items keep the spot they held and take no room, so the rest reflow around them.
         val flowIndices = rendered.pills.indices.filter { !rendered.pills[it].exiting }
         val flowPlus = plusPlaceable?.takeIf { rendered.plus?.exiting == false }
@@ -346,7 +364,9 @@ fun ReactionPillRow(
         }.first().measure(loose)
 
         val result = ReactionPillRowLayout.compute(
-            pillWidths = flowIndices.map { pillPlaceables[it].width },
+            // The "$" chip goes in front, so the collapse, which trims from the back, never takes it
+            // unless nothing fits.
+            pillWidths = listOfNotNull(boostPlaceable?.width) + flowIndices.map { pillPlaceables[it].width },
             moreWidth = moreEstimate.width,
             plusWidth = flowPlus?.width,
             containerWidth = containerWidth,
@@ -355,10 +375,12 @@ fun ReactionPillRow(
             expanded = expanded,
         )
 
+        val boostShown = boostPlaceable != null && result.visibleCount > 0
+        val visiblePills = result.visibleCount - if (boostShown) 1 else 0
         val morePlaceable = if (result.showsMore) {
             subcompose("more") {
                 MorePillChip(
-                    count = result.moreCount,
+                    count = result.moreCount - if (boostPlaceable != null && !boostShown) 1 else 0,
                     height = pillHeight,
                     horizontalPadding = pillPadding,
                     onClick = { expanded = true },
@@ -373,7 +395,8 @@ fun ReactionPillRow(
         class Item(val key: String, val placeable: Placeable)
         class Placement(val item: Item, val x: Int, val line: Int)
 
-        val items = flowIndices.take(result.visibleCount).map { Item(rendered.pills[it].pill.emoji, pillPlaceables[it]) } +
+        val items = listOfNotNull(boostPlaceable?.takeIf { boostShown }?.let { Item(BOOST_KEY, it) }) +
+            flowIndices.take(visiblePills).map { Item(rendered.pills[it].pill.emoji, pillPlaceables[it]) } +
             listOfNotNull(morePlaceable?.let { Item(MORE_KEY, it) }, flowPlus?.let { Item(PLUS_KEY, it) })
 
         val placements = ArrayList<Placement>(items.size)
@@ -447,6 +470,7 @@ fun ReactionPillRow(
 
 private const val MORE_KEY = "\u0000more"
 private const val PLUS_KEY = "\u0000plus"
+private const val BOOST_KEY = "\u0000boost"
 
 /** The row's clock, in monotonic milliseconds; tests swap it for the compose test clock. */
 internal val LocalPillRowClock = staticCompositionLocalOf<() -> Long> { { SystemClock.uptimeMillis() } }
@@ -626,6 +650,7 @@ private class AnimateHeightNode : Modifier.Node(), LayoutModifierNode {
 private fun ReactionPillChip(
     pill: ReactionPill,
     countDigits: Int,
+    boostDigits: Int,
     height: Dp,
     horizontalPadding: Dp,
     onClick: (() -> Unit)?,
@@ -643,6 +668,13 @@ private fun ReactionPillChip(
         animationSpec = ChatAnimations.reactionChangeDp,
         label = "pill border",
     )
+    val boost = pill.boost?.total?.takeIf { it > 0 }
+    // A paid pill the viewer reacted to is outlined in gold rather than white.
+    val borderColor by animateColorAsState(
+        targetValue = if (boost != null) CodeTheme.colors.warning else Color.White.copy(alpha = 0.24f),
+        animationSpec = ChatAnimations.reactionChangeColor,
+        label = "pill border color",
+    )
     Box(
         modifier = modifier
             .testTag("reaction_pill_${pill.emoji}")
@@ -653,7 +685,7 @@ private fun ReactionPillChip(
             .let { base ->
                 // A zero-width border would draw as a hairline, so none at all until it grows.
                 if (borderWidth > 0.dp) {
-                    base.border(width = borderWidth, color = Color.White.copy(alpha = 0.24f), shape = shape)
+                    base.border(width = borderWidth, color = borderColor, shape = shape)
                 } else {
                     base
                 }
@@ -669,6 +701,28 @@ private fun ReactionPillChip(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = pill.emoji, fontSize = 15.sp)
+            if (boost != null) {
+                val boostStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum")
+                val boostMeasurer = rememberTextMeasurer()
+                val boostDensity = LocalDensity.current
+                // Room for the settler's reservation, as the count below reserves its digits.
+                val boostWidth = remember(boostDigits, boostMeasurer, boostDensity) {
+                    if (boostDigits <= 0) {
+                        0.dp
+                    } else {
+                        val widest = formatBoostCents("8".repeat(boostDigits).toLong())
+                        with(boostDensity) { boostMeasurer.measure(widest, boostStyle).size.width.toDp() }
+                    }
+                }
+                Text(
+                    text = formatBoostCents(boost),
+                    style = boostStyle,
+                    color = CodeTheme.colors.textMain,
+                    modifier = Modifier.widthIn(min = boostWidth),
+                )
+                // A paid pill shows its count only once a second person has reacted.
+                if (pill.count <= 1) return@Row
+            }
             // Room for [countDigits] tabular digits, the settler's reservation, so the pill's width
             // changes only on a beat and never with the count inside it.
             val countStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum")
@@ -748,6 +802,29 @@ private fun PlusChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifie
             contentDescription = stringResource(R.string.action_addReaction),
             tint = CodeTheme.colors.textMain,
             modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+/** The "$" chip that leads the row: it opens the picker for a paid reaction. */
+@Composable
+private fun BoostChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val description = stringResource(R.string.action_addPaidReaction)
+    Box(
+        modifier = modifier
+            .testTag("reaction_pill_boost")
+            .semantics { contentDescription = description }
+            .size(size)
+            .clip(CircleShape)
+            .background(color = Color.White.copy(alpha = 0.18f), shape = CircleShape)
+            .combinedClickable(onClick = onClick, onLongClick = {}, hapticFeedbackEnabled = false),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "$",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = CodeTheme.colors.textMain,
         )
     }
 }

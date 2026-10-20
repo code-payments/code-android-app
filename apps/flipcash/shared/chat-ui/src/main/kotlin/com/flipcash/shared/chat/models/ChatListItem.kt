@@ -177,6 +177,11 @@ sealed interface ChatListItem {
          */
         val canReact: Boolean = false,
         /**
+         * Whether the viewer may pay for a reaction on this message: a reactable message in a
+         * group, written by someone else.
+         */
+        val canBoost: Boolean = false,
+        /**
          * What the bubble tells the reader when [content] is ciphertext that didn't open, or
          * content this build can't draw. See
          * [undecryptableHint][com.flipcash.shared.chat.ui.undecryptableHint] and

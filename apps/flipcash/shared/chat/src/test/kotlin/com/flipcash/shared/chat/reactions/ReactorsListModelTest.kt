@@ -67,6 +67,30 @@ class ReactorsListModelTest {
     }
 
     @Test
+    fun `paid reactors sort first, by their total across emojis`() = runTest {
+        val model = ReactorsListModel(
+            emojis = listOf("💯", "👎"),
+            fetchPage = { emoji, _ ->
+                val reactors = when (emoji) {
+                    "💯" -> listOf(
+                        reactor(bob, 1).copy(boostCents = 500),
+                        reactor(alice, 30),
+                        reactor(carol, 2).copy(boostCents = 300),
+                    )
+                    else -> listOf(reactor(carol, 3).copy(boostCents = 400))
+                }
+                Result.success(ReactorsPage(reactors = reactors, hasMore = false))
+            },
+        )
+
+        model.loadMoreIfNeeded()
+
+        // carol paid 3.00 + 4.00, bob 5.00, alice nothing despite reacting last.
+        assertEquals(listOf(carol, bob, alice), model.rows.map { it.userId })
+        assertEquals(listOf(700L, 500L, 0L), model.rows.map { it.boostCents })
+    }
+
+    @Test
     fun `publishes rows only once every emoji's round of pages is in`() = runTest {
         var bobReleased = false
         val model = ReactorsListModel(

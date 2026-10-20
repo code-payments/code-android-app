@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.reactions.ReactionPill
+import com.flipcash.shared.chat.reactions.formatBoostCents
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.opencode.model.core.ID
 import com.getcode.theme.CodeTheme
@@ -127,6 +128,7 @@ internal fun ReactorsSheet(
                 items(rows, key = { it.userId.joinToString(",") }) { row ->
                     ReactorRow(
                         emojis = row.emojis,
+                        boostCents = row.boostCents,
                         display = row.display,
                         onClick = { onOpenProfile(row.userId) },
                     )
@@ -178,6 +180,10 @@ private fun SummaryPillRow(pills: List<ReactionPill>) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = pill.emoji, fontSize = 17.sp)
                     Spacer(modifier = Modifier.width(4.dp))
+                    pill.boost?.total?.takeIf { it > 0 }?.let { total ->
+                        Text(text = formatBoostCents(total), fontSize = 13.sp, color = CodeTheme.colors.textMain)
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                     Text(
                         text = pill.count.toString(),
                         fontSize = 13.sp,
@@ -196,6 +202,7 @@ private fun SummaryPillRow(pills: List<ReactionPill>) {
 @Composable
 private fun ReactorRow(
     emojis: List<String>,
+    boostCents: Long,
     display: ReactorsViewModel.ReactorDisplay?,
     onClick: () -> Unit,
 ) {
@@ -252,6 +259,16 @@ private fun ReactorRow(
             }
 
             ReactorEmojis(emojis = emojis, modifier = Modifier.weight(1f))
+            if (boostCents > 0) {
+                Text(
+                    text = formatBoostCents(boostCents),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = CodeTheme.colors.textMain,
+                    maxLines = 1,
+                    modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2, end = CodeTheme.dimens.inset),
+                )
+            }
         }
     }
 }

@@ -134,6 +134,9 @@ sealed interface ChatAction {
     /** Opens the full emoji picker for [messageId], from the pill row's or the quick strip's "+". */
     data class OpenReactionPicker(val messageId: Long) : ChatAction
 
+    /** Opens the emoji picker for a paid reaction on [messageId], from the pill row's "$". */
+    data class OpenBoostPicker(val messageId: Long) : ChatAction
+
     /** Opens who-reacted for [messageId], from a long-press on one of its pills. */
     data class OpenReactors(val messageId: Long) : ChatAction
 

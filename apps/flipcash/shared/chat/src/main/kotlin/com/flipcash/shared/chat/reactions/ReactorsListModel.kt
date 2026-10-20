@@ -9,8 +9,8 @@ import kotlinx.coroutines.coroutineScope
 /**
  * Pure, fake-friendly merge logic for the reactors sheet (decision 4) — mirrors iOS's
  * `ReactorsListModel`/`ReactorsSource`. One row per person who reacted, holding every emoji they
- * used, in the order [emojis] lists them (pill order); rows sorted by their most recent reaction
- * first, then by userId as a tiebreak.
+ * used, in the order [emojis] lists them (pill order); rows sorted by what they paid toward their
+ * reactions, then by their most recent reaction, then by userId as a tiebreak.
  *
  * Not itself a ViewModel — a VM or step-scoped holder drives it (loadMoreIfNeeded from a start
  * trigger and from "last row visible") and republishes [rows] to its own StateFlow. Kept free of
@@ -35,6 +35,8 @@ class ReactorsListModel(
         val userId: ID,
         val emojis: List<String>,
         val newestReactedAt: kotlin.time.Instant,
+        /** What they paid across all their reactions here, in whole USD cents; 0 when nothing. */
+        val boostCents: Long = 0,
     )
 
     var rows: List<Row> = emptyList()
@@ -83,12 +85,14 @@ class ReactorsListModel(
 
     private fun publish() {
         val byUser = LinkedHashMap<String, MutableList<Pair<String, kotlin.time.Instant>>>()
+        val boostByUser = HashMap<String, Long>()
         for (emoji in emojis) {
             val emojiState = state.getValue(emoji)
             for (reactor in emojiState.reactors) {
                 val key = reactor.userId.joinToString(",")
                 val entries = byUser.getOrPut(key) { mutableListOf() }
                 entries += emoji to reactor.reactedAt
+                if (reactor.boostCents > 0) boostByUser[key] = (boostByUser[key] ?: 0L) + reactor.boostCents
             }
         }
 
@@ -103,10 +107,16 @@ class ReactorsListModel(
             .map { (key, entries) ->
                 val emojiOrder = entries.map { it.first }.distinct()
                 val newest = entries.maxOf { it.second }
-                Row(userId = userIdByKey.getValue(key), emojis = emojiOrder, newestReactedAt = newest)
+                Row(
+                    userId = userIdByKey.getValue(key),
+                    emojis = emojiOrder,
+                    newestReactedAt = newest,
+                    boostCents = boostByUser[key] ?: 0L,
+                )
             }
             .sortedWith(
-                compareByDescending<Row> { it.newestReactedAt }
+                compareByDescending<Row> { it.boostCents }
+                    .thenByDescending { it.newestReactedAt }
                     .thenByDescending { it.userId.hexEncodedString() },
             )
     }

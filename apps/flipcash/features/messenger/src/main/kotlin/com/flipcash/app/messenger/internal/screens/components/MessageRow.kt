@@ -506,6 +506,10 @@ internal fun MessageRow(
                                             ),
                                         alignEnd = item.isFromSelf,
                                         animateInitialPills = !pillsAtFirstComposition,
+                                        canBoost = item.canBoost,
+                                        onOpenBoost = {
+                                            onAction(ChatAction.OpenBoostPicker(item.messageId))
+                                        },
                                     )
                                 }
                             }
