@@ -184,10 +184,12 @@ internal fun MessageList(
                     if (reached.isNotEmpty()) currentOnOriginsReached(reached)
                 }
         }
-        // At the newest message, by any scroll, there is nothing left to return to.
+        // Scrolled down to the newest message, there is nothing left to return to. Only the reader's
+        // own scroll counts: a quote jump or a return to an origin near the bottom can land on the
+        // newest row too, and clearing then would strand the origins still waiting below it.
         val currentOnReachedNewest by rememberUpdatedState(onReachedNewest)
         LaunchedEffect(listState) {
-            snapshotFlow { hasPositioned && listState.restsOnNewest() }
+            snapshotFlow { hasPositioned && fingerScrolling && listState.restsOnNewest() }
                 .distinctUntilChanged()
                 .collect { atNewest -> if (atNewest && currentReturnStack.isNotEmpty()) currentOnReachedNewest() }
         }
