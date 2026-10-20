@@ -151,4 +151,25 @@ class ChatReturnToOriginTest {
         assertEquals(emptyList<Long>(), state.returnStack)
         coVerify(exactly = 0) { chatCoordinator.loadHistoryThrough(chatId, 20) }
     }
+
+    @Test
+    fun `a quote tapped in the message a quote jump landed on jumps again`() = runTest {
+        coEvery { chatCoordinator.hydrateChat(chatId) } coAnswers { awaitCancellation() }
+        coEvery { chatCoordinator.distanceFromNewest(chatId, 20) } returns 4
+        coEvery { chatCoordinator.distanceFromNewest(chatId, 10) } returns 9
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(openChat)
+        viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(messageId = 20, origin = 30))
+        advanceUntilIdle()
+        assertEquals(20L, viewModel.stateFlow.value.jumpTarget)
+        viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed)
+        advanceUntilIdle()
+
+        viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(messageId = 10, origin = 20))
+        advanceUntilIdle()
+
+        val state = viewModel.stateFlow.value
+        assertEquals(10L, state.jumpTarget)
+        assertEquals(listOf(30L, 20L), state.returnStack)
+    }
 }
