@@ -1,6 +1,13 @@
 package com.flipcash.app.messenger.internal.screens.boost
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -67,21 +74,17 @@ internal fun ReactionBoostSheet(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
         ) {
-            Text(
-                text = emoji.orEmpty(),
-                style = CodeTheme.typography.displayLarge,
-                modifier = Modifier.clickable(
-                    enabled = canCycle,
-                    onClickLabel = stringResource(R.string.action_switchPaidReaction),
-                    onClick = onCycleEmoji,
-                ),
-            )
             Text(
                 text = stringResource(R.string.title_paidReactions),
                 style = CodeTheme.typography.screenTitle,
                 color = CodeTheme.colors.textMain,
+            )
+            BoostEmojiPill(
+                emoji = emoji.orEmpty(),
+                canCycle = canCycle,
+                onCycle = onCycleEmoji,
             )
             Text(
                 text = stringResource(R.string.subtitle_paidReactionsSplit),
@@ -157,3 +160,35 @@ internal fun ReactionBoostSheet(
 /** A preset chip's face: whole dollars, as the design draws them ("$5"). */
 private fun formatWholeDollars(cents: Long): String =
     if (cents % 100 == 0L) "$${cents / 100}" else formatBoostCents(cents)
+
+/**
+ * The reaction being paid for, drawn as an enlarged selected reaction pill (node 10330:18168):
+ * a 10% white capsule with a 38% white outline around a 24pt emoji.
+ */
+@Composable
+private fun BoostEmojiPill(
+    emoji: String,
+    canCycle: Boolean,
+    onCycle: () -> Unit,
+) {
+    val shape = RoundedCornerShape(percent = 50)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(color = White10, shape = shape)
+            .border(width = 2.8.dp, color = Color.White.copy(alpha = 0.38f), shape = shape)
+            .clickable(
+                enabled = canCycle,
+                onClickLabel = stringResource(R.string.action_switchPaidReaction),
+                onClick = onCycle,
+            )
+            .padding(horizontal = 17.dp, vertical = 8.5.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = emoji,
+            style = CodeTheme.typography.textMedium.copy(fontSize = 24.sp, lineHeight = 31.sp),
+            color = CodeTheme.colors.textMain,
+        )
+    }
+}
