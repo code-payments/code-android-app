@@ -3,6 +3,7 @@ package com.flipcash.shared.chat
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.shared.chat.reactions.SelfReaction
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import org.junit.Test
@@ -563,5 +564,31 @@ class MessageCapabilityTest {
         assertEquals(true, MessageCapability.Link in resolveCapabilities(text(isFromSelf = false), canPost = false))
         assertEquals(false, MessageCapability.Link in resolveCapabilities(text(eventSequence = 0)))
         assertEquals(false, MessageCapability.Link in resolveCapabilities(widgetMessage))
+    }
+
+    // canBoost — "$" boosts a reaction the viewer already made, on someone else's group message.
+
+    private val reacted = listOf(SelfReaction(emoji = "💯", reactedAt = Instant.fromEpochSeconds(0)))
+
+    @Test
+    fun `canBoost needs the viewer's own reaction on the message`() {
+        assertEquals(false, canBoost(text(isFromSelf = false), inGroup = true, selfReactions = emptyList()))
+        assertEquals(true, canBoost(text(isFromSelf = false), inGroup = true, selfReactions = reacted))
+    }
+
+    @Test
+    fun `canBoost is off on the viewer's own message`() {
+        assertEquals(false, canBoost(text(isFromSelf = true), inGroup = true, selfReactions = reacted))
+    }
+
+    @Test
+    fun `canBoost is off outside a group`() {
+        assertEquals(false, canBoost(text(isFromSelf = false), inGroup = false, selfReactions = reacted))
+    }
+
+    @Test
+    fun `canBoost follows canReact`() {
+        assertEquals(false, canBoost(text(isFromSelf = false), inGroup = true, selfReactions = reacted, canSpeak = false))
+        assertEquals(false, canBoost(text(isFromSelf = false, eventSequence = 0), inGroup = true, selfReactions = reacted))
     }
 }

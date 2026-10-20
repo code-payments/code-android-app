@@ -1606,6 +1606,7 @@
     <string name="title_paidReactions">Paid Reactions</string>
     <string name="action_addPaidReaction">Add a paid reaction</string>
     <string name="subtitle_paidReactionsSplit">80% goes to the person who wrote the message, 20% goes to the group host</string>
+    <string name="action_switchPaidReaction">Switch reaction</string>
     <string name="label_payWith">Pay with:</string>
     <string name="action_swipeToPay">Swipe to Pay</string>
     <string name="action_paidReaction">Paid reaction</string>

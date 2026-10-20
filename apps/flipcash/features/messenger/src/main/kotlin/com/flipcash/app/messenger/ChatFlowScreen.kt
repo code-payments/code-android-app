@@ -180,7 +180,7 @@ private fun chatEntryProvider(
     }
 
     annotatedEntry<ChatStep.ReactionPicker> { step ->
-        FlowReactionPickerScreen(step.messageId, step.boost)
+        FlowReactionPickerScreen(step.messageId)
     }
     annotatedEntry<ChatStep.ReactionBoost> { step ->
         FlowReactionBoostScreen(step)
@@ -445,13 +445,11 @@ private fun FlowEditGroupPictureScreen() {
  * lives in the entry's own [EmojiPickerViewModel]; only the toggle goes to the chat.
  */
 @Composable
-private fun FlowReactionPickerScreen(messageId: Long, boost: Boolean) {
+private fun FlowReactionPickerScreen(messageId: Long) {
     val chatViewModel = flowSharedViewModel<ChatViewModel>()
     val viewModel = hiltViewModel<EmojiPickerViewModel>()
-    val navigator = LocalCodeNavigator.current
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
 
     ReactionPickerSheet(
         searchState = state.searchFieldState,
@@ -459,24 +457,10 @@ private fun FlowReactionPickerScreen(messageId: Long, boost: Boolean) {
         tones = state.tones,
         loaded = state.loaded,
         onSelected = { emoji ->
-            val chatId = chatState.chatId
-            if (boost) {
-                // The picker's dismiss pops the top entry once its animation ends, so a push made
-                // alongside it gets popped instead of the picker. pendingSheetDismiss pops the
-                // picker first, then opens the paid sheet.
-                if (chatId != null) {
-                    navigator.pendingSheetDismiss = {
-                        navigator.push(ChatStep.ReactionBoost(chatId, messageId, emoji))
-                    }
-                } else {
-                    dismissSheet()
-                }
-            } else {
-                chatViewModel.dispatchEvent(
-                    ChatViewModel.Event.ToggleReaction(messageId, emoji, clearsSelection = true)
-                )
-                dismissSheet()
-            }
+            chatViewModel.dispatchEvent(
+                ChatViewModel.Event.ToggleReaction(messageId, emoji, clearsSelection = true)
+            )
+            dismissSheet()
         },
         onDismiss = dismissSheet,
     )
@@ -512,8 +496,9 @@ private fun FlowReactorsScreen(chatId: ChatId, messageId: Long) {
 }
 
 /**
- * The Paid Reactions sheet for [step]'s emoji, from the entry's own [ReactionBoostViewModel]. A
- * boost that goes through closes the sheet; one the balance can't cover closes it for the deposit
+ * The Paid Reactions sheet for the viewer's own reactions on [step]'s message, from the entry's
+ * own [ReactionBoostViewModel]. A boost that goes through closes the sheet, as does taking back
+ * the last reaction there is to boost; one the balance can't cover closes it for the deposit
  * options the chat already offers.
  */
 @Composable
@@ -525,12 +510,13 @@ private fun FlowReactionBoostScreen(step: ChatStep.ReactionBoost) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel, step) {
-        viewModel.dispatchEvent(ReactionBoostViewModel.Event.Open(step.chatId, step.messageId, step.emoji))
+        viewModel.dispatchEvent(ReactionBoostViewModel.Event.Open(step.chatId, step.messageId))
     }
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
-                ReactionBoostViewModel.Event.Completed -> dismissSheet()
+                ReactionBoostViewModel.Event.Completed,
+                ReactionBoostViewModel.Event.ReactionsGone -> dismissSheet()
                 ReactionBoostViewModel.Event.AddMoney -> {
                     dismissSheet()
                     chatViewModel.dispatchEvent(ChatViewModel.Event.PresentDepositOptions)
@@ -542,17 +528,19 @@ private fun FlowReactionBoostScreen(step: ChatStep.ReactionBoost) {
 
     ReactionBoostSheet(
         emoji = state.emoji,
+        canCycle = state.canCycle,
         token = state.token,
         presetCents = ReactionBoostViewModel.PresetCents,
         selectedCents = state.selectedCents,
         customCents = state.customCents,
         sendProgress = state.sendProgress,
         canConfirm = state.canConfirm,
+        onCycleEmoji = { viewModel.dispatchEvent(ReactionBoostViewModel.Event.CycleEmoji) },
         onSelectToken = { navigator.push(AppRoute.Sheets.TokenSelection(TokenPurpose.Select)) },
         onSelectAmount = { viewModel.dispatchEvent(ReactionBoostViewModel.Event.SelectAmount(it)) },
         onCustomAmount = {
             navigator.navigateForResult<ReactionBoostAmountResult>(
-                ChatStep.ReactionBoostAmount(step.chatId, step.messageId, step.emoji)
+                ChatStep.ReactionBoostAmount(step.chatId, step.messageId)
             ) { result ->
                 if (result is NavResultOrCanceled.ReturnValue) {
                     viewModel.dispatchEvent(ReactionBoostViewModel.Event.CustomAmountEntered(result.value.cents))

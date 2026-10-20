@@ -379,8 +379,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             is ChatAction.OpenReactionPicker -> {
                 navigator.push(ChatStep.ReactionPicker(action.messageId))
             }
-            is ChatAction.OpenBoostPicker -> {
-                navigator.push(ChatStep.ReactionPicker(action.messageId, boost = true))
+            is ChatAction.OpenBoost -> {
+                val chatId = state.chatId
+                if (chatId != null) navigator.push(ChatStep.ReactionBoost(chatId, action.messageId))
             }
 
             is ChatAction.OpenReactors -> {

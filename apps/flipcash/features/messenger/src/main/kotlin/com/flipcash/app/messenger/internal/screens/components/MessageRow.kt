@@ -508,7 +508,7 @@ internal fun MessageRow(
                                         animateInitialPills = !pillsAtFirstComposition,
                                         canBoost = item.canBoost,
                                         onOpenBoost = {
-                                            onAction(ChatAction.OpenBoostPicker(item.messageId))
+                                            onAction(ChatAction.OpenBoost(item.messageId))
                                         },
                                     )
                                 }

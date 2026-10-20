@@ -5,7 +5,6 @@ import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.buildReactionBoostMetadata
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Emoji
-import com.flipcash.shared.chat.ChatCoordinator
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
@@ -15,17 +14,15 @@ import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * Pays a reaction boost planned by [ReactionBoostSplit]: adds the reaction, then submits one intent
- * carrying the boost's app metadata, and takes the reaction back when the payment fails or is
- * cancelled. A boost is priced in USD because the server reports it as `boost_usd`.
+ * Pays a reaction boost planned by [ReactionBoostSplit]: one intent carrying the boost's app
+ * metadata, naming a reaction the viewer has already made. Reacting stays free and separate, so
+ * this never adds or removes a reaction. A boost is priced in USD because the server reports it as
+ * `boost_usd`.
  *
  * No UI. Balance and send-limit checks on the total are the caller's, before it calls [boost]:
  * each share is priced against the whole balance, so two shares can each fit where their sum does
@@ -36,16 +33,13 @@ class ReactionBoostPaymentDelegate @Inject constructor(
     private val resolverController: ResolverController,
     private val transactionController: TransactionController,
     private val tokenCoordinator: TokenCoordinator,
-    private val chatCoordinator: ChatCoordinator,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val exchange: Exchange,
 ) {
 
     /**
-     * Boosts [emoji] on [messageId] in [chatId] with [plan], paid in [token] from [source].
-     *
-     * Every share is priced before the reaction is added, so a stale rate leaves the chat
-     * untouched. A reaction the viewer already had is never taken back.
+     * Boosts the viewer's existing [emoji] reaction on [messageId] in [chatId] with [plan], paid in
+     * [token] from [source]. Every share is priced before anything is sent.
      */
     suspend fun boost(
         chatId: ChatId,
@@ -56,23 +50,7 @@ class ReactionBoostPaymentDelegate @Inject constructor(
         source: AccountCluster,
     ): Result<Unit> {
         val priced = price(plan, token).getOrElse { return Result.failure(it) }
-        val added = chatCoordinator.addReactionForBoost(chatId, messageId, emoji)
-            .getOrElse { return Result.failure(it) }
-
-        val result = try {
-            pay(chatId, messageId, emoji, priced, token, source)
-        } catch (e: CancellationException) {
-            if (added) {
-                withContext(NonCancellable) {
-                    chatCoordinator.removeUnpaidBoostReaction(chatId, messageId, emoji)
-                }
-            }
-            throw e
-        }
-        if (result.isFailure && added) {
-            chatCoordinator.removeUnpaidBoostReaction(chatId, messageId, emoji)
-        }
-        return result
+        return pay(chatId, messageId, emoji, priced, token, source)
     }
 
     /**

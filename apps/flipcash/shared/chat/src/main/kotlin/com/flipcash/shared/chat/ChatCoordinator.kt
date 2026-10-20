@@ -195,20 +195,6 @@ interface ReactionOperations {
      */
     suspend fun toggleReaction(chatId: ChatId, messageId: Long, emoji: String)
 
-    /**
-     * The first half of a paid reaction: adds [emoji] so the payment that follows has a reaction
-     * to boost. Succeeds with true when this call added it and false when the viewer had already
-     * reacted with [emoji]; only a true result should be undone with [removeUnpaidBoostReaction]
-     * when the payment does not go through.
-     */
-    suspend fun addReactionForBoost(chatId: ChatId, messageId: Long, emoji: String): Result<Boolean>
-
-    /**
-     * Takes back a reaction [addReactionForBoost] added for a payment that failed or was cancelled.
-     * Does nothing once the reaction carries the viewer's boost.
-     */
-    suspend fun removeUnpaidBoostReaction(chatId: ChatId, messageId: Long, emoji: String)
-
     /** Reaction failures the user should be told about, for a snackbar or similar. */
     val reactionErrors: SharedFlow<ReactionError>
 

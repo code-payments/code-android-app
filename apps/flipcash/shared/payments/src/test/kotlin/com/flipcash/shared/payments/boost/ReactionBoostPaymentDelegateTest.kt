@@ -3,7 +3,6 @@ package com.flipcash.shared.payments.boost
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.shared.chat.ChatCoordinator
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
@@ -18,7 +17,6 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
@@ -31,7 +29,6 @@ class ReactionBoostPaymentDelegateTest {
     private val resolverController = mockk<ResolverController>()
     private val transactionController = mockk<TransactionController>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
-    private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true)
     private val calculator = mockk<VerifiedFiatCalculator>()
     private val exchange = mockk<Exchange>(relaxed = true)
 
@@ -46,7 +43,7 @@ class ReactionBoostPaymentDelegateTest {
     private val creatorKey = mockk<PublicKey>()
 
     private val delegate = ReactionBoostPaymentDelegate(
-        resolverController, transactionController, tokenCoordinator, chatCoordinator, calculator, exchange,
+        resolverController, transactionController, tokenCoordinator, calculator, exchange,
     )
 
     private val requested = mutableListOf<Fiat>()
@@ -70,7 +67,6 @@ class ReactionBoostPaymentDelegateTest {
     init {
         coEvery { resolverController.resolve(userId = sender) } returns Result.success(senderKey)
         coEvery { resolverController.resolve(userId = creator) } returns Result.success(creatorKey)
-        coEvery { chatCoordinator.addReactionForBoost(any(), any(), any()) } returns Result.success(true)
         coEvery { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) } returns
             Result.success(mockk())
         coEvery { transactionController.directTransfer(any(), any(), any(), any(), any(), any()) } returns
@@ -85,10 +81,7 @@ class ReactionBoostPaymentDelegateTest {
 
         assertEquals(listOf(centsToUsd(801), centsToUsd(200)), requested)
         val payments = slot<List<Pair<PublicKey, LocalFiat>>>()
-        coVerifyOrder {
-            chatCoordinator.addReactionForBoost(chatId, 7, "💯")
-            transactionController.directMultiTransfer(capture(payments), state, token, source, any(), any())
-        }
+        coVerify { transactionController.directMultiTransfer(capture(payments), state, token, source, any(), any()) }
         assertEquals(listOf(senderKey, creatorKey), payments.captured.map { it.first })
         coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any()) }
     }
@@ -107,36 +100,22 @@ class ReactionBoostPaymentDelegateTest {
     }
 
     @Test
-    fun `a failed payment takes back the reaction it added`() = runTest {
+    fun `a failed payment is reported as a failure`() = runTest {
         pricesAt(state, state)
         coEvery { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) } returns
             Result.failure(IllegalStateException("denied"))
 
         assertTrue(boost(split(1000)).isFailure)
-
-        coVerify { chatCoordinator.removeUnpaidBoostReaction(chatId, 7, "💯") }
     }
 
     @Test
-    fun `a failed payment keeps a reaction the viewer already had`() = runTest {
-        pricesAt(state, state)
-        coEvery { chatCoordinator.addReactionForBoost(any(), any(), any()) } returns Result.success(false)
-        coEvery { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) } returns
-            Result.failure(IllegalStateException("denied"))
-
-        assertTrue(boost(split(1000)).isFailure)
-
-        coVerify(exactly = 0) { chatCoordinator.removeUnpaidBoostReaction(any(), any(), any()) }
-    }
-
-    @Test
-    fun `shares that keep pricing at different states fail as stale before reacting`() = runTest {
+    fun `shares that keep pricing at different states fail as stale before paying`() = runTest {
         pricesAt(state, mockk(), state, mockk())
 
         val result = boost(split(1000))
 
         assertTrue(result.exceptionOrNull() is ComputeVerifiedFiatError.StaleRate)
-        coVerify(exactly = 0) { chatCoordinator.addReactionForBoost(any(), any(), any()) }
+        coVerify(exactly = 0) { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test

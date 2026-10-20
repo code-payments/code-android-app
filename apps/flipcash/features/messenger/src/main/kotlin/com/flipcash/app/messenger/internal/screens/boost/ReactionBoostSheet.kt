@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.screens.boost
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,17 +35,22 @@ import com.getcode.view.LoadingSuccessState
  * The amounts are US dollars whatever the viewer's preferred currency: the boost is a USD figure
  * on the wire and on the pill.
  *
+ * @param emoji the viewer's own reaction being boosted, or null before their reactions load.
+ * @param canCycle whether the viewer has more than one reaction, so tapping [emoji] moves to the
+ * next with [onCycleEmoji].
  * @param customCents an amount entered on the keypad, which the "…" chip shows once chosen.
  */
 @Composable
 internal fun ReactionBoostSheet(
-    emoji: String,
+    emoji: String?,
+    canCycle: Boolean,
     token: Token?,
     presetCents: List<Long>,
     selectedCents: Long?,
     customCents: Long?,
     sendProgress: LoadingSuccessState,
     canConfirm: Boolean,
+    onCycleEmoji: () -> Unit,
     onSelectToken: () -> Unit,
     onSelectAmount: (Long) -> Unit,
     onCustomAmount: () -> Unit,
@@ -63,7 +69,15 @@ internal fun ReactionBoostSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
-            Text(text = emoji, style = CodeTheme.typography.displayLarge)
+            Text(
+                text = emoji.orEmpty(),
+                style = CodeTheme.typography.displayLarge,
+                modifier = Modifier.clickable(
+                    enabled = canCycle,
+                    onClickLabel = stringResource(R.string.action_switchPaidReaction),
+                    onClick = onCycleEmoji,
+                ),
+            )
             Text(
                 text = stringResource(R.string.title_paidReactions),
                 style = CodeTheme.typography.screenTitle,

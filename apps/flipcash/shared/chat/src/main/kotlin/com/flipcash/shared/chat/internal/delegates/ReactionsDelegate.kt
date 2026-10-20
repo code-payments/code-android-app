@@ -95,27 +95,6 @@ class ReactionsDelegate @Inject constructor(
         if (call != null) sendCall(chatId, messageId, state, call)
     }
 
-    override suspend fun addReactionForBoost(chatId: ChatId, messageId: Long, emoji: String): Result<Boolean> {
-        val state = snapshot(chatId, messageId)
-        if (state.selfReactions.any { it.emoji == emoji }) return Result.success(false)
-        val call = state.tap(emoji, Clock.System.now())
-            ?: return Result.failure(IllegalStateException("A reaction call for $emoji is already in flight"))
-        recentReactionsStore.record(emoji)
-        localVersion.update { it + 1 }
-        return when (val result = sendCall(chatId, messageId, state, call)) {
-            is ReactionResult.Ok -> Result.success(true)
-            is ReactionResult.Failed -> Result.failure(IllegalStateException("AddReaction failed: ${result.failure}"))
-        }
-    }
-
-    override suspend fun removeUnpaidBoostReaction(chatId: ChatId, messageId: Long, emoji: String) {
-        val state = snapshot(chatId, messageId)
-        if (state.isSelfBoosted(emoji) || state.selfReactions.none { it.emoji == emoji }) return
-        val call = state.tap(emoji, Clock.System.now()) ?: return
-        localVersion.update { it + 1 }
-        sendCall(chatId, messageId, state, call)
-    }
-
     override suspend fun refreshReactions(chatId: ChatId, messageIds: List<Long>): Result<Unit> {
         val summaries = messagingController.getReactionSummariesByIds(chatId, messageIds)
             .getOrElse { return Result.failure(it) }

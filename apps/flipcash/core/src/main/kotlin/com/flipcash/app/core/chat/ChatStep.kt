@@ -168,22 +168,18 @@ sealed interface ChatStep : FlowStep, Parcelable {
      */
     @Parcelize
     @Serializable
-    data class ReactionPicker(
-        val messageId: Long,
-        /** Opened from the pill row's "$": the emoji picked here is paid for in [ReactionBoost]. */
-        val boost: Boolean = false,
-    ) : ChatStep, Sheet, HalfSheet
+    data class ReactionPicker(val messageId: Long) : ChatStep, Sheet, HalfSheet
 
     /**
-     * Paying for [emoji] on [messageId] — the Paid Reactions sheet (node 10330:18091), opened once
-     * [ReactionPicker] in boost mode has an emoji. Short and fixed, so it wraps its content.
+     * Boosting one of the viewer's own reactions on [messageId] with money — the Paid Reactions
+     * sheet (node 10330:18091), opened from the pill row's "$". The sheet picks which reaction from
+     * the viewer's own. Short and fixed, so it wraps its content.
      */
     @Parcelize
     @Serializable
     data class ReactionBoost(
         val chatId: ChatId,
         val messageId: Long,
-        val emoji: String,
     ) : ChatStep, Sheet, WrapContentSheet
 
     /**
@@ -196,7 +192,6 @@ sealed interface ChatStep : FlowStep, Parcelable {
     data class ReactionBoostAmount(
         val chatId: ChatId,
         val messageId: Long,
-        val emoji: String,
     ) : ChatStep, NavigationRetVal<ReactionBoostAmountResult>, Sheet, SolitarySheet
 
     /**

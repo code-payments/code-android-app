@@ -119,6 +119,7 @@ import com.flipcash.shared.chat.MessageReactions
 import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.applying
+import com.flipcash.shared.chat.canBoost
 import com.flipcash.shared.chat.canReact
 import com.flipcash.shared.chat.chatDraftOf
 import com.flipcash.shared.chat.groupAccess
@@ -1520,8 +1521,12 @@ internal class ChatViewModel @AssistedInject constructor(
                         reactionPills = storedReactions.pills,
                         selfReactions = storedReactions.selfReactions,
                         canReact = canReact(message, canSpeak = canPost && canReactToMessages),
-                        canBoost = !message.isFromSelf && inGroup &&
-                            canReact(message, canSpeak = canPost && canReactToMessages),
+                        canBoost = canBoost(
+                            message,
+                            inGroup = inGroup,
+                            selfReactions = storedReactions.selfReactions,
+                            canSpeak = canPost && canReactToMessages,
+                        ),
                         photo = stateFlow.value.chatId?.takeIf { content.photoBody() != null }
                             ?.let { chatId -> message.photoContext(chatId, previewing) },
                         // Content this build can't draw asks for an update even when the sealed

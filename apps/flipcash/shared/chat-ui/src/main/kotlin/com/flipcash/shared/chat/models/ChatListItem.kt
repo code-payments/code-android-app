@@ -177,8 +177,8 @@ sealed interface ChatListItem {
          */
         val canReact: Boolean = false,
         /**
-         * Whether the viewer may pay for a reaction on this message: a reactable message in a
-         * group, written by someone else.
+         * Whether the viewer may boost one of their own reactions on this message with money: a
+         * reactable message in a group, written by someone else, that the viewer has reacted to.
          */
         val canBoost: Boolean = false,
         /**
