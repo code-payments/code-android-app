@@ -1603,4 +1603,10 @@
     <string name="subtitle_chatCameraPermissionDenied">Turn on Camera in Settings to send photos</string>
     <string name="action_chatOpenSettings">Open Settings</string>
     <string name="subtitle_chatCameraUnavailable">Camera unavailable</string>
+    <string name="title_paidReactions">Paid Reactions</string>
+    <string name="subtitle_paidReactionsSplit">80% goes to the person who wrote the message, 20% goes to the group host</string>
+    <string name="label_payWith">Pay with:</string>
+    <string name="action_swipeToPay">Swipe to Pay</string>
+    <string name="action_paidReaction">Paid reaction</string>
+    <string name="action_customAmount">Other amount</string>
 </resources>

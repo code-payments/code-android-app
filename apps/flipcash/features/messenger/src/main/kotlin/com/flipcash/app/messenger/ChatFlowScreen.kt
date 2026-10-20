@@ -8,7 +8,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
@@ -20,35 +22,41 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
-import com.flipcash.app.core.util.Linkify
-import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.chat.GroupInviteResult
-import com.flipcash.features.messenger.R
+import com.flipcash.app.core.chat.ProfileOrigin
+import com.flipcash.app.core.chat.ReactionBoostAmountResult
 import com.flipcash.app.core.extensions.openAsSheet
+import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
-import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
-import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
-import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.flipcash.app.messenger.internal.screens.EmojiPickerViewModel
+import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
+import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
+import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
+import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostAmountViewModel
+import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostSheet
+import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostViewModel
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
-import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupCoverScreen
-import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupDescriptionScreen
 import com.flipcash.app.messenger.internal.screens.profile.JoinRequestsScreen
 import com.flipcash.app.messenger.internal.screens.profile.MembersScreen
+import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupCoverScreen
+import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupDescriptionScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupNameScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupPictureScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupScreen
+import com.flipcash.features.messenger.R
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.annotatedEntry
-import com.flipcash.services.models.chat.ChatId
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -61,10 +69,12 @@ import com.getcode.navigation.results.resultBackNavigator
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
+import com.getcode.ui.components.AppBarDefaults
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
@@ -170,7 +180,13 @@ private fun chatEntryProvider(
     }
 
     annotatedEntry<ChatStep.ReactionPicker> { step ->
-        FlowReactionPickerScreen(step.messageId)
+        FlowReactionPickerScreen(step.messageId, step.boost)
+    }
+    annotatedEntry<ChatStep.ReactionBoost> { step ->
+        FlowReactionBoostScreen(step)
+    }
+    annotatedEntry<ChatStep.ReactionBoostAmount> {
+        FlowReactionBoostAmountScreen()
     }
     annotatedEntry<ChatStep.Reactors> { step ->
         FlowReactorsScreen(step.chatId, step.messageId)
@@ -429,11 +445,13 @@ private fun FlowEditGroupPictureScreen() {
  * lives in the entry's own [EmojiPickerViewModel]; only the toggle goes to the chat.
  */
 @Composable
-private fun FlowReactionPickerScreen(messageId: Long) {
+private fun FlowReactionPickerScreen(messageId: Long, boost: Boolean) {
     val chatViewModel = flowSharedViewModel<ChatViewModel>()
     val viewModel = hiltViewModel<EmojiPickerViewModel>()
+    val navigator = LocalCodeNavigator.current
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
 
     ReactionPickerSheet(
         searchState = state.searchFieldState,
@@ -441,10 +459,18 @@ private fun FlowReactionPickerScreen(messageId: Long) {
         tones = state.tones,
         loaded = state.loaded,
         onSelected = { emoji ->
-            chatViewModel.dispatchEvent(
-                ChatViewModel.Event.ToggleReaction(messageId, emoji, clearsSelection = true)
-            )
-            dismissSheet()
+            val chatId = chatState.chatId
+            if (boost) {
+                // Dismissed first, then the paid sheet opens on the chat — the same order the
+                // reactors sheet uses to open a profile.
+                dismissSheet()
+                if (chatId != null) navigator.push(ChatStep.ReactionBoost(chatId, messageId, emoji))
+            } else {
+                chatViewModel.dispatchEvent(
+                    ChatViewModel.Event.ToggleReaction(messageId, emoji, clearsSelection = true)
+                )
+                dismissSheet()
+            }
         },
         onDismiss = dismissSheet,
     )
@@ -476,5 +502,83 @@ private fun FlowReactorsScreen(chatId: ChatId, messageId: Long) {
             if (profile != null) navigator.push(ChatStep.Profile(contact = ChatParticipant.TipUser(userId, profile)))
         },
         onDismiss = dismissSheet,
+    )
+}
+
+/**
+ * The Paid Reactions sheet for [step]'s emoji, from the entry's own [ReactionBoostViewModel]. A
+ * boost that goes through closes the sheet; one the balance can't cover closes it for the deposit
+ * options the chat already offers.
+ */
+@Composable
+private fun FlowReactionBoostScreen(step: ChatStep.ReactionBoost) {
+    val chatViewModel = flowSharedViewModel<ChatViewModel>()
+    val viewModel = hiltViewModel<ReactionBoostViewModel>()
+    val navigator = LocalCodeNavigator.current
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+    LaunchedEffect(viewModel, step) {
+        viewModel.dispatchEvent(ReactionBoostViewModel.Event.Open(step.chatId, step.messageId, step.emoji))
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow.collect { event ->
+            when (event) {
+                ReactionBoostViewModel.Event.Completed -> dismissSheet()
+                ReactionBoostViewModel.Event.AddMoney -> {
+                    dismissSheet()
+                    chatViewModel.dispatchEvent(ChatViewModel.Event.PresentDepositOptions)
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    ReactionBoostSheet(
+        emoji = state.emoji,
+        token = state.token,
+        presetCents = ReactionBoostViewModel.PresetCents,
+        selectedCents = state.selectedCents,
+        customCents = state.customCents,
+        sendProgress = state.sendProgress,
+        canConfirm = state.canConfirm,
+        onSelectToken = { navigator.push(AppRoute.Sheets.TokenSelection(TokenPurpose.Select)) },
+        onSelectAmount = { viewModel.dispatchEvent(ReactionBoostViewModel.Event.SelectAmount(it)) },
+        onCustomAmount = {
+            navigator.navigateForResult<ReactionBoostAmountResult>(
+                ChatStep.ReactionBoostAmount(step.chatId, step.messageId, step.emoji)
+            ) { result ->
+                if (result is NavResultOrCanceled.ReturnValue) {
+                    viewModel.dispatchEvent(ReactionBoostViewModel.Event.CustomAmountEntered(result.value.cents))
+                }
+            }
+        },
+        onConfirm = { viewModel.dispatchEvent(ReactionBoostViewModel.Event.Confirm) },
+    )
+}
+
+/**
+ * The keypad behind the Paid Reactions sheet's "…" chip, returning the amount in whole cents. An
+ * entry of zero leaves the sheet open, the same rule as the group form's custom amount.
+ */
+@Composable
+private fun FlowReactionBoostAmountScreen() {
+    val viewModel = hiltViewModel<ReactionBoostAmountViewModel>()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<ReactionBoostAmountResult>(exit = dismissSheet)
+
+    AmountEntryScreen(
+        controller = viewModel.amountDelegate,
+        onConfirm = {
+            viewModel.enteredCents()?.let { resultBack.returnValue(ReactionBoostAmountResult(it)) }
+        },
+        largeHeader = true,
+        appBar = {
+            AppBarWithTitle(
+                title = stringResource(R.string.title_paidReactions),
+                titleAlignment = Alignment.CenterHorizontally,
+                endContent = { AppBarDefaults.Close(onClick = dismissSheet) },
+            )
+        },
     )
 }

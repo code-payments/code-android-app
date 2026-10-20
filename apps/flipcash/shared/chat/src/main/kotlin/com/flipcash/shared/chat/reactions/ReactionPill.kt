@@ -20,6 +20,16 @@ data class ReactionPill(
 /** The paid boost on a pill: [total] is the emoji's USD boost in whole cents. */
 data class ReactionBoost(val total: Long)
 
+/**
+ * [cents] as US dollars with two decimals and grouped thousands ("$1,250.00"). Always USD and
+ * never localised: the boost is a USD figure on the wire, and the pill shows it as one.
+ */
+fun formatBoostCents(cents: Long): String {
+    val dollars = cents / 100
+    val remainder = cents % 100
+    return "$" + "%,d".format(java.util.Locale.US, dollars) + "." + remainder.toString().padStart(2, '0')
+}
+
 /** An add or remove the caller must send to the server for one emoji. */
 data class ReactionCall(val op: Op, val emoji: String) {
     enum class Op { ADD, REMOVE }

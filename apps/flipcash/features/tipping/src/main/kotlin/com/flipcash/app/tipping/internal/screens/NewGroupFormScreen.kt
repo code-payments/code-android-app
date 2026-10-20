@@ -53,6 +53,8 @@ import com.flipcash.app.tipping.internal.GroupCurrency
 import com.flipcash.features.tipping.R
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.opencode.model.financial.Fiat
+import com.flipcash.shared.common.ui.amount.AmountChip
+import com.flipcash.shared.common.ui.amount.AmountChipDefaults
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
@@ -471,26 +473,6 @@ private fun MintRow(state: CreateGroupViewModel.State, onClick: () -> Unit) {
     }
 }
 
-/** A preset slot. Selected inverts to a solid white face — node 10127:118237's `$100`. */
-@Composable
-private fun AmountChip(
-    modifier: Modifier = Modifier,
-    selected: Boolean,
-    onClick: () -> Unit,
-    content: @Composable (textColor: Color) -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .height(ChipHeight)
-            .clip(CodeTheme.shapes.extraSmall)
-            .background(if (selected) White else White10)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        content(if (selected) CodeTheme.colors.background else CodeTheme.colors.textMain)
-    }
-}
-
 private val AvatarSize = 74.dp
 private val CameraIconSize = 40.dp
 private val MintIconSize = 32.dp
@@ -498,7 +480,6 @@ private val AllCurrenciesGlyphSize = 20.dp
 private val MintRowHeight = 56.dp
 private val MintRowInset = 16.dp
 private val MintRowRadius = 12.dp
-private val ChipHeight = 60.dp
 
 private val LabelStyle
     @Composable get() = CodeTheme.typography.textMedium.copy(
@@ -508,8 +489,4 @@ private val LabelStyle
     )
 
 private val ChipStyle
-    @Composable get() = CodeTheme.typography.textLarge.copy(
-        fontSize = 22.sp,
-        lineHeight = 26.sp,
-        fontWeight = FontWeight.SemiBold,
-    )
+    @Composable get() = AmountChipDefaults.TextStyle
