@@ -472,6 +472,11 @@ private const val MORE_KEY = "\u0000more"
 private const val PLUS_KEY = "\u0000plus"
 private const val BOOST_KEY = "\u0000boost"
 
+// The paid-reaction gold from the design (node 10330:18053). The theme's warning is a different
+// amber (0xFFF1AB1F), so the pill keeps its own.
+private val BoostGold = Color(0xFFF7BD00)
+private val BoostCountGold = Color(0xFFFFC828)
+
 /** The row's clock, in monotonic milliseconds; tests swap it for the compose test clock. */
 internal val LocalPillRowClock = staticCompositionLocalOf<() -> Long> { { SystemClock.uptimeMillis() } }
 
@@ -658,8 +663,16 @@ private fun ReactionPillChip(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(percent = 50)
+    val boost = pill.boost?.total?.takeIf { it > 0 }
+    // A paid pill the viewer reacted to is gold throughout: outline, amount and count in gold,
+    // over a fill of the same gold at 10% (node 10330:18053).
+    val paidAndReacted = boost != null && pill.selfReacted
     val fill by animateColorAsState(
-        targetValue = Color.White.copy(alpha = if (pill.selfReacted) 0.12f else 0.06f),
+        targetValue = when {
+            paidAndReacted -> BoostGold.copy(alpha = 0.10f)
+            pill.selfReacted -> Color.White.copy(alpha = 0.12f)
+            else -> Color.White.copy(alpha = 0.06f)
+        },
         animationSpec = ChatAnimations.reactionChangeColor,
         label = "pill fill",
     )
@@ -668,10 +681,8 @@ private fun ReactionPillChip(
         animationSpec = ChatAnimations.reactionChangeDp,
         label = "pill border",
     )
-    val boost = pill.boost?.total?.takeIf { it > 0 }
-    // A paid pill the viewer reacted to is outlined in gold rather than white.
     val borderColor by animateColorAsState(
-        targetValue = if (boost != null) CodeTheme.colors.warning else Color.White.copy(alpha = 0.24f),
+        targetValue = if (boost != null) BoostGold else Color.White.copy(alpha = 0.24f),
         animationSpec = ChatAnimations.reactionChangeColor,
         label = "pill border color",
     )
@@ -717,7 +728,8 @@ private fun ReactionPillChip(
                 Text(
                     text = formatBoostCents(boost),
                     style = boostStyle,
-                    color = CodeTheme.colors.textMain,
+                    // Someone else's paid pill shows its amount at half white (node 10330:18057).
+                    color = if (paidAndReacted) BoostGold else Color.White.copy(alpha = 0.5f),
                     modifier = Modifier.widthIn(min = boostWidth),
                 )
                 // A paid pill shows its count only once a second person has reacted.
@@ -748,7 +760,7 @@ private fun ReactionPillChip(
                 Text(
                     text = count.toString(),
                     style = countStyle,
-                    color = CodeTheme.colors.textMain,
+                    color = if (paidAndReacted) BoostCountGold.copy(alpha = 0.5f) else CodeTheme.colors.textMain,
                 )
             }
         }
