@@ -33,6 +33,19 @@ interface ChatMessageDao {
     @Query("SELECT EXISTS(SELECT 1 FROM chat_messages WHERE sender_id_hex = :selfIdHex AND content_json LIKE '%\"action\":\"TIPPED\"%')")
     fun hasEverTipped(selfIdHex: String): Flow<Boolean>
 
+    /**
+     * The newest [limit] messages across every chat that Search can read: not tombstones, not
+     * empty, and either plaintext or opened on this device. Matching happens in Kotlin, not here:
+     * `content_json` is serialized JSON, and Search folds case and diacritics, which LIKE cannot.
+     */
+    @Query(
+        "SELECT * FROM chat_messages WHERE is_deleted = 0 " +
+            "AND content_json IS NOT NULL AND content_json != '[]' " +
+            "AND (encryption_state IS NULL OR encryption_state = 'DECRYPTED') " +
+            "ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT :limit"
+    )
+    suspend fun getSearchable(limit: Int): List<ChatMessageEntity>
+
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC LIMIT 1")
     suspend fun getLatest(chatIdHex: String): ChatMessageEntity?
 

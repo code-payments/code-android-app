@@ -1603,4 +1603,30 @@
     <string name="subtitle_chatCameraPermissionDenied">Turn on Camera in Settings to send photos</string>
     <string name="action_chatOpenSettings">Open Settings</string>
     <string name="subtitle_chatCameraUnavailable">Camera unavailable</string>
+
+    <!-- Chats Search (nodes 12248:72, 12248:97, 12248:121, 12248:136). -->
+    <string name="title_search">Search</string>
+    <string name="hint_search">Search</string>
+    <string name="label_searchRecent">Recent</string>
+    <string name="label_searchAll">All</string>
+    <string name="label_searchChats">Chats</string>
+    <string name="label_searchCurrencies">Currencies</string>
+    <string name="label_searchMessages">Messages</string>
+    <string name="label_searchLinks">Links</string>
+    <string name="action_searchSeeAll">See all</string>
+    <string name="label_searchWeeklyChange">%1$s this week</string>
+    <plurals name="label_searchNewMembers">
+        <item quantity="one">+%1$s member</item>
+        <item quantity="other">+%1$s members</item>
+    </plurals>
+    <string name="label_searchSharedBy">Shared by %1$s</string>
+    <string name="label_searchSharedIn">Shared in %1$s</string>
+    <string name="label_searchSharedByYou">Shared by you</string>
+    <string name="label_searchAttribution">%1$s · %2$s</string>
+    <string name="label_searchMessageFrom">%1$s: %2$s</string>
+    <string name="label_searchMessageFromYou">You: %1$s</string>
+    <string name="title_searchNoResults">No results</string>
+    <string name="cd_searchChats">Search chats</string>
+    <string name="cd_searchBackToChats">Back to chats</string>
+    <string name="cd_searchClose">Close search</string>
 </resources>

@@ -1,0 +1,71 @@
+package com.flipcash.app.search
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.runtime.remember
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.links.ExternalLinkUriHandler
+import com.flipcash.app.core.links.LocalTrustedWebsites
+import com.flipcash.app.core.tokens.TokenInfoEntry
+import com.flipcash.app.search.internal.SearchContent
+import com.flipcash.app.search.internal.SearchPreloadViewModel
+import com.flipcash.app.search.internal.SearchViewModel
+import com.flipcash.app.core.chat.ChatIdentifier
+import com.getcode.navigation.core.LocalCodeNavigator
+
+/**
+ * Search across chats, currencies, messages and links (nodes 12248:72, 12248:97, 12248:121,
+ * 12248:136). The query is held by the screen's view model only, so it is gone once Search is.
+ */
+@Composable
+fun SearchScreen() {
+    val viewModel = hiltViewModel<SearchViewModel>()
+    val navigator = LocalCodeNavigator.current
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+    val trustedWebsites = LocalTrustedWebsites.current
+    // Links here are ones other people typed, so they go through the same leaving-the-app check
+    // the transcript uses.
+    val externalLinks = remember(context, uriHandler, trustedWebsites) {
+        ExternalLinkUriHandler(context, uriHandler, trustedWebsites)
+    }
+
+    val chip by viewModel.chip.collectAsStateWithLifecycle()
+    val recents by viewModel.recents.collectAsStateWithLifecycle()
+    val results by viewModel.results.collectAsStateWithLifecycle()
+
+    SearchContent(
+        query = viewModel.query,
+        chip = chip,
+        recents = recents,
+        results = results,
+        onSelectChip = viewModel::selectChip,
+        onOpenChat = { chatId, messageId ->
+            viewModel.opened(chatId)
+            navigator.push(
+                AppRoute.Messaging.Chat(
+                    identifier = ChatIdentifier.ByChatId(chatId),
+                    jumpToMessageId = messageId,
+                )
+            )
+        },
+        onOpenCurrency = { token ->
+            navigator.push(AppRoute.Token.Info(token.address, TokenInfoEntry.Discovery))
+        },
+        onOpenLink = { link -> externalLinks.openUri(link.url) },
+        onClose = { navigator.pop() },
+    )
+}
+
+/**
+ * Starts loading what Search fetches over the network, so Search opens on loaded results rather
+ * than a spinner. Drawn by Home, behind the Chats list.
+ */
+@Composable
+fun PreloadSearch() {
+    hiltViewModel<SearchPreloadViewModel>()
+}

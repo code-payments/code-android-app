@@ -169,6 +169,11 @@ fun ChatsScreen() {
                 // you. A pushed route rather than an in-place screen: this list is a tab home, and
                 // anything drawn inside it would leave the tab bar over the entry screen.
                 endContent = {
+                    // No frame places Search; it sits beside Add so both platforms reach it from
+                    // the same bar. Pushed, like NewChat, so the tab bar doesn't cover it.
+                    AppBarDefaults.Search(
+                        contentDescription = stringResource(com.flipcash.core.R.string.cd_searchChats),
+                    ) { navigator.push(AppRoute.Messaging.Search) }
                     AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
                 },
             )

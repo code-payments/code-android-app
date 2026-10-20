@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.RestorePage
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -133,6 +134,28 @@ object AppBarDefaults {
             Icon(
                 imageVector = Icons.Outlined.Add,
                 contentDescription = "",
+                tint = Color.White,
+                modifier = Modifier.requiredSize(size),
+            )
+        }
+    }
+
+    @Composable
+    fun Search(
+        contentDescription: String,
+        modifier: Modifier = Modifier,
+        hazeState: HazeState? = null,
+        onClick: () -> Unit,
+    ) {
+        CircularIconButton(
+            modifier = modifier,
+            hazeState = hazeState,
+            onClick = onClick,
+            testTag = "action_search"
+        ) { size ->
+            Icon(
+                imageVector = Icons.Outlined.Search,
+                contentDescription = contentDescription,
                 tint = Color.White,
                 modifier = Modifier.requiredSize(size),
             )

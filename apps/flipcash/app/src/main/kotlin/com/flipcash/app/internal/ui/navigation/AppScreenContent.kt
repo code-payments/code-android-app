@@ -24,6 +24,8 @@ import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
+import com.flipcash.app.search.PreloadSearch
+import com.flipcash.app.search.SearchScreen
 import com.flipcash.app.tipping.FindByUsernameScreen
 import com.flipcash.app.tipping.ArchivedChatsScreen
 import com.flipcash.app.tipping.RequestsScreen
@@ -114,7 +116,11 @@ fun appEntryProvider(
         // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
         CardExpandHost { WalletScreen() }
     }
-    annotatedEntry<AppRoute.Tabs.Chats> { ChatsScreen() }
+    annotatedEntry<AppRoute.Tabs.Chats> {
+        // Loads what Search needs while Chats is up, so Search opens without a spinner.
+        PreloadSearch()
+        ChatsScreen()
+    }
     annotatedEntry<AppRoute.Tabs.Menu> { MenuScreen() }
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
@@ -139,6 +145,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address, key.origin) }
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
     annotatedEntry<AppRoute.Messaging.ArchivedChats> { ArchivedChatsScreen() }
+    annotatedEntry<AppRoute.Messaging.Search> { SearchScreen() }
     annotatedEntry<AppRoute.Messaging.Requests> { RequestsScreen() }
     annotatedEntry<AppRoute.Messaging.FindByUsername> { FindByUsernameScreen() }
     annotatedEntry<AppRoute.Messaging.NewGroup> { key ->
