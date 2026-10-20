@@ -95,6 +95,27 @@ class ReactionsDelegate @Inject constructor(
         if (call != null) sendCall(chatId, messageId, state, call)
     }
 
+    override suspend fun addReactionForBoost(chatId: ChatId, messageId: Long, emoji: String): Result<Boolean> {
+        val state = snapshot(chatId, messageId)
+        if (state.selfReactions.any { it.emoji == emoji }) return Result.success(false)
+        val call = state.tap(emoji, Clock.System.now())
+            ?: return Result.failure(IllegalStateException("A reaction call for $emoji is already in flight"))
+        recentReactionsStore.record(emoji)
+        localVersion.update { it + 1 }
+        return when (val result = sendCall(chatId, messageId, state, call)) {
+            is ReactionResult.Ok -> Result.success(true)
+            is ReactionResult.Failed -> Result.failure(IllegalStateException("AddReaction failed: ${result.failure}"))
+        }
+    }
+
+    override suspend fun removeUnpaidBoostReaction(chatId: ChatId, messageId: Long, emoji: String) {
+        val state = snapshot(chatId, messageId)
+        if (state.isSelfBoosted(emoji) || state.selfReactions.none { it.emoji == emoji }) return
+        val call = state.tap(emoji, Clock.System.now()) ?: return
+        localVersion.update { it + 1 }
+        sendCall(chatId, messageId, state, call)
+    }
+
     override suspend fun refreshReactions(chatId: ChatId, messageIds: List<Long>): Result<Unit> {
         val summaries = messagingController.getReactionSummariesByIds(chatId, messageIds)
             .getOrElse { return Result.failure(it) }
@@ -133,9 +154,9 @@ class ReactionsDelegate @Inject constructor(
     /**
      * Sends [call], settles it against [state], persists confirmed state on success, reports a
      * non-silent failure on [reactionErrors], and loops once more if settling produced a coalesced follow-up call — the same shape as the iOS
-     * reference's tap → send → respond cycle.
+     * reference's tap → send → respond cycle. Returns the result of [call] itself.
      */
-    private suspend fun sendCall(chatId: ChatId, messageId: Long, state: ReactionState, call: ReactionCall) {
+    private suspend fun sendCall(chatId: ChatId, messageId: Long, state: ReactionState, call: ReactionCall): ReactionResult {
         val result = performCall(chatId, messageId, call)
         val (followUp, error) = state.respond(call.emoji, result)
         if (result is ReactionResult.Ok) {
@@ -144,6 +165,7 @@ class ReactionsDelegate @Inject constructor(
         localVersion.update { it + 1 }
         error?.let { _reactionErrors.emit(it) }
         if (followUp != null) sendCall(chatId, messageId, state, followUp)
+        return result
     }
 
     private suspend fun performCall(chatId: ChatId, messageId: Long, call: ReactionCall): ReactionResult {
@@ -176,6 +198,7 @@ class ReactionsDelegate @Inject constructor(
         ReactionCall.Op.REMOVE -> when (error) {
             is RemoveReactionError.Denied -> ReactionFailure.DENIED
             is RemoveReactionError.MessageNotFound -> ReactionFailure.MESSAGE_NOT_FOUND
+            is RemoveReactionError.CannotRemoveBoosted -> ReactionFailure.CANNOT_REMOVE_BOOSTED
             else -> ReactionFailure.NETWORK
         }
     }
@@ -240,17 +263,20 @@ class ReactionsDelegate @Inject constructor(
         selfReacted = selfReactor != null,
         version = version,
         selfReactedAt = selfReactor?.reactedAt,
+        boost = boostCents,
+        selfBoost = selfReactor?.boostCents ?: 0,
     )
 
     private fun ReactionState.SummaryEntry.toEmojiReaction(selfId: ID?): EmojiReaction = EmojiReaction(
         emoji = Emoji(emoji),
         count = count,
         selfReactor = if (selfReacted && selfId != null) {
-            Reactor(userId = selfId, reactedAt = selfReactedAt ?: Clock.System.now(), version = version)
+            Reactor(userId = selfId, reactedAt = selfReactedAt ?: Clock.System.now(), version = version, boostCents = selfBoost)
         } else {
             null
         },
         sampleReactors = emptyList(),
         version = version,
+        boostCents = boost,
     )
 }

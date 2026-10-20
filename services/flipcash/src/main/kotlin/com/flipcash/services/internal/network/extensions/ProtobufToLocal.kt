@@ -300,6 +300,12 @@ internal fun MessagingModel.Message.toChatMessage(): ChatMessage {
     )
 }
 
+/**
+ * A `boost_usd` wire value in whole cents. Rounded, not truncated: 0.29 * 100 is 28.999… in a
+ * double.
+ */
+private fun Double.toUsdCents(): Long = Math.round(this * 100)
+
 internal fun MessagingModel.ReactionSummary.toReactionSummary(): ReactionSummary {
     return ReactionSummary(
         messageId = messageId.value,
@@ -314,7 +320,7 @@ internal fun MessagingModel.EmojiReaction.toEmojiReaction(): EmojiReaction {
         selfReactor = if (hasSelfReactor()) selfReactor.toReactor() else null,
         sampleReactors = sampleReactorsList.map { it.toReactor() },
         version = version,
-        boostUsd = boostUsd,
+        boostCents = boostUsd.toUsdCents(),
     )
 }
 
@@ -323,7 +329,7 @@ internal fun MessagingModel.Reactor.toReactor(): Reactor {
         userId = userId.toId(),
         reactedAt = Instant.fromEpochSeconds(reactedTs.seconds, reactedTs.nanos),
         version = version,
-        boostUsd = boostUsd,
+        boostCents = boostUsd.toUsdCents(),
     )
 }
 
@@ -341,8 +347,8 @@ internal fun MessagingModel.ReactionUpdate.toReactionUpdate(): ReactionUpdate {
         count = count,
         version = version,
         reactedAt = Instant.fromEpochSeconds(reactedTs.seconds, reactedTs.nanos),
-        boostUsd = boostUsd,
-        actorBoostUsd = actorBoostUsd,
+        boostCents = boostUsd.toUsdCents(),
+        actorBoostCents = actorBoostUsd.toUsdCents(),
     )
 }
 

@@ -152,6 +152,8 @@ class EventStreamDelegate @Inject constructor(
                             selfReacted = reaction.selfReactor != null,
                             version = reaction.version,
                             selfReactedAt = reaction.selfReactor?.reactedAt,
+                            boost = reaction.boostCents,
+                            selfBoost = reaction.selfReactor?.boostCents ?: 0,
                         )
                     },
                 )
@@ -474,6 +476,8 @@ class EventStreamDelegate @Inject constructor(
                     count = reactionUpdate.count,
                     version = reactionUpdate.version,
                     reactedAt = reactionUpdate.reactedAt,
+                    boost = reactionUpdate.boostCents,
+                    actorBoost = reactionUpdate.actorBoostCents,
                 )
                 touchedMessageIds.add(reactionUpdate.messageId)
             }
@@ -550,10 +554,16 @@ class EventStreamDelegate @Inject constructor(
                     emoji = Emoji(entry.emoji),
                     count = entry.count,
                     selfReactor = if (entry.selfReacted && selfId != null) {
-                        Reactor(userId = selfId, reactedAt = entry.selfReactedAt ?: Clock.System.now(), version = entry.version)
+                        Reactor(
+                            userId = selfId,
+                            reactedAt = entry.selfReactedAt ?: Clock.System.now(),
+                            version = entry.version,
+                            boostCents = entry.selfBoost,
+                        )
                     } else null,
                     sampleReactors = emptyList(),
                     version = entry.version,
+                    boostCents = entry.boost,
                 )
             },
         )

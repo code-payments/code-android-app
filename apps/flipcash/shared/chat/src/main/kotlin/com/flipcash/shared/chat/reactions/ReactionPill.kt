@@ -13,9 +13,11 @@ data class ReactionPill(
     /** True while the user's last tap on this emoji has not been reconciled with the server. */
     val pending: Boolean,
     val boost: ReactionBoost? = null,
+    /** True when the user paid toward [boost]; their reaction then can't be removed. */
+    val selfBoosted: Boolean = false,
 )
 
-/** The paid boost on a pill, a phase-2 seam that nothing creates in phase 1. */
+/** The paid boost on a pill: [total] is the emoji's USD boost in whole cents. */
 data class ReactionBoost(val total: Long)
 
 /** An add or remove the caller must send to the server for one emoji. */
@@ -29,14 +31,16 @@ enum class ReactionFailure {
     DENIED,
     MESSAGE_NOT_FOUND,
     CANNOT_REACT,
-    TOO_MANY_REACTION_TYPES;
+    TOO_MANY_REACTION_TYPES,
+    CANNOT_REMOVE_BOOSTED;
 
     /** The error to show the user for this failure, or null when the rollback is silent. */
     val userError: ReactionError?
         get() = when (this) {
             NETWORK, DENIED -> ReactionError.REACTION_FAILED
             TOO_MANY_REACTION_TYPES -> ReactionError.TOO_MANY_REACTION_TYPES
-            MESSAGE_NOT_FOUND, CANNOT_REACT -> null
+            // The reaction stands, and the rollback shows it again: nothing for the user to fix.
+            MESSAGE_NOT_FOUND, CANNOT_REACT, CANNOT_REMOVE_BOOSTED -> null
         }
 }
 

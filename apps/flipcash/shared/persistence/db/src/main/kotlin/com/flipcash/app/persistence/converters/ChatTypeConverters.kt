@@ -338,6 +338,8 @@ data class EmojiReactionSerialized(
     val sampleReactors: List<ReactorSerialized>,
     // Rows written before the field was renamed to match the proto store it as `sequence`.
     @JsonNames("sequence") val version: Long,
+    /** Total USD boost on the emoji, in whole cents. */
+    val boostCents: Long = 0,
 )
 
 @Serializable
@@ -345,6 +347,8 @@ data class ReactorSerialized(
     val userIdHex: String,
     val reactedAtEpochSeconds: Long,
     val version: Long = 0,
+    /** The USD this reactor paid to boost, in whole cents. */
+    val boostCents: Long = 0,
 )
 
 /**

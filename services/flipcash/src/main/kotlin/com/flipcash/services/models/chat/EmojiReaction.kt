@@ -6,6 +6,6 @@ data class EmojiReaction(
     val selfReactor: Reactor?,
     val sampleReactors: List<Reactor>,
     val version: Long,
-    // Total USD value of boosts on this emoji. The primary sort key of a ReactionSummary.
-    val boostUsd: Double = 0.0,
+    // Total USD value of boosts on this emoji, in whole cents. The primary sort key of a ReactionSummary.
+    val boostCents: Long = 0,
 )

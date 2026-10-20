@@ -26,6 +26,10 @@ class ReactionState {
          * in the merge.
          */
         val selfReactedAt: Instant?,
+        /** The emoji's total USD boost, in whole cents. */
+        val boost: Long = 0,
+        /** The part of [boost] the user paid. A reaction the user boosted can't be taken back. */
+        val selfBoost: Long = 0,
     )
 
     /** One emoji as a reaction summary lists it. */
@@ -35,6 +39,8 @@ class ReactionState {
         val selfReacted: Boolean,
         val version: Long,
         val selfReactedAt: Instant?,
+        val boost: Long = 0,
+        val selfBoost: Long = 0,
     )
 
     /**
@@ -71,17 +77,22 @@ class ReactionState {
                     selfReacted = entry.selfReacted,
                     version = entry.version,
                     selfReactedAt = entry.selfReactedAt,
+                    boost = entry.boost,
+                    selfBoost = entry.selfBoost,
                 ),
             )
         }
         for ((emoji, held) in confirmedByEmoji.toMap()) {
             if (emoji !in present && desired[emoji] == null && held.count > 0) {
-                confirmedByEmoji[emoji] = held.copy(count = 0, selfReacted = false, selfReactedAt = null)
+                confirmedByEmoji[emoji] = held.copy(count = 0, selfReacted = false, selfReactedAt = null, boost = 0, selfBoost = 0)
             }
         }
     }
 
-    /** Accepts one stream update; [count] is the emoji's new total, not a delta. */
+    /**
+     * Accepts one stream update; [count] and [boost] are the emoji's new totals, not deltas, and
+     * [actorBoost] is the actor's own boost after it.
+     */
     fun applyUpdate(
         emoji: String,
         actorIsSelf: Boolean,
@@ -89,17 +100,33 @@ class ReactionState {
         count: Long,
         version: Long,
         reactedAt: Instant?,
+        boost: Long = 0,
+        actorBoost: Long = 0,
     ) {
+        val held = confirmedByEmoji[emoji]
         val selfReacted: Boolean
         val selfReactedAt: Instant?
+        val selfBoost: Long
         if (actorIsSelf) {
             selfReacted = added
-            selfReactedAt = if (added) reactedAt else null
+            selfReactedAt = if (added) reactedAt ?: held?.selfReactedAt else null
+            selfBoost = if (added) actorBoost else 0
         } else {
-            selfReacted = confirmedByEmoji[emoji]?.selfReacted ?: false
-            selfReactedAt = confirmedByEmoji[emoji]?.selfReactedAt
+            selfReacted = held?.selfReacted ?: false
+            selfReactedAt = held?.selfReactedAt
+            selfBoost = held?.selfBoost ?: 0
         }
-        accept(emoji, Confirmed(count = count, selfReacted = selfReacted, version = version, selfReactedAt = selfReactedAt))
+        accept(
+            emoji,
+            Confirmed(
+                count = count,
+                selfReacted = selfReacted,
+                version = version,
+                selfReactedAt = selfReactedAt,
+                boost = boost,
+                selfBoost = selfBoost,
+            ),
+        )
     }
 
     /**
@@ -122,6 +149,8 @@ class ReactionState {
                 selfReacted = state.selfReacted,
                 version = state.version,
                 selfReactedAt = state.selfReactedAt,
+                boost = state.boost,
+                selfBoost = state.selfBoost,
             )
         }
 
@@ -137,6 +166,8 @@ class ReactionState {
      * for it is already on the wire and the response will send any follow-up.
      */
     fun tap(emoji: String, at: Instant): ReactionCall? {
+        // The server refuses to take back a boosted reaction, so the tap does nothing.
+        if (isSelfBoosted(emoji)) return null
         val on = !displayedSelf(emoji)
         desired[emoji] = on
         if (on) desiredAt[emoji] = at else desiredAt.remove(emoji)
@@ -152,6 +183,8 @@ class ReactionState {
         if (!inFlightEmoji.remove(emoji)) return null to null
         return when (result) {
             is ReactionResult.Ok -> {
+                // An add or remove response carries no boost, and neither call changes it.
+                val held = confirmedByEmoji[emoji]
                 accept(
                     emoji,
                     Confirmed(
@@ -159,6 +192,8 @@ class ReactionState {
                         selfReacted = result.selfReacted,
                         version = result.version,
                         selfReactedAt = result.selfReactedAt,
+                        boost = held?.boost ?: 0,
+                        selfBoost = if (result.selfReacted) held?.selfBoost ?: 0 else 0,
                     ),
                 )
                 val wanted = desired[emoji]
@@ -188,7 +223,14 @@ class ReactionState {
             val pills = emoji.mapNotNull { emoji ->
                 val (count, shown) = displayed(emoji)
                 if (count <= 0) return@mapNotNull null
-                ReactionPill(emoji = emoji, count = count, selfReacted = shown, pending = desired[emoji] != null)
+                ReactionPill(
+                    emoji = emoji,
+                    count = count,
+                    selfReacted = shown,
+                    pending = desired[emoji] != null,
+                    boost = confirmedByEmoji[emoji]?.boost?.takeIf { it > 0 }?.let(::ReactionBoost),
+                    selfBoosted = isSelfBoosted(emoji),
+                )
             }
             return ReactionOrdering.sorted(pills)
         }
@@ -220,6 +262,9 @@ class ReactionState {
         desired.remove(emoji)
         desiredAt.remove(emoji)
     }
+
+    /** Whether the user has paid to boost [emoji], which makes their reaction permanent. */
+    fun isSelfBoosted(emoji: String): Boolean = (confirmedByEmoji[emoji]?.selfBoost ?: 0) > 0
 
     private fun displayedSelf(emoji: String): Boolean = desired[emoji] ?: confirmedByEmoji[emoji]?.selfReacted ?: false
 
