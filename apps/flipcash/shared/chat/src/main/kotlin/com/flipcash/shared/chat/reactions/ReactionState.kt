@@ -110,7 +110,8 @@ class ReactionState {
         if (actorIsSelf) {
             selfReacted = added
             selfReactedAt = if (added) reactedAt ?: held?.selfReactedAt else null
-            selfBoost = if (added) actorBoost else 0
+            // actorBoost is 0 on a plain ADDED, which must not wipe a boost the user already paid.
+            selfBoost = if (added) maxOf(actorBoost, held?.selfBoost ?: 0) else 0
         } else {
             selfReacted = held?.selfReacted ?: false
             selfReactedAt = held?.selfReactedAt

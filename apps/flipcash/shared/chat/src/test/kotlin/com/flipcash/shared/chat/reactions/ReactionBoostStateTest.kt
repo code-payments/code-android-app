@@ -88,6 +88,19 @@ class ReactionBoostStateTest {
     }
 
     @Test
+    fun `the user's own ADDED update keeps the boost it does not carry`() {
+        val state = ReactionState()
+        state.applySummary(listOf(entry(selfReacted = true, version = 1, boost = 100, selfBoost = 100)))
+
+        state.applyUpdate(
+            emoji = "💯", actorIsSelf = true, added = true, count = 1, version = 2,
+            reactedAt = now, boost = 100, actorBoost = 0,
+        )
+
+        assertTrue(state.pills.single().selfBoosted)
+    }
+
+    @Test
     fun `an add response keeps the boost it does not carry`() {
         val state = ReactionState()
         state.applySummary(listOf(entry(count = 1, version = 1, boost = 500)))
