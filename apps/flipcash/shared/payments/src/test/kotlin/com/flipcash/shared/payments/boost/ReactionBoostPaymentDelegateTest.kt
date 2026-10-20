@@ -89,13 +89,14 @@ class ReactionBoostPaymentDelegateTest {
     @Test
     fun `one payee is a single direct transfer of the whole`() = runTest {
         pricesAt(state)
-        val plan = ReactionBoostSplit.plan(payer = creator, sender = sender, creator = creator, totalCents = 500)
+        // A member boosting the creator's own message pays the creator the whole.
+        val plan = ReactionBoostSplit.plan(payer = List(32) { 3 }, sender = creator, creator = creator, totalCents = 500)
             as ReactionBoostPlan.Pay
 
         assertTrue(boost(plan).isSuccess)
 
         assertEquals(listOf(centsToUsd(500)), requested)
-        coVerify { transactionController.directTransfer(any(), token, source, senderKey, any(), any()) }
+        coVerify { transactionController.directTransfer(any(), token, source, creatorKey, any(), any()) }
         coVerify(exactly = 0) { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) }
     }
 

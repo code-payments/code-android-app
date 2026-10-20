@@ -1,7 +1,7 @@
 {
   "algorithm": "reaction-boost-split",
   "source": "flipcash2-server 85aec15, messaging/boost.go and intent/chat.go; flipcash2-client-protocol 0.20.0, proto/intent/v1/model.proto:70-107 (ReactionBoost)",
-  "note": "Pick the intent and per-share fiat for a reaction boost. payer is creator, member, or sender (the person who sent the message, i.e. a self-boost); messageSender is creator or member. Amounts are USD decimal strings. creator = round_half_even(total * creatorPercent / 100) to the cent, sender = total - creator. The server accepts either rounding direction within half a cent, so half-even is a client-parity choice; at 20% no whole-cent total produces a tie. Multi-payment payees are listed sender then creator, the order multi_payment_intent.json's 'boost 80/20' uses; the server accepts either order. Quarks are omitted on purpose: each share's quarks are computed from that share's own fiat at the shared verified rate and reserve state (curve.json / curve_fractional.json gate that conversion), never as a split of the whole's quarks. expectedError names the rule, not a platform error type.",
+  "note": "Pick the intent and per-share fiat for a reaction boost. payer is creator, member, or sender (the person who sent the message, i.e. a self-boost); messageSender is creator or member. Amounts are USD decimal strings. creator = round_half_even(total * creatorPercent / 100) to the cent, sender = total - creator. The server accepts either rounding direction within half a cent, so half-even is a client-parity choice; at 20% no whole-cent total produces a tie. Multi-payment payees are listed sender then creator, the order multi_payment_intent.json's 'boost 80/20' uses; the server accepts either order. Quarks are omitted on purpose: each share's quarks are computed from that share's own fiat at the shared verified rate and reserve state (curve.json / curve_fractional.json gate that conversion), never as a split of the whole's quarks. expectedError names the rule, not a platform error type. Product decision (2026-10-20): when the creator boosts a member's message the split still applies, and the creator's 20% loops back to the creator; only a message the creator wrote pays one payee.",
   "creatorPercent": 20,
   "minimumShare": "0.01",
   "minimumTwoPayeeTotal": "0.03",
@@ -47,13 +47,17 @@
       "payer": "creator",
       "messageSender": "member",
       "total": "1.00",
-      "note": "The creator pays, so the sender is paid the whole: one SendPublicPayment.",
+      "note": "The 80/20 split still applies; the creator's 20% loops back to the creator. One SendPublicMultiPayment.",
       "expected": {
-        "intent": "SendPublicPayment",
+        "intent": "SendPublicMultiPayment",
         "payees": [
           {
             "role": "sender",
-            "nativeAmount": "1.00"
+            "nativeAmount": "0.80"
+          },
+          {
+            "role": "creator",
+            "nativeAmount": "0.20"
           }
         ]
       }
@@ -279,16 +283,31 @@
       }
     },
     {
-      "name": "single to sender at minimum",
+      "name": "creator boosts below two-payee minimum",
       "payer": "creator",
       "messageSender": "member",
       "total": "0.01",
-      "note": "One payee needs only one minor unit.",
+      "note": "The creator's boost splits too, so it needs the two-payee minimum: creator 0.2c rounds to 0.",
       "expected": {
-        "intent": "SendPublicPayment",
+        "intent": "rejected",
+        "expectedError": "boost share below minimum transfer value"
+      }
+    },
+    {
+      "name": "creator boosts at two-payee minimum",
+      "payer": "creator",
+      "messageSender": "member",
+      "total": "0.03",
+      "note": "Creator 0.6c rounds to 1c and loops back; sender 2c.",
+      "expected": {
+        "intent": "SendPublicMultiPayment",
         "payees": [
           {
             "role": "sender",
+            "nativeAmount": "0.02"
+          },
+          {
+            "role": "creator",
             "nativeAmount": "0.01"
           }
         ]
@@ -311,17 +330,21 @@
       }
     },
     {
-      "name": "single to sender odd",
+      "name": "creator boosts member odd",
       "payer": "creator",
       "messageSender": "member",
       "total": "1.01",
-      "note": "One payee is paid the whole; no rounding.",
+      "note": "Creator 20.2c rounds to 20c and loops back to the creator; sender 81c.",
       "expected": {
-        "intent": "SendPublicPayment",
+        "intent": "SendPublicMultiPayment",
         "payees": [
           {
             "role": "sender",
-            "nativeAmount": "1.01"
+            "nativeAmount": "0.81"
+          },
+          {
+            "role": "creator",
+            "nativeAmount": "0.20"
           }
         ]
       }

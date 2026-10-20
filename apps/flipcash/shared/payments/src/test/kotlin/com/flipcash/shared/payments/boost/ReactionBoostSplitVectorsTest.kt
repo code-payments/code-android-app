@@ -37,7 +37,7 @@ class ReactionBoostSplitVectorsTest {
     @Test
     fun `every vector`() {
         val vectors = fixture.getJSONArray("vectors")
-        assertEquals(19, vectors.length())
+        assertEquals(20, vectors.length())
         for (i in 0 until vectors.length()) {
             val v = vectors.getJSONObject(i)
             val name = v.getString("name")

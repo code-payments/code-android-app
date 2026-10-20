@@ -37,9 +37,10 @@ sealed interface ReactionBoostPlan {
  * Picks the payees and per-share amounts for a reaction boost. A cross-platform parity hotspot: it
  * must agree with iOS at every vector in `test-vectors/reaction-boost-split.json`.
  *
- * When a member boosts another member's message, the creator gets [CREATOR_PERCENT] of the total,
- * rounded half-even to the cent, and the sender gets the rest. When the creator pays, or the
- * creator wrote the message, the one remaining payee gets the whole. Each share must be at least
+ * When anyone boosts another member's message, the creator gets [CREATOR_PERCENT] of the total,
+ * rounded half-even to the cent, and the sender gets the rest. That holds when the creator pays
+ * too: their share loops back to them. When the creator wrote the message, they get the whole.
+ * Each share must be at least
  * [MINIMUM_SHARE_CENTS], which puts the smallest two-payee boost at three cents.
  */
 object ReactionBoostSplit {
@@ -49,7 +50,6 @@ object ReactionBoostSplit {
     fun plan(payer: ID, sender: ID, creator: ID, totalCents: Long): ReactionBoostPlan {
         if (payer == sender) return ReactionBoostPlan.SelfBoost
         val shares = when {
-            payer == creator -> listOf(BoostShare(sender, BoostPayee.SENDER, totalCents))
             sender == creator -> listOf(BoostShare(creator, BoostPayee.CREATOR, totalCents))
             else -> {
                 val creatorCents = creatorShareCents(totalCents)
