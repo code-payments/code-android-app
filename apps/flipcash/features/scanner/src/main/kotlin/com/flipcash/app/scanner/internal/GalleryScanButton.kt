@@ -14,12 +14,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.size
 import com.flipcash.features.scanner.R
-import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.CircularIconButton
 import dev.chrisbanes.haze.HazeState
 
 /**
- * The Scan tab's gallery entry point, in the scanner's top-right corner.
+ * The Scan tab's gallery entry point. It takes [CircularIconButton]'s default size, like the + and
+ * the gear on the other tabs, and is placed by the app bar its caller puts it in.
  *
  * `PickVisualMedia` runs out of process, so tapping this never asks for a permission -- which is
  * what lets the glyph be a plain static icon rather than a permission prompt with an icon on it.
@@ -43,8 +43,6 @@ internal fun GalleryScanButton(
 
     CircularIconButton(
         modifier = modifier,
-        buttonSize = CodeTheme.dimens.staticGrid.x10,
-        imageSize = CodeTheme.dimens.staticGrid.x5,
         hazeState = hazeState,
         testTag = "scanner_gallery_button",
         onClick = {
