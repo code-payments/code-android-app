@@ -39,6 +39,7 @@ import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostAmountViewModel
+import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostCurrencySheet
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostSheet
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostViewModel
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
@@ -184,6 +185,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.ReactionBoost> { step ->
         FlowReactionBoostScreen(step)
+    }
+    annotatedEntry<ChatStep.ReactionBoostCurrency> {
+        ReactionBoostCurrencySheet()
     }
     annotatedEntry<ChatStep.ReactionBoostAmount> {
         FlowReactionBoostAmountScreen()
@@ -536,7 +540,7 @@ private fun FlowReactionBoostScreen(step: ChatStep.ReactionBoost) {
         sendProgress = state.sendProgress,
         canConfirm = state.canConfirm,
         onCycleEmoji = { viewModel.dispatchEvent(ReactionBoostViewModel.Event.CycleEmoji) },
-        onSelectToken = { navigator.push(AppRoute.Sheets.TokenSelection(TokenPurpose.Select)) },
+        onSelectToken = { navigator.push(ChatStep.ReactionBoostCurrency(step.chatId, step.messageId)) },
         onSelectAmount = { viewModel.dispatchEvent(ReactionBoostViewModel.Event.SelectAmount(it)) },
         onCustomAmount = {
             navigator.navigateForResult<ReactionBoostAmountResult>(
