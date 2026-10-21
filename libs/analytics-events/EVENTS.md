@@ -92,11 +92,19 @@ EditChat returned after a rename or a picture change.
 
 ### Group: Invite Shared
 
-Share was tapped in the invite sheet, or the invite link was copied.
+Share was tapped in the invite sheet, the invite link was copied, or the group card's QR was exported.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|
 | Method | list | no | [GroupInviteMethod](#groupinvitemethod) |
+
+### Group: Card Shown
+
+The group scan card opened from the invite sheet.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Member Count | count | no | |
 
 ### Group: Invite Followed
 
@@ -706,6 +714,7 @@ The `Method` property on Group: Invite Shared: how the invite link left the app.
 |---|---|---|
 | Share | `SHARE` | |
 | Copy | `COPY` | |
+| Download | `DOWNLOAD` | |
 
 ### GroupInviteSource
 

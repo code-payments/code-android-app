@@ -84,12 +84,20 @@ class GroupEventsTest {
     @Test
     fun inviteSharedCarriesEveryMethodByItsWireString() {
         assertEquals(
-            listOf("Share", "Copy"),
+            listOf("Share", "Copy", "Download"),
             GroupInviteMethod.entries.map {
                 val event = GroupEvents.inviteShared(it)
                 assertEquals(AnalyticsEvent("Group: Invite Shared", mapOf("Method" to event.properties.getValue("Method"))), event)
                 (event.properties.getValue("Method") as PropertyValue.Text).value
             },
+        )
+    }
+
+    @Test
+    fun cardShownCarriesMemberCount() {
+        assertEquals(
+            AnalyticsEvent("Group: Card Shown", mapOf("Member Count" to PropertyValue.Number(7.0))),
+            GroupEvents.cardShown(7),
         )
     }
 

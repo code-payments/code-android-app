@@ -1529,6 +1529,11 @@
     <string name="label_profileCardFileNameFallback">Profile Card</string>
     <string name="error_title_tipCardExportFailed">Couldn\'t Export</string>
     <string name="error_description_tipCardExportFailed">We were unable to export your tip code. Please try again</string>
+    <string name="action_showGroupCard">Show Group Card</string>
+    <string name="label_groupCardTitleFallback">Group Chat</string>
+    <string name="label_groupCardFileName">Join %1$s</string>
+    <string name="label_groupCardFileNameFallback">Group Card</string>
+    <string name="error_description_groupCardExportFailed">We were unable to export your group code. Please try again</string>
 
     <!-- Bio editor. The count under the field is code points left of 160. -->
     <string name="title_bio">Bio</string>
