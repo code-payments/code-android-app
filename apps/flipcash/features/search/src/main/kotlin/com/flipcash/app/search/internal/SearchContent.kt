@@ -1,6 +1,8 @@
 package com.flipcash.app.search.internal
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -140,10 +142,14 @@ internal fun SearchContent(
                     onOpenChat = { onOpenChat(it, null) },
                 )
             } else {
-                // Only the results cross-fade; the chips stay put while they change.
+                // Only the results change. They fade through rather than cross-fade: the old list
+                // is gone before the new one comes in, so rows in the same place never overlap.
                 AnimatedContent(
                     targetState = chip,
-                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    transitionSpec = {
+                        fadeIn(tween(ResultsFadeInMs, delayMillis = ResultsFadeOutMs)) togetherWith
+                            fadeOut(tween(ResultsFadeOutMs))
+                    },
                     label = "searchResults",
                 ) { shown ->
                     if (results.isEmpty(shown)) NoResults(contentPadding) else SearchResultsList(
@@ -306,7 +312,10 @@ private fun NoResults(contentPadding: PaddingValues) {
     }
 }
 
-/** The chips pinned above results. Keeps the selected one in view as it changes (node 12248:136). */
+/**
+ * The chips pinned above results (node 12248:136). The row only scrolls when the selected chip is
+ * cut off, and then just far enough to show it whole.
+ */
 @Composable
 private fun SearchChips(
     selected: SearchChip,
@@ -314,7 +323,23 @@ private fun SearchChips(
     modifier: Modifier = Modifier,
 ) {
     val state = rememberLazyListState()
-    LaunchedEffect(selected) { state.animateScrollToItem(selected.ordinal) }
+    val inset = with(LocalDensity.current) { CodeTheme.dimens.inset.roundToPx() }
+    LaunchedEffect(selected) {
+        val info = state.layoutInfo
+        val item = info.visibleItemsInfo.firstOrNull { it.index == selected.ordinal }
+        if (item == null) {
+            state.animateScrollToItem(selected.ordinal)
+            return@LaunchedEffect
+        }
+        val start = info.viewportStartOffset + inset
+        val end = info.viewportEndOffset - inset
+        val delta = when {
+            item.offset < start -> item.offset - start
+            item.offset + item.size > end -> item.offset + item.size - end
+            else -> 0
+        }
+        if (delta != 0) state.animateScrollBy(delta.toFloat())
+    }
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         state = state,
@@ -712,6 +737,9 @@ private const val KeyboardStartFraction = 0.4f
 
 /** Longest Search waits on the keyboard going down before it closes anyway. */
 private val KeyboardHideTimeout = 600.milliseconds
+
+private const val ResultsFadeOutMs = 90
+private const val ResultsFadeInMs = 150
 
 /** How far the blur fades in past the chips and the bar. */
 private val EdgeFade = 24.dp
