@@ -61,7 +61,12 @@ import com.flipcash.app.core.ui.transitions.RequestFocusDuringEnter
 import com.flipcash.app.search.SearchBackButton
 import com.getcode.ui.components.BottomScrollEdge
 import com.getcode.ui.components.TopScrollEdge
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.hazeBlur
+import androidx.compose.foundation.border
+import com.getcode.theme.inputColors
+import com.getcode.ui.components.chat.ChatInputDefaults
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.first
@@ -709,13 +714,22 @@ private fun SearchBar(
                 )
             }
         }
+        // The same glass as the chat composer, so the field reads as solid over results.
         SearchInput(
             modifier = Modifier
                 .weight(1f)
                 .then(fieldModifier)
+                .clip(CircleShape)
+                .hazeBlur(HazeInput.Sources(hazeState), ChatInputDefaults.glassMaterial())
+                .background(ChatInputDefaults.ContainerColor, CircleShape)
+                .border(CodeTheme.dimens.border, ChatInputDefaults.RimBrush, CircleShape)
                 .focusRequester(focusRequester),
             state = query,
             placeholder = stringResource(R.string.hint_search),
+            colors = inputColors(
+                backgroundColor = Color.Transparent,
+                borderColor = Color.Transparent,
+            ),
         )
         CircularIconButton(
             hazeState = hazeState,
