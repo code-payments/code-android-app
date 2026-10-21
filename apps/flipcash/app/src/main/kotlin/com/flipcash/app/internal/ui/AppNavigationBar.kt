@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.getcode.ui.components.glass.floatingGlass
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -216,29 +217,48 @@ internal fun AppNavigationBar(
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SearchMorphChrome(morph = searchMorph, modifier = Modifier.weight(1f)) {
-                        NavigationBar(
-                            modifier = Modifier.onSizeChanged {
-                                pillHeight = with(density) { it.height.toDp() }
-                            },
-                            state = state,
-                            onButtonClick = { button ->
-                                // Tab bar semantics: swap the current screen (single backstack).
-                                navigator.replaceAll(button.destinationRoute())
-                            },
-                            hazeState = hazeState,
-                            avatar = avatar,
-                            onYouTabLongClick = youTabLongClick(canSwitchAccounts, navigator),
-                        )
+                    // Both hand over to Search's field (SearchMorph). They keep their place while
+                    // hidden, so the button's bounds stay put for the morph back, but leave the tree
+                    // so they can't take taps meant for Search's bar.
+                    val chromeShown = searchMorph.chromeShown()
+                    Box(
+                        modifier = with(searchMorph) {
+                            Modifier
+                                .weight(1f)
+                                .heightIn(min = pillHeight)
+                                .morphChrome()
+                        },
+                    ) {
+                        if (chromeShown) {
+                            NavigationBar(
+                                modifier = Modifier.onSizeChanged {
+                                    pillHeight = with(density) { it.height.toDp() }
+                                },
+                                state = state,
+                                onButtonClick = { button ->
+                                    // Tab bar semantics: swap the current screen (single backstack).
+                                    navigator.replaceAll(button.destinationRoute())
+                                },
+                                hazeState = hazeState,
+                                avatar = avatar,
+                                onYouTabLongClick = youTabLongClick(canSwitchAccounts, navigator),
+                            )
+                        }
                     }
-                    SearchMorphChrome(morph = searchMorph) {
-                        SearchButton(
-                            modifier = Modifier
+                    Box(
+                        modifier = with(searchMorph) {
+                            Modifier
                                 .size(pillHeight.takeIf { it > 0.dp } ?: SearchButtonFallbackSize)
-                                .searchMorph(scope = this),
-                            hazeState = hazeState,
-                            onClick = searchMorph::open,
-                        )
+                                .morphButton()
+                        },
+                    ) {
+                        if (chromeShown) {
+                            SearchButton(
+                                modifier = Modifier.fillMaxSize(),
+                                hazeState = hazeState,
+                                onClick = searchMorph::open,
+                            )
+                        }
                     }
                 }
             }

@@ -59,6 +59,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.flipcash.app.search.SearchBackButton
+import com.flipcash.app.search.SearchClose
+import com.flipcash.app.search.SearchFieldHost
+import com.flipcash.app.search.DefaultSearchFieldHost
 import com.getcode.ui.components.BottomScrollEdge
 import com.getcode.ui.components.TopScrollEdge
 import dev.chrisbanes.haze.HazeInput
@@ -116,11 +119,13 @@ internal fun SearchContent(
     onOpenCurrency: (Token) -> Unit,
     onOpenLink: (SharedLink) -> Unit,
     onClose: () -> Unit,
-    fieldModifier: Modifier = Modifier,
+    close: SearchClose? = null,
+    field: SearchFieldHost = DefaultSearchFieldHost,
     backButton: SearchBackButton? = null,
+    barButtons: Modifier = Modifier,
 ) {
     val hazeState = rememberHazeState()
-    val close = rememberCloseAfterKeyboard(onClose)
+    val closeSearch = rememberCloseAfterKeyboard(onClose, close)
     val density = LocalDensity.current
     var chipsHeight by remember { mutableStateOf(0.dp) }
     var barHeight by remember { mutableStateOf(0.dp) }
@@ -200,26 +205,28 @@ internal fun SearchContent(
                 .onSizeChanged { barHeight = with(density) { it.height.toDp() } },
             query = query,
             hazeState = hazeState,
-            onClose = close,
-            fieldModifier = fieldModifier,
+            onClose = closeSearch,
+            field = field,
             backButton = backButton,
+            buttons = barButtons,
         )
     }
 }
 
 /**
- * [onClose], held until the keyboard is nearly down. Closing with it up would shrink the field into
- * the nav bar's button while the keyboard slides away under it, so the keyboard goes first; the
- * morph starts on the keyboard's tail rather than after it, so the two read as one motion.
+ * Lowers the keyboard, then closes Search. Closing with it up would shrink the field into the nav
+ * bar's button while the keyboard slides away under it, so the keyboard goes first: [close], when the
+ * host has one, follows it down; otherwise [onClose] waits until it is nearly gone.
  */
 @Composable
-private fun rememberCloseAfterKeyboard(onClose: () -> Unit): () -> Unit {
+private fun rememberCloseAfterKeyboard(onClose: () -> Unit, close: SearchClose?): () -> Unit {
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val density = LocalDensity.current
     val ime = WindowInsets.ime
     val scope = rememberCoroutineScope()
     val latestOnClose by rememberUpdatedState(onClose)
+    val latestClose by rememberUpdatedState(close)
     var closing by remember { mutableStateOf(false) }
     return {
         if (!closing) {
@@ -227,8 +234,13 @@ private fun rememberCloseAfterKeyboard(onClose: () -> Unit): () -> Unit {
             scope.launch {
                 focusManager.clearFocus()
                 val raised = ime.getBottom(density)
+                if (raised > 0) keyboard?.hide()
+                val hostClose = latestClose
+                if (hostClose != null) {
+                    hostClose(raised) { ime.getBottom(density) }
+                    return@launch
+                }
                 if (raised > 0) {
-                    keyboard?.hide()
                     // A keyboard that never reports itself gone mustn't strand Search open.
                     withTimeoutOrNull(KeyboardHideTimeout) {
                         snapshotFlow { ime.getBottom(density) }
@@ -689,22 +701,11 @@ private fun SearchBar(
     query: TextFieldState,
     hazeState: HazeState,
     onClose: () -> Unit,
-    fieldModifier: Modifier,
+    field: SearchFieldHost,
     backButton: SearchBackButton?,
+    buttons: Modifier,
     modifier: Modifier = Modifier,
 ) {
-    // Opening Search is for typing, so focus is asked for as the field starts growing out of the nav
-    // bar's button. The keyboard takes several hundred ms to start moving, longer than the morph, so
-    // waiting on any point of the enter leaves the field sitting at the bottom before it rises. The
-    // bar rides the keyboard's inset, so it climbs as the keyboard rises. Focus alone doesn't show the
-    // keyboard on every device (a hardware keyboard suppresses it), so it is asked for explicitly.
-    val focusRequester = remember { FocusRequester() }
-    val keyboard = LocalSoftwareKeyboardController.current
-    LaunchedEffect(focusRequester) {
-        withFrameNanos { }
-        focusRequester.requestFocus()
-        keyboard?.show()
-    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -713,9 +714,9 @@ private fun SearchBar(
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
         if (backButton != null) {
-            backButton(onClose, hazeState)
+            Box(buttons) { backButton(onClose, hazeState) }
         } else {
-            CircularIconButton(hazeState = hazeState, onClick = onClose, testTag = "search_back") { size ->
+            CircularIconButton(modifier = buttons, hazeState = hazeState, onClick = onClose, testTag = "search_back") { size ->
                 Icon(
                     imageVector = Icons.Outlined.Forum,
                     contentDescription = null,
@@ -724,24 +725,11 @@ private fun SearchBar(
                 )
             }
         }
-        // The same glass as the chat composer, so the field reads as solid over results.
-        SearchInput(
-            modifier = Modifier
-                .weight(1f)
-                .then(fieldModifier)
-                .clip(CircleShape)
-                .hazeBlur(HazeInput.Sources(hazeState), ChatInputDefaults.glassMaterial())
-                .background(ChatInputDefaults.ContainerColor, CircleShape)
-                .border(CodeTheme.dimens.border, ChatInputDefaults.RimBrush, CircleShape)
-                .focusRequester(focusRequester),
-            state = query,
-            placeholder = stringResource(R.string.hint_search),
-            colors = inputColors(
-                backgroundColor = Color.Transparent,
-                borderColor = Color.Transparent,
-            ),
-        )
+        field(Modifier.weight(1f)) { morph ->
+            SearchField(query = query, hazeState = hazeState, modifier = Modifier.fillMaxWidth().then(morph))
+        }
         CircularIconButton(
+            modifier = buttons,
             hazeState = hazeState,
             onClick = onClose,
             testTag = "search_close",
@@ -754,6 +742,37 @@ private fun SearchBar(
             )
         }
     }
+}
+
+/**
+ * The field, in the same glass as the chat composer so it reads as solid over results. Opening Search
+ * is for typing, so it takes focus as soon as it is composed. Focus alone doesn't show the keyboard on
+ * every device (a hardware keyboard suppresses it), so the keyboard is asked for explicitly; the host's
+ * morph follows it up.
+ */
+@Composable
+private fun SearchField(query: TextFieldState, hazeState: HazeState, modifier: Modifier = Modifier) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(focusRequester) {
+        withFrameNanos { }
+        focusRequester.requestFocus()
+        keyboard?.show()
+    }
+    SearchInput(
+        modifier = modifier
+            .clip(CircleShape)
+            .hazeBlur(HazeInput.Sources(hazeState), ChatInputDefaults.glassMaterial())
+            .background(ChatInputDefaults.ContainerColor, CircleShape)
+            .border(CodeTheme.dimens.border, ChatInputDefaults.RimBrush, CircleShape)
+            .focusRequester(focusRequester),
+        state = query,
+        placeholder = stringResource(R.string.hint_search),
+        colors = inputColors(
+            backgroundColor = Color.Transparent,
+            borderColor = Color.Transparent,
+        ),
+    )
 }
 
 /** How much of the keyboard is still up when closing hands over to the morph. */

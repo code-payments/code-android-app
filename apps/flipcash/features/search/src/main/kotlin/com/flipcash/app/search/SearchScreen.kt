@@ -23,14 +23,17 @@ import dev.chrisbanes.haze.HazeState
  * Search across chats, currencies, messages and links (nodes 12248:72, 12248:97, 12248:121,
  * 12248:136). The query is held by the screen's view model only, so it is gone once Search is.
  *
- * [fieldModifier] goes on the search field, so the host can grow it out of the nav bar's search
- * button. [backButton] draws the bar's leading button, which closes Search; the host passes the tab
+ * [field] wraps the search field, so the host can grow it out of the nav bar's search button, and
+ * [close] replaces the plain pop so the host can shrink it back as the keyboard drops. [backButton] draws the bar's leading button, which closes Search; the host passes the tab
  * Search was opened from, so the way back reads as that tab. Without one it is a chats glyph.
+ * [barButtons] goes on the leading button and ✕, so the host can bring them in with the field.
  */
 @Composable
 fun SearchScreen(
-    fieldModifier: Modifier = Modifier,
+    field: SearchFieldHost = DefaultSearchFieldHost,
+    close: SearchClose? = null,
     backButton: SearchBackButton? = null,
+    barButtons: Modifier = Modifier,
 ) {
     val viewModel = hiltViewModel<SearchViewModel>()
     val navigator = LocalCodeNavigator.current
@@ -67,8 +70,10 @@ fun SearchScreen(
         },
         onOpenLink = { link -> externalLinks.openUri(link.url) },
         onClose = { navigator.pop() },
-        fieldModifier = fieldModifier,
+        close = close,
+        field = field,
         backButton = backButton,
+        barButtons = barButtons,
     )
 }
 
@@ -86,3 +91,17 @@ typealias SearchBackButton = @Composable (onClick: () -> Unit, hazeState: HazeSt
 fun PreloadSearch() {
     hiltViewModel<SearchPreloadViewModel>()
 }
+
+/**
+ * Hosts the search field: call `field` with the modifier the host's morph needs. [modifier] holds
+ * the field's place in the bar.
+ */
+typealias SearchFieldHost = @Composable (modifier: Modifier, field: @Composable (Modifier) -> Unit) -> Unit
+
+internal val DefaultSearchFieldHost: SearchFieldHost = { modifier, field -> field(modifier) }
+
+/**
+ * Closes Search once its keyboard has been asked down: [raised] is the keyboard's height when it
+ * was, and [imeBottom] reads its height now (0 once it's gone, or if it never was up).
+ */
+typealias SearchClose = suspend (raised: Int, imeBottom: () -> Int) -> Unit

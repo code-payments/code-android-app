@@ -27,7 +27,6 @@ import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.internal.ui.SearchMorph
 import com.flipcash.app.internal.ui.SearchOriginTabButton
-import com.flipcash.app.internal.ui.searchMorph
 import com.flipcash.app.search.SearchScreen
 import com.flipcash.app.tipping.FindByUsernameScreen
 import com.flipcash.app.tipping.ArchivedChatsScreen
@@ -146,14 +145,18 @@ internal fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
     annotatedEntry<AppRoute.Messaging.ArchivedChats> { ArchivedChatsScreen() }
     annotatedEntry<AppRoute.Messaging.Search> {
-        // The field grows out of the nav bar's search button; see SearchMorph.
+        // The field grows out of the nav bar's search button as the keyboard rises; see SearchMorph.
         searchMorph?.Publish()
         val navigator = LocalCodeNavigator.current
         SearchScreen(
-            fieldModifier = if (searchMorph != null) Modifier.searchMorph() else Modifier,
+            field = { modifier, field ->
+                if (searchMorph != null) field(with(searchMorph) { modifier.morphField() }) else field(modifier)
+            },
+            close = searchMorph?.let { morph -> { raised, imeBottom -> morph.close(raised, imeBottom) } },
             backButton = { onClick, hazeState ->
                 SearchOriginTabButton(navigator = navigator, hazeState = hazeState, onClick = onClick)
             },
+            barButtons = if (searchMorph != null) with(searchMorph) { Modifier.morphBarButton() } else Modifier,
         )
     }
     annotatedEntry<AppRoute.Messaging.Requests> { RequestsScreen() }

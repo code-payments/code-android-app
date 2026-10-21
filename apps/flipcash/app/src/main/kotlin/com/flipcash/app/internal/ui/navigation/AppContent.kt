@@ -298,6 +298,9 @@ internal fun AppContent(
                 .measured { if (it.height > tabBarHeight.value) tabBarHeight.value = it.height },
         )
 
+        // The search button's glass growing into Search's field, over everything below it.
+        searchMorph.Overlay(hazeState)
+
         // The expanded currency-info overlay is hosted INSIDE the wallet nav entry (see CardExpandHost),
         // not here — so a pushed Give/Convert/Withdraw naturally covers it (correct z-order) and the deck
         // reorganises behind it. The controller is provided app-root (above) so its fly-state survives the
