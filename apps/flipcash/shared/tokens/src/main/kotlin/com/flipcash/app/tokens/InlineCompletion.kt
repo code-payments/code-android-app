@@ -22,7 +22,7 @@ object InlineCompletion {
     val FAST_POLL_WINDOW: Duration = 5.seconds
 
     /** How long the button's success state shows before the flow exits. */
-    val SUCCESS_HOLD: Duration = 1.seconds
+    val SUCCESS_HOLD: Duration = 400.milliseconds
 
     val SLOW_POLL_INTERVAL: Duration = 1.seconds
 
