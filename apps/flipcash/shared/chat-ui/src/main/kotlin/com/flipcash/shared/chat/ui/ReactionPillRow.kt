@@ -472,7 +472,6 @@ private const val MORE_KEY = "\u0000more"
 private const val PLUS_KEY = "\u0000plus"
 private const val BOOST_KEY = "\u0000boost"
 
-private val BoostCountGold = Color(0xFFFFC828)
 
 /** The row's clock, in monotonic milliseconds; tests swap it for the compose test clock. */
 internal val LocalPillRowClock = staticCompositionLocalOf<() -> Long> { { SystemClock.uptimeMillis() } }
@@ -757,7 +756,7 @@ private fun ReactionPillChip(
                 Text(
                     text = count.toString(),
                     style = countStyle,
-                    color = if (paidAndReacted) BoostCountGold.copy(alpha = 0.5f) else CodeTheme.colors.textMain,
+                    color = if (paidAndReacted) ReactionBoostGold.copy(alpha = 0.5f) else CodeTheme.colors.textMain,
                 )
             }
         }
