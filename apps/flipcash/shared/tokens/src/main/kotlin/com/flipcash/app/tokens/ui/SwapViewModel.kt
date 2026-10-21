@@ -1228,13 +1228,12 @@ class SwapViewModel @Inject constructor(
                 val (source, destination) = tokens
                 val rate = exchange.preferredRate
 
-                // Refresh the source balance from the network so the debit we're about to submit is
-                // checked against what's actually on-chain (mirrors ProceedWithSale).
-                tokenCoordinator.updateTokenAccount(source.address)
+                // Check against the balance already in state; a network refresh here would delay the
+                // submit, and the server rejects an over-spend regardless.
                 val amountInUsd =
                     Fiat.tokenBalance(amount.localFiat.underlyingTokenAmount.quarks, source)
-                val refreshedBalance = tokenCoordinator.balanceForToken(source)
-                if (amountInUsd > refreshedBalance) {
+                val currentBalance = tokenCoordinator.balanceForToken(source)
+                if (amountInUsd > currentBalance) {
                     dispatchEvent(Event.UpdateSellState(loading = false))
                     BottomBarManager.showAlert(
                         title = resources.getString(R.string.error_title_insufficientFunds),
@@ -1503,16 +1502,14 @@ class SwapViewModel @Inject constructor(
             }
             .map { (owner, purpose, amount) -> owner to stateFlow.value.tokenWithBalance!!.token to amount }
             .onEach { (owner, token, amount) ->
-                // Refresh balance from network before submitting to ensure
-                // the on-chain balance matches what we're about to sell.
-                tokenCoordinator.updateTokenAccount(token.address)
-
+                // Check against the balance already in state; a network refresh here would delay the
+                // submit, and the server rejects an over-spend regardless.
                 // underlyingTokenAmount.quarks are token quarks, not USD —
                 // convert back through the bonding curve for an apples-to-apples comparison.
                 val amountInUsd =
                     Fiat.tokenBalance(amount.localFiat.underlyingTokenAmount.quarks, token)
-                val refreshedBalance = tokenCoordinator.balanceForToken(token)
-                if (amountInUsd > refreshedBalance) {
+                val currentBalance = tokenCoordinator.balanceForToken(token)
+                if (amountInUsd > currentBalance) {
                     dispatchEvent(Event.UpdateSellState(loading = false))
                     BottomBarManager.showAlert(
                         title = resources.getString(R.string.error_title_insufficientFunds),
