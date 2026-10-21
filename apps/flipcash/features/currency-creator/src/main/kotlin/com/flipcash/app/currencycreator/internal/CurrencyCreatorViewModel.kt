@@ -55,6 +55,7 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import com.flipcash.app.tokens.InlineCompletion
+import com.flipcash.app.tokens.TransactionNotificationPrompt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -93,6 +94,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
     private val currencyCreatorCoordinator: CurrencyCreatorCoordinator,
+    private val notificationPrompt: TransactionNotificationPrompt,
     private val exchange: Exchange,
 ) : BaseViewModel<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
     initialState = State(),
@@ -619,6 +621,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             if (completed) {
                 delay(InlineCompletion.SUCCESS_HOLD)
                 dispatchEvent(Event.LaunchFinished)
+                notificationPrompt.onTransactionCompletedInPlace()
             } else {
                 // Stay on the funding screen so the user can retry.
                 dispatchEvent(Event.UpdateProcessingState())

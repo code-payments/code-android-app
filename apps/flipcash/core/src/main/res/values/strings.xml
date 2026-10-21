@@ -1645,4 +1645,7 @@
     <string name="title_searchNoResults">No results</string>
     <string name="cd_searchChats">Search chats</string>
     <string name="cd_searchClose">Close search</string>
+    <string name="title_getNotified">Get Notified</string>
+    <string name="description_getNotified">We\'ll let you know when your transactions complete, even if you leave the app.</string>
+    <string name="action_turnOnNotifications">Turn On Notifications</string>
 </resources>

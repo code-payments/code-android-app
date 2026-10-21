@@ -18,6 +18,7 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.tokens.InlineCompletion
+import com.flipcash.app.tokens.TransactionNotificationPrompt
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.onramp.CoinbaseOnRampController
@@ -131,6 +132,7 @@ class SwapViewModel @Inject constructor(
     private val phantomWalletController: PhantomWalletController,
     private val userFlags: UserFlagsCoordinator,
     private val usdcDepositSweep: UsdcDepositSweep,
+    private val notificationPrompt: TransactionNotificationPrompt,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
@@ -1907,6 +1909,7 @@ class SwapViewModel @Inject constructor(
             updateConfirmButton(button, success = true)
             delay(InlineCompletion.SUCCESS_HOLD)
             dispatchEvent(Event.OnTransactionSuccessful)
+            notificationPrompt.onTransactionCompletedInPlace()
             return
         }
 

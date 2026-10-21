@@ -196,6 +196,7 @@ internal fun App(
                                 LocalScrimController provides scrimController,
                                 LocalSharedTransitionScope provides this,
                             ) {
+                                    TransactionNotificationPromptHost(viewModel.notificationPrompt)
                                     CoinbaseOnRampHandler {
                                         AppContent(
                                             codeNavigator = codeNavigator,

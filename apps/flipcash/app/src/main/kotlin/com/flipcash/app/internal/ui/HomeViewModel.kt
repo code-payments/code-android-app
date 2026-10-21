@@ -32,6 +32,7 @@ internal class HomeViewModel @Inject constructor(
     private val shareSheetController: ShareSheetController,
     featureFlagController: FeatureFlagController,
     userFlags: UserFlagsCoordinator,
+    val notificationPrompt: com.flipcash.app.tokens.TransactionNotificationPrompt,
 ) : ViewModel() {
 
     /**
