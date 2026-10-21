@@ -4,6 +4,10 @@ package com.flipcash.app.internal.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.BoundsTransform
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -106,12 +110,26 @@ internal val PillOverlayClip = object : SharedTransitionScope.OverlayClip {
     }
 }
 
+/**
+ * Quicker than the default shared-bounds spring. The keyboard rises as the field lands, and while
+ * the morph runs the field is drawn at the morph's bounds, not its own: a slow spring leaves it
+ * chasing the bar up behind the keyboard.
+ */
+private val SearchMorphBounds = BoundsTransform { _, _ ->
+    spring(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium,
+        visibilityThreshold = Rect.VisibilityThreshold,
+    )
+}
+
 /** Marks either end of the morph. [scope] defaults to the nav entry's own. */
 @Composable
 internal fun Modifier.searchMorph(scope: AnimatedVisibilityScope? = null): Modifier =
     sharedBoundsTransition(
         key = SearchMorphKey,
         animatedVisibilityScope = scope,
+        boundsTransform = SearchMorphBounds,
         clipInOverlayDuringTransition = PillOverlayClip,
     )
 

@@ -57,7 +57,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import com.flipcash.app.core.ui.transitions.RequestFocusDuringEnter
 import com.flipcash.app.search.SearchBackButton
 import com.getcode.ui.components.BottomScrollEdge
 import com.getcode.ui.components.TopScrollEdge
@@ -208,8 +207,9 @@ internal fun SearchContent(
 }
 
 /**
- * [onClose], held until the keyboard is down. Closing with it up would shrink the field into the
- * nav bar's button while the keyboard slides away under it, so the keyboard goes first.
+ * [onClose], held until the keyboard is nearly down. Closing with it up would shrink the field into
+ * the nav bar's button while the keyboard slides away under it, so the keyboard goes first; the
+ * morph starts on the keyboard's tail rather than after it, so the two read as one motion.
  */
 @Composable
 private fun rememberCloseAfterKeyboard(onClose: () -> Unit): () -> Unit {
@@ -225,11 +225,13 @@ private fun rememberCloseAfterKeyboard(onClose: () -> Unit): () -> Unit {
             closing = true
             scope.launch {
                 focusManager.clearFocus()
-                if (ime.getBottom(density) > 0) {
+                val raised = ime.getBottom(density)
+                if (raised > 0) {
                     keyboard?.hide()
                     // A keyboard that never reports itself gone mustn't strand Search open.
                     withTimeoutOrNull(KeyboardHideTimeout) {
-                        snapshotFlow { ime.getBottom(density) }.first { it == 0 }
+                        snapshotFlow { ime.getBottom(density) }
+                            .first { it <= raised * KeyboardCloseHandoff }
                     }
                 }
                 latestOnClose()
@@ -690,11 +692,12 @@ private fun SearchBar(
     backButton: SearchBackButton?,
     modifier: Modifier = Modifier,
 ) {
-    // Opening Search is for typing, so the keyboard starts up part-way through the field growing out
-    // of the nav bar's button and finishes with it, instead of waiting for the morph to end. The bar
-    // rides the keyboard's inset, so it climbs as the keyboard rises.
+    // Opening Search is for typing, so focus is asked for as the field starts growing out of the nav
+    // bar's button. The keyboard takes several hundred ms to start moving, longer than the morph, so
+    // waiting on any point of the enter leaves the field sitting at the bottom before it rises. The
+    // bar rides the keyboard's inset, so it climbs as the keyboard rises.
     val focusRequester = remember { FocusRequester() }
-    RequestFocusDuringEnter(focusRequester, fraction = KeyboardStartFraction)
+    LaunchedEffect(focusRequester) { focusRequester.requestFocus() }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -746,8 +749,8 @@ private fun SearchBar(
     }
 }
 
-/** How far into Search's enter the keyboard starts to rise. */
-private const val KeyboardStartFraction = 0.4f
+/** How much of the keyboard is still up when closing hands over to the morph. */
+private const val KeyboardCloseHandoff = 0.2f
 
 /** Longest Search waits on the keyboard going down before it closes anyway. */
 private val KeyboardHideTimeout = 600.milliseconds
