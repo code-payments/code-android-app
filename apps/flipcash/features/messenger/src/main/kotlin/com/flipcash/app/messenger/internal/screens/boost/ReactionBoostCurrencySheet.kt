@@ -63,7 +63,7 @@ internal fun ReactionBoostCurrencySheet() {
             modifier = Modifier.fillMaxWidth(),
             tokens = state.tokens,
             presentation = TokenListPresentation.Sheet,
-            // The compact sheet picker's rows (node 9120:15219): plain balances, no trailing mark.
+            // The compact sheet picker's rows (node 9120:15219): plain balances, a check on the pick.
             styling = rememberTokenBalanceRowStyling(
                 nameTextStyle = CodeTheme.typography.textMedium,
                 balanceDisplayStyle = TokenBalanceStyle.Plain(
@@ -71,12 +71,13 @@ internal fun ReactionBoostCurrencySheet() {
                     color = CodeTheme.colors.textSecondary,
                 ),
                 iconSize = CodeTheme.dimens.staticGrid.x8,
-                selectionStyle = TokenSelectionStyle.None,
+                selectionStyle = TokenSelectionStyle.Checkmark,
                 contentPadding = PaddingValues(
                     vertical = CodeTheme.dimens.staticGrid.x2,
                 ),
             ),
             selectedToken = state.selectedToken,
+            showSelections = true,
             onTokenSelected = {
                 viewModel.dispatchEvent(SelectTokenViewModel.Event.OnTokenSelected(it.address))
             },
