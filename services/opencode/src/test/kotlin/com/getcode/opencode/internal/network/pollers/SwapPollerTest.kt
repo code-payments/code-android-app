@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.network.pollers
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.services.SwapService
 import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.model.core.errors.GetSwapError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.transactions.SwapMetadata
 import com.getcode.opencode.model.transactions.SwapState
@@ -66,5 +67,47 @@ class SwapPollerTest {
         val error = result.exceptionOrNull()
         assertIs<SwapError.Timeout>(error)
         assertFalse(error is NotifiableError)
+    }
+
+    private fun metadataIn(state: SwapState) =
+        mockk<SwapMetadata> { every { this@mockk.state } returns state }
+
+    @Test
+    fun retriesNotFoundAndTransientErrorsThenFinalizes() = runTest {
+        val service = mockk<SwapService> {
+            coEvery { getSwap(swapId, owner) } returnsMany listOf(
+                Result.failure(GetSwapError.NotFound()),
+                Result.failure(RuntimeException("network")),
+                Result.success(metadataIn(SwapState.FINALIZED)),
+            )
+        }
+
+        val result = SwapPoller(service).pollUntil(
+            swapId = swapId,
+            owner = owner,
+            targetState = SwapState.FINALIZED,
+            maxAttempts = 5,
+            interval = 0.seconds,
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(SwapState.FINALIZED, result.getOrNull()?.state)
+    }
+
+    @Test
+    fun exhaustingAttemptsOnErrorsThrowsTimeout() = runTest {
+        val service = mockk<SwapService> {
+            coEvery { getSwap(swapId, owner) } returns Result.failure(GetSwapError.NotFound())
+        }
+
+        val result = SwapPoller(service).pollUntil(
+            swapId = swapId,
+            owner = owner,
+            targetState = SwapState.FINALIZED,
+            maxAttempts = 3,
+            interval = 0.seconds,
+        )
+
+        assertIs<SwapError.Timeout>(result.exceptionOrNull())
     }
 }

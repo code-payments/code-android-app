@@ -9,6 +9,7 @@ import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 import kotlin.time.Duration
@@ -53,12 +54,18 @@ internal class SwapPoller @Inject constructor(
 
         val metadata = try {
             swapService.getSwap(swapId, owner).getOrThrow()
-        } catch (e: Exception) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // Server errors (CodeServerError) are Throwables, not Exceptions.
+            // NOT_FOUND (swap not indexed yet) and transient RPC/network errors are not terminal:
+            // keep polling until the attempt budget runs out, which surfaces as Timeout.
             trace(
                 type = TraceType.Error,
-                message = "Failed to get swap state: $e, Swap ID: ${swapId.publicKey.base58()}"
+                message = "Failed to get swap state, retrying: $e, Attempt ${attempt + 1}/$maxAttempts, Swap ID: ${swapId.publicKey.base58()}"
             )
-            throw SwapError.Other(cause = e)
+            delay(interval)
+            return pollSwapUntil(swapId, owner, targetState, maxAttempts, interval, attempt + 1)
         }
 
         return when (metadata.state) {
