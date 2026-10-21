@@ -231,6 +231,11 @@ private fun SyncStepBar(step: CurrencyCreatorStep) {
         viewModel.dispatchEvent(CurrencyCreatorViewModel.Event.OnStepChanged(step))
         if (step is CurrencyCreatorStep.Processing) {
             stepBar.onBack = null
+        } else if (step is CurrencyCreatorStep.FundingSourceSelection) {
+            // Launching is in flight once a funding currency is tapped; don't walk away from it.
+            stepBar.onBack = {
+                if (!viewModel.stateFlow.value.processingState.loading) flowNavigator.back()
+            }
         } else {
             stepBar.onBack = { flowNavigator.back() }
         }

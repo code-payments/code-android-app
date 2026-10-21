@@ -1,5 +1,6 @@
 package com.flipcash.app.currencycreator.internal.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,7 +29,14 @@ internal fun FundingSourceSelectionScreen() {
 
     // The currency-creator flow provides its own top bar for this step, so suppress the
     // select screen's own bar to avoid stacking two.
-    TokenSelectScreen(TokenPurpose.LaunchFunding(state.totalCost), showTopBar = false)
+    TokenSelectScreen(
+        purpose = TokenPurpose.LaunchFunding(state.totalCost),
+        showTopBar = false,
+        loadingMint = state.fundingMint.takeIf { state.processingState.loading || state.processingState.success },
+    )
+
+    // The launch is in flight; leaving now would orphan it.
+    BackHandler(enabled = state.processingState.loading) { /* swallow */ }
 
     LaunchedEffect(selectionViewModel) {
         selectionViewModel.eventFlow
@@ -41,10 +49,16 @@ internal fun FundingSourceSelectionScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<CurrencyCreatorViewModel.Event.PurchaseSubmitted>()
-            .map { it.swapId }
+            .filterIsInstance<CurrencyCreatorViewModel.Event.PurchaseTakingLonger>()
             .onEach {
                 flowNavigator.navigateTo(CurrencyCreatorStep.Processing)
             }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<CurrencyCreatorViewModel.Event.LaunchFinished>()
+            .onEach { flowNavigator.exitWithResult(CurrencyCreatorResult.Success) }
+            .launchIn(this)
     }
 }

@@ -28,22 +28,25 @@ import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tokens.R
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 
 @Composable
 internal fun SelectTokenScreen(
     tokenViewModel: SelectTokenViewModel,
     presentation: TokenListPresentation = TokenListPresentation.Default,
+    loadingMint: Mint? = null,
 ) {
     val state by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
 
-    SelectTokenScreenContent(state, presentation, tokenViewModel::dispatchEvent)
+    SelectTokenScreenContent(state, presentation, loadingMint, tokenViewModel::dispatchEvent)
 }
 
 @Composable
 private fun SelectTokenScreenContent(
     state: SelectTokenViewModel.State,
     presentation: TokenListPresentation = TokenListPresentation.Default,
+    loadingMint: Mint? = null,
     dispatch: (SelectTokenViewModel.Event) -> Unit,
 ) {
     val tokens = remember(state.tokens) { state.tokens }
@@ -99,6 +102,7 @@ private fun SelectTokenScreenContent(
             is TokenPurpose.BuyFunding -> false
             else -> true
         },
+        loadingMint = loadingMint,
         enableGreaterThanAmount = atLeast@{ _, amount ->
             when (val purpose = state.purpose) {
                 is TokenPurpose.LaunchFunding -> {

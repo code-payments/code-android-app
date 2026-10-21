@@ -17,6 +17,7 @@ import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -29,6 +30,7 @@ fun TokenSelectScreen(
     purpose: TokenPurpose,
     showTopBar: Boolean = purpose !is TokenPurpose.LaunchFunding,
     presentation: TokenListPresentation = TokenListPresentation.Default,
+    loadingMint: Mint? = null,
 ) {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<SelectTokenViewModel>()
@@ -50,7 +52,7 @@ fun TokenSelectScreen(
             )
         }
 
-        SelectTokenScreen(viewModel, presentation = presentation)
+        SelectTokenScreen(viewModel, presentation = presentation, loadingMint = loadingMint)
     }
 
     LaunchedEffect(viewModel) {

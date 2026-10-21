@@ -95,6 +95,8 @@ fun TokenList(
     pinFooter: Boolean = false,
     presentation: TokenListPresentation = TokenListPresentation.Default,
     enableGreaterThanAmount: (mint: Mint, LocalFiat) -> Boolean = { _, _ -> true },
+    // While set, that row shows a loader and every other row is disabled.
+    loadingMint: Mint? = null,
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
     header: (@Composable () -> Unit)? = null,
@@ -164,8 +166,11 @@ fun TokenList(
                         showFlag = showFlags,
                         styling = styling,
                         isSelected = (selectedToken == item.token.address).takeIf { showSelections },
-                        isEnabled = updatedIsEnabled,
-                    ) { onTokenSelected(item.token) }
+                        isEnabled = updatedIsEnabled && (loadingMint == null || loadingMint == item.token.address),
+                        isLoading = loadingMint == item.token.address,
+                    ) {
+                        if (loadingMint == null) onTokenSelected(item.token)
+                    }
 
                     if (presentation.showDividers) {
                         HorizontalDivider(color = CodeTheme.colors.dividerVariant)
