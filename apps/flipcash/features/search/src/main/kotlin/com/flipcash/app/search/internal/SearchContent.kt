@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Forum
@@ -695,7 +694,7 @@ private fun SearchBar(
         )
         CircularIconButton(
             hazeState = hazeState,
-            onClick = { if (query.text.isNotEmpty()) query.clearText() else onClose() },
+            onClick = onClose,
             testTag = "search_close",
         ) { size ->
             Icon(
