@@ -1,5 +1,14 @@
 package com.flipcash.app.tokens.ui
 
+import org.mockito.kotlin.eq
+import com.getcode.opencode.model.transactions.SwapState
+import com.getcode.opencode.model.core.errors.SwapError
+import androidx.lifecycle.viewModelScope
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.launchIn
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.analytics.AddMoneyMethod
 import com.flipcash.analytics.Amount
@@ -20,6 +29,8 @@ import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.InlineCompletion
+import com.flipcash.app.tokens.TransactionNotificationPrompt
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -97,6 +108,7 @@ class SwapViewModelErrorTest {
     private val phantomWalletController = mockk<PhantomWalletController>(relaxed = true)
     private val userFlagsCoordinator = mockk<UserFlagsCoordinator>(relaxed = true)
     private val usdcDepositSweep = mockk<UsdcDepositSweep>(relaxed = true)
+    private val notificationPrompt = mockk<TransactionNotificationPrompt>(relaxed = true)
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
 
@@ -152,6 +164,7 @@ class SwapViewModelErrorTest {
             dispatchers = dispatchers,
             userFlags = userFlagsCoordinator,
             usdcDepositSweep = usdcDepositSweep,
+            notificationPrompt = notificationPrompt,
         )
     }
 
@@ -267,6 +280,117 @@ class SwapViewModelErrorTest {
         advanceUntilIdle()
 
         verify(exactly = 0) { usdcDepositSweep.execute(any()) }
+    }
+
+    // --- In-place completion ----------------------------------------------------------------
+
+    private val swapId = com.getcode.opencode.internal.solana.model.SwapId(ByteArray(32) { 3 }.toList())
+
+    private fun SwapViewModel.primeForSell() {
+        val token = mockk<Token>(relaxed = true) { every { address } returns Mint.usdf }
+        val tokenWithBalance = mockk<TokenWithBalance>(relaxed = true) {
+            every { this@mockk.token } returns token
+        }
+        dispatchEvent(SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Sell(mockk(relaxed = true))))
+        dispatchEvent(SwapViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
+        dispatchEvent(SwapViewModel.Event.UpdateSellState(loading = true))
+    }
+
+    private fun SwapViewModel.collectEvents(): MutableList<SwapViewModel.Event> {
+        val seen = mutableListOf<SwapViewModel.Event>()
+        eventFlow.onEach { seen += it }.launchIn(viewModelScope)
+        return seen
+    }
+
+    @Test
+    fun `fast success skips Processing, holds success, then exits`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        transactionController.stub {
+            onBlocking {
+                pollSwapForState(any(), any(), any(), eq(InlineCompletion.FAST_POLL_ATTEMPTS), eq(InlineCompletion.FAST_POLL_INTERVAL))
+            } doReturn Result.success(mockk(relaxed = true))
+        }
+        val vm = createViewModel().also { it.primeForSell() }
+        val seen = vm.collectEvents()
+
+        vm.dispatchEvent(SwapViewModel.Event.OnSwapIdChanged(swapId, SwapViewModel.Event.ConfirmButton.Sell))
+        runCurrent()
+
+        assertTrue(vm.stateFlow.value.sellProgress.success)
+        assertTrue(seen.none { it is SwapViewModel.Event.OnTransactionSuccessful })
+
+        advanceTimeBy(InlineCompletion.SUCCESS_HOLD + 1.milliseconds)
+        runCurrent()
+
+        assertTrue(seen.any { it is SwapViewModel.Event.OnTransactionSuccessful })
+        assertTrue(seen.none { it is SwapViewModel.Event.ProcessingTakingLonger })
+        verify { notificationPrompt.onTransactionCompletedInPlace() }
+    }
+
+    @Test
+    fun `fast window timeout navigates to Processing and keeps the remaining budget`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        transactionController.stub {
+            onBlocking {
+                pollSwapForState(any(), any(), any(), eq(InlineCompletion.FAST_POLL_ATTEMPTS), eq(InlineCompletion.FAST_POLL_INTERVAL))
+            } doReturn Result.failure(SwapError.Timeout())
+            onBlocking {
+                pollSwapForState(any(), any(), any(), eq(InlineCompletion.SWAP_SLOW_ATTEMPTS), eq(InlineCompletion.SLOW_POLL_INTERVAL))
+            } doReturn Result.success(mockk(relaxed = true))
+        }
+        val vm = createViewModel().also { it.primeForSell() }
+        val seen = vm.collectEvents()
+
+        vm.dispatchEvent(SwapViewModel.Event.OnSwapIdChanged(swapId, SwapViewModel.Event.ConfirmButton.Sell))
+        runCurrent()
+
+        assertTrue(seen.any { it is SwapViewModel.Event.ProcessingTakingLonger })
+        assertTrue(vm.stateFlow.value.processingProgress.success)
+        assertTrue(seen.none { it is SwapViewModel.Event.OnTransactionSuccessful })
+        assertEquals(85, InlineCompletion.SWAP_SLOW_ATTEMPTS)
+        assertEquals(20, InlineCompletion.FAST_POLL_ATTEMPTS)
+    }
+
+    @Test
+    fun `unknown swap state in the fast window is a slow path, not a failure`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        transactionController.stub {
+            onBlocking {
+                pollSwapForState(any(), any(), any(), eq(InlineCompletion.FAST_POLL_ATTEMPTS), eq(InlineCompletion.FAST_POLL_INTERVAL))
+            } doReturn Result.failure(SwapError.UnknownState())
+            onBlocking {
+                pollSwapForState(any(), any(), any(), eq(InlineCompletion.SWAP_SLOW_ATTEMPTS), eq(InlineCompletion.SLOW_POLL_INTERVAL))
+            } doReturn Result.failure(SwapError.Timeout())
+        }
+        val vm = createViewModel().also { it.primeForSell() }
+        val seen = vm.collectEvents()
+
+        vm.dispatchEvent(SwapViewModel.Event.OnSwapIdChanged(swapId, SwapViewModel.Event.ConfirmButton.Sell))
+        runCurrent()
+
+        assertTrue(seen.any { it is SwapViewModel.Event.ProcessingTakingLonger })
+        assertTrue(BottomBarManager.messages.value.none { it.title == "error_title_buySellFailed" })
+    }
+
+    @Test
+    fun `terminal failure in the fast window stays put, shows the error and resets the button`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        transactionController.stub {
+            onBlocking {
+                pollSwapForState(any(), any(), any(), eq(InlineCompletion.FAST_POLL_ATTEMPTS), eq(InlineCompletion.FAST_POLL_INTERVAL))
+            } doReturn Result.failure(SwapError.Terminal(SwapState.FAILED))
+        }
+        val vm = createViewModel().also { it.primeForSell() }
+        val seen = vm.collectEvents()
+
+        vm.dispatchEvent(SwapViewModel.Event.OnSwapIdChanged(swapId, SwapViewModel.Event.ConfirmButton.Sell))
+        runCurrent()
+
+        assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })
+        assertEquals(false, vm.stateFlow.value.sellProgress.loading)
+        assertEquals(false, vm.stateFlow.value.sellProgress.success)
+        assertTrue(seen.none { it is SwapViewModel.Event.ProcessingTakingLonger })
+        assertTrue(seen.none { it is SwapViewModel.Event.OnTransactionSuccessful })
     }
 
     // --- Wallet (Phantom) events -----------------------------------------------------------
