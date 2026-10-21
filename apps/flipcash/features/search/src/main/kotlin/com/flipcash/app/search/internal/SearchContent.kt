@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -41,7 +39,34 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import com.flipcash.app.core.ui.transitions.RequestFocusWhenSettled
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import com.flipcash.app.core.ui.transitions.RequestFocusDuringEnter
+import com.flipcash.app.search.SearchBackButton
+import com.getcode.ui.components.BottomScrollEdge
+import com.getcode.ui.components.TopScrollEdge
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,40 +111,120 @@ internal fun SearchContent(
     onOpenLink: (SharedLink) -> Unit,
     onClose: () -> Unit,
     fieldModifier: Modifier = Modifier,
+    backButton: SearchBackButton? = null,
 ) {
-    Column(
+    val hazeState = rememberHazeState()
+    val close = rememberCloseAfterKeyboard(onClose)
+    val density = LocalDensity.current
+    var chipsHeight by remember { mutableStateOf(0.dp) }
+    var barHeight by remember { mutableStateOf(0.dp) }
+
+    // Results run the full height, under the chips and the bar, and blur in toward both as they
+    // scroll beneath them. At rest the padding keeps the first and last rows clear of each.
+    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val bottomInset = WindowInsets.ime.union(WindowInsets.navigationBars)
+        .asPaddingValues().calculateBottomPadding()
+    val top = statusBar + if (results != null) chipsHeight else 0.dp
+    val bottom = barHeight + bottomInset
+    val contentPadding = PaddingValues(top = top, bottom = bottom)
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(CodeTheme.colors.background)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
     ) {
-        Box(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.fillMaxSize().hazeSource(hazeState)) {
             if (results == null) {
-                EmptySearch(recents = recents, onOpenChat = { onOpenChat(it, null) })
+                EmptySearch(
+                    recents = recents,
+                    contentPadding = contentPadding,
+                    onOpenChat = { onOpenChat(it, null) },
+                )
             } else {
-                Column {
-                    SearchChips(selected = chip, onSelect = onSelectChip)
-                    // Only the results cross-fade; the chips stay put while they change.
-                    AnimatedContent(
-                        targetState = chip,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        label = "searchResults",
-                    ) { shown ->
-                        if (results.isEmpty(shown)) NoResults() else SearchResultsList(
-                            chip = shown,
-                            results = results,
-                            onSelectChip = onSelectChip,
-                            onOpenChat = onOpenChat,
-                            onOpenCurrency = onOpenCurrency,
-                            onOpenLink = onOpenLink,
-                        )
-                    }
+                // Only the results cross-fade; the chips stay put while they change.
+                AnimatedContent(
+                    targetState = chip,
+                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    label = "searchResults",
+                ) { shown ->
+                    if (results.isEmpty(shown)) NoResults(contentPadding) else SearchResultsList(
+                        chip = shown,
+                        results = results,
+                        contentPadding = contentPadding,
+                        onSelectChip = onSelectChip,
+                        onOpenChat = onOpenChat,
+                        onOpenCurrency = onOpenCurrency,
+                        onOpenLink = onOpenLink,
+                    )
                 }
             }
         }
-        SearchBar(query = query, onClose = onClose, fieldModifier = fieldModifier)
+
+        TopScrollEdge(
+            modifier = Modifier.align(Alignment.TopCenter),
+            hazeState = hazeState,
+            visible = true,
+            height = top + EdgeFade,
+        )
+        if (results != null) {
+            SearchChips(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .onSizeChanged { chipsHeight = with(density) { it.height.toDp() } },
+                selected = chip,
+                onSelect = onSelectChip,
+            )
+        }
+
+        BottomScrollEdge(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            hazeState = hazeState,
+            visible = true,
+            height = bottom + EdgeFade,
+        )
+        SearchBar(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
+                .onSizeChanged { barHeight = with(density) { it.height.toDp() } },
+            query = query,
+            hazeState = hazeState,
+            onClose = close,
+            fieldModifier = fieldModifier,
+            backButton = backButton,
+        )
+    }
+}
+
+/**
+ * [onClose], held until the keyboard is down. Closing with it up would shrink the field into the
+ * nav bar's button while the keyboard slides away under it, so the keyboard goes first.
+ */
+@Composable
+private fun rememberCloseAfterKeyboard(onClose: () -> Unit): () -> Unit {
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val density = LocalDensity.current
+    val ime = WindowInsets.ime
+    val scope = rememberCoroutineScope()
+    val latestOnClose by rememberUpdatedState(onClose)
+    var closing by remember { mutableStateOf(false) }
+    return {
+        if (!closing) {
+            closing = true
+            scope.launch {
+                focusManager.clearFocus()
+                if (ime.getBottom(density) > 0) {
+                    keyboard?.hide()
+                    // A keyboard that never reports itself gone mustn't strand Search open.
+                    withTimeoutOrNull(KeyboardHideTimeout) {
+                        snapshotFlow { ime.getBottom(density) }.first { it == 0 }
+                    }
+                }
+                latestOnClose()
+            }
+        }
     }
 }
 
@@ -127,9 +232,10 @@ internal fun SearchContent(
 @Composable
 private fun EmptySearch(
     recents: List<ConversationReference>,
+    contentPadding: PaddingValues,
     onOpenChat: (ChatId) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
         Text(
             modifier = Modifier.padding(
                 horizontal = CodeTheme.dimens.inset,
@@ -178,10 +284,11 @@ private fun RecentChat(chat: ConversationReference, onClick: () -> Unit) {
 }
 
 @Composable
-private fun NoResults() {
+private fun NoResults(contentPadding: PaddingValues) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(contentPadding)
             .padding(CodeTheme.dimens.inset),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1, Alignment.CenterVertically),
@@ -202,10 +309,15 @@ private fun NoResults() {
 
 /** The chips pinned above results. Keeps the selected one in view as it changes (node 12248:136). */
 @Composable
-private fun SearchChips(selected: SearchChip, onSelect: (SearchChip) -> Unit) {
+private fun SearchChips(
+    selected: SearchChip,
+    onSelect: (SearchChip) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val state = rememberLazyListState()
     LaunchedEffect(selected) { state.animateScrollToItem(selected.ordinal) }
     LazyRow(
+        modifier = modifier.fillMaxWidth(),
         state = state,
         contentPadding = PaddingValues(
             horizontal = CodeTheme.dimens.inset,
@@ -227,6 +339,7 @@ private fun SearchChips(selected: SearchChip, onSelect: (SearchChip) -> Unit) {
 private fun SearchResultsList(
     chip: SearchChip,
     results: SearchResults,
+    contentPadding: PaddingValues,
     onSelectChip: (SearchChip) -> Unit,
     onOpenChat: (ChatId, messageId: Long?) -> Unit,
     onOpenCurrency: (Token) -> Unit,
@@ -234,7 +347,10 @@ private fun SearchResultsList(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x3),
+        contentPadding = PaddingValues(
+            top = contentPadding.calculateTopPadding(),
+            bottom = contentPadding.calculateBottomPadding() + CodeTheme.dimens.grid.x3,
+        ),
     ) {
         when (chip) {
             SearchChip.All -> {
@@ -537,25 +653,37 @@ private fun attributionText(attribution: Attribution): String = when (attributio
  * chats, the field, and ✕, which clears a query before it closes Search.
  */
 @Composable
-private fun SearchBar(query: TextFieldState, onClose: () -> Unit, fieldModifier: Modifier) {
-    // Opening Search is for typing, so the keyboard comes up once the field has finished growing
-    // out of the nav bar's button; raising it mid-morph would resize the screen under it.
+private fun SearchBar(
+    query: TextFieldState,
+    hazeState: HazeState,
+    onClose: () -> Unit,
+    fieldModifier: Modifier,
+    backButton: SearchBackButton?,
+    modifier: Modifier = Modifier,
+) {
+    // Opening Search is for typing, so the keyboard starts up part-way through the field growing out
+    // of the nav bar's button and finishes with it, instead of waiting for the morph to end. The bar
+    // rides the keyboard's inset, so it climbs as the keyboard rises.
     val focusRequester = remember { FocusRequester() }
-    RequestFocusWhenSettled(focusRequester)
+    RequestFocusDuringEnter(focusRequester, fraction = KeyboardStartFraction)
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
-        CircularIconButton(onClick = onClose, testTag = "search_back_to_chats") { size ->
-            Icon(
-                imageVector = Icons.Outlined.Forum,
-                contentDescription = stringResource(R.string.cd_searchBackToChats),
-                tint = Color.White,
-                modifier = Modifier.requiredSize(size),
-            )
+        if (backButton != null) {
+            backButton(onClose, hazeState)
+        } else {
+            CircularIconButton(hazeState = hazeState, onClick = onClose, testTag = "search_back") { size ->
+                Icon(
+                    imageVector = Icons.Outlined.Forum,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.requiredSize(size),
+                )
+            }
         }
         SearchInput(
             modifier = Modifier
@@ -566,6 +694,7 @@ private fun SearchBar(query: TextFieldState, onClose: () -> Unit, fieldModifier:
             placeholder = stringResource(R.string.hint_search),
         )
         CircularIconButton(
+            hazeState = hazeState,
             onClick = { if (query.text.isNotEmpty()) query.clearText() else onClose() },
             testTag = "search_close",
         ) { size ->
@@ -578,6 +707,15 @@ private fun SearchBar(query: TextFieldState, onClose: () -> Unit, fieldModifier:
         }
     }
 }
+
+/** How far into Search's enter the keyboard starts to rise. */
+private const val KeyboardStartFraction = 0.4f
+
+/** Longest Search waits on the keyboard going down before it closes anyway. */
+private val KeyboardHideTimeout = 600.milliseconds
+
+/** How far the blur fades in past the chips and the bar. */
+private val EdgeFade = 24.dp
 
 private val SearchChip.label: Int
     get() = when (this) {

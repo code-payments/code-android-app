@@ -1627,6 +1627,5 @@
     <string name="label_searchMessageFromYou">You: %1$s</string>
     <string name="title_searchNoResults">No results</string>
     <string name="cd_searchChats">Search chats</string>
-    <string name="cd_searchBackToChats">Back to chats</string>
     <string name="cd_searchClose">Close search</string>
 </resources>

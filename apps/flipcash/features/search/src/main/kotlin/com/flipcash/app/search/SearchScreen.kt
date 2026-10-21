@@ -17,16 +17,21 @@ import com.flipcash.app.search.internal.SearchPreloadViewModel
 import com.flipcash.app.search.internal.SearchViewModel
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.getcode.navigation.core.LocalCodeNavigator
+import dev.chrisbanes.haze.HazeState
 
 /**
  * Search across chats, currencies, messages and links (nodes 12248:72, 12248:97, 12248:121,
  * 12248:136). The query is held by the screen's view model only, so it is gone once Search is.
  *
  * [fieldModifier] goes on the search field, so the host can grow it out of the nav bar's search
- * button.
+ * button. [backButton] draws the bar's leading button, which closes Search; the host passes the tab
+ * Search was opened from, so the way back reads as that tab. Without one it is a chats glyph.
  */
 @Composable
-fun SearchScreen(fieldModifier: Modifier = Modifier) {
+fun SearchScreen(
+    fieldModifier: Modifier = Modifier,
+    backButton: SearchBackButton? = null,
+) {
     val viewModel = hiltViewModel<SearchViewModel>()
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
@@ -63,8 +68,15 @@ fun SearchScreen(fieldModifier: Modifier = Modifier) {
         onOpenLink = { link -> externalLinks.openUri(link.url) },
         onClose = { navigator.pop() },
         fieldModifier = fieldModifier,
+        backButton = backButton,
     )
 }
+
+/**
+ * The leading button of Search's bar. Call [onClick] to close Search; it lowers the keyboard first.
+ * [hazeState] is the results', for a button that frosts what scrolls under it.
+ */
+typealias SearchBackButton = @Composable (onClick: () -> Unit, hazeState: HazeState) -> Unit
 
 /**
  * Starts loading what Search fetches over the network, so Search opens on loaded results rather

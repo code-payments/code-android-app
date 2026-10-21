@@ -26,6 +26,7 @@ import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.internal.ui.SearchMorph
+import com.flipcash.app.internal.ui.SearchOriginTabButton
 import com.flipcash.app.internal.ui.searchMorph
 import com.flipcash.app.search.SearchScreen
 import com.flipcash.app.tipping.FindByUsernameScreen
@@ -147,7 +148,13 @@ internal fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Search> {
         // The field grows out of the nav bar's search button; see SearchMorph.
         searchMorph?.Publish()
-        SearchScreen(fieldModifier = if (searchMorph != null) Modifier.searchMorph() else Modifier)
+        val navigator = LocalCodeNavigator.current
+        SearchScreen(
+            fieldModifier = if (searchMorph != null) Modifier.searchMorph() else Modifier,
+            backButton = { onClick, hazeState ->
+                SearchOriginTabButton(navigator = navigator, hazeState = hazeState, onClick = onClick)
+            },
+        )
     }
     annotatedEntry<AppRoute.Messaging.Requests> { RequestsScreen() }
     annotatedEntry<AppRoute.Messaging.FindByUsername> { FindByUsernameScreen() }

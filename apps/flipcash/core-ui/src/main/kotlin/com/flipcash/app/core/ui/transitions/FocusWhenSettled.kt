@@ -36,3 +36,24 @@ fun RequestFocusWhenSettled(focusRequester: FocusRequester) {
         focusRequester.requestFocus()
     }
 }
+
+/**
+ * Asks [focusRequester] for focus once [fraction] of the screen's enter has played, so the keyboard
+ * rises alongside the arrival rather than after it. For a screen built to take the keyboard mid-way
+ * (its field sits on [androidx.compose.foundation.layout.imePadding]); otherwise prefer
+ * [RequestFocusWhenSettled]. Falls back to the settle if the enter has no measurable duration.
+ */
+@Composable
+fun RequestFocusDuringEnter(focusRequester: FocusRequester, fraction: Float) {
+    val own = LocalNavAnimatedContentScope.current.transition
+    LaunchedEffect(own) {
+        snapshotFlow {
+            own.isSettled || (
+                own.targetState == EnterExitState.Visible &&
+                    own.totalDurationNanos > 0 &&
+                    own.playTimeNanos >= own.totalDurationNanos * fraction
+                )
+        }.first { it }
+        focusRequester.requestFocus()
+    }
+}

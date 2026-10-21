@@ -108,8 +108,6 @@ fun NavigationBar(
     val order = NavBarButton.tabs
     if (order.isEmpty()) return
 
-    // The design's glyphs are 28pt (node 10599:65384), which sits off the 5dp grid.
-    val iconSize = 28.dp
     // The design frames glyph and name with 5pt above and below in an 86.5 x 50pt item (node
     // 10599:65384). The item wraps its column rather than fixing a height, so a large font scale
     // grows the bar instead of clipping the name.
@@ -185,69 +183,13 @@ fun NavigationBar(
                         .padding(vertical = itemPadding),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // Sized to the glyph so a wide badge overflows it instead of widening it,
-                    // which would pull the glyph off the item's centre.
-                    Box(modifier = Modifier.size(iconSize)) {
-                        if (button == NavBarButton.TipCard && avatar != null) {
-                            // The photo slot has its own unselected state (node 9713:664): the ring
-                            // thins from 2dp to 1dp and drops to white at 50%, which the slot's
-                            // 0.5 alpha then halves again. The photo itself keeps its size — the
-                            // ring is inset, and the padding around it does not change.
-                            val ringWidth by animateDpAsState(
-                                targetValue = if (selected) {
-                                    CodeTheme.dimens.thickBorder
-                                } else {
-                                    CodeTheme.dimens.border
-                                },
-                                label = "navBarAvatarRingWidth",
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(iconSize)
-                                    .graphicsLayer { alpha = iconAlpha }
-                                    .padding(CodeTheme.dimens.thickBorder),
-                            ) {
-                                avatar(Modifier.fillMaxSize().clip(CircleShape))
-                                // Drawn over the photo rather than behind it, so the ring survives
-                                // whatever background the avatar paints for itself. iconAlpha is
-                                // the ring's own fade, on top of the slot's — the two compose to
-                                // the 25% the unselected ring reads at.
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .border(
-                                            ringWidth,
-                                            Color.White.copy(alpha = iconAlpha),
-                                            CircleShape,
-                                        ),
-                                )
-                            }
-                        } else {
-                            Image(
-                                modifier = Modifier.size(iconSize),
-                                painter = button.icon(selected),
-                                colorFilter = ColorFilter.tint(Color.White),
-                                contentDescription = null,
-                            )
-                        }
-                        // Overlaps the glyph's top-right corner (node 10599:65444): a 17.5pt circle
-                        // starting 16pt into the glyph and rising 3.25pt above it, which leaves a
-                        // sliver of the pill above. Anchored by its start so a longer count ("12",
-                        // "99+") grows into the empty side of the item rather than over the glyph.
-                        // Full opacity regardless of tab selection — the count must stay readable
-                        // on an unselected tab.
-                        Badge(
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .offset(x = 16.dp, y = (-3.25).dp)
-                                .wrapContentSize(Alignment.TopStart, unbounded = true),
-                            count = badgeCount,
-                            color = CodeTheme.colors.indicator,
-                            textStyle = CodeTheme.typography.caption.copy(lineHeight = TextUnit.Unspecified),
-                            contentPadding = PaddingValues(horizontal = CodeTheme.dimens.staticGrid.x1),
-                            height = 17.5.dp,
-                        )
-                    }
+                    NavBarGlyph(
+                        button = button,
+                        selected = selected,
+                        badgeCount = badgeCount,
+                        avatar = avatar,
+                        avatarAlpha = { iconAlpha },
+                    )
                     Text(
                         text = stringResource(button.label),
                         style = labelStyle,
@@ -258,6 +200,91 @@ fun NavigationBar(
                 }
             }
         }
+    }
+}
+
+/** The design's glyph size, which sits off the 5dp grid (node 10599:65384). */
+val NavBarGlyphSize = 28.dp
+
+/**
+ * [button]'s glyph at the weight [selected] calls for, with its unread badge over the top-right
+ * corner. The tab bar draws one per tab; Search draws the tab it was opened from in its bar, so the
+ * way back reads as that tab, badge and all.
+ *
+ * [avatar] replaces the You tab's glyph with the account's photo (see [NavigationBar]), and
+ * [avatarAlpha] dims that photo while its tab is unselected.
+ */
+@Composable
+fun NavBarGlyph(
+    button: NavBarButton,
+    selected: Boolean,
+    badgeCount: Int,
+    modifier: Modifier = Modifier,
+    avatar: (@Composable (Modifier) -> Unit)? = null,
+    avatarAlpha: () -> Float = { 1f },
+) {
+    // Sized to the glyph so a wide badge overflows it instead of widening it,
+    // which would pull the glyph off the item's centre.
+    Box(modifier = modifier.size(NavBarGlyphSize)) {
+        if (button == NavBarButton.TipCard && avatar != null) {
+            // The photo slot has its own unselected state (node 9713:664): the ring
+            // thins from 2dp to 1dp and drops to white at 50%, which the slot's
+            // 0.5 alpha then halves again. The photo itself keeps its size — the
+            // ring is inset, and the padding around it does not change.
+            val ringWidth by animateDpAsState(
+                targetValue = if (selected) {
+                    CodeTheme.dimens.thickBorder
+                } else {
+                    CodeTheme.dimens.border
+                },
+                label = "navBarAvatarRingWidth",
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = avatarAlpha() }
+                    .padding(CodeTheme.dimens.thickBorder),
+            ) {
+                avatar(Modifier.fillMaxSize().clip(CircleShape))
+                // Drawn over the photo rather than behind it, so the ring survives
+                // whatever background the avatar paints for itself. avatarAlpha is
+                // the ring's own fade, on top of the slot's — the two compose to
+                // the 25% the unselected ring reads at.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .border(
+                            ringWidth,
+                            Color.White.copy(alpha = avatarAlpha()),
+                            CircleShape,
+                        ),
+                )
+            }
+        } else {
+            Image(
+                modifier = Modifier.fillMaxSize(),
+                painter = button.icon(selected),
+                colorFilter = ColorFilter.tint(Color.White),
+                contentDescription = null,
+            )
+        }
+        // Overlaps the glyph's top-right corner (node 10599:65444): a 17.5pt circle
+        // starting 16pt into the glyph and rising 3.25pt above it, which leaves a
+        // sliver of the pill above. Anchored by its start so a longer count ("12",
+        // "99+") grows into the empty side of the item rather than over the glyph.
+        // Full opacity regardless of tab selection — the count must stay readable
+        // on an unselected tab.
+        Badge(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .offset(x = 16.dp, y = (-3.25).dp)
+                .wrapContentSize(Alignment.TopStart, unbounded = true),
+            count = badgeCount,
+            color = CodeTheme.colors.indicator,
+            textStyle = CodeTheme.typography.caption.copy(lineHeight = TextUnit.Unspecified),
+            contentPadding = PaddingValues(horizontal = CodeTheme.dimens.staticGrid.x1),
+            height = 17.5.dp,
+        )
     }
 }
 
@@ -275,7 +302,7 @@ internal val NavBarButton.testTag: String
     }
 
 /** The tab's name under its glyph, in tab order Scan, Chat, Wallet, You (node 10642:1325). */
-private val NavBarButton.label: Int
+val NavBarButton.label: Int
     get() = when (this) {
         NavBarButton.Scanner -> R.string.title_tabScan
         NavBarButton.Chats -> R.string.title_tabChat

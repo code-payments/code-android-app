@@ -46,6 +46,11 @@ import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.NavigationBar
+import com.flipcash.app.core.ui.NavBarGlyph
+import com.flipcash.app.core.ui.label
+import com.getcode.ui.components.CircularIconButton
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.services.models.chat.BlobAccessContext
@@ -173,10 +178,7 @@ internal fun AppNavigationBar(
 
     // Unread chats in the Chats list (tip DMs and groups), badged onto the Chats tab, so the badge
     // appears, updates and clears as conversations are read.
-    val session = LocalSessionController.current
-    val chatListUnreadCount by remember(session) {
-        session?.state?.map { it.chatListUnreadCount } ?: flowOf(0)
-    }.collectAsStateWithLifecycle(initialValue = 0)
+    val chatListUnreadCount by rememberChatListUnreadCount()
 
     val avatar = rememberProfileAvatar()
 
@@ -258,6 +260,60 @@ internal fun youTabLongClick(canSwitchAccounts: Boolean, navigator: CodeNavigato
     } else {
         null
     }
+
+/** Unread chats in the Chats list, the count the Chats tab badges. */
+@Composable
+private fun rememberChatListUnreadCount(): State<Int> {
+    val session = LocalSessionController.current
+    return remember(session) {
+        session?.state?.map { it.chatListUnreadCount } ?: flowOf(0)
+    }.collectAsStateWithLifecycle(initialValue = 0)
+}
+
+/**
+ * Search's leading button: the tab Search was opened from, glyph and unread badge as the nav bar
+ * draws it, so the way back reads as that tab. iOS's search tab sits beside the tab it came from the
+ * same way. [onClick] closes Search.
+ */
+@Composable
+internal fun SearchOriginTabButton(
+    navigator: CodeNavigator,
+    hazeState: HazeState,
+    onClick: () -> Unit,
+) {
+    // The tab home at the base of the stack, which is the tab Search was pushed over.
+    val tab by remember(navigator) {
+        derivedStateOf {
+            navigator.backStack.firstNotNullOfOrNull { (it as? AppRoute)?.asNavBarTab() }
+                ?: NavBarButton.Chats
+        }
+    }
+    val unread by rememberChatListUnreadCount()
+    val state = rememberNavigationBarState(selectedTab = tab, chatListUnreadCount = unread)
+    val label = stringResource(tab.label)
+    // The glyph sits over the button rather than in it: the button clips to its circle, and the
+    // badge has to overhang the corner the way it does on the tab.
+    Box(contentAlignment = Alignment.Center) {
+        CircularIconButton(
+            modifier = Modifier.semantics {
+                contentDescription = label
+            },
+            hazeState = hazeState,
+            onClick = onClick,
+            testTag = "search_back",
+        ) { }
+        NavBarGlyph(
+            button = tab,
+            selected = true,
+            badgeCount = state.badgeCount(tab),
+            avatar = rememberProfileAvatar(),
+            modifier = Modifier.size(SearchOriginGlyphSize),
+        )
+    }
+}
+
+// Inside the 44dp button, with the room the tab gives its glyph around it.
+private val SearchOriginGlyphSize = 24.dp
 
 /**
  * The account's own photo, ready to drop into the You tab, or null when there isn't one.
