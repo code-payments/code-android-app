@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +57,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.formatBoostCents
+import com.flipcash.shared.chat.ui.ReactionBoostGold
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.opencode.model.core.ID
 import com.getcode.theme.CodeTheme
@@ -96,7 +98,11 @@ internal fun ReactorsSheet(
         )
 
         if (pills.isNotEmpty()) {
-            SummaryPillRow(pills = pills)
+            // Everything paid comes from the pills, so it agrees with the bubble; how many paid
+            // comes from the rows, and stays off until one has loaded.
+            val paidCents = remember(pills) { pills.sumOf { it.boost?.total ?: 0L } }
+            val paidReactorCount = remember(rows) { rows.count { it.boostCents > 0 }.takeIf { it > 0 } }
+            SummaryPillRow(pills = pills, paidCents = paidCents, paidReactorCount = paidReactorCount)
         }
 
         // Placeholders only if nothing has rendered 300ms in — the first page usually lands
@@ -159,9 +165,12 @@ private fun LoadMoreOnLastRowVisible(
     }
 }
 
-/** The non-interactive summary row: every pill from the pill row, unclickable here. */
+/**
+ * The non-interactive summary row: what was paid in gold, then every pill from the pill row with
+ * its count, unclickable here.
+ */
 @Composable
-private fun SummaryPillRow(pills: List<ReactionPill>) {
+private fun SummaryPillRow(pills: List<ReactionPill>, paidCents: Long, paidReactorCount: Int?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -169,6 +178,9 @@ private fun SummaryPillRow(pills: List<ReactionPill>) {
             .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x2),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
+        if (paidCents > 0) {
+            BoostAmountPill(cents = paidCents, count = paidReactorCount)
+        }
         for (pill in pills) {
             Box(
                 modifier = Modifier
@@ -180,10 +192,6 @@ private fun SummaryPillRow(pills: List<ReactionPill>) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = pill.emoji, fontSize = 17.sp)
                     Spacer(modifier = Modifier.width(4.dp))
-                    pill.boost?.total?.takeIf { it > 0 }?.let { total ->
-                        Text(text = formatBoostCents(total), fontSize = 13.sp, color = CodeTheme.colors.textMain)
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
                     Text(
                         text = pill.count.toString(),
                         fontSize = 13.sp,
@@ -195,8 +203,40 @@ private fun SummaryPillRow(pills: List<ReactionPill>) {
     }
 }
 
+/** A paid amount in gold, with an optional count after it (node 9776:105278). */
+@Composable
+private fun BoostAmountPill(cents: Long, count: Int? = null) {
+    Row(
+        modifier = Modifier
+            .height(34.dp)
+            .background(ReactionBoostGold.copy(alpha = 0.10f), RoundedCornerShape(percent = 50))
+            .border(2.dp, ReactionBoostGold, RoundedCornerShape(percent = 50))
+            .padding(horizontal = CodeTheme.dimens.grid.x3)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = formatBoostCents(cents),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = ReactionBoostGold,
+            maxLines = 1,
+        )
+        if (count != null) {
+            Text(
+                text = count.toString(),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = ReactionBoostGold.copy(alpha = 0.5f),
+            )
+        }
+    }
+}
+
 /**
- * One reactor: avatar and name/handle, then every emoji they reacted with. Only the person opens
+ * One reactor: avatar and name/handle, then what they paid if they paid, then every emoji they
+ * reacted with. Only the person opens
  * their profile; the emoji are theirs to scroll, not a tap target.
  */
 @Composable
@@ -207,8 +247,10 @@ private fun ReactorRow(
     onClick: () -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        // The person keeps priority over the emoji, which always get at least MinEmojiWidth.
-        val personMaxWidth = (maxWidth - RowLeadingInset - MinEmojiWidth).coerceAtLeast(0.dp)
+        // The person keeps priority over the emoji, which always get at least MinEmojiWidth, or
+        // MinPaidWidth when the row also carries a paid amount.
+        val trailingMinWidth = if (boostCents > 0) MinPaidWidth else MinEmojiWidth
+        val personMaxWidth = (maxWidth - RowLeadingInset - trailingMinWidth).coerceAtLeast(0.dp)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -258,33 +300,30 @@ private fun ReactorRow(
                 }
             }
 
-            ReactorEmojis(emojis = emojis, modifier = Modifier.weight(1f))
-            if (boostCents > 0) {
-                Text(
-                    text = formatBoostCents(boostCents),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = CodeTheme.colors.textMain,
-                    maxLines = 1,
-                    modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2, end = CodeTheme.dimens.inset),
-                )
-            }
+            ReactorEmojis(emojis = emojis, boostCents = boostCents, modifier = Modifier.weight(1f))
         }
     }
 }
 
 /**
- * A reactor's emoji, trailing-aligned in whatever the name leaves. When there are more than fit
+ * A reactor's emoji, trailing-aligned in whatever the name leaves, after what they paid if they
+ * paid. When there are more than fit
  * they scroll sideways, opening on the first emoji, and fade out across the margins instead of
  * stopping at a hard edge. The leading margin is also the gap to the name.
  */
 @Composable
-private fun ReactorEmojis(emojis: List<String>, modifier: Modifier = Modifier) {
+private fun ReactorEmojis(emojis: List<String>, boostCents: Long, modifier: Modifier = Modifier) {
     val scrollState = rememberScrollState()
     val overflows = scrollState.maxValue > 0
+    val emojiText = emojis.joinToString(" ")
+    val description = if (boostCents > 0) {
+        stringResource(R.string.label_reactorPaid, formatBoostCents(boostCents)) + ", " + emojiText
+    } else {
+        emojiText
+    }
     Box(
         modifier = modifier
-            .semantics(mergeDescendants = true) { contentDescription = emojis.joinToString(" ") }
+            .semantics(mergeDescendants = true) { contentDescription = description }
             .then(if (overflows) Modifier.edgeFade(EmojiLeadingMargin, EmojiTrailingMargin) else Modifier),
         contentAlignment = Alignment.CenterEnd,
     ) {
@@ -293,10 +332,16 @@ private fun ReactorEmojis(emojis: List<String>, modifier: Modifier = Modifier) {
                 .horizontalScroll(scrollState)
                 .padding(start = EmojiLeadingMargin, end = EmojiTrailingMargin)
                 .clearAndSetSemantics { },
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            for (emoji in emojis) {
-                Text(text = emoji, fontSize = 30.sp)
+            if (boostCents > 0) {
+                BoostAmountPill(cents = boostCents)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                for (emoji in emojis) {
+                    Text(text = emoji, fontSize = 30.sp)
+                }
             }
         }
     }
@@ -332,6 +377,7 @@ private val EdgeFadeStops = arrayOf(
 
 private val RowLeadingInset = 20.dp
 private val MinEmojiWidth = 140.dp
+private val MinPaidWidth = 200.dp
 private val EmojiLeadingMargin = 16.dp
 private val EmojiTrailingMargin = 20.dp
 

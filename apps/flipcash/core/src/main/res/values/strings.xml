@@ -1611,4 +1611,5 @@
     <string name="action_swipeToPay">Swipe to Pay</string>
     <string name="action_paidReaction">Paid reaction</string>
     <string name="action_customAmount">Other amount</string>
+    <string name="label_reactorPaid">Paid %1$s</string>
 </resources>
