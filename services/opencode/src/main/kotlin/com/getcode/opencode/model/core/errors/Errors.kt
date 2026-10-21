@@ -326,6 +326,16 @@ sealed class SwapError(
      */
     class UnknownState : SwapError(message = "Swap is in an unknown state"), NotifiableError
 
+    /**
+     * GetSwap will never succeed for this owner: the swap belongs to another owner (DENIED) or the
+     * request failed authentication (UNAUTHENTICATED / PERMISSION_DENIED). Permanent, so the poller
+     * stops instead of spending its attempt budget. Unexpected for a swap this client just created,
+     * hence notifiable. [cause] is deliberately not carried: a wrapped gRPC status would make the
+     * error reporter drop it as an ignorable status.
+     */
+    class AccessDenied(val swapId: String, val reason: String) :
+        SwapError(message = "Access denied polling swap $swapId: $reason"), NotifiableError
+
     data class Other(override val cause: Throwable? = null) : SwapError(message = cause?.message, cause = cause), NotifiableError
 
     companion object {

@@ -81,6 +81,7 @@ import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
@@ -1997,6 +1998,11 @@ class SwapViewModel @Inject constructor(
             ).onSuccess { onSwapFinalized(markProcessingSuccess = true) }
                 .onFailure { dispatchProcessingFailed() }
             return
+        }
+
+        if (cause is SwapError.AccessDenied) {
+            // Permanent (not our swap / auth failure): report it with the swap id, then fail inline.
+            ErrorUtils.handleError(cause)
         }
 
         // Terminal state or RPC failure: stay on the confirm screen, let the user retry.
