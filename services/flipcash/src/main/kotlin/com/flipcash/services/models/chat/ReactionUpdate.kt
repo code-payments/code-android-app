@@ -11,10 +11,10 @@ data class ReactionUpdate(
     val count: Long,
     val version: Long,
     val reactedAt: Instant,
-    // Total USD boost on the emoji after this update.
-    val boostUsd: Double = 0.0,
-    // USD boost attributable to the actor after this update.
-    val actorBoostUsd: Double = 0.0,
+    // Total USD boost on the emoji after this update, in whole cents.
+    val boostCents: Long = 0,
+    // USD boost attributable to the actor after this update, in whole cents.
+    val actorBoostCents: Long = 0,
 ) {
     enum class Action {
         UNKNOWN,

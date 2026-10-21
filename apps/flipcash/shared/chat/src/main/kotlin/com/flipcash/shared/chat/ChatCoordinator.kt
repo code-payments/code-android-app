@@ -143,6 +143,8 @@ data class MessageReactions(
                             selfReacted = reaction.selfReactor != null,
                             version = reaction.version,
                             selfReactedAt = reaction.selfReactor?.reactedAt,
+                            boost = reaction.boostCents,
+                            selfBoost = reaction.selfReactor?.boostCents ?: 0,
                         )
                     },
                 )

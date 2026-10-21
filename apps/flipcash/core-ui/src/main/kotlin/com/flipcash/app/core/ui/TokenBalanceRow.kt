@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,6 +62,8 @@ enum class TokenSelectionStyle {
     None,
     Chevron,
     Checkbox,
+    /** A check before the balance on the selected row only, as the compact sheet picker shows it. */
+    Checkmark,
     ;
 }
 
@@ -187,7 +191,10 @@ fun TokenBalanceRow(
     val exchange = LocalExchange.current
     val backgroundColor = CodeTheme.colors.background
     // The checkbox mark is drawn, not announced, so the row carries the selection instead.
-    val selection = isSelected.takeIf { styling.selectionStyle == TokenSelectionStyle.Checkbox }
+    val selection = isSelected.takeIf {
+        styling.selectionStyle == TokenSelectionStyle.Checkbox ||
+            styling.selectionStyle == TokenSelectionStyle.Checkmark
+    }
     val isClickable = onClick != null && isEnabled
     Row(
         modifier = Modifier
@@ -259,6 +266,17 @@ fun TokenBalanceRow(
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (styling.selectionStyle == TokenSelectionStyle.Checkmark && isSelected == true) {
+                Icon(
+                    modifier = Modifier
+                        .padding(end = CodeTheme.dimens.grid.x2)
+                        .size(CodeTheme.dimens.staticGrid.x4),
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textMain,
+                )
+            }
+
             if (showFlag) {
                 flag?.let {
                     Image(
@@ -346,6 +364,7 @@ fun TokenBalanceRow(
                     }
                 }
 
+                TokenSelectionStyle.Checkmark,
                 TokenSelectionStyle.None -> Unit
             }
         }

@@ -26,6 +26,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
+import com.flipcash.shared.chat.reactions.ReactionBoost
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.getcode.theme.DesignSystem
 import org.junit.Rule
@@ -75,6 +76,54 @@ class ReactionPillRowTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun `the dollar chip leads the row only when the viewer can boost, and opens the boost picker`() {
+        var opened = 0
+        composeTestRule.setContent {
+            DesignSystem {
+                Box(Modifier.width(400.dp)) {
+                    ReactionPillRow(
+                        pills = listOf(pill("😀")),
+                        canReact = true,
+                        onToggle = {},
+                        onPillLongClick = {},
+                        onOpenPicker = {},
+                        canBoost = true,
+                        onOpenBoost = { opened++ },
+                    )
+                }
+            }
+        }
+
+        val boost = composeTestRule.onNodeWithTag("reaction_pill_boost").getBoundsInRoot()
+        val first = composeTestRule.onNodeWithTag("reaction_pill_😀").getBoundsInRoot()
+        assertTrue(boost.left < first.left)
+        composeTestRule.onNodeWithTag("reaction_pill_boost").performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun `no dollar chip when the viewer can't boost`() {
+        setRow(pills = listOf(pill("😀")))
+
+        composeTestRule.onNodeWithTag("reaction_pill_boost").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a paid pill shows its total, and its count only above one`() {
+        setRow(
+            pills = listOf(
+                pill("💯", count = 2).copy(boost = ReactionBoost(total = 1000)),
+                pill("👎", count = 1).copy(boost = ReactionBoost(total = 500)),
+            ),
+        )
+
+        composeTestRule.onNodeWithText("$10.00").assertIsDisplayed()
+        composeTestRule.onNodeWithText("$5.00").assertIsDisplayed()
+        composeTestRule.onNodeWithText("2").assertIsDisplayed()
+        composeTestRule.onNodeWithText("1").assertDoesNotExist()
     }
 
     @Test

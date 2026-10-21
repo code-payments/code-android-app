@@ -26,6 +26,11 @@ data object ChatSendResult : Parcelable
 @Serializable
 data class GroupInviteResult(val chatId: ChatId) : Parcelable
 
+/** A custom paid-reaction amount, in whole US cents. */
+@Parcelize
+@Serializable
+data class ReactionBoostAmountResult(val cents: Long) : Parcelable
+
 @Serializable
 sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
@@ -163,6 +168,40 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data class ReactionPicker(val messageId: Long) : ChatStep, Sheet, HalfSheet
+
+    /**
+     * Boosting one of the viewer's own reactions on [messageId] with money — the Paid Reactions
+     * sheet (node 10330:18091), opened from the pill row's "$". The sheet picks which reaction from
+     * the viewer's own. Short and fixed, so it wraps its content.
+     */
+    @Parcelize
+    @Serializable
+    data class ReactionBoost(
+        val chatId: ChatId,
+        val messageId: Long,
+    ) : ChatStep, Sheet, WrapContentSheet
+
+    /**
+     * The currency picker behind [ReactionBoost]'s "Pay with" pill. Opens over the Paid Reactions
+     * sheet, which stays up beneath it, and closes on a pick.
+     */
+    @Parcelize
+    @Serializable
+    data class ReactionBoostCurrency(
+        val chatId: ChatId,
+        val messageId: Long,
+    ) : ChatStep, Sheet, HalfSheet
+
+    /**
+     * The keypad behind [ReactionBoost]'s "…" chip, for an amount the presets don't cover. Returns
+     * the amount in whole US cents. Opens over the Paid Reactions sheet, which stays up beneath it.
+     */
+    @Parcelize
+    @Serializable
+    data class ReactionBoostAmount(
+        val chatId: ChatId,
+        val messageId: Long,
+    ) : ChatStep, NavigationRetVal<ReactionBoostAmountResult>, Sheet
 
     /**
      * Who reacted, and with what — opened by long-pressing a pill. A plain [Sheet] for the same

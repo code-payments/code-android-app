@@ -23,6 +23,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:chat-ui"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tipping"))
     implementation(project(":apps:flipcash:shared:tokens"))

@@ -57,6 +57,8 @@ class ReactorsViewModel @Inject constructor(
     data class ReactorRow(
         val userId: ID,
         val emojis: List<String>,
+        /** What they paid toward their reactions, in whole USD cents; 0 when nothing. */
+        val boostCents: Long = 0,
         /** Null until a source names them; the row draws a placeholder and isn't tappable. */
         val display: ReactorDisplay?,
     )
@@ -147,7 +149,7 @@ class ReactorsViewModel @Inject constructor(
                         if (display == null && requested.add(row.userId)) {
                             chatCoordinator.requestSenderProfile(row.userId)
                         }
-                        ReactorRow(userId = row.userId, emojis = row.emojis, display = display)
+                        ReactorRow(userId = row.userId, emojis = row.emojis, boostCents = row.boostCents, display = display)
                     }
                     Event.Updated(
                         pills = currentPills,

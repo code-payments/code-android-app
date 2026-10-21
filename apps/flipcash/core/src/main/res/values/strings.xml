@@ -1608,6 +1608,16 @@
     <string name="subtitle_chatCameraPermissionDenied">Turn on Camera in Settings to send photos</string>
     <string name="action_chatOpenSettings">Open Settings</string>
     <string name="subtitle_chatCameraUnavailable">Camera unavailable</string>
+    <string name="title_paidReactions">Paid Reactions</string>
+    <string name="action_addPaidReaction">Add a paid reaction</string>
+    <string name="subtitle_paidReactionsSplit" formatted="false">80% goes to the person who wrote the message, 20% goes to the group host</string>
+    <string name="action_switchPaidReaction">Switch reaction</string>
+    <string name="label_payWith">Pay with:</string>
+    <string name="action_swipeToPay">Swipe to Pay</string>
+    <string name="action_paidReaction">Paid reaction</string>
+    <string name="action_customAmount">Other amount</string>
+    <string name="label_reactorPaid">Paid %1$s</string>
+    <string name="label_tapToChange">Tap to change</string>
 
     <!-- Chats Search (nodes 12248:72, 12248:97, 12248:121, 12248:136). -->
     <string name="title_search">Search</string>

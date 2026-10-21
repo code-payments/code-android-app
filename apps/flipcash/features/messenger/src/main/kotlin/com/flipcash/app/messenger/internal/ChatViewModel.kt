@@ -119,6 +119,7 @@ import com.flipcash.shared.chat.MessageReactions
 import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.applying
+import com.flipcash.shared.chat.canBoost
 import com.flipcash.shared.chat.canReact
 import com.flipcash.shared.chat.chatDraftOf
 import com.flipcash.shared.chat.groupAccess
@@ -1247,6 +1248,8 @@ internal class ChatViewModel @AssistedInject constructor(
         val canSpeak: Boolean,
         val canReact: Boolean,
         val previewing: Boolean,
+        /** Whether the chat is a group, where a reaction can be paid for. */
+        val inGroup: Boolean,
     )
 
     /**
@@ -1396,8 +1399,15 @@ internal class ChatViewModel @AssistedInject constructor(
             pendingMutations,
             messagePolicy,
             senderProfiles,
-            combine(viewerCanPost, viewerCanSpeak, viewerCanReact, viewerPreviewing, ::ViewerGates),
-        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages, previewing) ->
+            combine(
+                viewerCanPost,
+                viewerCanSpeak,
+                viewerCanReact,
+                viewerPreviewing,
+                stateFlow.map { it.subject is ChatSubject.Group }.distinctUntilChanged(),
+                ::ViewerGates,
+            ),
+        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages, previewing, inGroup) ->
             if (pagingData !== quotedGeneration) {
                 quotedGeneration = pagingData
                 quotedMessages.clear()
@@ -1541,6 +1551,12 @@ internal class ChatViewModel @AssistedInject constructor(
                         reactionPills = storedReactions.pills,
                         selfReactions = storedReactions.selfReactions,
                         canReact = canReact(message, canSpeak = canPost && canReactToMessages),
+                        canBoost = canBoost(
+                            message,
+                            inGroup = inGroup,
+                            selfReactions = storedReactions.selfReactions,
+                            canSpeak = canPost && canReactToMessages,
+                        ),
                         photo = stateFlow.value.chatId?.takeIf { content.photoBody() != null }
                             ?.let { chatId -> message.photoContext(chatId, previewing) },
                         // Content this build can't draw asks for an update even when the sealed

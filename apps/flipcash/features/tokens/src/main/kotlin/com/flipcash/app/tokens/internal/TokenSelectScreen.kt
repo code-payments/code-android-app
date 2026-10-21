@@ -49,7 +49,7 @@ private fun SelectTokenScreenContent(
     val tokens = remember(state.tokens) { state.tokens }
 
     // The sheet picker (Figma 9120:15219) is a plain name/balance list: no pill around the balance,
-    // no trailing selection control, tighter rows. Everything else keeps the full-screen treatment.
+    // a check before the selected row's balance instead of a trailing control, tighter rows. Everything else keeps the full-screen treatment.
     val styling = if (presentation.compactRows) {
         rememberTokenBalanceRowStyling(
             nameTextStyle = CodeTheme.typography.textMedium,
@@ -59,7 +59,7 @@ private fun SelectTokenScreenContent(
                 color = CodeTheme.colors.textSecondary,
             ),
             iconSize = CodeTheme.dimens.staticGrid.x8,
-            selectionStyle = TokenSelectionStyle.None,
+            selectionStyle = TokenSelectionStyle.Checkmark,
             contentPadding = PaddingValues(vertical = CodeTheme.dimens.staticGrid.x2),
         )
     } else {
@@ -88,8 +88,7 @@ private fun SelectTokenScreenContent(
             ?: (state.purpose as? TokenPurpose.BuyFunding)?.current
             ?: state.selectedToken,
         styling = styling,
-        showSelections = !presentation.compactRows &&
-                (state.purpose is TokenPurpose.Select ||
+        showSelections = (state.purpose is TokenPurpose.Select ||
                         state.purpose is TokenPurpose.ConvertDestination ||
                         state.purpose is TokenPurpose.BuyFunding),
         showFlags = when (state.purpose) {
