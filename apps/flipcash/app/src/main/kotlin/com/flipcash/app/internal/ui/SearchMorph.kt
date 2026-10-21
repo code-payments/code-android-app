@@ -4,7 +4,19 @@ import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +36,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.boundsInRoot
@@ -40,7 +51,6 @@ import com.getcode.ui.components.glass.floatingGlass
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
@@ -53,9 +63,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * parts of the tree. [fraction] runs from the button (0) to the field (1): the root draws a glass pill
  * between the two ([Overlay]), the button fades out at the start and the field fades in at the end.
  *
- * The keyboard drives it. Opening grows the pill by how far the keyboard has risen, so the field lands
- * as the keyboard does whatever the keyboard's startup time; closing shrinks it back as the keyboard
- * drops. A predictive back follows the Search entry's own exit, so the field shrinks into the button
+ * The keyboard cues it. Opening waits for the keyboard to start rising, then grows the pill over
+ * about the keyboard's own slide, so the field lands with the keyboard whatever its startup time;
+ * closing shrinks it back as the keyboard drops. A predictive back follows the Search entry's own exit, so the field shrinks into the button
  * under the finger.
  */
 @Stable
@@ -64,6 +74,9 @@ internal class SearchMorph(private val navigator: CodeNavigator) {
 
     private var buttonRect by mutableStateOf(Rect.Zero)
     private var fieldRect by mutableStateOf(Rect.Zero)
+
+    /** The field's centre with the keyboard down: the lowest it sits. */
+    private var fieldRestCenterY by mutableStateOf(0f)
 
     /** Set while ✕ or the leading button closes Search, so the entry's exit doesn't drive it too. */
     private var closing = false
@@ -92,16 +105,12 @@ internal class SearchMorph(private val navigator: CodeNavigator) {
             // Back from a chat opened from the results: the field is already up.
             if (fraction.value == 1f) return@LaunchedEffect
             closing = false
-            val target = withTimeoutOrNull(KeyboardOpenWait) {
+            // Starts as the keyboard does, and plays at the keyboard's own pace. Following the inset
+            // frame by frame would skip the morph wherever the inset arrives in one step.
+            withTimeoutOrNull(KeyboardOpenWait) {
                 snapshotFlow { imeTarget.getBottom(density) }.first { it > 0 }
             }
-            if (target != null) {
-                snapshotFlow { ime.getBottom(density) }
-                    .takeWhile { it < target }
-                    .collect { fraction.snapTo((it.toFloat() / target).coerceIn(0f, 1f)) }
-            }
-            // A hardware keyboard, or one that never comes up, still gets the field.
-            fraction.animateTo(1f, SettleSpec)
+            fraction.animateTo(1f, MorphSpec)
         }
 
         // Predictive back: follow the entry's exit while it heads back to a tab.
@@ -150,20 +159,16 @@ internal class SearchMorph(private val navigator: CodeNavigator) {
      * shrink plays, so the screen behind fades in with it. The caller asks the keyboard down; [raised]
      * is its height when it was up.
      */
+    @Suppress("UNUSED_PARAMETER")
     suspend fun close(raised: Int, imeBottom: () -> Int) {
         closing = true
-        if (raised > 0) {
-            withTimeoutOrNull(KeyboardWait) {
-                snapshotFlow { imeBottom() }
-                    .takeWhile { it > 0 }
-                    .collect { fraction.snapTo((it.toFloat() / raised).coerceIn(0f, 1f)) }
-            }
-        }
+        // Shrinks alongside the keyboard going down, and pops at once, so the screen behind fades in
+        // with the shrink rather than after it.
         val shrink = rootScope
         if (shrink != null) {
-            shrink.launch { fraction.animateTo(0f, SettleSpec) }
+            shrink.launch { fraction.animateTo(0f, MorphSpec) }
         } else {
-            fraction.animateTo(0f, SettleSpec)
+            fraction.animateTo(0f, MorphSpec)
         }
         navigator.pop()
     }
@@ -171,11 +176,16 @@ internal class SearchMorph(private val navigator: CodeNavigator) {
     /** The nav bar's search button: measured for the morph, and faded out as it starts. */
     fun Modifier.morphButton(): Modifier = this
         .onGloballyPositioned { buttonRect = it.boundsInRoot() }
-        .graphicsLayer { alpha = 1f - (fraction.value / ButtonFadeEnd).coerceIn(0f, 1f) }
+        // The pill takes the button's place, in the same glass and with the same glyph, as soon as
+        // the morph starts.
+        .graphicsLayer { alpha = if (fraction.value > 0f) 0f else 1f }
 
     /** Search's field: measured for the morph, and faded in as it ends. */
     fun Modifier.morphField(): Modifier = this
-        .onGloballyPositioned { fieldRect = it.boundsInRoot() }
+        .onGloballyPositioned {
+            fieldRect = it.boundsInRoot()
+            fieldRestCenterY = maxOf(fieldRestCenterY, fieldRect.center.y)
+        }
         .graphicsLayer { alpha = fieldAlpha(fraction.value) }
 
     /**
@@ -207,7 +217,7 @@ internal class SearchMorph(private val navigator: CodeNavigator) {
             Box(
                 modifier = Modifier
                     .layout { measurable, _ ->
-                        val rect = lerp(buttonRect, fieldRect, fraction.value).translate(-origin)
+                        val rect = pillRect(fraction.value).translate(-origin)
                         val placeable = measurable.measure(
                             Constraints.fixed(
                                 rect.width.roundToInt().coerceAtLeast(0),
@@ -218,30 +228,52 @@ internal class SearchMorph(private val navigator: CodeNavigator) {
                             placeable.place(rect.left.roundToInt(), rect.top.roundToInt())
                         }
                     }
-                    // Takes over from the button as it fades out, and hands over to the field as it
-                    // fades in, so neither end is ever covered by the bare pill.
-                    .graphicsLayer { alpha = pillAlpha(fraction.value) }
+                    // Hands over to the field as it fades in.
+                    .graphicsLayer { alpha = 1f - fieldAlpha(fraction.value) }
                     .floatingGlass(hazeState),
-            )
+            ) {
+                // The button's glyph, kept at the pill's leading edge: centred while the pill is the
+                // button's circle, and where the field's own magnifier sits once it is the field.
+                BoxWithConstraints(Modifier.fillMaxHeight()) {
+                    Icon(
+                        imageVector = Icons.Outlined.Search,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier
+                            .padding(start = ((maxHeight - PillIconSize) / 2).coerceAtLeast(0.dp))
+                            .size(PillIconSize)
+                            .align(Alignment.CenterStart),
+                    )
+                }
+            }
         }
+    }
+
+    /**
+     * The pill between the button and the field. It is lifted by however far the keyboard has lifted
+     * the field, because the keyboard draws over the app and would otherwise cover it at the bottom.
+     */
+    private fun pillRect(f: Float): Rect {
+        val width = lerpFloat(buttonRect.width, fieldRect.width, f)
+        val height = lerpFloat(buttonRect.height, fieldRect.height, f)
+        val left = lerpFloat(buttonRect.left, fieldRect.left, f)
+        val lift = (fieldRestCenterY - fieldRect.center.y).coerceAtLeast(0f)
+        val centerY = lerpFloat(buttonRect.center.y, fieldRestCenterY, f) - lift
+        return Rect(left, centerY - height / 2, left + width, centerY + height / 2)
     }
 }
 
-private fun lerp(start: Rect, stop: Rect, fraction: Float): Rect = Rect(
-    topLeft = androidx.compose.ui.geometry.lerp(start.topLeft, stop.topLeft, fraction),
-    bottomRight = androidx.compose.ui.geometry.lerp(start.bottomRight, stop.bottomRight, fraction),
-)
+private fun lerpFloat(start: Float, stop: Float, fraction: Float): Float = start + (stop - start) * fraction
+
 
 /** The field fades in over the last stretch, once the pill has nearly reached its size. */
 private fun fieldAlpha(fraction: Float): Float =
     ((fraction - FieldFadeStart) / (1f - FieldFadeStart)).coerceIn(0f, 1f)
 
-/** The pill shows only between the button fading out and the field fading in. */
-private fun pillAlpha(fraction: Float): Float =
-    (fraction / ButtonFadeEnd).coerceIn(0f, 1f) * (1f - fieldAlpha(fraction))
+private const val FieldFadeStart = 0.8f
 
-private const val FieldFadeStart = 0.6f
-private const val ButtonFadeEnd = 0.4f
+/** The nav bar search button's glyph size, so the pill starts as that button. */
+private val PillIconSize = 28.dp
 
 /** Finishes the morph once the keyboard stops driving it. No bounce, so it never overshoots. */
 private val SettleSpec = spring<Float>(
@@ -249,11 +281,11 @@ private val SettleSpec = spring<Float>(
     stiffness = Spring.StiffnessMediumLow,
 )
 
-/** Longest closing follows the keyboard down before it finishes on its own. */
-private val KeyboardWait = 600.milliseconds
+/** The morph itself: a little longer than the keyboard's slide, so the growth reads before the field fades in. */
+private val MorphSpec = tween<Float>(durationMillis = 420, easing = FastOutSlowInEasing)
 
 /**
  * Longest opening waits for the keyboard to start rising. Keyboards take several hundred ms to start
- * (about 630 ms on the Pixel 10 emulator), so this is longer than [KeyboardWait].
+ * (about 630 ms on the Pixel 10 emulator).
  */
 private val KeyboardOpenWait = 1200.milliseconds
