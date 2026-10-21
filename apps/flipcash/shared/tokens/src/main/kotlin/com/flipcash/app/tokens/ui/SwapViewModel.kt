@@ -86,6 +86,8 @@ import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -104,7 +106,6 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.concurrent.CancellationException
 import javax.inject.Inject
 import kotlin.collections.listOf
 import kotlin.collections.map
@@ -448,6 +449,12 @@ class SwapViewModel @Inject constructor(
 
         data object ShowSellReceipt : Event
 
+        /**
+         * A sell or convert receipt is on screen. Starts a background refresh of the source
+         * balance so the confirm tap can validate against fresh data without waiting on the network.
+         */
+        data object ConfirmationShown : Event
+
         // region v2 Get — the payment source is chosen inline, before the amount is confirmed.
         /** Opens the "Buy with" picker. */
         data object SelectBuyFundingSource : Event
@@ -720,7 +727,65 @@ class SwapViewModel @Inject constructor(
         isOverLimit
     }
 
+    /** A source-balance refresh started when a receipt appeared, and the mint it refreshes. */
+    private class BalancePrefetch(val mint: Mint, val job: Job)
+
+    // Plain fields, not State: only touched from the main-dispatcher event collectors.
+    private var balancePrefetch: BalancePrefetch? = null
+
+    /**
+     * True from the confirm tap until the submit fails or the swap finalizes. While set, no
+     * prefetch may start: a refresh landing after `tokenCoordinator.subtract(...)` would restore
+     * the pre-submit balance.
+     */
+    private var submitStarted = false
+
+    /**
+     * Makes the cached balance of [mint] fresh before the insufficient-funds check, without a
+     * network wait when the receipt prefetch already landed. Closes the prefetch window by setting
+     * [submitStarted] before reading the job, so nothing can start (or still be running) once the
+     * submit begins. A failed refresh falls back to the cached balance; the server still rejects
+     * an over-spend.
+     */
+    private suspend fun awaitFreshBalance(mint: Mint) {
+        submitStarted = true
+        val prefetch = balancePrefetch?.takeIf { it.mint == mint }
+        balancePrefetch = null
+        if (prefetch != null) {
+            prefetch.job.join()
+        } else {
+            try {
+                tokenCoordinator.updateTokenAccount(mint)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // use cached balance
+            }
+        }
+    }
+
+    private fun startBalancePrefetch() {
+        if (submitStarted) return
+        val mint = stateFlow.value.tokenWithBalance?.token?.address ?: return
+        if (balancePrefetch?.mint == mint && balancePrefetch?.job?.isActive == true) return
+        val job = viewModelScope.launch {
+            try {
+                tokenCoordinator.updateTokenAccount(mint)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // use cached balance
+            }
+        }
+        balancePrefetch = BalancePrefetch(mint, job)
+    }
+
     init {
+        eventFlow
+            .filterIsInstance<Event.ConfirmationShown>()
+            .onEach { startBalancePrefetch() }
+            .launchIn(viewModelScope)
+
         // Get seeds a payment source up front so the amount screen can cap entry and price the fee
         // before anything is confirmed. Dollars is the house default; failing that, whichever held
         // currency goes furthest.
@@ -1228,12 +1293,15 @@ class SwapViewModel @Inject constructor(
                 val (source, destination) = tokens
                 val rate = exchange.preferredRate
 
-                // Check against the balance already in state; a network refresh here would delay the
-                // submit, and the server rejects an over-spend regardless.
+                // The receipt screen started a refresh of the source balance; wait only for it if
+                // it's still running (or refresh now if it never started), then check against the
+                // freshened balance in state. A failed refresh uses the cached balance.
+                awaitFreshBalance(source.address)
                 val amountInUsd =
                     Fiat.tokenBalance(amount.localFiat.underlyingTokenAmount.quarks, source)
                 val currentBalance = tokenCoordinator.balanceForToken(source)
                 if (amountInUsd > currentBalance) {
+                    submitStarted = false
                     dispatchEvent(Event.UpdateSellState(loading = false))
                     BottomBarManager.showAlert(
                         title = resources.getString(R.string.error_title_insufficientFunds),
@@ -1281,6 +1349,7 @@ class SwapViewModel @Inject constructor(
                     tokenCoordinator.subtract(source, amount.localFiat)
                 }.onFailure { cause ->
                     trackTransaction(source, error = cause)
+                    submitStarted = false
                     dispatchEvent(Event.UpdateSellState(loading = false, success = false))
                     if (cause is SwapError.Denied && cause.amountTooLowForFee) {
                         BottomBarManager.showAlert(
@@ -1502,14 +1571,17 @@ class SwapViewModel @Inject constructor(
             }
             .map { (owner, purpose, amount) -> owner to stateFlow.value.tokenWithBalance!!.token to amount }
             .onEach { (owner, token, amount) ->
-                // Check against the balance already in state; a network refresh here would delay the
-                // submit, and the server rejects an over-spend regardless.
+                // The receipt screen started a refresh of the source balance; wait only for it if
+                // it's still running (or refresh now if it never started), then check against the
+                // freshened balance in state. A failed refresh uses the cached balance.
+                awaitFreshBalance(token.address)
                 // underlyingTokenAmount.quarks are token quarks, not USD —
                 // convert back through the bonding curve for an apples-to-apples comparison.
                 val amountInUsd =
                     Fiat.tokenBalance(amount.localFiat.underlyingTokenAmount.quarks, token)
                 val currentBalance = tokenCoordinator.balanceForToken(token)
                 if (amountInUsd > currentBalance) {
+                    submitStarted = false
                     dispatchEvent(Event.UpdateSellState(loading = false))
                     BottomBarManager.showAlert(
                         title = resources.getString(R.string.error_title_insufficientFunds),
@@ -1530,6 +1602,7 @@ class SwapViewModel @Inject constructor(
                     tokenCoordinator.subtract(token, amount.localFiat)
                 }.onFailure { cause ->
                     trackTransaction(token, error = cause)
+                    submitStarted = false
                     dispatchEvent(Event.UpdateSellState(loading = false, success = false))
                     if (cause is SwapError.Denied) {
                         if (cause.amountTooLowForFee) {
@@ -1951,6 +2024,7 @@ class SwapViewModel @Inject constructor(
 
     /** Refreshes what a finalized swap changed. Shared by the in-place and Processing paths. */
     private fun onSwapFinalized(markProcessingSuccess: Boolean) {
+        submitStarted = false
         val token = stateFlow.value.tokenWithBalance!!.token
         val isUsingReserves = stateFlow.value.purpose is SwapPurpose.Buy ||
                 stateFlow.value.purpose is SwapPurpose.Sell
@@ -2198,6 +2272,7 @@ class SwapViewModel @Inject constructor(
                 Event.OnTransactionSuccessful -> { state -> state }
                 is Event.OnSellConfirmed -> { state -> state }
                 Event.ShowSellReceipt -> { state -> state }
+                Event.ConfirmationShown -> { state -> state }
                 is Event.OnInitialAmountProvided -> { state ->
                     state.copy(minimumBuyAmount = event.amount, pendingInitialAmount = event.amount)
                 }
