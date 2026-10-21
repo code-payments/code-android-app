@@ -10,6 +10,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -81,11 +83,25 @@ internal fun ReactionBoostSheet(
                 style = CodeTheme.typography.screenTitle,
                 color = CodeTheme.colors.textMain,
             )
-            BoostEmojiPill(
-                emoji = emoji.orEmpty(),
-                canCycle = canCycle,
-                onCycle = onCycleEmoji,
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                BoostEmojiPill(
+                    emoji = emoji.orEmpty(),
+                    canCycle = canCycle,
+                    onCycle = onCycleEmoji,
+                )
+                // The pill's click label already says what a tap does, so this stays out of semantics.
+                if (canCycle) {
+                    Text(
+                        text = stringResource(R.string.label_tapToChange),
+                        style = CodeTheme.typography.textSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                        color = CodeTheme.colors.textSecondary,
+                        modifier = Modifier.clearAndSetSemantics { },
+                    )
+                }
+            }
             Text(
                 text = stringResource(R.string.subtitle_paidReactionsSplit),
                 style = CodeTheme.typography.textSmall,
