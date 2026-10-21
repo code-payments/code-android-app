@@ -35,7 +35,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby/setup-ruby has no Ruby 2.7 build for ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,7 +90,7 @@ jobs:
           SKIP_COVERAGE: "true"
 
   build-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby/setup-ruby has no Ruby 2.7 build for ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -169,7 +169,7 @@ jobs:
 
   deploy:
     needs: [test, build-release]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby/setup-ruby has no Ruby 2.7 build for ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
         with:

@@ -45,7 +45,7 @@ jobs:
   maestro:
     name: Maestro E2E (${{ github.event.inputs.tags || 'smoke' }}, minify=${{ matrix.minify }})
     needs: variants
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby/setup-ruby has no Ruby 2.7 build for ubuntu-26.04
     timeout-minutes: 60
     strategy:
       # One at a time: every flow signs into the same shared test account, so two runners
