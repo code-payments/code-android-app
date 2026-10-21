@@ -325,7 +325,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.JumpToMessage -> {
-                viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
+                viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId, origin = action.fromMessageId))
             }
 
             // The profile a share-profile widget names, shared the way a profile's Share shortcut
@@ -546,6 +546,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         topBarBottom = barHeight,
                         unreadBelowCount = unreadBelowCount,
                         onUserScrolled = { viewModel.dispatchEvent(ChatViewModel.Event.UserScrolledTranscript) },
+                        onReturnToOrigin = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnToOrigin) },
+                        onOriginsReached = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnOriginsReached(it)) },
+                        onReachedNewest = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnStackCleared) },
                         hazeState = hazeState,
                     )
                 }

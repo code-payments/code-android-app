@@ -345,6 +345,20 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class ProfileCard(val userId: ID) : Menu, com.getcode.navigation.FullscreenOverlay
 
+        /**
+         * A group's scan card: its invite link as a QR, full screen, with Download. Opened from the
+         * Show Group Card tile of the group invite sheet, which stays open beneath it. The group's
+         * identity rides on the route because the host screen already holds it and the card makes
+         * no request of its own.
+         */
+        @Serializable
+        data class GroupCard(
+            val chatId: com.flipcash.services.models.chat.ChatId,
+            val title: String?,
+            val picture: com.flipcash.services.models.chat.MediaItem?,
+            val memberCount: Long,
+        ) : Menu, com.getcode.navigation.FullscreenOverlay
+
         @Serializable
         data class Lab(val onboarding: Boolean = false) : Menu
     }
@@ -397,6 +411,14 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         @Parcelize
         data object NewChat : Messaging
+
+        /**
+         * Search across chats, currencies, messages and links (node 12248:72), behind the search
+         * button on the Chats list. Pushed for the reason [NewChat] is.
+         */
+        @Serializable
+        @Parcelize
+        data object Search : Messaging
 
         /**
          * The chats the viewer archived, behind the Archived row on the Chats list.

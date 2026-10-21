@@ -142,6 +142,15 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun getLatest(chatIdHex: String): ChatMessage? =
         db?.chatMessageDao()?.getLatest(chatIdHex)?.let { toChatMessage(it) }
 
+    /**
+     * The newest [limit] messages Search can read, across every chat, each with its chat id hex.
+     * Newest first. See [ChatMessageDao.getSearchable].
+     */
+    suspend fun getSearchable(limit: Int): List<Pair<String, ChatMessage>> =
+        db?.chatMessageDao()?.getSearchable(limit)
+            ?.map { it.chatIdHex to toChatMessage(it) }
+            .orEmpty()
+
     /** The newest message that isn't a tombstone — what the conversation list previews. */
     suspend fun getLatestVisible(chatIdHex: String): ChatMessage? =
         db?.chatMessageDao()?.getLatestVisible(chatIdHex)?.let { toChatMessage(it) }

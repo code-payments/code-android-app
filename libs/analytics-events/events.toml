@@ -148,6 +148,7 @@ description = "The `Method` property on Group: Invite Shared: how the invite lin
 [lists.GroupInviteMethod.values]
 SHARE = "Share"
 COPY = "Copy"
+DOWNLOAD = "Download"
 
 [lists.GroupInviteSource]
 description = "The `Source` property on Group: Invite Followed: what the group was opened from."
@@ -347,7 +348,13 @@ properties = [
 domain = "Group"
 name = "Group: Invite Shared"
 properties = [{ name = "Method", type = "GroupInviteMethod" }]
-description = "Share was tapped in the invite sheet, or the invite link was copied."
+description = "Share was tapped in the invite sheet, the invite link was copied, or the group card's QR was exported."
+
+[[event]]
+domain = "Group"
+name = "Group: Card Shown"
+properties = [{ name = "Member Count", type = "count" }]
+description = "The group scan card opened from the invite sheet."
 
 [[event]]
 domain = "Group"

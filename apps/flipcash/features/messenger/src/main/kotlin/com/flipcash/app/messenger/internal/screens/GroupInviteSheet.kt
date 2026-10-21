@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -124,6 +125,21 @@ internal fun CodeNavigator.openMessageShare(messageId: Long) {
     }
 }
 
+/** Test id of the Show Group Card tile. */
+internal const val GroupCardTileTag = "group-card-tile"
+
+/** The group tile carries [GroupCardTileTag]; the profile tile is unchanged and has none. */
+internal fun cardTileTag(subject: ShareToChatsSubject): String? =
+    if (subject is ShareToChatsSubject.Group) GroupCardTileTag else null
+
+/**
+ * Whether the card tile is drawn: whenever the host supplies a card to show, so a group's tile is
+ * there for every group, public or private, member or not, as Share and Copy are. Only a message
+ * link has no card.
+ */
+internal fun showsCardTile(subject: ShareToChatsSubject, onShowCard: (() -> Unit)?): Boolean =
+    onShowCard != null && subject !is ShareToChatsSubject.Message
+
 /**
  * What [GroupInviteSheet] hands out: a group's invite link, a person's profile link, or a link to
  * one message. They differ in their copy, in what the Share tile gives the system share sheet, and in whether the
@@ -167,8 +183,8 @@ internal sealed interface ShareToChatsSubject {
  * value, so this is a race with a leave rather than a state to design for.
  * @param subject what is being handed out.
  * @param state the Recent Chats selection and the message to send with the link.
- * @param onShowCard opens the person's profile card, as a third tile beside Share and Copy. Null
- * for a group, which has no card.
+ * @param onShowCard opens the profile card of a person or the scan card of a group, as a third
+ * tile beside Share and Copy. Null hides the tile (a message link has no card).
  */
 @Composable
 internal fun GroupInviteSheet(
@@ -298,13 +314,20 @@ internal fun GroupInviteSheet(
                                 copied = true
                             },
                         )
-                        if (onShowCard != null) {
+                        if (showsCardTile(subject, onShowCard)) {
                             InviteLinkTile(
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 // The Scan tab's outline glyph, as the iOS tile draws it.
                                 icon = R.drawable.ic_nav_tipcard,
-                                label = stringResource(R.string.action_showProfileCard),
-                                onClick = onShowCard,
+                                label = stringResource(
+                                    if (subject is ShareToChatsSubject.Group) {
+                                        R.string.action_showGroupCard
+                                    } else {
+                                        R.string.action_showProfileCard
+                                    }
+                                ),
+                                onClick = onShowCard!!,
+                                testTag = cardTileTag(subject),
                             )
                         }
                     }
@@ -416,9 +439,11 @@ private fun InviteLinkTile(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    testTag: String? = null,
 ) {
     Column(
         modifier = modifier
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
             .heightIn(min = TileMinHeight)
             .clip(TileShape)
             .background(White05)

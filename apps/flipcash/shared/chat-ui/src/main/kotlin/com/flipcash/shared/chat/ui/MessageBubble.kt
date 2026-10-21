@@ -160,7 +160,7 @@ fun ContentBubble(
             null
         }
         val onQuoteClick = quote?.takeIf { interactive }?.let { cited ->
-            { actionHandler(ChatAction.JumpToMessage(cited.messageId)) }
+            { actionHandler(ChatAction.JumpToMessage(cited.messageId, fromMessageId = item.messageId)) }
         }
         val isEdited = item.isEdited && item.isLastRow
         val card = item.linkCard?.takeIf { item.part == MessagePart.Card }

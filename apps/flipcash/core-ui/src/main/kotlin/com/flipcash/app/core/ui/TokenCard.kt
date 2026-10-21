@@ -200,7 +200,7 @@ private const val WatermarkFontScale = 0.95f
 private const val WatermarkAlpha = 0.30f
 
 /** Horizontal gradient brush from a token's bill-customization colors (matches the Figma cards). */
-private fun billCardBrush(customizations: TokenBillCustomizations?): Brush {
+fun billCardBrush(customizations: TokenBillCustomizations?): Brush {
     val fallback = Color(0xFF06450F) // matches CashBill's no-customization fallback
     return when (val background = customizations?.background) {
         null -> Brush.horizontalGradient(listOf(fallback, fallback))

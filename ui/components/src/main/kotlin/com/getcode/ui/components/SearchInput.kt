@@ -14,7 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.material.TextFieldColors
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.inputColors
 import com.getcode.theme.White50
 import com.getcode.ui.core.unboundedClickable
 
@@ -24,6 +26,7 @@ fun SearchInput(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     placeholder: String = stringResource(R.string.action_search),
+    colors: TextFieldColors = inputColors(),
 ) {
     TextInput(
         modifier = modifier,
@@ -56,5 +59,6 @@ fun SearchInput(
         maxLines = 1,
         style = CodeTheme.typography.textMedium,
         shape = CircleShape,
+        colors = colors,
     )
 }

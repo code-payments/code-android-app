@@ -49,6 +49,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
@@ -171,6 +173,13 @@ object ChatInputDefaults {
     val RimBrush: Brush = Brush.verticalGradient(
         listOf(Color.White.copy(alpha = 0.18f), Color.White.copy(alpha = 0.04f))
     )
+
+    /**
+     * The glass behind the composer and the other floating surfaces it sits with. Layer
+     * [ContainerColor] and [RimBrush] over it as the composer does.
+     */
+    @Composable
+    fun glassMaterial(): HazeBlurStyle = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
 }
 
 /** The one-line field's height: its controls plus the padding above and below them. */

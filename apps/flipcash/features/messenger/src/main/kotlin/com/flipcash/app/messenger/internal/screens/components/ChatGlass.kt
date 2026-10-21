@@ -1,9 +1,8 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.runtime.Composable
-import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.ChatInputDefaults
 import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /**
  * The one glass material for the chat's floating surfaces: the composer's message bar, the `$` button,
@@ -12,4 +11,4 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials
  */
 @Composable
 internal fun chatGlassMaterial(): HazeBlurStyle =
-    HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
+    ChatInputDefaults.glassMaterial()

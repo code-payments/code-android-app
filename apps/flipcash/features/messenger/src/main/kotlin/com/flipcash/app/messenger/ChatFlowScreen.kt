@@ -306,6 +306,7 @@ private fun FlowGroupInviteSheet() {
     // keyboard goes first: the message field has it up, and leaving with it still open drags the
     // screen behind out from under it.
     val keyboard = rememberKeyboardController()
+    val navigator = LocalCodeNavigator.current
     val resultBack = resultBackNavigator<GroupInviteResult>(exit = dismissSheet)
     LaunchedEffect(inviteViewModel) {
         inviteViewModel.invited.collect { chatId ->
@@ -323,6 +324,21 @@ private fun FlowGroupInviteSheet() {
         onMessageChanged = inviteViewModel::onMessageChanged,
         onInvite = { state.shareableGroupInviteUrl?.let(inviteViewModel::invite) },
         onDismiss = dismissSheet,
+        // The card is drawn over this sheet, which stays open beneath it.
+        onShowCard = (state.subject as? ChatSubject.Group)?.let { group ->
+            {
+                keyboard.hideIfVisible {
+                    navigator.push(
+                        AppRoute.Menu.GroupCard(
+                            chatId = group.chatId,
+                            title = group.groupTitle,
+                            picture = group.picture,
+                            memberCount = group.memberCount,
+                        )
+                    )
+                }
+            }
+        },
     )
 }
 

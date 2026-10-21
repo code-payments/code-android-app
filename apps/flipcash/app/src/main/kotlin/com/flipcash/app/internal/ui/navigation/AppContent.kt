@@ -52,6 +52,8 @@ import com.flipcash.app.core.ui.transitions.CardExpandTransition
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.core.tokens.TokenInfoPresentation
 import com.flipcash.app.internal.ui.AppNavigationBar
+import com.flipcash.app.internal.ui.SearchMorph
+import com.flipcash.app.search.PreloadSearch
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBillOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
@@ -92,6 +94,14 @@ private val pushedTokenInfoEntries: List<String> =
 private fun isGiveKey(key: Any?): Boolean =
     key?.toString()?.startsWith("Give(") == true
 
+/**
+ * Search, which fades over the screen it opens from while its field grows out of the nav bar's
+ * search button (see SearchMorph), rather than sliding in. Same stringified-key match as
+ * [isTokenInfoKey].
+ */
+private fun isSearchKey(key: Any?): Boolean =
+    key?.toString() == AppRoute.Messaging.Search.toString()
+
 @Composable
 internal fun AppContent(
     codeNavigator: CodeNavigator,
@@ -115,6 +125,10 @@ internal fun AppContent(
     // full screen in place, so there's no route change for the visibility rule below to notice.
     val tabBarVisibility = remember { TabBarVisibilityController() }
     val barVisibility = rememberAppNavigationBarVisibility(codeNavigator, tabBarVisibility, cardExpansion)
+    val searchMorph = remember(codeNavigator) { SearchMorph(codeNavigator) }
+    // Loads what Search fetches over the network while Home is up, so Search, which the bar opens
+    // from any tab, starts on loaded results rather than a spinner.
+    PreloadSearch()
 
     // Toasts float with the bar, so they are hosted here rather than per screen: outside the haze
     // source, so their glass has the nav content to blur, and under the bar in z, so a toast can grow
@@ -206,7 +220,7 @@ internal fun AppContent(
                         // CardExpandTransition + TokenCardStack.
                         isTokenInfoKey(targetState.key) ->
                             CardExpandTransition.openEnter togetherWith CardExpandTransition.openExit
-                        landsOnTab ->
+                        landsOnTab || isSearchKey(targetState.key) ->
                             fadeIn(tween(300)) togetherWith fadeOut(tween(300))
                         else ->
                             slideInHorizontally(initialOffsetX = { it }) togetherWith
@@ -226,6 +240,8 @@ internal fun AppContent(
                         // Swapping in a single frame keeps the scrim continuously up.
                         isGiveKey(initialState.key) ->
                             EnterTransition.None togetherWith ExitTransition.None
+                        isSearchKey(initialState.key) ->
+                            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
                         else ->
                             slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                     slideOutHorizontally(targetOffsetX = { it })
@@ -239,6 +255,9 @@ internal fun AppContent(
                         isTokenInfoKey(initialState.key) ->
                             CardExpandTransition.predictiveCloseEnter togetherWith
                                     CardExpandTransition.predictiveCloseExit
+                        // Seeked by the drag, so the field shrinks back into the search button.
+                        isSearchKey(initialState.key) ->
+                            fadeIn() togetherWith fadeOut()
                         else ->
                             slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                     slideOutHorizontally(targetOffsetX = { it })
@@ -250,6 +269,7 @@ internal fun AppContent(
                     barManager = barManager,
                     deepLink = deepLink,
                     onPendingAction = onPendingAction,
+                    searchMorph = searchMorph,
                 ),
             )
         }
@@ -270,12 +290,16 @@ internal fun AppContent(
             // The bar fades itself out with the wallet's card expansion — and drops out of the tree at
             // the end of the fade, so an invisible bar can't be tapped. See AppNavigationBar.
             visibility = barVisibility,
+            searchMorph = searchMorph,
             hazeState = hazeState,
             canSwitchAccounts = canSwitchAccounts,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .measured { if (it.height > tabBarHeight.value) tabBarHeight.value = it.height },
         )
+
+        // The search button's glass growing into Search's field, over everything below it.
+        searchMorph.Overlay(hazeState)
 
         // The expanded currency-info overlay is hosted INSIDE the wallet nav entry (see CardExpandHost),
         // not here — so a pushed Give/Convert/Withdraw naturally covers it (correct z-order) and the deck

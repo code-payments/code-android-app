@@ -437,6 +437,18 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val jumpBudget: Int? = null,
         /**
+         * The messages the reader tapped a quote in, newest tap last: the jump-to-bottom button
+         * returns to each in turn before it goes to the bottom. Empty when the chat opens and never
+         * stored; see ReplyReturnStack.kt for its rules.
+         */
+        val returnStack: List<Long> = emptyList(),
+        /**
+         * Bumped when a tap on the jump-to-bottom button found none of [returnStack]'s messages left
+         * in the chat, so the list goes to the bottom on that same tap. Counted, as a jump's flash is,
+         * so a second such tap is not lost to an unchanged value.
+         */
+        val newestRequests: Int = 0,
+        /**
          * True while a visit opened at a message has not yet landed on it, or found it cannot. The
          * list holds its unread-divider positioning until this clears, so the two don't both walk
          * the transcript on open; a message that can't be reached falls back to that positioning.
@@ -1092,8 +1104,26 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         data class CashLinkRefused(val tap: CashCardTap) : Event
 
-        /** Asks the transcript to scroll to [messageId] — a tap on a quote. */
-        data class JumpToMessage(val messageId: Long) : Event
+        /**
+         * Asks the transcript to scroll to [messageId]. [origin] is the message whose quote was
+         * tapped, pushed onto [State.returnStack]; null for a message link, which clears it.
+         */
+        data class JumpToMessage(val messageId: Long, val origin: Long? = null) : Event
+
+        /** The jump-to-bottom button was tapped while [State.returnStack] held a message. */
+        data object ReturnToOrigin : Event
+
+        /** Where that tap goes, read against the stored chat. See [ReturnLanding]. */
+        data class ReturnResolved(val landing: ReturnLanding) : Event
+
+        /**
+         * The reader scrolled by hand down to or past these origins. Only those on top of
+         * [State.returnStack] are dropped: one below an origin still waiting keeps its place.
+         */
+        data class ReturnOriginsReached(val origins: Set<Long>) : Event
+
+        /** The transcript reached the newest message, or a message link landed: nothing to return to. */
+        data object ReturnStackCleared : Event
 
         /** The same request, once the walk's bound is known. */
         data class JumpResolved(val messageId: Long, val budget: Int) : Event
@@ -3103,6 +3133,17 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             .launchIn(viewModelScope)
 
+        // Only distanceFromNewest, not resolveJump: an origin was on screen when its quote was
+        // tapped, so one no longer stored has gone from the chat, and is skipped rather than fetched.
+        eventFlow.filterIsInstance<Event.ReturnToOrigin>()
+            .onEach {
+                val state = stateFlow.value
+                val chatId = state.chatId ?: return@onEach
+                val landing = state.returnStack.returnLanding { chatCoordinator.distanceFromNewest(chatId, it) }
+                dispatchEvent(Event.ReturnResolved(landing))
+            }
+            .launchIn(viewModelScope)
+
         // A message link's landing. Started here rather than dispatched as JumpToMessage: eventFlow
         // is replay-0 and the chat id is not known yet, so the request waits on the open instead.
         // Held until the gate settles (see State.messageLinkLanding). A withheld landing gives up
@@ -3123,6 +3164,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     when (landing) {
                         MessageLinkLanding.Readable -> {
                             gatedLandingMessage.value = null
+                            dispatchEvent(Event.ReturnStackCleared)
                             resolveJump(chatId, openAtMessageId)
                         }
                         MessageLinkLanding.Withheld -> {
@@ -3906,7 +3948,8 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.SendMessage -> { state ->
                     val clears = lifetime == UnreadDividerLifetime.UntilSend &&
                         state.unreadBoundary is UnreadBoundary.At
-                    if (clears) state.copy(unreadBoundary = UnreadBoundary.None) else state
+                    val sent = state.copy(returnStack = emptyList())
+                    if (clears) sent.copy(unreadBoundary = UnreadBoundary.None) else sent
                 }
                 is Event.RetryMessage -> { state -> state }
                 is Event.StagePhotos -> { state -> state }
@@ -4068,7 +4111,26 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.CashLinkRefused -> { state -> state }
                 // The request itself changes nothing: the target is only worth holding once the
                 // walk's bound resolves, and that read is what decides whether it can be reached.
-                is Event.JumpToMessage -> { state -> state }
+                // The return stack is the one thing that moves now: a quote pushes the message it
+                // was tapped in, a message link has nowhere to return to.
+                is Event.JumpToMessage -> { state ->
+                    val origin = event.origin
+                    state.copy(returnStack = origin?.let(state.returnStack::pushOrigin) ?: emptyList())
+                }
+                Event.ReturnToOrigin -> { state -> state }
+                is Event.ReturnResolved -> { state ->
+                    val landing = event.landing
+                    val left = state.returnStack.dropLast(landing.popped)
+                    if (landing.origin == null) {
+                        state.copy(returnStack = left, newestRequests = state.newestRequests + 1)
+                    } else {
+                        state.copy(returnStack = left, jumpTarget = landing.origin, jumpBudget = landing.budget)
+                    }
+                }
+                is Event.ReturnOriginsReached -> { state ->
+                    state.copy(returnStack = state.returnStack.dropReached(event.origins))
+                }
+                Event.ReturnStackCleared -> { state -> state.copy(returnStack = emptyList()) }
                 is Event.JumpResolved -> { state ->
                     state.copy(jumpTarget = event.messageId, jumpBudget = event.budget)
                 }
