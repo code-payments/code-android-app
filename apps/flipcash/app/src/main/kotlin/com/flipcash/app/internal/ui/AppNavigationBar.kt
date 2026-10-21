@@ -6,7 +6,25 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.flipcash.core.R
+import com.getcode.ui.components.glass.floatingGlass
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -29,6 +47,11 @@ import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.NavigationBar
+import com.flipcash.app.core.ui.NavBarGlyph
+import com.flipcash.app.core.ui.label
+import com.getcode.ui.components.CircularIconButton
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.services.models.chat.BlobAccessContext
@@ -72,7 +95,10 @@ internal class AppNavigationBarVisibility(
      * home can also hide it without leaving its route (the You tab's tip card expanding in place).
      */
     val shown: Boolean by derivedStateOf {
-        (navigator.currentRouteKey as? AppRoute)?.asNavBarTab() != null &&
+        // Search keeps the bar: its pill and button hand over to Search's field (SearchMorph), and
+        // come back from it, rather than the whole bar sliding away.
+        val top = navigator.currentRouteKey
+        ((top as? AppRoute)?.asNavBarTab() != null || top is AppRoute.Messaging.Search) &&
             bottomBarMessages.value.isEmpty() &&
             !billUp.value &&
             !tabBarVisibility.isHidden
@@ -143,6 +169,7 @@ internal fun rememberAppNavigationBarVisibility(
 internal fun AppNavigationBar(
     navigator: CodeNavigator,
     visibility: AppNavigationBarVisibility,
+    searchMorph: SearchMorph,
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null,
     // The same gate as Switch Accounts in Advanced Features: beta flags unlocked, or staff.
@@ -152,10 +179,7 @@ internal fun AppNavigationBar(
 
     // Unread chats in the Chats list (tip DMs and groups), badged onto the Chats tab, so the badge
     // appears, updates and clears as conversations are read.
-    val session = LocalSessionController.current
-    val chatListUnreadCount by remember(session) {
-        session?.state?.map { it.chatListUnreadCount } ?: flowOf(0)
-    }.collectAsStateWithLifecycle(initialValue = 0)
+    val chatListUnreadCount by rememberChatListUnreadCount()
 
     val avatar = rememberProfileAvatar()
 
@@ -180,21 +204,63 @@ internal fun AppNavigationBar(
                     selectedTab = selectedTab ?: NavBarButton.Wallet,
                     chatListUnreadCount = chatListUnreadCount,
                 )
-                NavigationBar(
+                // The search button sits at the bar's trailing end, apart from the tabs, where
+                // iOS puts its search tab. It is as tall as the pill, which sizes to its content.
+                var pillHeight by remember { mutableStateOf(0.dp) }
+                val density = LocalDensity.current
+                Row(
                     modifier = Modifier
                         .navigationBarsPadding()
                         // Shared with the toast that rises out of the bar, so it is never wider.
                         .padding(horizontal = FloatingChrome.horizontalInset)
                         .padding(bottom = CodeTheme.dimens.grid.x3),
-                    state = state,
-                    onButtonClick = { button ->
-                        // Tab bar semantics: swap the current screen (single backstack).
-                        navigator.replaceAll(button.destinationRoute())
-                    },
-                    hazeState = hazeState,
-                    avatar = avatar,
-                    onYouTabLongClick = youTabLongClick(canSwitchAccounts, navigator),
-                )
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Both hand over to Search's field (SearchMorph). They keep their place while
+                    // hidden, so the button's bounds stay put for the morph back, but leave the tree
+                    // so they can't take taps meant for Search's bar.
+                    val chromeShown = searchMorph.chromeShown()
+                    Box(
+                        modifier = with(searchMorph) {
+                            Modifier
+                                .weight(1f)
+                                .heightIn(min = pillHeight)
+                                .morphChrome()
+                        },
+                    ) {
+                        if (chromeShown) {
+                            NavigationBar(
+                                modifier = Modifier.onSizeChanged {
+                                    pillHeight = with(density) { it.height.toDp() }
+                                },
+                                state = state,
+                                onButtonClick = { button ->
+                                    // Tab bar semantics: swap the current screen (single backstack).
+                                    navigator.replaceAll(button.destinationRoute())
+                                },
+                                hazeState = hazeState,
+                                avatar = avatar,
+                                onYouTabLongClick = youTabLongClick(canSwitchAccounts, navigator),
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = with(searchMorph) {
+                            Modifier
+                                .size(pillHeight.takeIf { it > 0.dp } ?: SearchButtonFallbackSize)
+                                .morphButton()
+                        },
+                    ) {
+                        if (chromeShown) {
+                            SearchButton(
+                                modifier = Modifier.fillMaxSize(),
+                                hazeState = hazeState,
+                                onClick = searchMorph::open,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -214,6 +280,60 @@ internal fun youTabLongClick(canSwitchAccounts: Boolean, navigator: CodeNavigato
     } else {
         null
     }
+
+/** Unread chats in the Chats list, the count the Chats tab badges. */
+@Composable
+private fun rememberChatListUnreadCount(): State<Int> {
+    val session = LocalSessionController.current
+    return remember(session) {
+        session?.state?.map { it.chatListUnreadCount } ?: flowOf(0)
+    }.collectAsStateWithLifecycle(initialValue = 0)
+}
+
+/**
+ * Search's leading button: the tab Search was opened from, glyph and unread badge as the nav bar
+ * draws it, so the way back reads as that tab. iOS's search tab sits beside the tab it came from the
+ * same way. [onClick] closes Search.
+ */
+@Composable
+internal fun SearchOriginTabButton(
+    navigator: CodeNavigator,
+    hazeState: HazeState,
+    onClick: () -> Unit,
+) {
+    // The tab home at the base of the stack, which is the tab Search was pushed over.
+    val tab by remember(navigator) {
+        derivedStateOf {
+            navigator.backStack.firstNotNullOfOrNull { (it as? AppRoute)?.asNavBarTab() }
+                ?: NavBarButton.Chats
+        }
+    }
+    val unread by rememberChatListUnreadCount()
+    val state = rememberNavigationBarState(selectedTab = tab, chatListUnreadCount = unread)
+    val label = stringResource(tab.label)
+    // The glyph sits over the button rather than in it: the button clips to its circle, and the
+    // badge has to overhang the corner the way it does on the tab.
+    Box(contentAlignment = Alignment.Center) {
+        CircularIconButton(
+            modifier = Modifier.semantics {
+                contentDescription = label
+            },
+            hazeState = hazeState,
+            onClick = onClick,
+            testTag = "search_back",
+        ) { }
+        NavBarGlyph(
+            button = tab,
+            selected = true,
+            badgeCount = state.badgeCount(tab),
+            avatar = rememberProfileAvatar(),
+            modifier = Modifier.size(SearchOriginGlyphSize),
+        )
+    }
+}
+
+// Inside the 44dp button, with the room the tab gives its glyph around it.
+private val SearchOriginGlyphSize = 24.dp
 
 /**
  * The account's own photo, ready to drop into the You tab, or null when there isn't one.
@@ -244,3 +364,31 @@ private fun rememberProfileAvatar(): (@Composable (Modifier) -> Unit)? {
         )
     }
 }
+
+/** The bar's search button, a glass circle that grows into Search's field (see [SearchMorph]). */
+@Composable
+private fun SearchButton(
+    hazeState: HazeState?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .floatingGlass(hazeState)
+            .testTag("nav_search")
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Search,
+            contentDescription = stringResource(R.string.cd_searchChats),
+            tint = Color.White,
+            modifier = Modifier.size(SearchIconSize),
+        )
+    }
+}
+
+// The tab glyphs' size, so the search glyph sits level with them.
+private val SearchIconSize = 28.dp
+// Before the pill has been measured; about its height at the default font scale.
+private val SearchButtonFallbackSize = 64.dp

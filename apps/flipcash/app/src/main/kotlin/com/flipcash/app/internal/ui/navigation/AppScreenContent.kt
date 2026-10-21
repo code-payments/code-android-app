@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
@@ -24,6 +25,9 @@ import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
+import com.flipcash.app.internal.ui.SearchMorph
+import com.flipcash.app.internal.ui.SearchOriginTabButton
+import com.flipcash.app.search.SearchScreen
 import com.flipcash.app.tipping.FindByUsernameScreen
 import com.flipcash.app.tipping.ArchivedChatsScreen
 import com.flipcash.app.tipping.RequestsScreen
@@ -85,11 +89,12 @@ import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.components.bars.BarManager
 import dev.theolm.rinku.DeepLink
 
-fun appEntryProvider(
+internal fun appEntryProvider(
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
+    searchMorph: SearchMorph? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
 
     // Loading / splash
@@ -140,6 +145,21 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address, key.origin) }
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
     annotatedEntry<AppRoute.Messaging.ArchivedChats> { ArchivedChatsScreen() }
+    annotatedEntry<AppRoute.Messaging.Search> {
+        // The field grows out of the nav bar's search button as the keyboard rises; see SearchMorph.
+        searchMorph?.Publish()
+        val navigator = LocalCodeNavigator.current
+        SearchScreen(
+            field = { modifier, field ->
+                if (searchMorph != null) field(with(searchMorph) { modifier.morphField() }) else field(modifier)
+            },
+            close = searchMorph?.let { morph -> { raised, imeBottom -> morph.close(raised, imeBottom) } },
+            backButton = { onClick, hazeState ->
+                SearchOriginTabButton(navigator = navigator, hazeState = hazeState, onClick = onClick)
+            },
+            barButtons = if (searchMorph != null) with(searchMorph) { Modifier.morphBarButton() } else Modifier,
+        )
+    }
     annotatedEntry<AppRoute.Messaging.Requests> { RequestsScreen() }
     annotatedEntry<AppRoute.Messaging.FindByUsername> { FindByUsernameScreen() }
     annotatedEntry<AppRoute.Messaging.NewGroup> { key ->

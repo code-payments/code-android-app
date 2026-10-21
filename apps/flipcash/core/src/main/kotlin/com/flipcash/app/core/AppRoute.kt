@@ -413,6 +413,14 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object NewChat : Messaging
 
         /**
+         * Search across chats, currencies, messages and links (node 12248:72), behind the search
+         * button on the Chats list. Pushed for the reason [NewChat] is.
+         */
+        @Serializable
+        @Parcelize
+        data object Search : Messaging
+
+        /**
          * The chats the viewer archived, behind the Archived row on the Chats list.
          *
          * A pushed route rather than an in-place screen, for the reason [NewChat] is: the Chats
