@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -134,10 +133,8 @@ internal class SearchViewModel @Inject constructor(
     init {
         // A cleared query starts the next search from All, whichever chip the last one ended on.
         viewModelScope.launch {
-            snapshotFlow { SearchMatching.query(query.text.toString()) == null }
-                .distinctUntilChanged()
-                .filter { it }
-                .collect { _chip.value = SearchChip.All }
+            snapshotFlow { query.text.toString() }
+                .collect { raw -> _chip.value = SearchMatching.chipAfterQueryChange(_chip.value, raw) }
         }
         viewModelScope.launch {
             val messages = withContext(dispatchers.IO) {

@@ -15,6 +15,17 @@ class SearchMatchingTest {
     }
 
     @Test
+    fun `clearing the query returns to All`() {
+        assertEquals(SearchChip.All, SearchMatching.chipAfterQueryChange(SearchChip.Links, ""))
+        assertEquals(SearchChip.All, SearchMatching.chipAfterQueryChange(SearchChip.Messages, "  "))
+    }
+
+    @Test
+    fun `editing a query that still has text keeps the chip`() {
+        assertEquals(SearchChip.Links, SearchMatching.chipAfterQueryChange(SearchChip.Links, "jef"))
+    }
+
+    @Test
     fun `the query is trimmed and folded`() {
         assertEquals("jose", SearchMatching.query("  José "))
     }
