@@ -53,6 +53,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -695,9 +696,15 @@ private fun SearchBar(
     // Opening Search is for typing, so focus is asked for as the field starts growing out of the nav
     // bar's button. The keyboard takes several hundred ms to start moving, longer than the morph, so
     // waiting on any point of the enter leaves the field sitting at the bottom before it rises. The
-    // bar rides the keyboard's inset, so it climbs as the keyboard rises.
+    // bar rides the keyboard's inset, so it climbs as the keyboard rises. Focus alone doesn't show the
+    // keyboard on every device (a hardware keyboard suppresses it), so it is asked for explicitly.
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(focusRequester) { focusRequester.requestFocus() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(focusRequester) {
+        withFrameNanos { }
+        focusRequester.requestFocus()
+        keyboard?.show()
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
