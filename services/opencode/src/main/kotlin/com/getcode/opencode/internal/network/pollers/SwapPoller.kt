@@ -78,7 +78,7 @@ internal class SwapPoller @Inject constructor(
                     type = TraceType.Error,
                     message = "Swap in unknown state, Swap ID: ${swapId.publicKey.base58()}"
                 )
-                throw SwapError.Other()
+                throw SwapError.UnknownState()
             }
             else -> {
                 // Still in progress, poll again

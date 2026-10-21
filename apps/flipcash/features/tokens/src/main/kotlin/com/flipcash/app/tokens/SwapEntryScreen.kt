@@ -170,13 +170,7 @@ internal fun SwapEntryScreen(
             }.launchIn(this)
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<SwapViewModel.Event.OnPurchaseSubmitted>()
-            .onEach {
-                flowNavigator.navigateTo(SwapStep.Processing)
-            }.launchIn(this)
-    }
+    SwapCompletionEffects(viewModel, flowNavigator, isSubmitting = state.buyProgress.loading || state.sellProgress.loading)
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow

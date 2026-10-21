@@ -40,17 +40,17 @@ internal fun BuyReceiptScreen() {
                 }
             ),
             titleAlignment = Alignment.CenterHorizontally,
-            onBackIconClicked = { flowNavigator.back() }
+            onBackIconClicked = {
+                if (state.buyProgress.loading) {
+                    // swallow
+                } else {
+                    flowNavigator.back()
+                }
+            }
         )
 
         TokenBuyReceiptScreen(viewModel)
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<SwapViewModel.Event.OnPurchaseSubmitted>()
-            .onEach {
-                flowNavigator.navigateTo(SwapStep.Processing)
-            }.launchIn(this)
-    }
+    SwapCompletionEffects(viewModel, flowNavigator, isSubmitting = state.buyProgress.loading)
 }

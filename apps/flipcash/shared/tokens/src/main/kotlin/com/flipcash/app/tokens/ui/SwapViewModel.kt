@@ -14,9 +14,10 @@ import com.flipcash.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.extensions.onResult
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
+import com.flipcash.app.tokens.InlineCompletion
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.onramp.CoinbaseOnRampController
@@ -84,6 +85,7 @@ import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -119,10 +121,10 @@ class SwapViewModel @Inject constructor(
     private val accountController: AccountController,
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
-    transactionController: TransactionOperations,
+    private val transactionController: TransactionOperations,
     private val resources: ResourceHelper,
     private val tokenCoordinator: TokenCoordinator,
-    feedCoordinator: ActivityFeedCoordinator,
+    private val feedCoordinator: ActivityFeedCoordinator,
     private val analytics: FlipcashAnalytics,
     private val purchaseMethodController: PurchaseMethodController,
     private val coinbaseOnRampController: CoinbaseOnRampController,
@@ -402,7 +404,24 @@ class SwapViewModel @Inject constructor(
             val success: Boolean = false
         ) : Event
 
-        data class OnSwapIdChanged(val swapId: SwapId) : Event
+        /**
+         * A swap id is known and needs polling to completion.
+         *
+         * [inlineFor] is set by the in-scope submit sites (buy, sell, convert): the confirm button
+         * stays in loading while the swap is polled in place, handing off to Processing only if
+         * that takes longer than [InlineCompletion.FAST_POLL_WINDOW]. Left null (Phantom, Coinbase)
+         * the caller has already navigated to Processing and polling runs at the regular cadence.
+         */
+        data class OnSwapIdChanged(
+            val swapId: SwapId,
+            val inlineFor: ConfirmButton? = null,
+        ) : Event
+
+        /** The confirm button that is spinning while a swap completes in place. */
+        enum class ConfirmButton { Buy, Sell }
+
+        /** The in-place fast window elapsed; the screen should show Processing. */
+        data object ProcessingTakingLonger : Event
 
         data object StartPhantomCeremony : Event
         data object PhantomConnected : Event
@@ -446,11 +465,8 @@ class SwapViewModel @Inject constructor(
         data object ShowConvertReceipt : Event
         data object OnConvertConfirmed : Event
         data class ProceedWithConversion(val amount: VerifiedFiat) : Event
-        data class OnConvertSubmitted(val token: Token, val swapId: SwapId) : Event
         // endregion
 
-        data class OnPurchaseSubmitted(val token: Token, val swapId: SwapId) : Event
-        data class OnSellSubmitted(val token: Token, val swapId: SwapId) : Event
 
         data class UpdateProcessingState(
             val loading: Boolean = false,
@@ -1259,9 +1275,8 @@ class SwapViewModel @Inject constructor(
 
                 result.onSuccess { swapId ->
                     trackTransaction(source)
-                    dispatchEvent(Event.OnSwapIdChanged(swapId))
-                    dispatchEvent(Event.OnConvertSubmitted(destination, swapId))
-                    dispatchEvent(Event.UpdateSellState(loading = false, success = true))
+                    // button stays loading; the completion collector resolves it
+                    dispatchEvent(Event.OnSwapIdChanged(swapId, Event.ConfirmButton.Sell))
                     tokenCoordinator.subtract(source, amount.localFiat)
                 }.onFailure { cause ->
                     trackTransaction(source, error = cause)
@@ -1451,9 +1466,8 @@ class SwapViewModel @Inject constructor(
 
                 result.onSuccess { swapId ->
                     trackTransaction(targetToken)
-                    dispatchEvent(Event.OnSwapIdChanged(swapId))
-                    dispatchEvent(Event.OnPurchaseSubmitted(targetToken, swapId))
-                    dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
+                    // button stays loading; the completion collector resolves it
+                    dispatchEvent(Event.OnSwapIdChanged(swapId, Event.ConfirmButton.Buy))
                     // buy/swap submitted, drop the spent balance from the funding token
                     tokenCoordinator.subtract(fundingToken.token, amount.localFiat)
                 }.onFailure { cause ->
@@ -1511,9 +1525,8 @@ class SwapViewModel @Inject constructor(
                     of = token,
                 ).onSuccess { swapId ->
                     trackTransaction(token)
-                    dispatchEvent(Event.OnSwapIdChanged(swapId))
-                    dispatchEvent(Event.OnSellSubmitted(token, swapId))
-                    dispatchEvent(Event.UpdateSellState(loading = false, success = true))
+                    // button stays loading; the completion collector resolves it
+                    dispatchEvent(Event.OnSwapIdChanged(swapId, Event.ConfirmButton.Sell))
                     // sell submitted, drop from balance
                     tokenCoordinator.subtract(token, amount.localFiat)
                 }.onFailure { cause ->
@@ -1537,48 +1550,20 @@ class SwapViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnSwapIdChanged>()
-            .mapNotNull { event ->
-                val owner = userManager.accountCluster ?: return@mapNotNull null
-                owner to event.swapId
-            }
-            .map { (owner, swapId) ->
-                dispatchEvent(Event.UpdateProcessingState(loading = true))
-                transactionController.pollSwapForState(
-                    swapId = swapId,
-                    owner = owner,
-                    targetState = SwapState.FINALIZED
-                )
-            }.onResult(
-                onSuccess = {
-                    val token = stateFlow.value.tokenWithBalance!!.token
-                    val isUsingReserves = stateFlow.value.purpose is SwapPurpose.Buy ||
-                            stateFlow.value.purpose is SwapPurpose.Sell
-                    viewModelScope.launch { tokenCoordinator.updateTokenAccount(token) }
-                    if (isUsingReserves) {
-                        viewModelScope.launch { tokenCoordinator.updateTokenAccount(Mint.usdf) }
-                    }
-                    // A conversion moves value between two accounts; refresh the one it landed in.
-                    (stateFlow.value.purpose as? SwapPurpose.Convert)?.let { convert ->
-                        viewModelScope.launch {
-                            tokenCoordinator.updateTokenAccount(convert.destinationMint)
-                        }
-                    }
-                    viewModelScope.launch {
-                        // update activity feed to grab the tx as a result of this buy/sell
-                        feedCoordinator.fetchSinceLatest()
-                    }
-                    dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
-                },
-                onError = {
-                    dispatchEvent(
-                        Event.UpdateProcessingState(
-                            loading = false,
-                            success = false,
-                            error = true
-                        )
-                    )
+            .onEach { event ->
+                val owner = userManager.accountCluster ?: return@onEach
+                if (event.inlineFor != null) {
+                    completeInPlace(owner, event.swapId, event.inlineFor)
+                } else {
+                    dispatchEvent(Event.UpdateProcessingState(loading = true))
+                    transactionController.pollSwapForState(
+                        swapId = event.swapId,
+                        owner = owner,
+                        targetState = SwapState.FINALIZED,
+                    ).onSuccess { onSwapFinalized(markProcessingSuccess = true) }
+                        .onFailure { dispatchProcessingFailed() }
                 }
-            ).launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
 
         // Reset buy loading state when Coinbase payment is canceled or fails.
         // CoinbaseOnRampHandler handles error display; we just clear loading.
@@ -1899,6 +1884,96 @@ class SwapViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Polls a just-submitted swap on the screen that submitted it. Falls through to the Processing
+     * screen (continuing at the regular cadence for what is left of the budget) when nothing
+     * terminal arrives inside the fast window.
+     */
+    private suspend fun completeInPlace(
+        owner: AccountCluster,
+        swapId: SwapId,
+        button: Event.ConfirmButton,
+    ) {
+        val fast = transactionController.pollSwapForState(
+            swapId = swapId,
+            owner = owner,
+            targetState = SwapState.FINALIZED,
+            maxAttempts = InlineCompletion.FAST_POLL_ATTEMPTS,
+            interval = InlineCompletion.FAST_POLL_INTERVAL,
+        )
+
+        fast.onSuccess {
+            onSwapFinalized(markProcessingSuccess = false)
+            updateConfirmButton(button, success = true)
+            delay(InlineCompletion.SUCCESS_HOLD)
+            dispatchEvent(Event.OnTransactionSuccessful)
+            return
+        }
+
+        val cause = fast.exceptionOrNull()
+        if (cause is SwapError.Timeout || cause is SwapError.UnknownState) {
+            // Not a failure: hand over to Processing and keep waiting for the remainder.
+            dispatchEvent(Event.UpdateProcessingState(loading = true))
+            dispatchEvent(Event.ProcessingTakingLonger)
+            transactionController.pollSwapForState(
+                swapId = swapId,
+                owner = owner,
+                targetState = SwapState.FINALIZED,
+                maxAttempts = InlineCompletion.SWAP_SLOW_ATTEMPTS,
+                interval = InlineCompletion.SLOW_POLL_INTERVAL,
+            ).onSuccess { onSwapFinalized(markProcessingSuccess = true) }
+                .onFailure { dispatchProcessingFailed() }
+            return
+        }
+
+        // Terminal state or RPC failure: stay on the confirm screen, let the user retry.
+        updateConfirmButton(button)
+        BottomBarManager.showError(
+            title = resources.getString(R.string.error_title_buySellFailed),
+            message = resources.getString(R.string.error_description_buySellFailed),
+        )
+    }
+
+    private fun updateConfirmButton(button: Event.ConfirmButton, success: Boolean = false) {
+        dispatchEvent(
+            when (button) {
+                Event.ConfirmButton.Buy -> Event.UpdateBuyState(loading = false, success = success)
+                Event.ConfirmButton.Sell -> Event.UpdateSellState(loading = false, success = success)
+            }
+        )
+    }
+
+    private fun dispatchProcessingFailed() {
+        dispatchEvent(
+            Event.UpdateProcessingState(loading = false, success = false, error = true)
+        )
+    }
+
+    /** Refreshes what a finalized swap changed. Shared by the in-place and Processing paths. */
+    private fun onSwapFinalized(markProcessingSuccess: Boolean) {
+        val token = stateFlow.value.tokenWithBalance!!.token
+        val isUsingReserves = stateFlow.value.purpose is SwapPurpose.Buy ||
+                stateFlow.value.purpose is SwapPurpose.Sell
+        viewModelScope.launch { tokenCoordinator.updateTokenAccount(token) }
+        if (isUsingReserves) {
+            viewModelScope.launch { tokenCoordinator.updateTokenAccount(Mint.usdf) }
+        }
+        // A conversion moves value between two accounts; refresh the one it landed in.
+        (stateFlow.value.purpose as? SwapPurpose.Convert)?.let { convert ->
+            viewModelScope.launch {
+                tokenCoordinator.updateTokenAccount(convert.destinationMint)
+            }
+        }
+        viewModelScope.launch {
+            // update activity feed to grab the tx as a result of this buy/sell
+            feedCoordinator.fetchSinceLatest()
+        }
+        // The in-place path resolves its own button instead.
+        if (markProcessingSuccess) {
+            dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
+        }
+    }
+
     private fun handlePhantomError(error: Throwable) {
         val deeplinkError = error as? DeeplinkOnRampError
             ?: DeeplinkOnRampError.FailedToCreateTransaction(message = error.message, cause = error)
@@ -2072,7 +2147,7 @@ class SwapViewModel @Inject constructor(
                 Event.OnConvertConfirmed -> { state -> state }
 
                 is Event.ProceedWithConversion -> { state -> state }
-                is Event.OnConvertSubmitted -> { state -> state }
+                Event.ProcessingTakingLonger -> { state -> state }
 
                 is Event.SelectFundingToken -> { state -> state }
                 is Event.OnFundingTokenSelected -> { state -> state }
@@ -2121,9 +2196,7 @@ class SwapViewModel @Inject constructor(
                 is Event.ProceedWithSale -> { state -> state }
                 is Event.CreateAndSendTransactionToWallet -> { state -> state }
                 Event.OnTransactionSuccessful -> { state -> state }
-                is Event.OnPurchaseSubmitted -> { state -> state }
                 is Event.OnSellConfirmed -> { state -> state }
-                is Event.OnSellSubmitted -> { state -> state }
                 Event.ShowSellReceipt -> { state -> state }
                 is Event.OnInitialAmountProvided -> { state ->
                     state.copy(minimumBuyAmount = event.amount, pendingInitialAmount = event.amount)

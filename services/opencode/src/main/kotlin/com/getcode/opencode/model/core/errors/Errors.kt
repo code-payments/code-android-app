@@ -320,6 +320,12 @@ sealed class SwapError(
      */
     class Terminal(val state: SwapState) : SwapError(message = "Swap reached terminal state: $state")
 
+    /**
+     * The backend reported [SwapState.UNKNOWN] while polling. Unlike [Other] this says nothing
+     * about the swap's outcome, so callers treat it like a [Timeout] (keep waiting), never as a failure.
+     */
+    class UnknownState : SwapError(message = "Swap is in an unknown state"), NotifiableError
+
     data class Other(override val cause: Throwable? = null) : SwapError(message = cause?.message, cause = cause), NotifiableError
 
     companion object {
