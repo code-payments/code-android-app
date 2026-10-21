@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
@@ -24,7 +25,8 @@ import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
-import com.flipcash.app.search.PreloadSearch
+import com.flipcash.app.internal.ui.SearchMorph
+import com.flipcash.app.internal.ui.searchMorph
 import com.flipcash.app.search.SearchScreen
 import com.flipcash.app.tipping.FindByUsernameScreen
 import com.flipcash.app.tipping.ArchivedChatsScreen
@@ -86,11 +88,12 @@ import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.components.bars.BarManager
 import dev.theolm.rinku.DeepLink
 
-fun appEntryProvider(
+internal fun appEntryProvider(
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
+    searchMorph: SearchMorph? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
 
     // Loading / splash
@@ -116,11 +119,7 @@ fun appEntryProvider(
         // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
         CardExpandHost { WalletScreen() }
     }
-    annotatedEntry<AppRoute.Tabs.Chats> {
-        // Loads what Search needs while Chats is up, so Search opens without a spinner.
-        PreloadSearch()
-        ChatsScreen()
-    }
+    annotatedEntry<AppRoute.Tabs.Chats> { ChatsScreen() }
     annotatedEntry<AppRoute.Tabs.Menu> { MenuScreen() }
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
@@ -145,7 +144,11 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address, key.origin) }
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
     annotatedEntry<AppRoute.Messaging.ArchivedChats> { ArchivedChatsScreen() }
-    annotatedEntry<AppRoute.Messaging.Search> { SearchScreen() }
+    annotatedEntry<AppRoute.Messaging.Search> {
+        // The field grows out of the nav bar's search button; see SearchMorph.
+        searchMorph?.Publish()
+        SearchScreen(fieldModifier = if (searchMorph != null) Modifier.searchMorph() else Modifier)
+    }
     annotatedEntry<AppRoute.Messaging.Requests> { RequestsScreen() }
     annotatedEntry<AppRoute.Messaging.FindByUsername> { FindByUsernameScreen() }
     annotatedEntry<AppRoute.Messaging.NewGroup> { key ->

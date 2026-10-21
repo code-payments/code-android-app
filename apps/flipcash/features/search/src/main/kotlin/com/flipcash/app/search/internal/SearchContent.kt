@@ -39,6 +39,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import com.flipcash.app.core.ui.transitions.RequestFocusWhenSettled
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,6 +85,7 @@ internal fun SearchContent(
     onOpenCurrency: (Token) -> Unit,
     onOpenLink: (SharedLink) -> Unit,
     onClose: () -> Unit,
+    fieldModifier: Modifier = Modifier,
 ) {
     Column(
         modifier = Modifier
@@ -115,7 +119,7 @@ internal fun SearchContent(
                 }
             }
         }
-        SearchBar(query = query, onClose = onClose)
+        SearchBar(query = query, onClose = onClose, fieldModifier = fieldModifier)
     }
 }
 
@@ -533,7 +537,11 @@ private fun attributionText(attribution: Attribution): String = when (attributio
  * chats, the field, and ✕, which clears a query before it closes Search.
  */
 @Composable
-private fun SearchBar(query: TextFieldState, onClose: () -> Unit) {
+private fun SearchBar(query: TextFieldState, onClose: () -> Unit, fieldModifier: Modifier) {
+    // Opening Search is for typing, so the keyboard comes up once the field has finished growing
+    // out of the nav bar's button; raising it mid-morph would resize the screen under it.
+    val focusRequester = remember { FocusRequester() }
+    RequestFocusWhenSettled(focusRequester)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -550,7 +558,10 @@ private fun SearchBar(query: TextFieldState, onClose: () -> Unit) {
             )
         }
         SearchInput(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .then(fieldModifier)
+                .focusRequester(focusRequester),
             state = query,
             placeholder = stringResource(R.string.hint_search),
         )

@@ -1,6 +1,7 @@
 package com.flipcash.app.search
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -20,9 +21,12 @@ import com.getcode.navigation.core.LocalCodeNavigator
 /**
  * Search across chats, currencies, messages and links (nodes 12248:72, 12248:97, 12248:121,
  * 12248:136). The query is held by the screen's view model only, so it is gone once Search is.
+ *
+ * [fieldModifier] goes on the search field, so the host can grow it out of the nav bar's search
+ * button.
  */
 @Composable
-fun SearchScreen() {
+fun SearchScreen(fieldModifier: Modifier = Modifier) {
     val viewModel = hiltViewModel<SearchViewModel>()
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
@@ -58,6 +62,7 @@ fun SearchScreen() {
         },
         onOpenLink = { link -> externalLinks.openUri(link.url) },
         onClose = { navigator.pop() },
+        fieldModifier = fieldModifier,
     )
 }
 
