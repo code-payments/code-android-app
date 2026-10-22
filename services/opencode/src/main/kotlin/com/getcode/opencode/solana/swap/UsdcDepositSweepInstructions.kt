@@ -5,7 +5,8 @@ import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
 import com.getcode.opencode.internal.solana.model.CoinbaseSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
-import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_Swap
+import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram
+import com.getcode.opencode.internal.solana.programs.coinbaseStableSwapperSwapInstruction
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitLimit
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitPrice
 import com.getcode.opencode.internal.solana.programs.MemoProgram_Memo
@@ -35,6 +36,7 @@ internal fun buildStatelessSwapInstructions(
     fromMint: MintMetadata,
     toMint: MintMetadata,
     amount: Long,
+    swapVersion: Int = CoinbaseStableSwapperProgram.SERVER_SWAP_VERSION,
 ): List<Instruction> {
     val toVm = requireNotNull(toMint.vmMetadata) {
         "Destination mint missing VM metadata: ${toMint.symbol}"
@@ -98,7 +100,8 @@ internal fun buildStatelessSwapInstructions(
 
         // 5. CoinbaseStableSwapper::Swap (owner's from_mint ATA -> owner's to_mint VM Deposit ATA)
         add(
-            CoinbaseStableSwapperProgram_Swap(
+            coinbaseStableSwapperSwapInstruction(
+                swapVersion = swapVersion,
                 pool = swapAccounts.pool,
                 inVault = swapAccounts.inVault,
                 outVault = swapAccounts.outVault,
@@ -114,7 +117,7 @@ internal fun buildStatelessSwapInstructions(
                 whitelist = swapAccounts.whitelist,
                 amountIn = amount,
                 minAmountOut = amount, // 1:1 stable pair
-            ).instruction()
+            )
         )
     }
 }

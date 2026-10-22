@@ -4,6 +4,7 @@ import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.network.extensions.asSignature
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
+import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.financial.usdf
@@ -33,17 +34,20 @@ internal class IntentStatelessSwap(
         )
     }
 
+    internal fun stablecoinParams(): OcpTransactionService.StatelessSwapRequest.Initiate.CoinbaseStableSwapperClientParameters =
+        OcpTransactionService.StatelessSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.newBuilder()
+            .setFromMint(request.fromMint.asSolanaAccountId())
+            .setToMint(request.toMint.asSolanaAccountId())
+            .setSwapAmount(request.amount)
+            // Same constant the transaction builder defaults to, so request and local build agree.
+            .setSwapVersion(CoinbaseStableSwapperProgram.SERVER_SWAP_VERSION)
+            .build()
+
     fun initiate(): OcpTransactionService.StatelessSwapRequest {
         val owner = request.owner.authority.keyPair
         val initiate = OcpTransactionService.StatelessSwapRequest.Initiate.newBuilder()
             .setOwner(owner.asSolanaAccountId())
-            .setStablecoin(
-                OcpTransactionService.StatelessSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.newBuilder()
-                    .setFromMint(request.fromMint.asSolanaAccountId())
-                    .setToMint(request.toMint.asSolanaAccountId())
-                    .setSwapAmount(request.amount)
-                    .build()
-            )
+            .setStablecoin(stablecoinParams())
             .setWaitForFinalization(request.waitForFinalization)
             .apply { setSignature(sign(owner)) }
             .build()

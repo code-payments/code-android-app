@@ -92,12 +92,14 @@ class StatelessSwapInstructionsTest {
     private fun buildInstructions(
         amount: Long = 1_000_000L,
         params: StatelessSwapServerParameters = serverParameters,
+        swapVersion: Int = 2,
     ) = buildStatelessSwapInstructions(
         serverParameters = params,
         owner = owner,
         fromMint = fromMintMetadata,
         toMint = toMintMetadata,
         amount = amount,
+        swapVersion = swapVersion,
     )
 
     // --- Instruction count ---
@@ -297,9 +299,19 @@ class StatelessSwapInstructionsTest {
     }
 
     @Test
-    fun `swap instruction has correct whitelist PDA`() {
+    fun `swap instruction is SwapV2 without whitelist by default`() {
         val ix = buildInstructions()[4]
+        assertEquals(15, ix.accounts.size)
+        assertEquals(listOf<Byte>(43, 4, -19, 11, 26, -55, 30, 98), ix.data.take(8))
+        val whitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
+        assertTrue(ix.accounts.none { it.publicKey == whitelist })
+    }
+
+    @Test
+    fun `swap instruction has whitelist PDA when swapVersion is 1`() {
+        val ix = buildInstructions(swapVersion = 1)[4]
         val expectedWhitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
+        assertEquals(16, ix.accounts.size)
         assertEquals(expectedWhitelist, ix.accounts[12].publicKey)
     }
 
