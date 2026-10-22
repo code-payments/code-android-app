@@ -5,7 +5,7 @@ import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
 import com.getcode.opencode.internal.solana.model.CoinbaseSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
-import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_Swap
+import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_SwapV2
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitLimit
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitPrice
 import com.getcode.opencode.internal.solana.vmAuthority
@@ -24,7 +24,7 @@ import com.getcode.solana.keys.PublicKey
  *  1. ComputeBudget::SetComputeUnitLimit(200_000)
  *  2. ComputeBudget::SetComputeUnitPrice(1_000)
  *  3. AssociatedTokenAccount::CreateIdempotent (owner's USDF VM deposit PDA ATA — Phantom pays rent)
- *  4. CoinbaseStableSwapper::Swap (sender's USDC ATA → owner's USDF VM deposit PDA ATA)
+ *  4. CoinbaseStableSwapper::SwapV2 (sender's USDC ATA → owner's USDF VM deposit PDA ATA)
  *
  * The Geyser watcher monitors the deposit PDA ATA and transfers USDF
  * into the VM once funds land — same path as the stateless sweep.
@@ -82,9 +82,9 @@ internal fun buildUsdfDepositInstructions(
                 mint = Mint.usdf,
             ).instruction()
         )
-        // 4. CoinbaseStableSwapper::Swap (sender's USDC ATA → owner's USDF VM deposit PDA ATA)
+        // 4. CoinbaseStableSwapper::SwapV2 (sender's USDC ATA → owner's USDF VM deposit PDA ATA)
         add(
-            CoinbaseStableSwapperProgram_Swap(
+            CoinbaseStableSwapperProgram_SwapV2(
                 pool = swapAccounts.pool,
                 inVault = swapAccounts.inVault,
                 outVault = swapAccounts.outVault,
@@ -97,7 +97,6 @@ internal fun buildUsdfDepositInstructions(
                 fromMint = Mint.usdc,
                 toMint = Mint.usdf,
                 user = sender,
-                whitelist = swapAccounts.whitelist,
                 amountIn = amount,
                 minAmountOut = amount, // 1:1 stable pair
             ).instruction()

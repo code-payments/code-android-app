@@ -3,7 +3,7 @@ package com.getcode.opencode.solana.swap
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.CoinbaseSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
-import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_Swap
+import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_SwapV2
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitLimit
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitPrice
 import com.getcode.opencode.internal.solana.programs.MemoProgram_Memo
@@ -115,9 +115,9 @@ internal fun buildStablecoinSwapperInstructions(
             ).instruction()
         )
 
-        // 8. CoinbaseStableSwapper::Swap (from_mint swap authority ATA -> to_mint destination owner ATA)
+        // 8. CoinbaseStableSwapper::SwapV2 (from_mint swap authority ATA -> to_mint destination owner ATA)
         add(
-            CoinbaseStableSwapperProgram_Swap(
+            CoinbaseStableSwapperProgram_SwapV2(
                 pool = swapAccounts.pool,
                 inVault = swapAccounts.inVault,
                 outVault = swapAccounts.outVault,
@@ -130,7 +130,6 @@ internal fun buildStablecoinSwapperInstructions(
                 fromMint = fromMintMetadata.address,
                 toMint = toMintMetadata.address,
                 user = swapAuthority,
-                whitelist = swapAccounts.whitelist,
                 amountIn = amount,
                 minAmountOut = minOutput,
             ).instruction()

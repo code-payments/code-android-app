@@ -9,6 +9,7 @@ import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.OpenAccountsMetadata.AccountSet
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
@@ -372,6 +373,7 @@ internal fun StatefulSwapRequest.stablecoinParams(): OcpTransactionService.State
                 .setFeeAmount(this@stablecoinParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
                 .setFundingSource(OcpTransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
                 .setFundingId(details.fundingSource.id.base58)
+                .setSwapVersion(CoinbaseStableSwapperProgram.SERVER_SWAP_VERSION)
         }
     }
 }

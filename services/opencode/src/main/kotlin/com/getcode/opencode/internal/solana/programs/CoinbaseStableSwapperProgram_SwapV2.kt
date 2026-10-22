@@ -5,7 +5,11 @@ import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.bytes
 
-internal class CoinbaseStableSwapperProgram_Swap(
+/**
+ * CoinbaseStableSwapper::SwapV2 (`swap_v2`), the only swap instruction the app builds. It takes
+ * 15 accounts; the retired v1 `swap` also took a whitelist account.
+ */
+internal class CoinbaseStableSwapperProgram_SwapV2(
     private val pool: PublicKey,
     private val inVault: PublicKey,
     private val outVault: PublicKey,
@@ -18,7 +22,6 @@ internal class CoinbaseStableSwapperProgram_Swap(
     private val fromMint: PublicKey,
     private val toMint: PublicKey,
     private val user: PublicKey,
-    private val whitelist: PublicKey,
     private val amountIn: Long,
     private val minAmountOut: Long,
 ) : InstructionType {
@@ -38,7 +41,6 @@ internal class CoinbaseStableSwapperProgram_Swap(
                 AccountMeta.readonly(publicKey = fromMint),
                 AccountMeta.readonly(publicKey = toMint),
                 AccountMeta.writable(publicKey = user, signer = true),
-                AccountMeta.readonly(publicKey = whitelist),
                 AccountMeta.readonly(publicKey = TokenProgram.address),
                 AccountMeta.readonly(publicKey = AssociatedTokenProgram.address),
                 AccountMeta.readonly(publicKey = SystemProgram.address),
@@ -48,7 +50,6 @@ internal class CoinbaseStableSwapperProgram_Swap(
     }
 
     override fun encode(): List<Byte> = buildList {
-        // 8-byte Anchor discriminator: [248, 198, 158, 145, 225, 117, 135, 200]
         addAll(DISCRIMINATOR.toList())
         addAll(amountIn.bytes)
         addAll(minAmountOut.bytes)
@@ -56,8 +57,7 @@ internal class CoinbaseStableSwapperProgram_Swap(
 
     companion object {
         private val DISCRIMINATOR = byteArrayOf(
-            248.toByte(), 198.toByte(), 158.toByte(), 145.toByte(),
-            225.toByte(), 117.toByte(), 135.toByte(), 200.toByte(),
+            43, 4, 237.toByte(), 11, 26, 201.toByte(), 30, 98,
         )
     }
 }

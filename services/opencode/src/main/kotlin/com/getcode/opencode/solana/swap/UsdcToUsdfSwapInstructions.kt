@@ -4,7 +4,7 @@ import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.CoinbaseSwapAccounts
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
-import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_Swap
+import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_SwapV2
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitLimit
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitPrice
 import com.getcode.opencode.internal.solana.programs.MemoProgram_Memo
@@ -68,7 +68,7 @@ internal fun buildUsdcToUsdfSwapInstructions(
             ).instruction()
         )
 
-        // 7. Swap (USDC ATA -> USDF ATA)
+        // 7. Swap (USDC ATA -> USDF ATA); the Coinbase pool uses CoinbaseStableSwapper::SwapV2
         when (pool) {
             is FundSwapPool.Usdf -> {
                 add(
@@ -87,7 +87,7 @@ internal fun buildUsdcToUsdfSwapInstructions(
             is FundSwapPool.CoinbaseStableSwapper -> {
                 val swapAccounts = CoinbaseSwapAccounts.derive(Mint.usdc, Mint.usdf)
                 add(
-                    CoinbaseStableSwapperProgram_Swap(
+                    CoinbaseStableSwapperProgram_SwapV2(
                         pool = swapAccounts.pool,
                         inVault = swapAccounts.inVault,
                         outVault = swapAccounts.outVault,
@@ -103,7 +103,6 @@ internal fun buildUsdcToUsdfSwapInstructions(
                         fromMint = Mint.usdc,
                         toMint = Mint.usdf,
                         user = sender,
-                        whitelist = swapAccounts.whitelist,
                         amountIn = amount,
                         minAmountOut = amount, // 1:1 stable pair; the program rejects 0 with InvalidAmount
                     ).instruction()
