@@ -38,6 +38,7 @@ internal fun TransactionNotificationPromptHost(prompt: TransactionNotificationPr
             BottomBarManager.showMessage(
                 title = title,
                 message = message,
+                type = BottomBarManager.BottomBarMessageType.DEFAULT,
                 actions = listOf(
                     BottomBarAction(text = turnOn) { currentPermission.launch() },
                     BottomBarAction(
