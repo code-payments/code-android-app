@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.links.ExternalLinkUriHandler
 import com.flipcash.app.core.links.LocalTrustedWebsites
 import com.flipcash.app.core.tokens.TokenInfoEntry
@@ -66,7 +67,15 @@ fun SearchScreen(
             )
         },
         onOpenCurrency = { token ->
-            navigator.push(AppRoute.Token.Info(token.address, TokenInfoEntry.Discovery))
+            // Switch to the Money tab and push the currency there, so Search is left behind
+            // (a tab switch replaces the stack) and back lands on the wallet. Discovery is the
+            // push-presented entry; Wallet would draw the card-expand ✕ with no card to shrink to.
+            navigator.navigateAll(
+                listOf(
+                    AppRoute.Tabs.Wallet,
+                    AppRoute.Token.Info(token.address, TokenInfoEntry.Discovery),
+                )
+            )
         },
         onOpenLink = { link -> externalLinks.openUri(link.url) },
         onClose = { navigator.pop() },
