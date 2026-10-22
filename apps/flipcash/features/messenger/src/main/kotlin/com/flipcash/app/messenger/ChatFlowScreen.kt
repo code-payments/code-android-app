@@ -55,7 +55,6 @@ import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupPicture
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupScreen
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.annotatedEntry
@@ -529,7 +528,6 @@ private fun FlowReactionBoostScreen(step: ChatStep.ReactionBoost) {
     val navigator = LocalCodeNavigator.current
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel, step) {
         viewModel.dispatchEvent(ReactionBoostViewModel.Event.Open(step.chatId, step.messageId))
@@ -550,7 +548,7 @@ private fun FlowReactionBoostScreen(step: ChatStep.ReactionBoost) {
 
     ReactionBoostSheet(
         emoji = state.emoji,
-        isDm = chatState.chatType == ChatType.CONTACT_DM || chatState.chatType == ChatType.TIP_DM,
+        split = state.split,
         canCycle = state.canCycle,
         token = state.token,
         presetCents = ReactionBoostViewModel.PresetCents,

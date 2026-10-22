@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.screens.boost
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.payments.boost.BoostChat
+import com.flipcash.shared.payments.boost.ReactionBoostSplit
 import com.flipcash.shared.chat.reactions.SelfReaction
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -99,5 +100,24 @@ class ReactionBoostReducerTest {
         assertEquals(BoostChat.Group(creator), ReactionBoostViewModel.boostChatOf(ChatType.GROUP, creator))
         assertEquals(null, ReactionBoostViewModel.boostChatOf(ChatType.GROUP, null))
         assertEquals(null, ReactionBoostViewModel.boostChatOf(ChatType.UNKNOWN, creator))
+    }
+
+    @Test
+    fun `the subtitle follows who the boost pays`() {
+        val creator = List<Byte>(32) { 9 }
+        val member = List<Byte>(32) { 2 }
+        val other = List<Byte>(32) { 3 }
+        val group = BoostChat.Group(creator)
+        fun copy(payer: List<Byte>, sender: List<Byte>, chat: BoostChat) = ReactionBoostViewModel.splitCopyOf(
+            chat,
+            ReactionBoostSplit.plan(payer, sender, chat, 100),
+        )
+
+        assertEquals(ReactionBoostViewModel.SplitCopy.Dm, copy(member, other, BoostChat.Dm))
+        assertEquals(ReactionBoostViewModel.SplitCopy.Shared, copy(member, other, group))
+        assertEquals(ReactionBoostViewModel.SplitCopy.Whole, copy(creator, other, group))
+        assertEquals(ReactionBoostViewModel.SplitCopy.Whole, copy(member, creator, group))
+        assertEquals(null, ReactionBoostViewModel.splitCopyOf(group, ReactionBoostSplit.plan(member, member, group, 100)))
+        assertEquals(null, ReactionBoostViewModel.splitCopyOf(null, null))
     }
 }
