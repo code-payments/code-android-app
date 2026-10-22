@@ -1,7 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="com.getcode.dev.READ_ACCOUNT" />
-    <application>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application android:usesCleartextTraffic="true">
+
+        <!-- Debug-only live patching, see scripts/hotswap. -->
+        <provider
+            android:name="com.flipcash.app.hotswap.HotswapProvider"
+            android:authorities="${applicationId}.hotswap"
+            android:exported="false" />
 
     </application>
 
