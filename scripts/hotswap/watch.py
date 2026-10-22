@@ -52,6 +52,9 @@ def post(server, path, obj):
     urllib.request.urlopen(req, timeout=10).read()
 
 
+dex_failures = []
+
+
 def dex_changed(changed, classes, seq):
     """Dexes each changed class file into OUT, one dex per class, and returns [{name, file}]."""
     specs = []
@@ -65,6 +68,7 @@ def dex_changed(changed, classes, seq):
                            capture_output=True, text=True)
         if d.returncode != 0:
             print("d8 failed:", d.stderr[-1500:], file=sys.stderr, flush=True)
+            dex_failures.append(c)
             continue
         for dp, _, fs in os.walk(dexdir):
             for f in fs:
@@ -115,7 +119,8 @@ def once(args, src, classes):
     after = class_hashes(classes)
     changed = sorted(c for c, h in after.items() if before.get(c) != h)
     specs = dex_changed(changed, classes, seq)
-    if len(specs) != len(changed):
+    # One class file can dex to several (desugared lambdas), so count failures, not files.
+    if dex_failures:
         print("some classes failed to dex; state not saved", file=sys.stderr)
         sys.exit(1)
     for sp in specs:
