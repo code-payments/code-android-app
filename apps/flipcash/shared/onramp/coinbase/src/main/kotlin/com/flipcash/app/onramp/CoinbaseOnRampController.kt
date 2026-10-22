@@ -52,9 +52,11 @@ import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
 // Coinbase settles the on-chain send after payment; give delivery a generous window
-// (~5 min at 5s intervals) before falling back to the session's foreground sweep.
-private val DELIVERY_POLL_INTERVAL = 5.seconds
-private const val DELIVERY_POLL_MAX_ATTEMPTS = 60
+// (~5 min at 2s intervals) before falling back to the session's foreground sweep. The order
+// lookup is Coinbase's own API, not the chain; its documented rate limits (10 req/s per app ID)
+// cover only the quote endpoints, and 0.5 req/s is well inside that.
+internal val DELIVERY_POLL_INTERVAL = 2.seconds
+internal const val DELIVERY_POLL_MAX_ATTEMPTS = 150
 
 sealed class PurchaseGate : Throwable() {
     data class WebViewWarning(val channel: WebViewChannel) : PurchaseGate()
