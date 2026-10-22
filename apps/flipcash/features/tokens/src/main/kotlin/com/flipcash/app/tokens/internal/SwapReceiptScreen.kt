@@ -356,16 +356,22 @@ private fun TokenConvertReceiptScreen(
             token = state.tokenWithBalance?.token,
             amount = totalDebited,
         ),
-        lines = listOf(
-            ReceiptLine(
-                label = stringResource(R.string.label_amountToConvert),
-                amount = state.enteredAmount.formatted(),
-            ),
-            ReceiptLine(
-                label = stringResource(R.string.label_conversionFee),
-                amount = feeAmount.formattedFee(),
-            ),
-        ),
+        // Converting out of Dollars can be free; then the breakdown would only repeat the total,
+        // so it's dropped, as the fee-free Buy receipt does.
+        lines = if (state.isConvertingFromDollars && !feeAmount.isPositive) {
+            emptyList()
+        } else {
+            listOf(
+                ReceiptLine(
+                    label = stringResource(R.string.label_amountToConvert),
+                    amount = state.enteredAmount.formatted(),
+                ),
+                ReceiptLine(
+                    label = stringResource(R.string.label_conversionFee),
+                    amount = feeAmount.formattedFee(),
+                ),
+            )
+        },
         lineSpacing = CodeTheme.dimens.grid.x3,
         bottom = ReceiptAnchor(
             title = stringResource(R.string.subtitle_youReceive),

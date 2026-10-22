@@ -65,6 +65,18 @@ fun Fiat.spendableUnderSellFeeOnTop(bps: Int): Fiat {
 const val HOUSE_SELL_FEE_BPS = 100
 
 /**
+ * The fee, in basis points, charged *on top* of the entered amount when Dollars fund a convert or
+ * a buy.
+ *
+ * Dollars has no launchpad sale to skim a fee from, so this is the only fee that leg can pay. It is
+ * currently zero: converting or buying from Dollars is free, and the swap is sent without a fee so
+ * the server builds the no-fee transfer. Setting this to a non-zero value restores the on-top fee
+ * end to end (debit, entry correction, request and receipt). It does not affect conversions *into*
+ * Dollars, which keep paying the source pool's sell fee ([HOUSE_SELL_FEE_BPS] when it declares none).
+ */
+const val DOLLARS_FEE_BPS = 0
+
+/**
  * This pool's declared sell fee, or the house rate when there is no pool to declare one.
  *
  * Erring high is the safe direction: the fee is grossed up into the debit, so falling back to zero
