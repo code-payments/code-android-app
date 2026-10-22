@@ -49,6 +49,7 @@ import kotlinx.coroutines.launch
 internal class ReactionBoostViewModel @Inject constructor(
     private val chatCoordinator: ChatCoordinator,
     private val payer: ReactionBoostPayer,
+    private val splitResolver: ReactionBoostSplitResolver,
     startChattingPayer: StartChattingPayer,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<ReactionBoostViewModel.State, ReactionBoostViewModel.Event>(
@@ -144,12 +145,7 @@ internal class ReactionBoostViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach { target ->
                 val (chatId, messageId) = target ?: return@onEach
-                val author = chatCoordinator.getMessage(chatId, messageId)?.senderId
-                val metadata = chatCoordinator.observeMetadata(chatId).first()?.metadata
-                val chat = boostChatOf(metadata?.type, metadata?.creator)
-                // Any amount that clears the minimum shows the same payees; 100 cents splits cleanly.
-                val plan = if (author != null && chat != null) payer.plan(author, chat, 100) else null
-                dispatchEvent(Event.SplitLoaded(splitCopyOf(chat, plan)))
+                dispatchEvent(Event.SplitLoaded(splitResolver.resolve(chatId, messageId)))
             }
             .launchIn(viewModelScope)
     }

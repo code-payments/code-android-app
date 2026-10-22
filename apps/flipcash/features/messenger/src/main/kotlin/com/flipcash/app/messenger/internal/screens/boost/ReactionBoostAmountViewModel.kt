@@ -7,10 +7,14 @@ import com.flipcash.features.messenger.R
 import com.flipcash.shared.amountentry.AmountEntryDelegate
 import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.math.BigDecimal
 import java.math.RoundingMode
 import javax.inject.Inject
@@ -24,6 +28,7 @@ import javax.inject.Inject
 internal class ReactionBoostAmountViewModel @Inject constructor(
     exchange: Exchange,
     resources: ResourceHelper,
+    private val splitResolver: ReactionBoostSplitResolver,
 ) : ViewModel() {
 
     val amountDelegate = AmountEntryDelegate(
@@ -38,6 +43,16 @@ internal class ReactionBoostAmountViewModel @Inject constructor(
 
     init {
         exchange.getCurrency(CurrencyCode.USD.name)?.let(amountDelegate::onCurrencyChanged)
+    }
+
+    private val _split = MutableStateFlow<ReactionBoostViewModel.SplitCopy?>(null)
+
+    /** Who the boost pays, for the keypad's hint; null until the message's author and chat are known. */
+    val split: StateFlow<ReactionBoostViewModel.SplitCopy?> = _split.asStateFlow()
+
+    /** Resolves the split for the message the keypad was opened from. */
+    suspend fun load(chatId: ChatId, messageId: Long) {
+        _split.value = splitResolver.resolve(chatId, messageId)
     }
 
     /** The entry in whole cents, or null when nothing above zero was entered. */
