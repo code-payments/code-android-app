@@ -16,7 +16,7 @@ tags:
     element: "Add Dollars"
     direction: DOWN
 - tapOn: "Add Dollars"
-- extendedWaitUntil: { visible: { text: "Add Money With" }, timeout: 8000 }
+- extendedWaitUntil: { visible: { text: "Add Dollars With" }, timeout: 8000 }
 
 # The Coinbase / Google Pay method is icon-only, so it's anchored by testTag.
 - assertVisible: { id: purchase_method_coinbase }

@@ -439,8 +439,8 @@
     <string name="title_onrampProviderSolflare">Solflare Wallet</string>
     <string name="title_onrampProviderOtherWallet">Other Wallet</string>
 
-    <!-- v2 "Add Money With" method sheet -->
-    <string name="prompt_title_addMoneyWith">Add Money With</string>
+    <!-- v2 "Add Dollars With" method sheet -->
+    <string name="prompt_title_addMoneyWith">Add Dollars With</string>
     <string name="label_debitCard">Debit Card</string>
     <string name="label_cashReserves">Cash Reserves</string>
     <string name="subtitle_depositDebitCard">Deposit funds from your debit card</string>
@@ -658,7 +658,7 @@
     <string name="action_retry">Retry</string>
     <string name="error_unableToLoadChartData">Unable To Load</string>
 
-    <string name="title_discoverCurrencies">Discover Currencies</string>
+    <string name="title_discoverCurrencies">Currency Leaderboard</string>
     <string name="action_discoverCurrencies">Discover Currencies</string>
     <string name="title_discoverPopular">Popular</string>
     <string name="title_discoverNew">New</string>
