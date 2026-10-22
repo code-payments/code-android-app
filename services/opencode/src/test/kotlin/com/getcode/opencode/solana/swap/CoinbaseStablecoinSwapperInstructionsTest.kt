@@ -3,7 +3,6 @@ package com.getcode.opencode.solana.swap
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbasePoolAddress
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseTokenVaultAddress
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseVaultTokenAccountAddress
-import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseWhitelistAddress
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram
 import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram
@@ -89,7 +88,6 @@ class CoinbaseStablecoinSwapperInstructionsTest {
         amount: Long = 1_000_000L,
         feeAmount: Long = 50_000L,
         minOutput: Long = 990_000L,
-        swapVersion: Int = 2,
     ) = buildStablecoinSwapperInstructions(
         serverParameters = serverParameters,
         nonce = nonce,
@@ -101,7 +99,6 @@ class CoinbaseStablecoinSwapperInstructionsTest {
         amount = amount,
         feeAmount = feeAmount,
         minOutput = minOutput,
-        swapVersion = swapVersion,
     )
 
     // --- Instruction count ---
@@ -257,21 +254,11 @@ class CoinbaseStablecoinSwapperInstructionsTest {
     }
 
     @Test
-    fun `swap instruction is SwapV2 without whitelist by default`() {
+    fun `swap instruction is SwapV2 with 15 accounts`() {
         val ix = buildInstructions()[7]
         assertEquals(15, ix.accounts.size)
         assertEquals(CoinbaseStableSwapperProgram.SERVER_SWAP_VERSION, 2)
         assertEquals(listOf<Byte>(43, 4, -19, 11, 26, -55, 30, 98), ix.data.take(8))
-        val whitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
-        assertTrue(ix.accounts.none { it.publicKey == whitelist })
-    }
-
-    @Test
-    fun `swap instruction has whitelist PDA when swapVersion is 1`() {
-        val ix = buildInstructions(swapVersion = 1)[7]
-        val expectedWhitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
-        assertEquals(16, ix.accounts.size)
-        assertEquals(expectedWhitelist, ix.accounts[12].publicKey)
     }
 
     // --- CloseAccount verification ---

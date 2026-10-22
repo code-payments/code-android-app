@@ -5,8 +5,7 @@ import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
 import com.getcode.opencode.internal.solana.model.CoinbaseSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
-import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram
-import com.getcode.opencode.internal.solana.programs.coinbaseStableSwapperSwapInstruction
+import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_SwapV2
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitLimit
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitPrice
 import com.getcode.opencode.internal.solana.programs.MemoProgram_Memo
@@ -24,7 +23,7 @@ import com.getcode.solana.keys.PublicKey
  *  2. [Optional] ComputeBudget::SetComputeUnitPrice
  *  3. [Optional] Memo::Memo
  *  4. AssociatedTokenAccount::CreateIdempotent (open owner's to_mint VM Deposit ATA)
- *  5. CoinbaseStableSwapper::Swap (owner's from_mint ATA -> owner's to_mint VM Deposit ATA)
+ *  5. CoinbaseStableSwapper::SwapV2 (owner's from_mint ATA -> owner's to_mint VM Deposit ATA)
  *
  * Used by the on-app-open USDC -> USDF sweep: source is the owner's plain
  * USDC ATA, destination is the owner's USDF VM Deposit ATA (Geyser-monitored
@@ -36,7 +35,6 @@ internal fun buildStatelessSwapInstructions(
     fromMint: MintMetadata,
     toMint: MintMetadata,
     amount: Long,
-    swapVersion: Int = CoinbaseStableSwapperProgram.SERVER_SWAP_VERSION,
 ): List<Instruction> {
     val toVm = requireNotNull(toMint.vmMetadata) {
         "Destination mint missing VM metadata: ${toMint.symbol}"
@@ -98,10 +96,9 @@ internal fun buildStatelessSwapInstructions(
             ).instruction()
         )
 
-        // 5. CoinbaseStableSwapper::Swap (owner's from_mint ATA -> owner's to_mint VM Deposit ATA)
+        // 5. CoinbaseStableSwapper::SwapV2 (owner's from_mint ATA -> owner's to_mint VM Deposit ATA)
         add(
-            coinbaseStableSwapperSwapInstruction(
-                swapVersion = swapVersion,
+            CoinbaseStableSwapperProgram_SwapV2(
                 pool = swapAccounts.pool,
                 inVault = swapAccounts.inVault,
                 outVault = swapAccounts.outVault,
@@ -114,10 +111,9 @@ internal fun buildStatelessSwapInstructions(
                 fromMint = fromMint.address,
                 toMint = toMint.address,
                 user = owner,
-                whitelist = swapAccounts.whitelist,
                 amountIn = amount,
                 minAmountOut = amount, // 1:1 stable pair
-            )
+            ).instruction()
         )
     }
 }

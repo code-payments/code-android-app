@@ -3,8 +3,7 @@ package com.getcode.opencode.solana.swap
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.CoinbaseSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
-import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram
-import com.getcode.opencode.internal.solana.programs.coinbaseStableSwapperSwapInstruction
+import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_SwapV2
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitLimit
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitPrice
 import com.getcode.opencode.internal.solana.programs.MemoProgram_Memo
@@ -42,7 +41,6 @@ import com.getcode.solana.keys.PublicKey
  * @param amount The amount of from_mint tokens to swap (in quarks).
  * @param feeAmount The fee amount deducted from the VM transfer and sent to the fee destination.
  * @param minOutput The minimum acceptable amount of to_mint tokens to receive (slippage protection).
- * @param swapVersion Swap instruction version; must equal the `swap_version` sent on the initiate request.
  * @return A list of [Instruction]s to execute the stablecoin swap.
  */
 internal fun buildStablecoinSwapperInstructions(
@@ -56,7 +54,6 @@ internal fun buildStablecoinSwapperInstructions(
     amount: Long,
     feeAmount: Long,
     minOutput: Long,
-    swapVersion: Int = CoinbaseStableSwapperProgram.SERVER_SWAP_VERSION,
 ): List<Instruction> {
     val fromVm = fromMintMetadata.vmMetadata
     val fromTimelockAccounts = fromMintMetadata.timelockSwapAccounts(authority)
@@ -118,10 +115,9 @@ internal fun buildStablecoinSwapperInstructions(
             ).instruction()
         )
 
-        // 8. CoinbaseStableSwapper::Swap or ::SwapV2 per [swapVersion] (from_mint swap authority ATA -> to_mint destination owner ATA)
+        // 8. CoinbaseStableSwapper::SwapV2 (from_mint swap authority ATA -> to_mint destination owner ATA)
         add(
-            coinbaseStableSwapperSwapInstruction(
-                swapVersion = swapVersion,
+            CoinbaseStableSwapperProgram_SwapV2(
                 pool = swapAccounts.pool,
                 inVault = swapAccounts.inVault,
                 outVault = swapAccounts.outVault,
@@ -134,10 +130,9 @@ internal fun buildStablecoinSwapperInstructions(
                 fromMint = fromMintMetadata.address,
                 toMint = toMintMetadata.address,
                 user = swapAuthority,
-                whitelist = swapAccounts.whitelist,
                 amountIn = amount,
                 minAmountOut = minOutput,
-            )
+            ).instruction()
         )
 
         // 9. Token::CloseAccount (closes swap authority's from_mint ATA)
