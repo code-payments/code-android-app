@@ -5,9 +5,12 @@ import com.flipcash.app.messenger.internal.payment.ReactionBoostPayer
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.MessageReactions
 import com.flipcash.shared.chat.reactions.SelfReaction
+import com.flipcash.shared.payments.boost.BoostChat
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -154,11 +157,12 @@ internal class ReactionBoostViewModel @Inject constructor(
             dispatchEvent(Event.SendProgressChanged(LoadingSuccessState(loading = true)))
 
             val author = chatCoordinator.getMessage(chatId, messageId)?.senderId
-            val creator = chatCoordinator.observeMetadata(chatId).first()?.metadata?.creator
-            if (author == null || creator == null) {
+            val metadata = chatCoordinator.observeMetadata(chatId).first()?.metadata
+            val chat = boostChatOf(metadata?.type, metadata?.creator)
+            if (author == null || chat == null) {
                 trace(
                     tag = TAG,
-                    message = "No author or creator for message $messageId; boost not sent",
+                    message = "No author or chat kind for message $messageId; boost not sent",
                     type = TraceType.Error,
                 )
                 dispatchEvent(Event.SendProgressChanged(LoadingSuccessState()))
@@ -170,7 +174,7 @@ internal class ReactionBoostViewModel @Inject constructor(
                 messageId = messageId,
                 emoji = emoji,
                 author = author,
-                creator = creator,
+                chat = chat,
                 totalCents = cents,
                 onAddMoney = { dispatchEvent(Event.AddMoney) },
             ).onSuccess {
@@ -188,6 +192,16 @@ internal class ReactionBoostViewModel @Inject constructor(
 
         /** How long the slider shows its check before the sheet closes. */
         private const val SUCCESS_HOLD_MS = 600L
+
+        /**
+         * The boost's chat kind: a DM has no creator, a group needs one, and anything else
+         * (unknown type, a group without a known creator) can't be paid.
+         */
+        fun boostChatOf(type: ChatType?, creator: ID?): BoostChat? = when (type) {
+            ChatType.CONTACT_DM, ChatType.TIP_DM -> BoostChat.Dm
+            ChatType.GROUP -> creator?.let { BoostChat.Group(it) }
+            ChatType.UNKNOWN, null -> null
+        }
 
         /** The viewer's [own] reactions the sheet can boost, most recent first. */
         fun boostable(own: List<SelfReaction>): List<String> =

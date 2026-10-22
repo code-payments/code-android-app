@@ -58,7 +58,7 @@ class ReactionBoostPaymentDelegateTest {
     }
 
     private fun split(totalCents: Long) =
-        ReactionBoostSplit.plan(payer = List(32) { 3 }, sender = sender, creator = creator, totalCents = totalCents)
+        ReactionBoostSplit.plan(payer = List(32) { 3 }, sender = sender, chat = BoostChat.Group(creator), totalCents = totalCents)
             as ReactionBoostPlan.Pay
 
     private suspend fun boost(plan: ReactionBoostPlan.Pay) =
@@ -89,7 +89,7 @@ class ReactionBoostPaymentDelegateTest {
     @Test
     fun `one payee is a single direct transfer of the whole`() = runTest {
         pricesAt(state)
-        val plan = ReactionBoostSplit.plan(payer = creator, sender = sender, creator = creator, totalCents = 500)
+        val plan = ReactionBoostSplit.plan(payer = creator, sender = sender, chat = BoostChat.Group(creator), totalCents = 500)
             as ReactionBoostPlan.Pay
 
         assertTrue(boost(plan).isSuccess)

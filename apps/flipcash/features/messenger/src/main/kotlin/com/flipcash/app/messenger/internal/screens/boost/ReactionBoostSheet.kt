@@ -44,6 +44,7 @@ import com.getcode.view.LoadingSuccessState
  * The amounts are US dollars whatever the viewer's preferred currency: the boost is a USD figure
  * on the wire and on the pill.
  *
+ * @param isDm whether the boost goes whole to the other member, with no group host to split with.
  * @param emoji the viewer's own reaction being boosted, or null before their reactions load.
  * @param canCycle whether the viewer has more than one reaction, so tapping [emoji] moves to the
  * next with [onCycleEmoji].
@@ -52,6 +53,7 @@ import com.getcode.view.LoadingSuccessState
 @Composable
 internal fun ReactionBoostSheet(
     emoji: String?,
+    isDm: Boolean,
     canCycle: Boolean,
     token: Token?,
     presetCents: List<Long>,
@@ -103,7 +105,9 @@ internal fun ReactionBoostSheet(
                 }
             }
             Text(
-                text = stringResource(R.string.subtitle_paidReactionsSplit),
+                text = stringResource(
+                    if (isDm) R.string.subtitle_paidReactionsDm else R.string.subtitle_paidReactionsSplit,
+                ),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,

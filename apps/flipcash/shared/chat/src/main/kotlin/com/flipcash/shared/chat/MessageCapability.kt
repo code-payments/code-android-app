@@ -277,12 +277,11 @@ fun canReact(message: ChatMessage, canSpeak: Boolean = true): Boolean {
 /**
  * Whether the viewer may boost one of their reactions on [message] with money — the pill row's
  * "$". Reacting stays free; a boost pays for a reaction the viewer already made, so it needs
- * [selfReactions] to hold one. Only in a group, only on someone else's message, and only where
+ * [selfReactions] to hold one. In a group or a DM, only on someone else's message, and only where
  * [canReact] allows a reaction at all.
  */
 fun canBoost(
     message: ChatMessage,
-    inGroup: Boolean,
     selfReactions: List<SelfReaction>,
     canSpeak: Boolean = true,
-): Boolean = inGroup && !message.isFromSelf && selfReactions.isNotEmpty() && canReact(message, canSpeak)
+): Boolean = !message.isFromSelf && selfReactions.isNotEmpty() && canReact(message, canSpeak)

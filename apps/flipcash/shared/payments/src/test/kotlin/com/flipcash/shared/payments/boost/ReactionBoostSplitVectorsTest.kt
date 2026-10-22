@@ -16,6 +16,7 @@ class ReactionBoostSplitVectorsTest {
     private val creator: ID = List(32) { 1 }
     private val member: ID = List(32) { 2 }
     private val payingMember: ID = List(32) { 3 }
+    private val group = BoostChat.Group(creator)
 
     private val fixture: JSONObject = JSONObject(
         javaClass.classLoader!!.getResourceAsStream("reaction-boost-split.json")!!
@@ -27,20 +28,26 @@ class ReactionBoostSplitVectorsTest {
         assertEquals(fixture.getLong("creatorPercent"), ReactionBoostSplit.CREATOR_PERCENT)
         assertEquals(cents(fixture.getString("minimumShare")), ReactionBoostSplit.MINIMUM_SHARE_CENTS)
         val minimumTwoPayee = cents(fixture.getString("minimumTwoPayeeTotal"))
-        assertIs<ReactionBoostPlan.Pay>(ReactionBoostSplit.plan(payingMember, member, creator, minimumTwoPayee))
+        assertIs<ReactionBoostPlan.Pay>(ReactionBoostSplit.plan(payingMember, member, group, minimumTwoPayee))
         assertEquals(
             ReactionBoostPlan.ShareBelowMinimum,
-            ReactionBoostSplit.plan(payingMember, member, creator, minimumTwoPayee - 1),
+            ReactionBoostSplit.plan(payingMember, member, group, minimumTwoPayee - 1),
         )
     }
 
     @Test
     fun `every vector`() {
         val vectors = fixture.getJSONArray("vectors")
-        assertEquals(19, vectors.length())
+        assertEquals(24, vectors.length())
         for (i in 0 until vectors.length()) {
             val v = vectors.getJSONObject(i)
             val name = v.getString("name")
+            val dm = when (val kind = v.getString("chat")) {
+                "group" -> false
+                "dm" -> true
+                else -> error("$name: unknown chat $kind")
+            }
+            val chat = if (dm) BoostChat.Dm else group
             val sender = when (v.getString("messageSender")) {
                 "creator" -> creator
                 "member" -> member
@@ -52,13 +59,15 @@ class ReactionBoostSplitVectorsTest {
                 "sender" -> sender
                 else -> error("$name: unknown payer")
             }
-            val plan = ReactionBoostSplit.plan(payer, sender, creator, cents(v.getString("total")))
+            val plan = ReactionBoostSplit.plan(payer, sender, chat, cents(v.getString("total")))
             val expected = v.getJSONObject("expected")
 
             if (expected.has("expectedError")) {
                 val error = when (val rule = expected.getString("expectedError")) {
                     "self-boost" -> ReactionBoostPlan.SelfBoost
-                    "boost share below minimum transfer value" -> ReactionBoostPlan.ShareBelowMinimum
+                    "boost share below minimum transfer value",
+                    "boost amount below minimum transfer value",
+                    -> ReactionBoostPlan.ShareBelowMinimum
                     else -> error("$name: unknown rule $rule")
                 }
                 assertEquals(error, plan, name)
