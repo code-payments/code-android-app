@@ -3,8 +3,6 @@ package com.flipcash.app.scanner.internal.bills
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,8 +21,8 @@ import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.scanner.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.views.CameraDisabledView
 import com.getcode.ui.scanner.views.CameraPermissionsMissingView
@@ -129,16 +127,18 @@ internal fun ScannableContainer(
         // the scrim means a live control is sitting behind something modal, which is worth not
         // having rather than relying on the overlay to swallow every touch.
         if (billState.bill == null) {
-            GalleryScanButton(
-                onImagePicked = onImagePicked,
-                hazeState = hazeState,
-                // Top-right, clear of the status bar. This corner rather than the bottom because
-                // the bottom belongs to the hoisted tab bar, and a control down there has to be
-                // positioned around a bar this screen does not own.
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(CodeTheme.dimens.inset)
+            // The same untitled bar the Chat and You tabs put their trailing button in, so the
+            // gallery button lands on the + and the gear's exact size and center point. It is
+            // laid over the full-bleed preview rather than reserving space above it. The corner is
+            // the top because the bottom belongs to the hoisted tab bar.
+            AppBarWithTitle(
+                modifier = Modifier.align(Alignment.TopStart),
+                endContent = {
+                    GalleryScanButton(
+                        onImagePicked = onImagePicked,
+                        hazeState = hazeState,
+                    )
+                },
             )
         }
     }
