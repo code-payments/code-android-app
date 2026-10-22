@@ -5,9 +5,13 @@ import com.flipcash.app.messenger.internal.payment.ReactionBoostPayer
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.MessageReactions
 import com.flipcash.shared.chat.reactions.SelfReaction
+import com.flipcash.shared.payments.boost.BoostChat
+import com.flipcash.shared.payments.boost.ReactionBoostPlan
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -45,6 +49,7 @@ import kotlinx.coroutines.launch
 internal class ReactionBoostViewModel @Inject constructor(
     private val chatCoordinator: ChatCoordinator,
     private val payer: ReactionBoostPayer,
+    private val splitResolver: ReactionBoostSplitResolver,
     startChattingPayer: StartChattingPayer,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<ReactionBoostViewModel.State, ReactionBoostViewModel.Event>(
@@ -66,6 +71,8 @@ internal class ReactionBoostViewModel @Inject constructor(
         /** An amount entered on the keypad, kept on the "…" chip once chosen. */
         val customCents: Long? = null,
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
+        /** Who the sheet says is paid, or null until the message's author and chat are known. */
+        val split: SplitCopy? = null,
     ) {
         val canConfirm: Boolean
             get() = selectedCents != null && chatId != null && emoji != null && sendProgress.isIdle
@@ -74,11 +81,26 @@ internal class ReactionBoostViewModel @Inject constructor(
         val canCycle: Boolean get() = ownReactions.size > 1
     }
 
+    /** What the sheet's subtitle says about who gets the boost. */
+    enum class SplitCopy {
+        /** A DM: the whole goes to the other member. */
+        Dm,
+
+        /** A group, paid to the author and the host: 80/20. */
+        Shared,
+
+        /** A group, paid to the author alone: the creator boosts, or wrote the message. */
+        Whole,
+    }
+
     sealed interface Event {
         data class Open(val chatId: ChatId, val messageId: Long) : Event
 
         /** Internal: the viewer's own reactions on the message, most recent first. */
         data class OwnReactionsChanged(val emoji: List<String>) : Event
+
+        /** Internal: who the boost pays, once the message's author and chat are known. */
+        data class SplitLoaded(val split: SplitCopy?) : Event
 
         /** The emoji was tapped: boost the viewer's next reaction instead. */
         data object CycleEmoji : Event
@@ -115,6 +137,17 @@ internal class ReactionBoostViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         observeOwnReactions()
+        observeSplit()
+    }
+
+    private fun observeSplit() {
+        stateFlow.map { state -> state.chatId?.let { chatId -> state.messageId?.let { chatId to it } } }
+            .distinctUntilChanged()
+            .onEach { target ->
+                val (chatId, messageId) = target ?: return@onEach
+                dispatchEvent(Event.SplitLoaded(splitResolver.resolve(chatId, messageId)))
+            }
+            .launchIn(viewModelScope)
     }
 
     /**
@@ -154,11 +187,12 @@ internal class ReactionBoostViewModel @Inject constructor(
             dispatchEvent(Event.SendProgressChanged(LoadingSuccessState(loading = true)))
 
             val author = chatCoordinator.getMessage(chatId, messageId)?.senderId
-            val creator = chatCoordinator.observeMetadata(chatId).first()?.metadata?.creator
-            if (author == null || creator == null) {
+            val metadata = chatCoordinator.observeMetadata(chatId).first()?.metadata
+            val chat = boostChatOf(metadata?.type, metadata?.creator)
+            if (author == null || chat == null) {
                 trace(
                     tag = TAG,
-                    message = "No author or creator for message $messageId; boost not sent",
+                    message = "No author or chat kind for message $messageId; boost not sent",
                     type = TraceType.Error,
                 )
                 dispatchEvent(Event.SendProgressChanged(LoadingSuccessState()))
@@ -170,7 +204,7 @@ internal class ReactionBoostViewModel @Inject constructor(
                 messageId = messageId,
                 emoji = emoji,
                 author = author,
-                creator = creator,
+                chat = chat,
                 totalCents = cents,
                 onAddMoney = { dispatchEvent(Event.AddMoney) },
             ).onSuccess {
@@ -188,6 +222,24 @@ internal class ReactionBoostViewModel @Inject constructor(
 
         /** How long the slider shows its check before the sheet closes. */
         private const val SUCCESS_HOLD_MS = 600L
+
+        /**
+         * The boost's chat kind: a DM has no creator, a group needs one, and anything else
+         * (unknown type, a group without a known creator) can't be paid.
+         */
+        fun boostChatOf(type: ChatType?, creator: ID?): BoostChat? = when (type) {
+            ChatType.CONTACT_DM, ChatType.TIP_DM -> BoostChat.Dm
+            ChatType.GROUP -> creator?.let { BoostChat.Group(it) }
+            ChatType.UNKNOWN, null -> null
+        }
+
+        /** The subtitle's [SplitCopy] for [plan] in [chat]; null when either is unknown. */
+        fun splitCopyOf(chat: BoostChat?, plan: ReactionBoostPlan?): SplitCopy? = when {
+            chat == null || plan !is ReactionBoostPlan.Pay -> null
+            chat is BoostChat.Dm -> SplitCopy.Dm
+            plan.shares.size > 1 -> SplitCopy.Shared
+            else -> SplitCopy.Whole
+        }
 
         /** The viewer's [own] reactions the sheet can boost, most recent first. */
         fun boostable(own: List<SelfReaction>): List<String> =
@@ -221,6 +273,7 @@ internal class ReactionBoostViewModel @Inject constructor(
                         state.copy(emoji = state.ownReactions[next])
                     }
                 }
+                is Event.SplitLoaded -> { state -> state.copy(split = event.split) }
                 is Event.TokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.SelectAmount -> { state -> state.copy(selectedCents = event.cents) }
                 is Event.CustomAmountEntered -> { state ->

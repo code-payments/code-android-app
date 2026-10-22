@@ -2,6 +2,7 @@ package com.flipcash.app.messenger
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -42,6 +44,7 @@ import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostAmountView
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostCurrencySheet
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostSheet
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostViewModel
+import com.getcode.theme.CodeTheme
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
@@ -189,8 +192,8 @@ private fun chatEntryProvider(
     annotatedEntry<ChatStep.ReactionBoostCurrency> {
         ReactionBoostCurrencySheet()
     }
-    annotatedEntry<ChatStep.ReactionBoostAmount> {
-        FlowReactionBoostAmountScreen()
+    annotatedEntry<ChatStep.ReactionBoostAmount> { step ->
+        FlowReactionBoostAmountScreen(step)
     }
     annotatedEntry<ChatStep.Reactors> { step ->
         FlowReactorsScreen(step.chatId, step.messageId)
@@ -548,6 +551,7 @@ private fun FlowReactionBoostScreen(step: ChatStep.ReactionBoost) {
 
     ReactionBoostSheet(
         emoji = state.emoji,
+        split = state.split,
         canCycle = state.canCycle,
         token = state.token,
         presetCents = ReactionBoostViewModel.PresetCents,
@@ -576,8 +580,10 @@ private fun FlowReactionBoostScreen(step: ChatStep.ReactionBoost) {
  * entry of zero leaves the sheet open, the same rule as the group form's custom amount.
  */
 @Composable
-private fun FlowReactionBoostAmountScreen() {
+private fun FlowReactionBoostAmountScreen(step: ChatStep.ReactionBoostAmount) {
     val viewModel = hiltViewModel<ReactionBoostAmountViewModel>()
+    val split by viewModel.split.collectAsStateWithLifecycle()
+    LaunchedEffect(step.chatId, step.messageId) { viewModel.load(step.chatId, step.messageId) }
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val resultBack = resultBackNavigator<ReactionBoostAmountResult>(exit = dismissSheet)
 
@@ -593,6 +599,23 @@ private fun FlowReactionBoostAmountScreen() {
                 titleAlignment = Alignment.CenterHorizontally,
                 endContent = { AppBarDefaults.Close(onClick = dismissSheet) },
             )
+        },
+        // Absent until the split is known, as on the sheet.
+        headerCaption = split?.let { copy ->
+            {
+                Text(
+                    text = stringResource(
+                        when (copy) {
+                            ReactionBoostViewModel.SplitCopy.Dm -> R.string.subtitle_paidReactionsDm
+                            ReactionBoostViewModel.SplitCopy.Shared -> R.string.subtitle_paidReactionsSplit
+                            ReactionBoostViewModel.SplitCopy.Whole -> R.string.subtitle_paidReactionsWhole
+                        },
+                    ),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    textAlign = TextAlign.Start,
+                )
+            }
         },
     )
 }

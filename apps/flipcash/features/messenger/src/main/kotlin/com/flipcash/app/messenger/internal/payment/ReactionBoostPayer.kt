@@ -5,6 +5,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.flipcash.shared.payments.boost.BoostChat
 import com.flipcash.shared.payments.boost.ReactionBoostPaymentDelegate
 import com.flipcash.shared.payments.boost.ReactionBoostPlan
 import com.flipcash.shared.payments.boost.ReactionBoostSplit
@@ -34,10 +35,10 @@ internal class ReactionBoostPayer @Inject constructor(
     private val resources: ResourceHelper,
 ) {
 
-    /** What [author]'s message pays out for a boost of [totalCents] in a group [creator] owns. */
-    fun plan(author: ID, creator: ID, totalCents: Long): ReactionBoostPlan? {
+    /** What [author]'s message pays out for a boost of [totalCents] in [chat]. */
+    fun plan(author: ID, chat: BoostChat, totalCents: Long): ReactionBoostPlan? {
         val payer = userManager.accountId ?: return null
-        return ReactionBoostSplit.plan(payer = payer, sender = author, creator = creator, totalCents = totalCents)
+        return ReactionBoostSplit.plan(payer = payer, sender = author, chat = chat, totalCents = totalCents)
     }
 
     suspend fun boost(
@@ -45,13 +46,13 @@ internal class ReactionBoostPayer @Inject constructor(
         messageId: Long,
         emoji: String,
         author: ID,
-        creator: ID,
+        chat: BoostChat,
         totalCents: Long,
         onAddMoney: () -> Unit,
     ): Result<Unit> {
         val owner = userManager.accountCluster
             ?: return Result.failure(IllegalStateException("no account"))
-        val plan = when (val planned = plan(author, creator, totalCents)) {
+        val plan = when (val planned = plan(author, chat, totalCents)) {
             is ReactionBoostPlan.Pay -> planned
             ReactionBoostPlan.ShareBelowMinimum -> {
                 alert(R.string.error_title_amountTooSmall, R.string.error_description_amountTooSmall)

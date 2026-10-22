@@ -44,6 +44,7 @@ import com.getcode.view.LoadingSuccessState
  * The amounts are US dollars whatever the viewer's preferred currency: the boost is a USD figure
  * on the wire and on the pill.
  *
+ * @param split who the boost pays, which picks the subtitle; the subtitle waits until it is known.
  * @param emoji the viewer's own reaction being boosted, or null before their reactions load.
  * @param canCycle whether the viewer has more than one reaction, so tapping [emoji] moves to the
  * next with [onCycleEmoji].
@@ -52,6 +53,7 @@ import com.getcode.view.LoadingSuccessState
 @Composable
 internal fun ReactionBoostSheet(
     emoji: String?,
+    split: ReactionBoostViewModel.SplitCopy?,
     canCycle: Boolean,
     token: Token?,
     presetCents: List<Long>,
@@ -102,8 +104,14 @@ internal fun ReactionBoostSheet(
                     )
                 }
             }
-            Text(
-                text = stringResource(R.string.subtitle_paidReactionsSplit),
+            if (split != null) Text(
+                text = stringResource(
+                    when (split) {
+                        ReactionBoostViewModel.SplitCopy.Dm -> R.string.subtitle_paidReactionsDm
+                        ReactionBoostViewModel.SplitCopy.Shared -> R.string.subtitle_paidReactionsSplit
+                        ReactionBoostViewModel.SplitCopy.Whole -> R.string.subtitle_paidReactionsWhole
+                    },
+                ),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
