@@ -9,6 +9,7 @@ import argparse, glob, hashlib, json, os, subprocess, sys, time, urllib.request
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SDK = os.environ.get("ANDROID_HOME", os.path.expanduser("~/Library/Android/sdk"))
+DEXDUMP = sorted(glob.glob(f"{SDK}/build-tools/*/dexdump"))[-1]
 D8 = sorted(glob.glob(f"{SDK}/build-tools/*/d8"))[-1]
 ANDROID_JAR = sorted(glob.glob(f"{SDK}/platforms/android-*/android.jar"))[-1]
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "serve", "patches")
@@ -20,6 +21,16 @@ def class_hashes(root):
     for p in glob.glob(root + "/**/*.class", recursive=True):
         h[os.path.relpath(p, root)] = hashlib.sha1(open(p, "rb").read()).hexdigest()
     return h
+
+
+def dex_class(path):
+    """The class a one-class dex defines. d8 names synthetic lambdas by file ($0) differently from
+    their descriptor (Foo$$ExternalSyntheticLambda0), and only the descriptor is what the app has loaded."""
+    out = subprocess.run([DEXDUMP, path], capture_output=True, text=True).stdout
+    for line in out.splitlines():
+        if "Class descriptor" in line:
+            return line.split("'")[1][1:-1].replace("/", ".")
+    raise RuntimeError("no class descriptor in " + path)
 
 
 def newest_mtime(src):
@@ -49,6 +60,7 @@ def main():
     seq = int(json.load(urllib.request.urlopen(args.server + "/seq"))["seq"])
     before = class_hashes(classes)
     seen = newest_mtime(src)
+    cumulative = {}  # class name -> dex file, for every class changed since the watcher started
     print(f"watching {src} (seq {seq}, {len(before)} classes)", flush=True)
     while True:
         time.sleep(0.05)
@@ -88,11 +100,13 @@ def main():
                 for f in fs:
                     if not f.endswith(".dex"):
                         continue
-                    rel = os.path.relpath(os.path.join(dp, f), dexdir)[:-4]
                     fn = f"{seq}-{len(specs)}.dex"
                     os.replace(os.path.join(dp, f), os.path.join(OUT, fn))
-                    specs.append({"name": rel.replace("/", "."), "file": fn})
+                    specs.append({"name": dex_class(os.path.join(OUT, fn)), "file": fn})
         t_dex = time.time()
+        for sp in specs:
+            cumulative[sp["name"]] = sp["file"]
+        specs = [{"name": n, "file": f} for n, f in cumulative.items()]
         post(args.server, "/publish", {"seq": seq, "classes": specs, "savedAt": t_save,
                                        "compileMs": int((t_compile - t0) * 1000),
                                        "dexMs": int((t_dex - t_compile) * 1000)})

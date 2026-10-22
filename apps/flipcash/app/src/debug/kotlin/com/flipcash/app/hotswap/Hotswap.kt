@@ -29,22 +29,36 @@ internal object Hotswap {
         val base = context.packageManager
             .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
             .metaData?.getString("hotswap.base") ?: DEFAULT_BASE
-        try {
-            JvmtiAgent.attach(context)
-        } catch (t: Throwable) {
-            Log.e(TAG, "agent attach failed", t)
-            report(base, JSONObject().put("event", "attach").put("ok", false).put("error", t.toString()))
-            return
+        Watchdog.start { report(base, it) }
+        // Retry: a failed attach (server not up yet, a stale file) must not end the loader for the life of the process.
+        var attached = false
+        var attempt = 0
+        while (!attached) {
+            attempt++
+            try {
+                JvmtiAgent.attach(context)
+                attached = true
+                Log.i(TAG, "agent attached (attempt $attempt)")
+            } catch (t: Throwable) {
+                Log.e(TAG, "agent attach failed (attempt $attempt)", t)
+                report(base, JSONObject().put("event", "attach").put("ok", false).put("attempt", attempt).put("error", t.toString()))
+                if (attempt >= 5) return
+                Thread.sleep(2000L * attempt)
+            }
         }
-        report(base, JSONObject().put("event", "attach").put("ok", true))
-        // Start from the server's current patch, so a restart does not replay an old one.
-        var seq = -1L
-        while (seq < 0) {
-            seq = try { JSONObject(String(get("$base/seq") ?: continue)).getLong("seq") } catch (_: Throwable) { Thread.sleep(1000); -1L }
-        }
+        report(base, JSONObject().put("event", "attach").put("ok", true).put("attempt", attempt))
+        // The server's notice is cumulative (every class changed since the watcher started), so a relaunched
+        // process, which runs the installed APK again, catches up by applying the latest one.
+        var seq = 0L
         while (true) {
             try {
-                val notice = get(base + "/next?after=$seq") ?: continue
+                val notice = get(base + "/next?after=$seq")
+                if (notice == null) {
+                    // 204 after the long poll: if the server restarted its counter is lower than ours.
+                    val cur = JSONObject(String(get("$base/seq") ?: continue)).getLong("seq")
+                    if (cur < seq) seq = 0
+                    continue
+                }
                 val json = JSONObject(String(notice))
                 seq = json.getLong("seq")
                 apply(base, context, json)
@@ -64,22 +78,26 @@ internal object Hotswap {
             val classes = ArrayList<Class<*>>()
             val dexes = ArrayList<ByteArray>()
             val skipped = ArrayList<String>()
+            val injected = ArrayList<String>()
             for (i in 0 until specs.length()) {
                 val s = specs.getJSONObject(i)
+                val name = s.getString("name")
+                val dex = get(base + "/patches/" + s.getString("file")) ?: error("download failed: ${s.getString("file")}")
                 val cls = try {
-                    Class.forName(s.getString("name"), false, context.classLoader)
+                    Class.forName(name, false, context.classLoader)
                 } catch (_: ClassNotFoundException) {
-                    skipped += s.getString("name") // a new class (e.g. a lambda); redefine cannot add it
+                    // A class the installed APK does not have: redefine cannot add it, so it joins the class loader.
+                    if (ClassInjector.inject(context, name, dex)) injected += name else skipped += name
                     continue
                 }
                 classes += cls
-                dexes += get(base + "/patches/" + s.getString("file")) ?: error("download failed: ${s.getString("file")}")
+                dexes += dex
             }
             val t1 = System.currentTimeMillis()
             val code = JvmtiAgent.redefine(classes.toTypedArray(), dexes.toTypedArray())
             val t2 = System.currentTimeMillis()
             result.put("ok", code == 0).put("code", code).put("error", if (code == 0) JSONObject.NULL else JvmtiAgent.errorName(code))
-                .put("classes", classes.size).put("skipped", JSONArray(skipped)).put("downloadMs", t1 - t0).put("redefineMs", t2 - t1)
+                .put("classes", classes.size).put("skipped", JSONArray(skipped)).put("injected", JSONArray(injected)).put("downloadMs", t1 - t0).put("redefineMs", t2 - t1)
         } catch (t: Throwable) {
             result.put("ok", false).put("error", t.toString())
         }
