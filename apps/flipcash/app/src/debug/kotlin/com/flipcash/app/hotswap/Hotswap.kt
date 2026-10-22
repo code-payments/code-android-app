@@ -17,6 +17,8 @@ internal object Hotswap {
     private const val DEFAULT_BASE = "http://100.91.141.96:18492"
 
     @Volatile private var started = false
+    private const val RECOMPOSE_CAP_MS = 5000L
+    private const val QUIET_MS = 100L
 
     fun start(context: Context) {
         if (started) return
@@ -110,7 +112,10 @@ internal object Hotswap {
     /**
      * Recomposes on the main thread through Compose's HotReloader, the entry Android Studio's Live Edit
      * uses (androidx.compose.runtime 1.12.1: `HotReloaderKt.simulateHotReload(Object)` = saveStateAndDispose +
-     * loadStateAndCompose; the argument is ignored). Returns ms until the frame after the reload was drawn.
+     * loadStateAndCompose; the argument is ignored). Returns ms until a frame was committed with no recomposer
+     * holding pending work, so the screen a caller reads next carries the patch. Two Choreographer frames were
+     * not enough: they ran before the frame's draw, and a screenshot 150ms after the report caught the
+     * disposed, blank content.
      */
     private fun recompose(context: Context): Long {
         val t0 = System.currentTimeMillis()
@@ -123,12 +128,46 @@ internal object Hotswap {
             } catch (t: Throwable) {
                 Log.e(TAG, "hot reload failed", t)
             }
-            android.view.Choreographer.getInstance().postFrameCallback {
-                android.view.Choreographer.getInstance().postFrameCallback { latch.countDown() }
+            awaitCommit(main, latch)
+        }
+        latch.await(RECOMPOSE_CAP_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+        return System.currentTimeMillis() - t0
+    }
+
+    /**
+     * On the main thread: waits for a frame commit drawn with every recomposer idle, which carries the reload,
+     * then for the window to stop drawing ([QUIET_MS] with no commit), so animations the reload restarted
+     * have finished. Image crossfades and Haze's backdrop blur kept drawing for a few frames after the first
+     * idle commit, and a screenshot taken then differed from the next one.
+     */
+    private fun awaitCommit(main: android.os.Handler, latch: java.util.concurrent.CountDownLatch) {
+        if (latch.count == 0L) return
+        val views = android.view.inspector.WindowInspector.getGlobalWindowViews().filter { it.isShown }
+        if (views.isEmpty()) { latch.countDown(); return }
+        val idle = androidx.compose.runtime.Recomposer.runningRecomposers.value.none { it.hasPendingWork }
+        var fired = false
+        val onCommit = Runnable {
+            main.post {
+                if (fired) return@post
+                fired = true
+                // Idle when the frame was drawn means it carries the reload; otherwise wait for the next one.
+                val done = idle && androidx.compose.runtime.Recomposer.runningRecomposers.value.none { it.hasPendingWork }
+                if (done) awaitQuiet(main, latch, views) else awaitCommit(main, latch)
             }
         }
-        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
-        return System.currentTimeMillis() - t0
+        // A commit callback fires only for a frame that is drawn, so ask for one.
+        for (v in views) { v.viewTreeObserver.registerFrameCommitCallback(onCommit); v.invalidate() }
+    }
+
+    private fun awaitQuiet(main: android.os.Handler, latch: java.util.concurrent.CountDownLatch, views: List<android.view.View>) {
+        if (latch.count == 0L) return
+        var drew = false
+        val onCommit = Runnable { drew = true }
+        for (v in views) v.viewTreeObserver.registerFrameCommitCallback(onCommit)
+        main.postDelayed({
+            for (v in views) v.viewTreeObserver.unregisterFrameCommitCallback(onCommit)
+            if (drew) awaitQuiet(main, latch, views) else latch.countDown()
+        }, QUIET_MS)
     }
 
     private fun get(url: String): ByteArray? {
