@@ -4,6 +4,7 @@ import com.flipcash.app.blocklist.BlocklistCoordinator
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
@@ -297,7 +298,7 @@ class ChatProfileViewModelTest {
     @Test
     fun `a payment whose dm appears opens the chat`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
         val model = viewModel()
         openFull(model)
 
@@ -314,7 +315,7 @@ class ChatProfileViewModelTest {
     @Test
     fun `a payment whose dm never appears stays on the profile`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
         val model = viewModel()
         openFull(model)
         val seen = mutableListOf<ChatProfileViewModel.Event>()
@@ -325,6 +326,44 @@ class ChatProfileViewModelTest {
 
         assertTrue(seen.none { it is ChatProfileViewModel.Event.OpenChat })
         job.cancel()
+    }
+
+    @Test
+    fun `a profile reached by scan pays with the scan origin`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
+        val model = viewModel()
+        model.dispatchEvent(
+            ChatProfileViewModel.Event.OnParticipantSet(
+                participant(serverJoin),
+                isFullProfile = true,
+                origin = ProfileOrigin.Scan,
+            )
+        )
+
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(1_000)
+
+        coVerify(exactly = 1) { payer.pay(theirId, any(), ProfileOrigin.Scan, any()) }
+    }
+
+    @Test
+    fun `a profile reached by username lookup pays with that origin`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
+        val model = viewModel()
+        model.dispatchEvent(
+            ChatProfileViewModel.Event.OnParticipantSet(
+                participant(serverJoin),
+                isFullProfile = true,
+                origin = ProfileOrigin.UsernameLookup,
+            )
+        )
+
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(1_000)
+
+        coVerify(exactly = 1) { payer.pay(theirId, any(), ProfileOrigin.UsernameLookup, any()) }
     }
 
     @Test
@@ -341,7 +380,7 @@ class ChatProfileViewModelTest {
     @Test
     fun `other events are not stalled while a paid chat waits for its members`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
         coEvery { blocklist.unblock(any()) } returns Result.success(Unit)
         val model = viewModel()
         openFull(model)
@@ -356,7 +395,7 @@ class ChatProfileViewModelTest {
     @Test
     fun `a paid chat waiting for its members cannot be paid for again`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
         val model = viewModel()
         openFull(model)
 
@@ -370,14 +409,14 @@ class ChatProfileViewModelTest {
         model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
         advanceTimeBy(11_000)
 
-        coVerify(exactly = 1) { payer.pay(any(), any(), any()) }
+        coVerify(exactly = 1) { payer.pay(any(), any(), any(), any()) }
         assertEquals(ProfilePinnedAction.OpeningChat, model.stateFlow.value.pinnedAction)
     }
 
     @Test
     fun `the sheet stays up and locked after a successful payment until the members arrive`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
         val model = viewModel()
         openFull(model)
         model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
@@ -393,7 +432,7 @@ class ChatProfileViewModelTest {
     @Test
     fun `dismissing the sheet is ignored while a payment is out`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
         val model = viewModel()
         openFull(model)
         model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
@@ -409,7 +448,7 @@ class ChatProfileViewModelTest {
     @Test
     fun `members arriving hides the sheet and opens the chat`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
         val model = viewModel()
         openFull(model)
         val seen = mutableListOf<ChatProfileViewModel.Event>()
@@ -431,7 +470,7 @@ class ChatProfileViewModelTest {
     @Test
     fun `members never arriving releases the sheet and stays on the profile`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.success(dmChatId)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
         val model = viewModel()
         openFull(model)
         model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
@@ -447,7 +486,7 @@ class ChatProfileViewModelTest {
     @Test
     fun `a failed payment leaves the sheet dismissable`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.failure(Exception("nope"))
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.failure(Exception("nope"))
         val model = viewModel()
         openFull(model)
         model.dispatchEvent(ChatProfileViewModel.Event.ShowPaymentSheet)
@@ -462,14 +501,14 @@ class ChatProfileViewModelTest {
     @Test
     fun `a failed payment can be tried again`() = runTest {
         fee.value = Fiat(1, CurrencyCode.USD)
-        coEvery { payer.pay(any(), any(), any()) } returns Result.failure(Exception("nope"))
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.failure(Exception("nope"))
         val model = viewModel()
         openFull(model)
 
         model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
         model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
 
-        coVerify(exactly = 2) { payer.pay(any(), any(), any()) }
+        coVerify(exactly = 2) { payer.pay(any(), any(), any(), any()) }
         assertTrue(model.stateFlow.value.pinnedAction is ProfilePinnedAction.StartChatting)
     }
 
@@ -480,12 +519,12 @@ class ChatProfileViewModelTest {
         openFull(model)
         com.getcode.manager.BottomBarManager.clear()
 
-        coEvery { payer.pay(any(), any(), any()) } returns
+        coEvery { payer.pay(any(), any(), any(), any()) } returns
             Result.failure(StartChattingPayer.PaymentBlocked())
         model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
         assertTrue(com.getcode.manager.BottomBarManager.messages.value.isEmpty())
 
-        coEvery { payer.pay(any(), any(), any()) } returns Result.failure(Exception("nope"))
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.failure(Exception("nope"))
         model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
         assertEquals(1, com.getcode.manager.BottomBarManager.messages.value.size)
         com.getcode.manager.BottomBarManager.clear()

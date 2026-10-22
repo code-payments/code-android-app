@@ -5,6 +5,7 @@ import com.flipcash.app.blocklist.BlocklistCoordinator
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.features.messenger.R
@@ -75,6 +76,8 @@ internal class ChatProfileViewModel @Inject constructor(
 ) {
     data class State(
         val participant: ChatParticipant? = null,
+        /** What opened the profile. A start-chatting payment from a scanned card is a tip. */
+        val origin: ProfileOrigin = ProfileOrigin.Chat,
         val joinDate: Instant? = null,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
         /** The viewer's own user id, so the screen can tell their own profile from someone else's. */
@@ -146,11 +149,13 @@ internal class ChatProfileViewModel @Inject constructor(
         /**
          * [isFullProfile] says the participant is the server's whole profile, as a link's lookup
          * hands over, so its join date is current and there is no need to fetch it again. A
-         * partial participant (a chat member, a contact) renders at once and is fetched.
+         * partial participant (a chat member, a contact) renders at once and is fetched. [origin] is
+         * what opened the profile.
          */
         data class OnParticipantSet(
             val participant: ChatParticipant,
             val isFullProfile: Boolean = false,
+            val origin: ProfileOrigin = ProfileOrigin.Chat,
         ) : Event
         /** The fetch for a partial participant failed; the cached one stays. */
         data object ProfileFetchFailed : Event
@@ -439,6 +444,7 @@ internal class ChatProfileViewModel @Inject constructor(
             startChattingPayer.pay(
                 recipient = person.userId,
                 fee = fee,
+                origin = state.origin,
                 onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
             ).onSuccess { paidChatId ->
                 dispatchEvent(Event.PaymentProgress(success = true))
@@ -571,12 +577,14 @@ private fun ChatProfileViewModel.State.withParticipantSet(
         return copy(
             // The server's profile stays rather than being swapped for the cached one.
             participant = if (isFullProfileLoaded && !event.isFullProfile) participant else incoming,
+            origin = event.origin,
             isFullProfileLoaded = isFullProfileLoaded || event.isFullProfile,
             profileSettled = profileSettled || event.isFullProfile,
         )
     }
     return ChatProfileViewModel.State(
         participant = incoming,
+        origin = event.origin,
         selfId = selfId,
         isFullProfileLoaded = event.isFullProfile,
         profileSettled = event.isFullProfile,

@@ -391,8 +391,8 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val rootNavigator = LocalCodeNavigator.current
 
-    LaunchedEffect(viewModel, participant) {
-        viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant))
+    LaunchedEffect(viewModel, participant, origin) {
+        viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant, origin = origin))
     }
 
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()

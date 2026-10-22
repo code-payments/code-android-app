@@ -172,7 +172,7 @@ class TipPaymentDelegate @Inject constructor(
      * Sends [verifiedFiat] of [token] from [source] to the user identified by [userId] as a tip DM:
      * derives the canonical tip chat, resolves the recipient's on-chain owner, attaches tip-DM app
      * metadata, transfers, debits the local balance, and syncs the chat feed. [origin] records
-     * where the tip was initiated (a tip card vs. an in-chat send); [action] is the verb the
+     * where the payment was initiated (a profile vs. an in-chat send); [action] is the verb the
      * server renders for it ("Tipped" vs "Sent") and is always explicit — see [TipAction]. Returns
      * the canonical tip [ChatId] (for message reload / navigation), or null if it couldn't be
      * derived.

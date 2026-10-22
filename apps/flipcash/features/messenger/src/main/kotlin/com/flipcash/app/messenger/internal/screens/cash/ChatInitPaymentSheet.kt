@@ -101,7 +101,7 @@ internal fun ChatInitPaymentSheet(
             enabled = fee != null && sendProgress.isIdle,
             isLoading = sendProgress.loading,
             isSuccess = sendProgress.success,
-            label = stringResource(R.string.action_swipeToSend),
+            label = stringResource(R.string.action_swipeToChat),
         )
     }
 }

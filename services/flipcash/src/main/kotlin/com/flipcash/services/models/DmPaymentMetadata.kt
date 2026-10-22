@@ -29,11 +29,21 @@ fun buildDmPaymentMetadata(
         ).build().toByteArray()
 }
 
-/** Where in the app a tip DM payment was initiated, reported to the backend as `location`. */
+/**
+ * Where in the app a tip DM payment was initiated, reported to the backend as `location`.
+ *
+ * [TIPCARD] is the payment that opens a DM from a profile, however the profile was reached;
+ * [CHAT] is a send from inside the DM. Location says nothing about whether the payment is a tip:
+ * that is [TipAction].
+ */
 enum class TipOrigin { TIPCARD, CHAT }
 
 /**
  * The verb the client intends for a tip DM payment, reported to the backend as `action`.
+ *
+ * [TIP] is only for a payment to someone reached through their Flipcard (a scan or a tip-card
+ * link); every other payment, the one that opens a DM included, is a [SEND]. The server stores
+ * the action on the DM's cash message, which is what makes it read as "Tipped" or "Sent".
  *
  * There is no `DEFAULT` case here on purpose. `action` is proto3, so an unset field reads back
  * as its zero value — which is `DEFAULT`, the same number as `location`'s zero value (`TIPCARD`).
@@ -48,8 +58,8 @@ enum class TipAction { SEND, TIP }
  * Builds the serialized Flipcash `AppMetadata` proto bytes for a tip DM payment.
  *
  * Unlike a contact DM payment there is no phone source/destination — a tip DM is
- * between two user IDs, which map directly to/from public keys. [origin] records where the tip
- * was sent from (a tip card vs. an in-chat send) and drives `location`, which the server reads
+ * between two user IDs, which map directly to/from public keys. [origin] records where the payment
+ * was sent from (a profile vs. an in-chat send) and drives `location`, which the server reads
  * only as the fallback for an unset [action]. [action] is the always-explicit verb, and it is
  * what the server resolves the payment to — the title on the sender's activity feed, the message
  * injected into the DM, and which validation rules the intent is held to. Returns `null` when
