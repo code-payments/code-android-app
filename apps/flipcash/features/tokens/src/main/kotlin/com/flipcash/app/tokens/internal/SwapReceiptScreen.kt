@@ -117,6 +117,7 @@ private fun SwapReceiptScreen(
                     buttonState = ButtonState.Filled,
                     isLoading = progress.loading,
                     isSuccess = progress.success,
+                    enabled = !progress.success,
                     onClick = onConfirm,
                 )
             }

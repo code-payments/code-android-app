@@ -77,6 +77,7 @@ private fun TokenSellReceiptScreen(
                     buttonState = ButtonState.Filled,
                     isLoading = state.sellProgress.loading,
                     isSuccess = state.sellProgress.success,
+                    enabled = !state.sellProgress.success,
                 ) {
                     dispatchEvent(SwapViewModel.Event.OnSellConfirmed)
                 }
