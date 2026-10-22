@@ -841,8 +841,8 @@
     <string name="description_buyWithPhantom">Purchase using Solana USDC in Phantom. Simply connect your wallet and confirm the transaction</string>
 
 
-    <string name="title_addMoneyWithPhantom">Add Money With Phantom</string>
-    <string name="description_addMoneyWithPhantom">Add money using Solana USDC in Phantom. Your USDC will be automatically converted to USDF 1:1</string>
+    <string name="title_addMoneyWithPhantom">Add Dollars With Phantom</string>
+    <string name="description_addMoneyWithPhantom">Add dollars using Solana USDC in Phantom. Your USDC will be automatically converted to USDF 1:1</string>
 
     <string name="title_confirmation">Confirmation</string>
     <string name="title_buyWithPhantomConnected">Connected</string>
