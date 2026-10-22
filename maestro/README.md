@@ -132,9 +132,9 @@ maestro/run.sh maestro/tipping_setup.yaml
 - `login_logout.yaml` — real seed-login UI + logout (Log Out lives on Settings)
 - `account_navigation.yaml` — You tab → Settings (the gear)
 - `wallet_token_info.yaml` — wallet → token info + market-cap chart
-- `discovery_leaderboard.yaml` — wallet → Discover Currencies → leaderboard → token info
-- `withdraw.yaml` — menu → Withdraw Money → USDC → amount entry (fund-safe)
-- `deposit.yaml` — menu → Add Money → Other Wallet → USDC deposit (fund-safe)
+- `discovery_leaderboard.yaml` — wallet → Currency Leaderboard → leaderboard → token info
+- `withdraw.yaml` — wallet → Withdraw Dollars → USDC → amount entry (fund-safe)
+- `deposit.yaml` — wallet → Add Dollars → Other Wallet → USDC deposit (fund-safe)
 - `tipping_setup.yaml` — create account → set up tip card → tip card renders
 - `tip_chat.yaml` — open the tip conversation from the Chats tab and send a message
 - `chat_message_selection.yaml` — long-press a sent message: the selection bar offers Delete,
@@ -159,15 +159,15 @@ maestro/run.sh maestro/tipping_setup.yaml
   so it is excluded from the default CI tag set)
 - `buy.yaml` — Discover → an unheld currency → Get → amount → receipt (fund-safe)
 - `sell.yaml` — wallet → Float → Convert → amount entry (fund-safe)
-- `currency_creator.yaml` — wallet → Create a Currency → intro + $20 balance gate
-- `coinbase_onramp.yaml` — Add Money → Coinbase/Google Pay method → onramp (phone verify);
+- `currency_creator.yaml` — wallet → Create Your Own Currency → intro + $20 balance gate
+- `coinbase_onramp.yaml` — Add Dollars → Coinbase/Google Pay method → onramp (phone verify);
   `coinbase_onramp_sandbox_enabled` set so a follow-up can drive a sandbox purchase
 - Give/bill round-trip, token-info deeplink, screenshot suite (existing)
 
 **Scaffolded — pending account provisioning** (flow authored + wired; drop in the account/contact
 and it runs):
 - `usdf_only_gate.yaml` — reserves-only account: the wallet deck holds nothing giveable and the
-  "Discover Currencies" tile is the way out. Mirrors iOS `GiveDiscoverGateRegressionTests`. Needs
+  "Currency Leaderboard" tile is the way out. Mirrors iOS `GiveDiscoverGateRegressionTests`. Needs
   `USDF_ONLY_DEEPLINK` (a dedicated USDF-only account, like iOS's
   `FLIPCASH_UI_TEST_USDF_ONLY_ACCESS_KEY`).
 

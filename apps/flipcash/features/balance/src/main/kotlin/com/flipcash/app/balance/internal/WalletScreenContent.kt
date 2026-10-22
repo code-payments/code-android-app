@@ -316,6 +316,34 @@ internal fun WalletScreenContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     ) {
+                        // Currency creation now lives here rather than as a Discover promo.
+                        TileButton(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1.45f),
+                            style = TileButtonStyle.Spread,
+                            text = stringResource(R.string.action_createYourOwnCurrency),
+                            icon = painterResource(R.drawable.ic_coins_add),
+                        ) {
+                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.CurrencyCreator))
+                        }
+
+                        TileButton(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1.45f),
+                            style = TileButtonStyle.Spread,
+                            text = stringResource(R.string.action_currencyLeaderboard),
+                            icon = painterResource(R.drawable.ic_globe),
+                        ) {
+                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.Discovery))
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                    ) {
                         // ic_menu_deposit/ic_menu_withdraw are the app's canonical glyphs for this
                         // pair (the Settings-sheet money tiles) — matched arrows, not ad-hoc icons.
                         TileButton(
@@ -323,7 +351,7 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringResource(R.string.action_addMoney),
+                            text = stringResource(R.string.action_addDollars),
                             icon = painterResource(R.drawable.ic_menu_deposit),
                         ) {
                             dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
@@ -334,7 +362,7 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringResource(R.string.action_withdrawMoney),
+                            text = stringResource(R.string.action_withdrawDollars),
                             icon = painterResource(R.drawable.ic_menu_withdraw),
                         ) {
                             // No preselected mint: the flow opens on the currency picker, which lists
@@ -344,34 +372,6 @@ internal fun WalletScreenContent(
                                     AppRoute.Transfers.Withdrawal(preselectedMint = null)
                                 )
                             )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                    ) {
-                        TileButton(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1.45f),
-                            style = TileButtonStyle.Spread,
-                            text = stringResource(R.string.action_discoverCurrencies),
-                            icon = painterResource(R.drawable.ic_globe),
-                        ) {
-                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.Discovery))
-                        }
-
-                        // Currency creation now lives here rather than as a Discover promo.
-                        TileButton(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1.45f),
-                            style = TileButtonStyle.Spread,
-                            text = stringResource(R.string.action_createCurrency),
-                            icon = painterResource(R.drawable.ic_coins_add),
-                        ) {
-                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.CurrencyCreator))
                         }
                     }
                 }

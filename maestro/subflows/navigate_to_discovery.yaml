@@ -4,9 +4,9 @@ appId: com.flipcash.app.android
 - runFlow: navigate_to_wallet.yaml
 # The tiles sit below the card deck and recent activity.
 - scrollUntilVisible:
-    element: "Discover Currencies"
+    element: "Currency Leaderboard"
     direction: DOWN
-- tapOn: "Discover Currencies"
+- tapOn: "Currency Leaderboard"
 - extendedWaitUntil:
     visible:
       id: discovery_screen
