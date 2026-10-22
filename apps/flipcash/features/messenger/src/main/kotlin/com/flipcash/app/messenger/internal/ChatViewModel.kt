@@ -1248,6 +1248,7 @@ internal class ChatViewModel @AssistedInject constructor(
         val canSpeak: Boolean,
         val canReact: Boolean,
         val previewing: Boolean,
+        val chatType: ChatType,
     )
 
     /**
@@ -1402,9 +1403,10 @@ internal class ChatViewModel @AssistedInject constructor(
                 viewerCanSpeak,
                 viewerCanReact,
                 viewerPreviewing,
+                stateFlow.map { it.chatType }.distinctUntilChanged(),
                 ::ViewerGates,
             ),
-        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages, previewing) ->
+        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages, previewing, chatType) ->
             if (pagingData !== quotedGeneration) {
                 quotedGeneration = pagingData
                 quotedMessages.clear()
@@ -1550,6 +1552,7 @@ internal class ChatViewModel @AssistedInject constructor(
                         canReact = canReact(message, canSpeak = canPost && canReactToMessages),
                         canBoost = canBoost(
                             message,
+                            chatType = chatType,
                             selfReactions = storedReactions.selfReactions,
                             canSpeak = canPost && canReactToMessages,
                         ),

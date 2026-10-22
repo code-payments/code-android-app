@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.reactions.SelfReaction
 import kotlin.time.Clock
@@ -277,11 +278,12 @@ fun canReact(message: ChatMessage, canSpeak: Boolean = true): Boolean {
 /**
  * Whether the viewer may boost one of their reactions on [message] with money — the pill row's
  * "$". Reacting stays free; a boost pays for a reaction the viewer already made, so it needs
- * [selfReactions] to hold one. In a group or a DM, only on someone else's message, and only where
+ * [selfReactions] to hold one. In a group or a DM (never an unknown chat type), only on someone else's message, and only where
  * [canReact] allows a reaction at all.
  */
 fun canBoost(
     message: ChatMessage,
+    chatType: ChatType,
     selfReactions: List<SelfReaction>,
     canSpeak: Boolean = true,
-): Boolean = !message.isFromSelf && selfReactions.isNotEmpty() && canReact(message, canSpeak)
+): Boolean = chatType != ChatType.UNKNOWN && !message.isFromSelf && selfReactions.isNotEmpty() && canReact(message, canSpeak)

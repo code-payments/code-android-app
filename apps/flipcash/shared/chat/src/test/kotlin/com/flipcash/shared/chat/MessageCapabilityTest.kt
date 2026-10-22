@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.shared.chat.reactions.SelfReaction
@@ -572,25 +573,32 @@ class MessageCapabilityTest {
 
     @Test
     fun `canBoost needs the viewer's own reaction on the message`() {
-        assertEquals(false, canBoost(text(isFromSelf = false), selfReactions = emptyList()))
-        assertEquals(true, canBoost(text(isFromSelf = false), selfReactions = reacted))
+        assertEquals(false, canBoost(text(isFromSelf = false), ChatType.GROUP, selfReactions = emptyList()))
+        assertEquals(true, canBoost(text(isFromSelf = false), ChatType.GROUP, selfReactions = reacted))
     }
 
     @Test
     fun `canBoost is off on the viewer's own message`() {
-        assertEquals(false, canBoost(text(isFromSelf = true), selfReactions = reacted))
+        assertEquals(false, canBoost(text(isFromSelf = true), ChatType.GROUP, selfReactions = reacted))
     }
 
     @Test
     fun `canBoost is on in a DM for the other member's message and off for the viewer's own`() {
         // A DM has no group gate: the same rules apply with two members.
-        assertEquals(true, canBoost(text(isFromSelf = false), selfReactions = reacted))
-        assertEquals(false, canBoost(text(isFromSelf = true), selfReactions = reacted))
+        assertEquals(true, canBoost(text(isFromSelf = false), ChatType.CONTACT_DM, selfReactions = reacted))
+        assertEquals(false, canBoost(text(isFromSelf = true), ChatType.CONTACT_DM, selfReactions = reacted))
+    }
+
+    @Test
+    fun `canBoost is off for an unknown chat type and on for the known ones`() {
+        assertEquals(false, canBoost(text(isFromSelf = false), ChatType.UNKNOWN, selfReactions = reacted))
+        assertEquals(true, canBoost(text(isFromSelf = false), ChatType.TIP_DM, selfReactions = reacted))
+        assertEquals(true, canBoost(text(isFromSelf = false), ChatType.GROUP, selfReactions = reacted))
     }
 
     @Test
     fun `canBoost follows canReact`() {
-        assertEquals(false, canBoost(text(isFromSelf = false), selfReactions = reacted, canSpeak = false))
-        assertEquals(false, canBoost(text(isFromSelf = false, eventSequence = 0), selfReactions = reacted))
+        assertEquals(false, canBoost(text(isFromSelf = false), ChatType.GROUP, selfReactions = reacted, canSpeak = false))
+        assertEquals(false, canBoost(text(isFromSelf = false, eventSequence = 0), ChatType.GROUP, selfReactions = reacted))
     }
 }
