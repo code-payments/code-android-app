@@ -96,6 +96,7 @@ internal object Hotswap {
             val t1 = System.currentTimeMillis()
             val code = JvmtiAgent.redefine(classes.toTypedArray(), dexes.toTypedArray())
             val t2 = System.currentTimeMillis()
+            if (code == 0) result.put("recomposeMs", recompose(context))
             result.put("ok", code == 0).put("code", code).put("error", if (code == 0) JSONObject.NULL else JvmtiAgent.errorName(code))
                 .put("classes", classes.size).put("skipped", JSONArray(skipped)).put("injected", JSONArray(injected)).put("downloadMs", t1 - t0).put("redefineMs", t2 - t1)
         } catch (t: Throwable) {
@@ -104,6 +105,30 @@ internal object Hotswap {
         result.put("appliedAt", System.currentTimeMillis())
         Log.i(TAG, "patch $seq: $result")
         report(base, result)
+    }
+
+    /**
+     * Recomposes on the main thread through Compose's HotReloader, the entry Android Studio's Live Edit
+     * uses (androidx.compose.runtime 1.12.1: `HotReloaderKt.simulateHotReload(Object)` = saveStateAndDispose +
+     * loadStateAndCompose; the argument is ignored). Returns ms until the frame after the reload was drawn.
+     */
+    private fun recompose(context: Context): Long {
+        val t0 = System.currentTimeMillis()
+        val latch = java.util.concurrent.CountDownLatch(1)
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        main.post {
+            try {
+                Class.forName("androidx.compose.runtime.HotReloaderKt", true, context.classLoader)
+                    .getMethod("simulateHotReload", Any::class.java).invoke(null, context)
+            } catch (t: Throwable) {
+                Log.e(TAG, "hot reload failed", t)
+            }
+            android.view.Choreographer.getInstance().postFrameCallback {
+                android.view.Choreographer.getInstance().postFrameCallback { latch.countDown() }
+            }
+        }
+        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        return System.currentTimeMillis() - t0
     }
 
     private fun get(url: String): ByteArray? {
