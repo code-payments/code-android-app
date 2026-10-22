@@ -6,8 +6,8 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.bytes
 
 /**
- * CoinbaseStableSwapper::SwapV2. Same arguments as [CoinbaseStableSwapperProgram_Swap], but the
- * deprecated whitelist account is gone (15 accounts instead of 16).
+ * CoinbaseStableSwapper::SwapV2 (`swap_v2`), the only swap instruction the app builds. It takes
+ * 15 accounts; the retired v1 `swap` also took a whitelist account.
  */
 internal class CoinbaseStableSwapperProgram_SwapV2(
     private val pool: PublicKey,
