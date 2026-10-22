@@ -37,7 +37,8 @@ import kotlinx.coroutines.flow.filterIsInstance
  *
  * [origin] decides where a block lands: a link or a transaction pops back to where it came from, a
  * scan or a username search resets to the chat list, since what led here has no use once the
- * person is blocked.
+ * person is blocked. It also decides what Start Chatting pays as: a tip from a scanned card, a send
+ * from anywhere else.
  */
 @Composable
 fun ProfileScreen(address: ProfileAddress, origin: ProfileOrigin = ProfileOrigin.Link) {
@@ -65,10 +66,10 @@ fun ProfileScreen(address: ProfileAddress, origin: ProfileOrigin = ProfileOrigin
             }
     }
 
-    LaunchedEffect(viewModel, state.participant) {
+    LaunchedEffect(viewModel, state.participant, origin) {
         state.participant?.let {
             viewModel.dispatchEvent(
-                ChatProfileViewModel.Event.OnParticipantSet(it, isFullProfile = true)
+                ChatProfileViewModel.Event.OnParticipantSet(it, isFullProfile = true, origin = origin)
             )
         }
     }

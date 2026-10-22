@@ -7,6 +7,7 @@ import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
@@ -58,12 +59,22 @@ internal interface StartChattingPayer {
     suspend fun depositRoute(): AppRoute?
 
     /**
-     * Pays [fee] to [recipient] from the selected token, as a tip-card tip.
+     * Pays [fee] to [recipient] from the selected token, the payment that opens the DM with them.
+     *
+     * [origin] is the profile the payment was made from, and decides what the payment is: a tip
+     * when the profile came from a Flipcard ([ProfileOrigin.Scan], a scan or a tip-card link), a
+     * send from anywhere else. The server stores that action on the cash message, so it is what
+     * the DM's first bubble reads as on both ends.
      *
      * A failure that is a [PaymentBlocked] has already told the user why (balance, limit, stale
      * rates); any other failure has not, and is the caller's to present.
      */
-    suspend fun pay(recipient: ID, fee: Fiat, onAddMoney: () -> Unit): Result<ChatId?>
+    suspend fun pay(
+        recipient: ID,
+        fee: Fiat,
+        origin: ProfileOrigin,
+        onAddMoney: () -> Unit,
+    ): Result<ChatId?>
 
     /** A payment that was stopped by a check, after the user was told. Not worth a second message. */
     class PaymentBlocked : Exception()
@@ -118,7 +129,12 @@ internal class DefaultStartChattingPayer @Inject constructor(
         return purchaseMethodController.presentDepositOptions()
     }
 
-    override suspend fun pay(recipient: ID, fee: Fiat, onAddMoney: () -> Unit): Result<ChatId?> {
+    override suspend fun pay(
+        recipient: ID,
+        fee: Fiat,
+        origin: ProfileOrigin,
+        onAddMoney: () -> Unit,
+    ): Result<ChatId?> {
         val owner = userManager.accountCluster
             ?: return Result.failure(IllegalStateException("no account"))
         val token = observeSelectedToken().first()
@@ -155,19 +171,26 @@ internal class DefaultStartChattingPayer @Inject constructor(
             return Result.failure(StartChattingPayer.PaymentBlocked())
         }
 
+        val action = if (origin == ProfileOrigin.Scan) TipAction.TIP else TipAction.SEND
         val result = tipPaymentDelegate.send(
             userId = recipient,
             verifiedFiat = verifiedFiat,
             token = token,
             source = owner.withTimelockForToken(token),
+            // FLIPCARD on the wire for every opener: the server is known to accept SEND with it, and
+            // CHAT on an opening payment is unconfirmed.
             origin = TipOrigin.TIPCARD,
-            action = TipAction.TIP,
+            action = action,
         )
         val sentAmount = verifiedFiat.localFiat.analytics
+        val sent = when (action) {
+            TipAction.TIP -> TransferEvents::sentTip
+            TipAction.SEND -> TransferEvents::sentCash
+        }
         analytics.track(
             result.fold(
-                onSuccess = { TransferEvents.sentTip(AnalyticsState.SUCCESS, sentAmount, null) },
-                onFailure = { TransferEvents.sentTip(AnalyticsState.FAILURE, sentAmount, it.analytics) },
+                onSuccess = { sent(AnalyticsState.SUCCESS, sentAmount, null) },
+                onFailure = { sent(AnalyticsState.FAILURE, sentAmount, it.analytics) },
             )
         )
         return result

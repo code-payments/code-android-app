@@ -1,9 +1,12 @@
 package com.flipcash.app.messenger.internal.payment
 
-import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.TipAction
+import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.TipPaymentDelegate
@@ -11,6 +14,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
+import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
@@ -48,6 +52,7 @@ class DefaultStartChattingPayerTest {
     private val tips = mockk<TipPaymentDelegate>(relaxed = true) {
         every { exceedsSendLimit(any()) } returns false
     }
+    private val analytics = RecordingAnalytics()
     private val resources = mockk<ResourceHelper>(relaxed = true) {
         every { getString(any()) } answers { "res:${firstArg<Int>()}" }
     }
@@ -59,7 +64,7 @@ class DefaultStartChattingPayerTest {
         verifiedFiatCalculator = calculator,
         tipPaymentDelegate = tips,
         purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true),
-        analytics = mockk<FlipcashAnalytics>(relaxed = true),
+        analytics = analytics,
         resources = resources,
     )
 
@@ -83,7 +88,7 @@ class DefaultStartChattingPayerTest {
     fun `over balance is blocked with the insufficient balance alert`() = runTest {
         every { fee.valueGreaterThan(any()) } returns true
 
-        val result = payer().pay(listOf(1), fee, onAddMoney = {})
+        val result = payer().pay(listOf(1), fee, ProfileOrigin.UsernameLookup, onAddMoney = {})
 
         assertBlockedWith(result, R.string.title_insufficientBalance)
     }
@@ -92,7 +97,7 @@ class DefaultStartChattingPayerTest {
     fun `over the send limit is blocked with the limit alert`() = runTest {
         every { tips.exceedsSendLimit(any()) } returns true
 
-        val result = payer().pay(listOf(1), fee, onAddMoney = {})
+        val result = payer().pay(listOf(1), fee, ProfileOrigin.UsernameLookup, onAddMoney = {})
 
         assertBlockedWith(result, R.string.error_title_sendLimitReached)
     }
@@ -101,7 +106,7 @@ class DefaultStartChattingPayerTest {
     fun `no account fails without an alert or a payment`() = runTest {
         every { userManager.accountCluster } returns null
 
-        val result = payer().pay(listOf(1), fee, onAddMoney = {})
+        val result = payer().pay(listOf(1), fee, ProfileOrigin.UsernameLookup, onAddMoney = {})
 
         assertTrue(result.exceptionOrNull() !is StartChattingPayer.PaymentBlocked)
         assertTrue(result.isFailure)
@@ -115,10 +120,46 @@ class DefaultStartChattingPayerTest {
         coEvery { calculator.compute(any(), any(), any(), any()) } returns Result.success(mockk(relaxed = true))
         coEvery { tips.send(any(), any(), any(), any(), any(), any()) } returns Result.success(chatId)
 
-        val result = payer().pay(listOf(1), fee, onAddMoney = {})
+        val result = payer().pay(listOf(1), fee, ProfileOrigin.UsernameLookup, onAddMoney = {})
 
         assertEquals(chatId, result.getOrNull())
         assertTrue(BottomBarManager.messages.value.isEmpty())
         coVerify(exactly = 1) { tips.send(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `under the start chatting fee floor is blocked with the amount too small alert`() = runTest {
+        coEvery { calculator.compute(any(), any(), any(), any()) } returns
+            Result.failure(ComputeVerifiedFiatError.AmountBelowMinimum())
+
+        val result = payer().pay(listOf(1), fee, ProfileOrigin.UsernameLookup, onAddMoney = {})
+
+        assertBlockedWith(result, R.string.error_title_amountTooSmall)
+    }
+
+    @Test
+    fun `an opening payment from anywhere but a scan is a send`() = runTest {
+        coEvery { calculator.compute(any(), any(), any(), any()) } returns Result.success(mockk(relaxed = true))
+        coEvery { tips.send(any(), any(), any(), any(), any(), any()) } returns Result.success(null)
+        val others = ProfileOrigin.entries - ProfileOrigin.Scan
+
+        others.forEach { origin -> payer().pay(listOf(1), fee, origin, onAddMoney = {}) }
+
+        coVerify(exactly = others.size) {
+            tips.send(any(), any(), any(), any(), TipOrigin.TIPCARD, TipAction.SEND)
+        }
+        coVerify(exactly = 0) { tips.send(any(), any(), any(), any(), any(), TipAction.TIP) }
+        assertEquals(List(others.size) { "Sent Cash" }, analytics.events.map { it.name })
+    }
+
+    @Test
+    fun `an opening payment from a scanned flipcard is a tip`() = runTest {
+        coEvery { calculator.compute(any(), any(), any(), any()) } returns Result.success(mockk(relaxed = true))
+        coEvery { tips.send(any(), any(), any(), any(), any(), any()) } returns Result.success(null)
+
+        payer().pay(listOf(1), fee, ProfileOrigin.Scan, onAddMoney = {})
+
+        coVerify(exactly = 1) { tips.send(any(), any(), any(), any(), TipOrigin.TIPCARD, TipAction.TIP) }
+        assertEquals(listOf("Sent Tip"), analytics.events.map { it.name })
     }
 }
