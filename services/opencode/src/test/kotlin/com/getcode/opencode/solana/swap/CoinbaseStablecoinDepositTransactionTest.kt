@@ -20,13 +20,11 @@ import kotlin.test.assertTrue
  * valid-looking [PublicKey] and a transaction that encodes fine, so only the end-to-end bytes
  * catch it.
  *
- * The deposit swap is `swap_v2` (15 accounts). The expected bytes are
- * builder-derived: there is no on-chain `swap_v2` capture for this transaction yet. The previous
- * `swap` (v1) version of these bytes was accepted by `simulateTransaction` on mainnet (no error,
- * 64422 compute units, `Swapped 5000000 tokens`). Two earlier shapes of that transaction were
- * rejected there: `fee_recipient` read at the offset the published IDL implies fails with
- * `ConstraintAddress` (2012), and `minAmountOut = 0` fails with `InvalidAmount` (6002).
- * Re-simulate the v2 bytes before relying on them as a mainnet-accepted vector.
+ * The deposit swap is `swap_v2` (15 accounts). These bytes were accepted by
+ * `simulateTransaction` on mainnet (no error, 59730 compute units, `Swapped 5000000 tokens`).
+ * Two earlier shapes of this transaction were rejected there: `fee_recipient` read at the offset
+ * the published IDL implies fails with `ConstraintAddress` (2012), and `minAmountOut = 0` fails
+ * with `InvalidAmount` (6002).
  */
 class CoinbaseStablecoinDepositTransactionTest {
 
@@ -50,7 +48,7 @@ class CoinbaseStablecoinDepositTransactionTest {
     private val amount = 5_000_000L
 
     /**
-     * Builder-derived `swap_v2` bytes; see the class comment. Any change here is a wire-format
+     * Mainnet-simulated `swap_v2` bytes; see the class comment. Any change here is a wire-format
      * change on the deposit path. Re-simulate before updating.
      */
     private val expectedTransactionBase64 =
