@@ -118,6 +118,7 @@ class SwapViewModelBalancePrefetchTest {
         dispatchers = dispatchers,
         userFlags = mockk<UserFlagsCoordinator>(relaxed = true),
         usdcDepositSweep = mockk<UsdcDepositSweep>(relaxed = true),
+        balancePoller = mockk<com.flipcash.app.tokens.BalancePoller>(relaxed = true),
         notificationPrompt = mockk<TransactionNotificationPrompt>(relaxed = true),
     )
 

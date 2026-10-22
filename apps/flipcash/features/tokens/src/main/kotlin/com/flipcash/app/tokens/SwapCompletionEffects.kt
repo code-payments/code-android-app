@@ -16,12 +16,16 @@ import kotlinx.coroutines.flow.onEach
  *  - [SwapViewModel.Event.OnTransactionSuccessful] exits the flow, the same exit Processing's OK does.
  *  - [SwapViewModel.Event.ProcessingTakingLonger] hands off to Processing once the fast window lapses.
  *  - back is swallowed while the confirm button is spinning.
+ *
+ * With [processingIsTerminal] (Phantom add-money) the hand-off replaces the whole inner stack, so
+ * leaving Processing exits the flow instead of surfacing the buried Phantom connect prompt.
  */
 @Composable
 internal fun SwapCompletionEffects(
     viewModel: SwapViewModel,
     flowNavigator: FlowNavigator<SwapStep, SwapResult>,
     isSubmitting: Boolean,
+    processingIsTerminal: Boolean = false,
 ) {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
@@ -35,7 +39,13 @@ internal fun SwapCompletionEffects(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.ProcessingTakingLonger>()
-            .onEach { flowNavigator.navigateTo(SwapStep.Processing) }
+            .onEach {
+                if (processingIsTerminal) {
+                    flowNavigator.replaceStack(listOf(SwapStep.Processing))
+                } else {
+                    flowNavigator.navigateTo(SwapStep.Processing)
+                }
+            }
             .launchIn(this)
     }
 

@@ -17,6 +17,8 @@ import com.flipcash.app.core.AppRoute
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
+import com.flipcash.app.tokens.BalancePollError
+import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.InlineCompletion
 import com.flipcash.app.tokens.TransactionNotificationPrompt
 import com.flipcash.app.core.tokens.FundingSource
@@ -111,6 +113,7 @@ import javax.inject.Inject
 import kotlin.collections.listOf
 import kotlin.collections.map
 import kotlin.collections.orEmpty
+import kotlin.time.Duration
 
 data class AmountEntryState(
     val limits: Limits? = null,
@@ -134,6 +137,7 @@ class SwapViewModel @Inject constructor(
     private val phantomWalletController: PhantomWalletController,
     private val userFlags: UserFlagsCoordinator,
     private val usdcDepositSweep: UsdcDepositSweep,
+    private val balancePoller: BalancePoller,
     private val notificationPrompt: TransactionNotificationPrompt,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
@@ -413,8 +417,9 @@ class SwapViewModel @Inject constructor(
          *
          * [inlineFor] is set by the in-scope submit sites (buy, sell, convert): the confirm button
          * stays in loading while the swap is polled in place, handing off to Processing only if
-         * that takes longer than [InlineCompletion.FAST_POLL_WINDOW]. Left null (Phantom, Coinbase)
-         * the caller has already navigated to Processing and polling runs at the regular cadence.
+         * that takes longer than [InlineCompletion.FAST_POLL_WINDOW]. Phantom add-money buys set it
+         * too. Left null (Coinbase) the caller has already navigated to Processing and polling runs
+         * at the regular cadence.
          */
         data class OnSwapIdChanged(
             val swapId: SwapId,
@@ -429,11 +434,18 @@ class SwapViewModel @Inject constructor(
 
         data object StartPhantomCeremony : Event
         data object PhantomConnected : Event
-        data class PhantomNavigateToProcessing(val swapId: SwapId? = null) : Event
         data object PhantomCeremonyFailed : Event
         // orderId is the Coinbase order to poll for on-chain delivery before sweeping.
         // Null for Phantom deposits, which are already on-chain and can sweep immediately.
-        data class DepositSubmitted(val orderId: String? = null) : Event
+        //
+        // [inlineFor] (Phantom) keeps the confirm button spinning while the USDF balance is awaited
+        // in place, handing off to Processing only if the fast window lapses. [baseline] is the USDF
+        // balance captured before the wallet was asked to sign, so a fast landing can't be missed.
+        data class DepositSubmitted(
+            val orderId: String? = null,
+            val inlineFor: ConfirmButton? = null,
+            val baseline: Fiat? = null,
+        ) : Event
 
         data class CreateAndSendTransactionToWallet(val token: Token, val amount: VerifiedFiat) :
             Event
@@ -1198,7 +1210,12 @@ class SwapViewModel @Inject constructor(
             .filterIsInstance<Event.DepositSubmitted>()
             .onEach { event ->
                 val owner = userManager.accountCluster ?: return@onEach
-                val baseline = tokenCoordinator.balanceForToken(Mint.usdf).first()
+                val baseline = event.baseline ?: tokenCoordinator.balanceForToken(Mint.usdf).first()
+
+                if (event.inlineFor != null) {
+                    completeDepositInPlace(baseline, event.inlineFor)
+                    return@onEach
+                }
 
                 // A Coinbase order only settles the on-chain send after payment, while it
                 // sits in PROCESSING. Wait for that delivery before sweeping so we don't
@@ -1249,13 +1266,7 @@ class SwapViewModel @Inject constructor(
                     usdcDepositSweep.execute(owner)
                 }
                 tokenCoordinator.balanceForToken(Mint.usdf).first { it > baseline }
-                feedCoordinator.fetchSinceLatest()
-                dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
-                addMoneyMethod?.let { method ->
-                    analytics.track(
-                        AddMoneyEvents.result(method, AnalyticsState.SUCCESS, netTransferAmount.analytics, null)
-                    )
-                }
+                onDepositLanded(markProcessingSuccess = true)
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -1921,6 +1932,8 @@ class SwapViewModel @Inject constructor(
         amount: VerifiedFiat,
     ) {
         viewModelScope.launch {
+            // Captured before the wallet signs: the deposit can land before the result returns.
+            val usdfBaseline = tokenCoordinator.balanceForToken(Mint.usdf).firstOrNull() ?: Fiat.Zero
             phantomWalletController.executeSwap(
                 amount = amount,
                 fee = LocalFiat.Zero,
@@ -1940,16 +1953,17 @@ class SwapViewModel @Inject constructor(
                 },
             ).onSuccess { result ->
                 when (result) {
-                    is PhantomSwapResult.WithSwapId -> {
-                        dispatchEvent(Event.UpdateProcessingState(loading = true))
-                        dispatchEvent(Event.PhantomNavigateToProcessing(result.swapId))
-                        dispatchEvent(Event.OnSwapIdChanged(result.swapId))
-                    }
-                    is PhantomSwapResult.DepositCompleted -> {
-                        dispatchEvent(Event.UpdateProcessingState(loading = true))
-                        dispatchEvent(Event.PhantomNavigateToProcessing())
-                        dispatchEvent(Event.DepositSubmitted())
-                    }
+                    // The confirm button is still spinning from ConfirmPhantomTransaction; both
+                    // results finish in place and only fall back to Processing when slow.
+                    is PhantomSwapResult.WithSwapId ->
+                        dispatchEvent(Event.OnSwapIdChanged(result.swapId, Event.ConfirmButton.Buy))
+                    is PhantomSwapResult.DepositCompleted ->
+                        dispatchEvent(
+                            Event.DepositSubmitted(
+                                inlineFor = Event.ConfirmButton.Buy,
+                                baseline = usdfBaseline,
+                            )
+                        )
                 }
             }.onFailure { error ->
                 handlePhantomError(error)
@@ -1966,17 +1980,62 @@ class SwapViewModel @Inject constructor(
         owner: AccountCluster,
         swapId: SwapId,
         button: Event.ConfirmButton,
-    ) {
-        val fast = transactionController.pollSwapForState(
-            swapId = swapId,
-            owner = owner,
-            targetState = SwapState.FINALIZED,
-            maxAttempts = InlineCompletion.FAST_POLL_ATTEMPTS,
-            interval = InlineCompletion.FAST_POLL_INTERVAL,
+    ) = completeInPlace(
+        button = button,
+        fast = {
+            transactionController.pollSwapForState(
+                swapId = swapId,
+                owner = owner,
+                targetState = SwapState.FINALIZED,
+                maxAttempts = InlineCompletion.FAST_POLL_ATTEMPTS,
+                interval = InlineCompletion.FAST_POLL_INTERVAL,
+            )
+        },
+        slow = {
+            transactionController.pollSwapForState(
+                swapId = swapId,
+                owner = owner,
+                targetState = SwapState.FINALIZED,
+                maxAttempts = InlineCompletion.SWAP_SLOW_ATTEMPTS,
+                interval = InlineCompletion.SLOW_POLL_INTERVAL,
+            )
+        },
+        onCompleted = ::onSwapFinalized,
+    )
+
+    /** Same as the swap variant, but the completion signal is the USDF balance rising. */
+    private suspend fun completeDepositInPlace(baseline: Fiat, button: Event.ConfirmButton) =
+        completeInPlace(
+            button = button,
+            fast = { awaitUsdfIncrease(baseline, InlineCompletion.FAST_POLL_ATTEMPTS, InlineCompletion.FAST_POLL_INTERVAL) },
+            slow = { awaitUsdfIncrease(baseline, InlineCompletion.BALANCE_SLOW_ATTEMPTS, InlineCompletion.SLOW_POLL_INTERVAL) },
+            onCompleted = ::onDepositLanded,
         )
 
-        fast.onSuccess {
-            onSwapFinalized(markProcessingSuccess = false)
+    private suspend fun awaitUsdfIncrease(baseline: Fiat, attempts: Int, interval: Duration) =
+        balancePoller.awaitBalanceChange(
+            mint = Mint.usdf,
+            baseline = baseline,
+            predicate = { before, now -> now > before },
+            maxAttempts = attempts,
+            interval = interval,
+        )
+
+    /**
+     * Shared in-place completion: [fast] runs while the confirm button spins; on a timeout the
+     * flow hands off to Processing and [slow] runs for the rest of the budget. Anything else
+     * (terminal state, denied, RPC failure) stays on the confirm screen so the user can retry.
+     */
+    private suspend fun completeInPlace(
+        button: Event.ConfirmButton,
+        fast: suspend () -> Result<*>,
+        slow: suspend () -> Result<*>,
+        onCompleted: (markProcessingSuccess: Boolean) -> Unit,
+    ) {
+        val fastResult = fast()
+
+        if (fastResult.isSuccess) {
+            onCompleted(false)
             updateConfirmButton(button, success = true)
             delay(InlineCompletion.SUCCESS_HOLD)
             dispatchEvent(Event.OnTransactionSuccessful)
@@ -1984,18 +2043,13 @@ class SwapViewModel @Inject constructor(
             return
         }
 
-        val cause = fast.exceptionOrNull()
-        if (cause is SwapError.Timeout || cause is SwapError.UnknownState) {
+        val cause = fastResult.exceptionOrNull()
+        if (cause is SwapError.Timeout || cause is SwapError.UnknownState || cause is BalancePollError.Timeout) {
             // Not a failure: hand over to Processing and keep waiting for the remainder.
             dispatchEvent(Event.UpdateProcessingState(loading = true))
             dispatchEvent(Event.ProcessingTakingLonger)
-            transactionController.pollSwapForState(
-                swapId = swapId,
-                owner = owner,
-                targetState = SwapState.FINALIZED,
-                maxAttempts = InlineCompletion.SWAP_SLOW_ATTEMPTS,
-                interval = InlineCompletion.SLOW_POLL_INTERVAL,
-            ).onSuccess { onSwapFinalized(markProcessingSuccess = true) }
+            slow()
+                .onSuccess { onCompleted(true) }
                 .onFailure { dispatchProcessingFailed() }
             return
         }
@@ -2051,6 +2105,19 @@ class SwapViewModel @Inject constructor(
         // The in-place path resolves its own button instead.
         if (markProcessingSuccess) {
             dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
+        }
+    }
+
+    /** A Phantom deposit showed up as USDF. Shared by the in-place and Processing paths. */
+    private fun onDepositLanded(markProcessingSuccess: Boolean) {
+        viewModelScope.launch { feedCoordinator.fetchSinceLatest() }
+        if (markProcessingSuccess) {
+            dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
+        }
+        addMoneyMethod?.let { method ->
+            analytics.track(
+                AddMoneyEvents.result(method, AnalyticsState.SUCCESS, netTransferAmount.analytics, null)
+            )
         }
     }
 
@@ -2203,7 +2270,6 @@ class SwapViewModel @Inject constructor(
                 Event.ConfirmPhantomTransaction,
                 Event.StartPhantomCeremony,
                 Event.PhantomConnected,
-                is Event.PhantomNavigateToProcessing,
                 Event.PhantomCeremonyFailed,
                 is Event.DepositSubmitted,
                 Event.OnBuyConfirmed,

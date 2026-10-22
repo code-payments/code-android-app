@@ -30,6 +30,8 @@ import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.InlineCompletion
+import com.flipcash.app.tokens.BalancePollError
+import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.TransactionNotificationPrompt
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.services.user.UserManager
@@ -58,6 +60,7 @@ import com.getcode.util.resources.FakeResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.onramp.OrderDeliveryResult
+import com.flipcash.app.onramp.PhantomSwapResult
 import com.flipcash.app.onramp.PhantomWalletController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import io.mockk.coEvery
@@ -108,6 +111,7 @@ class SwapViewModelErrorTest {
     private val phantomWalletController = mockk<PhantomWalletController>(relaxed = true)
     private val userFlagsCoordinator = mockk<UserFlagsCoordinator>(relaxed = true)
     private val usdcDepositSweep = mockk<UsdcDepositSweep>(relaxed = true)
+    private val balancePoller = mockk<BalancePoller>(relaxed = true)
     private val notificationPrompt = mockk<TransactionNotificationPrompt>(relaxed = true)
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
@@ -164,6 +168,7 @@ class SwapViewModelErrorTest {
             dispatchers = dispatchers,
             userFlags = userFlagsCoordinator,
             usdcDepositSweep = usdcDepositSweep,
+            balancePoller = balancePoller,
             notificationPrompt = notificationPrompt,
         )
     }
@@ -392,6 +397,148 @@ class SwapViewModelErrorTest {
         assertTrue(seen.none { it is SwapViewModel.Event.ProcessingTakingLonger })
         assertTrue(seen.none { it is SwapViewModel.Event.OnTransactionSuccessful })
     }
+
+    // --- Phantom add-money completes in place -------------------------------------------------
+
+    private val usdfBalance = MutableStateFlow(Fiat.Zero)
+
+    /** A Phantom add-money confirm whose wallet call resolves with [result]. */
+    private fun phantomConfirm(result: PhantomSwapResult): SwapViewModel {
+        every { exchange.preferredRate } returns Rate.oneToOne
+        every { tokenCoordinator.balanceForToken(Mint.usdf) } returns usdfBalance
+        coEvery {
+            verifiedFiatCalculator.compute(any(), any(), any(), any(), any())
+        } returns Result.success(
+            VerifiedFiat(LocalFiat.fromUsd(usdf = Fiat(12.0, CurrencyCode.USD)), null)
+        )
+        coEvery { phantomWalletController.executeSwap(any(), any(), any(), any()) } returns
+            Result.success(result)
+
+        val token = mockk<Token>(relaxed = true) { every { address } returns Mint.usdf }
+        val tokenWithBalance = mockk<TokenWithBalance>(relaxed = true) {
+            every { this@mockk.token } returns token
+        }
+        return createViewModel().also { vm ->
+            vm.dispatchEvent(
+                SwapViewModel.Event.OnPurposeChanged(
+                    SwapPurpose.Buy(Mint.usdf, fundingSource = FundingSource.Phantom)
+                )
+            )
+            vm.dispatchEvent(SwapViewModel.Event.OnSelectedTokenChanged(tokenWithBalance))
+            vm.amountDelegate.setAmount(12.0)
+        }
+    }
+
+    private fun stubUsdfPoll(attempts: Int, interval: kotlin.time.Duration, result: Result<Fiat>) {
+        coEvery {
+            balancePoller.awaitBalanceChange(Mint.usdf, any(), any(), attempts, interval)
+        } returns result
+    }
+
+    @Test
+    fun `phantom token buy completes in place through the swap poll`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        transactionController.stub {
+            onBlocking {
+                pollSwapForState(any(), any(), any(), eq(InlineCompletion.FAST_POLL_ATTEMPTS), eq(InlineCompletion.FAST_POLL_INTERVAL))
+            } doReturn Result.success(mockk(relaxed = true))
+        }
+        val vm = phantomConfirm(PhantomSwapResult.WithSwapId(swapId))
+        val seen = vm.collectEvents()
+
+        vm.dispatchEvent(SwapViewModel.Event.ConfirmPhantomTransaction)
+        runCurrent()
+
+        assertTrue(vm.stateFlow.value.buyProgress.success)
+        advanceTimeBy(InlineCompletion.SUCCESS_HOLD + 1.milliseconds)
+        runCurrent()
+        assertTrue(seen.any { it is SwapViewModel.Event.OnTransactionSuccessful })
+        assertTrue(seen.none { it is SwapViewModel.Event.ProcessingTakingLonger })
+    }
+
+    @Test
+    fun `phantom token buy stops on a denied swap without falling back`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        transactionController.stub {
+            onBlocking {
+                pollSwapForState(any(), any(), any(), eq(InlineCompletion.FAST_POLL_ATTEMPTS), eq(InlineCompletion.FAST_POLL_INTERVAL))
+            } doReturn Result.failure(SwapError.AccessDenied("swap", "denied"))
+        }
+        val vm = phantomConfirm(PhantomSwapResult.WithSwapId(swapId))
+        val seen = vm.collectEvents()
+
+        vm.dispatchEvent(SwapViewModel.Event.ConfirmPhantomTransaction)
+        runCurrent()
+
+        assertTrue(seen.none { it is SwapViewModel.Event.ProcessingTakingLonger })
+        assertTrue(seen.none { it is SwapViewModel.Event.OnTransactionSuccessful })
+        assertEquals(false, vm.stateFlow.value.buyProgress.loading)
+        assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })
+    }
+
+    @Test
+    fun `phantom usdf deposit completes in place when the balance rises within the fast window`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            stubUsdfPoll(InlineCompletion.FAST_POLL_ATTEMPTS, InlineCompletion.FAST_POLL_INTERVAL, Result.success(Fiat(12.0)))
+            val vm = phantomConfirm(PhantomSwapResult.DepositCompleted(12_000_000))
+            val seen = vm.collectEvents()
+
+            vm.dispatchEvent(SwapViewModel.Event.ConfirmPhantomTransaction)
+            runCurrent()
+
+            assertTrue(vm.stateFlow.value.buyProgress.success)
+            assertTrue(seen.none { it is SwapViewModel.Event.ProcessingTakingLonger })
+            advanceTimeBy(InlineCompletion.SUCCESS_HOLD + 1.milliseconds)
+            runCurrent()
+            assertTrue(seen.any { it is SwapViewModel.Event.OnTransactionSuccessful })
+            verify { notificationPrompt.onTransactionCompletedInPlace() }
+            // The baseline was captured before the wallet was asked to sign.
+            coVerify {
+                balancePoller.awaitBalanceChange(Mint.usdf, Fiat.Zero, any(), InlineCompletion.FAST_POLL_ATTEMPTS, InlineCompletion.FAST_POLL_INTERVAL)
+            }
+        }
+
+    @Test
+    fun `phantom usdf deposit timeout falls back to Processing with the remaining budget`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            stubUsdfPoll(
+                InlineCompletion.FAST_POLL_ATTEMPTS,
+                InlineCompletion.FAST_POLL_INTERVAL,
+                Result.failure(BalancePollError.Timeout(Mint.usdf, InlineCompletion.FAST_POLL_ATTEMPTS)),
+            )
+            stubUsdfPoll(InlineCompletion.BALANCE_SLOW_ATTEMPTS, InlineCompletion.SLOW_POLL_INTERVAL, Result.success(Fiat(12.0)))
+            val vm = phantomConfirm(PhantomSwapResult.DepositCompleted(12_000_000))
+            val seen = vm.collectEvents()
+
+            vm.dispatchEvent(SwapViewModel.Event.ConfirmPhantomTransaction)
+            runCurrent()
+
+            assertTrue(seen.any { it is SwapViewModel.Event.ProcessingTakingLonger })
+            assertTrue(vm.stateFlow.value.processingProgress.success)
+            assertTrue(seen.none { it is SwapViewModel.Event.OnTransactionSuccessful })
+            assertEquals(295, InlineCompletion.BALANCE_SLOW_ATTEMPTS)
+            coVerify {
+                balancePoller.awaitBalanceChange(Mint.usdf, any(), any(), InlineCompletion.BALANCE_SLOW_ATTEMPTS, InlineCompletion.SLOW_POLL_INTERVAL)
+            }
+        }
+
+    @Test
+    fun `phantom usdf deposit poll failure other than a timeout stays on the confirm screen`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            stubUsdfPoll(InlineCompletion.FAST_POLL_ATTEMPTS, InlineCompletion.FAST_POLL_INTERVAL, Result.failure(RuntimeException("rpc")))
+            val vm = phantomConfirm(PhantomSwapResult.DepositCompleted(12_000_000))
+            val seen = vm.collectEvents()
+
+            vm.dispatchEvent(SwapViewModel.Event.ConfirmPhantomTransaction)
+            runCurrent()
+
+            assertTrue(seen.none { it is SwapViewModel.Event.ProcessingTakingLonger })
+            assertEquals(false, vm.stateFlow.value.buyProgress.loading)
+            assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })
+        }
 
     // --- Wallet (Phantom) events -----------------------------------------------------------
 
