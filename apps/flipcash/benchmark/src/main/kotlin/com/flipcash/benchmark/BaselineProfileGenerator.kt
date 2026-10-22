@@ -186,8 +186,8 @@ class BaselineProfileGenerator {
         // Discovery is a wallet action tile now, not a tab of its own.
         openTab("nav_wallet", "wallet_screen")
         // The tile sits under the balance list, below the fold on a short screen or a long list.
-        scrollUntilVisible("wallet_content", By.text("Discover Currencies"), Direction.DOWN)
-        device.wait(Until.findObject(By.text("Discover Currencies")), TIMEOUT)?.click()
+        scrollUntilVisible("wallet_content", By.text("Currency Leaderboard"), Direction.DOWN)
+        device.wait(Until.findObject(By.text("Currency Leaderboard")), TIMEOUT)?.click()
 
         // Without the leaderboard the Back presses below would leave the app.
         if (device.wait(Until.findObject(By.res("discovery_leaderboard")), LOGIN_TIMEOUT) == null) {

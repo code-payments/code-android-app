@@ -24,7 +24,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.util.resources.ResourceHelper
 
 /**
- * The "Add Money With" method rows — each a card (title + subtitle + trailing icon) rendered via the
+ * The "Add Dollars With" method rows — each a card (title + subtitle + trailing icon) rendered via the
  * [BottomBarAction.content] slot.
  */
 internal fun purchaseOptions(

@@ -6,7 +6,7 @@ tags:
 # Deterministic gate coverage on a reserves-only account (holds USDF, no community
 # currency). Mirrors iOS GiveDiscoverGateRegressionTests: with a balance but nothing
 # giveable, the account has no currency card to give from and the wallet's own
-# "Discover Currencies" tile is the way out.
+# "Currency Leaderboard" tile is the way out.
 #
 # Giving is per-currency now (Wallet -> currency -> Give), so there is no give tab left to
 # tap and no "No Community Currencies Yet" interstitial in front of it — the gate is that
@@ -20,7 +20,7 @@ tags:
 - assertNotVisible: "Float"
 # The action tiles sit below the (empty) deck and recent activity.
 - scrollUntilVisible:
-    element: "Discover Currencies"
+    element: "Currency Leaderboard"
     direction: DOWN
 
 - runFlow: subflows/navigate_to_discovery.yaml
