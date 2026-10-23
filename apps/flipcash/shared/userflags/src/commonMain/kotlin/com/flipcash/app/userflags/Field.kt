@@ -14,7 +14,6 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
-import com.flipcash.shared.userflags.R
 import com.getcode.opencode.model.financial.Fiat
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -35,7 +34,7 @@ sealed class Field<Stored, Domain>(
         stringPreferencesKey("override_preferred_provider"),
         encode = { it?.encode() ?: "None" },
         decode = { decodeOnRampProvider(it) },
-        label = R.string.label_flag_preferredProvider,
+        label = FlagStrings.label_flag_preferredProvider,
         format = { provider -> provider?.displayName() ?: "None" },
         editor = FieldEditor.SingleSelect(
             options = listOf(
@@ -57,7 +56,7 @@ sealed class Field<Stored, Domain>(
                 else -> "${providers.size} selected"
             }
         },
-        label = R.string.label_flag_supportedOnRampProviders,
+        label = FlagStrings.label_flag_supportedOnRampProviders,
         editor = FieldEditor.MultiSelect(
             options = listOf(
                 "Manual Deposit" to OnRampProvider.ManualDeposit,
@@ -71,8 +70,8 @@ sealed class Field<Stored, Domain>(
         intPreferencesKey("override_min_version"),
         encode = { it ?: 0 },
         decode = { it },
-        label = R.string.label_flag_minimumVersion,
-        hint = R.string.hint_flag_minimumVersion,
+        label = FlagStrings.label_flag_minimumVersion,
+        hint = FlagStrings.hint_flag_minimumVersion,
         format = { it.toString() },
         editor = FieldEditor.TextInput(
             keyboard = KeyboardType.Number,
@@ -87,8 +86,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_bill_timeout"),
         encode = { it?.inWholeMilliseconds ?: -1L },
         decode = { if (it < 0) null else it.milliseconds },
-        label = R.string.label_flag_billExchangeDataTimeout,
-        hint = R.string.hint_flag_billExchangeDataTimeout,
+        label = FlagStrings.label_flag_billExchangeDataTimeout,
+        hint = FlagStrings.hint_flag_billExchangeDataTimeout,
         format = { it?.let { "${it.inWholeSeconds}s" } ?: "None" },
         editFormat = { it?.inWholeSeconds?.toString() ?: "" },
         editor = FieldEditor.TextInput(
@@ -109,8 +108,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_message_edit_window"),
         encode = { it?.inWholeMilliseconds ?: -1L },
         decode = { if (it < 0) null else it.milliseconds },
-        label = R.string.label_flag_messageEditWindow,
-        hint = R.string.hint_flag_messageEditWindow,
+        label = FlagStrings.label_flag_messageEditWindow,
+        hint = FlagStrings.hint_flag_messageEditWindow,
         format = { it?.let { "${it.inWholeSeconds}s" } ?: "None" },
         editFormat = { it?.inWholeSeconds?.toString() ?: "" },
         editor = FieldEditor.TextInput(
@@ -126,8 +125,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_message_delete_window"),
         encode = { it?.inWholeMilliseconds ?: -1L },
         decode = { if (it < 0) null else it.milliseconds },
-        label = R.string.label_flag_messageDeleteWindow,
-        hint = R.string.hint_flag_messageDeleteWindow,
+        label = FlagStrings.label_flag_messageDeleteWindow,
+        hint = FlagStrings.hint_flag_messageDeleteWindow,
         format = { it?.let { "${it.inWholeSeconds}s" } ?: "None" },
         editFormat = { it?.inWholeSeconds?.toString() ?: "" },
         editor = FieldEditor.TextInput(
@@ -143,8 +142,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_new_currency_amount"),
         encode = { it.quarks },
         decode = { Fiat(quarks = it) },
-        label = R.string.label_flag_newCurrencyPurchaseAmount,
-        hint = R.string.hint_flag_newCurrencyPurchaseAmount,
+        label = FlagStrings.label_flag_newCurrencyPurchaseAmount,
+        hint = FlagStrings.hint_flag_newCurrencyPurchaseAmount,
         format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
         editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
         editor = FieldEditor.TextInput(
@@ -162,8 +161,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_new_fee_amount"),
         encode = { it.quarks },
         decode = { Fiat(quarks = it) },
-        label = R.string.label_flag_newCurrencyFeeAmount,
-        hint = R.string.hint_flag_newCurrencyFeeAmount,
+        label = FlagStrings.label_flag_newCurrencyFeeAmount,
+        hint = FlagStrings.hint_flag_newCurrencyFeeAmount,
         format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
         editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
         editor = FieldEditor.TextInput(
@@ -181,8 +180,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_withdrawal_fee_amount"),
         encode = { it.quarks },
         decode = { Fiat(quarks = it) },
-        label = R.string.label_flag_withdrawalFeeAmount,
-        hint = R.string.hint_flag_withdrawalFeeAmount,
+        label = FlagStrings.label_flag_withdrawalFeeAmount,
+        hint = FlagStrings.hint_flag_withdrawalFeeAmount,
         format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
         editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
         editor = FieldEditor.TextInput(
@@ -200,7 +199,7 @@ sealed class Field<Stored, Domain>(
         stringPreferencesKey("override_preferred_liquidity_pool"),
         encode = { it.name },
         decode = { runCatching { UsdcLiquidtyPool.valueOf(it) }.getOrNull() },
-        label = R.string.label_flag_preferredUsdcLiquidityPool,
+        label = FlagStrings.label_flag_preferredUsdcLiquidityPool,
         format = { provider -> provider.displayName() },
         editor = FieldEditor.SingleSelect(
             options = listOf(
@@ -214,7 +213,7 @@ sealed class Field<Stored, Domain>(
         booleanPreferencesKey("override_require_coinbase_email_verification"),
         encode = { it },
         decode = { it },
-        label = R.string.label_flag_requireCoinbaseEmailVerification,
+        label = FlagStrings.label_flag_requireCoinbaseEmailVerification,
         format = { if (it) "Yes" else "No" },
         editor = FieldEditor.SingleSelect(
             options = listOf("Yes" to true, "No" to false)
@@ -225,8 +224,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_min_holder_amount"),
         encode = { it.quarks },
         decode = { Fiat(quarks = it) },
-        label = R.string.label_flag_minHolderAmount,
-        hint = R.string.hint_flag_minHolderAmount,
+        label = FlagStrings.label_flag_minHolderAmount,
+        hint = FlagStrings.hint_flag_minHolderAmount,
         format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
         editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
         editor = FieldEditor.TextInput(

@@ -1,12 +1,10 @@
 package com.flipcash.app.userflags
 
-import android.content.Context
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
@@ -16,7 +14,6 @@ import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -38,7 +35,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class UserFlagsCoordinator @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+    private val files: UserFlagsFiles,
     private val userManager: UserManager,
     dispatchers: DispatcherProvider,
 ) {
@@ -80,9 +77,9 @@ class UserFlagsCoordinator @Inject constructor(
     init {
         // Delete the backing file before DataStore reads it to avoid a race
         // where stale overrides restored from backup are briefly visible.
-        val marker = File(context.noBackupFilesDir, "user-flag-overrides-initialized")
+        val marker = File(files.noBackupDir, "user-flag-overrides-initialized")
         if (!marker.exists()) {
-            context.preferencesDataStoreFile("user-flag-overrides").delete()
+            files.dataStoreFile("user-flag-overrides").delete()
             marker.createNewFile()
         }
 
@@ -98,7 +95,7 @@ class UserFlagsCoordinator @Inject constructor(
     private val dataStore = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
         scope = scope,
-        produceFile = { context.preferencesDataStoreFile("user-flag-overrides") }
+        produceFile = { files.dataStoreFile("user-flag-overrides") }
     )
 
     // Parse DataStore prefs → Overrides
@@ -145,7 +142,7 @@ class UserFlagsCoordinator @Inject constructor(
     private val cacheDataStore = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
         scope = scope,
-        produceFile = { context.preferencesDataStoreFile("cached-user-flags") }
+        produceFile = { files.dataStoreFile("cached-user-flags") }
     )
 
     suspend fun restoreFlags() {
