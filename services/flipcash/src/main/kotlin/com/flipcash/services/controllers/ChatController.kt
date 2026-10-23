@@ -12,6 +12,8 @@ import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.RestrictedUsersPage
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
@@ -208,6 +210,46 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.denyLobbyMember(owner, chatId, userId)
+    }
+
+    /** Silences [userId] in [chatId] for the duration in [silence]. */
+    suspend fun silenceUser(chatId: ChatId, userId: ID, silence: SilenceState): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.silenceUser(owner, chatId, userId, silence)
+    }
+
+    /** Lifts [userId]'s silence in [chatId]. */
+    suspend fun unsilenceUser(chatId: ChatId, userId: ID): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.unsilenceUser(owner, chatId, userId)
+    }
+
+    /** Bans [userId] from [chatId]. */
+    suspend fun banUser(chatId: ChatId, userId: ID): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.banUser(owner, chatId, userId)
+    }
+
+    /** Lifts [userId]'s ban from [chatId]. */
+    suspend fun unbanUser(chatId: ChatId, userId: ID): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.unbanUser(owner, chatId, userId)
+    }
+
+    /** One page of the users silenced or banned in [chatId]. */
+    suspend fun getRestrictedUsers(chatId: ChatId, queryOptions: QueryOptions = QueryOptions()): Result<RestrictedUsersPage> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getRestrictedUsers(owner, chatId, queryOptions)
     }
 
     /** Stores the caller's own key envelope for [chatId]. */

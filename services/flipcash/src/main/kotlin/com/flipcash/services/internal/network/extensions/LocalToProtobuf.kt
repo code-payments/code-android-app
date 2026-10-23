@@ -15,6 +15,7 @@ import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewMode
@@ -387,6 +388,14 @@ internal fun ViewMode.asViewMode(): MessagingModel.ViewMode {
         ViewMode.FULL -> MessagingModel.ViewMode.FULL
         ViewMode.FULL_OR_REDACTED -> MessagingModel.ViewMode.FULL_OR_REDACTED
         ViewMode.REDACTED -> MessagingModel.ViewMode.REDACTED
+    }
+}
+
+internal fun SilenceState.asProtoSilenceState(): ChatModel.SilenceState {
+    val builder = ChatModel.SilenceState.newBuilder()
+    return when (this) {
+        is SilenceState.Until -> builder.setUntil(until.asTimestamp()).build()
+        SilenceState.Forever -> builder.setForever(ChatModel.SilenceState.Forever.getDefaultInstance()).build()
     }
 }
 

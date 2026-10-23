@@ -8,6 +8,7 @@ import com.flipcash.services.internal.network.extensions.asChatId
 import com.flipcash.services.internal.network.extensions.asProtoChatType
 import com.flipcash.services.internal.network.extensions.asProtoIdempotencyKey
 import com.flipcash.services.internal.network.extensions.asProtoMuteState
+import com.flipcash.services.internal.network.extensions.asProtoSilenceState
 import com.flipcash.services.internal.network.extensions.asProtoRules
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.asProtoKeyEnvelope
@@ -23,6 +24,7 @@ import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewMode
 import com.getcode.utils.toByteString
@@ -458,6 +460,98 @@ internal class ChatApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.denyLobbyMember(request)
+        }
+    }
+
+    suspend fun silenceUser(
+        owner: KeyPair,
+        chatId: ChatId,
+        userId: ID,
+        silence: SilenceState,
+    ): RpcChatService.SilenceUserResponse {
+        val request = RpcChatService.SilenceUserRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setUserId(userId.asUserId())
+            .setSilence(silence.asProtoSilenceState())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.silenceUser(request)
+        }
+    }
+
+    suspend fun unsilenceUser(
+        owner: KeyPair,
+        chatId: ChatId,
+        userId: ID,
+    ): RpcChatService.UnsilenceUserResponse {
+        val request = RpcChatService.UnsilenceUserRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setUserId(userId.asUserId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.unsilenceUser(request)
+        }
+    }
+
+    suspend fun banUser(
+        owner: KeyPair,
+        chatId: ChatId,
+        userId: ID,
+    ): RpcChatService.BanUserResponse {
+        val request = RpcChatService.BanUserRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setUserId(userId.asUserId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.banUser(request)
+        }
+    }
+
+    suspend fun unbanUser(
+        owner: KeyPair,
+        chatId: ChatId,
+        userId: ID,
+    ): RpcChatService.UnbanUserResponse {
+        val request = RpcChatService.UnbanUserRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setUserId(userId.asUserId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.unbanUser(request)
+        }
+    }
+
+    suspend fun getRestrictedUsers(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): RpcChatService.GetRestrictedUsersResponse {
+        val request = RpcChatService.GetRestrictedUsersRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setQueryOptions(queryOptions.asQueryOptions())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getRestrictedUsers(request)
         }
     }
 

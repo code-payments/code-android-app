@@ -103,6 +103,7 @@ class ConversionsTest {
     fun `a chat error reports the proto result name, not its message`() {
         assertEquals("RulesNotSatisfied", JoinChatError.RulesNotSatisfied().chatResult)
         assertEquals("NotFound", JoinChatError.NotFound().chatResult)
+        assertEquals("Banned", JoinChatError.Banned().chatResult)
         // MuteChatError.Denied's message is "Caller is not a member".
         assertEquals("Denied", MuteChatError.Denied().chatResult)
         assertEquals("TitleModerated", StartChatError.TitleModerated(mockk(relaxed = true)).chatResult)

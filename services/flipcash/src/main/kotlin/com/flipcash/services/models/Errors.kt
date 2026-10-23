@@ -465,6 +465,9 @@ sealed class JoinChatError(
     // The caller does not meet the chat's listener rules — a minimum balance, or staff
     // membership. Recoverable by the user, so it is deliberately not a NotifiableError.
     class RulesNotSatisfied : JoinChatError("Rules not satisfied")
+    // The creator or a moderator banned the caller from this chat. Not recoverable by the user,
+    // so deliberately not a NotifiableError.
+    class Banned : JoinChatError("Banned")
     class Unrecognized : JoinChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : JoinChatError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -828,6 +831,8 @@ sealed class EnterLobbyError(
     class LobbyFull : EnterLobbyError("Lobby full")
     // The caller is already waiting in as many lobbies as the server allows.
     class TooManyLobbies : EnterLobbyError("Too many lobbies")
+    // The caller is banned from this chat, so they cannot ask to join it.
+    class Banned : EnterLobbyError("Banned")
     class Unrecognized : EnterLobbyError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : EnterLobbyError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -962,4 +967,118 @@ sealed class VoteError(
     class InvalidSelection : VoteError("Invalid selection")
     class Unrecognized : VoteError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : VoteError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class SilenceUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : SilenceUserError("Denied")
+    class NotFound : SilenceUserError("Not found")
+    // The target user is the chat's creator.
+    class CannotRestrictCreator : SilenceUserError("Cannot restrict the chat creator")
+    class Unrecognized : SilenceUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SilenceUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class UnsilenceUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : UnsilenceUserError("Denied")
+    class NotFound : UnsilenceUserError("Not found")
+    class Unrecognized : UnsilenceUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnsilenceUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class BanUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : BanUserError("Denied")
+    class NotFound : BanUserError("Not found")
+    // The target user is the chat's creator.
+    class CannotRestrictCreator : BanUserError("Cannot restrict the chat creator")
+    class Unrecognized : BanUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : BanUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class UnbanUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : UnbanUserError("Denied")
+    class NotFound : UnbanUserError("Not found")
+    class Unrecognized : UnbanUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnbanUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetRestrictedUsersError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetRestrictedUsersError("Denied")
+    class NotFound : GetRestrictedUsersError("Not found")
+    class Unrecognized : GetRestrictedUsersError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetRestrictedUsersError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class CreatePaymentRequestError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : CreatePaymentRequestError("Denied")
+    class ChatNotSupported : CreatePaymentRequestError("Chat does not support payment requests")
+    class EncryptionNotAllowed : CreatePaymentRequestError("Encryption not allowed")
+    class EncryptionRequired : CreatePaymentRequestError("Encryption required")
+    class InvalidEndsAt : CreatePaymentRequestError("Invalid end time")
+    class InvalidShares : CreatePaymentRequestError("Invalid shares")
+    class InvalidCurrency : CreatePaymentRequestError("Invalid currency")
+    class TextModerated(val category: ModerationResult.FlaggedCategory) : CreatePaymentRequestError("Payment request text flagged: $category")
+    class Unrecognized : CreatePaymentRequestError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : CreatePaymentRequestError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetPaymentRequestError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetPaymentRequestError("Denied")
+    class NotFound : GetPaymentRequestError("Not found")
+    class Unrecognized : GetPaymentRequestError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetPaymentRequestError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetChatPaymentRequestsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetChatPaymentRequestsError("Denied")
+    class NotFound : GetChatPaymentRequestsError("Not found")
+    class Unrecognized : GetChatPaymentRequestsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetChatPaymentRequestsError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class ClosePaymentRequestError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : ClosePaymentRequestError("Denied")
+    class NotFound : ClosePaymentRequestError("Not found")
+    class Unrecognized : ClosePaymentRequestError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ClosePaymentRequestError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class MarkPaymentRequestPaidError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : MarkPaymentRequestPaidError("Denied")
+    class NotFound : MarkPaymentRequestPaidError("Not found")
+    // The request is no longer open.
+    class NotOpen : MarkPaymentRequestPaidError("Not open")
+    // The user does not owe a share of this request.
+    class NotAShare : MarkPaymentRequestPaidError("Not a share")
+    class Unrecognized : MarkPaymentRequestPaidError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : MarkPaymentRequestPaidError(message = cause?.message, cause = cause), NotifiableError
 }

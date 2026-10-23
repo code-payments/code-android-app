@@ -53,6 +53,9 @@ import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.BanState
+import com.flipcash.services.models.chat.RestrictedUser
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -241,6 +244,8 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
             when (widget.typeCase) {
                 MessagingModel.WidgetContent.TypeCase.SHARE_PROFILE ->
                     WidgetContent.ShareProfile(widget.shareProfile.username.value)
+                // PAYMENT_REQUEST carries only the request id. It renders as unsupported until a
+                // UI consumes payment requests, which also owns the chat/creator mismatch check.
                 else -> WidgetContent.Unsupported
             }
         )
@@ -500,12 +505,45 @@ internal fun ChatModel.ViewerState.toViewerState(): ViewerState {
         mute = if (hasSettings() && settings.hasMute()) settings.mute.toMuteState() else null,
         version = version,
         permissions = if (hasPermissions()) {
-            ViewerState.Permissions(canEdit = permissions.canEdit)
+            ViewerState.Permissions(
+                canEdit = permissions.canEdit,
+                moderation = if (permissions.hasModeration()) {
+                    ViewerState.ModerationPermissions(
+                        canSilence = permissions.moderation.canSilence,
+                        canBan = permissions.moderation.canBan,
+                    )
+                } else {
+                    ViewerState.ModerationPermissions()
+                },
+            )
         } else {
             ViewerState.Permissions()
         },
+        restrictions = if (hasRestrictions()) {
+            ViewerState.Restrictions(
+                silence = if (restrictions.hasSilence()) restrictions.silence.toSilenceState() else null,
+            )
+        } else {
+            null
+        },
     )
 }
+
+internal fun ChatModel.SilenceState.toSilenceState(): SilenceState {
+    return when (durationCase) {
+        ChatModel.SilenceState.DurationCase.UNTIL ->
+            SilenceState.Until(Instant.fromEpochSeconds(until.seconds, until.nanos))
+        ChatModel.SilenceState.DurationCase.FOREVER -> SilenceState.Forever
+        // A duration this client does not know is treated as the strictest one the user can see.
+        else -> SilenceState.Forever
+    }
+}
+
+internal fun ChatModel.RestrictedUser.toRestrictedUser(): RestrictedUser = RestrictedUser(
+    userProfile = userProfile.toMemberUserProfile(fallbackUserId = userId.toId()),
+    silence = if (hasSilence()) silence.toSilenceState() else null,
+    ban = if (hasBan()) BanState(Instant.fromEpochSeconds(ban.bannedAt.seconds, ban.bannedAt.nanos)) else null,
+)
 
 internal fun ChatModel.MuteState.toMuteState(): MuteState {
     return when (durationCase) {

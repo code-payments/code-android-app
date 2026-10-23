@@ -14,6 +14,8 @@ import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.RestrictedUsersPage
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
@@ -176,6 +178,32 @@ interface ChatRepository {
 
     /** Removes [userId] from [chatId]'s lobby without admitting them. Creator only. */
     suspend fun denyLobbyMember(owner: KeyPair, chatId: ChatId, userId: ID): Result<Unit>
+
+    /**
+     * Silences [userId] in [chatId] for the duration in [silence]. A silenced user stays a member
+     * and can read but not send. Fails with `SilenceUserError.CannotRestrictCreator` for the
+     * chat's creator.
+     */
+    suspend fun silenceUser(owner: KeyPair, chatId: ChatId, userId: ID, silence: SilenceState): Result<Unit>
+
+    /** Lifts [userId]'s silence in [chatId]. */
+    suspend fun unsilenceUser(owner: KeyPair, chatId: ChatId, userId: ID): Result<Unit>
+
+    /**
+     * Bans [userId] from [chatId]. Fails with `BanUserError.CannotRestrictCreator` for the chat's
+     * creator.
+     */
+    suspend fun banUser(owner: KeyPair, chatId: ChatId, userId: ID): Result<Unit>
+
+    /** Lifts [userId]'s ban from [chatId]. */
+    suspend fun unbanUser(owner: KeyPair, chatId: ChatId, userId: ID): Result<Unit>
+
+    /** One page of the users silenced or banned in [chatId]. Callers who can silence or ban only. */
+    suspend fun getRestrictedUsers(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): Result<RestrictedUsersPage>
 
     /**
      * Stores the caller's own key envelope for [chatId]. [SetKeyEnvelopeError.AlreadySet] means a
