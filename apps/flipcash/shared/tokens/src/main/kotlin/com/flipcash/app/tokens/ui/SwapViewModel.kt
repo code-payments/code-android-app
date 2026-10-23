@@ -22,6 +22,7 @@ import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.InlineCompletion
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.DeeplinkError
@@ -1704,10 +1705,14 @@ class SwapViewModel @Inject constructor(
                             return@onEach
                         }
 
-                        if (amount < minimumCoinbasePurchaseAmount) {
+                        // The $5 floor is Coinbase's, in dollars; the typed amount is in the
+                        // viewer's currency, so the floor is restated before the two are compared.
+                        val minimum = minimumCoinbasePurchaseAmount.forViewer(exchange.preferredRate, exchange.rates())
+                        if (amount.currencyCode == minimum.currencyCode && amount < minimum) {
+                            val minimumText = minimum.formatted(rule = Fiat.FormattingRule.Truncated)
                             BottomBarManager.showAlert(
-                                title = resources.getString(R.string.error_title_onrampAmountTooLow),
-                                message = resources.getString(R.string.error_description_onrampAmountTooLow),
+                                title = resources.getString(R.string.error_title_onrampAmountTooLow, minimumText),
+                                message = resources.getString(R.string.error_description_onrampAmountTooLow, minimumText),
                             )
                             return@onEach
                         }
