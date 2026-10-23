@@ -1466,7 +1466,7 @@ internal class ChatViewModel @AssistedInject constructor(
 
                     // Detected over the whole text, beside the links, so a handle inside a link
                     // stays the link's. Nothing is looked up until one is tapped. A photo's
-                    // caption is covered here too, though it gets no link card.
+                    // caption is covered here too; a Flipcash card alone in it draws under the photo.
                     val mentions = enriched.detectedMentions()
 
                     // Noted while the voucher and the message it came on are in the same hand;

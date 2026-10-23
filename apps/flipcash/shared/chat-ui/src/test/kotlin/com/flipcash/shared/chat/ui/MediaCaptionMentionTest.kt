@@ -37,7 +37,37 @@ class MediaCaptionMentionTest {
     }
 
     @Test
-    fun `a media caption does not become link text`() {
-        assertEquals(null, photo("see https://a.com").linkableText())
+    fun `a media caption is the link text, as a text body is`() {
+        val url = "see https://a.com/x ok"
+        assertEquals(url, photo(url).linkableText())
+        assertEquals(
+            detectUrls(MessageContent.Text(url).linkableText().orEmpty()),
+            detectUrls(photo(url).linkableText().orEmpty()),
+        )
+        assertEquals(null, photo(null).linkableText())
     }
+
+    @Test
+    fun `a photo reply's link text is the caption, never the reply's own text`() {
+        val reply = MessageContent.Reply(
+            repliedMessageId = 1L,
+            content = listOf(photo("cap https://a.com"), MessageContent.Text("https://other.com")),
+        )
+        assertEquals("cap https://a.com", reply.linkableText())
+        val uncaptioned = MessageContent.Reply(
+            repliedMessageId = 1L,
+            content = listOf(photo(null), MessageContent.Text("https://other.com")),
+        )
+        assertEquals(null, uncaptioned.linkableText())
+    }
+
+    @Test
+    fun `a text reply still reads its first text`() {
+        val reply = MessageContent.Reply(
+            repliedMessageId = 1L,
+            content = listOf(MessageContent.Text("a"), MessageContent.Text("b")),
+        )
+        assertEquals("a", reply.linkableText())
+    }
+
 }

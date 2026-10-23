@@ -159,12 +159,27 @@ private fun endsOnAsciiBoundary(text: String, end: Int): Boolean =
     end >= text.length || text.codePointAt(end) < 0x80
 
 /**
+ * The photo this content's bubble draws, or null: the message's own, or the first one a reply
+ * carries.
+ */
+fun MessageContent.mediaBody(): MessageContent.Media? = when (this) {
+    is MessageContent.Media -> this
+    is MessageContent.Reply -> content.filterIsInstance<MessageContent.Media>().firstOrNull()
+    else -> null
+}
+
+/**
  * The text of this content that the transcript renders as rich text, or `null` where it renders
  * none. A reply carries its body nested, and the bubble draws the first text in it; a tombstone's
  * words are a string resource, not the message.
  *
+ * A photo, or a reply carrying one, draws its caption as its body, so that is its text; a reply's
+ * own text is never drawn beside a photo.
+ *
  * Shared with the chat mapper so a card can only ever be offered for text the reader is looking at.
  */
+fun MessageContent.linkableText(): String? = textBody()?.text
+
 /** The preview the sender built for this content's text, from the same text [linkableText] reads. */
 fun MessageContent.linkPreview(): LinkPreview? = when (this) {
     is MessageContent.Text -> linkPreview
@@ -172,12 +187,16 @@ fun MessageContent.linkPreview(): LinkPreview? = when (this) {
     else -> null
 }
 
-fun MessageContent.linkableText(): String? = when (this) {
-    is MessageContent.Text -> text
-    is MessageContent.Reply -> content.filterIsInstance<MessageContent.Text>().firstOrNull()?.text
+private fun MessageContent.textBody(): MessageContent.Text? = when (this) {
+    is MessageContent.Text -> this
+    is MessageContent.Media -> caption
+    // A photo reply with no caption has no text: the reply's own is not drawn beside the photo.
+    is MessageContent.Reply -> {
+        val photo = mediaBody()
+        if (photo != null) photo.caption else content.filterIsInstance<MessageContent.Text>().firstOrNull()
+    }
     is MessageContent.Cash,
     is MessageContent.Deleted,
-    is MessageContent.Media,
     is MessageContent.System,
     is MessageContent.Widget,
     is MessageContent.Encrypted,

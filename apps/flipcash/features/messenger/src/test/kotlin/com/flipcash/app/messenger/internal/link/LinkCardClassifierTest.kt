@@ -6,6 +6,9 @@ import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.ui.detectUrls
+import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.services.models.isUsernameShaped
 import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
@@ -191,6 +194,50 @@ class LinkCardClassifierTest {
             "https%3A%2F%2Fevil.com%2Fc%2F%23%2Fe%3DKNi8pQr1n5hRU65vKJGge3"
 
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, hostile.length, hostile))))
+    }
+
+    private fun caption(text: String) =
+        MessageContent.Media(items = emptyList(), caption = MessageContent.Text(text))
+
+    /** A caption is read exactly as a text message's body: same links, same card. */
+    @Test
+    fun `a caption with a url yields the same links and card as a text message`() {
+        val classifier = LinkCardClassifier(router)
+        val body = "look https://example.com/a here"
+        val text = MessageContent.Text(body)
+        val photo = caption(body)
+
+        val textLinks = detectUrls(text.linkableText().orEmpty())
+        val photoLinks = detectUrls(photo.linkableText().orEmpty())
+        assertEquals(textLinks, photoLinks)
+        assertEquals(1, photoLinks.size)
+        assertEquals(
+            classifier.firstCard(textLinks),
+            classifier.firstCard(photoLinks),
+        )
+        assertIs<LinkCard.Web>(classifier.firstCard(photoLinks))
+    }
+
+    @Test
+    fun `a flipcash card in a caption is classified as it is in a text message`() {
+        val classifier = LinkCardClassifier(router)
+        val url = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
+        val photoLinks = detectUrls(caption(url).linkableText().orEmpty())
+        val textLinks = detectUrls(MessageContent.Text(url).linkableText().orEmpty())
+
+        assertIs<LinkCard.Cash>(classifier.firstCard(photoLinks))
+        assertEquals(classifier.firstCard(textLinks), classifier.firstCard(photoLinks))
+    }
+
+    @Test
+    fun `a cash link before a web link gives the caption the card the text path chooses`() {
+        val classifier = LinkCardClassifier(router)
+        val body = "send https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3 and read https://example.com/a"
+        val photoCard = classifier.firstCard(detectUrls(caption(body).linkableText().orEmpty()))
+        val textCard = classifier.firstCard(detectUrls(MessageContent.Text(body).linkableText().orEmpty()))
+
+        assertIs<LinkCard.Cash>(photoCard)
+        assertEquals(textCard, photoCard)
     }
 
     @Test
