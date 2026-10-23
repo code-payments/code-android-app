@@ -154,3 +154,16 @@ jobs:
             ./gradlew
             :libs:encryption:mnemonic:connectedAndroidDeviceTest
             :libs:currency-math:connectedAndroidTest
+            --continue
+
+      - name: Upload device test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vector-device-test-reports
+          path: |
+            libs/encryption/mnemonic/build/reports/androidTests
+            libs/encryption/mnemonic/build/outputs/androidTest-results
+            libs/currency-math/build/reports/androidTests
+            libs/currency-math/build/outputs/androidTest-results
+          if-no-files-found: ignore
