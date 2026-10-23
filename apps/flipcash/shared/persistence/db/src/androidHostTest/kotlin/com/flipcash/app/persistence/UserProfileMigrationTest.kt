@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
+import androidx.sqlite.driver.SupportSQLiteConnection
 import androidx.test.core.app.ApplicationProvider
 import com.flipcash.app.persistence.converters.ChatTypeConverters
 import com.flipcash.app.persistence.converters.SocialAccountSerialized
@@ -111,7 +112,7 @@ class UserProfileMigrationTest {
             arrayOf<Any?>("u2", 111L, partialProfileJson),
         )
 
-        FlipcashDatabase.MIGRATION_25_26.migrate(db)
+        FlipcashDatabase.MIGRATION_25_26.migrate(SupportSQLiteConnection(db))
 
         // One profile row per user (u1 deduped across its two memberships).
         assertEquals(2, db.count("user_profiles"))

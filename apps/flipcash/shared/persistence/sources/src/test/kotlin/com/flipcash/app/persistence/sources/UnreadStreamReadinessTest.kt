@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.init
 import com.flipcash.app.persistence.converters.MessageContentSerialized
 import com.flipcash.app.persistence.converters.MessagePointerSerialized
 import com.flipcash.app.persistence.entities.ChatMemberEntity

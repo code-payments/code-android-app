@@ -1,32 +1,49 @@
 plugins {
-    alias(libs.plugins.flipcash.android.feature)
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.androidx.room)
 }
 
-android {
-    namespace = "${Gradle.flipcashNamespace}.shared.persistence.db"
+kotlin {
+    android {
+        namespace = "${Gradle.flipcashNamespace}.shared.persistence.db"
+    }
 
-    room {
-        schemaDirectory("$projectDir/schemas")
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.bundles.kotlinx.serialization)
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.room.paging)
+            implementation(libs.androidx.paging.common)
+
+            implementation(project(":libs:models"))
+            implementation(project(":libs:encryption:base58"))
+            implementation(project(":libs:encryption:utils"))
+            implementation(project(":libs:logging"))
+
+            implementation(project(":services:flipcash"))
+        }
+        androidMain.dependencies {
+            implementation(libs.androidx.room.ktx)
+            implementation(libs.androidx.paging.runtime)
+        }
+        jvmMain.dependencies {
+            implementation(libs.androidx.sqlite.bundled)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.bundles.unit.testing)
+            implementation(libs.robolectric)
+            implementation(libs.androidx.room.testing)
+        }
     }
 }
 
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
-    testImplementation(kotlin("test"))
-    testImplementation(libs.bundles.unit.testing)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.androidx.room.testing)
-
-    implementation(libs.bundles.kotlinx.serialization)
-
-    implementation(libs.bundles.room)
-    implementation(libs.androidx.paging.runtime)
-
-    ksp(libs.androidx.room.compiler)
-
-    implementation(project(":libs:models"))
-    implementation(project(":libs:encryption:base58"))
-    implementation(project(":libs:encryption:utils"))
-
-    implementation(project(":services:flipcash"))
+    add("kspAndroid", libs.androidx.room.compiler)
+    add("kspJvm", libs.androidx.room.compiler)
 }

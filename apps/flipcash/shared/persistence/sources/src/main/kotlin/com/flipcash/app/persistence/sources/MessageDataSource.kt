@@ -2,7 +2,7 @@ package com.flipcash.app.persistence.sources
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import androidx.sqlite.db.SimpleSQLiteQuery
+import androidx.room.RoomRawQuery
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.persistence.FlipcashDatabase
@@ -54,7 +54,7 @@ class MessageDataSource @Inject constructor(
     }
 
     override suspend fun query(whereClause: String): List<ActivityFeedMessage> {
-        val query = SimpleSQLiteQuery("SELECT * FROM messages WHERE $whereClause")
+        val query = RoomRawQuery("SELECT * FROM messages WHERE $whereClause")
         val result = db?.messageDao()?.queryDirectly(query) ?: return emptyList()
         return result.map { messageEntityMapper.map(it) }
     }

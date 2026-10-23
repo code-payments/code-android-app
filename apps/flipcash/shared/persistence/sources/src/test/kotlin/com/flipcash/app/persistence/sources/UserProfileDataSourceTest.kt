@@ -2,6 +2,7 @@ package com.flipcash.app.persistence.sources
 
 import app.cash.turbine.test
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.init
 import com.flipcash.services.models.UserProfile
 import com.getcode.utils.hexEncodedString
 import kotlinx.coroutines.test.runTest

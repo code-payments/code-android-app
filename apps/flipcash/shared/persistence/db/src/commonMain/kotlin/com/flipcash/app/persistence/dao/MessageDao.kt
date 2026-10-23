@@ -7,7 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.room.Transaction
-import androidx.sqlite.db.SupportSQLiteQuery
+import androidx.room.RoomRawQuery
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
@@ -34,7 +34,7 @@ interface MessageDao {
     fun observeMessageById(id: List<Byte>): Flow<MessageEntity?> = observeMessageById(id.base58)
 
     @RawQuery
-    suspend fun queryDirectly(query: SupportSQLiteQuery): List<MessageEntity>
+    suspend fun queryDirectly(query: RoomRawQuery): List<MessageEntity>
 
     @Query("SELECT * FROM messages ORDER BY timestamp DESC LIMIT 1")
     suspend fun getNewestMessage(): MessageEntity?

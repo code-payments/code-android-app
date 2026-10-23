@@ -1,17 +1,16 @@
 package com.flipcash.app.persistence
 
-import android.content.Context
 import androidx.room.AutoMigration
+import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.DeleteColumn
 import androidx.room.DeleteTable
-import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
-import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.execSQL
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,6 +50,7 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.utils.subByteArray
+import kotlin.jvm.Synchronized
 
 @Database(
     entities = [
@@ -130,6 +130,7 @@ import com.getcode.utils.subByteArray
     version = 45,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
+@ConstructedBy(FlipcashDatabaseConstructor::class)
 abstract class FlipcashDatabase : RoomDatabase() {
 
     abstract fun messageDao(): MessageDao
@@ -147,22 +148,22 @@ abstract class FlipcashDatabase : RoomDatabase() {
     abstract fun pendingMediaDao(): PendingMediaDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("DELETE FROM messages")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM messages")
         }
     }
 
     class Migration3To4 : Migration(3, 4), AutoMigrationSpec {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("DELETE FROM pool_metadata")
-            db.execSQL("DELETE FROM pool_bet_metadata")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM pool_metadata")
+            connection.execSQL("DELETE FROM pool_bet_metadata")
         }
     }
 
     class Migration4To5 : Migration(4, 5), AutoMigrationSpec {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("DELETE FROM pool_metadata")
-            db.execSQL("DELETE FROM pool_bet_metadata")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM pool_metadata")
+            connection.execSQL("DELETE FROM pool_bet_metadata")
         }
     }
 
@@ -181,27 +182,27 @@ abstract class FlipcashDatabase : RoomDatabase() {
         ),
     )
     class Migration5To6 : Migration(5, 6), AutoMigrationSpec {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("DELETE FROM pool_metadata")
-            db.execSQL("DELETE FROM pool_bet_metadata")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM pool_metadata")
+            connection.execSQL("DELETE FROM pool_bet_metadata")
         }
     }
 
     class Migration6To7 : Migration(6, 7), AutoMigrationSpec {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("DELETE FROM messages")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM messages")
         }
     }
 
     class Migration7To8 : Migration(7, 8), AutoMigrationSpec {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("DELETE FROM messages")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM messages")
         }
     }
 
     class Migration9To10 : Migration(9, 10), AutoMigrationSpec {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("DELETE FROM messages")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM messages")
         }
     }
 
@@ -213,9 +214,9 @@ abstract class FlipcashDatabase : RoomDatabase() {
     class Migration10To11 : Migration(10, 11), AutoMigrationSpec
 
     class Migration12To13 : Migration(12, 13), AutoMigrationSpec {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("DELETE FROM tokens")
-            db.execSQL("DELETE FROM token_valuation")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM tokens")
+            connection.execSQL("DELETE FROM token_valuation")
         }
     }
 
@@ -225,8 +226,8 @@ abstract class FlipcashDatabase : RoomDatabase() {
     // in onPostMigrate so they keep resolving after the rename instead of falling
     // through to UNKNOWN.
     class Migration22To23 : AutoMigrationSpec {
-        override fun onPostMigrate(db: SupportSQLiteDatabase) {
-            db.execSQL("UPDATE chat_metadata SET chat_type = 'CONTACT_DM' WHERE chat_type = 'DM'")
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL("UPDATE chat_metadata SET chat_type = 'CONTACT_DM' WHERE chat_type = 'DM'")
         }
     }
 
@@ -242,9 +243,8 @@ abstract class FlipcashDatabase : RoomDatabase() {
      * descending re-seed, and re-fetches the recent feed from scratch; paging refills older
      * history on demand.
      *
-     * Takes the [SQLiteConnection] overload rather than the [SupportSQLiteDatabase] one used by
-     * [Migration22To23]: the latter only fires when Room is built without a driver, so a future
-     * `setDriver` would turn the delete into a silent no-op.
+     * Every migration here takes the [SQLiteConnection] overload: the `SupportSQLiteDatabase` one
+     * only fires when Room is built without a driver, and the desktop build sets one.
      */
     class Migration28To29 : AutoMigrationSpec {
         override fun onPostMigrate(connection: SQLiteConnection) {
@@ -331,10 +331,10 @@ abstract class FlipcashDatabase : RoomDatabase() {
          * compatibility with the minSdk-29 SQLite build.
          */
         val MIGRATION_25_26 = object : Migration(25, 26) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override fun migrate(connection: SQLiteConnection) {
                 // 1. New normalized table. Column set must match UserProfileEntity so
                 //    Room's post-migration schema validation passes.
-                db.execSQL(
+                connection.execSQL(
                     "CREATE TABLE IF NOT EXISTS `user_profiles` (" +
                         "`user_id_hex` TEXT NOT NULL, " +
                         "`display_name` TEXT NOT NULL, " +
@@ -352,45 +352,45 @@ abstract class FlipcashDatabase : RoomDatabase() {
                 //    the full profile, so insert it first; blocked_users (name+avatar only)
                 //    fills in users not in any chat. display_name is a placeholder until
                 //    the backfill parses the blob.
-                db.execSQL(
+                connection.execSQL(
                     "INSERT OR IGNORE INTO user_profiles (user_id_hex, display_name, pending_migration_json) " +
                         "SELECT user_id_hex, '', user_profile_json FROM chat_members " +
                         "WHERE user_profile_json IS NOT NULL"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "INSERT OR IGNORE INTO user_profiles (user_id_hex, display_name, pending_migration_json) " +
                         "SELECT user_id_hex, '', user_profile_json FROM blocked_users " +
                         "WHERE user_profile_json IS NOT NULL"
                 )
 
                 // 3. Drop the duplicated blob column from chat_members via table-recreate.
-                db.execSQL(
+                connection.execSQL(
                     "CREATE TABLE `chat_members_new` (" +
                         "`chat_id_hex` TEXT NOT NULL, " +
                         "`user_id_hex` TEXT NOT NULL, " +
                         "`pointers_json` TEXT, " +
                         "PRIMARY KEY(`chat_id_hex`, `user_id_hex`))"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "INSERT INTO `chat_members_new` (chat_id_hex, user_id_hex, pointers_json) " +
                         "SELECT chat_id_hex, user_id_hex, pointers_json FROM chat_members"
                 )
-                db.execSQL("DROP TABLE chat_members")
-                db.execSQL("ALTER TABLE chat_members_new RENAME TO chat_members")
+                connection.execSQL("DROP TABLE chat_members")
+                connection.execSQL("ALTER TABLE chat_members_new RENAME TO chat_members")
 
                 // 4. Same for blocked_users.
-                db.execSQL(
+                connection.execSQL(
                     "CREATE TABLE `blocked_users_new` (" +
                         "`user_id_hex` TEXT NOT NULL, " +
                         "`blocked_at_epoch_ms` INTEGER NOT NULL, " +
                         "PRIMARY KEY(`user_id_hex`))"
                 )
-                db.execSQL(
+                connection.execSQL(
                     "INSERT INTO `blocked_users_new` (user_id_hex, blocked_at_epoch_ms) " +
                         "SELECT user_id_hex, blocked_at_epoch_ms FROM blocked_users"
                 )
-                db.execSQL("DROP TABLE blocked_users")
-                db.execSQL("ALTER TABLE blocked_users_new RENAME TO blocked_users")
+                connection.execSQL("DROP TABLE blocked_users")
+                connection.execSQL("ALTER TABLE blocked_users_new RENAME TO blocked_users")
             }
         }
 
@@ -411,10 +411,12 @@ abstract class FlipcashDatabase : RoomDatabase() {
 
         private const val dbNamePrefix = "fcash_database"
 
-        fun isOpen() = instance?.isOpen == true
-
+        /**
+         * Opens the per-account database. [builder] creates the platform's Room builder for the file
+         * name; the Android and desktop `init` overloads supply it.
+         */
         @Synchronized
-        fun init(context: Context, entropyB64: String) {
+        fun init(entropyB64: String, builder: (name: String) -> RoomDatabase.Builder<FlipcashDatabase>) {
             val dbUniqueName = Base58.encode(entropyB64.toByteArray().subByteArray(0, 6))
             val targetName = "$dbNamePrefix-$dbUniqueName.db"
 
@@ -433,9 +435,9 @@ abstract class FlipcashDatabase : RoomDatabase() {
             dbName = targetName
 
             instance =
-                Room.databaseBuilder(context, FlipcashDatabase::class.java, dbName)
+                builder(dbName)
                     .addMigrations(MIGRATION_25_26)
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(dropAllTables = false)
                     .build()
 
             trace("database init end", type = TraceType.Process)
@@ -449,4 +451,10 @@ abstract class FlipcashDatabase : RoomDatabase() {
             }
         }
     }
+}
+
+// Room generates the actual for each target.
+@Suppress("KotlinNoActualForExpect")
+expect object FlipcashDatabaseConstructor : RoomDatabaseConstructor<FlipcashDatabase> {
+    override fun initialize(): FlipcashDatabase
 }
