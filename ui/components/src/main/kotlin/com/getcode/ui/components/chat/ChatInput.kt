@@ -396,7 +396,10 @@ fun ChatInput(
     // The trailing control splits from the field's trailing edge once the send button has shrunk out
     // of its spot, and merges straight back in as text arrives. Its glyph fades on its own, shorter
     // clock: in once it is clear of the field, out before it reaches it (iOS `cashGlyphTravel`).
-    val trailingShown = trailingOutside != null && !hasText
+    // Staged photos make way for it the same as typed text: either way the send button is what the
+    // composer offers next, and a cash button beside a pending attachment reads as part of it.
+    val trailingYields = hasText || hasAttachments
+    val trailingShown = trailingOutside != null && !trailingYields
     val trailingFractionAnim = remember { Animatable(if (trailingShown) 1f else 0f) }
     val trailingAlphaAnim = remember { Animatable(if (trailingShown) 1f else 0f) }
     LaunchedEffect(trailingShown) {
@@ -418,7 +421,7 @@ fun ChatInput(
     // centre, so the send grows out of the control's place. Leaving, it rides the field's edge in. iOS
     // gets both from SwiftUI, which lays an inserted view out at its final frame and lets a removed one
     // move with its parent.
-    val trailingCollapsing = trailingOutside != null && hasText
+    val trailingCollapsing = trailingOutside != null && trailingYields
 
     var fieldWidth by remember { mutableIntStateOf(0) }
     var leadingWidth by remember { mutableIntStateOf(0) }
