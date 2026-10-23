@@ -73,6 +73,11 @@ import com.flipcash.shared.chat.ui.QuickReactionStripPopup
 import com.flipcash.shared.chat.ui.ReactionPillRow
 import com.flipcash.shared.chat.ui.bubbleMaxWidth
 import com.flipcash.shared.chat.ui.bubblePositionOf
+import com.flipcash.shared.chat.ui.messageTimeOfDay
+import com.flipcash.services.models.chat.MessageContent
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextAlign
+import kotlin.time.Instant
 import com.flipcash.shared.chat.ui.rememberRendersBare
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
@@ -126,6 +131,8 @@ internal fun MessageRow(
     attention: () -> Float = { 0f },
     /** Set while this row's bubble grows out of the typing dots it replaced; see [TypingHandoff]. */
     typingHandoff: TypingHandoff? = null,
+    /** The transcript's send-time reveal, shared by every row; null where there is no transcript. */
+    reveal: TimestampRevealState? = null,
 ) {
     val onAction = LocalChatActionHandler.current
     val vibrator = LocalVibrator.current
@@ -320,7 +327,15 @@ internal fun MessageRow(
                 // align to the top of the run's first bubble rather than to the top of the
                 // name line. It carries the gutter's width as a leading inset to stay on the
                 // edge it sat on when the column held it.
-                Column(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // Only the viewer's own bubbles make way for the times: received ones sit
+                        // clear of the column already, and their times join it where they are.
+                        .addIf(reveal != null && item.isFromSelf) {
+                            Modifier.graphicsLayer { translationX = -(reveal?.offsetPx() ?: 0f) }
+                        },
+                ) {
                     // A profile can arrive with no display name; drawing it would leave an empty
                     // line above the run. The avatar below still marks whose run it is.
                     if (sender != null && runStart && sender.displayName.isNotBlank()) {
@@ -557,6 +572,14 @@ internal fun MessageRow(
             }
         }
 
+        if (reveal != null && bubble != null && bubble.isLastRow && bubble.content !is MessageContent.Deleted) {
+            RevealedTime(
+                sentAt = bubble.timestamp,
+                reveal = reveal,
+                modifier = Modifier.align(Alignment.CenterEnd),
+            )
+        }
+
         SwipeToReplyAffordance(
             progress = swipe::progress,
             pullBackPx = swipe::affordanceTranslationPx,
@@ -564,6 +587,40 @@ internal fun MessageRow(
         )
     }
 }
+
+/**
+ * A message's send time in the column the reveal drag opens at the trailing edge. Parked past the
+ * screen's edge and slid in by the reveal's offset, so it arrives with the bubbles moving out of
+ * its way; fades in with it, to the 60% white of the design.
+ *
+ * Silent to a screen reader: the bubble already speaks the full time, and the row merges this into
+ * its click target, where it would be read a second time.
+ */
+@Composable
+private fun RevealedTime(
+    sentAt: Instant,
+    reveal: TimestampRevealState,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        modifier = modifier
+            // The row ends at the list's inset; the column's margin is measured from the screen's edge.
+            .offset(x = CodeTheme.dimens.inset - REVEAL_COLUMN_MARGIN)
+            .width(REVEAL_COLUMN_WIDTH)
+            .graphicsLayer {
+                translationX = reveal.shiftPx - reveal.offsetPx()
+                alpha = REVEALED_TIME_ALPHA * reveal.progress()
+            }
+            .clearAndSetSemantics { },
+        text = messageTimeOfDay(sentAt),
+        style = CodeTheme.typography.caption,
+        color = Color.White,
+        textAlign = TextAlign.End,
+        maxLines = 1,
+    )
+}
+
+private const val REVEALED_TIME_ALPHA = 0.6f
 
 /**
  * The mark the swipe uncovers: a circle in the gutter the row is opening, growing and fading in as

@@ -520,6 +520,9 @@ internal fun MessageList(
             }
         }
 
+        // Off with the backdrop up, like the reply swipe: the rows are behind it.
+        val reveal = rememberTimestampReveal(enabled = !selecting)
+
         Box(Modifier.fillMaxSize()) {
             LazyColumn(
                 // NB: no sheetResignmentBehavior, unlike every other scrolling list in the app. The
@@ -529,6 +532,8 @@ internal fun MessageList(
                 // the edge a downward drag overscrolls past, and this one is reverseLayout, where
                 // index0/offset0 is the resting position and a downward drag scrolls into history.
                 modifier = modifier
+                    // Outer to the list's own scroll, which it has to beat to a horizontal drag.
+                    .timestampRevealGesture(reveal, enabled = !selecting)
                     // The backdrop is modal. While a message is selected or being edited the rest of
                     // the transcript sits behind it, so a tap there dismisses what is up rather than
                     // reaching the message it landed on — the exit iOS gives its held blur.
@@ -684,6 +689,7 @@ internal fun MessageList(
                             NoAttention
                         },
                         typingHandoff = handoff,
+                        reveal = reveal,
                     )
 
                     // Under the newest row, not in place of it. A message growing out of the dots

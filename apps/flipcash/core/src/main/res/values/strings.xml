@@ -910,6 +910,8 @@
     <string name="title_messageNotSent">Message Not Sent</string>
     <string name="description_messageNotSent">Your message could not be delivered. Would you like to try again?</string>
     <string name="label_chatSeparator_today">Today</string>
+    <!-- A message's full send time: its day ("Today", "Yesterday", "Oct 20"), then its time. -->
+    <string name="label_messageTime_full">%1$s, %2$s</string>
     <plurals name="title_chatUnreadDivider">
         <item quantity="one">%1$s Unread Message</item>
         <item quantity="other">%1$s Unread Messages</item>
