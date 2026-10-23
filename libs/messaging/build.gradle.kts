@@ -1,13 +1,21 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library.compose)
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.compose.compiler)
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.libs.messaging"
-}
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.libs.messaging"
+    }
 
-dependencies {
-    api(libs.kotlin.stdlib)
-    api(libs.kotlinx.coroutines.core)
-    api(libs.timber)
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.kotlin.stdlib)
+            api(libs.kotlinx.coroutines.core)
+            implementation(libs.jetbrains.compose.foundation)
+        }
+        androidMain.dependencies {
+            api(libs.timber)
+        }
+    }
 }

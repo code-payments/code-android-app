@@ -13,7 +13,7 @@ import com.flipcash.app.auth.internal.accounts.AccountStoreMigration
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.base58
 import com.getcode.utils.encodeBase64

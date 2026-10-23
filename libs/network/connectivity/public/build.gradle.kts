@@ -1,23 +1,28 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library.compose)
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.compose.compiler)
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.libs.network"
-}
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.libs.network"
+    }
 
-dependencies {
-    implementation(project(":libs:datetime"))
-    implementation(project(":libs:logging"))
-    debugImplementation(libs.compose.ui.tools)
-    implementation(libs.compose.ui.tools.preview)
-    implementation(libs.bundles.kotlinx.serialization)
-    implementation(libs.bundles.hilt)
-
-    testImplementation(kotlin("test"))
-    testImplementation(libs.kotlinx.coroutines.test)
-
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.runner)
+    sourceSets {
+        commonMain.dependencies {
+            implementation(project(":libs:datetime"))
+            implementation(project(":libs:logging"))
+            implementation(libs.bundles.kotlinx.serialization)
+            implementation(libs.jetbrains.compose.runtime)
+            implementation(libs.javax.inject)
+        }
+        androidMain.dependencies {
+            implementation(project.dependencies.platform(libs.compose.bom))
+            implementation(libs.compose.ui.tools.preview)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+    }
 }

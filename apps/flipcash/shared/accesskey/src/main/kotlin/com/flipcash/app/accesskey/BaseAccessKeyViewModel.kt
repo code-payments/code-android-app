@@ -24,7 +24,7 @@ import com.getcode.theme.Alert
 import com.getcode.theme.GradientSpec
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
-import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.AndroidResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.trace
@@ -59,7 +59,7 @@ data class AccessKeyUiModel(
 )
 
 abstract class BaseAccessKeyViewModel(
-    private val resources: ResourceHelper,
+    private val resources: AndroidResourceHelper,
     private val mnemonicManager: MnemonicManager,
     private val mediaSaver: MediaSaver,
     userManager: UserManager,

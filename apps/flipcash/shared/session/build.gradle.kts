@@ -10,7 +10,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(project(":libs:coroutines:test-fixtures"))
-    testImplementation(testFixtures(project(":ui:resources")))
+    testImplementation(project(":ui:resources:test-fixtures"))
 
     implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:blocklist"))

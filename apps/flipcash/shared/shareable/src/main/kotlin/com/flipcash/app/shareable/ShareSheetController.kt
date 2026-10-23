@@ -4,7 +4,7 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.flipcash.app.core.share.TipCodeExport
 import com.flipcash.app.core.share.TipCodePreview
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat

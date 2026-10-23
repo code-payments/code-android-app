@@ -201,6 +201,8 @@ include(
     ":libs:codes:kikcode",
     ":libs:coroutines",
     ":libs:coroutines:test-fixtures",
+    ":libs:parcelable",
+    ":libs:currency-math:test-fixtures",
     ":libs:crypto:kin",
     ":libs:crypto:solana",
     ":libs:currency",
@@ -252,6 +254,7 @@ include(
     ":services:opencode",
     ":services:opencode-compose",
     ":services:flipcash",
+    ":services:flipcash:test-fixtures",
     ":services:flipcash-compose",
 
     // common UI
@@ -260,6 +263,7 @@ include(
     ":ui:components",
     ":ui:navigation",
     ":ui:resources",
+    ":ui:resources:test-fixtures",
     ":ui:scanner",
     ":ui:testing",
     ":ui:theme",

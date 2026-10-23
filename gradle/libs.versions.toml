@@ -30,6 +30,7 @@ navigation3-lifecycle = "2.11.0"
 androidx-browser = "1.10.0"
 androidx-paging = "3.5.3"
 androidx-room = "2.8.5"
+androidx-sqlite = "2.6.2"
 androidx-work = "2.12.0"
 androidx-webkit = "1.17.0"
 
@@ -45,6 +46,7 @@ compose-coil = "3.6.3"
 
 hilt = "2.59.2"
 hilt-jetpack = "1.4.0"
+compose-multiplatform = "1.12.1"
 okhttp = "5.5.0"
 retrofit = "3.0.0"
 kin-sdk = "2.1.2"
@@ -146,6 +148,7 @@ navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", ver
 navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "navigation3-lifecycle" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "androidx-browser" }
+androidx-paging-common = { module = "androidx.paging:paging-common", version.ref = "androidx-paging" }
 androidx-paging-runtime = { module = "androidx.paging:paging-runtime-ktx", version.ref = "androidx-paging" }
 androidx-paging-testing = { module = "androidx.paging:paging-testing", version.ref = "androidx-paging" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "androidx-room" }
@@ -153,6 +156,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "androidx-room" }
 androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "androidx-room" }
 androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "androidx-room" }
+androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "androidx-sqlite" }
 androidx-work = { module = "androidx.work:work-runtime", version.ref = "androidx-work" }
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "androidx-work" }
 androidx-datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
@@ -170,6 +174,9 @@ coil3-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref =
 
 # Hilt
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+# Plain JVM jars: @Module/@Provides/@Binds and @InstallIn/SingletonComponent compile in a KMP commonMain.
+dagger = { module = "com.google.dagger:dagger", version.ref = "hilt" }
+hilt-core = { module = "com.google.dagger:hilt-core", version.ref = "hilt" }
 hilt-worker = { module = "androidx.hilt:hilt-work", version.ref = "hilt-jetpack" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hilt-jetpack" }
@@ -330,10 +337,16 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "uiTooling" }
 androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 
+jetbrains-compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
+# On Android these resolve to the androidx artifacts at the version the Compose BOM pins.
+jetbrains-compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
+jetbrains-compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
+
 [bundles]
 compose = ["compose-ui", "compose-foundation", "compose-material", "compose-material-icons-extended", "compose-animation", "compose-activities"]
 hilt = ["hilt-android", "javax-inject"]
 hilt-compiler = ["hilt-android-compiler", "hilt-compiler"]
+hilt-common = ["javax-inject", "dagger", "hilt-core"]
 haze = ["haze", "haze-blur", "haze-materials"]
 room = ["androidx-room-runtime", "androidx-room-ktx", "androidx-room-paging"]
 firebase = ["firebase-messaging", "firebase-installations"]

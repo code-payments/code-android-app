@@ -22,6 +22,7 @@ dependencies {
     implementation(libs.bugsnag)
 
     api(project(":libs:analytics-events"))
+    implementation(project(":libs:logging"))
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
 

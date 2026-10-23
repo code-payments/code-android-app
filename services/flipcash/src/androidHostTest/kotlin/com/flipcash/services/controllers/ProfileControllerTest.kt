@@ -1,0 +1,408 @@
+package com.flipcash.services.controllers
+
+import com.flipcash.services.models.GetUserProfileError
+import com.flipcash.services.models.SetBioError
+import com.flipcash.services.models.SocialAccount
+import com.flipcash.services.models.SocialAccountLinkRequest
+import com.flipcash.services.models.SocialAccountUnlinkRequest
+import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.VerifiableContactMethod
+import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.ProfileIdentifier
+import com.flipcash.services.repository.ProfileRepository
+import com.flipcash.services.user.UserManager
+import com.getcode.ed25519kmp.Ed25519
+import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
+import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class ProfileControllerTest {
+
+    private val repository = FakeProfileRepository()
+    private val userManager = mockk<UserManager>(relaxed = true)
+
+    private val controller = ProfileController(repository, userManager)
+
+    private fun stubOwner() {
+        val keyPair = mockk<Ed25519.KeyPair>(relaxed = true)
+        val cluster = mockk<AccountCluster>(relaxed = true) {
+            every { authority } returns mockk { every { this@mockk.keyPair } returns keyPair }
+        }
+        every { userManager.accountCluster } returns cluster
+    }
+
+    // region updateUserProfile
+
+    @Test
+    fun `updateUserProfile fails when no account id`() = runTest {
+        every { userManager.accountId } returns null
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `updateUserProfile fails when no account cluster`() = runTest {
+        every { userManager.accountId } returns listOf(1)
+        every { userManager.accountCluster } returns null
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `updateUserProfile caches profile on success`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        every { userManager.profile } returns null
+
+        val profile = stubProfile()
+        repository.getProfileResult = Result.success(profile)
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isSuccess)
+        assertEquals(profile, result.getOrThrow())
+        verify { userManager.set(profile) }
+    }
+
+    @Test
+    fun `updateUserProfile preserves locally-entered unverified contact when server omits it`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        // Local profile has an unverified email the user entered; server profile has none.
+        val localEmail = VerifiableContactMethod("entered@test.com", verified = false)
+        every { userManager.profile } returns stubProfile().copy(email = localEmail)
+        repository.getProfileResult = Result.success(stubProfile())
+
+        val result = controller.updateUserProfile()
+
+        assertEquals(localEmail, result.getOrThrow().email)
+        verify { userManager.set(match<UserProfile> { it.email == localEmail }) }
+    }
+
+    @Test
+    fun `updateUserProfile does not override a server-provided contact`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        every { userManager.profile } returns stubProfile()
+            .copy(email = VerifiableContactMethod("stale@test.com", verified = false))
+        val serverEmail = VerifiableContactMethod("verified@test.com", verified = true)
+        repository.getProfileResult = Result.success(stubProfile().copy(email = serverEmail))
+
+        val result = controller.updateUserProfile()
+
+        assertEquals(serverEmail, result.getOrThrow().email)
+    }
+
+    @Test
+    fun `updateUserProfile preserves local unverified contacts when server returns NotFound`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        val localEmail = VerifiableContactMethod("entered@test.com", verified = false)
+        val localPhone = VerifiableContactMethod("+15551234567", verified = false)
+        every { userManager.profile } returns stubProfile()
+            .copy(email = localEmail, phoneNumber = localPhone)
+        repository.getProfileResult = Result.failure(GetUserProfileError.NotFound())
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isSuccess)
+        assertEquals(localEmail, result.getOrThrow().email)
+        assertEquals(localPhone, result.getOrThrow().phoneNumber)
+        verify {
+            userManager.set(
+                match<UserProfile> { it.email == localEmail && it.phoneNumber == localPhone }
+            )
+        }
+        verify(exactly = 0) { userManager.set(null as UserProfile?) }
+    }
+
+    @Test
+    fun `updateUserProfile drops verified local contacts on NotFound`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        every { userManager.profile } returns stubProfile()
+            .copy(email = VerifiableContactMethod("verified@test.com", verified = true))
+        repository.getProfileResult = Result.failure(GetUserProfileError.NotFound())
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isFailure)
+        verify { userManager.set(null as UserProfile?) }
+    }
+
+    @Test
+    fun `updateUserProfile clears cache on NotFound with no local contacts`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        every { userManager.profile } returns null
+        repository.getProfileResult = Result.failure(GetUserProfileError.NotFound())
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isFailure)
+        verify { userManager.set(null as UserProfile?) }
+    }
+
+    @Test
+    fun `updateUserProfile propagates failure without caching`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        repository.getProfileResult = Result.failure(RuntimeException("not found"))
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isFailure)
+        verify(exactly = 0) { userManager.set(any<UserProfile>()) }
+    }
+
+    // endregion
+
+    // region getProfileForUser
+
+    @Test
+    fun `getProfileForUser fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+
+        val result = controller.getProfileForUser(listOf(1))
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `getProfileForUser delegates to repository`() = runTest {
+        stubOwner()
+        val profile = stubProfile()
+        repository.getProfileResult = Result.success(profile)
+
+        val result = controller.getProfileForUser(listOf(1))
+
+        assertTrue(result.isSuccess)
+        assertEquals(profile, result.getOrThrow())
+    }
+
+    // endregion
+
+    // region setDisplayName
+
+    @Test
+    fun `setDisplayName fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+
+        val result = controller.setDisplayName("Test")
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `setDisplayName delegates to repository`() = runTest {
+        stubOwner()
+        repository.setDisplayNameResult = Result.success(null)
+
+        val result = controller.setDisplayName("Test")
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `setDisplayName caches the username the server assigned`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile().copy(username = "old")
+        repository.setDisplayNameResult = Result.success("assigned")
+
+        controller.setDisplayName("Test")
+
+        verify { userManager.set(match<UserProfile> { it.displayName == "Test" && it.username == "assigned" }) }
+    }
+
+    @Test
+    fun `setDisplayName keeps the existing username when the server assigns none`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile().copy(username = "old")
+        repository.setDisplayNameResult = Result.success(null)
+
+        controller.setDisplayName("Test")
+
+        verify { userManager.set(match<UserProfile> { it.displayName == "Test" && it.username == "old" }) }
+    }
+
+    @Test
+    fun `setDisplayName flags the username as auto-assigned when the server assigns one`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile()
+        repository.setDisplayNameResult = Result.success("assigned")
+
+        controller.setDisplayName("Test")
+
+        verify { userManager.set(match<UserProfile> { it.isUsernameAutoAssigned }) }
+    }
+
+    @Test
+    fun `setUsername clears the auto-assigned flag`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile().copy(username = "assigned", isUsernameAutoAssigned = true)
+
+        controller.setUsername("chosen")
+
+        verify { userManager.set(match<UserProfile> { it.username == "chosen" && !it.isUsernameAutoAssigned }) }
+    }
+
+    @Test
+    fun `setBio caches the bio on success`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile()
+
+        val result = controller.setBio("hello")
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(match<UserProfile> { it.bio == "hello" }) }
+    }
+
+    @Test
+    fun `setBio leaves the cached profile alone on failure`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile()
+        repository.setBioResult = Result.failure(SetBioError.InvalidBio())
+
+        val result = controller.setBio("hello")
+
+        assertTrue(result.isFailure)
+        verify(exactly = 0) { userManager.set(any<UserProfile>()) }
+    }
+
+    @Test
+    fun `setCoverPicture caches the returned media`() = runTest {
+        stubOwner()
+        every { userManager.profile } returns stubProfile()
+        val media = MediaItem(renditions = emptyList())
+        repository.setCoverPictureResult = Result.success(media)
+
+        controller.setCoverPicture(BlobId(byteArrayOf(1)))
+
+        verify { userManager.set(match<UserProfile> { it.coverPicture == media }) }
+    }
+
+    // endregion
+
+    // region linkTwitterXAccount
+
+    @Test
+    fun `linkTwitterXAccount fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+
+        val result = controller.linkTwitterXAccount("token-123")
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `linkTwitterXAccount delegates to repository`() = runTest {
+        stubOwner()
+        val account = stubTwitterXAccount()
+        repository.linkSocialAccountResult = Result.success(account)
+
+        val result = controller.linkTwitterXAccount("token-123")
+
+        assertTrue(result.isSuccess)
+        assertEquals(account, result.getOrThrow())
+    }
+
+    @Test
+    fun `linkTwitterXAccount propagates failure`() = runTest {
+        stubOwner()
+        repository.linkSocialAccountResult = Result.failure(RuntimeException("denied"))
+
+        val result = controller.linkTwitterXAccount("token-123")
+
+        assertTrue(result.isFailure)
+    }
+
+    // endregion
+
+    // region unlinkTwitterXAccount
+
+    @Test
+    fun `unlinkTwitterXAccount fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+
+        val result = controller.unlinkTwitterXAccount(stubTwitterXAccount())
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `unlinkTwitterXAccount delegates to repository`() = runTest {
+        stubOwner()
+        repository.unlinkSocialAccountResult = Result.success(Unit)
+
+        val result = controller.unlinkTwitterXAccount(stubTwitterXAccount())
+
+        assertTrue(result.isSuccess)
+    }
+
+    // endregion
+
+    // region helpers
+
+    private fun stubProfile() = UserProfile(
+        displayName = "Test User",
+        socialAccounts = emptyList(),
+        phoneNumber = null,
+        email = null,
+    )
+
+    private fun stubTwitterXAccount() = SocialAccount.TwitterX(
+        id = "123",
+        username = "testuser",
+        name = "Test User",
+        description = "",
+        profilePicUrl = "",
+        verifiedType = null,
+        followerCount = 0,
+    )
+
+    // endregion
+}
+
+// region Fakes
+
+private class FakeProfileRepository : ProfileRepository {
+    var getProfileResult: Result<UserProfile> = Result.failure(RuntimeException("not configured"))
+    var setDisplayNameResult: Result<String?> = Result.success(null)
+    var setUsernameResult: Result<Unit> = Result.success(Unit)
+    var setProfilePictureResult: Result<MediaItem> = Result.failure(RuntimeException("not configured"))
+    var setCoverPictureResult: Result<MediaItem> = Result.failure(RuntimeException("not configured"))
+    var setBioResult: Result<Unit> = Result.success(Unit)
+    var updateTipCardResult: Result<Unit> = Result.success(Unit)
+    var setMinDmChatInitFeeResult: Result<Unit> = Result.success(Unit)
+    var linkSocialAccountResult: Result<SocialAccount> = Result.failure(RuntimeException("not configured"))
+    var unlinkSocialAccountResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun getProfile(identifier: ProfileIdentifier, owner: Ed25519.KeyPair) = getProfileResult
+    override suspend fun setDisplayName(displayName: String, owner: Ed25519.KeyPair) = setDisplayNameResult
+    override suspend fun setUsername(username: String, owner: Ed25519.KeyPair) = setUsernameResult
+    override suspend fun setProfilePicture(blobId: BlobId, owner: Ed25519.KeyPair) = setProfilePictureResult
+    override suspend fun setCoverPicture(blobId: BlobId, owner: Ed25519.KeyPair) = setCoverPictureResult
+    override suspend fun setBio(bio: String, owner: Ed25519.KeyPair) = setBioResult
+    override suspend fun updateTipCard(owner: Ed25519.KeyPair, hexColor: String) = updateTipCardResult
+    override suspend fun setMinDmChatInitFee(owner: Ed25519.KeyPair, fee: Fiat) = setMinDmChatInitFeeResult
+    override suspend fun linkSocialAccount(request: SocialAccountLinkRequest, owner: Ed25519.KeyPair) =
+        linkSocialAccountResult
+    override suspend fun unlinkSocialAccount(request: SocialAccountUnlinkRequest, owner: Ed25519.KeyPair) =
+        unlinkSocialAccountResult
+}
+
+// endregion

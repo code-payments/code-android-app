@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
@@ -112,9 +113,25 @@ kotlin {
         }
     }
 
+    // jvmShared: the string-keyed Ed25519 API for both JVM targets (Android and desktop).
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
+    applyDefaultHierarchyTemplate {
+        common {
+            group("jvmShared") {
+                withJvm()
+                withCompilations { it.platformType == KotlinPlatformType.androidJvm }
+            }
+        }
+    }
+
     sourceSets {
         commonMain {
             // Ed25519Kmp expect object + KeyPair — no external deps.
+        }
+        getByName("jvmSharedMain") {
+            dependencies {
+                api(project(":libs:parcelable"))
+            }
         }
         androidMain {
             dependencies {

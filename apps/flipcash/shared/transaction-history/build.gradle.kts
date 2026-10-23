@@ -22,7 +22,7 @@ dependencies {
 
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
-    testImplementation(testFixtures(project(":ui:resources")))
+    testImplementation(project(":ui:resources:test-fixtures"))
     // Screenshot renders only: FlipcashPreview for the theme, ExchangeStub for the currency flag
     // LocalExchange would otherwise resolve to ExchangeNull.
     testImplementation(project(":apps:flipcash:shared:theme"))

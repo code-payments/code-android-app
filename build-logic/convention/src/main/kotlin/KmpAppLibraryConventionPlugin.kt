@@ -23,6 +23,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
  *   - `org.jetbrains.kotlin.multiplatform`
  *   - `com.android.kotlin.multiplatform.library`
  *   - `org.jetbrains.kotlin.plugin.serialization`
+ *   - `org.jetbrains.kotlin.plugin.parcelize` -- generates Android parcel code for classes marked
+ *     with `com.getcode.libs.parcelable.Parcelize`, the common stand-in in `:libs:parcelable`
  *
  * and declares:
  *   - `android` -- compileSdk and minSdk from the version catalog, host tests enabled with the same
@@ -52,6 +54,7 @@ class KmpAppLibraryConventionPlugin : Plugin<Project> {
                 apply("org.jetbrains.kotlin.multiplatform")
                 apply("com.android.kotlin.multiplatform.library")
                 apply("org.jetbrains.kotlin.plugin.serialization")
+                apply("org.jetbrains.kotlin.plugin.parcelize")
             }
 
             val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -72,6 +75,9 @@ class KmpAppLibraryConventionPlugin : Plugin<Project> {
                         }
                     }
                     minSdk = minSdkVersion
+                    // Hilt's KSP processors emit Java (factories, hilt_aggregated_deps), which the
+                    // KMP Android target only compiles when Java compilation is enabled.
+                    withJava()
                     withHostTestBuilder {}.configure {
                         isReturnDefaultValues = true
                         isIncludeAndroidResources = true
@@ -91,9 +97,14 @@ class KmpAppLibraryConventionPlugin : Plugin<Project> {
                     optIn.addAll(
                         "kotlin.time.ExperimentalTime",
                         "kotlin.ExperimentalUnsignedTypes",
-                        "kotlin.RequiresOptIn"
+                        "kotlin.RequiresOptIn",
+                        "kotlin.ExperimentalMultiplatform"
                     )
-                    freeCompilerArgs.add("-Xexpect-actual-classes")
+                    freeCompilerArgs.addAll(
+                        "-Xexpect-actual-classes",
+                        "-P",
+                        "plugin:org.jetbrains.kotlin.parcelize:additionalAnnotation=com.getcode.libs.parcelable.Parcelize"
+                    )
                 }
 
                 sourceSets.named("commonMain") {

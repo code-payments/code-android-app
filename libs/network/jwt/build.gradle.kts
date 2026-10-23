@@ -1,7 +1,9 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.kmp.app.library)
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.libs.network.jwt"
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.libs.network.jwt"
+    }
 }

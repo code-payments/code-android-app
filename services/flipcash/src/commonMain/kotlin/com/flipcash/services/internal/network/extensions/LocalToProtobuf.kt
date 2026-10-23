@@ -1,0 +1,387 @@
+package com.flipcash.services.internal.network.extensions
+
+import com.codeinc.flipcash.gen.activity.v1.Model
+import com.codeinc.flipcash.gen.common.v1.Common
+import com.codeinc.flipcash.gen.profile.v1.ProfileService
+import com.codeinc.flipcash.gen.thirdparty.v1.Model as ThirdPartyModels
+import com.flipcash.services.models.PagingToken
+import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.SocialAccountLinkRequest
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
+import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ClientMessageId
+import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.PointerType
+import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.ViewMode
+import com.getcode.ed25519kmp.Ed25519.KeyPair
+import com.getcode.network.jwt.ApiProvider
+import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Checksum
+import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.toByteString
+import com.google.protobuf.Timestamp
+import kotlin.time.Instant
+import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
+import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
+
+internal fun Checksum.asHash(): Common.Hash {
+    return Common.Hash.newBuilder().setValue(byteArray.toByteString()).build()
+}
+
+internal fun ByteArray.asSignature(): Common.Signature {
+    return Common.Signature.newBuilder().setValue(this.toByteString())
+        .build()
+}
+
+internal fun KeyPair.asPublicKey(): Common.PublicKey {
+    return Common.PublicKey.newBuilder().setValue(this.publicKeyBytes.toByteString()).build()
+}
+
+internal fun PublicKey.asPublicKey(): Common.PublicKey {
+    return Common.PublicKey.newBuilder().setValue(bytes.toByteString()).build()
+}
+
+internal fun ID.asUserId(): Common.UserId {
+    return Common.UserId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun String.asUsername(): Common.Username {
+    return Common.Username.newBuilder().setValue(this).build()
+}
+
+internal fun Instant.asTimestamp(): Timestamp {
+    return Timestamp.newBuilder().setSeconds(this.epochSeconds).build()
+}
+
+internal fun QueryOptions.asQueryOptions(): Common.QueryOptions {
+    return Common.QueryOptions.newBuilder()
+        .setPageSize(this@asQueryOptions.limit)
+        .setOrder(
+            if (this@asQueryOptions.descending) Common.QueryOptions.Order.DESC
+            else Common.QueryOptions.Order.ASC
+        ).apply {
+            this@asQueryOptions.token?.let {
+                setPagingToken(it.toPagingToken())
+            }
+        }.build()
+}
+
+internal fun PagingToken.toPagingToken(): Common.PagingToken {
+    return Common.PagingToken.newBuilder().setValue(this.toByteString()).build()
+}
+
+internal fun List<ID>.toNotificationIds(): List<Model.NotificationId> {
+    return this.map { Model.NotificationId.newBuilder().setValue(it.toByteString()).build() }
+}
+
+internal fun Pair<ApiProvider, String>.asApiKey(): ThirdPartyModels.ApiKey {
+    return ThirdPartyModels.ApiKey.newBuilder()
+        .setProvider(
+            when (first) {
+                ApiProvider.Coinbase -> ThirdPartyModels.Provider.COINBASE
+            }
+        )
+        .setValue(second)
+        .build()
+}
+
+internal fun ChatId.asChatId(): Common.ChatId {
+    return Common.ChatId.newBuilder().setValue(bytes.toByteString()).build()
+}
+
+internal fun String.asCountryCode(): Common.CountryCode {
+    return Common.CountryCode.newBuilder().setValue(this).build()
+}
+
+internal fun Fiat.asFiatPaymentAmount(): Common.FiatPaymentAmount {
+    return Common.FiatPaymentAmount.newBuilder()
+        .setCurrency(currencyCode.name.lowercase())
+        .setNativeAmount(decimalValue)
+        .build()
+}
+
+internal fun SocialAccountLinkRequest.linkingToken(): ProfileService.LinkSocialAccountRequest.LinkingToken {
+    val builder = ProfileService.LinkSocialAccountRequest.LinkingToken.newBuilder()
+
+    when (this) {
+        is SocialAccountLinkRequest.X -> builder.setX(
+            ProfileService.LinkSocialAccountRequest.LinkingToken.XLinkingToken.newBuilder().setAccessToken(token)
+        )
+    }
+
+    return builder.build()
+}
+
+// -- Messaging extensions --
+
+internal fun ClientMessageId.asClientMessageId(): MessagingModel.ClientMessageId {
+    return MessagingModel.ClientMessageId.newBuilder().setValue(bytes.toByteString()).build()
+}
+
+internal fun MessageContent.asContent(): MessagingModel.Content {
+    return when (this) {
+        is MessageContent.Text -> MessagingModel.Content.newBuilder()
+            .setText(
+                MessagingModel.TextContent.newBuilder().setText(text)
+                    .apply { this@asContent.linkPreview?.let { addLinkPreviews(it.asLinkPreview()) } }
+            )
+            .build()
+        is MessageContent.Cash -> MessagingModel.Content.newBuilder()
+            .setCash(
+                MessagingModel.CashContent.newBuilder()
+                    .setIntentId(Common.IntentId.newBuilder().setValue(intentId.toByteString()))
+                    .setAmount(
+                        Common.CryptoPaymentAmount.newBuilder()
+                            .setQuarks(tokenQuarks ?: amount.quarks)
+                            .setMint(Common.PublicKey.newBuilder().setValue(mint.bytes.toByteString()))
+                    )
+                    .setVerb(
+                        when (action) {
+                            MessageContent.Cash.Action.TIPPED -> MessagingModel.CashContent.Verb.TIPPED
+                            MessageContent.Cash.Action.SENT -> MessagingModel.CashContent.Verb.SENT
+                        }
+                    )
+                    .apply {
+                        this@asContent.receiver?.let {
+                            setReceiver(Common.UserId.newBuilder().setValue(it.toByteString()))
+                        }
+                    }
+            )
+            .build()
+        is MessageContent.Reply -> MessagingModel.Content.newBuilder()
+            .setReply(
+                MessagingModel.ReplyContent.newBuilder()
+                    .setRepliedMessageId(MessagingModel.MessageId.newBuilder().setValue(repliedMessageId))
+                    .addAllContent(content.map { it.asContent() })
+            )
+            .build()
+        is MessageContent.Media -> MessagingModel.Content.newBuilder()
+            .setMedia(
+                MessagingModel.MediaContent.newBuilder()
+                    .addAllItems(items.map { it.asMediaItem() })
+                    // `this@asContent`: bare `caption` here is the builder's own (always non-null) getter.
+                    .apply {
+                        this@asContent.caption
+                            ?.takeIf { it.text.isNotEmpty() }
+                            ?.let { setCaption(MessagingModel.TextContent.newBuilder().setText(it.text)) }
+                    }
+            )
+            .build()
+        // Server-authored and receive-only: no client path builds one, so reaching this is a bug.
+        is MessageContent.Widget -> error("Widget messages are receive-only and are never sent by a client")
+        // Only ever decoded from a type this build doesn't know, so it has no wire form to send.
+        is MessageContent.Unsupported -> error("Unsupported content is decode-only; it has no wire form")
+        is MessageContent.System -> {
+            val systemBuilder = MessagingModel.SystemContent.newBuilder().setFallbackText(fallbackText)
+            when (val event = event) {
+                is MessageContent.SystemEvent.UserJoined -> {
+                    val joined = MessagingModel.SystemContent.UserJoined.newBuilder()
+                        .setUserId(event.userId.asUserId())
+                    event.admittedBy?.let {
+                        joined.setAdmitted(MessagingModel.SystemContent.UserJoined.Admitted.newBuilder().setAdmittedBy(it.asUserId()))
+                    } ?: joined.setDirect(MessagingModel.SystemContent.UserJoined.Direct.getDefaultInstance())
+                    systemBuilder.setUserJoined(joined)
+                }
+                null -> Unit
+            }
+            MessagingModel.Content.newBuilder()
+                .setSystem(systemBuilder)
+                .build()
+        }
+        is MessageContent.Deleted -> {
+            val deletedBuilder = MessagingModel.DeletedContent.newBuilder()
+                .setDeletedTs(deletedTs.asTimestamp())
+            deletedBy?.let { deletedBuilder.setDeletedBy(it.asUserId()) }
+            MessagingModel.Content.newBuilder()
+                .setDeleted(deletedBuilder)
+                .build()
+        }
+        // Sealed by ChatContentCrypto, or relayed verbatim when an edit rewrites around it.
+        is MessageContent.Encrypted -> MessagingModel.Content.newBuilder()
+            .setEncrypted(
+                MessagingModel.EncryptedContent.newBuilder()
+                    .setSchemeValue(scheme)
+                    .setNonce(nonce.toByteString())
+                    .setCiphertext(ciphertext.toByteString())
+            )
+            .build()
+    }
+}
+
+internal fun com.flipcash.services.models.chat.LinkPreview.asLinkPreview(): MessagingModel.LinkPreview =
+    MessagingModel.LinkPreview.newBuilder()
+        .setUrl(url)
+        .setTitle(title)
+        .setDescription(description)
+        .apply { this@asLinkPreview.image?.let { setImage(it.asMediaItem()) } }
+        .build()
+
+internal fun com.flipcash.services.models.chat.MediaItem.asMediaItem(): com.codeinc.flipcash.gen.blob.v1.Model.Media {
+    return com.codeinc.flipcash.gen.blob.v1.Model.Media.newBuilder()
+        .addAllRenditions(renditions.map { it.asRendition() })
+        .build()
+}
+
+internal fun com.flipcash.services.models.chat.MediaItemRendition.asRendition(): com.codeinc.flipcash.gen.blob.v1.Model.Rendition {
+    return com.codeinc.flipcash.gen.blob.v1.Model.Rendition.newBuilder()
+        .setRole(role.asProtoRole())
+        .setBlobId(
+            com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
+                .setValue(blobId.bytes.toByteString())
+        )
+        .apply { this@asRendition.blob?.let { setBlob(it.asBlobMetadata()) } }
+        .build()
+}
+
+/**
+ * A sealed photo carries its metadata inline, since the server can't read it, and no download URL:
+ * there is nothing to download from until the recipient asks `GetBlobs`. A blank [BlobMetadata.downloadUrl]
+ * is therefore left off rather than written as an empty URL.
+ */
+internal fun com.flipcash.services.models.chat.BlobMetadata.asBlobMetadata(): com.codeinc.flipcash.gen.blob.v1.Model.BlobMetadata {
+    val metadata = this
+    return com.codeinc.flipcash.gen.blob.v1.Model.BlobMetadata.newBuilder()
+        .setMimeType(mimeType)
+        .setSizeBytes(sizeBytes)
+        .apply {
+            if (metadata.downloadUrl.isNotEmpty()) {
+                setDownloadUrl(
+                    com.codeinc.flipcash.gen.blob.v1.Model.DownloadUrl.newBuilder()
+                        .setUrl(metadata.downloadUrl)
+                        .apply {
+                            metadata.expiresAtMillis?.let {
+                                setExpiresAt(
+                                    com.google.protobuf.Timestamp.newBuilder()
+                                        .setSeconds(Math.floorDiv(it, 1_000L))
+                                        .setNanos((Math.floorMod(it, 1_000L) * 1_000_000L).toInt())
+                                )
+                            }
+                        }
+                )
+            }
+            metadata.image?.let {
+                setImage(
+                    com.codeinc.flipcash.gen.blob.v1.Model.ImageMetadata.newBuilder()
+                        .setWidth(it.width)
+                        .setHeight(it.height)
+                        .setBlurhash(it.blurhash)
+                )
+            }
+        }
+        .build()
+}
+
+internal fun com.flipcash.services.models.chat.MediaItemRendition.Role.asProtoRole(): com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role {
+    return when (this) {
+        com.flipcash.services.models.chat.MediaItemRendition.Role.ORIGINAL -> com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.ORIGINAL
+        com.flipcash.services.models.chat.MediaItemRendition.Role.DISPLAY -> com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.DISPLAY
+        com.flipcash.services.models.chat.MediaItemRendition.Role.THUMBNAIL -> com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.THUMBNAIL
+        com.flipcash.services.models.chat.MediaItemRendition.Role.UNKNOWN -> com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.UNKNOWN
+    }
+}
+
+internal fun com.flipcash.services.models.chat.Emoji.asEmoji(): MessagingModel.Emoji {
+    return MessagingModel.Emoji.newBuilder().setValue(value).build()
+}
+
+internal fun ChatType.asProtoChatType(): ChatModel.ChatType {
+    return when (this) {
+        ChatType.UNKNOWN -> ChatModel.ChatType.UNKNOWN
+        ChatType.CONTACT_DM -> ChatModel.ChatType.CONTACT_DM
+        ChatType.TIP_DM -> ChatModel.ChatType.DM
+        ChatType.GROUP -> ChatModel.ChatType.GROUP
+    }
+}
+
+internal fun Long.asMessageId(): MessagingModel.MessageId {
+    return MessagingModel.MessageId.newBuilder().setValue(this).build()
+}
+
+internal fun PointerType.asPointerType(): MessagingModel.Pointer.Type {
+    return when (this) {
+        PointerType.SENT -> MessagingModel.Pointer.Type.SENT
+        PointerType.DELIVERED -> MessagingModel.Pointer.Type.DELIVERED
+        PointerType.READ -> MessagingModel.Pointer.Type.READ
+        PointerType.UNKNOWN -> MessagingModel.Pointer.Type.UNKNOWN
+    }
+}
+
+internal fun TypingState.asTypingState(): MessagingModel.IsTypingNotification.State {
+    return when (this) {
+        TypingState.STARTED_TYPING -> MessagingModel.IsTypingNotification.State.STARTED_TYPING
+        TypingState.STILL_TYPING -> MessagingModel.IsTypingNotification.State.STILL_TYPING
+        TypingState.STOPPED_TYPING -> MessagingModel.IsTypingNotification.State.STOPPED_TYPING
+        TypingState.TYPING_TIMED_OUT -> MessagingModel.IsTypingNotification.State.TYPING_TIMED_OUT
+        TypingState.UNKNOWN -> MessagingModel.IsTypingNotification.State.UNKNOWN_TYPING_STATE
+    }
+}
+internal fun IdempotencyKey.asProtoIdempotencyKey(): ChatModel.IdempotencyKey {
+    return ChatModel.IdempotencyKey.newBuilder().setValue(bytes.toByteString()).build()
+}
+
+internal fun ChatRules.asProtoRules(): ChatModel.Rules {
+    return ChatModel.Rules.newBuilder()
+        .addAllListener(listener.map { it.asProtoListenerRules() })
+        .addAllSpeaker(speaker.map { it.asProtoSpeakerRules() })
+        .build()
+}
+
+internal fun ChatRuleRequirement.asProtoListenerRules(): ChatModel.ListenerRules {
+    val builder = ChatModel.ListenerRules.newBuilder()
+    return when (this) {
+        ChatRuleRequirement.Never -> error("ListenerRules has no `never` arm; Never is speaker-only")
+        ChatRuleRequirement.Creator -> error("ListenerRules has no `creator` arm; Creator is speaker-only")
+        ChatRuleRequirement.UnsupportedSpeakerRule -> error("UnsupportedSpeakerRule is a client-only speaker rule")
+        is ChatRuleRequirement.MinimumBalance -> builder.setMinimumBalance(asProtoMinimumBalanceRequirement()).build()
+        ChatRuleRequirement.Staff -> builder.setStaff(ChatModel.StaffRequirement.getDefaultInstance()).build()
+    }
+}
+
+internal fun ChatRuleRequirement.asProtoSpeakerRules(): ChatModel.SpeakerRules {
+    val builder = ChatModel.SpeakerRules.newBuilder()
+    return when (this) {
+        is ChatRuleRequirement.MinimumBalance -> builder.setMinimumBalance(asProtoMinimumBalanceRequirement()).build()
+        ChatRuleRequirement.Staff -> builder.setStaff(ChatModel.StaffRequirement.getDefaultInstance()).build()
+        ChatRuleRequirement.Never -> builder.setNever(ChatModel.Never.getDefaultInstance()).build()
+        ChatRuleRequirement.Creator -> builder.setCreator(ChatModel.CreatorRequirement.getDefaultInstance()).build()
+        // Rejected, not skipped: there is no wire shape for a rule this build cannot decode.
+        ChatRuleRequirement.UnsupportedSpeakerRule -> error("UnsupportedSpeakerRule is decode-only; it has no wire form")
+    }
+}
+
+internal fun ChatRuleRequirement.MinimumBalance.asProtoMinimumBalanceRequirement(): ChatModel.MinimumBalanceRequirement {
+    return ChatModel.MinimumBalanceRequirement.newBuilder()
+        .setAmount(amount.asFiatPaymentAmount())
+        .addAllMints(mints.map { it.asPublicKey() })
+        .build()
+}
+
+internal fun ViewMode.asViewMode(): MessagingModel.ViewMode {
+    return when (this) {
+        ViewMode.FULL -> MessagingModel.ViewMode.FULL
+        ViewMode.FULL_OR_REDACTED -> MessagingModel.ViewMode.FULL_OR_REDACTED
+        ViewMode.REDACTED -> MessagingModel.ViewMode.REDACTED
+    }
+}
+
+internal fun MuteState.asProtoMuteState(): ChatModel.MuteState {
+    val builder = ChatModel.MuteState.newBuilder()
+    return when (this) {
+        is MuteState.Until -> builder.setUntil(until.asTimestamp()).build()
+        MuteState.Forever -> builder.setForever(ChatModel.MuteState.Forever.getDefaultInstance()).build()
+    }
+}
+
+internal fun com.flipcash.services.models.chat.KeyEnvelope.asProtoKeyEnvelope(): com.codeinc.flipcash.gen.chat.v1.Model.KeyEnvelope {
+    return com.codeinc.flipcash.gen.chat.v1.Model.KeyEnvelope.newBuilder()
+        .setSchemeValue(scheme)
+        .setNonce(nonce.toByteString())
+        .setCiphertext(ciphertext.toByteString())
+        .build()
+}

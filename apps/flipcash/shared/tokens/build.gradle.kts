@@ -9,8 +9,8 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
-    testImplementation(testFixtures(project(":ui:resources")))
-    testImplementation(testFixtures(project(":libs:currency-math")))
+    testImplementation(project(":ui:resources:test-fixtures"))
+    testImplementation(project(":libs:currency-math:test-fixtures"))
     testImplementation(libs.mockito.kotlin)
 
     api(project(":apps:flipcash:shared:tokens:core"))
