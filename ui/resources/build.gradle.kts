@@ -1,22 +1,29 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library.compose)
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.compose.compiler)
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.util.resources"
-    testFixtures {
-        enable = true
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.util.resources"
+        androidResources {
+            enable = true
+        }
     }
-}
 
-dependencies {
-    testFixturesImplementation(platform(libs.compose.bom))
-    testFixturesImplementation(libs.compose.ui)
-
-    api(libs.androidx.annotation)
-    api(libs.androidx.appcompat)
-    api(libs.androidx.core)
-    implementation(libs.androidx.exifinterface)
-    api(libs.kotlin.stdlib)
-    api(libs.kotlinx.coroutines.core)
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.androidx.annotation)
+            api(libs.kotlin.stdlib)
+            api(libs.kotlinx.coroutines.core)
+            api(libs.jetbrains.compose.runtime)
+            api(libs.jetbrains.compose.ui)
+        }
+        androidMain.dependencies {
+            api(libs.androidx.appcompat)
+            api(libs.androidx.core)
+            implementation(libs.androidx.exifinterface)
+            implementation(libs.timber)
+        }
+    }
 }

@@ -9,7 +9,7 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
-    testImplementation(testFixtures(project(":ui:resources")))
+    testImplementation(project(":ui:resources:test-fixtures"))
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.bundles.compose.ui.testing)
 

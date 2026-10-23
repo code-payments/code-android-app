@@ -8,7 +8,7 @@ import java.net.URL
 import java.net.URLClassLoader
 import java.util.jar.JarFile
 
-class FakeResourceHelper(vararg rClasses: Class<*>) : ResourceHelper {
+class FakeResourceHelper(vararg rClasses: Class<*>) : AndroidResourceHelper {
 
     private val nameMap: Map<Int, String> = if (rClasses.isNotEmpty()) {
         buildMapFrom(rClasses)

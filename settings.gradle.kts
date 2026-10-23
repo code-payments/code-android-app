@@ -262,6 +262,7 @@ include(
     ":ui:components",
     ":ui:navigation",
     ":ui:resources",
+    ":ui:resources:test-fixtures",
     ":ui:scanner",
     ":ui:testing",
     ":ui:theme",

@@ -6,7 +6,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.opencode.managers.MnemonicManager
-import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.AndroidResourceHelper
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -16,7 +16,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 internal class BackupKeyScreenViewModel @Inject constructor(
-    resources: ResourceHelper,
+    resources: AndroidResourceHelper,
     mnemonicManager: MnemonicManager,
     mediaSaver: MediaSaver,
     userManager: UserManager,

@@ -9,7 +9,7 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
-    testImplementation(testFixtures(project(":ui:resources")))
+    testImplementation(project(":ui:resources:test-fixtures"))
     testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
     testImplementation(libs.robolectric)
 

@@ -11,7 +11,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.bundles.unit.testing)
-    testImplementation(testFixtures(project(":ui:resources")))
+    testImplementation(project(":ui:resources:test-fixtures"))
 
     implementation(libs.bundles.haze)
 

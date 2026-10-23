@@ -15,7 +15,7 @@ import java.io.File
 
 class AndroidResources(
     private val context: Context,
-) : ResourceHelper {
+) : AndroidResourceHelper {
 
     override fun getString(@StringRes resourceId: Int): String {
         return context.getString(resourceId)

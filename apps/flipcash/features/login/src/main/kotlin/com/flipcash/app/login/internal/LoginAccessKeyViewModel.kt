@@ -15,7 +15,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.managers.MnemonicManager
-import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.AndroidResourceHelper
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -24,7 +24,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 internal class LoginAccessKeyViewModel @Inject constructor(
-    private val resources: ResourceHelper,
+    private val resources: AndroidResourceHelper,
     mnemonicManager: MnemonicManager,
     qrCodeGenerator: QRCodeGenerator,
     mediaSaver: MediaSaver,

@@ -1,17 +1,17 @@
 package com.getcode.util.resources
 
-import android.graphics.Typeface
-import android.graphics.drawable.Drawable
-import android.util.DisplayMetrics
 import androidx.annotation.DimenRes
-import androidx.annotation.DrawableRes
-import androidx.annotation.FontRes
 import androidx.annotation.PluralsRes
 import androidx.annotation.RawRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.staticCompositionLocalOf
-import java.io.File
 
+/**
+ * Looks up app resources by their Android resource ID.
+ *
+ * Members that return Android types (`Drawable`, `Typeface`, `DisplayMetrics`, `getDir`) live on
+ * `AndroidResourceHelper` in androidMain.
+ */
 interface ResourceHelper {
     fun getString(@StringRes resourceId: Int): String
 
@@ -29,15 +29,7 @@ interface ResourceHelper {
     fun getDimension(@DimenRes dimenId: Int, default: Float = 0f): Float
     fun getDimensionPixelSize(@DimenRes dimenId: Int, default: Int = 0): Int
 
-    fun getDir(name: String, mode: Int): File?
-
-    val displayMetrics: DisplayMetrics
-
-    fun getDrawable(@DrawableRes drawableResId: Int): Drawable?
-
     fun getIdentifier(name: String, type: ResourceType): Int?
-
-    fun getFont(@FontRes fontResId: Int): Typeface?
 }
 
 sealed interface ResourceType {
@@ -70,15 +62,5 @@ private object NoOpResources : ResourceHelper {
 
     override fun getDimensionPixelSize(dimenId: Int, default: Int): Int = 0
 
-    override fun getDir(name: String, mode: Int): File? = null
-
-    override val displayMetrics: DisplayMetrics
-        get() = TODO("Not yet implemented")
-
-    override fun getDrawable(drawableResId: Int): Drawable? = null
-
     override fun getIdentifier(name: String, type: ResourceType): Int? = null
-
-    override fun getFont(fontResId: Int): Typeface? = null
-
 }
