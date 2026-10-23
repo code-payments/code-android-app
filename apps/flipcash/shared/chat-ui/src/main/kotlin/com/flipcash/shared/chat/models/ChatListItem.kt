@@ -308,18 +308,19 @@ enum class MessagePart(val id: String) {
  */
 fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentBubble> {
     val card = linkCard ?: return listOf(this)
-    // A web card draws inside the text bubble, under the text, with the link left in the text. A
-    // split row would carry the receipt and the reaction pills, and they would vanish whenever the
-    // card is empty, which is most of the time.
-    if (card is LinkCard.Web) return listOf(this)
     // A photo draws its caption inside the photo's own bubble. A Flipcash card that is all the
     // caption says is drawn bare under the photo, as a text message's is. With words around it, a
     // text message splits into rows around the card, which a photo row has no counterpart for, so
-    // the card is dropped and the caption draws as text.
+    // the card is dropped and the caption draws as text. A web card is dropped too: no sender
+    // attaches a preview to a caption, so there is never one to draw.
     if (content.mediaBody() != null) {
         val caption = plainText ?: return listOf(copy(linkCard = null))
         return listOf(if (card.isAloneIn(caption)) this else copy(linkCard = null))
     }
+    // A web card draws inside the text bubble, under the text, with the link left in the text. A
+    // split row would carry the receipt and the reaction pills, and they would vanish whenever the
+    // card is empty, which is most of the time.
+    if (card is LinkCard.Web) return listOf(this)
     val text = plainText ?: return listOf(copy(linkCard = null))
     val (leadingEnd, trailingStart) = card.marginsIn(text)
         ?: return listOf(copy(linkCard = null))

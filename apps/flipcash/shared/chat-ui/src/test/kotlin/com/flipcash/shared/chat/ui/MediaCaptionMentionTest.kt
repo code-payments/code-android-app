@@ -1,6 +1,5 @@
 package com.flipcash.shared.chat.ui
 
-import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.services.models.chat.MessageContent
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -71,15 +70,4 @@ class MediaCaptionMentionTest {
         assertEquals("a", reply.linkableText())
     }
 
-    @Test
-    fun `a caption's sender-built preview is the content's preview`() {
-        val preview = LinkPreview(url = "https://a.com", title = "A")
-        val media = MessageContent.Media(items = emptyList(), caption = MessageContent.Text("https://a.com", preview))
-        assertEquals(preview, media.linkPreview())
-        assertEquals(
-            preview,
-            MessageContent.Reply(repliedMessageId = 1L, content = listOf(media)).linkPreview(),
-        )
-        assertEquals(null, photo("https://a.com").linkPreview())
-    }
 }

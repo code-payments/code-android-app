@@ -181,7 +181,11 @@ fun MessageContent.mediaBody(): MessageContent.Media? = when (this) {
 fun MessageContent.linkableText(): String? = textBody()?.text
 
 /** The preview the sender built for this content's text, from the same text [linkableText] reads. */
-fun MessageContent.linkPreview(): LinkPreview? = textBody()?.linkPreview
+fun MessageContent.linkPreview(): LinkPreview? = when (this) {
+    is MessageContent.Text -> linkPreview
+    is MessageContent.Reply -> content.filterIsInstance<MessageContent.Text>().firstOrNull()?.linkPreview
+    else -> null
+}
 
 private fun MessageContent.textBody(): MessageContent.Text? = when (this) {
     is MessageContent.Text -> this

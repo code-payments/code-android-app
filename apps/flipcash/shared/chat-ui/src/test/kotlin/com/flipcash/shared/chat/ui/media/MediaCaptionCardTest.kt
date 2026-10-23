@@ -28,7 +28,6 @@ import com.flipcash.shared.chat.models.splitAroundLinkCard
 import com.flipcash.shared.chat.ui.BubblePosition
 import com.flipcash.shared.chat.ui.ContentBubble
 import com.flipcash.shared.chat.ui.JUMBO_EMOJI_TAG
-import com.flipcash.shared.chat.ui.WEB_LINK_CARD_TAG
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.DesignSystem
@@ -53,7 +52,6 @@ class MediaCaptionCardTest {
     val composeTestRule = createComposeRule()
 
     private val cashLink = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
-    private val webLink = "https://www.example.com/a"
 
     private val photo = MessageContent.Media(
         items = listOf(
@@ -88,16 +86,6 @@ class MediaCaptionCardTest {
             ),
         )
     }
-
-    private val resolvedWeb = LinkCard.Web.State.Resolved(
-        title = "The title",
-        description = null,
-        imageUrl = null,
-        host = "example.com",
-    )
-
-    private fun web(state: LinkCard.Web.State) =
-        LinkCard.Web(url = webLink, start = 0, end = webLink.length, state = state)
 
     private class HeldResolution : LinkCardResolution {
         override val revision = MutableStateFlow(0)
@@ -161,22 +149,6 @@ class MediaCaptionCardTest {
         val photoBox = composeTestRule.onNodeWithTag(PHOTO_BUBBLE_TAG).getUnclippedBoundsInRoot()
         val claim = composeTestRule.onNodeWithText("Tap to claim").getUnclippedBoundsInRoot()
         assertTrue(claim.top >= photoBox.bottom)
-    }
-
-    @Test
-    fun `a caption that is only a resolved web link draws the card with no caption row`() {
-        set(webLink, web(resolvedWeb))
-
-        composeTestRule.onAllNodesWithTag(PHOTO_CAPTION_TAG).assertCountEquals(0)
-        composeTestRule.onNodeWithTag(WEB_LINK_CARD_TAG).assertIsDisplayed()
-    }
-
-    @Test
-    fun `a link-only caption keeps its text until the web card has a preview`() {
-        set(webLink, web(LinkCard.Web.State.Loading))
-
-        composeTestRule.onNodeWithTag(PHOTO_CAPTION_TAG).assertIsDisplayed()
-        composeTestRule.onAllNodesWithTag(WEB_LINK_CARD_TAG).assertCountEquals(0)
     }
 
     @Test

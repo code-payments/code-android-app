@@ -725,7 +725,7 @@ private fun TextBubble(
  * Only reached while the card is resolved; a link with no preview draws as the text bubble.
  */
 @Composable
-internal fun BareWebCard(
+private fun BareWebCard(
     web: WebLinkCardState,
     isFromSelf: Boolean,
     position: BubblePosition,
@@ -921,7 +921,7 @@ internal fun BareLinkCard(
  * the same reason.
  */
 @Composable
-internal fun rememberLinkCardClick(): (LinkCard) -> Unit {
+private fun rememberLinkCardClick(): (LinkCard) -> Unit {
     val actionHandler = LocalChatActionHandler.current
     val uriHandler = LocalUriHandler.current
     return { card ->

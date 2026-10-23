@@ -1,8 +1,6 @@
 package com.flipcash.shared.chat.ui.media
 
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -22,8 +20,6 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.media.ChatPhotoUnavailable
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.ChatQuote
-import com.flipcash.shared.chat.models.LinkCard
-import com.flipcash.shared.chat.ui.WEB_LINK_CARD_TAG
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.PhotoMessageContext
 import com.flipcash.shared.chat.ui.BubblePosition
@@ -84,50 +80,6 @@ class MediaMessageBubbleTest {
 
         composeTestRule.onNodeWithTag(PHOTO_BUBBLE_TAG).assertIsDisplayed()
         composeTestRule.onNodeWithText("sunset").assertIsDisplayed()
-    }
-
-    private fun cardItem(state: LinkCard.Web.State) = item(previewing = true).copy(
-        // Words around the link, so the caption keeps its row; a caption that is only the link is
-        // the card alone (see MediaCaptionCardTest).
-        content = photo.copy(caption = MessageContent.Text("see https://www.example.com/a")),
-        linkCard = LinkCard.Web(url = "https://www.example.com/a", start = 4, end = 29, state = state),
-    )
-
-    @Test
-    fun `a captioned photo draws its resolved link card under the caption`() {
-        composeTestRule.setContent {
-            DesignSystem {
-                ContentBubble(
-                    item = cardItem(
-                        LinkCard.Web.State.Resolved(
-                            title = "The title",
-                            description = null,
-                            imageUrl = null,
-                            host = "example.com",
-                        ),
-                    ),
-                    position = BubblePosition.Solo,
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithTag(WEB_LINK_CARD_TAG).assertIsDisplayed()
-        composeTestRule.onNodeWithText("The title").assertIsDisplayed()
-        val caption = composeTestRule.onNodeWithTag(PHOTO_CAPTION_TAG).getUnclippedBoundsInRoot()
-        val card = composeTestRule.onNodeWithTag(WEB_LINK_CARD_TAG).getUnclippedBoundsInRoot()
-        assertTrue(card.top >= caption.bottom)
-    }
-
-    @Test
-    fun `a captioned photo whose card has no preview draws no card`() {
-        composeTestRule.setContent {
-            DesignSystem {
-                ContentBubble(item = cardItem(LinkCard.Web.State.Loading), position = BubblePosition.Solo)
-            }
-        }
-
-        composeTestRule.onAllNodesWithTag(WEB_LINK_CARD_TAG).assertCountEquals(0)
-        composeTestRule.onNodeWithTag(PHOTO_CAPTION_TAG).assertIsDisplayed()
     }
 
     @Test

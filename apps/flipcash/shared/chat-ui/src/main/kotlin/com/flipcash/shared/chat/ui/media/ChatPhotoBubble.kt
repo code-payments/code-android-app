@@ -22,14 +22,11 @@ import androidx.compose.ui.platform.LocalDensity
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedMention
 import com.flipcash.shared.chat.ui.BareLinkCard
-import com.flipcash.shared.chat.ui.BareWebCard
 import com.flipcash.shared.chat.ui.CASH_CARD_WIDTH_FRACTION
 import com.flipcash.shared.chat.ui.EmojiOnlyText
 import com.flipcash.shared.chat.ui.JumboEmoji
-import com.flipcash.shared.chat.ui.WebLinkCard
 import com.flipcash.shared.chat.ui.redactedText
 import com.flipcash.shared.chat.ui.redactedTextColor
-import com.flipcash.shared.chat.ui.rememberWebLinkCard
 import com.flipcash.shared.chat.ui.buildMentionedText
 import com.flipcash.shared.chat.ui.drawMentionPills
 import com.flipcash.shared.chat.ui.mentionSpacingContent
@@ -82,10 +79,9 @@ private const val FADE_IN_MILLIS = 250
  *
  * A [caption] is its own text bubble a grid step below, the two sharing a run so the facing corners
  * are squared off. It is drawn as a text message's body is: [mentions] as pills, [redacted] hidden,
- * and a [linkCard] under it, the same card a text message draws. A web card is only drawn once it
- * has a preview; either then widens the bubble to [maxWidth]. A caption that is [cardAlone] -- only
- * its link -- is that card in place of the caption bubble, and a caption of nothing but emoji is
- * drawn large with no bubble, both as in a text message.
+ * and a Flipcash [linkCard] when the caption is [cardAlone] -- only its link -- drawn in place of
+ * the caption bubble. A caption of nothing but emoji is drawn large with no bubble, both as in a
+ * text message. A caption never draws a web card: senders send the preview as its own message.
  *
  * @param photoModifier applied to the photo box itself, which is what the overlay measures and hides.
  * @param onLoadError reports why the remote [model] failed to load, so the host can decide it is [unavailable].
@@ -189,45 +185,28 @@ fun ChatPhotoBubble(
                 maxWidth = maxWidth,
             )
         } else if (hasCaption) {
-            val web = (linkCard as? LinkCard.Web)?.let { rememberWebLinkCard(it) }
-            val cardDrawn = web?.resolved != null
-            // A Flipcash card draws whatever its lookup says; a web card once it has a preview.
-            val flipcashCard = linkCard?.takeUnless { it is LinkCard.Web }
-            if (cardAlone && linkCard != null && (flipcashCard != null || cardDrawn)) {
+            if (cardAlone && linkCard != null) {
                 // A caption that is only its link is the card alone, as a text message is: no
                 // caption row and no link text.
-                if (web != null) {
-                    BareWebCard(
-                        web = web,
-                        isFromSelf = isFromSelf,
-                        position = position.withPhotoAbove(),
-                        maxWidth = maxWidth,
-                        onLongClick = onCardLongClick,
-                        onDoubleClick = onCardDoubleClick,
-                        interactive = interactive,
-                    )
-                } else {
-                    BareLinkCard(
-                        card = linkCard,
-                        isFromSelf = isFromSelf,
-                        position = position.withPhotoAbove(),
-                        maxWidth = if (linkCard is LinkCard.Message) {
-                            maxWidth * CASH_CARD_WIDTH_FRACTION
-                        } else {
-                            maxWidth
-                        },
-                        onLongClick = onCardLongClick,
-                        onDoubleClick = onCardDoubleClick,
-                        interactive = interactive,
-                    )
-                }
+                BareLinkCard(
+                    card = linkCard,
+                    isFromSelf = isFromSelf,
+                    position = position.withPhotoAbove(),
+                    maxWidth = if (linkCard is LinkCard.Message) {
+                        maxWidth * CASH_CARD_WIDTH_FRACTION
+                    } else {
+                        maxWidth
+                    },
+                    onLongClick = onCardLongClick,
+                    onDoubleClick = onCardDoubleClick,
+                    interactive = interactive,
+                )
                 return@Column
             }
             Bubble(
                 isFromSelf = isFromSelf,
                 position = position.withPhotoAbove(),
                 maxWidth = maxWidth,
-                minWidth = if (cardDrawn) maxWidth else 0.dp,
                 onLongClick = onLongClick,
                 onDoubleClick = onDoubleClick,
             ) {
@@ -267,37 +246,27 @@ fun ChatPhotoBubble(
                     }
                 }
                 var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-                Column {
-                    Text(
-                        text = mentioned.text,
-                        inlineContent = inlineContent,
-                        style = CodeTheme.typography.textMessage,
-                        color = if (redacted) {
-                            redactedTextColor(CodeTheme.colors.textMain)
-                        } else {
-                            CodeTheme.colors.textMain
-                        },
-                        onTextLayout = { layout = it },
-                        modifier = Modifier
-                            .testTag(PHOTO_CAPTION_TAG)
-                            .then(if (redacted) Modifier.redactedText() else Modifier)
-                            .then(
-                                if (handles.isEmpty()) {
-                                    Modifier
-                                } else {
-                                    Modifier.drawBehind { layout?.let { drawMentionPills(it, handles) } }
-                                },
-                            ),
-                    )
-                    if (web != null) {
-                        WebLinkCard(
-                            state = web,
-                            onLongClick = onCardLongClick,
-                            onDoubleClick = onCardDoubleClick,
-                            interactive = interactive,
-                        )
-                    }
-                }
+                Text(
+                    text = mentioned.text,
+                    inlineContent = inlineContent,
+                    style = CodeTheme.typography.textMessage,
+                    color = if (redacted) {
+                        redactedTextColor(CodeTheme.colors.textMain)
+                    } else {
+                        CodeTheme.colors.textMain
+                    },
+                    onTextLayout = { layout = it },
+                    modifier = Modifier
+                        .testTag(PHOTO_CAPTION_TAG)
+                        .then(if (redacted) Modifier.redactedText() else Modifier)
+                        .then(
+                            if (handles.isEmpty()) {
+                                Modifier
+                            } else {
+                                Modifier.drawBehind { layout?.let { drawMentionPills(it, handles) } }
+                            },
+                        ),
+                )
             }
         }
     }

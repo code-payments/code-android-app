@@ -6,14 +6,9 @@ import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.chat.ChatMessage
-import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.services.models.chat.MessageContent
-import com.flipcash.app.messenger.internal.withSenderPreview
 import com.flipcash.shared.chat.ui.detectUrls
-import com.flipcash.shared.chat.ui.linkPreview
 import com.flipcash.shared.chat.ui.linkableText
-import kotlin.time.Instant
 import com.flipcash.services.models.isUsernameShaped
 import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
@@ -201,8 +196,8 @@ class LinkCardClassifierTest {
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, hostile.length, hostile))))
     }
 
-    private fun caption(text: String, preview: LinkPreview? = null) =
-        MessageContent.Media(items = emptyList(), caption = MessageContent.Text(text, preview))
+    private fun caption(text: String) =
+        MessageContent.Media(items = emptyList(), caption = MessageContent.Text(text))
 
     /** A caption is read exactly as a text message's body: same links, same card. */
     @Test
@@ -243,23 +238,6 @@ class LinkCardClassifierTest {
 
         assertIs<LinkCard.Cash>(photoCard)
         assertEquals(textCard, photoCard)
-    }
-
-    @Test
-    fun `a sender-built preview on a captioned photo resolves its card`() {
-        val url = "https://example.com/a"
-        val photo = caption(url, LinkPreview(url = url, title = "Title", description = "Desc"))
-        val card = LinkCardClassifier(router)
-            .firstCard(detectUrls(photo.linkableText().orEmpty()))
-            .withSenderPreview(
-                photo.linkPreview(),
-                ChatMessage(1L, null, listOf(photo), Instant.fromEpochSeconds(0), 0L),
-                null,
-            )
-        val resolved = assertIs<LinkCard.Web>(card).state
-        assertIs<LinkCard.Web.State.Resolved>(resolved)
-        assertEquals("Title", resolved.title)
-        assertEquals("Desc", resolved.description)
     }
 
     @Test

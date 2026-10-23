@@ -1466,7 +1466,7 @@ internal class ChatViewModel @AssistedInject constructor(
 
                     // Detected over the whole text, beside the links, so a handle inside a link
                     // stays the link's. Nothing is looked up until one is tapped. A photo's
-                    // caption is covered here too, and gets a link card as a text message does.
+                    // caption is covered here too; a Flipcash card alone in it draws under the photo.
                     val mentions = enriched.detectedMentions()
 
                     // Noted while the voucher and the message it came on are in the same hand;
@@ -4190,7 +4190,7 @@ private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
  * link: the reader then fetches nothing. Any other card, or a preview for another link, is left as
  * classified.
  */
-internal fun LinkCard?.withSenderPreview(preview: LinkPreview?, message: ChatMessage, chatId: ChatId?): LinkCard? {
+private fun LinkCard?.withSenderPreview(preview: LinkPreview?, message: ChatMessage, chatId: ChatId?): LinkCard? {
     if (this !is LinkCard.Web || preview == null || preview.url != url) return this
     val rendition = preview.image?.let { it.rendition(MediaItemRendition.Role.ORIGINAL) ?: it.renditions.firstOrNull() }
     val photo = if (rendition != null && chatId != null) {
