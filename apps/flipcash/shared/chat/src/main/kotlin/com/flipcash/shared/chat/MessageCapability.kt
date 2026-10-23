@@ -4,6 +4,7 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.reactions.SelfReaction
+import com.flipcash.shared.chat.ui.linkableText
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -196,16 +197,21 @@ private fun resolveForParticipant(
         return if (canSpeak) setOf(MessageCapability.Reply) else emptySet()
     }
 
-    // A photo, bare or quoted in a reply, is never copied or edited: its caption rides with the
-    // image, and an edit would have to re-seal or replace the picture.
+    // A photo, bare or quoted in a reply, is never edited: its caption rides with the image, and
+    // an edit would have to re-seal or replace the picture. Its caption can be copied, as a text
+    // message's body can, and a photo with none has nothing to copy.
     val isPhoto = contents.any { it.isPhoto() }
-    val hasText = !isPhoto && contents.any { it is MessageContent.Text || it is MessageContent.Reply }
+    val hasText = if (isPhoto) {
+        contents.any { !it.linkableText().isNullOrEmpty() }
+    } else {
+        contents.any { it is MessageContent.Text || it is MessageContent.Reply }
+    }
 
     return buildSet {
         if (hasText) add(MessageCapability.Copy)
         if (canSpeak) add(MessageCapability.Reply)
         if (message.isFromSelf) {
-            if (hasText) add(MessageCapability.Edit)
+            if (hasText && !isPhoto) add(MessageCapability.Edit)
             add(MessageCapability.Delete)
         } else {
             add(MessageCapability.Report)

@@ -509,8 +509,14 @@ class MessageCapabilityTest {
         assertEquals(false, canReact(message(emptyList())))
     }
 
-    private fun photo(isFromSelf: Boolean = true, eventSequence: Long = 4, redacted: Boolean = false, reply: Boolean = false): ChatMessage {
-        val media = MessageContent.Media(items = emptyList(), caption = MessageContent.Text("hi"))
+    private fun photo(
+        isFromSelf: Boolean = true,
+        eventSequence: Long = 4,
+        redacted: Boolean = false,
+        reply: Boolean = false,
+        caption: String? = "hi",
+    ): ChatMessage {
+        val media = MessageContent.Media(items = emptyList(), caption = caption?.let(MessageContent::Text))
         return message(
             listOf(if (reply) MessageContent.Reply(repliedMessageId = 2, content = listOf(media)) else media),
             isFromSelf,
@@ -519,29 +525,41 @@ class MessageCapabilityTest {
     }
 
     @Test
-    fun `own confirmed photo can be replied to and deleted but not copied or edited`() {
-        assertEquals(
-            setOf(MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
-            resolveCapabilities(photo(), now = sentAt),
+    fun `own confirmed captioned photo can be copied, replied to and deleted but not edited`() {
+        val expected = setOf(
+            MessageCapability.Copy,
+            MessageCapability.Reply,
+            MessageCapability.Delete,
+            MessageCapability.Link,
         )
-        assertEquals(
-            setOf(MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
-            resolveCapabilities(photo(reply = true), now = sentAt),
-        )
+        assertEquals(expected, resolveCapabilities(photo(), now = sentAt))
+        assertEquals(expected, resolveCapabilities(photo(reply = true), now = sentAt))
     }
 
     @Test
-    fun `own photo past the delete window can only be replied to`() {
+    fun `a photo with no caption has nothing to copy`() {
+        val expected = setOf(MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link)
+        assertEquals(expected, resolveCapabilities(photo(caption = null), now = sentAt))
+        assertEquals(expected, resolveCapabilities(photo(caption = null, reply = true), now = sentAt))
+    }
+
+    @Test
+    fun `own photo past the delete window can only be copied and replied to`() {
         assertEquals(
-            setOf(MessageCapability.Reply, MessageCapability.Link),
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Link),
             resolveCapabilities(photo(), now = sentAt + 49.hours),
         )
     }
 
     @Test
-    fun `another participant's photo can be replied to and reported`() {
+    fun `another participant's captioned photo can be copied, replied to and reported`() {
         assertEquals(
-            setOf(MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Report,
+                MessageCapability.Link,
+            ),
             resolveCapabilities(photo(isFromSelf = false), now = sentAt),
         )
     }

@@ -6,6 +6,8 @@ import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.flipcash.shared.chat.ui.DetectedMention
 import com.flipcash.shared.chat.ui.UndecryptableHint
+import com.flipcash.shared.chat.ui.linkableText
+import com.flipcash.shared.chat.ui.mediaBody
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -219,16 +221,15 @@ sealed interface ChatListItem {
             else -> authorId == other.authorId
         }
 
-        /** The body a Copy or an Edit acts on, or `null` for a bubble that carries no text. */
+        /**
+         * The body a Copy or an Edit acts on, or `null` for a bubble that carries no text. A
+         * photo's body is its caption.
+         *
+         * Copy and edit act on what the user wrote, not on the citation around it.
+         * PendingMutation.replacingText unwraps the same way when the edit is applied.
+         */
         val plainText: String?
-            get() = when (val content = content) {
-                is MessageContent.Text -> content.text
-                // Copy and edit act on what the user wrote, not on the citation around it.
-                // PendingMutation.replacingText unwraps the same way when the edit is applied.
-                is MessageContent.Reply ->
-                    content.content.filterIsInstance<MessageContent.Text>().firstOrNull()?.text
-                else -> null
-            }
+            get() = content.linkableText()
 
         /**
          * Whether long-pressing this bubble should open the selection bar.
@@ -311,6 +312,9 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
     // split row would carry the receipt and the reaction pills, and they would vanish whenever the
     // card is empty, which is most of the time.
     if (card is LinkCard.Web) return listOf(this)
+    // A photo draws its caption inside the photo's own bubble, which has no rows to split into; a
+    // Flipcash card in a caption is not drawn.
+    if (content.mediaBody() != null) return listOf(copy(linkCard = null))
     val text = plainText ?: return listOf(copy(linkCard = null))
     val (leadingEnd, trailingStart) = card.marginsIn(text)
         ?: return listOf(copy(linkCard = null))
