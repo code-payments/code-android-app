@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.services.models.chat.MessageContent
+
 /**
  * One `@handle` found in message text: the span it occupies, covering the `@` and the handle, and
  * the handle it names, lowercased the way usernames are stored.
@@ -39,3 +41,20 @@ fun detectMentions(text: String, links: List<DetectedUrl>): List<DetectedMention
 // a lookbehind in Swift Regex, so the two platforms run one pattern.
 private val MENTION_PATTERN =
     Regex("""(?:^|[^A-Za-z0-9_.@])(@([A-Za-z0-9_]{2,15}))(?![A-Za-z0-9_@])""")
+
+/**
+ * The mentions in the text this content's bubble draws, as offsets into that text.
+ *
+ * A photo bubble draws its caption, so that is the text for a photo or a reply carrying one, and
+ * never the reply's own text. [linkableText] stays null for a photo on purpose: it also decides
+ * which messages get a link card, and a caption is not given one.
+ */
+fun MessageContent.detectedMentions(): List<DetectedMention> {
+    val photo = when (this) {
+        is MessageContent.Media -> this
+        is MessageContent.Reply -> content.filterIsInstance<MessageContent.Media>().firstOrNull()
+        else -> null
+    }
+    val text = (if (photo != null) photo.caption?.text else linkableText()) ?: return emptyList()
+    return detectMentions(text, detectUrls(text))
+}
