@@ -60,6 +60,7 @@ import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.ui.MutedIndicator
+import com.flipcash.shared.chat.ui.messageFullTime
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
@@ -377,9 +378,18 @@ private fun MessageSelectionBar(
                 )
             }
         },
-        // Nothing in the title slot: one message is selected at a time, so a count would only ever
-        // read "1" and the back arrow already says the bar is a selection.
-        title = { },
+        // When the selected message was sent, not a count: one message is selected at a time, so a
+        // count would only ever read "1". iOS gives the same time at the top of its message menu.
+        title = {
+            Text(
+                modifier = Modifier.testTag("selected_message_time"),
+                text = messageFullTime(selection.timestamp),
+                style = CodeTheme.typography.textMedium,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
         rightContents = { MessageActions(actions) },
     )
 }

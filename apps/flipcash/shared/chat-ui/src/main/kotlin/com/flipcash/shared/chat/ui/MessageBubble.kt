@@ -44,6 +44,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -142,7 +144,20 @@ fun ContentBubble(
     val updateAction = LocalUpdateAppAction.current
     // A redacted placeholder is never drawn bare: it is not the message, only its shape.
     val jumbo = remember(item) { !item.redacted && item.rendersBareEmoji() }
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+    // The send time, spoken after the message so a screen reader gets it without the reveal drag.
+    // A state description rather than a content description: the row merges the bubble into its
+    // click target, and a content description there would replace the message's text, not follow it.
+    // Once per message, on its last row, as the reveal column gives it; a tombstone has no time.
+    val spokenTime = if (item.isLastRow && item.content !is MessageContent.Deleted) {
+        messageFullTime(item.timestamp)
+    } else {
+        null
+    }
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (spokenTime != null) Modifier.semantics { stateDescription = spokenTime } else Modifier),
+    ) {
         val bubbleMaxWidth = bubbleMaxWidth(
             content = item.content,
             rowWidth = maxWidth,

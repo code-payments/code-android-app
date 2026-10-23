@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.theme.FlipcashPreview
@@ -25,6 +27,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -109,6 +113,38 @@ class ChatMessageActionScreenshotTest {
         repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
 
         capture("chat_selection_bar.png")
+    }
+
+    @Test
+    fun rendersSelectionBarWithSendTime() {
+        // Relative to now, so the bar reads "Today": the fixture's epoch instant would read 1970.
+        val selection = bubble(
+            isFromSelf = true,
+            capabilities = setOf(MessageCapability.Copy, MessageCapability.Reply),
+        ).copy(timestamp = Clock.System.now() - 5.minutes)
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            FlipcashPreview(showBackground = true) {
+                Column(modifier = Modifier.width(360.dp)) {
+                    ChatTopBar(
+                        navigator = mockk(relaxed = true),
+                        state = ChatViewModel.State(
+                            chatType = ChatType.CONTACT_DM,
+                            selection = selection,
+                        ),
+                        onBarHeightChange = {},
+                        chatActionHandler = {},
+                        dispatch = {},
+                    )
+                }
+            }
+        }
+        repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
+
+        composeRule.onNodeWithTag("selected_message_time")
+            .assertTextContains("Today, ", substring = true)
+        capture("chat_selection_bar_time.png")
     }
 
     private fun capture(name: String) {
