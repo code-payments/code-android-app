@@ -5,6 +5,7 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
@@ -18,6 +19,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
  *   - `android` -- compileSdk and minSdk from the version catalog
  *   - `iosArm64`, `iosSimulatorArm64`, `iosX64`, `macosArm64`, `macosX64` -- the Kotlin/Native
  *     slices of the `SharedCore` framework iOS consumes
+ *   - `jvm` -- the desktop client
  *
  * A module still sets its own `namespace`, and opts into host/device tests, inside `kotlin { android {} }`.
  *
@@ -47,6 +49,7 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
             val compileSdkVersion = libs.findVersion("android-compileSdk").get().requiredVersion.toInt()
             val compileSdkMinorVersion = libs.findVersion("android-compileSdkMinor").get().requiredVersion.toInt()
             val minSdkVersion = libs.findVersion("android-minSdk").get().requiredVersion.toInt()
+            val javaVersion = libs.findVersion("android-java").get().requiredVersion
 
             extensions.configure<KotlinMultiplatformExtension> {
                 (this as ExtensionAware).extensions.configure<KotlinMultiplatformAndroidLibraryTarget> {
@@ -63,6 +66,12 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
                 iosX64()
                 macosArm64()
                 macosX64()
+
+                jvm {
+                    compilerOptions {
+                        jvmTarget.set(JvmTarget.fromTarget(javaVersion))
+                    }
+                }
             }
         }
     }

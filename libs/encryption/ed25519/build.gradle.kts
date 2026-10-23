@@ -125,6 +125,12 @@ kotlin {
                 api(project(":libs:encryption:ed25519-native"))
             }
         }
+        jvmMain {
+            dependencies {
+                // Pure-Java Ed25519 for desktop -- no per-OS native library to build or ship.
+                implementation(libs.eddsa)
+            }
+        }
         commonTest {
             dependencies {
                 implementation(kotlin("test"))
