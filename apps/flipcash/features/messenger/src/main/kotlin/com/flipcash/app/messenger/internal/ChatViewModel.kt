@@ -1462,11 +1462,12 @@ internal class ChatViewModel @AssistedInject constructor(
                     val linkableText = enriched.linkableText()
                     val links = linkableText?.let(::detectUrls).orEmpty()
                     val linkCard = linkCardClassifier.firstCard(links)
+                        .forCaptionOf(enriched)
                         .withSenderPreview(content.linkPreview(), message, stateFlow.value.chatId)
 
                     // Detected over the whole text, beside the links, so a handle inside a link
                     // stays the link's. Nothing is looked up until one is tapped. A photo's
-                    // caption is covered here too, though it gets no link card.
+                    // caption is covered here too, and gets a link card as a text message does.
                     val mentions = enriched.detectedMentions()
 
                     // Noted while the voucher and the message it came on are in the same hand;
@@ -4186,11 +4187,19 @@ private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
 }
 
 /**
+ * The card a photo's caption can draw: a web card, under the caption. A Flipcash card (cash or
+ * message link) takes a row of its own between two rows of text, and a photo has no rows to split
+ * into, so it is dropped here rather than noted as a claim target the reader never sees.
+ */
+internal fun LinkCard?.forCaptionOf(content: MessageContent): LinkCard? =
+    if (content.photoBody() != null) this as? LinkCard.Web else this
+
+/**
  * The web card resolved from the preview its sender built, when the preview is for this card's
  * link: the reader then fetches nothing. Any other card, or a preview for another link, is left as
  * classified.
  */
-private fun LinkCard?.withSenderPreview(preview: LinkPreview?, message: ChatMessage, chatId: ChatId?): LinkCard? {
+internal fun LinkCard?.withSenderPreview(preview: LinkPreview?, message: ChatMessage, chatId: ChatId?): LinkCard? {
     if (this !is LinkCard.Web || preview == null || preview.url != url) return this
     val rendition = preview.image?.let { it.rendition(MediaItemRendition.Role.ORIGINAL) ?: it.renditions.firstOrNull() }
     val photo = if (rendition != null && chatId != null) {

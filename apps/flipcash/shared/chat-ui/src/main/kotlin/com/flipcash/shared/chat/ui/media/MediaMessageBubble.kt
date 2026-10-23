@@ -34,6 +34,8 @@ import com.flipcash.shared.chat.media.ChatPhotoUnavailable
 import com.flipcash.shared.chat.media.MediaSendProgress
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.ui.mediaBody
+import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.ReceiptStatus
@@ -67,11 +69,7 @@ fun ChatMessage.photoContext(chatId: ChatId, previewing: Boolean): PhotoMessageC
         previewing = previewing,
     )
 
-fun MessageContent.photoBody(): MessageContent.Media? = when (this) {
-    is MessageContent.Media -> this
-    is MessageContent.Reply -> content.filterIsInstance<MessageContent.Media>().firstOrNull()
-    else -> null
-}
+fun MessageContent.photoBody(): MessageContent.Media? = mediaBody()
 
 /** Whether a tap on a photo opens the viewer: only one that is showing, delivered, and loaded. */
 internal fun canOpenPhoto(blurhashOnly: Boolean, failed: Boolean, unavailable: Boolean): Boolean =
@@ -120,6 +118,7 @@ internal fun MediaMessageBubble(
     quote: ChatQuote? = null,
     onQuoteClick: (() -> Unit)? = null,
     onMentionClick: ((String) -> Unit)? = null,
+    webCard: LinkCard.Web? = null,
     interactive: Boolean = true,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
@@ -187,6 +186,12 @@ internal fun MediaMessageBubble(
             caption = body.caption?.text,
             mentions = item.mentions,
             onMentionClick = onMentionClick,
+            webCard = webCard,
+            // Gated with the bubble's own gestures, as a text bubble's card is.
+            onCardLongClick = onLongClick,
+            onCardDoubleClick = onDoubleClick,
+            interactive = interactive,
+            redacted = item.redacted,
             position = position,
             blurhashOnly = blurhashOnly,
             unavailable = unavailable,

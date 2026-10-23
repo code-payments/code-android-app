@@ -6,6 +6,15 @@ import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.LinkPreview
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.app.messenger.internal.forCaptionOf
+import com.flipcash.app.messenger.internal.withSenderPreview
+import com.flipcash.shared.chat.ui.detectUrls
+import com.flipcash.shared.chat.ui.linkPreview
+import com.flipcash.shared.chat.ui.linkableText
+import kotlin.time.Instant
 import com.flipcash.services.models.isUsernameShaped
 import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
@@ -191,6 +200,57 @@ class LinkCardClassifierTest {
             "https%3A%2F%2Fevil.com%2Fc%2F%23%2Fe%3DKNi8pQr1n5hRU65vKJGge3"
 
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, hostile.length, hostile))))
+    }
+
+    private fun caption(text: String, preview: LinkPreview? = null) =
+        MessageContent.Media(items = emptyList(), caption = MessageContent.Text(text, preview))
+
+    /** A caption is read exactly as a text message's body: same links, same card. */
+    @Test
+    fun `a caption with a url yields the same links and card as a text message`() {
+        val classifier = LinkCardClassifier(router)
+        val body = "look https://example.com/a here"
+        val text = MessageContent.Text(body)
+        val photo = caption(body)
+
+        val textLinks = detectUrls(text.linkableText().orEmpty())
+        val photoLinks = detectUrls(photo.linkableText().orEmpty())
+        assertEquals(textLinks, photoLinks)
+        assertEquals(1, photoLinks.size)
+        assertEquals(
+            classifier.firstCard(textLinks),
+            classifier.firstCard(photoLinks).forCaptionOf(photo),
+        )
+        assertIs<LinkCard.Web>(classifier.firstCard(photoLinks).forCaptionOf(photo))
+    }
+
+    @Test
+    fun `a flipcash card in a caption is dropped but a text message keeps it`() {
+        val classifier = LinkCardClassifier(router)
+        val url = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
+        val links = listOf(DetectedUrl(0, url.length, url))
+        val card = classifier.firstCard(links)
+        assertIs<LinkCard.Cash>(card)
+        assertNull(card.forCaptionOf(caption(url)))
+        assertEquals(card, card.forCaptionOf(MessageContent.Text(url)))
+    }
+
+    @Test
+    fun `a sender-built preview on a captioned photo resolves its card`() {
+        val url = "https://example.com/a"
+        val photo = caption(url, LinkPreview(url = url, title = "Title", description = "Desc"))
+        val card = LinkCardClassifier(router)
+            .firstCard(detectUrls(photo.linkableText().orEmpty()))
+            .forCaptionOf(photo)
+            .withSenderPreview(
+                photo.linkPreview(),
+                ChatMessage(1L, null, listOf(photo), Instant.fromEpochSeconds(0), 0L),
+                null,
+            )
+        val resolved = assertIs<LinkCard.Web>(card).state
+        assertIs<LinkCard.Web.State.Resolved>(resolved)
+        assertEquals("Title", resolved.title)
+        assertEquals("Desc", resolved.description)
     }
 
     @Test

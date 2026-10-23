@@ -19,7 +19,12 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.platform.LocalDensity
+import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedMention
+import com.flipcash.shared.chat.ui.WebLinkCard
+import com.flipcash.shared.chat.ui.redactedText
+import com.flipcash.shared.chat.ui.redactedTextColor
+import com.flipcash.shared.chat.ui.rememberWebLinkCard
 import com.flipcash.shared.chat.ui.buildMentionedText
 import com.flipcash.shared.chat.ui.drawMentionPills
 import com.flipcash.shared.chat.ui.mentionSpacingContent
@@ -71,7 +76,9 @@ private const val FADE_IN_MILLIS = 250
  * over the BlurHash. Otherwise [onClick] fires on a tap.
  *
  * A [caption] is its own text bubble a grid step below, the two sharing a run so the facing corners
- * are squared off.
+ * are squared off. It is drawn as a text message's body is: [mentions] as pills, [redacted] hidden,
+ * and a [webCard] under it, the same card a text message draws. The card is only drawn once it has
+ * a preview, and then widens the bubble to [maxWidth].
  *
  * @param photoModifier applied to the photo box itself, which is what the overlay measures and hides.
  * @param onLoadError reports why the remote [model] failed to load, so the host can decide it is [unavailable].
@@ -94,6 +101,11 @@ fun ChatPhotoBubble(
     caption: String? = null,
     mentions: List<DetectedMention> = emptyList(),
     onMentionClick: ((String) -> Unit)? = null,
+    webCard: LinkCard.Web? = null,
+    onCardLongClick: (() -> Unit)? = null,
+    onCardDoubleClick: (() -> Unit)? = null,
+    interactive: Boolean = true,
+    redacted: Boolean = false,
     position: BubblePosition = BubblePosition.Solo,
     blurhashOnly: Boolean = false,
     unavailable: Boolean = false,
@@ -158,10 +170,13 @@ fun ChatPhotoBubble(
         }
 
         if (hasCaption) {
+            val web = webCard?.let { rememberWebLinkCard(it) }
+            val cardDrawn = web?.resolved != null
             Bubble(
                 isFromSelf = isFromSelf,
                 position = position.withPhotoAbove(),
                 maxWidth = maxWidth,
+                minWidth = if (cardDrawn) maxWidth else 0.dp,
                 onLongClick = onLongClick,
                 onDoubleClick = onDoubleClick,
             ) {
@@ -201,22 +216,37 @@ fun ChatPhotoBubble(
                     }
                 }
                 var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-                Text(
-                    text = mentioned.text,
-                    inlineContent = inlineContent,
-                    style = CodeTheme.typography.textMessage,
-                    color = CodeTheme.colors.textMain,
-                    onTextLayout = { layout = it },
-                    modifier = Modifier
-                        .testTag(PHOTO_CAPTION_TAG)
-                        .then(
-                            if (handles.isEmpty()) {
-                                Modifier
-                            } else {
-                                Modifier.drawBehind { layout?.let { drawMentionPills(it, handles) } }
-                            },
-                        ),
-                )
+                Column {
+                    Text(
+                        text = mentioned.text,
+                        inlineContent = inlineContent,
+                        style = CodeTheme.typography.textMessage,
+                        color = if (redacted) {
+                            redactedTextColor(CodeTheme.colors.textMain)
+                        } else {
+                            CodeTheme.colors.textMain
+                        },
+                        onTextLayout = { layout = it },
+                        modifier = Modifier
+                            .testTag(PHOTO_CAPTION_TAG)
+                            .then(if (redacted) Modifier.redactedText() else Modifier)
+                            .then(
+                                if (handles.isEmpty()) {
+                                    Modifier
+                                } else {
+                                    Modifier.drawBehind { layout?.let { drawMentionPills(it, handles) } }
+                                },
+                            ),
+                    )
+                    if (web != null) {
+                        WebLinkCard(
+                            state = web,
+                            onLongClick = onCardLongClick,
+                            onDoubleClick = onCardDoubleClick,
+                            interactive = interactive,
+                        )
+                    }
+                }
             }
         }
     }
