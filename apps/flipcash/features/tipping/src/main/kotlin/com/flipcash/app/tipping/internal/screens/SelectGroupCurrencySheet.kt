@@ -1,61 +1,38 @@
 package com.flipcash.app.tipping.internal.screens
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.core.ui.TokenBalanceRowStyling
 import com.flipcash.app.core.ui.TokenBalanceStyle
 import com.flipcash.app.core.ui.TokenSelectionStyle
 import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.tipping.internal.CreateGroupViewModel
-import com.flipcash.app.tipping.internal.GroupCurrency
+import com.flipcash.app.tipping.internal.communityCurrencies
 import com.flipcash.app.tipping.internal.withoutUsdf
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tipping.R
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
-import com.getcode.theme.CodeTheme
-import com.getcode.theme.White05
-import com.getcode.theme.White10
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeScaffold
 
 /**
  * Node 10127:118100 — which currency the group's balance requirement is denominated in: the token
- * list with an "Any Community Currency" entry after the last token.
+ * list, highest balance first. Its top row is the form's default ([communityCurrencies]).
  *
  * The list comes from [SelectTokenViewModel] but the *selection* does not: that view model's own
  * selected mint is the wallet's global one, and choosing a currency for a group being drafted must
@@ -63,9 +40,7 @@ import com.getcode.ui.theme.CodeScaffold
  * to [CreateGroupViewModel]'s draft, and the list is driven with [TokenPurpose.Balance] — the one
  * purpose that isn't a `TriggersChange` and so leaves the global selection alone.
  *
- * The entry and the tokens are one selection: picking either replaces the other, and while All is
- * chosen no token is marked. USDF is left out of the list: dollars aren't a community currency, and
- * the All entry already counts them.
+ * USDF is left out of the list: dollars aren't a community currency.
  */
 @Composable
 internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
@@ -99,26 +74,14 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
                 .padding(padding),
             tokens = tokenState.tokens?.withoutUsdf { it.token.address },
             styling = rowStyling,
-            selectedToken = (state.currency as? GroupCurrency.Specific)?.mint,
+            selectedToken = state.currency,
             showSelections = true,
             presentation = TokenListPresentation.Default,
-            footer = {
-                AnyCurrencyRow(
-                    selected = state.currency == GroupCurrency.All,
-                    styling = rowStyling,
-                    onClick = {
-                        viewModel.dispatchEvent(
-                            CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All)
-                        )
-                        dismissSheet()
-                    },
-                )
-            },
+            // The last row clears the gesture bar when scrolled to the end.
+            footer = { Spacer(Modifier.windowInsetsPadding(WindowInsets.navigationBars)) },
             onTokenSelected = { token ->
                 viewModel.dispatchEvent(
-                    CreateGroupViewModel.Event.OnCurrencySelected(
-                        GroupCurrency.Specific(token.address)
-                    )
+                    CreateGroupViewModel.Event.OnCurrencySelected(token.address)
                 )
                 dismissSheet()
             },
@@ -133,89 +96,3 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
         )
     }
 }
-
-/**
- * The "Any Community Currency" entry, last in the list. It is the same radio selection as the token
- * rows above it, so it takes its metrics from the same [TokenBalanceRowStyling] [TokenList] hands
- * them (name style, icon size, vertical padding, check mark) and keeps the divider the rows have.
- * The navigation-bar inset sits below it so the last row clears the gesture bar when scrolled to
- * the end.
- */
-@Composable
-private fun AnyCurrencyRow(
-    selected: Boolean,
-    styling: TokenBalanceRowStyling,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(styling.contentPadding),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AllCurrenciesIcon(
-                    discSize = styling.iconSize,
-                    iconSize = styling.iconSize * (AllCurrenciesIconSize / AllCurrenciesDiscSize),
-                )
-
-                Text(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(R.string.title_anyCommunityCurrency),
-                    style = styling.nameTextStyle,
-                    color = CodeTheme.colors.textMain,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-
-            Image(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .padding(start = CodeTheme.dimens.grid.x3),
-                painter = painterResource(
-                    if (selected) R.drawable.ic_checked else R.drawable.ic_unchecked
-                ),
-                contentDescription = null,
-            )
-        }
-
-        HorizontalDivider(color = CodeTheme.colors.dividerVariant)
-        Spacer(Modifier.windowInsetsPadding(WindowInsets.navigationBars))
-    }
-}
-
-/** Node 10369:999 — the coins glyph on a grey disc, shared with the form's currency row. */
-@Composable
-internal fun AllCurrenciesIcon(
-    modifier: Modifier = Modifier,
-    discSize: Dp = AllCurrenciesDiscSize,
-    iconSize: Dp = AllCurrenciesIconSize,
-) {
-    Box(
-        modifier = modifier
-            .size(discSize)
-            .clip(CircleShape)
-            .background(White10),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_coins),
-            contentDescription = null,
-            tint = CodeTheme.colors.textMain,
-            modifier = Modifier.size(iconSize),
-        )
-    }
-}
-
-private val AllCurrenciesDiscSize = 32.dp
-private val AllCurrenciesIconSize = 20.dp

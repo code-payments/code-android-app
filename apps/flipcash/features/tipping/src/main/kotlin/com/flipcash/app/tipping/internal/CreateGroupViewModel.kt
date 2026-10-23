@@ -37,6 +37,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -114,8 +115,12 @@ internal class CreateGroupViewModel @AssistedInject constructor(
         val balances: List<TokenWithBalance> = emptyList(),
         /** The preferred rate, for reading a custom keypad entry back into USD. */
         val rate: Rate = Rate.oneToOne,
-        /** What the requirement is measured in. The form opens on every holding added up. */
-        val currency: GroupCurrency = GroupCurrency.All,
+        /**
+         * The one mint the requirement is measured in. Null until the account holds a community
+         * currency: the first balances to show one seat the highest ([communityCurrencies]), and
+         * from then on only the currency sheet changes it.
+         */
+        val currency: Mint? = null,
         val amount: Fiat? = null,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
         /** The chat `StartChat` returned. Non-null is the whole precondition for the invite step. */
@@ -129,11 +134,11 @@ internal class CreateGroupViewModel @AssistedInject constructor(
 
         /**
          * The selected token's metadata, which is where the row's name and image come from. Null
-         * for [GroupCurrency.All], which names no token.
+         * while no currency is set, or once the picked one has left the balances.
          */
         val token: Token?
-            get() = (currency as? GroupCurrency.Specific)?.let { selected ->
-                balances.firstOrNull { it.token.address == selected.mint }?.token
+            get() = currency?.let { selected ->
+                balances.firstOrNull { it.token.address == selected }?.token
             }
 
         /**
@@ -144,9 +149,6 @@ internal class CreateGroupViewModel @AssistedInject constructor(
          * list this mint was picked from already renders
          * ([com.getcode.opencode.model.financial.TokenWithBalance.displayName]), so the symbol
          * would name the same holding two different ways one screen apart.
-         *
-         * Null for [GroupCurrency.All]: there is no one currency to name, and the error that reads
-         * this has a wording of its own for that case.
          */
         val currencyName: String?
             get() = token?.name
@@ -158,7 +160,7 @@ internal class CreateGroupViewModel @AssistedInject constructor(
          * sets; `speaker` is left empty rather than null because [ChatRules] holds both as lists.
          */
         val rules: ChatRules?
-            get() = if (isPrivate) null else amount?.let { rulesFor(currency, it) }
+            get() = if (isPrivate || currency == null) null else amount?.let { rulesFor(currency, it) }
 
         /**
          * The creator measured against their own rule, by the same predicate the join gate uses.
@@ -209,8 +211,8 @@ internal class CreateGroupViewModel @AssistedInject constructor(
         data class OnBalancesChanged(val balances: List<TokenWithBalance>) : Event
         data class OnRateChanged(val rate: Rate) : Event
 
-        /** The header card or a token was chosen on the currency sheet (node 10370:997). */
-        data class OnCurrencySelected(val currency: GroupCurrency) : Event
+        /** A token was chosen on the currency sheet (node 10370:997). */
+        data class OnCurrencySelected(val currency: Mint) : Event
 
         /** A preset chip, or a confirmed custom keypad entry. Always USD. */
         data class OnAmountSelected(val amount: Fiat) : Event
@@ -351,6 +353,7 @@ internal class CreateGroupViewModel @AssistedInject constructor(
         }
 
         val amount = state.amount ?: return
+        val currency = state.currency ?: return
 
         // The self-satisfaction check the form already gates Create on, re-read here because the
         // balance behind it is a live flow and the tap is a separate moment from the render.
@@ -362,7 +365,7 @@ internal class CreateGroupViewModel @AssistedInject constructor(
         val draft = GroupDraft(
             title = state.title,
             picture = state.image.dataOrNull,
-            currency = state.currency,
+            currency = currency,
             amount = amount,
         )
 
@@ -423,7 +426,7 @@ internal class CreateGroupViewModel @AssistedInject constructor(
             val draft = GroupDraft(
                 title = state.title,
                 picture = state.image.dataOrNull,
-                currency = state.currency,
+                currency = null,
                 amount = null,
             )
             val idempotencyKey = attempt.keyFor(draft)
@@ -512,11 +515,12 @@ internal class CreateGroupViewModel @AssistedInject constructor(
 
     private fun announceNotSelfSatisfied(currencyName: String?) {
         BottomBarManager.showAlert(
-            title = if (currencyName != null) {
-                resources.getString(R.string.error_title_groupRuleNotSelfSatisfied, currencyName)
-            } else {
-                resources.getString(R.string.error_title_groupRuleNotSelfSatisfiedTotal)
-            },
+            // A picked token that has since left the balances has no name, so the title names the
+            // kind of currency instead: "You Need More Community Currency".
+            title = resources.getString(
+                R.string.error_title_groupRuleNotSelfSatisfied,
+                currencyName ?: resources.getString(R.string.title_communityCurrency),
+            ),
             message = resources.getString(R.string.error_description_groupRuleNotSelfSatisfied),
         )
     }
@@ -610,11 +614,21 @@ internal class CreateGroupViewModel @AssistedInject constructor(
             return rounded.takeIf { it.decimalValue > 0.0 }
         }
 
-        /** One listener minimum balance of [amount], in whatever [currency] names. */
-        private fun rulesFor(currency: GroupCurrency, amount: Fiat) = ChatRules(
-            listener = listOf(ChatRuleRequirement.MinimumBalance(amount, currency.mints)),
+        /** One listener minimum balance of [amount], in [currency]. */
+        private fun rulesFor(currency: Mint, amount: Fiat) = ChatRules(
+            listener = listOf(ChatRuleRequirement.MinimumBalance(amount, listOf(currency))),
             speaker = emptyList(),
         )
+
+        /**
+         * Seats the highest community balance while nothing is chosen — once, because after that
+         * [State.currency] is set and stays: neither a price refresh reordering the top rows nor a
+         * later balance moves a currency the form is already showing, and a pick on the sheet is
+         * never overridden.
+         */
+        private fun State.withDefaultCurrency(): State =
+            if (currency != null) this
+            else copy(currency = communityCurrencies(balances, rate).firstOrNull())
 
         @VisibleForTesting
         internal val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
@@ -637,8 +651,13 @@ internal class CreateGroupViewModel @AssistedInject constructor(
                     state.copy(image = Loadable.Loading(), imageMimeType = "")
                 }
 
-                is Event.OnBalancesChanged -> { state -> state.copy(balances = event.balances) }
-                is Event.OnRateChanged -> { state -> state.copy(rate = event.rate) }
+                is Event.OnBalancesChanged -> { state ->
+                    state.copy(balances = event.balances).withDefaultCurrency()
+                }
+
+                is Event.OnRateChanged -> { state ->
+                    state.copy(rate = event.rate).withDefaultCurrency()
+                }
                 is Event.OnCurrencySelected -> { state -> state.copy(currency = event.currency) }
                 is Event.OnAmountSelected -> { state -> state.copy(amount = event.amount) }
                 Event.ConfirmCustomAmount -> { state -> state }

@@ -21,8 +21,7 @@ import kotlin.test.assertTrue
  * What the form decides before it calls `StartChat` — nodes 10127:118014 through 10127:118237.
  *
  * Two of those decisions are contractual rather than cosmetic. The rules the draft describes must be
- * a single *listener* minimum balance, naming either no mint (Total Balance — every holding added
- * up) or exactly one; and the creator has to satisfy the rule they are setting, measured by the same
+ * a single *listener* minimum balance naming exactly one mint; and the creator has to satisfy the rule they are setting, measured by the same
  * predicate that will gate everyone else, or the server answers `RULES_NOT_SATISFIED` on a group
  * they just made.
  */
@@ -30,8 +29,8 @@ class CreateGroupStateTest {
 
     private fun mint(seed: Byte) = Mint(ByteArray(32) { seed }.toList())
 
-    private fun token(seed: Byte, symbol: String) = MintMetadata(
-        address = mint(seed),
+    private fun token(seed: Byte, symbol: String, address: Mint = mint(seed)) = MintMetadata(
+        address = address,
         decimals = 6,
         name = symbol,
         symbol = symbol,
@@ -52,11 +51,16 @@ class CreateGroupStateTest {
     private fun held(seed: Byte, symbol: String, dollars: Double) =
         TokenWithBalance(token = token(seed, symbol), balance = Fiat(dollars))
 
+    private val usdf = TokenWithBalance(
+        token = token(0, "USDF", address = Mint.usdf),
+        balance = Fiat(1_000.0),
+    )
+
     private val badBoys = mint(1)
 
     private fun state(
         title: String = "Ballers",
-        currency: GroupCurrency = GroupCurrency.Specific(badBoys),
+        currency: Mint? = badBoys,
         amount: Fiat? = Fiat(100),
         balances: List<TokenWithBalance> = listOf(held(1, "BadBoys", 250.0)),
     ) = CreateGroupViewModel.State(
@@ -70,25 +74,59 @@ class CreateGroupStateTest {
         CreateGroupViewModel.updateStateForEvent(event)(this)
 
     @Test
-    fun `the form opens on all currencies, and balances arriving do not move it`() {
-        // Node 10364:1059. Seating the largest holding instead would set a narrower rule than the
-        // creator asked for, and one they did not pick.
-        val opened = CreateGroupViewModel.State()
-            .on(CreateGroupViewModel.Event.OnBalancesChanged(listOf(held(1, "BadBoys", 250.0))))
+    fun `the form opens on the highest community balance, leaving USDF out`() {
+        // Node 12370:76881: the picker's top row, which is the largest holding that isn't dollars.
+        val opened = CreateGroupViewModel.State().on(
+            CreateGroupViewModel.Event.OnBalancesChanged(
+                listOf(usdf, held(1, "BadBoys", 50.0), held(2, "Moony", 250.0))
+            )
+        )
 
-        assertEquals(GroupCurrency.All, opened.currency)
-        assertNull(opened.token)
-        assertNull(opened.currencyName)
+        assertEquals(mint(2), opened.currency)
+        assertEquals("Moony", opened.currencyName)
     }
 
     @Test
-    fun `picking a token replaces all currencies, and picking all replaces the token`() {
-        val picked = CreateGroupViewModel.State()
-            .on(CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.Specific(badBoys)))
-        assertEquals(GroupCurrency.Specific(badBoys), picked.currency)
+    fun `with only USDF the currency stays unset and create stays off`() {
+        val opened = CreateGroupViewModel.State(titleFieldState = TextFieldState("Ballers"), amount = Fiat(100))
+            .on(CreateGroupViewModel.Event.OnBalancesChanged(listOf(usdf)))
 
-        val back = picked.on(CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All))
-        assertEquals(GroupCurrency.All, back.currency)
+        assertNull(opened.currency)
+        assertNull(opened.rules)
+        assertFalse(opened.canCreate)
+    }
+
+    @Test
+    fun `balances that arrive late still seat the default once`() {
+        val opened = CreateGroupViewModel.State()
+            .on(CreateGroupViewModel.Event.OnBalancesChanged(emptyList()))
+        assertNull(opened.currency)
+
+        val arrived = opened.on(
+            CreateGroupViewModel.Event.OnBalancesChanged(listOf(held(1, "BadBoys", 50.0)))
+        )
+        assertEquals(badBoys, arrived.currency)
+
+        // A later balance overtaking it does not move a currency the form is already showing.
+        val overtaken = arrived.on(
+            CreateGroupViewModel.Event.OnBalancesChanged(
+                listOf(held(1, "BadBoys", 50.0), held(2, "Moony", 900.0))
+            )
+        )
+        assertEquals(badBoys, overtaken.currency)
+    }
+
+    @Test
+    fun `a pick on the sheet survives balances changing`() {
+        val picked = CreateGroupViewModel.State()
+            .on(CreateGroupViewModel.Event.OnCurrencySelected(mint(2)))
+            .on(
+                CreateGroupViewModel.Event.OnBalancesChanged(
+                    listOf(held(1, "BadBoys", 900.0), held(2, "Moony", 5.0))
+                )
+            )
+
+        assertEquals(mint(2), picked.currency)
     }
 
     @Test
@@ -104,19 +142,10 @@ class CreateGroupStateTest {
     }
 
     @Test
-    fun `an all currencies draft names no mint`() {
-        val rules = state(currency = GroupCurrency.All).rules
-
-        assertEquals(emptyList(), rules?.speaker)
-        val requirement = assertIs<ChatRuleRequirement.MinimumBalance>(rules?.listener?.single())
-        assertEquals(Fiat(100), requirement.amount)
-        assertEquals(emptyList(), requirement.mints)
-    }
-
-    @Test
     fun `an incomplete draft describes no rules and cannot be created`() {
         assertNull(state(amount = null).rules)
-        assertNull(state(currency = GroupCurrency.All, amount = null).rules)
+        assertNull(state(currency = null).rules)
+        assertFalse(state(currency = null).canCreate)
         assertFalse(state(amount = null).canCreate)
         assertFalse(state(title = "  ").canCreate)
     }
@@ -146,30 +175,6 @@ class CreateGroupStateTest {
         )
 
         assertFalse(state.selfSatisfied)
-        assertFalse(state.canCreate)
-    }
-
-    @Test
-    fun `an all currencies rule is met by holdings added up`() {
-        // $60 + $50 meets $100 though neither does alone — the server sums every holding in USD.
-        val state = state(
-            currency = GroupCurrency.All,
-            balances = listOf(held(1, "BadBoys", 60.0), held(2, "Other", 50.0)),
-        )
-
-        assertIs<GroupAccess.Eligible>(state.access)
-        assertTrue(state.canCreate)
-    }
-
-    @Test
-    fun `an all currencies rule the total falls short of blocks create`() {
-        val state = state(
-            currency = GroupCurrency.All,
-            amount = Fiat(500),
-            balances = listOf(held(1, "BadBoys", 60.0), held(2, "Other", 50.0)),
-        )
-
-        assertIs<GroupAccess.Blocked>(state.access)
         assertFalse(state.canCreate)
     }
 

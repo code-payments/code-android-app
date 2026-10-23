@@ -138,7 +138,7 @@ class CreateGroupViewModelErrorTest {
             )
         )
         dispatchEvent(
-            CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.Specific(badBoys))
+            CreateGroupViewModel.Event.OnCurrencySelected(badBoys)
         )
         dispatchEvent(CreateGroupViewModel.Event.OnAmountSelected(Fiat(100)))
     }
@@ -178,48 +178,6 @@ class CreateGroupViewModelErrorTest {
             // The form is usable again: a refusal is not a spinner the user has to back out of.
             assertTrue(vm.stateFlow.value.processingState.isIdle)
             assertNull(vm.stateFlow.value.created)
-        }
-
-    /**
-     * A Total Balance rule names no token, so the refusal cannot say which one to get more of —
-     * "You Need More " with nothing after it is what the shared title would read.
-     */
-    @Test
-    fun `an any-currency refusal does not name a token`() =
-        runTest(mainCoroutineRule.dispatcher) {
-            dispatchers = TestDispatchers(testScheduler)
-            val vm = createViewModel()
-            vm.completeDraft()
-            vm.dispatchEvent(CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All))
-            failing(StartChatError.RulesNotSatisfied())
-
-            vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
-            advanceUntilIdle()
-
-            assertTrue(titles().contains("error_title_groupRuleNotSelfSatisfiedTotal"))
-        }
-
-    /** `mints = []` is the whole of what makes a rule any-currency on the wire. */
-    @Test
-    fun `an any-currency group is created with no mints`() =
-        runTest(mainCoroutineRule.dispatcher) {
-            dispatchers = TestDispatchers(testScheduler)
-            val vm = createViewModel()
-            vm.completeDraft()
-            vm.dispatchEvent(CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All))
-
-            val parameters = mutableListOf<StartChatParameters>()
-            coEvery {
-                chatCoordinator.create(capture(parameters), any())
-            } returns Result.success(created())
-
-            vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
-            advanceUntilIdle()
-
-            val rules = (parameters.single() as StartChatParameters.Group).rules
-            val requirement = rules?.listener?.single() as ChatRuleRequirement.MinimumBalance
-            assertEquals(emptyList(), requirement.mints)
-            assertEquals(Fiat(100), requirement.amount)
         }
 
     @Test
@@ -439,32 +397,6 @@ class CreateGroupViewModelErrorTest {
                         state = AnalyticsState.SUCCESS,
                         error = null,
                         gateMint = badBoys.base58(),
-                        hasPicture = false,
-                    )
-                ),
-                analytics.events,
-            )
-        }
-
-    /** The proto's result name, not the message; an any-currency group has no gate mint to send. */
-    @Test
-    fun `a refused any-currency group reports the result name and no gate mint`() =
-        runTest(mainCoroutineRule.dispatcher) {
-            dispatchers = TestDispatchers(testScheduler)
-            val vm = createViewModel()
-            vm.completeDraft()
-            vm.dispatchEvent(CreateGroupViewModel.Event.OnCurrencySelected(GroupCurrency.All))
-            failing(StartChatError.RulesNotSatisfied())
-
-            vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
-            advanceUntilIdle()
-
-            assertEquals(
-                listOf(
-                    GroupEvents.created(
-                        state = AnalyticsState.FAILURE,
-                        error = "RulesNotSatisfied",
-                        gateMint = null,
                         hasPicture = false,
                     )
                 ),

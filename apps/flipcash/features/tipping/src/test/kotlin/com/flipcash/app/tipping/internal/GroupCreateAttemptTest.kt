@@ -23,7 +23,7 @@ class GroupCreateAttemptTest {
 
     private fun draft(
         title: String = "Ballers",
-        currency: GroupCurrency = GroupCurrency.Specific(mint(1)),
+        currency: Mint? = mint(1),
         amount: Fiat = Fiat(100),
     ) = GroupDraft(title = title, picture = null, currency = currency, amount = amount)
 
@@ -54,23 +54,7 @@ class GroupCreateAttemptTest {
 
         assertNotEquals(first, attempt.keyFor(draft(title = "Ballers 2")))
         assertNotEquals(first, attempt.keyFor(draft(amount = Fiat(50))))
-        assertNotEquals(first, attempt.keyFor(draft(currency = GroupCurrency.Specific(mint(2)))))
-    }
-
-    /**
-     * Switching between Total Balance and a token changes what the server will enforce, so a key
-     * minted for one must not return the chat created for the other.
-     */
-    @Test
-    fun `any currency and one token are different attempts`() {
-        val attempt = Keys().attempt
-        val all = attempt.keyFor(draft(currency = GroupCurrency.All))
-
-        assertEquals(all, attempt.keyFor(draft(currency = GroupCurrency.All)))
-
-        val token = attempt.keyFor(draft())
-        assertNotEquals(all, token)
-        assertNotEquals(token, attempt.keyFor(draft(currency = GroupCurrency.All)))
+        assertNotEquals(first, attempt.keyFor(draft(currency = mint(2))))
     }
 
     @Test
