@@ -2,11 +2,16 @@ package com.flipcash.app.discovery
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
@@ -18,6 +23,7 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.components.TopScrollEdge
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
@@ -45,6 +51,19 @@ fun TokenDiscoveryScreen() {
                 title = stringResource(R.string.title_discoverCurrencies),
                 titleAlignment = Alignment.CenterHorizontally,
                 onBackIconClicked = { navigator.navigateBack() },
+                endContent = {
+                    // The only place the ranking rule is explained.
+                    CircularIconButton(
+                        onClick = { viewModel.dispatchEvent(TokenDiscoveryViewModel.Event.LearnAboutLeaderboard) },
+                    ) { size ->
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = stringResource(R.string.content_description_leaderboard),
+                            tint = Color.White,
+                            modifier = Modifier.requiredSize(size),
+                        )
+                    }
+                },
             )
         },
     ) { barPadding ->
