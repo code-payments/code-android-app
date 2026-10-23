@@ -11,6 +11,8 @@ import com.flipcash.core.resources.subtitle_addMoney
 import com.flipcash.core.resources.subtitle_scanTipCard
 import com.flipcash.core.resources.title_addMoney
 import com.flipcash.core.resources.title_scanTipCard
+import com.flipcash.core.resources.title_recentActivity
+import com.flipcash.core.resources.label_chatReceipt_yesterday
 import com.getcode.util.resources.ComposeResourceIds
 
 @Suppress("PropertyName")
@@ -23,6 +25,8 @@ actual object CoreStrings {
     actual val label_fromDepreciation: Int = ComposeResourceIds.register(Res.string.label_fromDepreciation)
     actual val label_fromCurrencyAppreciation: Int = ComposeResourceIds.register(Res.string.label_fromCurrencyAppreciation)
     actual val label_fromCurrencyDepreciation: Int = ComposeResourceIds.register(Res.string.label_fromCurrencyDepreciation)
+    actual val title_recentActivity: Int = ComposeResourceIds.register(Res.string.title_recentActivity)
+    actual val label_chatReceipt_yesterday: Int = ComposeResourceIds.register(Res.string.label_chatReceipt_yesterday)
 }
 
 @Suppress("PropertyName")

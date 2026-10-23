@@ -1,5 +1,6 @@
 package com.flipcash.shared.transactionhistory
 
+import com.flipcash.shared.transactionhistory.resources.TxStrings
 import androidx.annotation.StringRes
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
@@ -22,19 +23,19 @@ import kotlin.time.Instant
  * from taking a bill in person — both arrive as an unattributed `ReceivedCrypto`.
  */
 enum class TransactionKind(@StringRes val headingRes: Int) {
-    Tipped(R.string.title_txnDetails_youTipped),
-    Received(R.string.title_txnDetails_youReceived),
-    Sent(R.string.title_txnDetails_youSent),
-    GaveCash(R.string.title_txnDetails_youGaveCash),
-    ReceivedCash(R.string.title_txnDetails_youReceivedCash),
-    SentCashLink(R.string.title_txnDetails_youSentCashLink),
-    Buy(R.string.title_txnDetails_buy),
-    Sell(R.string.title_txnDetails_sell),
-    Withdraw(R.string.title_txnDetails_withdraw),
-    Deposit(R.string.title_txnDetails_deposit),
-    Convert(R.string.title_txnDetails_convert),
-    PoolPayment(R.string.title_txnDetails_poolPayment),
-    Unknown(R.string.title_txnDetails_unknown),
+    Tipped(TxStrings.title_txnDetails_youTipped),
+    Received(TxStrings.title_txnDetails_youReceived),
+    Sent(TxStrings.title_txnDetails_youSent),
+    GaveCash(TxStrings.title_txnDetails_youGaveCash),
+    ReceivedCash(TxStrings.title_txnDetails_youReceivedCash),
+    SentCashLink(TxStrings.title_txnDetails_youSentCashLink),
+    Buy(TxStrings.title_txnDetails_buy),
+    Sell(TxStrings.title_txnDetails_sell),
+    Withdraw(TxStrings.title_txnDetails_withdraw),
+    Deposit(TxStrings.title_txnDetails_deposit),
+    Convert(TxStrings.title_txnDetails_convert),
+    PoolPayment(TxStrings.title_txnDetails_poolPayment),
+    Unknown(TxStrings.title_txnDetails_unknown),
 }
 
 /**
@@ -49,8 +50,8 @@ data class TransactionAccount(
     val direction: Direction,
 ) {
     enum class Direction(@StringRes val labelRes: Int) {
-        To(R.string.label_txnDetails_to),
-        From(R.string.label_txnDetails_from),
+        To(TxStrings.label_txnDetails_to),
+        From(TxStrings.label_txnDetails_from),
     }
 
     /** Nobody reads the middle of an address; the ends are what someone actually compares. */
@@ -65,10 +66,10 @@ data class TransactionAccount(
 
 /** The entry's settlement state, as the Status row phrases it. */
 enum class TransactionStatus(@StringRes val labelRes: Int) {
-    Pending(R.string.label_txnDetails_status_pending),
-    Completed(R.string.label_txnDetails_status_completed),
-    Failed(R.string.label_txnDetails_status_failed),
-    Unknown(R.string.label_txnDetails_status_unknown),
+    Pending(TxStrings.label_txnDetails_status_pending),
+    Completed(TxStrings.label_txnDetails_status_completed),
+    Failed(TxStrings.label_txnDetails_status_failed),
+    Unknown(TxStrings.label_txnDetails_status_unknown),
 }
 
 /**

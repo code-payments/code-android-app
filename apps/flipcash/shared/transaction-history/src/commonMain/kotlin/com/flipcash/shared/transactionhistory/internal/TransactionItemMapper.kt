@@ -1,10 +1,10 @@
 package com.flipcash.shared.transactionhistory.internal
 
+import com.flipcash.shared.transactionhistory.resources.TxStrings
 import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageSubstitution
 import com.flipcash.services.models.UserProfile
-import com.flipcash.shared.transactionhistory.R
 import com.flipcash.shared.transactionhistory.TransactionAvatar
 import com.flipcash.shared.transactionhistory.TransactionListItem
 import com.flipcash.shared.transactionhistory.convertOf
@@ -82,7 +82,7 @@ private fun convertTitle(
     convertOf(source.message.metadata) ?: return null
     val from = source.token?.name?.takeIf { it.isNotBlank() } ?: return null
     val to = source.toToken?.name?.takeIf { it.isNotBlank() } ?: return null
-    return resources.getString(R.string.title_activity_convert, from, to)
+    return resources.getString(TxStrings.title_activity_convert, from, to)
 }
 
 /**
@@ -130,12 +130,12 @@ private fun resolveTitle(
     val isTip = text.isTipVerb()
     return when (meta) {
         is MessageMetadata.ReceivedCrypto ->
-            if (isTip) resources.getString(R.string.title_activity_tipFrom, counterpartyName)
-            else resources.getString(R.string.title_activity_receivedFrom, counterpartyName)
+            if (isTip) resources.getString(TxStrings.title_activity_tipFrom, counterpartyName)
+            else resources.getString(TxStrings.title_activity_receivedFrom, counterpartyName)
         is MessageMetadata.DirectlySentCrypto ->
             // "Tipped" already reads as a transitive verb; "Sent" needs the preposition.
             if (isTip) "$text $counterpartyName"
-            else resources.getString(R.string.title_activity_sentTo, counterpartyName)
+            else resources.getString(TxStrings.title_activity_sentTo, counterpartyName)
         else -> "$text $counterpartyName"
     }
 }

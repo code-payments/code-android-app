@@ -15,6 +15,8 @@ expect object CoreStrings {
     val label_fromDepreciation: Int
     val label_fromCurrencyAppreciation: Int
     val label_fromCurrencyDepreciation: Int
+    val title_recentActivity: Int
+    val label_chatReceipt_yesterday: Int
 }
 
 @Suppress("PropertyName")

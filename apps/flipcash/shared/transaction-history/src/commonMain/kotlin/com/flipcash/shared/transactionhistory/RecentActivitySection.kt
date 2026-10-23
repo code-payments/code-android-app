@@ -1,5 +1,7 @@
 package com.flipcash.shared.transactionhistory
 
+import com.flipcash.app.core.resources.CoreStrings
+import com.flipcash.app.core.resources.CoreDrawables
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,10 +16,9 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import com.getcode.util.resources.painterForResId
+import com.getcode.util.resources.stringRes
 import com.getcode.theme.CodeTheme
-import com.getcode.util.resources.R
 
 /**
  * The "Recent" activity section — a tappable header (label + trailing chevron) followed by the list of
@@ -63,13 +64,13 @@ private fun LazyItemScope.RecentActivityHeader(modifier: Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(com.flipcash.core.R.string.title_recentActivity),
+            text = stringRes(CoreStrings.title_recentActivity),
             style = CodeTheme.typography.screenTitle,
             color = CodeTheme.colors.textMain,
         )
         Icon(
             modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
-            painter = painterResource(R.drawable.ic_chevron_right),
+            painter = painterForResId(CoreDrawables.ic_chevron_right),
             contentDescription = null,
             tint = CodeTheme.colors.textSecondary,
         )

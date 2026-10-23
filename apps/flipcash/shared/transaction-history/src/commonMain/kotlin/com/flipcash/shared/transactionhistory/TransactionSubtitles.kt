@@ -1,5 +1,6 @@
 package com.flipcash.shared.transactionhistory
 
+import com.flipcash.shared.transactionhistory.resources.TxStrings
 import com.getcode.util.resources.ResourceHelper
 
 /**
@@ -27,22 +28,22 @@ object TransactionSubtitles {
      * exchanges identities, so "who" is genuinely unanswerable; how it moved is the useful fact.
      */
     fun inPerson(resources: ResourceHelper): String =
-        resources.getString(R.string.label_txnDetails_inPerson)
+        resources.getString(TxStrings.label_txnDetails_inPerson)
 
     /** [TransactionKind.Buy] — the mint that was spent, which the amount alone never says. */
     fun paidWith(resources: ResourceHelper, tokenName: String): String =
-        resources.getString(R.string.label_txnDetails_paidWith, tokenName)
+        resources.getString(TxStrings.label_txnDetails_paidWith, tokenName)
 
     /** [TransactionKind.Sell] — the mint that came back. */
     fun soldFor(resources: ResourceHelper, tokenName: String): String =
-        resources.getString(R.string.label_txnDetails_soldFor, tokenName)
+        resources.getString(TxStrings.label_txnDetails_soldFor, tokenName)
 
     /**
      * [TransactionKind.Convert] — both mints, in the same "from → to" shape the activity row's
      * convert title already uses, so the row and the screen it opens read alike.
      */
     fun converted(resources: ResourceHelper, from: String, to: String): String =
-        resources.getString(R.string.title_activity_convert, from, to)
+        resources.getString(TxStrings.title_activity_convert, from, to)
 
     /** [TransactionKind.PoolPayment] — the pool that was paid. */
     fun pool(name: String): String? = name.takeIf { it.isNotBlank() }

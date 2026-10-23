@@ -1,6 +1,7 @@
 package com.flipcash.shared.transactionhistory
 
-import android.text.format.DateFormat
+import com.flipcash.shared.transactionhistory.resources.TxStrings
+import com.flipcash.app.core.resources.CoreStrings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.getcode.util.resources.stringRes
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.app.core.ui.ActivityAmount
 import com.getcode.theme.CodeTheme
@@ -82,7 +82,7 @@ fun ActivityFeedRow(
                     maxLines = 1,
                 )
                 Text(
-                    text = stringResource(R.string.label_activity_convertFee, fee.formatted()),
+                    text = stringRes(TxStrings.label_activity_convertFee, fee.formatted()),
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
                     maxLines = 1,
@@ -106,8 +106,7 @@ fun ActivityFeedRow(
  */
 @Composable
 internal fun formatActivityTimestamp(instant: Instant): String {
-    val context = LocalContext.current
-    val is24Hour = DateFormat.is24HourFormat(context)
+    val is24Hour = is24HourClock()
     val tz = TimeZone.currentSystemDefault()
     val todayDate = Clock.System.now().toLocalDateTime(tz).date
     val messageDate = instant.toLocalDateTime(tz).date
@@ -115,7 +114,7 @@ internal fun formatActivityTimestamp(instant: Instant): String {
     val time = instant.formatLocalized("h:mm a", is24Hour = is24Hour, if24Hour = "H:mm")
     return when {
         dayDiff == 0L -> time
-        dayDiff == 1L -> stringResource(R.string.label_chatReceipt_yesterday)
+        dayDiff == 1L -> stringRes(CoreStrings.label_chatReceipt_yesterday)
         dayDiff in 2L..6L -> instant.formatLocalized("EEEE")
         messageDate.year == todayDate.year -> instant.formatLocalized("MMM d")
         else -> instant.formatLocalized("MMM d, yyyy")

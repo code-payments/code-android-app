@@ -12,6 +12,8 @@ actual object CoreStrings {
     actual val label_fromDepreciation: Int = R.string.label_fromDepreciation
     actual val label_fromCurrencyAppreciation: Int = R.string.label_fromCurrencyAppreciation
     actual val label_fromCurrencyDepreciation: Int = R.string.label_fromCurrencyDepreciation
+    actual val title_recentActivity: Int = R.string.title_recentActivity
+    actual val label_chatReceipt_yesterday: Int = R.string.label_chatReceipt_yesterday
 }
 
 @Suppress("PropertyName")
