@@ -1,12 +1,18 @@
 package com.getcode.libs.parcelable
 
 /**
- * `android.os.Parcelable` on Android; on the desktop JVM a plain interface nothing reads.
+ * `android.os.Parcelable` on Android; on the desktop JVM a marker interface nothing reads.
  *
- * The two members are declared so a class can hand-write its parcel format in common code.
- * Classes that use [Parcelize] implement neither.
+ * Common code sees no members, so a [Parcelize] class compiles on both targets. A class that
+ * writes its own parcel format implements [ManualParcelable] instead.
  */
-expect interface Parcelable {
+expect interface Parcelable
+
+/**
+ * A sub-interface of `android.os.Parcelable` on Android, with the two members declared so a class can
+ * hand-write its parcel format in common code.
+ */
+expect interface ManualParcelable : Parcelable {
     fun describeContents(): Int
     fun writeToParcel(dest: Parcel, flags: Int)
 }

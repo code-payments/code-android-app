@@ -1,7 +1,7 @@
 package com.getcode.solana.keys
 
 import com.getcode.libs.parcelable.Parcel
-import com.getcode.libs.parcelable.Parcelable
+import com.getcode.libs.parcelable.ManualParcelable
 import com.getcode.libs.parcelable.parcelableCreator
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
 import com.getcode.vendor.Base58
@@ -9,7 +9,7 @@ import com.google.protobuf.ByteString
 import kotlinx.serialization.Serializable
 
 @Serializable(with = PublicKeyAsStringSerializer::class)
-open class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
+open class PublicKey(bytes: List<Byte>) : Key32(bytes), ManualParcelable {
 
     constructor(base58: String): this(Base58.decode(base58).toList())
 

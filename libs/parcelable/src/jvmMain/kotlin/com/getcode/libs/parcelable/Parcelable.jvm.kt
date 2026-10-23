@@ -1,6 +1,8 @@
 package com.getcode.libs.parcelable
 
-actual interface Parcelable {
+actual interface Parcelable
+
+actual interface ManualParcelable : Parcelable {
     actual fun describeContents(): Int
     actual fun writeToParcel(dest: Parcel, flags: Int)
 }

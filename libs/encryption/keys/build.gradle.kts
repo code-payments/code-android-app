@@ -12,7 +12,7 @@ kotlin {
             implementation(project(":libs:encryption:base58"))
             implementation(project(":libs:encryption:sha256"))
             implementation(project(":libs:encryption:utils"))
-            implementation(project(":libs:parcelable"))
+            api(project(":libs:parcelable"))
 
             implementation(libs.protobuf.kotlin.lite)
             implementation(libs.grpc.okhttp)
