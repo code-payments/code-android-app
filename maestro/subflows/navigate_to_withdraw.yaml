@@ -3,9 +3,10 @@ appId: com.flipcash.app.android
 ---
 # Withdraw Dollars is a wallet action tile now, below the card deck and recent activity.
 - runFlow: navigate_to_wallet.yaml
-- scrollUntilVisible:
-    element: "Withdraw Dollars"
-    direction: DOWN
+- runFlow:
+    file: ../helpers/scroll_wallet_to_tile.yaml
+    env:
+      TILE: "Withdraw Dollars"
 - tapOn: "Withdraw Dollars"
 # No preselected mint, so the flow opens on the currency picker.
 - extendedWaitUntil:
