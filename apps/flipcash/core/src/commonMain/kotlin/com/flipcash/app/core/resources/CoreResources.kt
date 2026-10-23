@@ -17,6 +17,11 @@ expect object CoreStrings {
     val label_fromCurrencyDepreciation: Int
     val title_recentActivity: Int
     val label_chatReceipt_yesterday: Int
+    val title_tipOnboarding: Int
+    val action_createYourOwnCurrency: Int
+    val action_currencyLeaderboard: Int
+    val action_addDollars: Int
+    val action_withdrawDollars: Int
 }
 
 @Suppress("PropertyName")
@@ -24,4 +29,8 @@ expect object CoreDrawables {
     val ic_nav_tipcard: Int
     val ic_checked_green: Int
     val ic_chevron_right: Int
+    val ic_coins_add: Int
+    val ic_globe: Int
+    val ic_menu_deposit: Int
+    val ic_menu_withdraw: Int
 }

@@ -12,7 +12,7 @@ import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
 import io.mockk.coEvery
@@ -47,7 +47,7 @@ class BalanceViewModelTest {
     private val userManager: UserManager = mockk(relaxed = true)
     private val userFlags: UserFlagsCoordinator = mockk(relaxed = true)
     private val purchaseMethodController: PurchaseMethodController = mockk(relaxed = true)
-    private val chatCoordinator: ChatCoordinator = mockk(relaxed = true)
+    private val tipHistory: TipHistorySource = mockk(relaxed = true)
     private val feedCoordinator: ActivityFeedCoordinator = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true) {
         every { hasAnyBalance } returns flowOf(false)
@@ -67,7 +67,7 @@ class BalanceViewModelTest {
         dispatchers = dispatchers,
         purchaseMethodController = purchaseMethodController,
         analytics = analytics,
-        chatCoordinator = chatCoordinator,
+        tipHistory = tipHistory,
         feedCoordinator = feedCoordinator,
         tokenCoordinator = tokenCoordinator,
         walletReveal = walletReveal,

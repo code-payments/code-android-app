@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.inject
 import com.flipcash.shared.chat.link.LinkPreviewImages
 import com.flipcash.shared.chat.link.UploadedLinkPreviewImages
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.HostLobbies
@@ -39,6 +40,11 @@ abstract class ChatModule {
     abstract fun bindChatCoordinator(
         impl: RealChatCoordinator
     ): ChatCoordinator
+
+    @Binds
+    abstract fun bindTipHistorySource(
+        impl: ChatCoordinator
+    ): TipHistorySource
 
     @Binds
     @Singleton

@@ -7,6 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.flipcash.app.balance.internal.HiltWalletViewModel
 import com.flipcash.app.balance.internal.WalletViewModel
 import com.flipcash.app.balance.internal.WalletScreen
 import com.flipcash.app.core.AppRoute
@@ -27,7 +28,7 @@ fun WalletScreen() {
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        val viewModel = hiltViewModel<WalletViewModel>()
+        val viewModel = hiltViewModel<HiltWalletViewModel>()
         val tokenViewModel = hiltViewModel<HiltSelectTokenViewModel>()
         WalletScreen(viewModel, tokenViewModel)
 

@@ -10,7 +10,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import io.mockk.every
 import io.mockk.mockk
@@ -46,7 +46,7 @@ class WalletMilestoneGatingTest {
 
     private val hasEverTipped = MutableStateFlow<Boolean?>(null)
 
-    private val chatCoordinator: ChatCoordinator = mockk(relaxed = true) {
+    private val tipHistory: TipHistorySource = mockk(relaxed = true) {
         every { hasEverTipped() } returns hasEverTipped
     }
     private val feedCoordinator: ActivityFeedCoordinator = mockk(relaxed = true) {
@@ -68,7 +68,7 @@ class WalletMilestoneGatingTest {
         dispatchers = dispatchers,
         purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true),
         analytics = FlipcashAnalytics.None,
-        chatCoordinator = chatCoordinator,
+        tipHistory = tipHistory,
         feedCoordinator = feedCoordinator,
         tokenCoordinator = tokenCoordinator,
         walletReveal = walletReveal,

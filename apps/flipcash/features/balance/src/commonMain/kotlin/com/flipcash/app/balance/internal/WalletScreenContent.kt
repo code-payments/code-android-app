@@ -1,6 +1,5 @@
 package com.flipcash.app.balance.internal
 
-import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,8 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.cardexpand.CardExpansionController
@@ -55,7 +52,10 @@ import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.core.ui.TileButtonStyle
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
-import com.flipcash.features.balance.R
+import com.flipcash.app.core.resources.CoreDrawables
+import com.flipcash.app.core.resources.CoreStrings
+import com.getcode.util.resources.painterForResId
+import com.getcode.util.resources.stringRes
 import com.flipcash.shared.transactionhistory.recentActivitySection
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
@@ -86,7 +86,7 @@ internal fun WalletScreenContent(
     // below means "landed" is not the same frame as "composed" -- registering a reporter here holds
     // the activity's report open until the content below the gate has actually been drawn. Keyed to
     // the same condition as that gate: what the launch is finished for is the balance and the deck.
-    ReportDrawnWhen { !tokenState.isAwaitingTokens }
+    ReportDrawnWhenSeam { !tokenState.isAwaitingTokens }
 
     // The tab waits on the token set and nothing else. Tokens are what the balance and the card deck
     // are made of, so there is no drawing the tab without them; the activity preview and the tutorial
@@ -164,7 +164,7 @@ internal fun WalletScreenContent(
         state = listState,
         // Only ever in the tree past the loading gate above, so it is the anchor for "the wallet
         // drew its content" -- what the startup benchmark waits on before it stops the trace. Same
-        // condition as ReportDrawnWhen above, so the trace stays open exactly as long as the report.
+        // condition as ReportDrawnWhenSeam above, so the trace stays open exactly as long as the report.
         modifier = Modifier
             .fillMaxSize()
             .testTag("wallet_content"),
@@ -213,7 +213,7 @@ internal fun WalletScreenContent(
                     NewUserTutorial(
                         modifier = Modifier.fillMaxWidth()
                             .padding(bottom = CodeTheme.dimens.grid.x5),
-                        title = stringResource(R.string.title_tipOnboarding),
+                        title = stringRes(CoreStrings.title_tipOnboarding),
                         items = items,
                     ) { item ->
                         when (item) {
@@ -322,8 +322,8 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringResource(R.string.action_createYourOwnCurrency),
-                            icon = painterResource(R.drawable.ic_coins_add),
+                            text = stringRes(CoreStrings.action_createYourOwnCurrency),
+                            icon = painterForResId(CoreDrawables.ic_coins_add),
                         ) {
                             dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.CurrencyCreator))
                         }
@@ -333,8 +333,8 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringResource(R.string.action_currencyLeaderboard),
-                            icon = painterResource(R.drawable.ic_globe),
+                            text = stringRes(CoreStrings.action_currencyLeaderboard),
+                            icon = painterForResId(CoreDrawables.ic_globe),
                         ) {
                             dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.Discovery))
                         }
@@ -351,8 +351,8 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringResource(R.string.action_addDollars),
-                            icon = painterResource(R.drawable.ic_menu_deposit),
+                            text = stringRes(CoreStrings.action_addDollars),
+                            icon = painterForResId(CoreDrawables.ic_menu_deposit),
                         ) {
                             dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
                         }
@@ -362,8 +362,8 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringResource(R.string.action_withdrawDollars),
-                            icon = painterResource(R.drawable.ic_menu_withdraw),
+                            text = stringRes(CoreStrings.action_withdrawDollars),
+                            icon = painterForResId(CoreDrawables.ic_menu_withdraw),
                         ) {
                             // No preselected mint: the flow opens on the currency picker, which lists
                             // every balance (Dollars included).

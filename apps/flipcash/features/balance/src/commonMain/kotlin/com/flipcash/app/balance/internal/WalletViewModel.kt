@@ -6,6 +6,7 @@ import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.shared.transactionhistory.FeedSyncState
 import com.flipcash.shared.transactionhistory.TransactionListItem
@@ -14,13 +15,11 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.WalletReveal
 import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -30,14 +29,17 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
-@HiltViewModel
-internal class WalletViewModel @Inject constructor(
+/**
+ * Shared wallet-tab view model. Android injects it through [HiltWalletViewModel]; desktop builds it
+ * from its own graph.
+ */
+open class WalletViewModel @Inject constructor(
     userManager: UserManager,
     userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
     purchaseMethodController: PurchaseMethodController,
     analytics: FlipcashAnalytics,
-    chatCoordinator: ChatCoordinator,
+    tipHistory: TipHistorySource,
     feedCoordinator: ActivityFeedCoordinator,
     tokenCoordinator: TokenCoordinator,
     walletReveal: WalletRevealCoordinator,
@@ -191,7 +193,7 @@ internal class WalletViewModel @Inject constructor(
         // row to prove it, and would otherwise be told to add money it already has.
         combine(
             feedCoordinator.hasEverReceivedMoney(),
-            chatCoordinator.hasEverTipped(),
+            tipHistory.hasEverTipped(),
             tokenCoordinator.hasAnyBalance,
         ) { hasReceivedMoney, hasTipped, holdsBalance ->
             // A null tip milestone means the chat cache has not been reconciled yet, and an
