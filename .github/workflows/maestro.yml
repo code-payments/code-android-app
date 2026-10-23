@@ -90,6 +90,9 @@ jobs:
 
       - name: Install Maestro CLI
         run: |
+          # Pinned: the installer takes the latest release otherwise. 2.11.0 is what the
+          # nightly has run since 2026-09-29.
+          export MAESTRO_VERSION=2.11.0
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
@@ -101,16 +104,34 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Build the APK before the emulator exists. Compiling and R8-minifying the app takes
+      # ~10 minutes and several GB of heap; done inside the emulator step it competes with
+      # the running guest for the runner's memory, and since 2026-10-08 the emulator has
+      # exited mid-flow (adb: offline, then device not found). Stopping the daemons after
+      # the build returns that memory before the guest starts; the lane's installDebug
+      # then finds every task up to date.
+      - name: Build debug APK
+        run: |
+          ./gradlew :apps:flipcash:app:assembleDebug -p .
+          ./gradlew --stop
+        env:
+          DEBUG_MINIFY: ${{ matrix.minify }}
+
       - name: Run Maestro suite on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           arch: x86_64
           profile: pixel_6
+          ram-size: 4096M
+          heap-size: 576M
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swangle_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: bundle exec fastlane android flipcash_maestro
+          # logcat runs alongside so the lines before an emulator exit survive in the artifact.
+          script: |
+            adb logcat -v threadtime > "$GITHUB_WORKSPACE/logcat.txt" &
+            bundle exec fastlane android flipcash_maestro
         env:
           MAESTRO_TAGS: ${{ github.event.inputs.tags || 'smoke' }}
           MAESTRO_EXCLUDE_TAGS: ${{ github.event.inputs.exclude_tags || 'spends-funds,creates-account' }}
@@ -128,6 +149,11 @@ jobs:
           CONTACT_NAME: ${{ secrets.MAESTRO_CONTACT_NAME }}
           CONTACT_PHONE: ${{ secrets.MAESTRO_CONTACT_PHONE }}
 
+      # An emulator killed by the host leaves no trace in the step log; the kernel log does.
+      - name: Kernel log (OOM / qemu)
+        if: failure()
+        run: sudo dmesg | grep -i -E "out of memory|oom-kill|killed process|qemu" | tail -20 || true
+
       - name: Upload Maestro report
         if: always()
         uses: actions/upload-artifact@v4
@@ -135,5 +161,6 @@ jobs:
           name: maestro-report-minify-${{ matrix.minify }}
           path: |
             maestro-report.xml
+            logcat.txt
             ~/.maestro/tests/**
           if-no-files-found: ignore
