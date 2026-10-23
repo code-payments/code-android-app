@@ -201,6 +201,8 @@ include(
     ":libs:codes:kikcode",
     ":libs:coroutines",
     ":libs:coroutines:test-fixtures",
+    ":libs:parcelable",
+    ":libs:currency-math:test-fixtures",
     ":libs:crypto:kin",
     ":libs:crypto:solana",
     ":libs:currency",

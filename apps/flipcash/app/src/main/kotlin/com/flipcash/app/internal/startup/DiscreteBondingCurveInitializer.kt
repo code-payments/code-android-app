@@ -3,6 +3,7 @@ package com.flipcash.app.internal.startup
 import android.content.Context
 import androidx.startup.Initializer
 import com.flipcash.libs.currency.math.Curves
+import com.flipcash.libs.currency.math.initialize
 
 /**
  * Preloads the discrete bonding curve tables.
