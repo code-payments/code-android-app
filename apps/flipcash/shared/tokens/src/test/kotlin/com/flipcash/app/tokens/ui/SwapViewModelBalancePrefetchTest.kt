@@ -8,7 +8,6 @@ import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.PhantomWalletController
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.app.tokens.TransactionNotificationPrompt
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
@@ -119,7 +118,6 @@ class SwapViewModelBalancePrefetchTest {
         userFlags = mockk<UserFlagsCoordinator>(relaxed = true),
         usdcDepositSweep = mockk<UsdcDepositSweep>(relaxed = true),
         balancePoller = mockk<com.flipcash.app.tokens.BalancePoller>(relaxed = true),
-        notificationPrompt = mockk<TransactionNotificationPrompt>(relaxed = true),
     )
 
     private fun SwapViewModel.primeForSell() {

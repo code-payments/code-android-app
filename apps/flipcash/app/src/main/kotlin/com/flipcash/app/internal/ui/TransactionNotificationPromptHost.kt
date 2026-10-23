@@ -4,19 +4,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.res.stringResource
 import com.flipcash.app.tokens.TransactionNotificationPrompt
 import com.flipcash.core.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.rememberNotificationPermission
-import androidx.compose.ui.res.stringResource
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
 
 /**
  * Asks, once ever, whether the user wants notifications for transactions that complete while they
  * are away. Hosted at the app level because the system permission dialog needs an activity-bound
- * launcher and the flow that triggered the request has already exited by the time this shows.
+ * launcher that outlives the flow that requested it.
  */
 @Composable
 internal fun TransactionNotificationPromptHost(prompt: TransactionNotificationPrompt) {
@@ -28,10 +28,10 @@ internal fun TransactionNotificationPromptHost(prompt: TransactionNotificationPr
     val turnOn = stringResource(R.string.action_turnOnNotifications)
 
     LaunchedEffect(prompt) {
-        prompt.requests.collect {
-            delay(TransactionNotificationPrompt.SETTLE_DELAY_MS)
+        prompt.pending.filter { it }.collect {
+            prompt.consume()
             // Auto-granted OS versions report Granted, so this never shows there.
-            if (prompt.hasBeenShown || currentPermission.status != PermissionResult.NotRequested) {
+            if (prompt.hasBeenShown() || currentPermission.status != PermissionResult.NotRequested) {
                 return@collect
             }
             prompt.markShown()

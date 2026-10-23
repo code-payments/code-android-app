@@ -9,7 +9,11 @@ import kotlinx.serialization.Serializable
 sealed interface SwapResult : Parcelable {
     @Parcelize
     @Serializable
-    data class Success(val amount: Fiat = Fiat.Zero) : SwapResult
+    data class Success(
+        val amount: Fiat = Fiat.Zero,
+        /** The transaction finished on the confirm screen, never reaching Processing. */
+        val completedInPlace: Boolean = false,
+    ) : SwapResult
 
     @Parcelize
     @Serializable

@@ -32,7 +32,7 @@ internal fun SwapCompletionEffects(
             .filterIsInstance<SwapViewModel.Event.OnTransactionSuccessful>()
             .onEach {
                 val amount = viewModel.stateFlow.value.enteredAmount
-                flowNavigator.exitWithResult(SwapResult.Success(amount))
+                flowNavigator.exitWithResult(SwapResult.Success(amount, completedInPlace = true))
             }.launchIn(this)
     }
 

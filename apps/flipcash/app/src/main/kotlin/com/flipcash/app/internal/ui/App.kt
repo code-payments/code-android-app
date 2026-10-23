@@ -82,6 +82,7 @@ import com.getcode.navigation.core.rememberCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.results.rememberNavResultStateRegistry
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
+import com.flipcash.app.tokens.LocalTransactionNotificationPrompt
 import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.navigation.scrim.ScrimController
 import com.getcode.theme.CodeTheme
@@ -194,6 +195,7 @@ internal fun App(
                                 LocalCodeNavigator provides codeNavigator,
                                 LocalBiometricsState provides biometricsState,
                                 LocalScrimController provides scrimController,
+                                LocalTransactionNotificationPrompt provides viewModel.notificationPrompt,
                                 LocalSharedTransitionScope provides this,
                             ) {
                                     TransactionNotificationPromptHost(viewModel.notificationPrompt)

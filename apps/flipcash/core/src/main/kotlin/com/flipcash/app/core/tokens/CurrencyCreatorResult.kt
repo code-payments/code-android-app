@@ -8,7 +8,10 @@ import kotlinx.serialization.Serializable
 sealed interface CurrencyCreatorResult : Parcelable {
     @Parcelize
     @Serializable
-    data object Success : CurrencyCreatorResult
+    data class Success(
+        /** The launch finished on the funding screen, never reaching Processing. */
+        val completedInPlace: Boolean = false,
+    ) : CurrencyCreatorResult
 
     @Parcelize
     @Serializable

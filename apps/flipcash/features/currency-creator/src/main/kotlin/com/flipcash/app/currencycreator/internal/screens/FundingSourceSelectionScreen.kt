@@ -58,7 +58,7 @@ internal fun FundingSourceSelectionScreen() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<CurrencyCreatorViewModel.Event.LaunchFinished>()
-            .onEach { flowNavigator.exitWithResult(CurrencyCreatorResult.Success) }
+            .onEach { flowNavigator.exitWithResult(CurrencyCreatorResult.Success(completedInPlace = true)) }
             .launchIn(this)
     }
 }

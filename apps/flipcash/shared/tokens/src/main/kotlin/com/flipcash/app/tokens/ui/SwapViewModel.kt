@@ -20,7 +20,6 @@ import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.tokens.BalancePollError
 import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.InlineCompletion
-import com.flipcash.app.tokens.TransactionNotificationPrompt
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.onramp.CoinbaseOnRampController
@@ -138,7 +137,6 @@ class SwapViewModel @Inject constructor(
     private val userFlags: UserFlagsCoordinator,
     private val usdcDepositSweep: UsdcDepositSweep,
     private val balancePoller: BalancePoller,
-    private val notificationPrompt: TransactionNotificationPrompt,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
@@ -2039,7 +2037,6 @@ class SwapViewModel @Inject constructor(
             updateConfirmButton(button, success = true)
             delay(InlineCompletion.SUCCESS_HOLD)
             dispatchEvent(Event.OnTransactionSuccessful)
-            notificationPrompt.onTransactionCompletedInPlace()
             return
         }
 

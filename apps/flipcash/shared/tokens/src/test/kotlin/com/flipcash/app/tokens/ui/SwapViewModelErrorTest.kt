@@ -32,7 +32,6 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.InlineCompletion
 import com.flipcash.app.tokens.BalancePollError
 import com.flipcash.app.tokens.BalancePoller
-import com.flipcash.app.tokens.TransactionNotificationPrompt
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -112,7 +111,6 @@ class SwapViewModelErrorTest {
     private val userFlagsCoordinator = mockk<UserFlagsCoordinator>(relaxed = true)
     private val usdcDepositSweep = mockk<UsdcDepositSweep>(relaxed = true)
     private val balancePoller = mockk<BalancePoller>(relaxed = true)
-    private val notificationPrompt = mockk<TransactionNotificationPrompt>(relaxed = true)
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
 
@@ -169,7 +167,6 @@ class SwapViewModelErrorTest {
             userFlags = userFlagsCoordinator,
             usdcDepositSweep = usdcDepositSweep,
             balancePoller = balancePoller,
-            notificationPrompt = notificationPrompt,
         )
     }
 
@@ -329,7 +326,6 @@ class SwapViewModelErrorTest {
 
         assertTrue(seen.any { it is SwapViewModel.Event.OnTransactionSuccessful })
         assertTrue(seen.none { it is SwapViewModel.Event.ProcessingTakingLonger })
-        verify { notificationPrompt.onTransactionCompletedInPlace() }
     }
 
     @Test
@@ -492,7 +488,6 @@ class SwapViewModelErrorTest {
             advanceTimeBy(InlineCompletion.SUCCESS_HOLD + 1.milliseconds)
             runCurrent()
             assertTrue(seen.any { it is SwapViewModel.Event.OnTransactionSuccessful })
-            verify { notificationPrompt.onTransactionCompletedInPlace() }
             // The baseline was captured before the wallet was asked to sign.
             coVerify {
                 balancePoller.awaitBalanceChange(Mint.usdf, Fiat.Zero, any(), InlineCompletion.FAST_POLL_ATTEMPTS, InlineCompletion.FAST_POLL_INTERVAL)
