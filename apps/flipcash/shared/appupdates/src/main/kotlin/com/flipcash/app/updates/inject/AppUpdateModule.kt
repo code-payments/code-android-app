@@ -88,6 +88,7 @@ object AppUpdateModule {
             dispatchers = dispatchers,
             flexibleUpdates = flexibleUpdates,
             toastSeenStore = DataStoreUpdateToastSeenStore(context.applicationContext),
+            ignoreServerMinimum = BuildConfig.DEBUG,
         )
     }
 }

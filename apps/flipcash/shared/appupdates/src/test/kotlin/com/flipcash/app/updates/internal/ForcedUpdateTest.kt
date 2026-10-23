@@ -62,13 +62,14 @@ class ForcedUpdateTest {
         MutableStateFlow(resolved(minimumVersion, override, isStaff))
             .also { every { userFlags.resolvedFlags } returns it }
 
-    private fun TestScope.controller() = GooglePlayAppUpdateController(
+    private fun TestScope.controller(ignoreServerMinimum: Boolean = false) = GooglePlayAppUpdateController(
         context = activity,
         versionInfo = VersionInfo(versionCode = currentVersion),
         userFlags = userFlags,
         dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher(testScheduler)),
         flexibleUpdates = FlexibleUpdates(fake, currentVersion, { true }, { true }),
         toastSeenStore = NoopSeenStore,
+        ignoreServerMinimum = ignoreServerMinimum,
         appUpdateManager = fake,
     )
 
@@ -94,6 +95,28 @@ class ForcedUpdateTest {
         controller.check()
 
         assertNull(controller.availableUpdate.value)
+    }
+
+    @Test
+    fun `a debug build ignores a server minimum above its version`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        flags(minimumVersion = currentVersion + 1)
+        val controller = controller(ignoreServerMinimum = true)
+
+        controller.check()
+
+        assertNull(controller.availableUpdate.value)
+    }
+
+    @Test
+    fun `a debug build still shows a staff override`() = runTest {
+        fake.setUpdateAvailable(currentVersion + 1)
+        flags(minimumVersion = null, override = FieldOverride.Value(currentVersion + 5))
+        val controller = controller(ignoreServerMinimum = true)
+
+        controller.check()
+
+        assertEquals(UpdateAvailability.UPDATE_AVAILABLE, controller.availableUpdate.value?.updateAvailability)
     }
 
     @Test

@@ -45,6 +45,7 @@ class GooglePlayAppUpdateController internal constructor(
     private val dispatchers: DispatcherProvider,
     private val flexibleUpdates: FlexibleUpdates,
     private val toastSeenStore: UpdateToastSeenStore,
+    private val ignoreServerMinimum: Boolean = false,
     private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(context),
 ) : AppUpdateController {
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
@@ -96,6 +97,9 @@ class GooglePlayAppUpdateController internal constructor(
             tag = "App Updates",
             message = "Checking for available updates"
         )
+
+        // Debug builds (versionCode 1) would sit behind the server minimum forever; a staff override still shows the gate.
+        if (ignoreServerMinimum && !userFlags.resolvedFlags.value.minimumVersion.isOverridden) return
 
         val minimumVersionFromServer = userFlags.resolvedFlags.value.minimumVersion.effectiveValue ?: Int.MIN_VALUE
 
