@@ -126,9 +126,12 @@ jobs:
           ram-size: 4096M
           heap-size: 576M
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swangle_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: bundle exec fastlane android flipcash_maestro
+          # logcat runs alongside so the lines before an emulator exit survive in the artifact.
+          script: |
+            adb logcat -v threadtime > "$GITHUB_WORKSPACE/logcat.txt" &
+            bundle exec fastlane android flipcash_maestro
         env:
           MAESTRO_TAGS: ${{ github.event.inputs.tags || 'smoke' }}
           MAESTRO_EXCLUDE_TAGS: ${{ github.event.inputs.exclude_tags || 'spends-funds,creates-account' }}
@@ -158,5 +161,6 @@ jobs:
           name: maestro-report-minify-${{ matrix.minify }}
           path: |
             maestro-report.xml
+            logcat.txt
             ~/.maestro/tests/**
           if-no-files-found: ignore
