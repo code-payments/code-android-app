@@ -129,6 +129,34 @@ class MediaCaptionCardTest {
         composeTestRule.onAllNodesWithText("Tap to claim").assertCountEquals(0)
     }
 
+    private val inviteUrl = "https://app.flipcash.com/chat/06d26e5c-a399-8983-98ea-e59785db34a0"
+
+    private fun invite(text: String) = LinkCard.GroupInvite(
+        url = inviteUrl,
+        start = text.indexOf(inviteUrl),
+        end = text.indexOf(inviteUrl) + inviteUrl.length,
+        chatId = ChatId(ByteArray(16)),
+        state = LinkCard.GroupInvite.State.Resolved(
+            title = "XCTest Bed",
+            picture = null,
+            memberCount = 3,
+            requirement = null,
+        ),
+    )
+
+    @Test
+    fun `a group invite among words draws the caption without the link and the card under it`() {
+        val text = "join us $inviteUrl"
+        set(text, invite(text))
+
+        composeTestRule.onNodeWithText("join us").assertIsDisplayed()
+        composeTestRule.onAllNodesWithText(text, substring = true).assertCountEquals(0)
+        composeTestRule.onNodeWithText("XCTest Bed", substring = true).assertIsDisplayed()
+        val captionBox = composeTestRule.onNodeWithTag(PHOTO_CAPTION_TAG).getUnclippedBoundsInRoot()
+        val card = composeTestRule.onNodeWithText("XCTest Bed", substring = true).getUnclippedBoundsInRoot()
+        assertTrue(card.top >= captionBox.bottom)
+    }
+
     @Test
     fun `the claim pill on a link-only caption acts as it does in a text message`() {
         val actions = mutableListOf<ChatAction>()

@@ -241,10 +241,59 @@ class SplitAroundLinkCardTest {
     }
 
     @Test
-    fun `a photo caption with words around a flipcash link draws no card`() {
+    fun `a photo caption with words around a cash link draws no card`() {
         val text = "here $link now"
 
         assertNull(splitPhoto(text, cashAt(text)).single().linkCard)
+    }
+
+    private val inviteUrl = "https://app.flipcash.com/chat/06d26e5c-a399-8983-98ea-e59785db34a0"
+
+    private fun inviteAt(text: String) = LinkCard.GroupInvite(
+        url = inviteUrl,
+        start = text.indexOf(inviteUrl),
+        end = text.indexOf(inviteUrl) + inviteUrl.length,
+        chatId = com.flipcash.services.models.chat.ChatId(ByteArray(16)),
+        state = LinkCard.GroupInvite.State.Loading,
+    )
+
+    @Test
+    fun `a photo caption with words around a group invite keeps the card in the photo row`() {
+        val text = "join us $inviteUrl"
+        val card = inviteAt(text)
+
+        val row = splitPhoto(text, card).single()
+
+        assertNull(row.part)
+        assertEquals(card, row.linkCard)
+    }
+
+    @Test
+    fun `a caption splits around a card as the same text message does`() {
+        val text = "join us $inviteUrl see you there"
+        val card = inviteAt(text)
+
+        val rows = card.captionRowsAround(text, emptyList())!!
+        val message = ChatListItem.ContentBubble(
+            messageId = 9,
+            contentIndex = 0,
+            content = MessageContent.Text(text),
+            isFromSelf = false,
+            timestamp = Instant.fromEpochSeconds(0),
+            linkCard = card,
+        ).splitAroundLinkCard()
+
+        assertEquals("join us", rows.leading?.first)
+        assertEquals("see you there", rows.trailing?.first)
+        assertEquals(
+            listOf("join us", null, "see you there"),
+            message.map { it.partText },
+        )
+    }
+
+    @Test
+    fun `a caption that is only its card has no rows around it`() {
+        assertNull(inviteAt(inviteUrl).captionRowsAround(inviteUrl, emptyList()))
     }
 
     @Test

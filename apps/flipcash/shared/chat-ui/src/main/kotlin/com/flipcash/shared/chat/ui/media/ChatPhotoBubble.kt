@@ -20,6 +20,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.platform.LocalDensity
 import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.chat.models.captionRowsAround
 import com.flipcash.shared.chat.ui.DetectedMention
 import com.flipcash.shared.chat.ui.BareLinkCard
 import com.flipcash.shared.chat.ui.CASH_CARD_WIDTH_FRACTION
@@ -79,8 +80,9 @@ private const val FADE_IN_MILLIS = 250
  *
  * A [caption] is its own text bubble a grid step below, the two sharing a run so the facing corners
  * are squared off. It is drawn as a text message's body is: [mentions] as pills, [redacted] hidden,
- * and a Flipcash [linkCard] when the caption is [cardAlone] -- only its link -- drawn in place of
- * the caption bubble. A caption of nothing but emoji is drawn large with no bubble, both as in a
+ * and a Flipcash [linkCard] drawn as a text message's is: in place of the caption bubble when the
+ * caption is [cardAlone] -- only its link -- and otherwise under the caption's text, which has the
+ * link removed, with any text after the link in a bubble below the card. A caption of nothing but emoji is drawn large with no bubble, both as in a
  * text message. A caption never draws a web card: senders send the preview as its own message.
  *
  * @param photoModifier applied to the photo box itself, which is what the overlay measures and hides.
@@ -203,72 +205,144 @@ fun ChatPhotoBubble(
                 )
                 return@Column
             }
-            Bubble(
+            val rows = remember(linkCard, caption, mentions) {
+                linkCard?.captionRowsAround(caption.orEmpty(), mentions)
+            }
+            if (rows == null || linkCard == null) {
+                CaptionBubble(
+                    text = caption.orEmpty(),
+                    mentions = mentions,
+                    onMentionClick = onMentionClick,
+                    isFromSelf = isFromSelf,
+                    position = position.withPhotoAbove(),
+                    maxWidth = maxWidth,
+                    redacted = redacted,
+                    onLongClick = onLongClick,
+                    onDoubleClick = onDoubleClick,
+                )
+                return@Column
+            }
+            // Words around a card: the rows a text message splits into -- the text before the
+            // link, the card, the text after -- stacked under the photo. The first row joins the
+            // photo's run; the rest sit as a split text message's rows do.
+            val leading = rows.leading
+            val trailing = rows.trailing
+            if (leading != null) {
+                CaptionBubble(
+                    text = leading.first,
+                    mentions = leading.second,
+                    onMentionClick = onMentionClick,
+                    isFromSelf = isFromSelf,
+                    position = position.withPhotoAbove(),
+                    maxWidth = maxWidth,
+                    redacted = redacted,
+                    onLongClick = onLongClick,
+                    onDoubleClick = onDoubleClick,
+                )
+            }
+            BareLinkCard(
+                card = linkCard,
                 isFromSelf = isFromSelf,
-                position = position.withPhotoAbove(),
-                maxWidth = maxWidth,
-                onLongClick = onLongClick,
-                onDoubleClick = onDoubleClick,
-            ) {
-                // The same body a text bubble builds, so a handle here is a pill and a tap on it
-                // opens the person, as it does in text.
-                val linkStyle = SpanStyle(
-                    color = CodeTheme.colors.textMain,
-                    textDecoration = TextDecoration.Underline,
-                )
-                val mentionStyle = SpanStyle(
-                    color = CodeTheme.colors.textMain,
-                    textDecoration = TextDecoration.None,
-                )
-                val currentOnMentionClick by rememberUpdatedState(onMentionClick)
-                val mentionsTappable = onMentionClick != null
-                val mentioned = remember(caption, mentions, linkStyle, mentionStyle, mentionsTappable) {
-                    buildMentionedText(
-                        text = caption.orEmpty(),
-                        mentions = mentions,
-                        linkStyle = linkStyle,
-                        mentionStyle = mentionStyle,
-                        onMentionClick = if (mentionsTappable) {
-                            { username -> currentOnMentionClick?.invoke(username) }
-                        } else {
-                            null
-                        },
-                    )
-                }
-                val handles = mentioned.handles
-                val density = LocalDensity.current
-                val inlineContent = remember(handles.isNotEmpty(), density) {
-                    if (handles.isEmpty()) {
-                        emptyMap()
-                    } else {
-                        val (slot, spacing) = mentionSpacingContent(density)
-                        mapOf(slot to spacing)
-                    }
-                }
-                var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-                Text(
-                    text = mentioned.text,
-                    inlineContent = inlineContent,
-                    style = CodeTheme.typography.textMessage,
-                    color = if (redacted) {
-                        redactedTextColor(CodeTheme.colors.textMain)
-                    } else {
-                        CodeTheme.colors.textMain
-                    },
-                    onTextLayout = { layout = it },
-                    modifier = Modifier
-                        .testTag(PHOTO_CAPTION_TAG)
-                        .then(if (redacted) Modifier.redactedText() else Modifier)
-                        .then(
-                            if (handles.isEmpty()) {
-                                Modifier
-                            } else {
-                                Modifier.drawBehind { layout?.let { drawMentionPills(it, handles) } }
-                            },
-                        ),
+                position = if (leading == null) position.withPhotoAbove() else position,
+                maxWidth = if (linkCard is LinkCard.Message) maxWidth * CASH_CARD_WIDTH_FRACTION else maxWidth,
+                onLongClick = onCardLongClick,
+                onDoubleClick = onCardDoubleClick,
+                interactive = interactive,
+            )
+            if (trailing != null) {
+                CaptionBubble(
+                    text = trailing.first,
+                    mentions = trailing.second,
+                    onMentionClick = onMentionClick,
+                    isFromSelf = isFromSelf,
+                    position = position,
+                    maxWidth = maxWidth,
+                    redacted = redacted,
+                    onLongClick = onLongClick,
+                    onDoubleClick = onDoubleClick,
                 )
             }
         }
+    }
+}
+
+/** A caption's text in the bubble a text message draws its body in. */
+@Composable
+private fun CaptionBubble(
+    text: String,
+    mentions: List<DetectedMention>,
+    onMentionClick: ((String) -> Unit)?,
+    isFromSelf: Boolean,
+    position: BubblePosition,
+    maxWidth: Dp,
+    redacted: Boolean,
+    onLongClick: (() -> Unit)?,
+    onDoubleClick: (() -> Unit)?,
+) {
+    Bubble(
+        isFromSelf = isFromSelf,
+        position = position.withPhotoAbove(),
+        maxWidth = maxWidth,
+        onLongClick = onLongClick,
+        onDoubleClick = onDoubleClick,
+    ) {
+        // The same body a text bubble builds, so a handle here is a pill and a tap on it
+        // opens the person, as it does in text.
+        val linkStyle = SpanStyle(
+            color = CodeTheme.colors.textMain,
+            textDecoration = TextDecoration.Underline,
+        )
+        val mentionStyle = SpanStyle(
+            color = CodeTheme.colors.textMain,
+            textDecoration = TextDecoration.None,
+        )
+        val currentOnMentionClick by rememberUpdatedState(onMentionClick)
+        val mentionsTappable = onMentionClick != null
+        val mentioned = remember(text, mentions, linkStyle, mentionStyle, mentionsTappable) {
+            buildMentionedText(
+                text = text,
+                mentions = mentions,
+                linkStyle = linkStyle,
+                mentionStyle = mentionStyle,
+                onMentionClick = if (mentionsTappable) {
+                    { username -> currentOnMentionClick?.invoke(username) }
+                } else {
+                    null
+                },
+            )
+        }
+        val handles = mentioned.handles
+        val density = LocalDensity.current
+        val inlineContent = remember(handles.isNotEmpty(), density) {
+            if (handles.isEmpty()) {
+                emptyMap()
+            } else {
+                val (slot, spacing) = mentionSpacingContent(density)
+                mapOf(slot to spacing)
+            }
+        }
+        var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+        Text(
+            text = mentioned.text,
+            inlineContent = inlineContent,
+            style = CodeTheme.typography.textMessage,
+            color = if (redacted) {
+                redactedTextColor(CodeTheme.colors.textMain)
+            } else {
+                CodeTheme.colors.textMain
+            },
+            onTextLayout = { layout = it },
+            modifier = Modifier
+                .testTag(PHOTO_CAPTION_TAG)
+                .then(if (redacted) Modifier.redactedText() else Modifier)
+                .then(
+                    if (handles.isEmpty()) {
+                        Modifier
+                    } else {
+                        Modifier.drawBehind { layout?.let { drawMentionPills(it, handles) } }
+                    },
+                ),
+        )
     }
 }
 
