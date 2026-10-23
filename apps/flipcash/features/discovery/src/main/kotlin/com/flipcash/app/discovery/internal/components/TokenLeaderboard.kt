@@ -1,23 +1,17 @@
 package com.flipcash.app.discovery.internal.components
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.FabPosition
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,7 +32,6 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
-import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -154,35 +147,6 @@ internal fun TokenLeaderboard(
                             }
                         }
                     } else {
-                        // leaderboard header
-                        item {
-                            Row(
-                                modifier = Modifier.padding(
-                                    top = CodeTheme.dimens.inset,
-                                    bottom = CodeTheme.dimens.grid.x1,
-                                ),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.title_leaderboard),
-                                    style = CodeTheme.typography.textLarge,
-                                    color = CodeTheme.colors.textMain,
-                                )
-
-                                Icon(
-                                    modifier = Modifier
-                                        .size(CodeTheme.dimens.staticGrid.x4)
-                                        .unboundedClickable {
-                                            dispatch(TokenDiscoveryViewModel.Event.LearnAboutLeaderboard)
-                                        },
-                                    imageVector = Icons.Outlined.Info,
-                                    tint = CodeTheme.colors.textSecondary,
-                                    contentDescription = stringResource(R.string.content_description_leaderboard),
-                                )
-                            }
-                        }
-
                         itemsIndexed(
                             items = tokens.data,
                             key = { _, entry -> entry.key },
