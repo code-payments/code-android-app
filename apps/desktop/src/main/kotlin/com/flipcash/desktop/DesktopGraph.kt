@@ -1,13 +1,40 @@
 package com.flipcash.desktop
 
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.balance.internal.WalletViewModel
+import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.getcode.opencode.exchange.Exchange
+import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.network.NetworkConnectivityListener
+import com.flipcash.desktop.inject.FlipcashDesktopChannelModule
+import com.flipcash.services.inject.FlipcashModule
+import com.flipcash.desktop.inject.OpenCodeDesktopChannelModule
+import com.getcode.opencode.inject.OpenCodeModule
+import com.getcode.opencode.inject.SessionListenerModule
+import com.getcode.opencode.inject.TransactorModule
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
-import dev.zacsweers.metro.Provides
+import javax.inject.Singleton
 
-@DependencyGraph(AppScope::class)
+@Singleton
+@DependencyGraph(
+    scope = AppScope::class,
+    bindingContainers = [
+        OpenCodeModule::class,
+        OpenCodeDesktopChannelModule::class,
+        SessionListenerModule::class,
+        TransactorModule::class,
+        FlipcashModule::class,
+        com.flipcash.services.inject.ChatCryptoModule::class,
+        FlipcashDesktopChannelModule::class,
+        DesktopModule::class,
+    ],
+)
 interface DesktopGraph {
-    val appName: String
-
-    @Provides
-    fun provideAppName(): String = "Flipcash"
+    val walletViewModel: WalletViewModel
+    val selectTokenViewModel: SelectTokenViewModel
+    val exchange: Exchange
+    val resources: ResourceHelper
+    val networkObserver: NetworkConnectivityListener
+    val analytics: FlipcashAnalytics
 }

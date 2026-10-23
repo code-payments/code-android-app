@@ -1,8 +1,6 @@
 package com.flipcash.services.inject
 
-import android.content.Context
 import com.flipcash.services.user.AnalyticsIdentifier
-import com.mixpanel.android.mpmetrics.MixpanelAPI
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.annotations.FlipcashManagedStreamingChannel
 import com.flipcash.services.internal.annotations.FlipcashProtocol
@@ -17,7 +15,6 @@ import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.domain.ChatMetadataMapper
 import com.flipcash.services.BlobUploader
 import com.flipcash.services.ForegroundGate
-import com.flipcash.services.ProcessForegroundGate
 import com.flipcash.services.internal.network.HttpBlobUploader
 import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.internal.network.services.ActivityFeedService
@@ -82,96 +79,17 @@ import com.getcode.opencode.utils.logging.LoggingClientInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import io.grpc.ConnectivityState
 import io.grpc.ManagedChannel
-import io.grpc.android.AndroidChannelBuilder
-import io.grpc.okhttp.OkHttpChannelBuilder
-import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-internal object FlipcashModule {
+object FlipcashModule {
     @Provides
-    fun provideAnalyticsIdentifier(mixpanelAPI: MixpanelAPI): AnalyticsIdentifier =
-        AnalyticsIdentifier { mixpanelAPI.identify(it) }
-
-    @Singleton
-    @FlipcashProtocol
-    @Provides
-    fun providesFlipcashProtocolConfig(
-        @ApplicationContext context: Context
-    ): ProtocolConfig {
-        return object : ProtocolConfig {
-            override val baseUrl: String
-                get() = "fc-v2.api.flipcash-infra.net"
-            override val userAgent: String
-                get() {
-                    val version =
-                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                    return "Flipcash/Android/$version"
-                }
-        }
-    }
-
-    @Singleton
-    @Provides
-    @FlipcashManagedChannel
-    fun provideManagedChannel(
-        @ApplicationContext context: Context,
-        @FlipcashProtocol
-        config: ProtocolConfig,
-    ): ManagedChannel {
-        return AndroidChannelBuilder
-            .usingBuilder(OkHttpChannelBuilder.forAddress(config.baseUrl, config.port))
-            .context(context)
-            .userAgent(config.userAgent)
-            .keepAliveWithoutCalls(false)
-            .idleTimeout(5, TimeUnit.MINUTES)
-            .intercept(LoggingClientInterceptor())
-            .build()
-            .also { observeChannelState("flipcash", it) }
-    }
-
-    @Singleton
-    @Provides
-    @FlipcashManagedStreamingChannel
-    fun provideManagedStreamingChannel(
-        @ApplicationContext context: Context,
-        @FlipcashProtocol
-        config: ProtocolConfig,
-    ): ManagedChannel {
-        return AndroidChannelBuilder
-            .usingBuilder(OkHttpChannelBuilder.forAddress(config.baseUrl, config.port))
-            .context(context)
-            .userAgent(config.userAgent)
-            .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-            .keepAliveTimeout(config.keepAliveTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-            .keepAliveWithoutCalls(true)
-            .intercept(LoggingClientInterceptor())
-            .build()
-            .also { observeChannelState("flipcash-stream", it) }
-    }
-
-    private fun observeChannelState(name: String, channel: ManagedChannel) {
-        val state = channel.getState(false)
-        trace(
-            tag = "gRPC",
-            message = "$name => $state",
-            type = TraceType.StateChange,
-        )
-        if (state != ConnectivityState.SHUTDOWN) {
-            channel.notifyWhenStateChanged(state) {
-                observeChannelState(name, channel)
-            }
-        }
-    }
-
-    @Provides
+    @JvmName("providesChatRepository")
     internal fun providesChatRepository(
         service: ChatService,
         mapper: ChatMetadataMapper,
@@ -179,22 +97,26 @@ internal object FlipcashModule {
     ): ChatRepository = InternalChatRepository(service, mapper, userProfileMapper)
 
     @Provides
+    @JvmName("providesEventStreamingRepository")
     internal fun providesEventStreamingRepository(
         service: EventStreamingService,
     ): EventStreamingRepository = InternalEventStreamingRepository(service)
 
     @Provides
+    @JvmName("providesChatMessagingRepository")
     internal fun providesChatMessagingRepository(
         service: ChatMessagingService,
     ): ChatMessagingRepository = InternalChatMessagingRepository(service)
 
     @Provides
+    @JvmName("providesContactListRepository")
     internal fun providesContactListRepository(
         service: ContactListService,
         contactMapper: ContactMapper,
     ): ContactListRepository = InternalContactListRepository(service, contactMapper)
 
     @Provides
+    @JvmName("providesCommunityRepository")
     internal fun providesCommunityRepository(
         service: CommunityService,
         chatMapper: ChatMetadataMapper,
@@ -202,64 +124,70 @@ internal object FlipcashModule {
     ): CommunityRepository = InternalCommunityRepository(service, chatMapper, userProfileMapper)
 
     @Provides
+    @JvmName("providesResolverRepository")
     internal fun providesResolverRepository(
         service: ResolverService,
     ): ResolverRepository = InternalResolverRepository(service)
 
     @Provides
+    @JvmName("providesBlobStorageRepository")
     internal fun providesBlobStorageRepository(
         service: BlobStorageService,
     ): BlobStorageRepository = InternalBlobStorageRepository(service)
 
     @Provides
+    @JvmName("providesBlobUploader")
     internal fun providesBlobUploader(
         uploader: HttpBlobUploader,
     ): BlobUploader = uploader
 
     @Provides
-    internal fun providesForegroundGate(
-        gate: ProcessForegroundGate,
-    ): ForegroundGate = gate
-
-    @Provides
+    @JvmName("providesAccountRepository")
     internal fun providesAccountRepository(
         service: AccountService,
         mapper: UserFlagsMapper,
     ): AccountRepository = InternalAccountRepository(service, mapper)
 
     @Provides
+    @JvmName("providesActivityFeedRepository")
     internal fun providesActivityFeedRepository(
         service: ActivityFeedService,
         mapper: ActivityFeedMessageMapper,
     ): ActivityFeedRepository = InternalActivityFeedRepository(service, mapper)
 
     @Provides
+    @JvmName("providesBlocklistRepository")
     internal fun providesBlocklistRepository(
         service: BlocklistService,
         mapper: BlockedUserMapper,
     ): BlocklistRepository = InternalBlocklistRepository(service, mapper)
 
     @Provides
+    @JvmName("providesPurchaseRepository")
     internal fun providesPurchaseRepository(
         service: PurchaseService,
     ): PurchaseRepository = InternalPurchaseRepository(service)
 
     @Provides
+    @JvmName("providesPushRepository")
     internal fun providesPushRepository(
         service: PushService,
     ): PushRepository = InternalPushRepository(service)
 
     @Provides
+    @JvmName("providesSettingsRepository")
     internal fun providesSettingsRepository(
         service: SettingsService
     ): SettingsRepository = InternalSettingsRepository(service)
 
     @Provides
+    @JvmName("providesThirdPartyRepository")
     internal fun providesThirdPartyRepository(
         service: ThirdPartyService,
     ): ThirdPartyRepository = InternalThirdPartyRepository(service)
 
     @Provides
+    @JvmName("providesContactVerificationRepository")
     internal fun providesContactVerificationRepository(
         emailService: EmailVerificationService,
         phoneService: PhoneVerificationService,
@@ -267,6 +195,7 @@ internal object FlipcashModule {
         InternalContactVerificationRepository(emailService, phoneService)
 
     @Provides
+    @JvmName("providesProfileRepository")
     internal fun providesProfileRepository(
         service: ProfileService,
         userProfileMapper: UserProfileMapper,
@@ -275,11 +204,13 @@ internal object FlipcashModule {
         InternalProfileRepository(service, userProfileMapper, socialAccountMapper)
 
     @Provides
+    @JvmName("providesPollRepository")
     internal fun providesPollRepository(
         service: PollService,
     ): PollRepository = InternalPollRepository(service)
 
     @Provides
+    @JvmName("providesModerationRepository")
     internal fun providesModerationRepository(
         service: ModerationService,
         textModerationResponseMapper: TextModerationResponseMapper,
@@ -291,6 +222,7 @@ internal object FlipcashModule {
     )
 
     @Provides
+    @JvmName("providesReportingRepository")
     internal fun providesReportingRepository(
         service: ReportingService,
     ): ReportingRepository = InternalReportingRepository(service)

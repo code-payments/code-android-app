@@ -11,4 +11,4 @@ import javax.inject.Qualifier
     AnnotationTarget.VALUE_PARAMETER,
     AnnotationTarget.FIELD
 )
-internal annotation class OpenCodeProtocol
+annotation class OpenCodeProtocol

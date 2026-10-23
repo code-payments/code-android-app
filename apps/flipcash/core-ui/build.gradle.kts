@@ -55,4 +55,6 @@ kotlin {
 dependencies {
     add("kspAndroid", libs.hilt.android.compiler)
     add("kspAndroid", libs.hilt.compiler)
+    add("kspJvm", libs.dagger.compiler)
+    add("jvmMainImplementation", libs.dagger)
 }

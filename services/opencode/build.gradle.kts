@@ -80,6 +80,8 @@ kotlin {
 dependencies {
     add("kspAndroid", libs.hilt.android.compiler)
     add("kspAndroid", libs.hilt.compiler)
+    add("kspJvm", libs.dagger.compiler)
+    add("jvmMainImplementation", libs.dagger)
 }
 
 // The headless balance test reads its recovery phrase from local.properties (gitignored) or the

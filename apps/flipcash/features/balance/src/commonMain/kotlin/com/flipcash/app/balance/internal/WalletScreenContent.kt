@@ -63,7 +63,7 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 private const val TokenStackKey = "tokenStack"
 
 @Composable
-internal fun WalletScreen(
+fun WalletScreen(
     viewModel: WalletViewModel,
     tokenViewModel: SelectTokenViewModel,
 ) {

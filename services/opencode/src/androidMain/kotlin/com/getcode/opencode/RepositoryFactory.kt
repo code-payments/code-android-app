@@ -1,6 +1,7 @@
 package com.getcode.opencode
 
 import android.content.Context
+import com.getcode.opencode.inject.OpenCodeChannelModule
 import com.getcode.opencode.inject.OpenCodeModule
 import com.getcode.opencode.internal.domain.mapping.BillCustomizationMapper
 import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
@@ -43,8 +44,8 @@ object RepositoryFactory {
             OpenCodeModule::class.java,
         )
 
-        val api = AccountApi(module.provideManagedChannel(context, config))
-        val transactionApi = TransactionApi(module.provideManagedChannel(context, config))
+        val api = AccountApi(OpenCodeChannelModule.provideManagedChannel(context, config))
+        val transactionApi = TransactionApi(OpenCodeChannelModule.provideManagedChannel(context, config))
         val service = AccountService(api)
         val transactionMetadataMapper = TransactionMetadataMapper()
         val swapFunding = SwapFunding(transactionApi)
@@ -86,7 +87,7 @@ object RepositoryFactory {
             OpenCodeModule::class.java,
         )
 
-        val api = MessagingApi(module.provideManagedChannel(context, config))
+        val api = MessagingApi(OpenCodeChannelModule.provideManagedChannel(context, config))
         val service = MessagingService(api)
         return module.providesMessagingRepository(service)
     }
@@ -101,7 +102,7 @@ object RepositoryFactory {
             OpenCodeModule::class.java,
         )
 
-        val api = TransactionApi(module.provideManagedChannel(context, config))
+        val api = TransactionApi(OpenCodeChannelModule.provideManagedChannel(context, config))
         val transactionMetadataMapper = TransactionMetadataMapper()
         val swapFunding = SwapFunding(api)
         val service = TransactionService(api, transactionMetadataMapper, swapFunding)
@@ -118,7 +119,7 @@ object RepositoryFactory {
             OpenCodeModule::class.java,
         )
 
-        val api = TransactionApi(module.provideManagedChannel(context, config))
+        val api = TransactionApi(OpenCodeChannelModule.provideManagedChannel(context, config))
         val swapMetadataMapper = SwapMetadataMapper()
         val service = SwapService(api, swapMetadataMapper)
         val poller = SwapPoller(service)
@@ -139,8 +140,8 @@ object RepositoryFactory {
         )
 
         val api = CurrencyApi(
-            managedChannel = module.provideManagedChannel(context, config),
-            streamingChannel = module.provideManagedStreamingChannel(context, config)
+            managedChannel = OpenCodeChannelModule.provideManagedChannel(context, config),
+            streamingChannel = OpenCodeChannelModule.provideManagedStreamingChannel(context, config)
         )
         val mintMapper = MintMapper(
             vmMetadataMapper = VmMetadataMapper(),

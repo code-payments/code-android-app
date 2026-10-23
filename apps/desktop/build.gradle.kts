@@ -11,9 +11,40 @@ kotlin {
     jvmToolchain(21)
 }
 
+metro {
+    interop {
+        includeJavax()
+        includeDagger()
+        enableDaggerRuntimeInterop.set(true)
+    }
+}
+
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.jetbrains.compose.material3)
+    implementation(project(":services:opencode"))
+    implementation(project(":apps:flipcash:features:balance"))
+    implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:transaction-history"))
+    implementation(project(":apps:flipcash:shared:tokens"))
+    implementation(project(":apps:flipcash:shared:funding"))
+    implementation(project(":apps:flipcash:shared:userflags"))
+    implementation(project(":apps:flipcash:shared:analytics"))
+    implementation(project(":apps:flipcash:shared:persistence:sources"))
+    implementation(project(":apps:flipcash:shared:persistence:db"))
+    implementation(project(":services:flipcash"))
+    implementation(project(":libs:coroutines"))
+    implementation(project(":libs:logging"))
+    implementation(project(":ui:resources"))
+    implementation(project(":ui:theme"))
+    implementation(project(":apps:flipcash:shared:theme"))
+    implementation(project(":services:opencode-compose"))
+    implementation(project(":libs:locale:public"))
+    implementation(project(":libs:network:connectivity:public"))
+    implementation(project(":libs:encryption:chat-cipher"))
+    implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.dagger)
+    implementation(libs.grpc.okhttp)
 }
 
 compose.desktop {
@@ -25,4 +56,12 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+tasks.register<JavaExec>("snapshot") {
+    group = "application"
+    description = "Renders the wallet screen off-screen to a PNG (-Pout=<file>)."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.flipcash.desktop.SnapshotMainKt")
+    args(providers.gradleProperty("out").getOrElse(layout.buildDirectory.file("wallet.png").get().asFile.path))
 }

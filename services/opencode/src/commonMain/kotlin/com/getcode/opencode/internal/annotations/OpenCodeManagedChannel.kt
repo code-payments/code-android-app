@@ -10,7 +10,7 @@ import javax.inject.Qualifier
     AnnotationTarget.VALUE_PARAMETER,
     AnnotationTarget.FIELD
 )
-internal annotation class OpenCodeManagedChannel
+annotation class OpenCodeManagedChannel
 
 
 @Qualifier
@@ -21,4 +21,4 @@ internal annotation class OpenCodeManagedChannel
     AnnotationTarget.VALUE_PARAMETER,
     AnnotationTarget.FIELD
 )
-internal annotation class OpenCodeManagedStreamingChannel
+annotation class OpenCodeManagedStreamingChannel
