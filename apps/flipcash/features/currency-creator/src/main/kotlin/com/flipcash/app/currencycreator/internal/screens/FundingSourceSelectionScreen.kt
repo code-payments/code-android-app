@@ -12,6 +12,7 @@ import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
 import com.flipcash.app.tokens.TokenSelectScreen
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import kotlinx.coroutines.flow.filter
@@ -22,7 +23,7 @@ import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun FundingSourceSelectionScreen() {
-    val selectionViewModel = hiltViewModel<SelectTokenViewModel>()
+    val selectionViewModel = hiltViewModel<HiltSelectTokenViewModel>()
     val viewModel = flowSharedViewModel<CurrencyCreatorViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()

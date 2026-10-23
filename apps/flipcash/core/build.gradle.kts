@@ -19,6 +19,7 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":libs:parcelable"))
             implementation(libs.javax.inject)
+            api(libs.androidx.lifecycle.runtime.common)
             api(project(":ui:navigation"))
             api(project(":ui:core"))
             api(libs.navigation3.runtime)
@@ -54,6 +55,7 @@ kotlin {
             implementation(libs.firebase.messaging)
             implementation(libs.androidx.localbroadcastmanager)
             implementation(libs.androidx.datastore)
+            implementation(libs.androidx.lifecycle.process)
             implementation(libs.compose.material3)
             api(libs.coil3)
             api(libs.coil3.network)

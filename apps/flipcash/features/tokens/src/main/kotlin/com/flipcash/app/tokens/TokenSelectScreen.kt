@@ -14,6 +14,7 @@ import com.flipcash.app.core.AppRoute.Transfers.Withdrawal
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.internal.SelectTokenScreen
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -33,7 +34,7 @@ fun TokenSelectScreen(
     loadingMint: Mint? = null,
 ) {
     val navigator = LocalCodeNavigator.current
-    val viewModel = hiltViewModel<SelectTokenViewModel>()
+    val viewModel = hiltViewModel<HiltSelectTokenViewModel>()
 
     Column(
         modifier = if (presentation.wrapHeight) Modifier.fillMaxWidth()

@@ -13,6 +13,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.getcode.navigation.core.LocalCodeNavigator
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -27,7 +28,7 @@ fun WalletScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val viewModel = hiltViewModel<WalletViewModel>()
-        val tokenViewModel = hiltViewModel<SelectTokenViewModel>()
+        val tokenViewModel = hiltViewModel<HiltSelectTokenViewModel>()
         WalletScreen(viewModel, tokenViewModel)
 
         LaunchedEffect(tokenViewModel) {

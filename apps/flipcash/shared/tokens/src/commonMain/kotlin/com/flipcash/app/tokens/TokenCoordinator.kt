@@ -1,18 +1,15 @@
 package com.flipcash.app.tokens
 
-import android.content.Context
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import android.os.Handler
-import android.os.Looper
-import androidx.lifecycle.ProcessLifecycleOwner
+import com.flipcash.app.core.lifecycle.AppProcessLifecycle
+import com.flipcash.app.core.storage.PreferencesFiles
 import com.flipcash.app.persistence.sources.TokenDataSource
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.tokens.core.ReservesBalanceProvider
@@ -44,7 +41,6 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -114,7 +110,7 @@ enum class TokenSyncState {
  */
 @Singleton
 class TokenCoordinator @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+    private val preferencesFiles: PreferencesFiles,
     private val tokenController: TokenController,
     private val accountController: AccountController,
     private val networkObserver: NetworkConnectivityListener,
@@ -145,7 +141,7 @@ class TokenCoordinator @Inject constructor(
     private val selectedToken = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
         scope = scope,
-        produceFile = { context.preferencesDataStoreFile("selected-token") }
+        produceFile = { preferencesFiles.file("selected-token") }
     )
 
     private val cluster = MutableStateFlow<AccountCluster?>(null)
@@ -293,11 +289,9 @@ class TokenCoordinator @Inject constructor(
     // region Lifecycle
 
     init {
-        // Posted, not called directly: addObserver is main-thread-only, and this singleton is built
+        // Posted to the main thread on Android: addObserver is main-thread-only, and this singleton is built
         // off the main thread so its construction stays off the startup path.
-        Handler(Looper.getMainLooper()).post {
-            ProcessLifecycleOwner.get().lifecycle.addObserver(this)
-        }
+        AppProcessLifecycle.addObserver(this)
 
         cluster.filterNotNull()
             .flatMapLatest { networkObserver.state.map { it.connected } }

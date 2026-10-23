@@ -16,7 +16,6 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -27,8 +26,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
-@HiltViewModel
-class SelectTokenViewModel @Inject constructor(
+/**
+ * Shared across Android and desktop. Android obtains it through [HiltSelectTokenViewModel], since
+ * `@HiltViewModel` is Android-only; desktop constructs it from its Metro graph.
+ */
+open class SelectTokenViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     exchange: Exchange,
     dispatchers: DispatcherProvider,

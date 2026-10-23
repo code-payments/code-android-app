@@ -24,6 +24,7 @@ import com.flipcash.app.deposit.internal.DepositViewModel
 import com.flipcash.app.deposit.internal.UsdcDepositInformationScreen
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.core.R
 import com.getcode.navigation.annotatedEntry
@@ -99,7 +100,7 @@ private fun depositEntryProvider(
 @Composable
 private fun DepositSelectTokenScreen() {
     val flowNavigator = rememberFlowNavigator<DepositStep, DepositResult>()
-    val viewModel = hiltViewModel<SelectTokenViewModel>()
+    val viewModel = hiltViewModel<HiltSelectTokenViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     Column(
