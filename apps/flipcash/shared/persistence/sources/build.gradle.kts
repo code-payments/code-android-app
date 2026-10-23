@@ -1,36 +1,44 @@
 plugins {
-    alias(libs.plugins.flipcash.android.feature)
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.kotlin.ksp)
 }
 
-android {
-    namespace = "${Gradle.flipcashNamespace}.shared.persistence.sources"
-    defaultConfig {
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf("room.schemaLocation" to "$projectDir/schemas")
-            }
+kotlin {
+    android {
+        namespace = "${Gradle.flipcashNamespace}.shared.persistence.sources"
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.bundles.kotlinx.serialization)
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.paging.common)
+            implementation(libs.javax.inject)
+
+            implementation(project(":apps:flipcash:core"))
+            implementation(project(":apps:flipcash:shared:persistence:db"))
+            implementation(project(":libs:coroutines"))
+            implementation(project(":libs:logging"))
+            implementation(project(":libs:encryption:base58"))
+            implementation(project(":libs:encryption:keys"))
+            implementation(project(":libs:encryption:utils"))
+            implementation(project(":services:flipcash"))
+        }
+        androidMain.dependencies {
+            implementation(libs.bundles.hilt)
+            implementation(libs.androidx.room.ktx)
+            implementation(libs.androidx.paging.runtime)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.bundles.unit.testing)
+            implementation(libs.robolectric)
+            implementation(project(":services:flipcash:test-fixtures"))
         }
     }
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
-    testImplementation(libs.bundles.unit.testing)
-    testImplementation(libs.robolectric)
-    testImplementation(project(":services:flipcash:test-fixtures"))
-
-    implementation(libs.bundles.kotlinx.serialization)
-
-    implementation(libs.bundles.room)
-    implementation(libs.androidx.paging.runtime)
-
-    ksp(libs.androidx.room.compiler)
-
-    implementation(project(":apps:flipcash:shared:persistence:db"))
-
-    implementation(project(":libs:encryption:base58"))
-    implementation(project(":libs:encryption:keys"))
-    implementation(project(":libs:encryption:utils"))
-
-    implementation(project(":services:flipcash"))
+    add("kspAndroid", libs.hilt.android.compiler)
+    add("kspAndroid", libs.hilt.compiler)
 }

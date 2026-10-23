@@ -1,6 +1,6 @@
 package com.flipcash.app.persistence.sources
 
-import androidx.room.withTransaction
+import com.flipcash.app.persistence.inTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
 import com.flipcash.services.models.chat.ChatId
@@ -92,7 +92,7 @@ class ChatMemberDataSource @Inject constructor(
         // Member rows and their normalized profiles are written in one transaction so a
         // member never observes a missing profile mid-write. Profiles go first (the
         // @Relation reads them).
-        database.withTransaction {
+        database.inTransaction {
             database.userProfileDao().upsertMembers(profileRows(members))
             database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
         }
@@ -128,7 +128,7 @@ class ChatMemberDataSource @Inject constructor(
 
         val database = db ?: return
         val hex = mapper.chatIdHex(chatId)
-        database.withTransaction {
+        database.inTransaction {
             database.userProfileDao().upsertMembers(profileRows(members))
             database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
             database.chatMemberDao().deleteMembersNotIn(

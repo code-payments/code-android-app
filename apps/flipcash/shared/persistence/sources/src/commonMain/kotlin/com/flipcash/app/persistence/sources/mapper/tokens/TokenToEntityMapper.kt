@@ -1,6 +1,6 @@
 package com.flipcash.app.persistence.sources.mapper.tokens
 
-import android.util.Base64
+import java.util.Base64
 import com.flipcash.app.persistence.converters.BillBackgroundSerialized
 import com.flipcash.app.persistence.converters.BillCustomizationsSerialized
 import com.flipcash.app.persistence.converters.BillTextureSerialized
@@ -95,7 +95,7 @@ private fun TokenBillCustomizations.toSerialized() = BillCustomizationsSerialize
             strength = it.strength,
         )
     },
-    icon = icon?.let { Base64.encodeToString(it, Base64.NO_WRAP) },
+    icon = icon?.let { Base64.getEncoder().encodeToString(it) },
 )
 
 private fun HolderMetrics.toSerialized() = HolderMetricsSerialized(

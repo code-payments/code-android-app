@@ -1,7 +1,7 @@
 package com.flipcash.app.persistence.sources
 
 import androidx.paging.PagingSource
-import androidx.room.withTransaction
+import com.flipcash.app.persistence.inTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.dao.ChatMessageDao
 import com.flipcash.app.persistence.entities.ChatMessageEntity
@@ -366,7 +366,7 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun writePrepared(prepared: PreparedMessages) {
         val database = db ?: return
         if (prepared.byChat.isEmpty()) return
-        database.withTransaction {
+        database.inTransaction {
             for ((chatId, messages) in prepared.byChat) write(mapper.chatIdHex(chatId), messages)
         }
     }

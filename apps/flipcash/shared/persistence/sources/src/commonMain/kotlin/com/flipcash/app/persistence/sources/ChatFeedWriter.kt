@@ -1,6 +1,6 @@
 package com.flipcash.app.persistence.sources
 
-import androidx.room.withTransaction
+import com.flipcash.app.persistence.inTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.services.models.chat.ChatMetadata
 import javax.inject.Inject
@@ -31,7 +31,7 @@ class ChatFeedWriter @Inject constructor(
             messageDataSource.writePrepared(prepared)
         }
         val database = FlipcashDatabase.getInstance()
-        if (database != null) database.withTransaction { body() } else body()
+        if (database != null) database.inTransaction { body() } else body()
         messageDataSource.afterWrite(prepared)
     }
 }

@@ -2,7 +2,7 @@ package com.flipcash.app.persistence.sources
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import androidx.room.withTransaction
+import com.flipcash.app.persistence.inTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.BlockedUserEntity
 import com.flipcash.app.persistence.entities.BlockedUserWithProfile
@@ -43,7 +43,7 @@ class BlockedUserDataSource @Inject constructor(
 
     suspend fun upsert(resolved: List<ResolvedBlockedUser>) {
         val database = db ?: return
-        database.withTransaction {
+        database.inTransaction {
             database.blockedUserDao().upsert(resolved.map { toEntityMapper.map(it) })
             resolved.forEach { database.writeProfile(it) }
         }
@@ -52,7 +52,7 @@ class BlockedUserDataSource @Inject constructor(
     /** Atomically replaces the cached blocklist — a single Room invalidation, no empty flicker. */
     suspend fun replaceAll(resolved: List<ResolvedBlockedUser>) {
         val database = db ?: return
-        database.withTransaction {
+        database.inTransaction {
             database.blockedUserDao().replaceAll(resolved.map { toEntityMapper.map(it) })
             resolved.forEach { database.writeProfile(it) }
         }
