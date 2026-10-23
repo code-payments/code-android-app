@@ -1,32 +1,40 @@
 plugins {
-    alias(libs.plugins.flipcash.android.feature)
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.ksp)
 }
 
-android {
-    namespace = "${Gradle.flipcashNamespace}.shared.anaylytics"
-    testFixtures {
-        enable = true
+kotlin {
+    android {
+        namespace = "${Gradle.flipcashNamespace}.shared.anaylytics"
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            api(project(":libs:analytics-events"))
+            implementation(libs.jetbrains.compose.runtime)
+        }
+        androidMain.dependencies {
+            implementation(project(":apps:flipcash:core"))
+            implementation(project(":libs:logging"))
+            implementation(project(":libs:currency-math"))
+            implementation(project(":libs:encryption:keys"))
+            implementation(project(":services:flipcash"))
+            implementation(project(":services:opencode"))
+            implementation(libs.androidx.core)
+            implementation(libs.mixpanel)
+            implementation(libs.bundles.hilt)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
+            implementation(kotlin("test"))
+            implementation(libs.bundles.unit.testing)
+            implementation(libs.robolectric)
+        }
     }
 }
 
 dependencies {
-    testFixturesImplementation(platform(libs.compose.bom))
-    testFixturesImplementation(libs.compose.ui)
-
-    testImplementation(kotlin("test"))
-    testImplementation(libs.bundles.unit.testing)
-    testImplementation(libs.robolectric)
-
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.messaging)
-    implementation(libs.bugsnag)
-
-    api(project(":libs:analytics-events"))
-    implementation(project(":libs:logging"))
-    implementation(project(":services:flipcash"))
-    implementation(project(":services:opencode"))
-
-    implementation(libs.mixpanel)
-
-    implementation(libs.androidx.datastore)
+    add("kspAndroid", libs.hilt.android.compiler)
+    add("kspAndroid", libs.hilt.compiler)
 }

@@ -124,6 +124,7 @@ include(
     ":apps:flipcash:shared:amount-entry",
     ":apps:flipcash:shared:accesskey",
     ":apps:flipcash:shared:analytics",
+    ":apps:flipcash:shared:analytics:test-fixtures",
     ":apps:flipcash:shared:appsettings",
     ":apps:flipcash:shared:authentication",
     ":apps:flipcash:shared:activityfeed",

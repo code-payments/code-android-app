@@ -10,7 +10,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(project(":ui:resources:test-fixtures"))
-    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
+    testImplementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
     testImplementation(libs.robolectric)
 
     implementation(project(":apps:flipcash:shared:analytics"))
