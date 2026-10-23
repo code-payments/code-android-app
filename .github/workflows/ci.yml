@@ -10,7 +10,7 @@ name: CI
 # emulator and so is too slow for every PR push.
 #
 # The push trigger exists to warm the Gradle build cache. Only runs on code/cash write the cache;
-# PR and merge-queue runs read it, so a PR re-executes only the tasks its diff invalidates.
+# A manual workflow_dispatch also writes, to warm a branch. PR and merge-queue runs read it, so a PR re-executes only the tasks its diff invalidates.
 on:
   pull_request:
   merge_group:
@@ -52,7 +52,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.event_name != 'push' }}
+          cache-read-only: ${{ github.event_name != 'push' && github.event_name != 'workflow_dispatch' }}
 
       - name: Provision config
         uses: ./.github/actions/provision-config
@@ -87,7 +87,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.event_name != 'push' }}
+          cache-read-only: ${{ github.event_name != 'push' && github.event_name != 'workflow_dispatch' }}
 
       - name: Provision config
         uses: ./.github/actions/provision-config
