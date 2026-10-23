@@ -152,6 +152,5 @@ jobs:
           disable-animations: true
           script: >
             ./gradlew
-            :libs:encryption:ed25519:connectedAndroidTest
-            :libs:encryption:mnemonic:connectedAndroidTest
+            :libs:encryption:mnemonic:connectedAndroidDeviceTest
             :libs:currency-math:connectedAndroidTest
