@@ -13,9 +13,25 @@ data class ViewerState(
     // Server-computed grants for the viewer. Never client-derivable; defaults false until
     // the server says otherwise.
     val permissions: Permissions = Permissions(),
+    // Present if and only if a moderator restricts the viewer in this chat. While a silence is
+    // set the composer is hidden; the client owns the countdown for a timed silence.
+    val restrictions: Restrictions? = null,
 ) {
     data class Permissions(
         // Whether the viewer may call EditChat on this chat.
         val canEdit: Boolean = false,
+        // Which moderation actions the viewer may take on other users.
+        val moderation: ModerationPermissions = ModerationPermissions(),
+    )
+
+    data class ModerationPermissions(
+        // Whether the viewer may call SilenceUser / UnsilenceUser.
+        val canSilence: Boolean = false,
+        // Whether the viewer may call BanUser / UnbanUser.
+        val canBan: Boolean = false,
+    )
+
+    data class Restrictions(
+        val silence: SilenceState? = null,
     )
 }

@@ -6,6 +6,7 @@ import com.flipcash.services.internal.network.extensions.toChatMember
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toKeyEnvelope
 import com.flipcash.services.internal.network.extensions.toLobbyMember
+import com.flipcash.services.internal.network.extensions.toRestrictedUser
 import com.flipcash.services.internal.network.extensions.toPagingToken
 import com.flipcash.services.internal.network.extensions.toRosterSummary
 import com.flipcash.services.internal.network.extensions.toViewerState
@@ -25,6 +26,8 @@ import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.RestrictedUsersPage
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
@@ -227,6 +230,40 @@ internal class InternalChatRepository(
     override suspend fun denyLobbyMember(owner: KeyPair, chatId: ChatId, userId: ID): Result<Unit> =
         service.denyLobbyMember(owner, chatId, userId)
             .onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun silenceUser(
+        owner: KeyPair,
+        chatId: ChatId,
+        userId: ID,
+        silence: SilenceState,
+    ): Result<Unit> = service.silenceUser(owner, chatId, userId, silence)
+        .onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun unsilenceUser(owner: KeyPair, chatId: ChatId, userId: ID): Result<Unit> =
+        service.unsilenceUser(owner, chatId, userId)
+            .onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun banUser(owner: KeyPair, chatId: ChatId, userId: ID): Result<Unit> =
+        service.banUser(owner, chatId, userId)
+            .onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun unbanUser(owner: KeyPair, chatId: ChatId, userId: ID): Result<Unit> =
+        service.unbanUser(owner, chatId, userId)
+            .onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun getRestrictedUsers(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+    ): Result<RestrictedUsersPage> = service.getRestrictedUsers(owner, chatId, queryOptions)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { response ->
+            RestrictedUsersPage(
+                users = response.usersList.map { it.toRestrictedUser() },
+                pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
+                hasMore = response.hasMore,
+            )
+        }
 
     override suspend fun setKeyEnvelope(
         owner: KeyPair,

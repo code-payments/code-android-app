@@ -14,6 +14,8 @@ import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.RestrictedUsersPage
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.services.models.chat.StartChatParameters
@@ -648,6 +650,28 @@ private class FakeChatRepository : ChatRepository {
         lastKeyEnvelope = keyEnvelope
         return admitLobbyMemberResult
     }
+
+    override suspend fun silenceUser(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        userId: ID,
+        silence: SilenceState,
+    ): Result<Unit> = Result.success(Unit)
+
+    override suspend fun unsilenceUser(owner: Ed25519.KeyPair, chatId: ChatId, userId: ID): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun banUser(owner: Ed25519.KeyPair, chatId: ChatId, userId: ID): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun unbanUser(owner: Ed25519.KeyPair, chatId: ChatId, userId: ID): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun getRestrictedUsers(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+    ): Result<RestrictedUsersPage> = Result.success(RestrictedUsersPage(emptyList(), null, false))
 
     override suspend fun denyLobbyMember(owner: Ed25519.KeyPair, chatId: ChatId, userId: ID): Result<Unit> {
         lastChatId = chatId

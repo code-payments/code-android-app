@@ -20,9 +20,10 @@ sealed interface MessageContent {
         val tokenImageUrl: String = "",
         val action: Action = Action.SENT,
         /**
-         * Who was paid (`CashContent.receiver`). Always set in a group chat. In a DM it is set on
-         * new messages and unset on older ones, whose receiver is the DM member who is not the
-         * sender; null here means the message did not carry one.
+         * Who was paid by a single-receiver payment (`CashContent.single_receiver`). In a DM it is
+         * set on new messages and unset on older ones, whose receiver is the DM member who is not
+         * the sender. Null here means the message did not carry one, which includes every
+         * multi-receiver payment: read [multiReceiver] for those.
          */
         val receiver: ID? = null,
         /**
@@ -31,7 +32,27 @@ sealed interface MessageContent {
          * was kept have no value, so callers must not read null as zero.
          */
         val tokenQuarks: Long? = null,
+        /**
+         * Each receiver's part of [amount] (`CashContent.multi_receiver`), in [amount]'s currency
+         * and [mint]. Empty unless this is a multi-receiver payment, which only occurs in group
+         * chats; then [receiver] is null and [amount] is the whole payment.
+         */
+        val multiReceiver: List<Payment> = emptyList(),
+        /**
+         * The payment request whose share this payment paid (`CashContent.payment_request_id`);
+         * null for any other cash message.
+         */
+        val paymentRequestId: ID? = null,
     ) : MessageContent {
+        /** One receiver's part of a multi-receiver payment (`CashContent.Payment`). */
+        data class Payment(
+            val receiver: ID,
+            /** Fiat value in the payment's currency. */
+            val nativeAmount: Double,
+            /** On-chain token quarks of the payment's mint. */
+            val tokenQuarks: Long,
+        )
+
         enum class Action {
             SENT,
             TIPPED,

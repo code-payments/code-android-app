@@ -213,7 +213,20 @@ sealed interface MessageContentSerialized {
         // Base58, like [intentId]. Null for rows stored before this existed, and for messages
         // that carried no receiver.
         val receiver: String? = null,
+        // Each receiver's part of a multi-receiver payment. Empty for rows stored before this
+        // existed, and for single-receiver payments.
+        val multiReceiver: List<CashPayment> = emptyList(),
+        // Base58, like [intentId]. Null unless the payment paid a payment-request share.
+        val paymentRequestId: String? = null,
     ) : MessageContentSerialized
+
+    @Serializable
+    data class CashPayment(
+        // Base58, like [Cash.receiver].
+        val receiver: String,
+        val nativeAmount: Double,
+        val tokenQuarks: Long,
+    )
 
     @Serializable
     @SerialName("deleted")

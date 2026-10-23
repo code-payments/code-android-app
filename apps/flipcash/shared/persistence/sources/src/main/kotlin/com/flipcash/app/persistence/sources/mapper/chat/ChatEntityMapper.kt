@@ -401,6 +401,14 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         action = action.name,
         tokenQuarks = tokenQuarks,
         receiver = receiver?.base58,
+        multiReceiver = multiReceiver.map {
+            MessageContentSerialized.CashPayment(
+                receiver = it.receiver.base58,
+                nativeAmount = it.nativeAmount,
+                tokenQuarks = it.tokenQuarks,
+            )
+        },
+        paymentRequestId = paymentRequestId?.base58,
     )
     is MessageContent.Reply -> MessageContentSerialized.Reply(
         repliedMessageId = repliedMessageId,
@@ -451,6 +459,14 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
             ?: MessageContent.Cash.Action.SENT,
         tokenQuarks = tokenQuarks,
         receiver = receiver?.decodeBase58()?.toList(),
+        multiReceiver = multiReceiver.map {
+            MessageContent.Cash.Payment(
+                receiver = it.receiver.decodeBase58().toList(),
+                nativeAmount = it.nativeAmount,
+                tokenQuarks = it.tokenQuarks,
+            )
+        },
+        paymentRequestId = paymentRequestId?.decodeBase58()?.toList(),
     )
     is MessageContentSerialized.Reply -> MessageContent.Reply(
         repliedMessageId = repliedMessageId,
