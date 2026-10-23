@@ -7,7 +7,7 @@ appId: com.flipcash.app.android
       clearAppState: "true"
       deeplink: ${LOGIN_DEEPLINK}
 
-# Launch lands on the Wallet tab, not the camera (homeRoute = AppRoute.Tabs.Wallet).
+# A cold launch opens on the Chats tab (#1529), not the Wallet or the camera.
 - extendedWaitUntil:
       visible:
-          id: "wallet_screen"
+          id: "chats_screen"
