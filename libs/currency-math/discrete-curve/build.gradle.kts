@@ -1,6 +1,5 @@
 plugins {
-    kotlin("multiplatform")
-    id("com.android.kotlin.multiplatform.library")
+    alias(libs.plugins.flipcash.kmp.library)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
 }
 
@@ -13,8 +12,6 @@ testFixtures {
 kotlin {
     android {
         namespace = "com.flipcash.libs.currency.math.curve"
-        compileSdk = 37
-        minSdk = 29
         withHostTest {}
 
         // `flipcash.kmp.test.fixtures` compiles this module's fixtures --
@@ -30,12 +27,6 @@ kotlin {
             ignoreTestSources = true
         }
     }
-
-    iosArm64()
-    iosSimulatorArm64()
-    iosX64()
-    macosArm64()
-    macosX64()
 
     sourceSets {
         commonMain {

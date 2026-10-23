@@ -1,9 +1,9 @@
 import co.touchlab.kmmbridge.KmmBridgeExtension
 import org.gradle.api.tasks.bundling.Zip
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
-    kotlin("multiplatform")
-    id("com.android.kotlin.multiplatform.library")
+    alias(libs.plugins.flipcash.kmp.library)
     id("co.touchlab.kmmbridge.github") version "1.2.1"
     `maven-publish`
 }
@@ -24,17 +24,11 @@ val spmPackageDir = findProperty("spmRepoDir") as String?
 kotlin {
     android {
         namespace = "com.flipcash.shared"
-        compileSdk {
-            version = release(libs.versions.android.compileSdk.get().toInt()) {
-                minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
-            }
-        }
-        minSdk = 29
     }
-    
-    val appleTargets = listOf(iosArm64(), iosSimulatorArm64(), iosX64(), macosArm64(), macosX64())
-    appleTargets.forEach {
-        it.binaries.framework {
+
+    // The Apple targets come from `flipcash.kmp.library`; each one ships a `SharedCore` slice.
+    targets.withType<KotlinNativeTarget>().configureEach {
+        binaries.framework {
             baseName = "SharedCore"
             isStatic = true
             export(project(":libs:codes:kikcode"))
