@@ -16,7 +16,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.blob.UploadReservation
 import com.flipcash.services.repository.BlobStorageRepository
 import com.flipcash.services.user.UserManager
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.utils.base58
 import kotlinx.coroutines.delay
 import javax.inject.Inject

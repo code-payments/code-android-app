@@ -7,7 +7,7 @@ import com.flipcash.services.internal.network.api.PurchaseApi
 import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.PurchaseAckError
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import javax.inject.Inject
 
 internal class PurchaseService @Inject constructor(

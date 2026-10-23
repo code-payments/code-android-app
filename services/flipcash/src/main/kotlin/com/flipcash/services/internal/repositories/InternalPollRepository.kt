@@ -7,7 +7,7 @@ import com.flipcash.services.models.GetPollError
 import com.flipcash.services.models.VoteError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.repository.PollRepository
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.utils.ErrorUtils
 
 internal class InternalPollRepository(

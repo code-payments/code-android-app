@@ -5,7 +5,7 @@ import com.flipcash.services.internal.network.services.ContactListService
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.FlipcashContactEntry
 import com.flipcash.services.repository.ContactListRepository
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.solana.keys.Checksum
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.flow.Flow

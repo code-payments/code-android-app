@@ -8,7 +8,7 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.internal.network.extensions.authenticate
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel

@@ -5,7 +5,7 @@ import com.codeinc.flipcash.gen.moderation.v1.ModerationService
 import com.codeinc.flipcash.gen.moderation.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.authenticate
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.utils.toByteString
 import dev.bmcreations.protovalidate.orThrow

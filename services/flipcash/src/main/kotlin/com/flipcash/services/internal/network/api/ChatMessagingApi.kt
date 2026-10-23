@@ -25,7 +25,7 @@ import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel

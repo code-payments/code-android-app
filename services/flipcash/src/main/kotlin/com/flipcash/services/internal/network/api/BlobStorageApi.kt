@@ -12,7 +12,7 @@ import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.utils.toByteString
 import dev.bmcreations.protovalidate.orThrow

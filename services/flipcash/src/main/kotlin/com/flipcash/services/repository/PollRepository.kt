@@ -2,7 +2,7 @@ package com.flipcash.services.repository
 
 import com.codeinc.flipcash.gen.poll.v1.Model
 import com.flipcash.services.models.chat.ChatId
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 
 /**
  * Polls in group chats. Poll values are the generated `poll.v1` types for now; a domain model

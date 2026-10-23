@@ -17,6 +17,11 @@ internal actual object PlatformLog {
     actual fun error(throwable: Throwable) {
         throwable.printStackTrace()
     }
+
+    actual fun error(throwable: Throwable, message: String?) {
+        message?.let { System.err.println("E $it") }
+        throwable.printStackTrace()
+    }
 }
 
 internal actual fun isPlatformSqlException(throwable: Throwable): Boolean = throwable is SQLException

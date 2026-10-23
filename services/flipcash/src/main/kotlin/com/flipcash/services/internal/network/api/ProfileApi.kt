@@ -13,7 +13,7 @@ import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.chat.BlobId
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.utils.toByteString

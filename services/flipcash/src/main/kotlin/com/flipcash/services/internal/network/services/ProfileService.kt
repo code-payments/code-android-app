@@ -21,7 +21,7 @@ import com.flipcash.services.models.UpdateTipCardError
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.internal.network.extensions.toMediaItem
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.model.financial.Fiat
 import javax.inject.Inject

@@ -4,7 +4,7 @@ import com.flipcash.services.internal.network.services.EmailVerificationService
 import com.flipcash.services.internal.network.services.PhoneVerificationService
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.repository.ContactVerificationRepository
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.utils.ErrorUtils
 
 internal class InternalContactVerificationRepository(

@@ -75,6 +75,9 @@ class KmpAppLibraryConventionPlugin : Plugin<Project> {
                         }
                     }
                     minSdk = minSdkVersion
+                    // Hilt's KSP processors emit Java (factories, hilt_aggregated_deps), which the
+                    // KMP Android target only compiles when Java compilation is enabled.
+                    withJava()
                     withHostTestBuilder {}.configure {
                         isReturnDefaultValues = true
                         isIncludeAndroidResources = true

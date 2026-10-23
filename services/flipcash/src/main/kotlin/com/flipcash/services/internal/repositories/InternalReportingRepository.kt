@@ -3,7 +3,7 @@ package com.flipcash.services.internal.repositories
 import com.flipcash.services.internal.network.services.ReportingService
 import com.flipcash.services.models.ReportTarget
 import com.flipcash.services.repository.ReportingRepository
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.utils.ErrorUtils
 
 internal class InternalReportingRepository(

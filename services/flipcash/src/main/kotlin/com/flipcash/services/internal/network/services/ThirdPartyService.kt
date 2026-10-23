@@ -5,7 +5,7 @@ import com.flipcash.services.internal.network.api.ThirdPartyApi
 import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.GetJwtError
 import com.flipcash.services.models.Jwt
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.network.jwt.JwtSecuredEndpoint
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import javax.inject.Inject

@@ -3,8 +3,8 @@ package com.flipcash.services.extensions
 import android.util.Base64
 import com.flipcash.services.internal.extensions.toPublicKey
 import com.getcode.crypt.Sha256Hash
-import com.getcode.ed25519.Ed25519
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Seed32

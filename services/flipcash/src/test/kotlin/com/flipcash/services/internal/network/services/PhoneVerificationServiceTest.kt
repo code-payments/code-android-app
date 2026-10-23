@@ -3,7 +3,7 @@ package com.flipcash.services.internal.network.services
 import com.flipcash.services.internal.network.api.PhoneVerificationApi
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.PhoneVerificationError
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.core.errors.ValidationException
 import dev.bmcreations.protovalidate.FieldViolation
 import dev.bmcreations.protovalidate.ProtoValidationException

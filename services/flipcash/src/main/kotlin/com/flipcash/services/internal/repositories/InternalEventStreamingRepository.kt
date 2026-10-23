@@ -5,7 +5,7 @@ import com.flipcash.services.internal.network.services.EventStreamingService
 import com.flipcash.services.models.chat.BlobUpdate
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.repository.EventStreamingRepository
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import kotlinx.coroutines.CoroutineScope
 
 internal class InternalEventStreamingRepository(

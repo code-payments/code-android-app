@@ -43,3 +43,5 @@ fun Instant.formatLocalized(
         format(if12Hour, Locale.US)
     }
 }
+
+fun Long.toInstantFromMillis() = kotlin.time.Instant.fromEpochMilliseconds(this)

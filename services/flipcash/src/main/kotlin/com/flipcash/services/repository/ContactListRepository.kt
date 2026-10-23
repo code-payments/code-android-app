@@ -2,7 +2,7 @@ package com.flipcash.services.repository
 
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.FlipcashContactEntry
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.solana.keys.Checksum
 import kotlinx.coroutines.flow.Flow
 

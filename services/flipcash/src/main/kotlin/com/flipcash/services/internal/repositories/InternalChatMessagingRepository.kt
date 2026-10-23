@@ -16,7 +16,7 @@ import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatMessagingRepository
 import com.flipcash.services.repository.DeltaUpdate
 import com.flipcash.services.repository.ReactorsPage
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

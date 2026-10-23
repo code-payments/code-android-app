@@ -5,7 +5,7 @@ import com.codeinc.flipcash.gen.community.v1.CommunityGrpcKt
 import com.codeinc.flipcash.gen.community.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.authenticate
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.toByteString

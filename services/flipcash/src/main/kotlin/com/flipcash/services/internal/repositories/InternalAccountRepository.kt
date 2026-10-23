@@ -4,7 +4,7 @@ import com.flipcash.services.internal.domain.UserFlagsMapper
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.repository.AccountRepository
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.ErrorUtils
 

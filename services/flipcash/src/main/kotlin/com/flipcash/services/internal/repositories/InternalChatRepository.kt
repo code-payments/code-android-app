@@ -32,7 +32,7 @@ import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatRepository
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.ErrorUtils
 import kotlin.time.Instant

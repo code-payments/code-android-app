@@ -50,8 +50,6 @@ object DateUtils {
     private fun isYesterday(millis: Long) = isToday(millis + DateUtils.DAY_IN_MILLIS)
 }
 
-fun Long.toInstantFromMillis() = Instant.fromEpochMilliseconds(this)
-
 fun Instant.formatDateRelatively(): String {
     return com.getcode.util.DateUtils.getDateRelatively(toEpochMilliseconds())
 }

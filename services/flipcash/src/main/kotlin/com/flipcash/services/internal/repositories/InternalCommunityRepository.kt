@@ -7,7 +7,7 @@ import com.flipcash.services.internal.network.services.CommunityService
 import com.flipcash.services.models.Community
 import com.flipcash.services.models.CommunityLeader
 import com.flipcash.services.repository.CommunityRepository
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.ErrorUtils
 

@@ -18,7 +18,7 @@ import com.flipcash.services.repository.ReactorsPage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import com.flipcash.services.user.UserManager
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.accounts.AccountCluster
 import io.mockk.every
 import io.mockk.mockk

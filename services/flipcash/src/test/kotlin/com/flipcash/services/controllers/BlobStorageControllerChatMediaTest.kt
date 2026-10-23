@@ -18,7 +18,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.services.repository.BlobStorageRepository
 import com.flipcash.services.user.UserManager
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.accounts.AccountCluster
 import io.mockk.coEvery
 import io.mockk.coVerify

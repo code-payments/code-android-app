@@ -7,7 +7,7 @@ import com.flipcash.services.models.GetBlocklistError
 import com.flipcash.services.models.IsBlockedError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.UnblockUserError
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.toValidationOrElse

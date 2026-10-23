@@ -4,7 +4,7 @@ import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.internal.network.services.PurchaseService
 import com.flipcash.services.repository.PurchaseRepository
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.utils.ErrorUtils
 
 internal class InternalPurchaseRepository(

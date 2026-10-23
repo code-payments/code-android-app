@@ -26,7 +26,7 @@ import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewMode
 import com.getcode.utils.toByteString
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.internal.network.core.GrpcApi
 import dev.bmcreations.protovalidate.orThrow

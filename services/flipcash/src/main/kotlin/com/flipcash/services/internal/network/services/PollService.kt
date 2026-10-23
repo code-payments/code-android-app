@@ -9,7 +9,7 @@ import com.flipcash.services.models.GetPollError
 import com.flipcash.services.models.GetPollsError
 import com.flipcash.services.models.VoteError
 import com.flipcash.services.models.chat.ChatId
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
 import javax.inject.Inject

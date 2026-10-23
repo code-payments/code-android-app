@@ -9,7 +9,7 @@ import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.models.chat.BlobStatus
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.repository.BlobStorageRepository
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.utils.ErrorUtils
 
 internal class InternalBlobStorageRepository(

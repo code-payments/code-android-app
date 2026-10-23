@@ -7,7 +7,7 @@ import com.codeinc.flipcash.gen.phone.v1.PhoneVerificationService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.ContactMethod
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.codeinc.flipcash.gen.phone.v1.validate
 import dev.bmcreations.protovalidate.orThrow

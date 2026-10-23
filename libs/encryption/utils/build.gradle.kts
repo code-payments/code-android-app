@@ -30,11 +30,11 @@ kotlin {
         getByName("jvmSharedMain") {
             dependencies {
                 implementation(libs.protobuf.kotlin.lite)
+                implementation(project(":libs:encryption:ed25519"))
             }
         }
         androidMain {
             dependencies {
-                implementation(project(":libs:encryption:ed25519"))
                 implementation(libs.bundles.kotlinx.serialization)
                 implementation(libs.timber)
             }

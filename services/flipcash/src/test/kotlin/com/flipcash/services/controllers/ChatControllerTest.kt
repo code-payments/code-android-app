@@ -23,7 +23,7 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import io.mockk.every

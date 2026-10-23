@@ -9,7 +9,7 @@ import com.flipcash.services.internal.network.extensions.asPublicKey
 import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.internal.network.extensions.sign
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.core.ID
 import com.google.protobuf.Timestamp

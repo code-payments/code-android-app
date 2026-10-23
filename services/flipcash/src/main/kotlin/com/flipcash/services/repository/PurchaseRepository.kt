@@ -2,7 +2,7 @@ package com.flipcash.services.repository
 
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 
 interface PurchaseRepository {
     suspend fun onPurchaseCompleted(

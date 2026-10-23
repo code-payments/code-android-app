@@ -7,7 +7,7 @@ import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.MediaItem
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.financial.Fiat
 
 interface ProfileRepository {

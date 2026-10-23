@@ -1,6 +1,6 @@
 package com.flipcash.services.repository
 
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 
 interface PushRepository {
     suspend fun addToken(

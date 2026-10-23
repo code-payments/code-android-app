@@ -3,7 +3,7 @@ package com.flipcash.services.internal.network.services
 import com.flipcash.services.internal.network.api.ReportingApi
 import com.flipcash.services.models.ReportError
 import com.flipcash.services.models.ReportTarget
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
 import javax.inject.Inject

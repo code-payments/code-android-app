@@ -5,7 +5,7 @@ import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.LinkForPaymentError
 import com.flipcash.services.models.PhoneVerificationError
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import javax.inject.Inject
 import com.codeinc.flipcash.gen.phone.v1.PhoneVerificationService as RpcPhoneService

@@ -7,7 +7,7 @@ import com.flipcash.services.models.CheckSyncError
 import com.flipcash.services.models.DeltaUploadError
 import com.flipcash.services.models.FullUploadError
 import com.flipcash.services.models.GetContactsError
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.Checksum

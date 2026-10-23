@@ -6,7 +6,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.repository.EventStreamingRepository
 import com.flipcash.services.user.UserManager
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.accounts.AccountCluster
 import io.mockk.every
 import io.mockk.mockk

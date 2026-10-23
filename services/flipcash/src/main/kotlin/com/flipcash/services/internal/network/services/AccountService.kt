@@ -6,7 +6,7 @@ import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.GetUserFlagsError
 import com.flipcash.services.models.LoginError
 import com.flipcash.services.models.RegisterError
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import javax.inject.Inject
 import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService as RpcAccountService

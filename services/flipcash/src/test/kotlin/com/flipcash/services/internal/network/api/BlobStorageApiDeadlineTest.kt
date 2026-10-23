@@ -2,7 +2,7 @@ package com.flipcash.services.internal.network.api
 
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.codeinc.flipcash.gen.common.v1.Common
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import io.grpc.ManagedChannel
 import io.grpc.Status
 import io.grpc.StatusException

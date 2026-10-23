@@ -12,7 +12,7 @@ import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewMode
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import kotlinx.coroutines.flow.Flow
 
 interface ChatMessagingRepository {

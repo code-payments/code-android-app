@@ -10,7 +10,7 @@ import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.internal.network.extensions.toNotificationIds
 import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.QueryOptions
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.core.ID
 import dev.bmcreations.protovalidate.orThrow

@@ -1,5 +1,6 @@
 package com.flipcash.services.user
 
+import com.getcode.utils.BuildFlags
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.models.UserProfile
 import com.getcode.crypt.DerivePath
@@ -14,7 +15,6 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
-import com.getcode.services.opencode.BuildConfig
 import com.getcode.utils.TraceManager
 import com.getcode.utils.trace
 import com.hoc081098.channeleventbus.ChannelEventBus
@@ -218,7 +218,7 @@ class UserManager @Inject constructor(
     }
 
     private fun associate() {
-        if (!BuildConfig.DEBUG) {
+        if (!BuildFlags.isDebug) {
             // Hex, not base58 — matches iOS so one user is one Mixpanel profile.
             // See AnalyticsIdentity.kt.
             val distinctId = accountId?.analyticsDistinctId()

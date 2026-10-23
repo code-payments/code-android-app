@@ -4,7 +4,7 @@ import com.flipcash.services.internal.network.api.EmailVerificationApi
 import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.EmailVerificationError
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import javax.inject.Inject
 import com.codeinc.flipcash.gen.email.v1.EmailVerificationService as RpcEmailService

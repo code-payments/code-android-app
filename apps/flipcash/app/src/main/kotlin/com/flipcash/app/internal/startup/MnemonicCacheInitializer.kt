@@ -6,7 +6,8 @@ import com.getcode.crypt.MnemonicCache
 
 class MnemonicCacheInitializer: Initializer<Unit> {
     override fun create(context: Context) {
-        MnemonicCache.init(context)
+        // Touching the cache loads the BIP39 word list at startup rather than on first use.
+        MnemonicCache.cachedCode
     }
 
     override fun dependencies(): List<Class<out Initializer<*>?>?> {

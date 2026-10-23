@@ -5,7 +5,7 @@ import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.AddTokenError
 import com.flipcash.services.models.DeleteTokenError
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import javax.inject.Inject
 import com.codeinc.flipcash.gen.push.v1.PushService as RpcPushService
 

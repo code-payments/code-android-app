@@ -2,7 +2,7 @@ package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.CommunityApi
 import com.flipcash.services.models.GetCommunityError
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.Mint

@@ -9,7 +9,7 @@ import com.flipcash.services.internal.network.extensions.toChatUpdate
 import com.flipcash.services.models.StreamEventsError
 import com.flipcash.services.models.chat.BlobUpdate
 import com.flipcash.services.models.chat.ChatUpdate
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStream
 import com.getcode.utils.ClockSource

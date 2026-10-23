@@ -18,7 +18,7 @@ import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewMode
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat

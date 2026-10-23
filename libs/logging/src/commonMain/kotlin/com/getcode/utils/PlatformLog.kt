@@ -16,6 +16,7 @@ object LogPriority {
 internal expect object PlatformLog {
     fun log(priority: Int, tag: String?, message: String)
     fun error(throwable: Throwable)
+    fun error(throwable: Throwable, message: String?)
 }
 
 /** The platform's `SQLException`, which [ErrorUtils] treats as suppressible. */
@@ -31,4 +32,15 @@ interface LogFileStore {
     fun clearLogs()
     /** Stops writing to the log. Called when [TraceManager] is reset. */
     fun close()
+}
+
+/**
+ * Writes straight to the platform log: Timber on Android, standard error on the desktop JVM.
+ *
+ * Unlike [trace], it is not gated on [TraceManager] and never reports errors.
+ */
+object Log {
+    fun d(message: String) = PlatformLog.log(LogPriority.DEBUG, null, message)
+
+    fun e(throwable: Throwable, message: String?) = PlatformLog.error(throwable, message)
 }

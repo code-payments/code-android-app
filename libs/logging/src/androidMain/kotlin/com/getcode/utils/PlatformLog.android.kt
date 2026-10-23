@@ -14,6 +14,10 @@ internal actual object PlatformLog {
     actual fun error(throwable: Throwable) {
         Timber.e(throwable)
     }
+
+    actual fun error(throwable: Throwable, message: String?) {
+        Timber.e(throwable, message)
+    }
 }
 
 internal actual fun isPlatformSqlException(throwable: Throwable): Boolean = throwable is SQLException

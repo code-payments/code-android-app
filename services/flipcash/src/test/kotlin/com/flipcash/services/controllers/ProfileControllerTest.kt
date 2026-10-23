@@ -12,7 +12,7 @@ import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.user.UserManager
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat

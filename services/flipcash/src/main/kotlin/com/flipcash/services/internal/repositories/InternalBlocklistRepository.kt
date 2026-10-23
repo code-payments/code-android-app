@@ -6,7 +6,7 @@ import com.flipcash.services.internal.network.services.BlocklistService
 import com.flipcash.services.models.BlocklistPage
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.repository.BlocklistRepository
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.ErrorUtils
 

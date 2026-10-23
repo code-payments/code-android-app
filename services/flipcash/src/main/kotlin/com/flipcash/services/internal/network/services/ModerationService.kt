@@ -5,7 +5,7 @@ import com.flipcash.services.internal.network.api.ModerationApi
 import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.TextModerationError
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import javax.inject.Inject
 

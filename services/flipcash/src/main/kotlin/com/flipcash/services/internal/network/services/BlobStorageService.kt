@@ -17,7 +17,7 @@ import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.models.chat.BlobStatus
 import com.flipcash.services.models.chat.ChatId
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
 import javax.inject.Inject

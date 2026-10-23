@@ -20,7 +20,7 @@ import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ViewMode
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 
 interface ChatRepository {

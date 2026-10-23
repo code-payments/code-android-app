@@ -8,7 +8,7 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asChatId
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.chat.ChatId
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel

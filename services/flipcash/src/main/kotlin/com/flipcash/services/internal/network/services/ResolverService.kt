@@ -4,7 +4,7 @@ import com.flipcash.services.internal.network.api.ResolverApi
 import com.flipcash.services.internal.network.extensions.toPublicKey
 import com.flipcash.services.models.ResolveContactError
 import com.flipcash.services.models.ResolveIdentifier
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.PublicKey

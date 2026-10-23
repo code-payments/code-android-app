@@ -4,7 +4,7 @@ import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.repository.ProfileRepository
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import javax.inject.Inject
 
