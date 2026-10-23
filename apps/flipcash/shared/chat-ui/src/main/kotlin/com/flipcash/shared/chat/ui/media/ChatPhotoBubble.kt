@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.draw.drawBehind
@@ -27,9 +26,7 @@ import com.flipcash.shared.chat.ui.BareWebCard
 import com.flipcash.shared.chat.ui.CASH_CARD_WIDTH_FRACTION
 import com.flipcash.shared.chat.ui.EmojiOnlyText
 import com.flipcash.shared.chat.ui.JumboEmoji
-import com.flipcash.shared.chat.ui.LinkCardView
 import com.flipcash.shared.chat.ui.WebLinkCard
-import com.flipcash.shared.chat.ui.rememberLinkCardClick
 import com.flipcash.shared.chat.ui.redactedText
 import com.flipcash.shared.chat.ui.redactedTextColor
 import com.flipcash.shared.chat.ui.rememberWebLinkCard
@@ -196,7 +193,6 @@ fun ChatPhotoBubble(
             val cardDrawn = web?.resolved != null
             // A Flipcash card draws whatever its lookup says; a web card once it has a preview.
             val flipcashCard = linkCard?.takeUnless { it is LinkCard.Web }
-            val onCardClick = rememberLinkCardClick()
             if (cardAlone && linkCard != null && (flipcashCard != null || cardDrawn)) {
                 // A caption that is only its link is the card alone, as a text message is: no
                 // caption row and no link text.
@@ -231,7 +227,7 @@ fun ChatPhotoBubble(
                 isFromSelf = isFromSelf,
                 position = position.withPhotoAbove(),
                 maxWidth = maxWidth,
-                minWidth = if (cardDrawn || flipcashCard != null) maxWidth else 0.dp,
+                minWidth = if (cardDrawn) maxWidth else 0.dp,
                 onLongClick = onLongClick,
                 onDoubleClick = onDoubleClick,
             ) {
@@ -299,18 +295,6 @@ fun ChatPhotoBubble(
                             onLongClick = onCardLongClick,
                             onDoubleClick = onCardDoubleClick,
                             interactive = interactive,
-                        )
-                    }
-                    if (flipcashCard != null) {
-                        // In the slot a web card takes, on the same gap; the tap is the one a card
-                        // has in a text message.
-                        LinkCardView(
-                            card = flipcashCard,
-                            shape = RoundedCornerShape(CodeTheme.dimens.staticGrid.x2),
-                            modifier = Modifier.padding(top = CodeTheme.dimens.staticGrid.x2),
-                            onClick = if (interactive) onCardClick else null,
-                            onLongClick = onCardLongClick,
-                            onDoubleClick = onCardDoubleClick,
                         )
                     }
                 }

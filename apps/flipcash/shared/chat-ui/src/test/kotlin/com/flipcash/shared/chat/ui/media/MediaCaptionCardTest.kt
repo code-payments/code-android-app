@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -132,22 +133,19 @@ class MediaCaptionCardTest {
     }
 
     @Test
-    fun `a flipcash card is drawn under the caption`() {
+    fun `a flipcash link among words draws as caption text with no card`() {
         val text = "here you go $cashLink"
         set(text, cash(text))
 
-        composeTestRule.onNodeWithText("Tap to claim").assertIsDisplayed()
-        val caption = composeTestRule.onNodeWithTag(PHOTO_CAPTION_TAG).getUnclippedBoundsInRoot()
-        val claim = composeTestRule.onNodeWithText("Tap to claim").getUnclippedBoundsInRoot()
-        assertTrue(claim.top >= caption.bottom)
+        composeTestRule.onNodeWithTag(PHOTO_CAPTION_TAG).assertIsDisplayed()
+        composeTestRule.onAllNodesWithText("Tap to claim").assertCountEquals(0)
     }
 
     @Test
-    fun `the claim pill in a caption acts as it does in a text message`() {
+    fun `the claim pill on a link-only caption acts as it does in a text message`() {
         val actions = mutableListOf<ChatAction>()
-        val text = "here you go $cashLink"
-        val card = cash(text)
-        set(text, card, onAction = { actions += it })
+        val card = cash(cashLink)
+        set(cashLink, card, onAction = { actions += it })
 
         composeTestRule.onNodeWithText("Tap to claim").performClick()
 

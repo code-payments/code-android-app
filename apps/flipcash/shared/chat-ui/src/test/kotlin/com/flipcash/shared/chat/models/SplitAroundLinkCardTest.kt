@@ -231,14 +231,20 @@ class SplitAroundLinkCardTest {
     )
 
     @Test
-    fun `a photo caption keeps its flipcash card in the one photo row`() {
-        val text = "here $link now"
-        val card = cashAt(text)
+    fun `a photo caption that is only a flipcash link keeps its card in the one photo row`() {
+        val card = cashAt(link)
 
-        val row = splitPhoto(text, card).single()
+        val row = splitPhoto(link, card).single()
 
         assertNull(row.part)
         assertEquals(card, row.linkCard)
+    }
+
+    @Test
+    fun `a photo caption with words around a flipcash link draws no card`() {
+        val text = "here $link now"
+
+        assertNull(splitPhoto(text, cashAt(text)).single().linkCard)
     }
 
     @Test

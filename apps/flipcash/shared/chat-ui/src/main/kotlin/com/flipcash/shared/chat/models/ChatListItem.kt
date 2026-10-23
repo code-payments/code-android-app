@@ -312,12 +312,13 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
     // split row would carry the receipt and the reaction pills, and they would vanish whenever the
     // card is empty, which is most of the time.
     if (card is LinkCard.Web) return listOf(this)
-    // A photo draws its caption inside the photo's own bubble, which has no rows to split into, so
-    // the card stays on its one row and the bubble draws it under the caption (or alone, when the
-    // caption is only the link -- see [isAloneIn]). The span still has to fit the caption.
+    // A photo draws its caption inside the photo's own bubble. A Flipcash card that is all the
+    // caption says is drawn bare under the photo, as a text message's is. With words around it, a
+    // text message splits into rows around the card, which a photo row has no counterpart for, so
+    // the card is dropped and the caption draws as text.
     if (content.mediaBody() != null) {
         val caption = plainText ?: return listOf(copy(linkCard = null))
-        return listOf(if (card.marginsIn(caption) == null) copy(linkCard = null) else this)
+        return listOf(if (card.isAloneIn(caption)) this else copy(linkCard = null))
     }
     val text = plainText ?: return listOf(copy(linkCard = null))
     val (leadingEnd, trailingStart) = card.marginsIn(text)
