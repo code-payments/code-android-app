@@ -9,6 +9,7 @@ import androidx.paging.RemoteMediator
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.services.controllers.ChatMessagingController
+import com.flipcash.services.models.GetMessagesError
 import com.flipcash.services.models.chat.ChatId
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -57,6 +58,28 @@ class ChatMessageRemoteMediatorTest {
         val result = mediator().load(LoadType.APPEND, loadedState)
 
         assertSame(failure, (result as RemoteMediator.MediatorResult.Error).throwable)
+        coVerify(exactly = 0) { dataSource.upsert(any(), any()) }
+    }
+
+    @Test
+    fun `a failed server result is an error, not a crash`() = runTest {
+        // CodeServerError extends Throwable, not Exception.
+        val failure = GetMessagesError.Denied()
+        coEvery { controller.getMessages(chatId, any()) } returns Result.failure(failure)
+
+        val result = mediator().load(LoadType.APPEND, loadedState)
+
+        assertSame(failure, (result as RemoteMediator.MediatorResult.Error).throwable)
+    }
+
+    @Test
+    fun `not found on an older page is the end of the chat`() = runTest {
+        coEvery { controller.getMessages(chatId, any()) } returns
+            Result.failure(GetMessagesError.NotFound())
+
+        val result = mediator().load(LoadType.APPEND, loadedState)
+
+        assertEquals(true, (result as RemoteMediator.MediatorResult.Success).endOfPaginationReached)
         coVerify(exactly = 0) { dataSource.upsert(any(), any()) }
     }
 
