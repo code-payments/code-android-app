@@ -171,6 +171,22 @@ internal fun MessageList(
         LaunchedEffect(listState) {
             snapshotFlow { listState.isScrollInProgress }.collect { if (!it) fingerScrolling = false }
         }
+        // A failed older page leaves the pager in LoadState.Error and it stops hinting appends until
+        // retried. This list is reverseLayout, so the oldest loaded item is the topmost one: retry
+        // when the reader is at or near it. Keyed on the reader's position and touch, never on the
+        // append state itself, so a page that keeps failing costs one retry per arrival or scroll
+        // at the top rather than a loop.
+        LaunchedEffect(listState, messages) {
+            snapshotFlow {
+                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                (lastVisible >= messages.appendHintIndex - RETRY_NEAR_OLDEST_ITEMS) to
+                    listState.isScrollInProgress
+            }
+                .distinctUntilChanged()
+                .collect { (nearOldest, _) ->
+                    if (nearOldest && messages.loadState.append is LoadState.Error) messages.retry()
+                }
+        }
         val currentReturnStack by rememberUpdatedState(state.returnStack)
         val currentOnOriginsReached by rememberUpdatedState(onOriginsReached)
         LaunchedEffect(listState, messages) {
@@ -965,7 +981,9 @@ private suspend fun LazyPagingItems<ChatListItem>.walkUntil(budget: Int, find: (
         // placeholders on, placeholdersAfter shrinks; off, itemCount grows.
         val progressed = withTimeoutOrNull(JUMP_STEP_TIMEOUT_MS) {
             snapshotFlow { loadedCount to loadState.append }
-                .first { (count, append) -> count > before || append.endOfPaginationReached }
+                .first { (count, append) ->
+                    count > before || append.endOfPaginationReached || append is LoadState.Error
+                }
                 .first > before
         }
         // A write to the chat invalidates the PagingSource, and the hint goes to the generation it
@@ -1114,6 +1132,9 @@ private const val JUMP_PAGE_SIZE = 50
 private const val MAX_JUMP_ITEMS = 5_000
 private const val ROWS_PER_MESSAGE = 2
 private const val JUMP_STEP_TIMEOUT_MS = 2_000L
+
+/** How close to the oldest loaded item counts as being at the top for retrying a failed page. */
+private const val RETRY_NEAR_OLDEST_ITEMS = 3
 
 /** Steps in a row that may pass without an append before a walk gives up. */
 private const val MAX_JUMP_STALLS = 3
