@@ -1,15 +1,9 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
-    id("org.jetbrains.kotlin.plugin.parcelize")
+    alias(libs.plugins.flipcash.kmp.app.library)
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.libs.coroutines"
-    testFixtures {
-        enable = true
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.libs.coroutines"
     }
-}
-
-dependencies {
-    testFixturesImplementation(libs.kotlinx.coroutines.test)
 }

@@ -9,7 +9,7 @@ android {
 dependencies {
     implementation(project(":apps:flipcash:shared:analytics"))
     testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
-    testImplementation(testFixtures(project(":libs:coroutines")))
+    testImplementation(project(":libs:coroutines:test-fixtures"))
     implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:bills"))
     implementation(project(":apps:flipcash:shared:blocklist"))
