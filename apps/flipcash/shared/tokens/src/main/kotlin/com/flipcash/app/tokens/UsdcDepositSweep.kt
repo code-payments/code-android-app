@@ -111,10 +111,12 @@ class UsdcDepositSweep(
 
     companion object {
         private const val TAG = "UsdcDepositSweep"
-        private const val MAX_RETRIES = 5
-        private val INITIAL_DELAY = 5.seconds
-        private const val BACKOFF_FACTOR = 2.0
-        internal val POLL_INTERVAL = 5.seconds
-        internal const val POLL_MAX_ATTEMPTS = 12
+        // Solana (Alpenglow) finalizes faster, so retry sooner. Waits are 1s doubling across 7 tries
+        // (~63s of waiting vs ~75s before) and the post-sweep poll covers the same 60s at 1s.
+        internal const val MAX_RETRIES = 7
+        internal val INITIAL_DELAY = 1.seconds
+        internal const val BACKOFF_FACTOR = 2.0
+        internal val POLL_INTERVAL = 1.seconds
+        internal const val POLL_MAX_ATTEMPTS = 60
     }
 }

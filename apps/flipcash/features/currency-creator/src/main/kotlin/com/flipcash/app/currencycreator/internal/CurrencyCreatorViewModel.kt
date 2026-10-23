@@ -12,6 +12,7 @@ import com.flipcash.app.core.tokens.CurrencyCreatorDraft
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.CurrencyCreatorCoordinator
 import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.tokens.BalancePollError
 import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -53,6 +54,7 @@ import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import com.flipcash.app.tokens.InlineCompletion
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -86,7 +88,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     currencyController: CurrencyController,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val tokenCoordinator: TokenCoordinator,
-    balancePoller: BalancePoller,
+    private val balancePoller: BalancePoller,
     private val resources: ResourceHelper,
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
@@ -115,6 +117,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         val purchaseAmount: Fiat = 5.toFiat(),
         val feeAmount: Fiat? = null,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
+        /** The funding currency the user tapped; its row spins while the launch completes. */
+        val fundingMint: Mint? = null,
         val attestations: ModerationAttestations = ModerationAttestations(),
     ) {
         val hasName: Boolean
@@ -170,6 +174,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         data class UpdateProcessingState(
             val loading: Boolean = false,
             val success: Boolean = false,
+            val error: Boolean = false,
         ) : Event
 
         data class CustomizationsChanged(val customizations: TokenBillCustomizations): Event
@@ -181,6 +186,12 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         data class PurchaseSubmitted(val swapId: SwapId, val mint: Mint) : Event
         data class PurchaseCompleted(val token: Token, val bill: Scannable.Payable?): Event
+
+        /** The in-place fast window elapsed before the launch landed; show Processing. */
+        data object PurchaseTakingLonger : Event
+
+        /** The launch finished in place and the success hold is over; exit with the launch bill. */
+        data object LaunchFinished : Event
 
         data object OnIntroContinue : Event
         data object AdvanceFromInfo : Event
@@ -583,30 +594,75 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.PurchaseSubmitted>()
-            .map { event ->
-                // currency creation is at *best* 2 mins
-                // safe buffer is 5 minutes
-                balancePoller.awaitBalanceChange(
-                    mint = event.mint,
-                    maxAttempts = 300,
-                    interval = 1.seconds,
-                ).map { event.mint }
-            }.flatMapResult { mint ->
-                tokenCoordinator.getTokenMetadata(mint)
-            }.flatMapResult { result ->
-                // Build the celebratory give-bill for the new currency. A failure to price it
-                // (e.g. stale rates) must not fail the launch — the currency was created — so
-                // carry a null bill and let the flow simply close instead.
-                Result.success(result.token to buildLaunchBill(result.token))
-            }.onResult(
-                onSuccess = { (token, bill) ->
-                    dispatchEvent(Event.PurchaseCompleted(token, bill))
-                    dispatchEvent(Event.UpdateProcessingState(success = true))
-                },
-                onError = {
-                    dispatchEvent(Event.UpdateProcessingState())
-                }
-            ).launchIn(viewModelScope)
+            .onEach { completeLaunch(it.mint) }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Waits for the new currency to land. Polls in place first (the funding row keeps spinning);
+     * if nothing lands within [InlineCompletion.FAST_POLL_WINDOW] hands off to the Processing
+     * screen and keeps polling there for the rest of the original budget.
+     */
+    private suspend fun completeLaunch(mint: Mint) {
+        // Captured once so the slow poll compares against the same pre-launch balance.
+        val baseline = tokenCoordinator.balanceForToken(mint).firstOrNull() ?: Fiat.Zero
+
+        val fast = balancePoller.awaitBalanceChange(
+            mint = mint,
+            baseline = baseline,
+            maxAttempts = InlineCompletion.FAST_POLL_ATTEMPTS,
+            interval = InlineCompletion.FAST_POLL_INTERVAL,
+        )
+
+        if (fast.isSuccess) {
+            val completed = finalizeLaunch(mint)
+            if (completed) {
+                delay(InlineCompletion.SUCCESS_HOLD)
+                dispatchEvent(Event.LaunchFinished)
+            } else {
+                // Stay on the funding screen so the user can retry.
+                dispatchEvent(Event.UpdateProcessingState())
+                showLaunchFailed()
+            }
+            return
+        }
+
+        if (fast.exceptionOrNull() !is BalancePollError.Timeout) {
+            dispatchEvent(Event.UpdateProcessingState())
+            showLaunchFailed()
+            return
+        }
+
+        dispatchEvent(Event.UpdateProcessingState(loading = true))
+        dispatchEvent(Event.PurchaseTakingLonger)
+        val slow = balancePoller.awaitBalanceChange(
+            mint = mint,
+            baseline = baseline,
+            maxAttempts = InlineCompletion.BALANCE_SLOW_ATTEMPTS,
+            interval = InlineCompletion.SLOW_POLL_INTERVAL,
+        )
+        if (slow.isSuccess && finalizeLaunch(mint)) {
+            return
+        }
+        dispatchEvent(Event.UpdateProcessingState(error = true))
+    }
+
+    /** Resolves the new token and its launch bill, then marks the launch successful. */
+    private suspend fun finalizeLaunch(mint: Mint): Boolean {
+        val metadata = tokenCoordinator.getTokenMetadata(mint).getOrNull() ?: return false
+        // A failure to price the bill must not fail the launch (the currency exists); carry a
+        // null bill and let the flow simply close instead.
+        val bill = buildLaunchBill(metadata.token)
+        dispatchEvent(Event.PurchaseCompleted(metadata.token, bill))
+        dispatchEvent(Event.UpdateProcessingState(success = true))
+        return true
+    }
+
+    private fun showLaunchFailed() {
+        BottomBarManager.showError(
+            title = resources.getString(R.string.error_title_buySellFailed),
+            message = resources.getString(R.string.error_description_buySellFailed),
+        )
     }
 
     /**
@@ -674,6 +730,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                         processingState = processingState.copy(
                             loading = event.loading,
                             success = event.success,
+                            error = event.error,
                         )
                     )
                 }
@@ -682,7 +739,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     state.copy(customizations = event.customizations)
                 }
 
-                is Event.LaunchToken -> { state -> state }
+                is Event.LaunchToken -> { state -> state.copy(fundingMint = event.fundedWith) }
 
                 is Event.OnTokenMinted -> { state -> state.copy(createdMint = event.mint) }
 
@@ -711,6 +768,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.PurchaseSubmitted -> { state -> state }
+                Event.PurchaseTakingLonger -> { state -> state }
+                Event.LaunchFinished -> { state -> state }
                 is Event.PurchaseCompleted -> { state ->
                     state.copy(launchedToken = event.token, launchBill = event.bill)
                 }

@@ -46,11 +46,5 @@ internal fun SellReceiptScreen() {
         TokenSellReceiptScreen(viewModel)
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<SwapViewModel.Event.OnSellSubmitted>()
-            .onEach {
-                flowNavigator.navigateTo(SwapStep.Processing)
-            }.launchIn(this)
-    }
+    SwapCompletionEffects(viewModel, flowNavigator, isSubmitting = state.sellProgress.loading)
 }

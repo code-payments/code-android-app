@@ -158,16 +158,15 @@ internal fun PhantomTransactionConfirmationScreen() {
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<SwapViewModel.Event.PhantomNavigateToProcessing>()
-            .onEach {
-                // Replace the whole inner stack so Processing is terminal: the connect prompt
-                // and confirm steps are cleared, so leaving Processing exits the flow back to
-                // the origin (e.g. token info) instead of the buried Phantom connect prompt.
-                flowNavigator.replaceStack(listOf(SwapStep.Processing))
-            }.launchIn(this)
-    }
+    // Both Phantom results finish on this screen. If that takes longer than the fast window, the
+    // inner stack is replaced so Processing is terminal: leaving it exits the flow back to the
+    // origin (e.g. token info) instead of surfacing the buried Phantom connect prompt.
+    SwapCompletionEffects(
+        viewModel,
+        flowNavigator,
+        isSubmitting = state.buyProgress.loading,
+        processingIsTerminal = true,
+    )
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
@@ -200,6 +199,7 @@ internal fun PhantomTransactionConfirmationScreen() {
                 text = label.first,
                 inlineContent = label.second,
                 isLoading = state.buyProgress.loading,
+                isSuccess = state.buyProgress.success,
                 enabled = state.buyProgress.isIdle,
             ) {
                 viewModel.dispatchEvent(SwapViewModel.Event.ConfirmPhantomTransaction)

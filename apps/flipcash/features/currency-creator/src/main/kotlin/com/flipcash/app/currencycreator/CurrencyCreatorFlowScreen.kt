@@ -21,6 +21,7 @@ import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
+import com.flipcash.app.tokens.LocalTransactionNotificationPrompt
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.core.ui.flow.FlowStepBarController
 import com.flipcash.app.core.ui.flow.LocalFlowStepBar
@@ -74,6 +75,7 @@ fun CurrencyCreatorFlowScreen(
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     val session = LocalSessionController.current
+    val notificationPrompt = LocalTransactionNotificationPrompt.current
 
     SteppedFlowScaffold(
         route = route,
@@ -95,6 +97,7 @@ fun CurrencyCreatorFlowScreen(
             )
 
             if (result is CurrencyCreatorResult.Success) {
+                if (result.completedInPlace) notificationPrompt.request()
                 // The bill is priced through the new token's bonding curve in the
                 // ViewModel (see buildLaunchBill); presenting it lets someone grab the
                 // newly created currency. It's null if pricing failed — just close then.
@@ -231,6 +234,11 @@ private fun SyncStepBar(step: CurrencyCreatorStep) {
         viewModel.dispatchEvent(CurrencyCreatorViewModel.Event.OnStepChanged(step))
         if (step is CurrencyCreatorStep.Processing) {
             stepBar.onBack = null
+        } else if (step is CurrencyCreatorStep.FundingSourceSelection) {
+            // Launching is in flight once a funding currency is tapped; don't walk away from it.
+            stepBar.onBack = {
+                if (!viewModel.stateFlow.value.processingState.loading) flowNavigator.back()
+            }
         } else {
             stepBar.onBack = { flowNavigator.back() }
         }

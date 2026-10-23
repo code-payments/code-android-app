@@ -36,6 +36,8 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -397,5 +399,12 @@ class CoinbaseOnRampApiErrorParseTest {
     fun `parse empty JSON object returns Unknown`() {
         val error = CoinbaseOnRampApiError.parse("{}")
         assertIs<CoinbaseOnRampApiError.Unknown>(error)
+    }
+
+    @Test
+    fun `order delivery poll is 2s over a 5 minute budget`() {
+        assertEquals(2.seconds, DELIVERY_POLL_INTERVAL)
+        assertEquals(150, DELIVERY_POLL_MAX_ATTEMPTS)
+        assertEquals(5.minutes, DELIVERY_POLL_INTERVAL * DELIVERY_POLL_MAX_ATTEMPTS)
     }
 }

@@ -170,13 +170,12 @@ internal fun SwapEntryScreen(
             }.launchIn(this)
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<SwapViewModel.Event.OnPurchaseSubmitted>()
-            .onEach {
-                flowNavigator.navigateTo(SwapStep.Processing)
-            }.launchIn(this)
-    }
+    SwapCompletionEffects(
+        viewModel,
+        flowNavigator,
+        isSubmitting = state.buyProgress.loading || state.sellProgress.loading,
+        processingIsTerminal = state.addingMoneyFrom == FundingSource.Phantom,
+    )
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
@@ -204,19 +203,6 @@ internal fun SwapEntryScreen(
             .filterIsInstance<SwapViewModel.Event.PhantomSelected>()
             .onEach {
                 flowNavigator.navigateTo(SwapStep.PhantomConnect)
-            }.launchIn(this)
-    }
-
-    // Deposit-first "Add Money" via Phantom enters the amount here after connecting;
-    // confirming it signs the transaction and advances straight to processing.
-    // Replace the whole inner stack so Processing is terminal: the connect prompt and
-    // amount-entry steps are cleared, so leaving Processing exits the flow back to the
-    // origin (e.g. token info) instead of surfacing the buried Phantom connect prompt.
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<SwapViewModel.Event.PhantomNavigateToProcessing>()
-            .onEach {
-                flowNavigator.replaceStack(listOf(SwapStep.Processing))
             }.launchIn(this)
     }
 

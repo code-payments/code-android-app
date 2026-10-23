@@ -90,7 +90,7 @@ internal fun ProcessingContent(
                     text = text,
                     buttonState = ButtonState.Filled,
                     onClick = {
-                        flowNavigator.exitWithResult(CurrencyCreatorResult.Success)
+                        flowNavigator.exitWithResult(CurrencyCreatorResult.Success())
                     },
                 )
             } else if (state.processingState.error) {

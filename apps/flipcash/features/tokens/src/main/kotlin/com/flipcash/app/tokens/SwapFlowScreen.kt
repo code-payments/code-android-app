@@ -55,6 +55,7 @@ fun SwapFlowScreen(
 ) {
     val outerNavigator = LocalCodeNavigator.current
     val toastController = LocalToastController.current
+    val notificationPrompt = LocalTransactionNotificationPrompt.current
     val initialStack = route.rememberInitialStack<SwapStep>()
 
     FlowHost<SwapStep, SwapResult>(
@@ -72,6 +73,7 @@ fun SwapFlowScreen(
             )
             when (result) {
                 is SwapResult.Success -> {
+                    if (result.completedInPlace) notificationPrompt.request()
                     if (route.shortfall != null || route.popToRoot) {
                         if (result.amount > Fiat.Zero) {
                             toastController.showToast(result.amount, isDeposit = true)

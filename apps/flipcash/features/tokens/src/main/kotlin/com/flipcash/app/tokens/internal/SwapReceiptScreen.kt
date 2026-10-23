@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,6 +117,7 @@ private fun SwapReceiptScreen(
                     buttonState = ButtonState.Filled,
                     isLoading = progress.loading,
                     isSuccess = progress.success,
+                    enabled = !progress.success,
                     onClick = onConfirm,
                 )
             }
@@ -331,6 +333,7 @@ private fun TokenBuyReceiptScreen(
 @Composable
 internal fun TokenConvertReceiptScreen(viewModel: SwapViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel) { viewModel.dispatchEvent(SwapViewModel.Event.ConfirmationShown) }
     TokenConvertReceiptScreen(state, viewModel::dispatchEvent)
 }
 

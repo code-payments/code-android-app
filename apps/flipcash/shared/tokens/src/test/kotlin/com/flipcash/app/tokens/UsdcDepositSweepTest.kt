@@ -20,7 +20,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UsdcDepositSweepTest {
@@ -240,5 +242,16 @@ class UsdcDepositSweepTest {
         coVerify(exactly = 0) {
             transactionOperations.swapUsdc(any(), any())
         }
+    }
+
+    @Test
+    fun `sweep timers are tightened and keep their budgets`() {
+        assertEquals(1.seconds, UsdcDepositSweep.INITIAL_DELAY)
+        assertEquals(2.0, UsdcDepositSweep.BACKOFF_FACTOR)
+        assertEquals(7, UsdcDepositSweep.MAX_RETRIES)
+        // 1s + 2s + ... + 32s of waiting between the 7 attempts
+        assertEquals(63, (0 until UsdcDepositSweep.MAX_RETRIES - 1).sumOf { 1 shl it })
+        assertEquals(1.seconds, UsdcDepositSweep.POLL_INTERVAL)
+        assertEquals(60.seconds, UsdcDepositSweep.POLL_INTERVAL * UsdcDepositSweep.POLL_MAX_ATTEMPTS)
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -106,6 +107,7 @@ fun TokenBalanceRow(
     showLogo: Boolean = true,
     isSelected: Boolean? = null,
     isEnabled: Boolean = true,
+    isLoading: Boolean = false,
     iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
@@ -122,6 +124,7 @@ fun TokenBalanceRow(
         formattedBalance = formattedBalance,
         isSelected = isSelected,
         isEnabled = isEnabled,
+        isLoading = isLoading,
         modifier = modifier,
         showName = showName,
         showFlag = showFlag,
@@ -142,6 +145,7 @@ fun TokenBalanceRow(
     showFlag: Boolean = false,
     isSelected: Boolean? = null,
     isEnabled: Boolean = true,
+    isLoading: Boolean = false,
     iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
@@ -159,6 +163,7 @@ fun TokenBalanceRow(
         showFlag = showFlag,
         isSelected = isSelected,
         isEnabled = isEnabled,
+        isLoading = isLoading,
         modifier = modifier,
         styling = styling,
         iconOverride = iconOverride,
@@ -181,6 +186,7 @@ fun TokenBalanceRow(
     showFlag: Boolean = false,
     isSelected: Boolean? = null,
     isEnabled: Boolean = true,
+    isLoading: Boolean = false,
     iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
@@ -341,12 +347,22 @@ fun TokenBalanceRow(
 
             when (styling.selectionStyle) {
                 TokenSelectionStyle.Chevron -> {
-                    Icon(
-                        modifier = Modifier.padding(start = CodeTheme.dimens.grid.x1),
-                        painter = painterResource(R.drawable.ic_chevron_right),
-                        contentDescription = null,
-                        tint = CodeTheme.colors.secondary,
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .padding(start = CodeTheme.dimens.grid.x1)
+                                .size(CodeTheme.dimens.staticGrid.x4),
+                            strokeWidth = 2.dp,
+                            color = CodeTheme.colors.secondary,
+                        )
+                    } else {
+                        Icon(
+                            modifier = Modifier.padding(start = CodeTheme.dimens.grid.x1),
+                            painter = painterResource(R.drawable.ic_chevron_right),
+                            contentDescription = null,
+                            tint = CodeTheme.colors.secondary,
+                        )
+                    }
                 }
 
                 TokenSelectionStyle.Checkbox -> {
