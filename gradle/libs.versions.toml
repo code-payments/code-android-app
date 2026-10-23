@@ -344,6 +344,7 @@ androidx-foundation-layout = { group = "androidx.compose.foundation", name = "fo
 jetbrains-compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
 # On Android these resolve to the androidx artifacts at the version the Compose BOM pins.
 jetbrains-compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
+jetbrains-compose-animation = { module = "org.jetbrains.compose.animation:animation", version.ref = "compose-multiplatform" }
 jetbrains-compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
 jetbrains-compose-material = { module = "org.jetbrains.compose.material:material", version.ref = "compose-multiplatform" }
 jetbrains-compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "compose-multiplatform-material3" }
