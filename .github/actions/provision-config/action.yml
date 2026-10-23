@@ -1,0 +1,90 @@
+name: Provision CI config
+description: >
+  Writes google-services.json and local.properties from secrets, falling back to committed or
+  zero-filled placeholders when the secrets are empty (Dependabot and fork PRs).
+inputs:
+  google-services:
+    description: Base64 google-services.json (FLIPCASH2_GOOGLE_SERVICES)
+    required: false
+    default: ''
+  bugsnag-api-key:
+    required: false
+    default: ''
+  google-cloud-project-number:
+    required: false
+    default: ''
+  mixpanel-api-key:
+    required: false
+    default: ''
+  coinbase-onramp-api-key:
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    # GitHub does not expose regular Actions secrets to `pull_request` runs opened by
+    # Dependabot (it reads from a separate Dependabot secret store) or by forks, so every
+    # `secrets.*` below resolves to an empty string on those runs. This lane only builds and
+    # runs unit tests + lint — it never talks to Firebase, Bugsnag, Mixpanel or Coinbase — so
+    # it falls back to a committed placeholder config instead of failing. That keeps dependency
+    # PRs honestly red or green on the bump itself rather than uniformly red on missing config.
+    #
+    # If a future job in this workflow ever needs the *real* values on Dependabot PRs, add them
+    # under Settings -> Secrets and variables -> Dependabot (repo admin required); the names are
+    # the same ones referenced here.
+    - name: Provision google-services.json
+      env:
+        FLIPCASH2_GOOGLE_SERVICES: ${{ inputs.google-services }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        dest=apps/flipcash/app/src/google-services.json
+        mkdir -p "$(dirname "$dest")"
+        if [ -n "${FLIPCASH2_GOOGLE_SERVICES:-}" ]; then
+          printf '%s' "$FLIPCASH2_GOOGLE_SERVICES" | base64 --decode > "$dest"
+          echo "Wrote google-services.json from the FLIPCASH2_GOOGLE_SERVICES secret."
+        else
+          cp .github/ci/google-services.placeholder.json "$dest"
+          echo "::notice title=Using placeholder Firebase config::Repository secrets are not available on this run (Dependabot or fork PR). Copied .github/ci/google-services.placeholder.json instead; unit tests and lint do not need real Firebase credentials."
+        fi
+
+    # The secrets Gradle plugin copies every entry in local.properties into BuildConfig
+    # verbatim, so an *empty* value emits `public static final String X = ;` and the app fails
+    # to compile — writing empty strings is not a safe fallback. Each key therefore gets a
+    # zero-filled placeholder when its secret is unavailable (Dependabot / fork PRs); nothing
+    # in this lane calls out to Bugsnag, Mixpanel or Coinbase.
+    #
+    # Values are passed through the environment rather than interpolated into the script so a
+    # secret containing a quote or backtick cannot break (or escape) the shell. The quoting of
+    # each line is kept exactly as it was, since BUGSNAG_API_KEY is also read verbatim into a
+    # manifest placeholder.
+    - name: Write local.properties
+      env:
+        BUGSNAG_API_KEY: ${{ inputs.bugsnag-api-key }}
+        GOOGLE_CLOUD_PROJECT_NUMBER: ${{ inputs.google-cloud-project-number }}
+        MIXPANEL_API_KEY: ${{ inputs.mixpanel-api-key }}
+        COINBASE_ONRAMP_API_KEY: ${{ inputs.coinbase-onramp-api-key }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Substitute an obviously-fake value for any key whose secret came through empty.
+        placeheld=""
+        for spec in \
+          "BUGSNAG_API_KEY=00000000000000000000000000000000" \
+          "GOOGLE_CLOUD_PROJECT_NUMBER=000000000000" \
+          "MIXPANEL_API_KEY=00000000000000000000000000000000" \
+          "COINBASE_ONRAMP_API_KEY=00000000-0000-0000-0000-000000000000"
+        do
+          name=${spec%%=*}
+          if [ -z "${!name:-}" ]; then
+            printf -v "$name" '%s' "${spec#*=}"
+            placeheld="$placeheld $name"
+          fi
+        done
+        {
+          echo "BUGSNAG_API_KEY=\"$BUGSNAG_API_KEY\""
+          echo "GOOGLE_CLOUD_PROJECT_NUMBER=$GOOGLE_CLOUD_PROJECT_NUMBER"
+          echo "MIXPANEL_API_KEY=\"$MIXPANEL_API_KEY\""
+          echo "COINBASE_ONRAMP_API_KEY=$COINBASE_ONRAMP_API_KEY"
+        } > ./local.properties
+        [ -z "$placeheld" ] || echo "::notice title=Using placeholder API keys::Secrets are not available on this run (Dependabot or fork PR); zero-filled placeholders used for:$placeheld"
