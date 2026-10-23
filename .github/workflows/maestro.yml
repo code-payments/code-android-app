@@ -130,6 +130,12 @@ jobs:
           disable-animations: true
           # logcat runs alongside so the lines before an emulator exit survive in the artifact.
           script: |
+            adb wait-for-device
+            # The AVD boots with 3-button navigation, whose Back key sits over the bottom row of
+            # the chat list: a tap on a contact there backgrounded the app. Real devices use
+            # gestures, and the app is laid out edge-to-edge for them.
+            adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural
+            adb shell cmd overlay list | grep -i navbar || true
             adb logcat -v threadtime > "$GITHUB_WORKSPACE/logcat.txt" &
             bundle exec fastlane android flipcash_maestro
         env:
