@@ -24,7 +24,7 @@ import java.util.TimeZone
 class FileTree(
     context: Context,
     private val plugins: () -> List<TraceLogPlugin>,
-) : Timber.Tree() {
+) : Timber.Tree(), LogFileStore {
 
     private val traceDir = File(context.filesDir, "traces").apply { mkdirs() }
     private val logFile = File(traceDir, "trace.log")
@@ -46,7 +46,7 @@ class FileTree(
      * immediately receive the most recent [LOG_STREAM_BUFFER_CAPACITY] lines
      * via replay cache, so the in-app viewer opens already populated.
      */
-    val logStream: SharedFlow<String> = logFlow.asSharedFlow()
+    override val logStream: SharedFlow<String> = logFlow.asSharedFlow()
 
     init {
         // Clear previous session logs on cold launch
@@ -95,7 +95,7 @@ class FileTree(
         logFlow.tryEmit(processed!!)
     }
 
-    fun getLogFile(includeHeader: Boolean = true): File? {
+    override fun getLogFile(includeHeader: Boolean): File? {
         if (!logFile.exists() || logFile.length() == 0L) return null
         synchronized(lock) {
             exportFile.delete()
@@ -112,13 +112,17 @@ class FileTree(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun clearLogs() {
+    override fun clearLogs() {
         synchronized(lock) {
             logFile.delete()
             exportFile.delete()
         }
         // Ensure any new collector observes an empty backlog after a clear.
         logFlow.resetReplayCache()
+    }
+
+    override fun close() {
+        Timber.uproot(this)
     }
 
     companion object {

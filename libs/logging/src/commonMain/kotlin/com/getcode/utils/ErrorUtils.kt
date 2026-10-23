@@ -1,14 +1,11 @@
 package com.getcode.utils
 
-import android.database.SQLException
-import com.getcode.libs.logging.BuildConfig
 import com.getcode.manager.TopBarManager
 import io.grpc.Status
 import io.grpc.StatusException
 import io.grpc.StatusRuntimeException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
-import timber.log.Timber
 import java.net.ConnectException
 import java.net.SocketException
 import java.net.UnknownHostException
@@ -48,7 +45,7 @@ object ErrorUtils {
 
         if (isIgnoredGrpcStatus(throwableCause)) return
 
-        Timber.e(throwable)
+        PlatformLog.error(throwable)
 
         if (isRuntimeError(throwable)) return
 
@@ -61,7 +58,7 @@ object ErrorUtils {
             )
         }
 
-        if (BuildConfig.NOTIFY_ERRORS && shouldReport(throwable, throwableCause)) {
+        if (BuildFlags.notifyErrors && shouldReport(throwable, throwableCause)) {
             val isNotifiable = when {
                 throwable is ConditionallyNotifiable -> throwable.isNotifiable
                 throwableCause is ConditionallyNotifiable -> throwableCause.isNotifiable
@@ -146,7 +143,7 @@ object ErrorUtils {
                 throwable.cause is StatusException
 
     private fun isSuppressibleError(throwable: Throwable): Boolean =
-        throwable is SQLException || throwable is SuppressibleException || throwable is TimeoutCancellationException
+        isPlatformSqlException(throwable) || throwable is SuppressibleException || throwable is TimeoutCancellationException
 }
 
 fun Throwable.isNetworkError(): Boolean =

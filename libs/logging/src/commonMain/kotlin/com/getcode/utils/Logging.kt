@@ -1,13 +1,9 @@
 package com.getcode.utils
 
-import android.annotation.SuppressLint
-import android.content.Context
-import android.os.SystemClock
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import timber.log.Timber
 import java.io.File
 import kotlin.time.Duration
 import kotlin.time.TimeSource
@@ -57,7 +53,7 @@ sealed interface TraceType {
  * - [BreadcrumbSink]s — forward structured breadcrumbs to external services (e.g. Bugsnag).
  */
 object TraceManager {
-    private var fileTree: FileTree? = null
+    private var logFile: LogFileStore? = null
 
     /** `true` after [initialize] has been called. [trace] is a no-op until then. */
     var initialized: Boolean = false
@@ -100,13 +96,13 @@ object TraceManager {
     fun recordClockDrift(driftMillis: Long, source: ClockSource) {
         clockDriftMillis = driftMillis
         clockDriftSource = source
-        clockDriftSyncElapsedRealtime = SystemClock.elapsedRealtime()
+        clockDriftSyncElapsedRealtime = elapsedRealtimeMillis()
     }
 
     /** Latest clock-drift measurement, or `null` if no server time has been observed yet. */
     fun clockDriftSnapshot(): ClockDriftSnapshot? {
         val drift = clockDriftMillis ?: return null
-        val ageMillis = clockDriftSyncElapsedRealtime?.let { SystemClock.elapsedRealtime() - it }
+        val ageMillis = clockDriftSyncElapsedRealtime?.let { elapsedRealtimeMillis() - it }
         return ClockDriftSnapshot(
             driftMillis = drift,
             source = clockDriftSource,
@@ -127,22 +123,22 @@ object TraceManager {
     fun sinks(): List<BreadcrumbSink> = breadcrumbSinks
 
     /**
-     * Bootstraps Timber with a [FileTree], plants default plugins
-     * ([PiiMaskingPlugin], [RpcBodyFilterPlugin]), and marks the manager
-     * as [initialized]. Safe to call multiple times; subsequent calls are no-ops.
+     * Plants default plugins ([PiiMaskingPlugin], [RpcBodyFilterPlugin]), keeps [logFile] for
+     * [getLogFile], [logStream] and [clearLogs], and marks the manager as [initialized]. Safe to
+     * call multiple times; subsequent calls are no-ops.
+     *
+     * Android calls this through `TraceManager.initialize(context)`, which supplies a FileTree.
      */
-    fun initialize(context: Context) {
+    fun initialize(logFile: LogFileStore? = null) {
         if (initialized) return
-        val tree = FileTree(context, plugins = { plugins })
-        fileTree = tree
+        this.logFile = logFile
         addPlugin(PiiMaskingPlugin())
         addPlugin(RpcBodyFilterPlugin())
-        Timber.plant(tree)
         initialized = true
     }
 
     /** Returns the current log file, or `null` if not yet initialized. */
-    fun getLogFile(includeHeader: Boolean = true): File? = fileTree?.getLogFile(includeHeader)
+    fun getLogFile(includeHeader: Boolean = true): File? = logFile?.getLogFile(includeHeader)
 
     /**
      * Hot stream of processed log lines for live in-app viewers. Emits only
@@ -150,7 +146,7 @@ object TraceManager {
      * empty [SharedFlow] that will never emit.
      */
     val logStream: SharedFlow<String>
-        get() = fileTree?.logStream ?: EmptyLogStream
+        get() = logFile?.logStream ?: EmptyLogStream
 
     private val EmptyLogStream: SharedFlow<String> = MutableSharedFlow<String>(
         replay = 0,
@@ -159,14 +155,14 @@ object TraceManager {
     ).asSharedFlow()
 
     fun clearLogs() {
-        fileTree?.clearLogs()
+        logFile?.clearLogs()
     }
 
     /** Tears down all state. Intended for tests only. */
     @androidx.annotation.VisibleForTesting
     internal fun reset() {
-        fileTree?.let { Timber.uproot(it) }
-        fileTree = null
+        logFile?.close()
+        logFile = null
         initialized = false
         plugins.clear()
         breadcrumbSinks.clear()
@@ -194,7 +190,7 @@ enum class ClockSource {
 }
 
 /**
- * Primary logging entry point. Writes [message] to Timber and forwards a
+ * Primary logging entry point. Writes [message] to the platform log (Timber on Android) and forwards a
  * breadcrumb to every registered [BreadcrumbSink].
  *
  * No-op if [TraceManager] has not been [initialized][TraceManager.initialize],
@@ -206,7 +202,6 @@ enum class ClockSource {
  * @param error If non-null, forwarded to [ErrorUtils.handleError] after logging.
  * @param type Categorization that determines the Timber log level.
  */
-@SuppressLint("TimberExceptionLogging")
 fun trace(
     message: String,
     tag: String? = null,
@@ -217,7 +212,6 @@ fun trace(
     if (!TraceManager.initialized) return
 
     val tagBlock = tag?.let { "[$it] " }
-    val tree = if (tagBlock == null) Timber else Timber.tag(tagBlock)
 
     val metadataMap = metadata { metadata() }
 
@@ -228,16 +222,17 @@ fun trace(
         message
     }
 
-    when (type) {
-        TraceType.Error -> tree.e(logMessage)
-        TraceType.Log -> tree.d(logMessage)
-        TraceType.Navigation -> tree.d(logMessage)
-        TraceType.Network -> tree.i(logMessage)
-        TraceType.Process -> tree.d(logMessage)
-        TraceType.Silent -> tree.d(logMessage)
-        TraceType.StateChange -> tree.d(logMessage)
-        TraceType.User -> tree.d(logMessage)
+    val priority = when (type) {
+        TraceType.Error -> LogPriority.ERROR
+        TraceType.Log -> LogPriority.DEBUG
+        TraceType.Navigation -> LogPriority.DEBUG
+        TraceType.Network -> LogPriority.INFO
+        TraceType.Process -> LogPriority.DEBUG
+        TraceType.Silent -> LogPriority.DEBUG
+        TraceType.StateChange -> LogPriority.DEBUG
+        TraceType.User -> LogPriority.DEBUG
     }
+    PlatformLog.log(priority, tagBlock, logMessage)
 
     val rawBreadcrumb = if (tag != null) "$tagBlock $message" else message
     val sinks = TraceManager.sinks()
