@@ -7,6 +7,7 @@ import androidx.paging.RemoteMediator
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.services.controllers.ChatMessagingController
+import com.flipcash.services.models.GetMessagesError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import kotlinx.coroutines.CancellationException
@@ -47,7 +48,13 @@ class ChatMessageRemoteMediator(
             )
 
             val messages = controller.getMessages(chatId, queryOptions)
-                .getOrThrow()
+                .getOrElse { error ->
+                    // The server answers a page past the oldest message with NOT_FOUND, not an empty page.
+                    if (error is GetMessagesError.NotFound) {
+                        return MediatorResult.Success(endOfPaginationReached = true)
+                    }
+                    throw error
+                }
 
             withContext(Dispatchers.IO) {
                 dataSource.upsert(chatId, messages)
@@ -56,7 +63,9 @@ class ChatMessageRemoteMediator(
             MediatorResult.Success(endOfPaginationReached = messages.size < state.config.pageSize)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            // Throwable, not Exception: CodeServerError extends Throwable, and one escaping here
+            // crashes the paging coroutine.
             // Reported, not folded into end-of-pagination: a failed page is not the start of the chat.
             MediatorResult.Error(e)
         }
