@@ -1,5 +1,6 @@
 package com.flipcash.app.tipping.internal
 
+import com.getcode.opencode.exchange.Exchange
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.tokens.TokenCoordinator
@@ -23,6 +24,7 @@ import javax.inject.Inject
 /** Backs the Archived screen: the archived chats, newest first, and unarchive. */
 @HiltViewModel
 internal class ArchivedChatsViewModel @Inject constructor(
+    private val exchange: Exchange,
     private val chatCoordinator: ChatCoordinator,
     private val archiveStore: ChatArchiveStore,
     userManager: UserManager,
@@ -52,7 +54,7 @@ internal class ArchivedChatsViewModel @Inject constructor(
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
         ) { summaries, tokens, senderProfiles ->
-            mapConversations(summaries, tokens, senderProfiles, userManager.accountId, resources, chatCoordinator)
+            mapConversations(summaries, tokens, senderProfiles, userManager.accountId, resources, chatCoordinator, exchange)
         }
             .flowOn(dispatchers.Default)
             .onEach { dispatchEvent(Event.ChatsUpdated(Loadable.Loaded(it))) }

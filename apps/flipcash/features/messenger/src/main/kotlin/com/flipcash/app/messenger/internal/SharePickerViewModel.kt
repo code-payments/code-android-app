@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal
 
+import com.getcode.opencode.exchange.Exchange
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
@@ -39,6 +40,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 internal class SharePickerViewModel @Inject constructor(
+    private val exchange: Exchange,
     chatCoordinator: ChatCoordinator,
     userManager: UserManager,
     resources: ResourceHelper,
@@ -107,7 +109,7 @@ internal class SharePickerViewModel @Inject constructor(
         viewModelScope.launch {
             val selfId = userManager.accountId
             chatCoordinator.chatListFeed().collect { summaries ->
-                val fresh = summaries.map { it.toConversationReference(selfId, emptyMap(), resources) }
+                val fresh = summaries.map { it.toConversationReference(selfId, emptyMap(), resources, exchange = exchange) }
                 // The first list is shown as it arrives. Later ones (the feed keeps syncing) keep
                 // the rows already on screen where they are, so nothing moves under a finger.
                 val first = _chats.value == null

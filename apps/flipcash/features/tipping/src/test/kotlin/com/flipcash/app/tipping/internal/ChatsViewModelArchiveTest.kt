@@ -66,6 +66,7 @@ class ChatsViewModelArchiveTest {
                 every { it.cachedTokens() } returns emptyList()
             }
             val vm = ChatsViewModel(
+                exchange = mockk(relaxed = true),
                 chatCoordinator = chatCoordinator,
                 userManager = mockk<UserManager>(relaxed = true),
                 tokenCoordinator = tokenCoordinator,

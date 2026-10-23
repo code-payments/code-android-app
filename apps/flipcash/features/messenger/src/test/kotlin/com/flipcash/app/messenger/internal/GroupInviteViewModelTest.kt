@@ -64,9 +64,10 @@ class GroupInviteViewModelTest {
     }
 
     private fun viewModel() = GroupInviteViewModel(
-        chatCoordinator,
-        userManager,
-        resources,
+        exchange = mockk(relaxed = true),
+        chatCoordinator = chatCoordinator,
+        userManager = userManager,
+        resources = resources,
         clipboardManager = mockk(relaxed = true),
         tipCodePreviewCache = mockk(relaxed = true),
     )
