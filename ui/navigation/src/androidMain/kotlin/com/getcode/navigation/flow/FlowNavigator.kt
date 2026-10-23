@@ -1,6 +1,6 @@
 package com.getcode.navigation.flow
 
-import android.os.Parcelable
+import com.getcode.libs.parcelable.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavKey

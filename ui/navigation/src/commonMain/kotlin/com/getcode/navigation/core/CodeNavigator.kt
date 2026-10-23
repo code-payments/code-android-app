@@ -21,7 +21,7 @@ import com.getcode.navigation.results.SavedStateHandleNavResultController
 import com.getcode.navigation.results.rememberNavResultStore
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import timber.log.Timber
+import com.getcode.utils.Log
 import kotlin.reflect.KClass
 
 val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
@@ -240,7 +240,7 @@ class CodeNavigator(
      * The flow host tears down the flow after receiving this signal.
      * No-op (with a trace) when called outside a flow — there is no caller to return to.
      */
-    fun navigateBackWithResult(result: android.os.Parcelable) {
+    fun navigateBackWithResult(result: com.getcode.libs.parcelable.Parcelable) {
         val scope = flowScope
         if (scope != null) {
             scope.exitWithResult(result)
@@ -271,7 +271,7 @@ class CodeNavigator(
     }
 
     fun <T : NavKey> clearToFirst(routeClass: KClass<T>): Boolean {
-        Timber.d("Clearing backstack to first instance of $routeClass")
+        Log.d("Clearing backstack to first instance of $routeClass")
         var routeFound = false
         Snapshot.withMutableSnapshot {
             val first = backStack.indexOfFirst { it::class == routeClass }

@@ -1,6 +1,6 @@
 package com.getcode.navigation.flow
 
-import android.os.Parcelable
+import com.getcode.libs.parcelable.Parcelable
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition

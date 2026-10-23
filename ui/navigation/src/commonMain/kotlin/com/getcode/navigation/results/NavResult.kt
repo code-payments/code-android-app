@@ -1,7 +1,7 @@
 package com.getcode.navigation.results
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
+import com.getcode.libs.parcelable.Parcelable
+import com.getcode.libs.parcelable.Parcelize
 
 /**
  *  NavResultStore value

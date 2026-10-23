@@ -1,6 +1,6 @@
 package com.getcode.navigation.results
 
-import android.os.Parcelable
+import com.getcode.libs.parcelable.Parcelable
 import com.getcode.navigation.utils.KClassSerializer
 import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass

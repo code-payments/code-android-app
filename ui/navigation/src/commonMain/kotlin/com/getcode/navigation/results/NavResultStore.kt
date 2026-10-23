@@ -1,6 +1,6 @@
 package com.getcode.navigation.results
 
-import android.os.Parcelable
+import com.getcode.libs.parcelable.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateMapOf

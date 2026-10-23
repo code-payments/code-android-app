@@ -1,7 +1,7 @@
 package com.getcode.navigation.core
 
 import androidx.navigation3.runtime.NavKey
-import com.getcode.navigation.BuildConfig
+import com.getcode.utils.BuildFlags
 import kotlin.reflect.KClass
 
 /**
@@ -14,7 +14,7 @@ import kotlin.reflect.KClass
 data class NavOptions(
     val popUpTo: PopUpTo = PopUpTo.None,
     val navigatingForResult: Boolean = false,
-    val debugRouting: Boolean = BuildConfig.DEBUG,
+    val debugRouting: Boolean = BuildFlags.isDebug,
 ) {
     sealed interface PopUpTo {
         data object ClearAll : PopUpTo

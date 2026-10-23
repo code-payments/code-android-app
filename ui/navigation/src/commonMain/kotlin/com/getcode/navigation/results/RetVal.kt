@@ -1,6 +1,6 @@
 package com.getcode.navigation.results
 
-import android.os.Parcelable
+import com.getcode.libs.parcelable.Parcelable
 import androidx.navigation3.runtime.NavKey
 import kotlin.reflect.KClass
 

@@ -1,7 +1,7 @@
 package com.getcode.navigation.scenes
 
 import android.os.Build
-import android.os.Parcelable
+import com.getcode.libs.parcelable.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.background

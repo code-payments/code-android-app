@@ -1,6 +1,6 @@
 package com.getcode.navigation.core
 
-import android.os.Parcelable
+import com.getcode.libs.parcelable.Parcelable
 
 /**
  * The bounded navigation scope a [CodeNavigator] belongs to when it is a flow's inner navigator.
