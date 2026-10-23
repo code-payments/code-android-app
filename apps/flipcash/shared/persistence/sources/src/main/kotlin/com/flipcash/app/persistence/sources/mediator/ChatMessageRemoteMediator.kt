@@ -9,6 +9,7 @@ import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
@@ -46,14 +47,17 @@ class ChatMessageRemoteMediator(
             )
 
             val messages = controller.getMessages(chatId, queryOptions)
-                .getOrNull().orEmpty()
+                .getOrThrow()
 
             withContext(Dispatchers.IO) {
                 dataSource.upsert(chatId, messages)
             }
 
             MediatorResult.Success(endOfPaginationReached = messages.size < state.config.pageSize)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
+            // Reported, not folded into end-of-pagination: a failed page is not the start of the chat.
             MediatorResult.Error(e)
         }
     }
