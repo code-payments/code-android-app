@@ -16,6 +16,7 @@ import com.flipcash.app.userflags.UserFlagsFiles
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.chatcipher.ChatCipher
 import com.getcode.chatcipher.DefaultChatCipher
+import com.getcode.opencode.providers.SessionListener
 import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ComposeResourceHelper
@@ -24,6 +25,7 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.NetworkObserverStub
 import dagger.Module
 import dagger.Provides
+import dagger.multibindings.IntoSet
 import java.io.File
 import java.util.Currency
 import java.util.Locale
@@ -42,7 +44,8 @@ import kotlinx.coroutines.flow.map
  */
 @Module
 object DesktopModule {
-    private val appDir: File by lazy {
+    /** Per-user data directory: the database, DataStore files and no-backup files. */
+    internal val appDir: File by lazy {
         File(System.getProperty("user.home"), ".flipcash").apply { mkdirs() }
     }
 
@@ -98,6 +101,12 @@ object DesktopModule {
 
     @Provides
     fun tokenMetadata(coordinator: TokenCoordinator): TokenMetadataProvider = coordinator
+
+    // Android adds TokenCoordinator to the listener set in TokenModule, which is Android-only. Without this
+    // the coordinator never sees onUserLoggedIn and the wallet stays on its loading state.
+    @Provides
+    @IntoSet
+    fun tokenSessionListener(coordinator: TokenCoordinator): SessionListener = coordinator
 
     @Provides
     @Singleton

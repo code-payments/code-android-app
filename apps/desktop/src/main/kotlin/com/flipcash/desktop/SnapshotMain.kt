@@ -4,6 +4,7 @@ import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.use
 import dev.zacsweers.metro.createGraph
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.system.exitProcess
 import org.jetbrains.skia.EncodedImageFormat
@@ -15,6 +16,7 @@ import org.jetbrains.skia.EncodedImageFormat
 fun main(args: Array<String>) {
     val out = File(args.firstOrNull() ?: "wallet.png")
     val graph = createGraph<DesktopGraph>()
+    runBlocking { graph.devSignIn() }
     ImageComposeScene(width = 840, height = 1720, density = Density(2f)) {
         DesktopWalletContent(graph)
     }.use { scene ->

@@ -47,6 +47,11 @@ dependencies {
     implementation(libs.grpc.okhttp)
 }
 
+// Dev-only sign-in phrase (see DevSession), forwarded only when local.properties has one. It goes in
+// the environment, not a -D flag, so it stays out of the process's command line.
+val devMnemonic = tryReadProperty(rootProject.rootDir, "flipcash.test.mnemonic", "")
+    .takeIf { it.isNotBlank() }
+
 compose.desktop {
     application {
         mainClass = "com.flipcash.desktop.MainKt"
@@ -64,4 +69,8 @@ tasks.register<JavaExec>("snapshot") {
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.flipcash.desktop.SnapshotMainKt")
     args(providers.gradleProperty("out").getOrElse(layout.buildDirectory.file("wallet.png").get().asFile.path))
+}
+
+tasks.withType<JavaExec>().configureEach {
+    devMnemonic?.let { environment("FLIPCASH_DEV_MNEMONIC", it) }
 }
