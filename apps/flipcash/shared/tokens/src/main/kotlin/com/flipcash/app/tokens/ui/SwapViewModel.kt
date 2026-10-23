@@ -1709,7 +1709,9 @@ class SwapViewModel @Inject constructor(
                         // viewer's currency, so the floor is restated before the two are compared.
                         val minimum = minimumCoinbasePurchaseAmount.forViewer(exchange.preferredRate, exchange.rates())
                         if (amount.currencyCode == minimum.currencyCode && amount < minimum) {
-                            val minimumText = minimum.formatted()
+                            val minimumText = minimum.formatted(
+                                suffix = minimum.currencyCode.name.takeIf { minimum.currencyCode != CurrencyCode.USD },
+                            )
                             BottomBarManager.showAlert(
                                 title = resources.getString(R.string.error_title_onrampAmountTooLow, minimumText),
                                 message = resources.getString(R.string.error_description_onrampAmountTooLow, minimumText),

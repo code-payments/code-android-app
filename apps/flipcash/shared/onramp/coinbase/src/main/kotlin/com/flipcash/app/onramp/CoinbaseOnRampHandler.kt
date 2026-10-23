@@ -3,15 +3,15 @@ package com.flipcash.app.onramp
 import android.content.res.Resources
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalResources
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.flipcash.shared.onramp.coinbase.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.CurrencyCode
-import com.getcode.opencode.compose.LocalExchange
+import com.getcode.opencode.model.financial.Fiat
 import kotlinx.coroutines.delay
 
 @Composable
@@ -21,11 +21,11 @@ fun CoinbaseOnRampHandler(
 ) {
     val state by controller.state.collectAsStateWithLifecycle()
     val resources = LocalResources.current
-    // Coinbase sets the guest limit in dollars and the error carries no amount, so it stays in
-    // dollars, labelled as such for anyone who doesn't see dollars elsewhere in the app.
-    val exchange = LocalExchange.current
-    val preferredRate by exchange.observePreferredRate().collectAsState(initial = exchange.preferredRate)
-    val weeklyLimit = if (preferredRate.currency == CurrencyCode.USD) "$1,000" else "$1,000 USD"
+    // Coinbase sets the guest limit in dollars; it reads in the viewer's currency, with the code
+    // named so the converted figure isn't mistaken for dollars.
+    val weeklyLimit = guestWeeklyLimit.inDisplayCurrency().let { limit ->
+        limit.formatted(suffix = limit.currencyCode.name.takeIf { limit.currencyCode != CurrencyCode.USD })
+    }
     when (val current = state) {
         is CoinbaseOnRampState.Paying -> {
             CoinbaseOnRampWebview(
@@ -69,6 +69,8 @@ fun CoinbaseOnRampHandler(
 
     content()
 }
+
+private val guestWeeklyLimit = Fiat(fiat = 1_000.0, currencyCode = CurrencyCode.USD)
 
 private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebError, weeklyLimit: String) {
     when (error) {
