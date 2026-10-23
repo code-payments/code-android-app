@@ -1,0 +1,17 @@
+package com.flipcash.services.models
+
+import com.getcode.libs.parcelable.Parcelable
+import com.getcode.libs.parcelable.Parcelize
+import kotlinx.serialization.Serializable
+
+/**
+ * A contact value (phone number or email address) paired with whether it has been
+ * verified with the server. An unverified contact is one the user entered locally
+ * (e.g. when server verification is skipped) but which has not been confirmed.
+ */
+@Parcelize
+@Serializable
+data class VerifiableContactMethod(
+    val value: String,
+    val verified: Boolean,
+): Parcelable

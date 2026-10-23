@@ -5,7 +5,7 @@ import com.flipcash.analytics.PeopleCounter
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.analytics.PropertyValue
 import com.flipcash.app.analytics.TokenSymbolResolver
-import com.getcode.services.flipcash.BuildConfig
+import com.getcode.utils.BuildFlags
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.mixpanel.android.mpmetrics.MixpanelAPI
@@ -20,7 +20,7 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
     override fun track(event: AnalyticsEvent) {
         val properties = event.toMixpanelProperties(tokenSymbolResolver)
 
-        if (BuildConfig.DEBUG) {
+        if (BuildFlags.isDebug) {
             val propsString = properties.entries.joinToString { "${it.key} => ${it.value}" }
             trace(
                 buildString {
@@ -42,7 +42,7 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
     // region Internal
 
     private fun increment(property: String, amount: Double) {
-        if (BuildConfig.DEBUG) {
+        if (BuildFlags.isDebug) {
             trace("debug increment $property by $amount", type = TraceType.Silent)
             return
         }

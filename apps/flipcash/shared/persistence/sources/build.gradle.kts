@@ -17,7 +17,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
-    testImplementation(testFixtures(project(":services:flipcash")))
+    testImplementation(project(":services:flipcash:test-fixtures"))
 
     implementation(libs.bundles.kotlinx.serialization)
 

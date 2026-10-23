@@ -254,6 +254,7 @@ include(
     ":services:opencode",
     ":services:opencode-compose",
     ":services:flipcash",
+    ":services:flipcash:test-fixtures",
     ":services:flipcash-compose",
 
     // common UI
