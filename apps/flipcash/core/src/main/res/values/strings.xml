@@ -1157,7 +1157,7 @@
     <string name="action_createPublicGroup">Create a New Community Chat</string>
     <string name="action_createPrivateGroup">Create a New Group</string>
     <string name="title_noCommunityCurrencies">No Community Currencies</string>
-    <string name="description_noCommunityCurrencies">Buy a community currency to start or join community chats.</string>
+    <string name="description_noCommunityCurrencies">Buy a community currency to start or join community chats</string>
     <string name="action_exploreCurrencies">Explore Currencies</string>
     <string name="title_newPrivateGroup">New Private Group</string>
     <string name="action_requestToJoin">Request to Join</string>
