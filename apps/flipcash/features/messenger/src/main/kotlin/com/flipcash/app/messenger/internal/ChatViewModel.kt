@@ -147,7 +147,7 @@ import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.ui.UndecryptableHint
 import com.flipcash.shared.chat.ui.undecryptableHint
 import com.flipcash.shared.chat.ui.unsupportedContentHint
-import com.flipcash.shared.chat.ui.detectMentions
+import com.flipcash.shared.chat.ui.detectedMentions
 import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.shared.chat.withinWindows
@@ -1465,8 +1465,9 @@ internal class ChatViewModel @AssistedInject constructor(
                         .withSenderPreview(content.linkPreview(), message, stateFlow.value.chatId)
 
                     // Detected over the whole text, beside the links, so a handle inside a link
-                    // stays the link's. Nothing is looked up until one is tapped.
-                    val mentions = linkableText?.let { detectMentions(it, links) }.orEmpty()
+                    // stays the link's. Nothing is looked up until one is tapped. A photo's
+                    // caption is covered here too, though it gets no link card.
+                    val mentions = enriched.detectedMentions()
 
                     // Noted while the voucher and the message it came on are in the same hand;
                     // see [ClaimReplyTargets]. Skipped for the reader's own messages, which is what

@@ -13,6 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.platform.LocalDensity
+import com.flipcash.shared.chat.ui.DetectedMention
+import com.flipcash.shared.chat.ui.buildMentionedText
+import com.flipcash.shared.chat.ui.drawMentionPills
+import com.flipcash.shared.chat.ui.mentionSpacingContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -82,6 +92,8 @@ fun ChatPhotoBubble(
     localModel: Any? = null,
     sentPreview: ImageBitmap? = null,
     caption: String? = null,
+    mentions: List<DetectedMention> = emptyList(),
+    onMentionClick: ((String) -> Unit)? = null,
     position: BubblePosition = BubblePosition.Solo,
     blurhashOnly: Boolean = false,
     unavailable: Boolean = false,
@@ -153,11 +165,57 @@ fun ChatPhotoBubble(
                 onLongClick = onLongClick,
                 onDoubleClick = onDoubleClick,
             ) {
+                // The same body a text bubble builds, so a handle here is a pill and a tap on it
+                // opens the person, as it does in text.
+                val linkStyle = SpanStyle(
+                    color = CodeTheme.colors.textMain,
+                    textDecoration = TextDecoration.Underline,
+                )
+                val mentionStyle = SpanStyle(
+                    color = CodeTheme.colors.textMain,
+                    textDecoration = TextDecoration.None,
+                )
+                val currentOnMentionClick by rememberUpdatedState(onMentionClick)
+                val mentionsTappable = onMentionClick != null
+                val mentioned = remember(caption, mentions, linkStyle, mentionStyle, mentionsTappable) {
+                    buildMentionedText(
+                        text = caption.orEmpty(),
+                        mentions = mentions,
+                        linkStyle = linkStyle,
+                        mentionStyle = mentionStyle,
+                        onMentionClick = if (mentionsTappable) {
+                            { username -> currentOnMentionClick?.invoke(username) }
+                        } else {
+                            null
+                        },
+                    )
+                }
+                val handles = mentioned.handles
+                val density = LocalDensity.current
+                val inlineContent = remember(handles.isNotEmpty(), density) {
+                    if (handles.isEmpty()) {
+                        emptyMap()
+                    } else {
+                        val (slot, spacing) = mentionSpacingContent(density)
+                        mapOf(slot to spacing)
+                    }
+                }
+                var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
                 Text(
-                    text = caption.orEmpty(),
+                    text = mentioned.text,
+                    inlineContent = inlineContent,
                     style = CodeTheme.typography.textMessage,
                     color = CodeTheme.colors.textMain,
-                    modifier = Modifier.testTag(PHOTO_CAPTION_TAG),
+                    onTextLayout = { layout = it },
+                    modifier = Modifier
+                        .testTag(PHOTO_CAPTION_TAG)
+                        .then(
+                            if (handles.isEmpty()) {
+                                Modifier
+                            } else {
+                                Modifier.drawBehind { layout?.let { drawMentionPills(it, handles) } }
+                            },
+                        ),
                 )
             }
         }
