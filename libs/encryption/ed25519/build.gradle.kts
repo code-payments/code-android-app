@@ -1,8 +1,7 @@
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
-    kotlin("multiplatform")
-    id("com.android.kotlin.multiplatform.library")
+    alias(libs.plugins.flipcash.kmp.library)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
 }
 
@@ -79,20 +78,8 @@ appleTargetDefs.forEach { target ->
 kotlin {
     android {
         namespace = "com.getcode.encryption.ed25519"
-        compileSdk {
-            version = release(libs.versions.android.compileSdk.get().toInt()) {
-                minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
-            }
-        }
-        minSdk = 29
         withHostTest {}
     }
-
-    iosArm64()
-    iosSimulatorArm64()
-    iosX64()
-    macosArm64()
-    macosX64()
 
     // ── Cinterop + linker wiring for each Apple target ────────────────────────
     targets.withType<KotlinNativeTarget>().configureEach {
@@ -136,6 +123,12 @@ kotlin {
                 // transitively re-exported to existing consumers of `:libs:encryption:ed25519`
                 // (e.g. :libs:encryption:utils) — keeps the rename consumer-transparent.
                 api(project(":libs:encryption:ed25519-native"))
+            }
+        }
+        jvmMain {
+            dependencies {
+                // Pure-Java Ed25519 for desktop -- no per-OS native library to build or ship.
+                implementation(libs.eddsa)
             }
         }
         commonTest {
