@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.shared.chat.ui.settledUsd
 import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.LinkPreview
@@ -1691,6 +1692,7 @@ internal class ChatViewModel @AssistedInject constructor(
             snippet = when (body) {
                 is MessageContent.Cash -> ChatQuoteSnippet.Cash(
                     amount = body.amount,
+                    settledUsd = body.settledUsd(),
                     tokenName = body.tokenName.ifBlank {
                         tokenCoordinator.getTokenMetadata(body.mint)
                             .getOrNull()?.token?.name.orEmpty()

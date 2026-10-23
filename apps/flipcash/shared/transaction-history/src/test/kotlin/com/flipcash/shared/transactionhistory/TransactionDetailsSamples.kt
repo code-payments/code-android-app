@@ -4,6 +4,7 @@ import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HolderMetrics
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
@@ -64,10 +65,12 @@ internal object TransactionDetailsSamples {
 
     private fun usd(amount: Double) = Fiat(amount, CurrencyCode.USD)
 
+    private fun local(amount: Double) = usd(amount).let { LocalFiat(usdf = it, nativeAmount = it) }
+
     private fun base(
         kind: TransactionKind,
         avatar: TransactionAvatar,
-        amount: Fiat?,
+        amount: LocalFiat?,
         token: Token?,
         tokenAmount: String?,
         subtitle: String?,
@@ -84,7 +87,6 @@ internal object TransactionDetailsSamples {
         timestamp = At,
         token = token,
         status = TransactionStatus.Completed,
-        currencyCode = amount?.currencyCode?.name,
         exchangeRate = amount?.let { 1.0 },
         tokenAmount = tokenAmount,
     )
@@ -93,7 +95,7 @@ internal object TransactionDetailsSamples {
     private fun person(kind: TransactionKind, amount: Double, prefix: String) = base(
         kind = kind,
         avatar = TransactionAvatar.Profile(Sally, badgeToken = Jeffy),
-        amount = usd(amount),
+        amount = local(amount),
         token = Jeffy,
         tokenAmount = "1,204.905",
         heading = Sally.displayName,
@@ -109,7 +111,7 @@ internal object TransactionDetailsSamples {
     val GaveCash = base(
         kind = TransactionKind.GaveCash,
         avatar = TransactionAvatar.TokenIcon(Jeffy),
-        amount = usd(3.00),
+        amount = local(3.00),
         token = Jeffy,
         tokenAmount = "180.735",
         subtitle = "In Person",
@@ -119,7 +121,7 @@ internal object TransactionDetailsSamples {
     val ReceivedCash = base(
         kind = TransactionKind.ReceivedCash,
         avatar = TransactionAvatar.TokenIcon(Dollars),
-        amount = usd(1.00),
+        amount = local(1.00),
         token = Dollars,
         tokenAmount = "1",
         subtitle = "In Person",
@@ -130,7 +132,7 @@ internal object TransactionDetailsSamples {
     val SentCashLink = base(
         kind = TransactionKind.SentCashLink,
         avatar = TransactionAvatar.TokenIcon(Jeffy),
-        amount = usd(7.50),
+        amount = local(7.50),
         token = Jeffy,
         tokenAmount = "451.838",
         subtitle = null,
@@ -140,7 +142,7 @@ internal object TransactionDetailsSamples {
     val Buy = base(
         kind = TransactionKind.Buy,
         avatar = TransactionAvatar.TokenIcon(Jeffy),
-        amount = usd(50.00),
+        amount = local(50.00),
         token = Jeffy,
         tokenAmount = "3,012.264",
         subtitle = "with Dollars",
@@ -150,7 +152,7 @@ internal object TransactionDetailsSamples {
     val Sell = base(
         kind = TransactionKind.Sell,
         avatar = TransactionAvatar.TokenIcon(Jeffy),
-        amount = usd(18.20),
+        amount = local(18.20),
         token = Jeffy,
         tokenAmount = "1,096.463",
         subtitle = "for Dollars",
@@ -160,7 +162,7 @@ internal object TransactionDetailsSamples {
     val Withdraw = base(
         kind = TransactionKind.Withdraw,
         avatar = TransactionAvatar.TokenIcon(Dollars),
-        amount = usd(120.00),
+        amount = local(120.00),
         token = Dollars,
         tokenAmount = "120",
         subtitle = null,
@@ -170,7 +172,7 @@ internal object TransactionDetailsSamples {
     val Deposit = base(
         kind = TransactionKind.Deposit,
         avatar = TransactionAvatar.TokenIcon(Dollars),
-        amount = usd(250.00),
+        amount = local(250.00),
         token = Dollars,
         tokenAmount = "250",
         subtitle = null,
@@ -180,7 +182,7 @@ internal object TransactionDetailsSamples {
     val Convert = base(
         kind = TransactionKind.Convert,
         avatar = TransactionAvatar.SwapTokens(from = Dollars, to = Jeffy),
-        amount = usd(40.00),
+        amount = local(40.00),
         token = Dollars,
         tokenAmount = "40",
         subtitle = "Dollars → Jeffy",

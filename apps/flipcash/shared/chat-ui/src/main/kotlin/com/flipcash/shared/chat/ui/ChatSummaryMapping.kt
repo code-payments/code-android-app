@@ -10,6 +10,7 @@ import com.flipcash.shared.chat.models.displayText
 import com.flipcash.shared.chat.models.namedUsers
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.media.ChatMediaText
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
@@ -33,12 +34,16 @@ import com.getcode.utils.hexEncodedString
  * [senderProfiles] names a group's last sender when the roster does not: the feed carries a
  * roster subset that is often only the viewer, so without it a group preview is never attributed.
  * Keyed by user-id hex, as [com.flipcash.shared.chat.ChatCoordinator.observeSenderProfiles] emits.
+ *
+ * [exchange] restates a payment's amount in the viewer's currency; without one the amount reads in
+ * the currency it was sent in.
  */
 fun ChatSummary.toConversationReference(
     selfId: ID?,
     tokensByMint: Map<Mint, Token>,
     resources: ResourceHelper,
     senderProfiles: Map<String, UserProfile> = emptyMap(),
+    exchange: Exchange? = null,
 ): ConversationReference {
     val isGroup = metadata.type == ChatType.GROUP
     val other = metadata.members.firstOrNull { it.userId != selfId }
@@ -53,7 +58,7 @@ fun ChatSummary.toConversationReference(
         title = metadata.title,
         isGroup = isGroup,
         chatType = metadata.type,
-        lastMessagePreview = formatPreview(selfId, tokensByMint, resources, senderProfiles),
+        lastMessagePreview = formatPreview(selfId, tokensByMint, resources, senderProfiles, exchange),
         hasMessages = metadata.lastMessage != null,
         lastActivity = metadata.lastActivity,
         unreadCount = unreadCount,
@@ -92,6 +97,7 @@ private fun ChatSummary.formatPreview(
     tokensByMint: Map<Mint, Token>,
     resources: ResourceHelper,
     senderProfiles: Map<String, UserProfile>,
+    exchange: Exchange?,
 ): String? {
     val lastMsg = metadata.lastMessage ?: return null
     val isGroup = metadata.type == ChatType.GROUP
@@ -106,7 +112,7 @@ private fun ChatSummary.formatPreview(
         null
     }
     return lastMsg.content.firstOrNull()
-        ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources) { content ->
+        ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange) { content ->
             content.displayText(resources, selfId) { groupSenderName(it, senderProfiles) }
         }
 }
@@ -123,6 +129,7 @@ private fun MessageContent.previewText(
     isGroup: Boolean,
     tokensByMint: Map<Mint, Token>,
     resources: ResourceHelper,
+    exchange: Exchange?,
     depth: Int = 0,
     systemText: (MessageContent.System) -> String?,
 ): String? = when (this) {
@@ -138,7 +145,7 @@ private fun MessageContent.previewText(
     }
 
     is MessageContent.Cash -> {
-        val formatted = amount.formatted()
+        val formatted = (exchange?.let { forViewer(it.preferredRate, it.rates()) } ?: amount).formatted()
         // The reserve is branded "Dollars", so naming it reads as "$1.00 of Dollars" —
         // the amount alone already says it. Every other token still gets named.
         val name = if (mint == Mint.usdf) {
@@ -182,7 +189,7 @@ private fun MessageContent.previewText(
         null
     } else {
         content.firstOrNull()
-            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, depth + 1, systemText)
+            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, depth + 1, systemText)
     }
 
     // The feed carries the newest message that still has content, so a tombstone only

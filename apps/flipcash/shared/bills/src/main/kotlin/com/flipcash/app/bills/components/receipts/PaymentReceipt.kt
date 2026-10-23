@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ProvideTextStyle
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -27,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.bills.components.ScannableCode
-import com.getcode.opencode.compose.LocalExchange
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -35,7 +36,6 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.DashEffect
 import com.getcode.theme.monospace
 import com.getcode.theme.receipt
-import com.getcode.ui.components.PriceWithFlag
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -46,8 +46,6 @@ internal fun Receipt(
     token: Token,
     currencyCode: CurrencyCode?,
 ) {
-    val exchange = LocalExchange.current
-
     BoxWithConstraints(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
@@ -90,7 +88,7 @@ internal fun Receipt(
                         value = CodeTheme.typography.textMedium
                             .monospace(weight = FontWeight.W500)
                     ) {
-                        PriceWithFlag(currencyCode = currencyCode.name, flag = exchange.getFlag(currencyCode.name), amount = amount.nativeAmount.formatted())
+                        Text(text = amount.inDisplayCurrency().formatted(), color = Color.Black)
                     }
                 }
             }

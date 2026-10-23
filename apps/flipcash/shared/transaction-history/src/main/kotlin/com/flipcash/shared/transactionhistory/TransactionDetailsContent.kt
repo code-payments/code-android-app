@@ -22,7 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import com.flipcash.app.core.ui.FlagWithFiat
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.core.ui.ReceiptLineItem
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.getcode.theme.CodeTheme
@@ -182,12 +182,11 @@ private fun Header(
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             details.amount?.let { amount ->
-                FlagWithFiat(
-                    fiat = amount,
-                    extraPrefix = details.signedAmountPrefix?.ifBlank { null },
-                    iconSize = CodeTheme.dimens.staticGrid.x5,
-                    spacing = CodeTheme.dimens.grid.x1,
-                    textStyle = CodeTheme.typography.displaySmall,
+                Text(
+                    text = amount.inDisplayCurrency()
+                        .formatted(extraPrefix = details.signedAmountPrefix?.ifBlank { null }),
+                    style = CodeTheme.typography.displaySmall,
+                    color = CodeTheme.colors.textMain,
                 )
             }
 
@@ -232,13 +231,6 @@ private fun Header(
 @Composable
 private fun DetailCard(details: TransactionDetails, modifier: Modifier = Modifier) {
     DetailsCard(modifier = modifier) {
-        details.currencyCode?.let {
-            ReceiptLineItem(
-                modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.label_txnDetails_currency),
-                amount = it,
-            )
-        }
         details.exchangeRate?.let {
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
@@ -270,14 +262,14 @@ private fun DetailCard(details: TransactionDetails, modifier: Modifier = Modifie
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
                 label = stringResource(R.string.label_txnDetails_fee),
-                amount = it.formatted(),
+                amount = it.inDisplayCurrency().formatted(),
             )
         }
         details.received?.let {
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
                 label = stringResource(R.string.label_txnDetails_received),
-                amount = it.formatted(),
+                amount = it.inDisplayCurrency().formatted(),
             )
         }
         ReceiptLineItem(

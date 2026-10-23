@@ -4,6 +4,7 @@ import com.flipcash.app.core.tokens.brandedName
 import com.flipcash.app.core.tokens.isReserve
 import com.flipcash.app.messenger.internal.balanceRequirement
 import com.flipcash.app.messenger.internal.requiresStaff
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
@@ -12,6 +13,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.chat.models.LinkCard
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import javax.inject.Inject
@@ -39,6 +41,7 @@ internal class GroupLinkLookup @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val resources: ResourceHelper,
     private val featuredGroups: FeaturedGroupsStore,
+    private val exchange: Exchange,
 ) {
     suspend operator fun invoke(chatId: ChatId): Result<LinkCard.GroupInvite.State.Resolved> =
         runCatching {
@@ -66,7 +69,8 @@ internal class GroupLinkLookup @Inject constructor(
             tokenCoordinator.getTokenMetadata(Mint(mint.bytes)).getOrNull()?.token
         }
         return LinkCard.GroupInvite.Requirement(
-            amount = balance?.amount?.formatted(),
+            // A USD-priced minimum, shown in the viewer's currency.
+            amount = balance?.amount?.forViewer(exchange.preferredRate, exchange.rates())?.formatted(),
             currencyName = token?.takeUnless { it.isReserve }?.brandedName(resources),
             staffOnly = staffOnly,
         )

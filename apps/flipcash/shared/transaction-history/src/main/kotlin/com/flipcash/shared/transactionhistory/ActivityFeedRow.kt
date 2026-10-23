@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.app.core.ui.ActivityAmount
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.util.formatLocalized
@@ -76,13 +77,13 @@ fun ActivityFeedRow(
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
             ) {
                 Text(
-                    text = amount.nativeAmount.formatted(),
+                    text = amount.inDisplayCurrency().formatted(),
                     style = CodeTheme.typography.textMedium,
                     color = CodeTheme.colors.textMain,
                     maxLines = 1,
                 )
                 Text(
-                    text = stringResource(R.string.label_activity_convertFee, fee.formatted()),
+                    text = stringResource(R.string.label_activity_convertFee, fee.inDisplayCurrency().formatted()),
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
                     maxLines = 1,

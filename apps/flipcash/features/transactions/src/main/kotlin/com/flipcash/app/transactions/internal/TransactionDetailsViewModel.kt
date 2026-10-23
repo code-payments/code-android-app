@@ -8,7 +8,7 @@ import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.feed.MessageMetadata
-import com.flipcash.app.core.money.formatted
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.transactions.R
@@ -19,6 +19,7 @@ import com.flipcash.shared.transactionhistory.ResolvedTransaction
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
@@ -53,6 +54,7 @@ class TransactionDetailsViewModel @Inject constructor(
     clipboardManager: ClipboardManager,
     toastController: SystemToastController,
     userManager: UserManager,
+    exchange: Exchange,
     resources: ResourceHelper,
     dmDestinations: DmDestinationResolver,
     dispatchers: DispatcherProvider,
@@ -125,7 +127,7 @@ class TransactionDetailsViewModel @Inject constructor(
             .mapNotNull { stateFlow.value.transaction?.message }
             .onEach { message ->
                 val metadata = message.metadata as? MessageMetadata.IndirectlySentCrypto ?: return@onEach
-                val formattedAmount = message.amount?.formatted()
+                val formattedAmount = message.amount?.forViewer(exchange.preferredRate, exchange.rates())?.formatted()
                 val title = formattedAmount?.let {
                     resources.getString(R.string.prompt_title_cancelTransferWithAmount, it)
                 } ?: resources.getString(R.string.prompt_title_cancelTransferNoAmount)

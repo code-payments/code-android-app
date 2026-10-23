@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashPreview
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.getcode.opencode.model.financial.Fiat
@@ -61,19 +62,14 @@ internal fun SpeakerGateBar(
         ChatRuleRequirement.Staff -> stringResource(R.string.subtitle_chatGate_speakerStaffOnly)
         ChatRuleRequirement.Creator -> stringResource(R.string.subtitle_chatGate_speakerCreatorOnly)
         ChatRuleRequirement.UnsupportedSpeakerRule -> stringResource(R.string.subtitle_chatGate_speakerUnsupported)
-        is ChatRuleRequirement.MinimumBalance ->
+        is ChatRuleRequirement.MinimumBalance -> {
+            val amount = requirement.amount.inDisplayCurrency().formatted()
             if (currencyName != null) {
-                stringResource(
-                    R.string.subtitle_chatGate_speakerMinimumBalance,
-                    requirement.amount.formatted(),
-                    currencyName,
-                )
+                stringResource(R.string.subtitle_chatGate_speakerMinimumBalance, amount, currencyName)
             } else {
-                stringResource(
-                    R.string.subtitle_chatGate_speakerMinimumBalance_anyToken,
-                    requirement.amount.formatted(),
-                )
+                stringResource(R.string.subtitle_chatGate_speakerMinimumBalance_anyToken, amount)
             }
+        }
     }
 
     Box(

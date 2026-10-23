@@ -61,7 +61,7 @@ internal class TransactionDetailsMapper @Inject constructor(
                 meta.isOutgoing -> "-"
                 else -> "+"
             },
-            amount = msg.amount?.nativeAmount,
+            amount = msg.amount,
             timestamp = msg.timestamp,
             token = token,
             toToken = source.toToken,
@@ -70,7 +70,6 @@ internal class TransactionDetailsMapper @Inject constructor(
             // the notification metadata carries the account.
             account = null,
             status = statusOf(msg.state, convert?.swapState),
-            currencyCode = msg.amount?.nativeAmount?.currencyCode?.name,
             exchangeRate = msg.amount?.rate?.fx,
             tokenAmount = tokenAmountOf(msg.amount?.underlyingTokenAmount, token),
             fee = convert?.fee,

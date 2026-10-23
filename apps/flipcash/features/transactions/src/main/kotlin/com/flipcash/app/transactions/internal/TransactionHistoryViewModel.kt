@@ -5,7 +5,7 @@ import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.MessageMetadata
-import com.flipcash.app.core.money.formatted
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.tokens.TokenCoordinator
@@ -15,6 +15,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -38,6 +39,7 @@ class TransactionHistoryViewModel @Inject constructor(
     transactionController: TransactionOperations,
     featureFlags: FeatureFlagController,
     userManager: UserManager,
+    exchange: Exchange,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
 ): BaseViewModel<TransactionHistoryViewModel.State, TransactionHistoryViewModel.Event>(
@@ -77,7 +79,7 @@ class TransactionHistoryViewModel @Inject constructor(
             .map { it.message }
             .onEach { message ->
                 val metadata = message.metadata as? MessageMetadata.IndirectlySentCrypto ?: return@onEach
-                val formattedAmount = message.amount?.formatted()
+                val formattedAmount = message.amount?.forViewer(exchange.preferredRate, exchange.rates())?.formatted()
                 val title = formattedAmount?.let {
                     resources.getString(R.string.prompt_title_cancelTransferWithAmount, it)
                 } ?: resources.getString(R.string.prompt_title_cancelTransferNoAmount)

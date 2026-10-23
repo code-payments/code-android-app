@@ -6,13 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.CircularProgressIndicator
@@ -21,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
@@ -35,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
-import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
@@ -72,7 +67,6 @@ data class TokenBalanceRowStyling(
     val nameTextStyle: TextStyle,
     val balanceDisplayStyle: TokenBalanceStyle,
     val iconSize: Dp,
-    val flagSize: Dp,
     val selectionStyle: TokenSelectionStyle,
     val disabledAlpha: Float,
     val contentPadding: PaddingValues,
@@ -83,7 +77,6 @@ fun rememberTokenBalanceRowStyling(
     nameTextStyle: TextStyle = CodeTheme.typography.screenTitle.copy(fontWeight = FontWeight.Bold),
     balanceDisplayStyle: TokenBalanceStyle = TokenBalanceStyle.Large(),
     iconSize: Dp = CodeTheme.dimens.staticGrid.x6,
-    flagSize: Dp = CodeTheme.dimens.staticGrid.x3,
     selectionStyle: TokenSelectionStyle = TokenSelectionStyle.None,
     disabledAlpha: Float = 0.8f,
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
@@ -92,7 +85,6 @@ fun rememberTokenBalanceRowStyling(
         nameTextStyle = nameTextStyle,
         balanceDisplayStyle = balanceDisplayStyle,
         iconSize = iconSize,
-        flagSize = flagSize,
         selectionStyle = selectionStyle,
         disabledAlpha = disabledAlpha,
         contentPadding = contentPadding,
@@ -103,7 +95,6 @@ fun TokenBalanceRow(
     tokenWithBalance: TokenWithLocalizedBalance,
     modifier: Modifier = Modifier,
     showName: Boolean = true,
-    showFlag: Boolean = false,
     showLogo: Boolean = true,
     isSelected: Boolean? = null,
     isEnabled: Boolean = true,
@@ -119,7 +110,7 @@ fun TokenBalanceRow(
     TokenBalanceRow(
         token = token,
         displayName = displayName,
-        balance = balance.nativeAmount,
+        balance = balance.inDisplayCurrency(),
         iconOverride = iconOverride,
         formattedBalance = formattedBalance,
         isSelected = isSelected,
@@ -127,7 +118,6 @@ fun TokenBalanceRow(
         isLoading = isLoading,
         modifier = modifier,
         showName = showName,
-        showFlag = showFlag,
         showLogo = showLogo,
         styling = styling,
         horizontalArrangement = horizontalArrangement,
@@ -142,7 +132,6 @@ fun TokenBalanceRow(
     modifier: Modifier = Modifier,
     showName: Boolean = true,
     showLogo: Boolean = true,
-    showFlag: Boolean = false,
     isSelected: Boolean? = null,
     isEnabled: Boolean = true,
     isLoading: Boolean = false,
@@ -157,10 +146,9 @@ fun TokenBalanceRow(
     TokenBalanceRow(
         token = token,
         displayName = displayName,
-        balance = balance,
+        balance = balance.inDisplayCurrency(),
         showName = showName,
         showLogo = showLogo,
-        showFlag = showFlag,
         isSelected = isSelected,
         isEnabled = isEnabled,
         isLoading = isLoading,
@@ -183,7 +171,6 @@ fun TokenBalanceRow(
     displayName: String = token.name,
     showName: Boolean = true,
     showLogo: Boolean = true,
-    showFlag: Boolean = false,
     isSelected: Boolean? = null,
     isEnabled: Boolean = true,
     isLoading: Boolean = false,
@@ -194,7 +181,6 @@ fun TokenBalanceRow(
     contentPadding: PaddingValues = styling.contentPadding,
     onClick: (() -> Unit)? = null,
 ) {
-    val exchange = LocalExchange.current
     val backgroundColor = CodeTheme.colors.background
     // The checkbox mark is drawn, not announced, so the row carries the selection instead.
     val selection = isSelected.takeIf {
@@ -267,7 +253,6 @@ fun TokenBalanceRow(
 
         }
 
-        val flag = exchange.getFlagByCurrency(balance.currencyCode.name)
         Row(
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
             verticalAlignment = Alignment.CenterVertically,
@@ -281,19 +266,6 @@ fun TokenBalanceRow(
                     contentDescription = null,
                     tint = CodeTheme.colors.textMain,
                 )
-            }
-
-            if (showFlag) {
-                flag?.let {
-                    Image(
-                        modifier = Modifier
-                            .height(styling.flagSize)
-                            .width(styling.flagSize)
-                            .clip(CircleShape),
-                        painter = painterResource(it),
-                        contentDescription = null
-                    )
-                }
             }
 
             when (val displayStyle = styling.balanceDisplayStyle) {

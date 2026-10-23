@@ -173,7 +173,6 @@ class SwapViewModel @Inject constructor(
                     AmountEntryLabel.Plain(resources.getString(R.string.action_next))
                 }
             },
-            canChangeCurrency = (vmState.purpose as? SwapPurpose.Buy)?.fundingSource != FundingSource.Phantom,
             // Convert's v2 header states the ceiling as a plain "$X available" line that simply
             // turns red once exceeded, rather than swapping in a separate over-limit sentence.
             infoHint = {

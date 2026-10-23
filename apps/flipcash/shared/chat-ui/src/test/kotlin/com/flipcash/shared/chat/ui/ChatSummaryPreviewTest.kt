@@ -11,7 +11,11 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.shared.chat.ChatSummary
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
@@ -319,6 +323,30 @@ class ChatSummaryPreviewTest {
         )
 
         assertEquals("$25.00", groupReference(listOf(cash), senderId = stranger).lastMessagePreview)
+    }
+
+    @Test
+    fun `cash previews in the viewer's currency, from the USD it settled at`() {
+        // 7,500 ARS that settled as $5 reads as CA$6.85 to a viewer on CAD at 1.37, whatever the
+        // peso has done since — and with no flag or second line in the preview.
+        val cad = Rate(fx = 1.37, currency = CurrencyCode.CAD)
+        val exchange = mockk<Exchange> {
+            every { preferredRate } returns cad
+            every { rates() } returns mapOf(CurrencyCode.CAD to cad)
+        }
+        val cash = MessageContent.Cash(
+            intentId = listOf(3),
+            amount = Fiat(7_500.0, CurrencyCode.ARS),
+            mint = Mint.usdf,
+            tokenQuarks = Fiat(5.0, CurrencyCode.USD).quarks,
+        )
+        val expected = Fiat(6.85, CurrencyCode.CAD).formatted()
+        every { resources.getString(R.string.label_chat_preview_receivedCash, expected) } returns "Received $expected"
+
+        val reference = summary(listOf(cash), senderId = other)
+            .toConversationReference(selfId = self, tokensByMint = emptyMap(), resources = resources, exchange = exchange)
+
+        assertEquals("Received $expected", reference.lastMessagePreview)
     }
 
     @Test

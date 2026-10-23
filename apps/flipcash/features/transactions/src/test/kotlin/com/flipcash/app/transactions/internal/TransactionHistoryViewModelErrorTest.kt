@@ -63,6 +63,7 @@ class TransactionHistoryViewModelErrorTest {
             transactionController = transactionController,
             featureFlags = featureFlags,
             userManager = userManager,
+            exchange = mockk(relaxed = true),
             resources = resources,
             dispatchers = dispatchers,
         )

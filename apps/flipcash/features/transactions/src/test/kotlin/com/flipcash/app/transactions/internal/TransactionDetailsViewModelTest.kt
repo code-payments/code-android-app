@@ -69,6 +69,7 @@ class TransactionDetailsViewModelTest {
             clipboardManager = mockk(relaxed = true),
             toastController = mockk(relaxed = true),
             userManager = mockk<UserManager>(relaxed = true),
+            exchange = mockk(relaxed = true),
             resources = FakeResourceHelper(),
             dmDestinations = dmDestinations,
             dispatchers = TestDispatchers(testScheduler),

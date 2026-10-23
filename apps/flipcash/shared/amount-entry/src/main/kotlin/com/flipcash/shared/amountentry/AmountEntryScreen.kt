@@ -23,7 +23,6 @@ import com.getcode.ui.theme.CodeScaffold
 fun AmountEntryScreen(
     controller: AmountEntryController,
     onConfirm: () -> Unit,
-    onChangeCurrency: () -> Unit = {},
     appBar: (@Composable () -> Unit)? = null,
     /** v2 layout: top-anchored, left-aligned display-extra-large amount over an "$X available" line. */
     largeHeader: Boolean = false,
@@ -107,14 +106,11 @@ fun AmountEntryScreen(
             } else {
                 AmountEntryField(
                     amountAnimatedModel = delegateState.amountAnimatedModel,
-                    currencyFlag = delegateState.currency.selected?.resId,
                     prefix = delegateState.currency.selected?.symbol.orEmpty(),
                     placeholder = "0",
                     hint = hintText,
                     isError = isError,
                     decimalPlaces = delegateState.currency.fractionUnits,
-                    isClickable = config.canChangeCurrency,
-                    onClick = onChangeCurrency,
                 )
             }
         }

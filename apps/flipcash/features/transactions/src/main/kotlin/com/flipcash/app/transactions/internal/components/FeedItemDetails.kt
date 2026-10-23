@@ -72,33 +72,12 @@ internal fun FeedItemDetails(
                 Fiat.tokenBalance(amount.underlyingTokenAmount.quarks, token = token)
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            Row(modifier = Modifier.fillMaxWidth()) {
                 DetailItem(
                     label = "Exchange Rate",
                     value = String.format("%.6f", amount.rate.fx),
                     modifier = Modifier.weight(1f)
                 )
-                DetailItem(
-                    label = "Currency",
-                    value = amount.nativeAmount.currencyCode.name,
-                    modifier = Modifier.weight(1f)
-                )
-
-                DetailItem(
-                    modifier = Modifier.weight(1f),
-                    label = "USDF",
-                    value = usdfAmount.formatted(
-                        rule = Fiat.FormattingRule.Length(
-                            token?.decimals ?: 6
-                        )
-                    ),
-                )
-            }
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Spacer(Modifier.weight(1f))
                 Spacer(Modifier.weight(1f))
                 DetailItem(
                     modifier = Modifier.weight(1f),

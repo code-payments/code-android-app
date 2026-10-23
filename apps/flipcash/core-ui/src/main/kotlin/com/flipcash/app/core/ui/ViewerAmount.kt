@@ -1,5 +1,9 @@
 package com.flipcash.app.core.ui
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -7,41 +11,73 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
 
 /**
- * What an activity row shows for its amount.
- *
- * @param viewer the entry in the currency the viewer reads money in — always the row's headline.
- * @param transferred what actually moved, set only when the payment was denominated in a currency
- * that isn't the viewer's; null when the two are the same and a second line would just repeat the
- * first.
- */
-data class ViewerAmount(
-    val viewer: Fiat,
-    val transferred: Fiat?,
-)
-
-/**
- * Restates this amount in the viewer's own currency ([preferredRate]'s), keeping what was actually
- * transferred alongside it when the two differ — a 7,500 ARS tip reads as its $5 to a viewer in
- * dollars, with the pesos underneath.
+ * Restates this amount in the viewer's own currency ([preferredRate]'s), the only currency the app
+ * shows — a 7,500 ARS tip reads as its $5 to a viewer in dollars.
  *
  * A USDF payment carries its own USD value ([LocalFiat.underlyingTokenAmount], fixed at the moment
  * it settled), so it converts from that: $5 of USDF stays $5 however far the peso has moved since.
  * Any other mint has no such anchor — `underlyingTokenAmount` holds that mint's quarks, not
- * dollars — so it crosses through today's [rates] instead, and falls back to the transferred amount
- * alone when the source currency has no rate to cross with.
+ * dollars — so it crosses through today's [rates] instead, and comes back as it moved when the
+ * source currency has no rate to cross with.
+ *
+ * Pinned against iOS by `viewer_amount.json`.
  */
-fun LocalFiat.forViewer(preferredRate: Rate, rates: Map<CurrencyCode, Rate>): ViewerAmount {
-    val transferred = nativeAmount
-    if (transferred.currencyCode == preferredRate.currency) return ViewerAmount(transferred, null)
+fun LocalFiat.forViewer(preferredRate: Rate, rates: Map<CurrencyCode, Rate>): Fiat {
+    if (mint != Mint.usdf) return nativeAmount.forViewer(preferredRate, rates)
 
-    val usd = usdValue(rates) ?: return ViewerAmount(transferred, null)
-    return ViewerAmount(viewer = usd.convertingTo(preferredRate), transferred = transferred)
+    if (nativeAmount.currencyCode == preferredRate.currency) return nativeAmount
+    val display = preferredRate.displayable(rates) ?: return nativeAmount
+    return underlyingTokenAmount.convertingTo(display)
 }
 
-/** The entry's value in USD, or null when it can't be established. See [forViewer]. */
-private fun LocalFiat.usdValue(rates: Map<CurrencyCode, Rate>): Fiat? {
-    if (mint == Mint.usdf) return underlyingTokenAmount
+/**
+ * Restates a plain amount in the viewer's own currency, crossing through USD. A USD-priced amount
+ * (a boost chip, a group minimum) needs no source rate; any other needs one from [rates], and comes
+ * back as it is when there isn't one.
+ */
+fun Fiat.forViewer(preferredRate: Rate, rates: Map<CurrencyCode, Rate>): Fiat {
+    if (currencyCode == preferredRate.currency) return this
+    val display = preferredRate.displayable(rates) ?: return this
 
-    val rate = rates[nativeAmount.currencyCode]?.takeIf { it.fx > 0.0 } ?: return null
-    return Fiat(fiat = nativeAmount.decimalValue / rate.fx, currencyCode = CurrencyCode.USD)
+    val usd = if (currencyCode == CurrencyCode.USD) {
+        this
+    } else {
+        val rate = rates[currencyCode]?.takeIf { it.fx > 0.0 } ?: return this
+        Fiat(fiat = decimalValue / rate.fx, currencyCode = CurrencyCode.USD)
+    }
+    return usd.convertingTo(display)
+}
+
+/**
+ * The real rate for this rate's currency, or null when there isn't one. Before rates arrive the
+ * exchange stands the preferred currency in at 1:1 with the dollar, which would pass every amount
+ * through as if the viewer read dollars, so a non-USD rate is taken from [rates] rather than trusted.
+ */
+private fun Rate.displayable(rates: Map<CurrencyCode, Rate>): Rate? {
+    if (currency == CurrencyCode.USD) return takeIf { fx > 0.0 }
+    return rates[currency]?.takeIf { it.fx > 0.0 }
+}
+
+/** [LocalFiat.forViewer] against the exchange's current preferred currency, following it as it changes. */
+@Composable
+fun LocalFiat.inDisplayCurrency(): Fiat {
+    val (preferredRate, rates) = displayRates()
+    return forViewer(preferredRate, rates)
+}
+
+/** [Fiat.forViewer] against the exchange's current preferred currency, following it as it changes. */
+@Composable
+fun Fiat.inDisplayCurrency(): Fiat {
+    val (preferredRate, rates) = displayRates()
+    return forViewer(preferredRate, rates)
+}
+
+// Observed rather than read once: the viewer can change their currency from a screen stacked over
+// the one showing the amount, and nothing else would bring the new currency back down.
+@Composable
+private fun displayRates(): Pair<Rate, Map<CurrencyCode, Rate>> {
+    val exchange = LocalExchange.current
+    val preferredRate by exchange.observePreferredRate().collectAsState(initial = exchange.preferredRate)
+    val rates by exchange.observeRates().collectAsState(initial = exchange.rates())
+    return preferredRate to rates
 }

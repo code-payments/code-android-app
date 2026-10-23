@@ -28,7 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.flipcash.features.messenger.R
 import com.flipcash.app.core.ui.TokenSelectionPill
-import com.flipcash.shared.chat.reactions.formatBoostCents
+import com.flipcash.shared.chat.ui.boostCentsText
 import com.flipcash.shared.common.ui.amount.AmountChip
 import com.flipcash.shared.common.ui.amount.AmountChipDefaults
 import com.getcode.opencode.model.financial.Token
@@ -150,7 +150,7 @@ internal fun ReactionBoostSheet(
                     onClick = { onSelectAmount(cents) },
                     modifier = Modifier.weight(1f),
                 ) { color ->
-                    Text(text = formatWholeDollars(cents), style = AmountChipDefaults.TextStyle, color = color)
+                    Text(text = boostCentsText(cents, wholeDollars = true), style = AmountChipDefaults.TextStyle, color = color)
                 }
             }
             val customLabel = stringResource(R.string.action_customAmount)
@@ -162,7 +162,7 @@ internal fun ReactionBoostSheet(
                     .semantics { contentDescription = customLabel },
             ) { color ->
                 Text(
-                    text = customCents?.let(::formatBoostCents) ?: "…",
+                    text = customCents?.let { boostCentsText(it) } ?: "…",
                     style = AmountChipDefaults.TextStyle,
                     color = color,
                     maxLines = 1,
@@ -180,10 +180,6 @@ internal fun ReactionBoostSheet(
         )
     }
 }
-
-/** A preset chip's face: whole dollars, as the design draws them ("$5"). */
-private fun formatWholeDollars(cents: Long): String =
-    if (cents % 100 == 0L) "$${cents / 100}" else formatBoostCents(cents)
 
 /**
  * The reaction being paid for, drawn as an enlarged selected reaction pill (node 10330:18168):

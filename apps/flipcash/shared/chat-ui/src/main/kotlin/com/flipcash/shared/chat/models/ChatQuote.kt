@@ -51,11 +51,16 @@ sealed interface ChatQuoteSnippet {
     data class Text(val body: String) : ChatQuoteSnippet
 
     /**
-     * A quoted payment shows its currency flag, amount and token name rather than a bare number,
+     * A quoted payment shows its amount and token name rather than a bare number,
      * matching what iOS shipped: the amount alone does not identify which payment is being
      * discussed.
      */
-    data class Cash(val amount: Fiat, val tokenName: String) : ChatQuoteSnippet
+    data class Cash(
+        val amount: Fiat,
+        val tokenName: String,
+        /** What a USDF payment settled at; null for other mints and for restored drafts. */
+        val settledUsd: Fiat? = null,
+    ) : ChatQuoteSnippet
 
     /**
      * A quoted photo: a thumbnail beside its caption, or beside the word "Photo" when there is none.

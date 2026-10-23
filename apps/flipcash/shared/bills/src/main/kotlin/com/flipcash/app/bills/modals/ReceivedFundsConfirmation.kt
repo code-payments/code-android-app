@@ -11,10 +11,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.bill.Scannable
-import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.ui.TokenIconWithName
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.shared.bills.R
-import com.getcode.opencode.compose.LocalExchange
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.components.Modal
@@ -27,7 +26,6 @@ internal fun ReceivedFundsConfirmation(
     bill: Scannable.Payable,
     onClaim: () -> Unit,
 ) {
-    val exchange = LocalExchange.current
     Modal {
         Text(
             style = CodeTheme.typography.textLarge.copy(
@@ -38,8 +36,9 @@ internal fun ReceivedFundsConfirmation(
         )
 
         AmountArea(
-            amountText = bill.amount.formatted(),
-            currencyResId = exchange.getFlagByCurrency(bill.amount.rate.currency.name),
+            // The bill's face reads as it was sent; what lands is restated in the viewer's currency,
+            // the same figure chat shows for the same payment.
+            amountText = bill.amount.inDisplayCurrency().formatted(),
             isClickable = false
         )
 
