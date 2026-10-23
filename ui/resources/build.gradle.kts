@@ -1,6 +1,9 @@
+import com.getcode.buildlogic.resources.androidResAsComposeResources
+
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.jetbrains.compose)
 }
 
 kotlin {
@@ -18,6 +21,7 @@ kotlin {
             api(libs.kotlinx.coroutines.core)
             api(libs.jetbrains.compose.runtime)
             api(libs.jetbrains.compose.ui)
+            api(libs.jetbrains.compose.components.resources)
         }
         androidMain.dependencies {
             api(libs.androidx.appcompat)
@@ -26,4 +30,13 @@ kotlin {
             implementation(libs.timber)
         }
     }
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "${Gradle.codeNamespace}.util.resources"
+    customDirectory(
+        sourceSetName = "commonMain",
+        directoryProvider = androidResAsComposeResources(),
+    )
 }

@@ -111,6 +111,7 @@ rootProject.name = "Flipcash"
 
 include(
     // app containers
+    ":apps:desktop",
     ":apps:flipcash:app",
     ":apps:flipcash:benchmark",
 
