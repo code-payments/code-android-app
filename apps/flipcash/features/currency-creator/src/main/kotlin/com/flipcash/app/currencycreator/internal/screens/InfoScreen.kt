@@ -1,5 +1,6 @@
 package com.flipcash.app.currencycreator.internal.screens
 
+import com.flipcash.app.core.ui.inDisplayCurrency
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -159,10 +160,7 @@ private fun currencyCreatorStepperItems(cost: Fiat, fee: Fiat?): List<StepperIte
                 icon = painterResource(R.drawable.ic_currencycreator_purchase),
                 title = stringResource(
                     R.string.title_currencyCreatorStepPurchase,
-                    cost.formatted(
-                        rule = Fiat.FormattingRule.Truncated,
-                        suffix = stringResource(R.string.subtitle_usdSuffix)
-                    )
+                    cost.inDisplayCurrency().formatted(rule = Fiat.FormattingRule.Truncated)
                 ),
                 description = stringResource(R.string.subtitle_currencyCreatorStepPurchase),
                 showConnector = isReceivingAmount,

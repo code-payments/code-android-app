@@ -24,6 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.TokenIcon
+import com.flipcash.app.core.ui.inDisplayCurrency
+import com.getcode.opencode.model.financial.Fiat
 import com.flipcash.app.core.ui.rememberShimmerAlpha
 import com.flipcash.app.core.ui.shimmer
 import com.flipcash.app.core.util.abbreviated
@@ -94,7 +96,7 @@ internal fun TokenMetricsRow(
                 )
             }
 
-            val subtitle = token.marketCap()?.formatted().orEmpty()
+            val subtitle = token.marketCap()?.inDisplayCurrency()?.formatted().orEmpty()
 
             val value = pluralStringResource(
                 R.plurals.subtitle_memberCount,
@@ -116,15 +118,12 @@ internal fun TokenMetricsRow(
             )
         }
         RankingSystem.MarketCap -> {
-            val currencySymbol = CurrencyCode.USD.singleCharacterCurrencySymbol.orEmpty()
-
             val metricsDelta =
                 remember(token.marketCapMetrics) { token.marketCapMetrics.deltaForWindow(window) }
             val change = if (metricsDelta >= 0) LineTrend.Up else LineTrend.Down
             val deltaForWindow = buildString {
                 append(if (change == LineTrend.Up) "+" else "-")
-                append(currencySymbol)
-                append(abs(metricsDelta).abbreviated())
+                append(usd(abs(metricsDelta)).inDisplayCurrency().abbreviated())
                 append(" ")
                 append(
                     when (window) {
@@ -143,7 +142,7 @@ internal fun TokenMetricsRow(
                 token.marketCapMetrics.currentMarketCap.takeIf { it > 0.0 }
                     ?: token.marketCap()?.decimalValue
             }
-            val value = currentCap?.let { "$currencySymbol${it.abbreviated()}" }.orEmpty()
+            val value = currentCap?.let { usd(it).inDisplayCurrency().abbreviated() }.orEmpty()
 
             val subtitle = pluralStringResource(
                 R.plurals.subtitle_memberCount,
@@ -302,3 +301,6 @@ internal fun SkeletonRankedTokenMetricsRow(rank: Int, modifier: Modifier = Modif
         }
     }
 }
+
+// Discover reports market caps and their deltas in USD; they read in the viewer's currency.
+private fun usd(value: Double) = Fiat(fiat = value, currencyCode = CurrencyCode.USD)

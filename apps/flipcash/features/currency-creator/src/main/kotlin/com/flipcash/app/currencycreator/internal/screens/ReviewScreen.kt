@@ -1,5 +1,6 @@
 package com.flipcash.app.currencycreator.internal.screens
 
+import com.flipcash.app.core.ui.inDisplayCurrency
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,10 +69,7 @@ internal fun ReviewContent(
                     ),
                 text = stringResource(
                     R.string.action_buyFirstToCreate,
-                    state.totalCost.formatted(
-                        rule = Fiat.FormattingRule.Truncated,
-                        suffix = stringResource(R.string.subtitle_usdSuffix)
-                    )
+                    state.totalCost.inDisplayCurrency().formatted(rule = Fiat.FormattingRule.Truncated)
                 ),
                 enabled = state.hasName && state.processingState.isIdle,
                 isLoading = state.processingState.loading,
