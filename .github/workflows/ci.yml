@@ -52,7 +52,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.event_name != 'push' && github.event_name != 'workflow_dispatch' }}
+          cache-read-only: ${{ github.event_name == 'merge_group' }}
 
       - name: Provision config
         uses: ./.github/actions/provision-config
@@ -87,7 +87,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.event_name != 'push' && github.event_name != 'workflow_dispatch' }}
+          cache-read-only: ${{ github.event_name == 'merge_group' }}
 
       - name: Provision config
         uses: ./.github/actions/provision-config
