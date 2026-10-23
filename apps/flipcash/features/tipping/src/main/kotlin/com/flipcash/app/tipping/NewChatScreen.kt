@@ -63,12 +63,12 @@ fun NewChatScreen() {
             )
             ChoiceRow(
                 label = stringResource(R.string.action_createPrivateGroup),
-                icon = R.drawable.ic_lock,
+                icon = R.drawable.ic_group_3,
                 onClick = { navigator.push(AppRoute.Messaging.NewGroup(isPrivate = true)) },
             )
             ChoiceRow(
                 label = stringResource(R.string.action_createPublicGroup),
-                icon = R.drawable.ic_group_3,
+                icon = R.drawable.ic_currency_coin,
                 onClick = {
                     // Unknown counts as having one: the form keeps Create disabled until a
                     // currency is seated, which is a better answer than a sheet that may be wrong.

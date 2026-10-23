@@ -1,0 +1,24 @@
+<!-- IconCurrencyCoin — the "Create a New Community Chat" row on New Chat (node 12394:74). Drawn in
+     white so the call site's tint decides the colour, as ic_group_3 does. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:translateX="1"
+        android:translateY="1">
+        <path
+            android:pathData="M11 20C15.9706 20 20 15.9706 20 11C20 6.02944 15.9706 2 11 2C6.02944 2 2 6.02944 2 11C2 15.9706 6.02944 20 11 20Z"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.8" />
+        <path
+            android:pathData="M14.05 7.95C13.3 7.05 12.35 6.65 11.15 6.65C8.7 6.65 7.05 8.55 7.05 11C7.05 13.45 8.7 15.35 11.15 15.35C12.35 15.35 13.3 14.95 14.05 14.05M11 4.85V6.65M11 15.35V17.15"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>
