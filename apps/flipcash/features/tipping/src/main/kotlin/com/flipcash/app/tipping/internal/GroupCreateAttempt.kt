@@ -4,6 +4,7 @@ import android.net.Uri
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.getcode.opencode.model.financial.Fiat
 import com.flipcash.services.models.chat.BlobId
+import com.getcode.solana.keys.Mint
 
 /**
  * Everything `StartChat` needs, as the form has it at the moment Create is tapped.
@@ -15,11 +16,8 @@ internal data class GroupDraft(
     val title: String,
     /** The re-encoded local copy, before upload. Null when the group has no picture. */
     val picture: Uri?,
-    /**
-     * What the balance requirement is measured in. [GroupCurrency.All] is a value of its own rather
-     * than a missing mint, so an any-currency draft and a one-token draft never share a key.
-     */
-    val currency: GroupCurrency,
+    /** The one mint the balance requirement is measured in. Null for a private group. */
+    val currency: Mint?,
     /** The required balance, in USD — the currency [com.flipcash.shared.chat.GroupAccess] compares in. */
     /** Null for a private group, which has no requirement. */
     val amount: Fiat?,

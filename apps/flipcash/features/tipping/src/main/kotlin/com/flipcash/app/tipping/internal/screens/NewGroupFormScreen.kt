@@ -49,7 +49,6 @@ import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.ui.DisplayTextInput
 import com.flipcash.app.tipping.internal.BalancePresets
 import com.flipcash.app.tipping.internal.CreateGroupViewModel
-import com.flipcash.app.tipping.internal.GroupCurrency
 import com.flipcash.features.tipping.R
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.opencode.model.financial.Fiat
@@ -402,8 +401,6 @@ private fun RequirementSection(
             modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x3),
             text = when {
                 unsatisfied -> stringResource(R.string.error_description_groupRuleNotSelfSatisfied)
-                state.currency == GroupCurrency.All ->
-                    stringResource(R.string.subtitle_groupBalanceRequirementAny)
                 // A picked token that has left the list has no name; the rule still holds for it.
                 else -> state.currencyName?.let {
                     stringResource(R.string.subtitle_groupBalanceRequirementToken, it)
@@ -432,30 +429,21 @@ private fun MintRow(state: CreateGroupViewModel.State, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val anyCurrency = state.currency == GroupCurrency.All
-        if (anyCurrency) {
-            AllCurrenciesIcon(discSize = MintIconSize, iconSize = AllCurrenciesGlyphSize)
-        } else {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalPlatformContext.current)
-                    .data(state.token?.imageUrl)
-                    .build(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(MintIconSize)
-                    .clip(CircleShape)
-                    .background(White10),
-            )
-        }
+        AsyncImage(
+            model = ImageRequest.Builder(LocalPlatformContext.current)
+                .data(state.token?.imageUrl)
+                .build(),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(MintIconSize)
+                .clip(CircleShape)
+                .background(White10),
+        )
 
-        // A picked token whose balance has since left the list has no name to show, so the row
-        // falls back to the sheet's own title rather than rendering a blank, tappable line.
-        val name = if (anyCurrency) {
-            stringResource(R.string.title_anyCommunityCurrency)
-        } else {
-            state.currencyName
-        }
+        // No currency yet, or a picked token whose balance has since left the list: there is no
+        // name to show, so the row falls back to the sheet's own title rather than a blank line.
+        val name = state.currencyName
         Text(
             modifier = Modifier.weight(1f),
             text = name ?: stringResource(R.string.title_selectCurrency),
@@ -476,7 +464,6 @@ private fun MintRow(state: CreateGroupViewModel.State, onClick: () -> Unit) {
 private val AvatarSize = 74.dp
 private val CameraIconSize = 40.dp
 private val MintIconSize = 32.dp
-private val AllCurrenciesGlyphSize = 20.dp
 private val MintRowHeight = 56.dp
 private val MintRowInset = 16.dp
 private val MintRowRadius = 12.dp

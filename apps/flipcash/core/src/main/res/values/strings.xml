@@ -1152,8 +1152,11 @@
     <!-- The "+" chooser that now sits between the Chats list and the two ways to start one
          (node 10127:117987). -->
     <string name="title_startNewChat">New Chat</string>
-    <string name="action_createPublicGroup">Create a Public Group</string>
-    <string name="action_createPrivateGroup">Create a Private Group</string>
+    <string name="action_createPublicGroup">Create a New Community Chat</string>
+    <string name="action_createPrivateGroup">Create a New Group</string>
+    <string name="title_noCommunityCurrencies">No Community Currencies</string>
+    <string name="description_noCommunityCurrencies">Buy a community currency to start or join community chats</string>
+    <string name="action_exploreCurrencies">Explore Currencies</string>
     <string name="title_newPrivateGroup">New Private Group</string>
     <string name="action_requestToJoin">Request to Join</string>
     <string name="action_requestSent">Request Sent</string>
@@ -1238,17 +1241,13 @@
     <string name="subtitle_groupBalanceRequirement">People won\'t be able to join this chat if their balance is less than this amount</string>
     <!-- %1$s is the community currency's name. -->
     <string name="subtitle_groupBalanceRequirementToken">People need this amount of %1$s to join this chat.</string>
-    <string name="subtitle_groupBalanceRequirementAny">People need this amount of any community currency to join this chat.</string>
     <string name="action_create">Create</string>
     <!-- StartChat rejects a creator who does not meet their own bar, so the form says so before the
          call rather than surfacing RULES_NOT_SATISFIED as a failure. -->
     <string name="error_title_groupRuleNotSelfSatisfied">You Need More %1$s</string>
     <string name="error_description_groupRuleNotSelfSatisfied">You have to meet the balance requirement you set to create this group</string>
-    <!-- The same refusal for an any-currency rule, which names no one token to need more of. -->
-    <string name="error_title_groupRuleNotSelfSatisfiedTotal">You Need a Higher Balance</string>
-    <!-- Section label over the form's currency row, and the currency sheet's last entry (node 11745:1054). -->
+    <!-- Section label over the form's currency row (node 11745:1054). -->
     <string name="title_communityCurrency">Community Currency</string>
-    <string name="title_anyCommunityCurrency">Any Community Currency</string>
     <string name="title_specificCurrency">Specific Currency</string>
     <string name="error_title_groupTitleNotAllowed">This Group Name is Not Allowed</string>
     <string name="error_title_groupRulesInvalid">These Rules Aren\'t Allowed</string>
