@@ -8,7 +8,6 @@ import androidx.compose.material.Shapes
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 internal val CodeDefaultColorScheme = ColorScheme(
     brand = Brand,
@@ -80,12 +78,7 @@ fun DesignSystem(
     typography: CodeTypography = codeTypography,
     content: @Composable () -> Unit
 ) {
-    val sysUiController = rememberSystemUiController()
-
-    SideEffect {
-        sysUiController.setStatusBarColor(color = Color(0x01000000))
-        sysUiController.setNavigationBarColor(color = Color(0x01000000))
-    }
+    TransparentSystemBars()
 
     val dimensions = calculateDimensions()
 

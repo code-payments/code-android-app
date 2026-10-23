@@ -5,43 +5,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
 
-private val Avenir = FontFamily(
-    Font(R.font.avenir_next_regular, FontWeight.Thin),
-    Font(R.font.avenir_next_regular, FontWeight.ExtraLight),
-    Font(R.font.avenir_next_regular, FontWeight.Light),
-    Font(R.font.avenir_next_regular, FontWeight.Normal),
-    Font(R.font.avenir_next_demi, FontWeight.Medium), // TODO: find a better medium OTF
-    Font(R.font.avenir_next_demi, FontWeight.SemiBold),
-    Font(R.font.avenir_next_demi, FontWeight.Bold),
-    Font(R.font.avenir_next_demi, FontWeight.ExtraBold),
-    Font(R.font.avenir_next_demi, FontWeight.Black)
-)
+private val Avenir: FontFamily get() = PlatformFonts.avenir
 
 // The true Medium face. `Avenir` deliberately renders FontWeight.Medium as Demi (many call sites
 // depend on that), so styles that need iOS's real Medium use this family instead.
-private val AvenirMedium = FontFamily(
-    Font(R.font.avenir_next_medium, FontWeight.Normal),
-    Font(R.font.avenir_next_medium, FontWeight.Medium),
-    // Heavier overrides (e.g. caption.copy(fontWeight = Bold)) stay on Demi, as they did under Avenir.
-    Font(R.font.avenir_next_demi, FontWeight.SemiBold),
-    Font(R.font.avenir_next_demi, FontWeight.Bold),
-    Font(R.font.avenir_next_demi, FontWeight.ExtraBold),
-    Font(R.font.avenir_next_demi, FontWeight.Black),
-)
+private val AvenirMedium: FontFamily get() = PlatformFonts.avenirMedium
 
-private val RobotoMono = FontFamily(
-    Font(R.font.roboto_mono_variable, FontWeight.Light),
-    Font(R.font.roboto_mono_variable, FontWeight.Normal),
-    Font(R.font.roboto_mono_variable, FontWeight.Medium),
-    Font(R.font.roboto_mono_variable, FontWeight.SemiBold)
-)
+private val RobotoMono: FontFamily get() = PlatformFonts.robotoMono
 
 data class CodeTypography(
     val displayExtraLarge: TextStyle,

@@ -17,13 +17,7 @@ data class DropShadow(
     val spread: Dp = 0.dp
 )
 
-fun Paint.makeBlur(shadowBlurRadius: Float) {
-    this.asFrameworkPaint().apply {
-        maskFilter =
-            android.graphics.BlurMaskFilter(
-                shadowBlurRadius, android.graphics.BlurMaskFilter.Blur.NORMAL)
-    }
-}
+expect fun Paint.makeBlur(shadowBlurRadius: Float)
 
 fun Modifier.dropShadow(shadow: DropShadow): Modifier {
     return this.then(

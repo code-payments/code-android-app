@@ -2,7 +2,7 @@ package com.getcode.theme
 
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.ui.graphics.Color
-import com.getcode.ui.utils.toAGColor
+import androidx.compose.ui.graphics.toArgb
 
 val Brand = Color(0xFF0F0C1F)
 val BrandLight = Color(0xFF7379A0)
@@ -85,7 +85,7 @@ data class GradientSpec(
     val borderColor: Color? = null,
     val borderWidth: Float = 0f,
 ) {
-    val colorsArray = colors.map { it.toAGColor() }.toIntArray()
+    val colorsArray = colors.map { it.toArgb() }.toIntArray()
     val stopsArray = stops.toFloatArray()
 
     override fun equals(other: Any?): Boolean {

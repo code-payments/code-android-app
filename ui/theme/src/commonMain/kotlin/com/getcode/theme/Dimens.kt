@@ -1,13 +1,11 @@
 package com.getcode.theme
 
-import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.getcode.theme.BuildConfig
+import com.getcode.utils.BuildFlags
 
 val topBarHeight = 56.dp
 
@@ -17,15 +15,15 @@ internal val LocalDimens = staticCompositionLocalOf<Dimensions> {
 
 @Composable
 fun calculateDimensions(
-    logDimensions: Boolean = BuildConfig.DEBUG,
-    configuration: Configuration = LocalConfiguration.current
+    logDimensions: Boolean = BuildFlags.isDebug,
+    screenSizeDp: ScreenSizeDp = currentScreenSizeDp()
 ): Dimensions {
 
-    val screenWidthDp = configuration.screenWidthDp
-    val screenHeightDp = configuration.screenHeightDp
+    val screenWidthDp = screenSizeDp.widthDp
+    val screenHeightDp = screenSizeDp.heightDp
 
     val (widthSizeClass, heightSizeClass) = rememberWindowSizeClass(
-        logDimensions = logDimensions, configuration = configuration
+        logDimensions = logDimensions, screenSizeDp = screenSizeDp
     )
 
     return Dimensions(

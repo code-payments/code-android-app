@@ -1,6 +1,5 @@
 package com.getcode.view.shapes
 
-import android.graphics.PointF
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,9 +28,9 @@ class TriangleCutShape(private val cutStep: Dp = 10.dp) : androidx.compose.ui.gr
 
     private fun makeCutPath(size: Size, stepX: Float, height: Float, topClosed: Boolean): Path {
         val localHeight = if (topClosed) height else -height
-        val startPt = PointF(0f, if (topClosed) 0f else height)
-        val seq = listOf(PointF(0f, startPt.y)) + generateSequence(startPt) {
-            PointF(it.x.plus(stepX), if (it.y == startPt.y) startPt.y + localHeight else startPt.y)
+        val startPt = Offset(0f, if (topClosed) 0f else height)
+        val seq = listOf(Offset(0f, startPt.y)) + generateSequence(startPt) {
+            Offset(it.x.plus(stepX), if (it.y == startPt.y) startPt.y + localHeight else startPt.y)
         }.takeWhile { it.x <= (size.width + stepX) }
 
         return Path().apply {

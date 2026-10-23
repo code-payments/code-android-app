@@ -1,11 +1,9 @@
 package com.getcode.theme
 
-import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalConfiguration
-import com.getcode.theme.BuildConfig
-import timber.log.Timber
+import com.getcode.utils.BuildFlags
+import com.getcode.utils.Log
 
 data class DeviceWindowSizeClass internal constructor(
     val widthSizeClass: WindowSizeClass,
@@ -14,11 +12,11 @@ data class DeviceWindowSizeClass internal constructor(
 
 @Composable
 fun rememberWindowSizeClass(
-    logDimensions: Boolean = BuildConfig.DEBUG,
-    configuration: Configuration = LocalConfiguration.current
+    logDimensions: Boolean = BuildFlags.isDebug,
+    screenSizeDp: ScreenSizeDp = currentScreenSizeDp()
 ): DeviceWindowSizeClass {
-    val screenWidthDp = configuration.screenWidthDp
-    val screenHeightDp = configuration.screenHeightDp
+    val screenWidthDp = screenSizeDp.widthDp
+    val screenHeightDp = screenSizeDp.heightDp
 
     return remember(screenWidthDp, screenHeightDp) {
         val screenWidthSizeClass = when {
@@ -37,7 +35,7 @@ fun rememberWindowSizeClass(
         DeviceWindowSizeClass(screenWidthSizeClass, screenHeightSizeClass)
     }.also {
         if (logDimensions) {
-            Timber.d("dimens:: width = { dp: $screenWidthDp, class: ${it.widthSizeClass.name} }, height = { dp:$screenHeightDp, class: ${it.heightSizeClass.name} }")
+            Log.d("dimens:: width = { dp: $screenWidthDp, class: ${it.widthSizeClass.name} }, height = { dp:$screenHeightDp, class: ${it.heightSizeClass.name} }")
         }
     }
 }
