@@ -14,9 +14,15 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":libs:parcelable"))
+            api(project(":ui:navigation"))
+            api(project(":ui:core"))
+            api(libs.navigation3.runtime)
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.jetbrains.compose.runtime)
+            implementation(libs.jetbrains.compose.foundation)
+            api(project(":libs:reporting"))
 
             api(project(":services:flipcash"))
             api(project(":services:opencode"))
