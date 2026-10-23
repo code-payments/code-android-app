@@ -1,6 +1,5 @@
 package com.flipcash.shared.common.ui
 
-import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,20 +21,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.min
-import androidx.core.net.toUri
-import coil3.asImage
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import coil3.request.error
-import coil3.request.placeholder
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.media.rememberMediaUrl
 import com.flipcash.services.models.HandlePrefix
@@ -84,11 +79,11 @@ fun ContactAvatar(
         if (photoUri != null) {
             var isError by rememberSaveable(photoUri) { mutableStateOf(false) }
             if (!isError) {
-                val context = LocalContext.current
+                val context = LocalPlatformContext.current
                 val request = remember(photoUri) {
                     ImageRequest.Builder(context)
                         .crossfade(true)
-                        .data(photoUri.toUri())
+                        .data(photoUri)
                         .build()
                 }
                 AsyncImage(
@@ -178,11 +173,10 @@ internal fun ProfileAvatar(
         // while the rendition downloads, what stays on screen while a stale URL is re-minted, and
         // what's left if the load never succeeds — anything is a better likeness of the person than
         // the grey Person glyph.
-        // Kept as the decoded Bitmap rather than either wrapper: the two consumers want different
-        // ones (Compose's ImageBitmap here, Coil's Image in the request), and decoding is the
-        // expensive half.
+        // Kept as the decoded ImageBitmap; the Coil request wraps the same pixels (asCoilImage), and
+        // decoding is the expensive half.
         val blurBitmap = remember(image) {
-            BlurHash.decode(image?.blurhash(), width = 24, height = 24)
+            BlurHash.decodeImage(image?.blurhash(), width = 24, height = 24)
         }
         if (blurred) {
             // Blocked users are shown intentionally obscured — render the media item's self-contained
@@ -206,14 +200,14 @@ internal fun ProfileAvatar(
         if (image != null && photoUri != null) {
             val isError = media.hasFailed
             if (!isError) {
-                val context = LocalContext.current
+                val context = LocalPlatformContext.current
                 // Two progressively better placeholders bridge the load so we never flash a blank
                 // gradient while the correctly-sized rendition downloads:
                 //   1. the BlurHash — an instant, self-contained blurred preview, and
                 //   2. the next-smaller rendition — if another surface already cached it (e.g. the
                 //      list loaded the 160 this 320 avatar sits above), Coil shows it immediately
                 //      (see placeholderMemoryCacheKey) and upgrades in place.
-                val blurHash = remember(blurBitmap) { blurBitmap?.asImage() }
+                val blurHash = remember(blurBitmap) { blurBitmap?.asCoilImage() }
                 // Cache identity is the durable blob id, NOT the download URL: the server re-mints
                 // and expires `download_url` on every fetch, so a URL-keyed cache misses on the next
                 // fetch even though the bytes are immutable — every load would re-download and flash
@@ -227,7 +221,7 @@ internal fun ProfileAvatar(
                 val request = remember(photoUri, cacheKey, previewKey, blurHash) {
                     ImageRequest.Builder(context)
                         .crossfade(true)
-                        .data(photoUri.toUri())
+                        .data(photoUri)
                         // Key both caches on the stable blob id (not the ephemeral URL, and not
                         // size) so every avatar load of this rendition shares one entry that
                         // survives URL rotation and app restarts — which is also what lets a
@@ -274,10 +268,10 @@ internal fun ProfileAvatar(
  */
 @Composable
 private fun BoxWithConstraintsScope.BlurHashOr(
-    blurBitmap: Bitmap?,
+    blurBitmap: ImageBitmap?,
     fallback: @Composable BoxWithConstraintsScope.() -> Unit,
 ) {
-    val bitmap = remember(blurBitmap) { blurBitmap?.asImageBitmap() }
+    val bitmap = blurBitmap
     if (bitmap != null) {
         Image(
             bitmap = bitmap,
@@ -348,3 +342,5 @@ private fun BoxWithConstraintsScope.InitialsText(displayName: String) {
         textAlign = TextAlign.Center,
     )
 }
+/** Wraps a decoded [ImageBitmap] as a Coil [coil3.Image] for request placeholders. */
+internal expect fun ImageBitmap.asCoilImage(): coil3.Image

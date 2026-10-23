@@ -1,9 +1,8 @@
 package com.flipcash.shared.common.ui
 
-import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import kotlin.math.PI
@@ -24,10 +23,17 @@ import kotlin.math.withSign
 object BlurHash {
 
     /**
-     * Decodes [blurHash] into an [width] × [height] [Bitmap], or null if the string is malformed.
-     * [punch] adjusts contrast (1f = as encoded).
+     * Decodes [blurHash] into an [width] × [height] [ImageBitmap], or null if the string is
+     * malformed. [punch] adjusts contrast (1f = as encoded).
      */
-    fun decode(blurHash: String?, width: Int, height: Int, punch: Float = 1f): Bitmap? {
+    fun decodeImage(blurHash: String?, width: Int, height: Int, punch: Float = 1f): ImageBitmap? =
+        decodePixels(blurHash, width, height, punch)?.let { argbToImageBitmap(it, width, height) }
+
+    /**
+     * Decodes [blurHash] into [width] × [height] opaque ARGB pixels, row by row, or null if the
+     * string is malformed. The platform bitmap wrappers build on this.
+     */
+    internal fun decodePixels(blurHash: String?, width: Int, height: Int, punch: Float = 1f): IntArray? {
         if (blurHash == null || blurHash.length < 6 || width <= 0 || height <= 0) return null
 
         val sizeFlag = decode83(blurHash, 0, 1) ?: return null
@@ -44,7 +50,7 @@ object BlurHash {
                 decodeAc(decode83(blurHash, from, from + 2) ?: return null, maxAc * punch)
             }
         }
-        return composeBitmap(width, height, numCompX, numCompY, colors)
+        return composePixels(width, height, numCompX, numCompY, colors)
     }
 
     /**
@@ -103,13 +109,13 @@ object BlurHash {
         return (srgb * 255f + 0.5f).toInt()
     }
 
-    private fun composeBitmap(
+    private fun composePixels(
         width: Int,
         height: Int,
         numCompX: Int,
         numCompY: Int,
         colors: Array<FloatArray>,
-    ): Bitmap {
+    ): IntArray {
         // Precompute the cosine basis for each axis so the inner pixel loop is just multiplies.
         val cosX = FloatArray(width * numCompX)
         for (x in 0 until width) {
@@ -144,7 +150,7 @@ object BlurHash {
                     (0xFF shl 24) or (linearToSrgb(r) shl 16) or (linearToSrgb(g) shl 8) or linearToSrgb(b)
             }
         }
-        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+        return pixels
     }
 
     private const val CHARS =
@@ -161,6 +167,9 @@ fun rememberBlurHashPainter(
     width: Int = 24,
     height: Int = 24,
 ): Painter? = remember(blurHash, width, height) {
-    val bitmap = BlurHash.decode(blurHash, width, height) ?: return@remember null
-    BitmapPainter(bitmap.asImageBitmap())
+    val bitmap = BlurHash.decodeImage(blurHash, width, height) ?: return@remember null
+    BitmapPainter(bitmap)
 }
+
+/** Wraps opaque ARGB [pixels] (row by row) in a platform [ImageBitmap]. */
+internal expect fun argbToImageBitmap(pixels: IntArray, width: Int, height: Int): ImageBitmap

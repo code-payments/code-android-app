@@ -18,6 +18,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":libs:parcelable"))
+            implementation(libs.javax.inject)
             api(project(":ui:navigation"))
             api(project(":ui:core"))
             api(libs.navigation3.runtime)
