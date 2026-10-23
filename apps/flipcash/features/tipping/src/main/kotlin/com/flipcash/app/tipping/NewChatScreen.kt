@@ -16,7 +16,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.tipping.internal.NewChatViewModel
 import com.flipcash.features.tipping.R
 import com.getcode.manager.BottomBarAction
@@ -84,14 +83,14 @@ fun NewChatScreen() {
     }
 }
 
-/** Node 12370:77242. Explore opens the leaderboard as a sheet, the way the chat gates do. */
+/** Node 12370:77242. Explore pushes the leaderboard onto this stack, so Back returns to New Chat. */
 private fun presentNoCommunityCurrencies(resources: Resources, navigator: CodeNavigator) {
     BottomBarManager.showInfo(
         title = resources.getString(R.string.title_noCommunityCurrencies),
         message = resources.getString(R.string.description_noCommunityCurrencies),
         actions = listOf(
             BottomBarAction(text = resources.getString(R.string.action_exploreCurrencies)) {
-                navigator.openAsSheet(AppRoute.Token.Discovery)
+                navigator.push(AppRoute.Token.Discovery)
             },
             BottomBarAction(
                 text = resources.getString(R.string.action_dismiss),
