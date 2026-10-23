@@ -93,7 +93,7 @@ enum class BubblePosition { Solo, First, Middle, Last }
 
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
 
-private const val CASH_CARD_WIDTH_FRACTION = 0.64f
+internal const val CASH_CARD_WIDTH_FRACTION = 0.64f
 
 /**
  * The widest a bubble or link card grows in a transcript whose rows are inset by [rowInset] on each
@@ -270,7 +270,7 @@ fun ContentBubble(
                         quote = quote,
                         onQuoteClick = onQuoteClick,
                         onMentionClick = onMentionClick,
-                        webCard = webCard,
+                        linkCard = item.linkCard,
                         interactive = interactive,
                         onLongClick = onLongClick?.takeIf { interactive },
                         onDoubleClick = onDoubleClick?.takeIf { interactive },
@@ -317,7 +317,7 @@ fun ContentBubble(
                     maxWidth = bubbleMaxWidth,
                     modifier = modifier,
                     onMentionClick = onMentionClick,
-                    webCard = webCard,
+                    linkCard = item.linkCard,
                     interactive = interactive,
                     onLongClick = onLongClick?.takeIf { interactive },
                     onDoubleClick = onDoubleClick?.takeIf { interactive },
@@ -725,7 +725,7 @@ private fun TextBubble(
  * Only reached while the card is resolved; a link with no preview draws as the text bubble.
  */
 @Composable
-private fun BareWebCard(
+internal fun BareWebCard(
     web: WebLinkCardState,
     isFromSelf: Boolean,
     position: BubblePosition,
@@ -790,7 +790,7 @@ private fun BareWebCard(
  * row draws it below, on the line the receipt label already occupies.
  */
 @Composable
-private fun JumboEmoji(
+internal fun JumboEmoji(
     text: String,
     isFromSelf: Boolean,
     position: BubblePosition,
@@ -842,7 +842,7 @@ internal const val JUMBO_EMOJI_TAG = "bubble_jumbo_emoji"
  * card keeps from its neighbours: the row has no bubble for the panel to sit inside.
  */
 @Composable
-private fun BareLinkCard(
+internal fun BareLinkCard(
     card: LinkCard,
     isFromSelf: Boolean,
     position: BubblePosition,
@@ -921,7 +921,7 @@ private fun BareLinkCard(
  * the same reason.
  */
 @Composable
-private fun rememberLinkCardClick(): (LinkCard) -> Unit {
+internal fun rememberLinkCardClick(): (LinkCard) -> Unit {
     val actionHandler = LocalChatActionHandler.current
     val uriHandler = LocalUriHandler.current
     return { card ->

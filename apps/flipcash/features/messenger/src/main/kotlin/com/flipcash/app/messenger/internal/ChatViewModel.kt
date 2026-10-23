@@ -1462,7 +1462,6 @@ internal class ChatViewModel @AssistedInject constructor(
                     val linkableText = enriched.linkableText()
                     val links = linkableText?.let(::detectUrls).orEmpty()
                     val linkCard = linkCardClassifier.firstCard(links)
-                        .forCaptionOf(enriched)
                         .withSenderPreview(content.linkPreview(), message, stateFlow.value.chatId)
 
                     // Detected over the whole text, beside the links, so a handle inside a link
@@ -4185,14 +4184,6 @@ private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
     }
     return copy(quickReactionStrip = strip)
 }
-
-/**
- * The card a photo's caption can draw: a web card, under the caption. A Flipcash card (cash or
- * message link) takes a row of its own between two rows of text, and a photo has no rows to split
- * into, so it is dropped here rather than noted as a claim target the reader never sees.
- */
-internal fun LinkCard?.forCaptionOf(content: MessageContent): LinkCard? =
-    if (content.photoBody() != null) this as? LinkCard.Web else this
 
 /**
  * The web card resolved from the preview its sender built, when the preview is for this card's

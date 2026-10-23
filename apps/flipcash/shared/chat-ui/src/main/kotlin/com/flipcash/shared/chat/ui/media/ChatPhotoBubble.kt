@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.draw.drawBehind
@@ -21,7 +22,14 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.platform.LocalDensity
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedMention
+import com.flipcash.shared.chat.ui.BareLinkCard
+import com.flipcash.shared.chat.ui.BareWebCard
+import com.flipcash.shared.chat.ui.CASH_CARD_WIDTH_FRACTION
+import com.flipcash.shared.chat.ui.EmojiOnlyText
+import com.flipcash.shared.chat.ui.JumboEmoji
+import com.flipcash.shared.chat.ui.LinkCardView
 import com.flipcash.shared.chat.ui.WebLinkCard
+import com.flipcash.shared.chat.ui.rememberLinkCardClick
 import com.flipcash.shared.chat.ui.redactedText
 import com.flipcash.shared.chat.ui.redactedTextColor
 import com.flipcash.shared.chat.ui.rememberWebLinkCard
@@ -77,8 +85,10 @@ private const val FADE_IN_MILLIS = 250
  *
  * A [caption] is its own text bubble a grid step below, the two sharing a run so the facing corners
  * are squared off. It is drawn as a text message's body is: [mentions] as pills, [redacted] hidden,
- * and a [webCard] under it, the same card a text message draws. The card is only drawn once it has
- * a preview, and then widens the bubble to [maxWidth].
+ * and a [linkCard] under it, the same card a text message draws. A web card is only drawn once it
+ * has a preview; either then widens the bubble to [maxWidth]. A caption that is [cardAlone] -- only
+ * its link -- is that card in place of the caption bubble, and a caption of nothing but emoji is
+ * drawn large with no bubble, both as in a text message.
  *
  * @param photoModifier applied to the photo box itself, which is what the overlay measures and hides.
  * @param onLoadError reports why the remote [model] failed to load, so the host can decide it is [unavailable].
@@ -101,7 +111,8 @@ fun ChatPhotoBubble(
     caption: String? = null,
     mentions: List<DetectedMention> = emptyList(),
     onMentionClick: ((String) -> Unit)? = null,
-    webCard: LinkCard.Web? = null,
+    linkCard: LinkCard? = null,
+    cardAlone: Boolean = false,
     onCardLongClick: (() -> Unit)? = null,
     onCardDoubleClick: (() -> Unit)? = null,
     interactive: Boolean = true,
@@ -118,6 +129,10 @@ fun ChatPhotoBubble(
 ) {
     val size = ChatMediaBubbleSizing.size(imageWidth, imageHeight, maxWidth.value)
     val hasCaption = !caption.isNullOrEmpty()
+    // An emoji-only caption is drawn as a text message's is: large, with no bubble. Only a bubble
+    // is squared off against the photo.
+    val jumbo = hasCaption && EmojiOnlyText.clusterCountOrNull(caption.orEmpty()) != null
+    val captionBubbled = hasCaption && !jumbo
     val tappable = !blurhashOnly && !unavailable && onClick != null
 
     Column(
@@ -127,7 +142,7 @@ fun ChatPhotoBubble(
     ) {
         Bubble(
             isFromSelf = isFromSelf,
-            position = if (hasCaption) position.withCaptionBelow() else position,
+            position = if (captionBubbled) position.withCaptionBelow() else position,
             maxWidth = maxWidth,
             horizontalPadding = CodeTheme.dimens.none,
             verticalPadding = CodeTheme.dimens.none,
@@ -169,14 +184,54 @@ fun ChatPhotoBubble(
             }
         }
 
-        if (hasCaption) {
-            val web = webCard?.let { rememberWebLinkCard(it) }
+        if (jumbo) {
+            JumboEmoji(
+                text = caption.orEmpty(),
+                isFromSelf = isFromSelf,
+                position = position,
+                maxWidth = maxWidth,
+            )
+        } else if (hasCaption) {
+            val web = (linkCard as? LinkCard.Web)?.let { rememberWebLinkCard(it) }
             val cardDrawn = web?.resolved != null
+            // A Flipcash card draws whatever its lookup says; a web card once it has a preview.
+            val flipcashCard = linkCard?.takeUnless { it is LinkCard.Web }
+            val onCardClick = rememberLinkCardClick()
+            if (cardAlone && linkCard != null && (flipcashCard != null || cardDrawn)) {
+                // A caption that is only its link is the card alone, as a text message is: no
+                // caption row and no link text.
+                if (web != null) {
+                    BareWebCard(
+                        web = web,
+                        isFromSelf = isFromSelf,
+                        position = position.withPhotoAbove(),
+                        maxWidth = maxWidth,
+                        onLongClick = onCardLongClick,
+                        onDoubleClick = onCardDoubleClick,
+                        interactive = interactive,
+                    )
+                } else {
+                    BareLinkCard(
+                        card = linkCard,
+                        isFromSelf = isFromSelf,
+                        position = position.withPhotoAbove(),
+                        maxWidth = if (linkCard is LinkCard.Message) {
+                            maxWidth * CASH_CARD_WIDTH_FRACTION
+                        } else {
+                            maxWidth
+                        },
+                        onLongClick = onCardLongClick,
+                        onDoubleClick = onCardDoubleClick,
+                        interactive = interactive,
+                    )
+                }
+                return@Column
+            }
             Bubble(
                 isFromSelf = isFromSelf,
                 position = position.withPhotoAbove(),
                 maxWidth = maxWidth,
-                minWidth = if (cardDrawn) maxWidth else 0.dp,
+                minWidth = if (cardDrawn || flipcashCard != null) maxWidth else 0.dp,
                 onLongClick = onLongClick,
                 onDoubleClick = onDoubleClick,
             ) {
@@ -246,11 +301,27 @@ fun ChatPhotoBubble(
                             interactive = interactive,
                         )
                     }
+                    if (flipcashCard != null) {
+                        // In the slot a web card takes, on the same gap; the tap is the one a card
+                        // has in a text message.
+                        LinkCardView(
+                            card = flipcashCard,
+                            shape = RoundedCornerShape(CodeTheme.dimens.staticGrid.x2),
+                            modifier = Modifier.padding(top = CodeTheme.dimens.staticGrid.x2),
+                            onClick = if (interactive) onCardClick else null,
+                            onLongClick = onCardLongClick,
+                            onDoubleClick = onCardDoubleClick,
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+/** Whether [this] caption is drawn in a bubble of its own: any caption but an emoji-only one. */
+internal fun String?.drawsCaptionBubble(): Boolean =
+    !isNullOrEmpty() && EmojiOnlyText.clusterCountOrNull(this) == null
 
 /** The photo's place in a run once a caption follows it: the caption now closes the run. */
 internal fun BubblePosition.withCaptionBelow(): BubblePosition = when (this) {

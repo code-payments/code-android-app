@@ -36,6 +36,7 @@ import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.ui.mediaBody
 import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.chat.models.isAloneIn
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.ReceiptStatus
@@ -118,12 +119,17 @@ internal fun MediaMessageBubble(
     quote: ChatQuote? = null,
     onQuoteClick: (() -> Unit)? = null,
     onMentionClick: ((String) -> Unit)? = null,
-    webCard: LinkCard.Web? = null,
+    linkCard: LinkCard? = null,
     interactive: Boolean = true,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
 ) {
     val actionHandler = LocalChatActionHandler.current
+    val caption = body.caption?.text
+    // Whether the caption is only the link, so the card stands in for it as it does in text.
+    val cardAlone = remember(linkCard, caption) {
+        linkCard != null && caption != null && linkCard.isAloneIn(caption)
+    }
     val mediaItem = body.items.firstOrNull()
     val rendition = mediaItem?.let { it.rendition(MediaItemRendition.Role.ORIGINAL) ?: it.renditions.firstOrNull() }
     // The bubble draws the smallest server rendition that fills it, not the original: originals run
@@ -186,7 +192,8 @@ internal fun MediaMessageBubble(
             caption = body.caption?.text,
             mentions = item.mentions,
             onMentionClick = onMentionClick,
-            webCard = webCard,
+            linkCard = linkCard,
+            cardAlone = cardAlone,
             // Gated with the bubble's own gestures, as a text bubble's card is.
             onCardLongClick = onLongClick,
             onCardDoubleClick = onDoubleClick,
@@ -207,7 +214,7 @@ internal fun MediaMessageBubble(
                 imageHeight = image?.height,
                 corners = bubblePhotoCorners(
                     position = position
-                        .let { if (body.caption?.text.isNullOrEmpty()) it else it.withCaptionBelow() },
+                        .let { if (caption.drawsCaptionBubble()) it.withCaptionBelow() else it },
                     isFromSelf = item.isFromSelf,
                 ),
             ),

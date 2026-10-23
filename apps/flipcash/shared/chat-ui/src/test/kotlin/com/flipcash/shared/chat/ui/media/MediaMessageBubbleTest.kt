@@ -87,8 +87,10 @@ class MediaMessageBubbleTest {
     }
 
     private fun cardItem(state: LinkCard.Web.State) = item(previewing = true).copy(
-        content = photo.copy(caption = MessageContent.Text("https://www.example.com/a")),
-        linkCard = LinkCard.Web(url = "https://www.example.com/a", start = 0, end = 25, state = state),
+        // Words around the link, so the caption keeps its row; a caption that is only the link is
+        // the card alone (see MediaCaptionCardTest).
+        content = photo.copy(caption = MessageContent.Text("see https://www.example.com/a")),
+        linkCard = LinkCard.Web(url = "https://www.example.com/a", start = 4, end = 29, state = state),
     )
 
     @Test

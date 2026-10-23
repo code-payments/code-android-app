@@ -210,4 +210,41 @@ class SplitAroundLinkCardTest {
         assertNull(row.partText)
         assertEquals(card, row.linkCard)
     }
+
+    private val photoItems = emptyList<com.flipcash.services.models.chat.MediaItem>()
+
+    private fun splitPhoto(caption: String, card: LinkCard) = ChatListItem.ContentBubble(
+        messageId = 9,
+        contentIndex = 0,
+        content = MessageContent.Media(photoItems, caption = MessageContent.Text(caption)),
+        isFromSelf = false,
+        timestamp = Instant.fromEpochSeconds(0),
+        linkCard = card,
+    ).splitAroundLinkCard()
+
+    private fun cashAt(text: String) = LinkCard.Cash(
+        url = link,
+        start = text.indexOf(link),
+        end = text.indexOf(link) + link.length,
+        entropy = "KNi8pQr1n5hRU65vKJGge3",
+        state = LinkCard.Cash.State.Unresolved,
+    )
+
+    @Test
+    fun `a photo caption keeps its flipcash card in the one photo row`() {
+        val text = "here $link now"
+        val card = cashAt(text)
+
+        val row = splitPhoto(text, card).single()
+
+        assertNull(row.part)
+        assertEquals(card, row.linkCard)
+    }
+
+    @Test
+    fun `a photo caption drops a card whose span does not fit the caption`() {
+        val card = cashAt("here $link now").copy(start = 400, end = 450)
+
+        assertNull(splitPhoto("here $link now", card).single().linkCard)
+    }
 }
