@@ -29,6 +29,7 @@ import com.google.protobuf.Timestamp
 import kotlin.time.Instant
 import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
+import com.codeinc.flipcash.gen.paymentrequest.v1.Model as PaymentRequestModel
 
 internal fun Checksum.asHash(): Common.Hash {
     return Common.Hash.newBuilder().setValue(byteArray.toByteString()).build()
@@ -136,7 +137,7 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
             .setCash(
                 MessagingModel.CashContent.newBuilder()
                     .setIntentId(Common.IntentId.newBuilder().setValue(intentId.toByteString()))
-                    .setAmount(
+                    .setTotalAmount(
                         Common.CryptoPaymentAmount.newBuilder()
                             .setQuarks(tokenQuarks ?: amount.quarks)
                             .setMint(Common.PublicKey.newBuilder().setValue(mint.bytes.toByteString()))
@@ -148,8 +149,27 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                         }
                     )
                     .apply {
-                        this@asContent.receiver?.let {
-                            setReceiver(Common.UserId.newBuilder().setValue(it.toByteString()))
+                        // single_receiver and multi_receiver share a oneof; setting one clears the other.
+                        val multi = this@asContent.multiReceiver
+                        if (multi.isNotEmpty()) {
+                            setMultiReceiver(
+                                MessagingModel.CashContent.Payments.newBuilder().addAllItems(
+                                    multi.map {
+                                        MessagingModel.CashContent.Payment.newBuilder()
+                                            .setReceiver(it.receiver.asUserId())
+                                            .setNativeAmount(it.nativeAmount)
+                                            .setQuarks(it.tokenQuarks)
+                                            .build()
+                                    }
+                                )
+                            )
+                        } else {
+                            this@asContent.receiver?.let { setSingleReceiver(it.asUserId()) }
+                        }
+                        this@asContent.paymentRequestId?.let {
+                            setPaymentRequestId(
+                                PaymentRequestModel.PaymentRequestId.newBuilder().setValue(it.toByteString())
+                            )
                         }
                     }
             )

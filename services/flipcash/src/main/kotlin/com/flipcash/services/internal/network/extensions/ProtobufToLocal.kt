@@ -190,16 +190,28 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
         MessagingModel.Content.TypeCase.CASH -> MessageContent.Cash(
             intentId = cash.intentId.value.toByteArray().toList(),
             amount = Fiat(
-                fiat = cash.amount.nativeAmount,
-                currencyCode = CurrencyCode.tryValueOf(cash.amount.currency) ?: CurrencyCode.USD,
+                fiat = cash.totalAmount.nativeAmount,
+                currencyCode = CurrencyCode.tryValueOf(cash.totalAmount.currency) ?: CurrencyCode.USD,
             ),
-            mint = cash.amount.mint.value.toByteArray().toMint(),
+            mint = cash.totalAmount.mint.value.toByteArray().toMint(),
             action = when (cash.verb) {
                 MessagingModel.CashContent.Verb.TIPPED -> MessageContent.Cash.Action.TIPPED
                 else -> MessageContent.Cash.Action.SENT
             },
-            receiver = if (cash.hasReceiver()) cash.receiver.value.toByteArray().toList() else null,
-            tokenQuarks = cash.amount.quarks,
+            receiver = if (cash.hasSingleReceiver()) cash.singleReceiver.value.toByteArray().toList() else null,
+            tokenQuarks = cash.totalAmount.quarks,
+            multiReceiver = if (cash.hasMultiReceiver()) {
+                cash.multiReceiver.itemsList.map {
+                    MessageContent.Cash.Payment(
+                        receiver = it.receiver.toId(),
+                        nativeAmount = it.nativeAmount,
+                        tokenQuarks = it.quarks,
+                    )
+                }
+            } else {
+                emptyList()
+            },
+            paymentRequestId = if (cash.hasPaymentRequestId()) cash.paymentRequestId.value.toByteArray().toList() else null,
         )
         MessagingModel.Content.TypeCase.REPLY -> MessageContent.Reply(
             repliedMessageId = reply.repliedMessageId.value,

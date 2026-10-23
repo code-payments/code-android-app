@@ -211,6 +211,27 @@ class ChatEntityMapperTest {
     }
 
     @Test
+    fun `cash multi-receiver parts and payment request id survive the round trip`() {
+        val parts = listOf(
+            MessageContent.Cash.Payment(listOf<Byte>(1), 1.25, 4L),
+            MessageContent.Cash.Payment(listOf<Byte>(2), 1.25, 6L),
+        )
+        val requestId = List<Byte>(16) { (it + 1).toByte() }
+        val message = cashMessage(tokenQuarks = 10L).let { m ->
+            m.copy(content = m.content.map {
+                (it as MessageContent.Cash).copy(multiReceiver = parts, paymentRequestId = requestId)
+            })
+        }
+
+        val restored = mapper.toMessage(mapper.toEntity(CHAT_HEX, message))
+            .content.single() as MessageContent.Cash
+
+        assertEquals(parts, restored.multiReceiver)
+        assertEquals(requestId, restored.paymentRequestId)
+        assertNull(restored.receiver)
+    }
+
+    @Test
     fun `cash receiver survives the round trip, and its absence stays null`() {
         val receiver = listOf<Byte>(9, 8, 7)
         val with = mapper.toMessage(mapper.toEntity(CHAT_HEX, cashMessage(1L, receiver)))
