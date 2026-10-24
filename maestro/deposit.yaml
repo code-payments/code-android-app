@@ -13,10 +13,7 @@ tags:
     env:
       TILE: "Add Dollars"
 
-- runFlow:
-    file: helpers/tap_wallet_tile.yaml
-    env:
-      TILE: "Add Dollars"
+- tapOn: "Add Dollars"
 - extendedWaitUntil:
     visible:
       text: "Add Dollars With"
