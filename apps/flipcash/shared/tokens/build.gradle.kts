@@ -15,6 +15,12 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(libs.jetbrains.compose.foundation)
+            implementation(libs.jetbrains.compose.ui)
+            implementation(libs.jetbrains.compose.animation)
+            implementation(libs.jetbrains.compose.material)
+            implementation(libs.jetbrains.compose.material3)
+            implementation(libs.jetbrains.compose.ui.tooling.preview)
             api(project(":apps:flipcash:shared:tokens:core"))
 
             implementation(project(":apps:flipcash:core"))

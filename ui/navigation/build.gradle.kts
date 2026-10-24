@@ -12,6 +12,10 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(libs.jetbrains.compose.animation)
+            implementation(libs.jetbrains.compose.material)
+            implementation(libs.jetbrains.compose.material3)
+            implementation(libs.jetbrains.compose.ui.tooling.preview)
             api(project(":libs:coroutines"))
             implementation(project(":libs:logging"))
             implementation(project(":libs:parcelable"))
