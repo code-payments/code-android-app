@@ -37,7 +37,6 @@
     <!-- Receipt-row labels for the account a withdrawal left for / a deposit arrived from. -->
     <string name="label_txnDetails_to">To</string>
     <string name="label_txnDetails_from">From</string>
-    <string name="label_txnDetails_currency">Currency</string>
     <string name="label_txnDetails_exchangeRate">Exchange Rate</string>
     <string name="label_txnDetails_date">Date</string>
     <string name="label_txnDetails_tokens">Tokens</string>

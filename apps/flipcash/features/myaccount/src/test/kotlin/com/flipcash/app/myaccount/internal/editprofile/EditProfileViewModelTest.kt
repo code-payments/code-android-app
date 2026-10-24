@@ -1,5 +1,7 @@
 package com.flipcash.app.myaccount.internal.editprofile
 
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.exchange.Exchange
 import com.flipcash.analytics.AddMoneySource
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.AppRoute
@@ -74,6 +76,10 @@ class EditProfileViewModelTest {
             purchaseMethodController = purchaseMethodController,
             analytics = mockk<FlipcashAnalytics>(relaxed = true),
             resources = FakeResourceHelper(),
+            exchange = mockk<Exchange> {
+                every { preferredRate } returns Rate.oneToOne
+                every { rates() } returns emptyMap()
+            },
             dispatchers = TestDispatchers(testScheduler),
         )
     }

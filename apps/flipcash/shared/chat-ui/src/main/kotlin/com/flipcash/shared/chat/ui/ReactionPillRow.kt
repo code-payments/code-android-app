@@ -79,7 +79,6 @@ import androidx.compose.ui.unit.sp
 import com.flipcash.core.R
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionSettler
-import com.flipcash.shared.chat.reactions.formatBoostCents
 import com.getcode.theme.CodeTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -713,16 +712,16 @@ private fun ReactionPillChip(
                 val boostMeasurer = rememberTextMeasurer()
                 val boostDensity = LocalDensity.current
                 // Room for the settler's reservation, as the count below reserves its digits.
-                val boostWidth = remember(boostDigits, boostMeasurer, boostDensity) {
-                    if (boostDigits <= 0) {
+                val widest = if (boostDigits > 0) boostCentsText("8".repeat(boostDigits).toLong()) else ""
+                val boostWidth = remember(widest, boostMeasurer, boostDensity) {
+                    if (widest.isEmpty()) {
                         0.dp
                     } else {
-                        val widest = formatBoostCents("8".repeat(boostDigits).toLong())
                         with(boostDensity) { boostMeasurer.measure(widest, boostStyle).size.width.toDp() }
                     }
                 }
                 Text(
-                    text = formatBoostCents(boost),
+                    text = boostCentsText(boost),
                     style = boostStyle,
                     // Someone else's paid pill shows its amount at half white (node 10330:18057).
                     color = if (paidAndReacted) ReactionBoostGold else Color.White.copy(alpha = 0.5f),
@@ -814,7 +813,7 @@ private fun PlusChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifie
     }
 }
 
-/** The "$" chip that leads the row: it opens the picker for a paid reaction. */
+/** The currency-symbol chip that leads the row ("$" for a dollar viewer): it opens the picker for a paid reaction. */
 @Composable
 private fun BoostChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val description = stringResource(R.string.action_addPaidReaction)
@@ -829,7 +828,7 @@ private fun BoostChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifi
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "$",
+            text = boostChipSymbol(),
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             color = CodeTheme.colors.textMain,

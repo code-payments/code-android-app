@@ -1,5 +1,7 @@
 package com.flipcash.app.myaccount.internal.editprofile
 
+import com.getcode.opencode.exchange.Exchange
+import com.flipcash.app.core.ui.forViewer
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.events.AddMoneyEvents
@@ -39,8 +41,9 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 /** The gate as the copy quotes it, `$100 USD` rather than `$100.00`. */
-private fun Fiat.formattedGate(): String =
-    formatted(rule = Fiat.FormattingRule.Truncated, suffix = currencyCode.name)
+// Priced in USD, shown in the viewer's currency.
+private fun Fiat.formattedGate(exchange: Exchange): String =
+    forViewer(exchange.preferredRate, exchange.rates()).formatted()
 
 @HiltViewModel
 internal class EditProfileViewModel @Inject constructor(
@@ -52,6 +55,7 @@ internal class EditProfileViewModel @Inject constructor(
     private val purchaseMethodController: PurchaseMethodController,
     private val analytics: FlipcashAnalytics,
     private val resources: ResourceHelper,
+    private val exchange: Exchange,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<EditProfileViewModel.State, EditProfileViewModel.Event>(
     initialState = State(),
@@ -119,7 +123,7 @@ internal class EditProfileViewModel @Inject constructor(
         ) { (username, isAutoAssigned), minimum, balance ->
             Event.OnUsernameGateChanged(
                 gate = usernameGate(username, isAutoAssigned, minimum, balance),
-                minimumBalance = minimum.formattedGate(),
+                minimumBalance = minimum.formattedGate(exchange),
             )
         }
             .distinctUntilChanged()

@@ -20,7 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.core.ui.FlagWithFiat
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.core.ui.shimmer
 import com.flipcash.features.login.R
 import com.getcode.theme.CodeTheme
@@ -87,10 +87,10 @@ internal fun AccountRow(
                 // flight. An account whose balance we could not fetch must not be reported as not
                 // found — the two say very different things to someone checking their own wallet.
                 when {
-                    // iOS's AmountText(flagSize: .small): a 15pt flag beside the balance.
-                    account.balance != null -> FlagWithFiat(
-                        fiat = account.balance,
-                        iconSize = CodeTheme.dimens.grid.x3,
+                    account.balance != null -> Text(
+                        text = account.balance.inDisplayCurrency().formatted(),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textMain,
                     )
 
                     account.notFound -> NotFoundBadge()

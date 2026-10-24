@@ -24,7 +24,10 @@ import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.opencode.model.core.bytes
+import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.mockito.kotlin.any
@@ -104,6 +107,10 @@ class MessageLinkLookupTest {
         val profiles: ProfileController = mock(),
         val knownProfiles: UserProfileDataSource = mock(),
         val groups: GroupLinkLookup = mock(),
+        val exchange: Exchange = mock {
+            on { preferredRate } doReturn Rate.oneToOne
+            on { rates() } doReturn emptyMap()
+        },
     )
 
     private fun lookup(deps: Deps) = MessageLinkLookup(
@@ -114,6 +121,7 @@ class MessageLinkLookupTest {
         knownProfiles = deps.knownProfiles,
         userManager = mock<UserManager> { on { accountId } doReturn myId },
         groups = deps.groups,
+        exchange = deps.exchange,
     )
 
     private fun stored(metadata: ChatMetadata?, isMember: Boolean?): ChatCoordinator = mock {
@@ -340,5 +348,30 @@ class MessageLinkLookupTest {
         val body = assertIs<LinkCard.Message.State.Resolved>(lookup(deps)(card()).getOrThrow()).message.body
 
         assertEquals(LinkCard.Message.Body.Cash(amount = amount.formatted(), tipped = true), body)
+    }
+
+    @Test
+    fun `a payment in another currency shows in the viewer's, with no second line`() = runTest {
+        val cad = Rate(fx = 1.37, currency = CurrencyCode.CAD)
+        val cash = MessageContent.Cash(
+            intentId = senderId,
+            amount = Fiat(5.0),
+            mint = mock(),
+            action = MessageContent.Cash.Action.SENT,
+        )
+        val exchange = mock<Exchange> {
+            on { preferredRate } doReturn cad
+            on { rates() } doReturn mapOf(CurrencyCode.CAD to cad)
+        }
+        val deps = Deps(chats = stored(chat(), isMember = true), exchange = exchange)
+        org.mockito.kotlin.whenever(deps.chats.readMessage(groupId, 42))
+            .thenReturn(Result.success(message(content = cash)))
+
+        val body = assertIs<LinkCard.Message.State.Resolved>(lookup(deps)(card()).getOrThrow()).message.body
+
+        assertEquals(
+            LinkCard.Message.Body.Cash(amount = Fiat(6.85, CurrencyCode.CAD).formatted(), tipped = false),
+            body,
+        )
     }
 }

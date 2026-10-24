@@ -15,7 +15,6 @@ class AmountEntryConfigTest {
         val config = AmountEntryConfig(action = AmountEntryAction(label = AmountEntryLabel.Plain("Go")))
         assertIs<AmountEntryHint.None>(config.hint)
         assertFalse(config.canConfirm)
-        assertTrue(config.canChangeCurrency)
     }
 
     @Test
@@ -80,7 +79,6 @@ class AmountEntryConfigTest {
         val style = AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("Buy"))
         assertEquals("Buy", style.actionLabel.text)
         assertEquals(ConfirmationStyle.Button, style.actionStyle)
-        assertTrue(style.canChangeCurrency)
         assertEquals("", style.infoHint("anything"))
         assertEquals("", style.overMaxHint("anything"))
         assertEquals(null, style.belowMinHint)
@@ -91,7 +89,6 @@ class AmountEntryConfigTest {
         val style = AmountEntryStyle(
             actionLabel = AmountEntryLabel.Plain("Send"),
             actionStyle = ConfirmationStyle.Slide,
-            canChangeCurrency = false,
             infoHint = { "Up to $it available" },
             overMaxHint = { "Exceeds $it limit" },
             belowMinHint = { "Must be at least $it" },
@@ -99,6 +96,5 @@ class AmountEntryConfigTest {
         assertEquals("Up to \$100 available", style.infoHint("\$100"))
         assertEquals("Exceeds \$50 limit", style.overMaxHint("\$50"))
         assertEquals("Must be at least \$5", style.belowMinHint!!("\$5"))
-        assertFalse(style.canChangeCurrency)
     }
 }

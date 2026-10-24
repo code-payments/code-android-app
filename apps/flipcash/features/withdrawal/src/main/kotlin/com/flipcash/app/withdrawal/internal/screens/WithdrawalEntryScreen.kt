@@ -7,13 +7,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.app.withdrawal.internal.entry.WithdrawalEntryScreen
 import com.flipcash.core.R
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.solana.keys.Mint
@@ -26,7 +24,6 @@ import kotlinx.coroutines.flow.onEach
 internal fun WithdrawalEntryScreen(
     selectedMint: Mint,
 ) {
-    val codeNavigator = LocalCodeNavigator.current
     val flowNavigator = rememberFlowNavigator<WithdrawalStep, WithdrawalResult>()
     val viewModel = flowSharedViewModel<WithdrawalViewModel>()
     Column(
@@ -41,9 +38,6 @@ internal fun WithdrawalEntryScreen(
         WithdrawalEntryScreen(
             viewModel = viewModel,
             mint = selectedMint,
-            onOpenRegionSelection = {
-                codeNavigator.push(AppRoute.Main.RegionSelection)
-            },
         )
     }
 

@@ -5,6 +5,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.funding.PurchaseMethodController
 
 import com.flipcash.app.shareable.ShareSheetController
@@ -175,7 +176,7 @@ class TokenInfoViewModel @Inject constructor(
                 ) { balance, appreciation, rate ->
                     val localizedBalance = LocalFiat(
                         usdf = balance,
-                        nativeAmount = balance.convertingTo(rate),
+                        nativeAmount = balance.forViewer(rate, exchange.rates()),
                         mint = token.address,
                     )
 
@@ -184,7 +185,7 @@ class TokenInfoViewModel @Inject constructor(
                     val localizedAppreciation = if (appreciation != Fiat.MIN_VALUE) {
                         LocalFiat(
                             usdf = appreciation,
-                            nativeAmount = appreciation.convertingTo(rate),
+                            nativeAmount = appreciation.forViewer(rate, exchange.rates()),
                             mint = token.address,
                         )
                     } else {
@@ -303,7 +304,7 @@ class TokenInfoViewModel @Inject constructor(
                     flowOf(mcap),
                     exchange.observePreferredRate(),
                 ) { usdMcap, rate ->
-                    mint to usdMcap?.convertingTo(rate)
+                    mint to usdMcap?.forViewer(rate, exchange.rates())
                 }
             }.distinctUntilChanged().onEach { (_, mcap) ->
                 dispatchEvent(Event.OnMarketCapChanged(mcap))

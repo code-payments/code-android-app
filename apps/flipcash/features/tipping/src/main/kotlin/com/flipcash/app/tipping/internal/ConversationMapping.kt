@@ -1,5 +1,6 @@
 package com.flipcash.app.tipping.internal
 
+import com.getcode.opencode.exchange.Exchange
 import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatSummary
@@ -23,6 +24,7 @@ internal fun mapConversations(
     selfId: ID?,
     resources: ResourceHelper,
     chatCoordinator: ChatCoordinator,
+    exchange: Exchange,
 ): List<ConversationReference> {
     val tokensByMint = tokens.associateBy { it.address }
     return summaries.map { summary ->
@@ -32,6 +34,6 @@ internal fun mapConversations(
         if (senderProfiles != null) {
             summary.unnamedGroupSender(selfId, senderProfiles)?.let(chatCoordinator::requestSenderProfile)
         }
-        summary.toConversationReference(selfId, tokensByMint, resources, senderProfiles.orEmpty())
+        summary.toConversationReference(selfId, tokensByMint, resources, senderProfiles.orEmpty(), exchange)
     }
 }

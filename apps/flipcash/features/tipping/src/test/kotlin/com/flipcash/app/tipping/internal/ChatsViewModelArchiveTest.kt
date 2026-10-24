@@ -12,6 +12,8 @@ import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatFeeds
 import com.flipcash.shared.chat.ChatSummary
+import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.util.resources.FakeResourceHelper
 import io.mockk.every
 import io.mockk.mockk
@@ -66,6 +68,9 @@ class ChatsViewModelArchiveTest {
                 every { it.cachedTokens() } returns emptyList()
             }
             val vm = ChatsViewModel(
+                exchange = mockk<Exchange>(relaxed = true).also {
+                    every { it.observePreferredRate() } returns flowOf(Rate.oneToOne)
+                },
                 chatCoordinator = chatCoordinator,
                 userManager = mockk<UserManager>(relaxed = true),
                 tokenCoordinator = tokenCoordinator,

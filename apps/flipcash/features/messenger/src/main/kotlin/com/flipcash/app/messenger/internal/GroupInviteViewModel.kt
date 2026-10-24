@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal
 
+import com.getcode.opencode.exchange.Exchange
 import android.content.ClipboardManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -42,6 +43,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 internal class GroupInviteViewModel @Inject constructor(
+    private val exchange: Exchange,
     private val chatCoordinator: ChatCoordinator,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
@@ -91,7 +93,7 @@ internal class GroupInviteViewModel @Inject constructor(
         viewModelScope.launch {
             val summaries = chatCoordinator.chatListFeed().first()
             val selfId = userManager.accountId
-            val chats = summaries.map { it.toConversationReference(selfId, emptyMap(), resources) }
+            val chats = summaries.map { it.toConversationReference(selfId, emptyMap(), resources, exchange = exchange) }
             _state.update { it.copy(recentChats = chats) }
         }
     }

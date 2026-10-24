@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.shared.chat.ui.settledUsd
 import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.LinkPreview
@@ -1691,6 +1692,7 @@ internal class ChatViewModel @AssistedInject constructor(
             snippet = when (body) {
                 is MessageContent.Cash -> ChatQuoteSnippet.Cash(
                     amount = body.amount,
+                    settledUsd = body.settledUsd(),
                     tokenName = body.tokenName.ifBlank {
                         tokenCoordinator.getTokenMetadata(body.mint)
                             .getOrNull()?.token?.name.orEmpty()
@@ -1859,6 +1861,15 @@ internal class ChatViewModel @AssistedInject constructor(
         // the claim again for a re-tap to start a second one.
         cashLinkClaims.claimInFlight
             .onEach { linkCardResolver.markClaiming(it) }
+            .launchIn(viewModelScope)
+
+        // A card's amount is formatted when its link resolves, so a currency picked on the Money
+        // tab while this chat is open restates every card that carries one.
+        exchange.observePreferredRate()
+            .map { it.currency }
+            .distinctUntilChanged()
+            .drop(1)
+            .onEach { linkCardResolver.invalidateAmounts() }
             .launchIn(viewModelScope)
 
         // STARTED rather than a timer of its own, which makes one construct cover both cases worth

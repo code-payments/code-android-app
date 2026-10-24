@@ -76,7 +76,6 @@ import androidx.compose.ui.unit.isSpecified
 import com.flipcash.app.bills.components.ScannableCode
 import com.flipcash.app.core.money.formatted
 import com.flipcash.shared.bills.R
-import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.BillBackground
@@ -319,7 +318,6 @@ internal fun CashBill(
     billCustomizations: TokenBillCustomizations? = null,
     mint: String,
 ) {
-    val exchange = LocalExchange.current
     val customTexture = billCustomizations?.texture
     val hasCustomTexture = customTexture != null
 
@@ -444,7 +442,6 @@ internal fun CashBill(
                     .padding(top = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(start = geometry.valuePadding),
                 text = amount.formatted(),
-                flag = exchange.getFlagByCurrency(amount.rate.currency.name),
                 textStyle = geometry.amountTextStyle,
             )
 
@@ -455,7 +452,6 @@ internal fun CashBill(
                     .padding(bottom = geometry.topStripHeight + geometry.securityStripSize.height * 0.5f)
                     .padding(end = geometry.valuePadding),
                 text = amount.formatted(),
-                flag = exchange.getFlagByCurrency(amount.rate.currency.name),
                 textStyle = geometry.amountTextStyle,
             )
 

@@ -36,9 +36,7 @@ import androidx.compose.ui.unit.Dp
 import com.flipcash.core.R
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
-import com.getcode.opencode.compose.LocalExchange
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.components.chat.ChatInputDefaults
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
@@ -185,28 +183,18 @@ private fun QuoteLine(snippet: ChatQuoteSnippet) {
             overflow = TextOverflow.Ellipsis,
         )
 
-        // A payment carries the flag and the mint's name the cash card leads with. The amount alone
-        // reads as a number; with the flag beside it, it reads as the payment being answered.
+        // A payment carries the mint's name the cash card leads with. The amount alone reads as a
+        // number; with the token beside it, it reads as the payment being answered.
         is ChatQuoteSnippet.Cash -> {
-            val exchange = LocalExchange.current
-            val currencyCode = snippet.amount.currencyCode.name
             Row(
                 horizontalArrangement = Arrangement.spacedBy(ComposerReplyStripDefaults.cashGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                PriceWithFlag(
-                    amount = snippet.amount.formatted(),
-                    currencyCode = currencyCode,
-                    iconSize = ComposerReplyStripDefaults.flagSize,
-                    flag = exchange.getFlagByCurrency(currencyCode),
-                    text = { formatted ->
-                        Text(
-                            text = formatted,
-                            style = style,
-                            color = CodeTheme.colors.textMain,
-                            maxLines = 1,
-                        )
-                    },
+                Text(
+                    text = cashInDisplayCurrency(snippet.amount, snippet.settledUsd).formatted(),
+                    style = style,
+                    color = CodeTheme.colors.textMain,
+                    maxLines = 1,
                 )
                 Text(
                     text = snippet.tokenName,
@@ -237,9 +225,6 @@ private object ComposerReplyStripDefaults {
     val minHeight: Dp
         @Composable get() = ChatInputDefaults.OutsideSize
 
-    /** Sized to the cap height of the amount beside it, so the flag reads as a mark on the line. */
-    val flagSize: Dp
-        @Composable get() = CodeTheme.dimens.staticGrid.x3
     val dismissTarget: Dp
         @Composable get() = CodeTheme.dimens.staticGrid.x7
     val dismissDisc: Dp

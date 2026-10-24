@@ -94,14 +94,6 @@ private fun SelectTokenScreenContent(
         showSelections = (state.purpose is TokenPurpose.Select ||
                         state.purpose is TokenPurpose.ConvertDestination ||
                         state.purpose is TokenPurpose.BuyFunding),
-        showFlags = when (state.purpose) {
-            is TokenPurpose.Select -> false
-            is TokenPurpose.Swap -> false
-            is TokenPurpose.LaunchFunding -> false
-            is TokenPurpose.ConvertDestination -> false
-            is TokenPurpose.BuyFunding -> false
-            else -> true
-        },
         loadingMint = loadingMint,
         enableGreaterThanAmount = atLeast@{ _, amount ->
             when (val purpose = state.purpose) {

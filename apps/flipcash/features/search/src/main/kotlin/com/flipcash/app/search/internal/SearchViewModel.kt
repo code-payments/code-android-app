@@ -1,5 +1,6 @@
 package com.flipcash.app.search.internal
 
+import com.getcode.opencode.exchange.Exchange
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
@@ -45,6 +46,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 internal class SearchViewModel @Inject constructor(
+    private val exchange: Exchange,
     chatCoordinator: ChatCoordinator,
     userManager: UserManager,
     tokenCoordinator: TokenCoordinator,
@@ -80,7 +82,7 @@ internal class SearchViewModel @Inject constructor(
         val selfId = userManager.accountId
         Directory(
             chats = (feeds.main + feeds.archived)
-                .map { it.toConversationReference(selfId, tokensByMint, resources, profiles) },
+                .map { it.toConversationReference(selfId, tokensByMint, resources, profiles, exchange) },
             profiles = profiles,
         )
     }

@@ -1,8 +1,10 @@
 package com.flipcash.shared.amountentry
 
 import com.flipcash.app.core.ui.CurrencyHolder
+import com.flipcash.app.core.ui.forViewer
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -27,7 +29,7 @@ import kotlinx.coroutines.flow.update
 import kotlin.math.roundToInt
 
 class AmountEntryDelegate(
-    exchange: Exchange,
+    private val exchange: Exchange,
     scope: CoroutineScope,
     private val maxLength: Int = 10,
     style: StateFlow<AmountEntryStyle>,
@@ -89,7 +91,14 @@ class AmountEntryDelegate(
 
     override val config: StateFlow<AmountEntryConfig> = combine(
         _state, style, loadingState, bounds,
-    ) { delegateState, currentStyle, loading, (max, min, confirmAllowed) ->
+    ) { delegateState, currentStyle, loading, (rawMax, rawMin, confirmAllowed) ->
+        // The keypad enters in the display currency, so the bounds are compared and worded in it
+        // too: a USD-priced floor (a regional preset the server only has in dollars) is restated
+        // rather than read as if the typed digits were dollars.
+        val entryCurrency = delegateState.currency.code
+        val max = rawMax.inEntryCurrency(entryCurrency)
+        val min = rawMin.inEntryCurrency(entryCurrency)
+
         // Whether the entry breaks the floor, asked independently of whether the style has anything
         // to say about it: a flow can enforce the floor without narrating it.
         val isBelowMin = min != null &&
@@ -119,7 +128,6 @@ class AmountEntryDelegate(
             hint = hint,
             canConfirm = delegateState.enteredAmount > 0.0 && confirmAllowed &&
                 (!currentStyle.requireMinimum || !isBelowMin),
-            canChangeCurrency = currentStyle.canChangeCurrency,
             action = AmountEntryAction(
                 label = currentStyle.actionLabel,
                 style = currentStyle.actionStyle,
@@ -157,6 +165,11 @@ class AmountEntryDelegate(
             exchange.observePreferredRate(),
             tokenChanges.distinctUntilChanged().drop(1),
         ).onEach { reset() }.launchIn(scope)
+    }
+
+    private fun Fiat?.inEntryCurrency(entry: CurrencyCode?): Fiat? {
+        if (this == null || entry == null || currencyCode == entry) return this
+        return forViewer(exchange.preferredRate, exchange.rates())
     }
 
     fun onCurrencyChanged(currency: Currency) {

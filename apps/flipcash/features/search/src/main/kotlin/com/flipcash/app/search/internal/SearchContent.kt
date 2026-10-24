@@ -89,6 +89,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.TokenIcon
 import com.flipcash.app.core.ui.billCardBrush
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.core.util.abbreviated
 import com.flipcash.core.R
 import com.flipcash.services.models.chat.ChatId
@@ -100,6 +101,7 @@ import com.flipcash.shared.chat.ui.SubtitleText
 import com.flipcash.shared.chat.ui.formatLastActivity
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.CircularIconButton
@@ -560,7 +562,6 @@ private fun CurrencyCard(
 ) {
     val token = result.token
     val card = remember(token) { currencyCardFigures(token) }
-    val dollar = CurrencyCode.USD.singleCharacterCurrencySymbol.orEmpty()
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(CodeTheme.dimens.grid.x4))
@@ -584,7 +585,7 @@ private fun CurrencyCard(
         Spacer(Modifier.weight(1f))
         card.marketCap?.let {
             Text(
-                text = it.abbreviated(),
+                text = it.inDisplayCurrency().abbreviated(),
                 style = CodeTheme.typography.displaySmall,
                 color = Color.White,
                 maxLines = 1,
@@ -592,7 +593,9 @@ private fun CurrencyCard(
         }
         card.weeklyChange?.let {
             val sign = if (it < 0) "-" else "+"
-            CardLine(stringResource(R.string.label_searchWeeklyChange, "$sign$dollar${abs(it).abbreviated()}"))
+            // Discover reports the change in USD; it reads in the viewer's currency.
+            val change = Fiat(fiat = abs(it), currencyCode = CurrencyCode.USD).inDisplayCurrency()
+            CardLine(stringResource(R.string.label_searchWeeklyChange, "$sign${change.abbreviated()}"))
         }
         card.newMembers?.let {
             CardLine(pluralStringResource(R.plurals.label_searchNewMembers, it.toInt(), it.abbreviated()))

@@ -196,7 +196,6 @@ private fun Anchor(anchor: ReceiptAnchor) {
                 tokenWithBalance = TokenWithBalance(token = token, balance = amount),
                 showName = false,
                 showLogo = true,
-                showFlag = false,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 styling = rememberTokenBalanceRowStyling(
                     balanceDisplayStyle = TokenBalanceStyle.Large(

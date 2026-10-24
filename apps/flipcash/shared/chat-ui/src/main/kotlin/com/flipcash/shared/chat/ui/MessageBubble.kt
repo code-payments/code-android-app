@@ -88,7 +88,6 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.cornerRadius
 import com.getcode.theme.tiny
-import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.core.addIf
 
 enum class BubblePosition { Solo, First, Middle, Last }
@@ -255,6 +254,7 @@ fun ContentBubble(
                     tokenImageUrl = content.tokenImageUrl,
                     isFromSelf = item.isFromSelf,
                     action = content.action,
+                    settledUsd = content.settledUsd(),
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     // Dropped rather than ignored while the transcript is behind a backdrop: with
@@ -978,6 +978,7 @@ private fun CashBubble(
     position: BubblePosition,
     maxWidth: Dp,
     action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
+    settledUsd: Fiat? = null,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
@@ -995,7 +996,9 @@ private fun CashBubble(
         modifier = modifier,
         attention = attention,
     ) {
-        val exchange = LocalExchange.current
+        // The same number the bill's "You received" sheet reads: a USDF payment converts from the
+        // USD it settled at, anything else from today's rates.
+        val shown = cashInDisplayCurrency(amount, settledUsd)
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -1056,23 +1059,15 @@ private fun CashBubble(
                     ),
                     color = CodeTheme.colors.textSecondary,
                 )
-                PriceWithFlag(
-                    amount = amount.formatted(),
-                    currencyCode = amount.currencyCode.name,
-                    iconSize = CodeTheme.dimens.staticGrid.x5,
-                    flag = exchange.getFlagByCurrency(amount.currencyCode.name),
-                    text = { text ->
-                        Text(
-                            text = text,
-                            style = CodeTheme.typography.displayMedium,
-                            color = CodeTheme.colors.textMain,
-                            autoSize = TextAutoSize.StepBased(
-                                minFontSize = 20.sp,
-                                maxFontSize = CodeTheme.typography.displayMedium.fontSize
-                            ),
-                            maxLines = 1,
-                        )
-                    }
+                Text(
+                    text = shown.formatted(),
+                    style = CodeTheme.typography.displayMedium,
+                    color = CodeTheme.colors.textMain,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 20.sp,
+                        maxFontSize = CodeTheme.typography.displayMedium.fontSize
+                    ),
+                    maxLines = 1,
                 )
             }
         }

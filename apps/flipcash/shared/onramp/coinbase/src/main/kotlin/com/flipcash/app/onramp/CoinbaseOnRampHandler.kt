@@ -6,9 +6,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalResources
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.flipcash.shared.onramp.coinbase.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import kotlinx.coroutines.delay
 
 @Composable
@@ -18,6 +21,10 @@ fun CoinbaseOnRampHandler(
 ) {
     val state by controller.state.collectAsStateWithLifecycle()
     val resources = LocalResources.current
+    // Coinbase sets the guest limit in dollars; it reads in the viewer's own currency, floored to
+    // the cent so it never states more than Coinbase allows (as on iOS).
+    val weeklyLimit = guestWeeklyLimit.inDisplayCurrency().flooredToSmallestUnit()
+        .formatted(rule = Fiat.FormattingRule.Truncated)
     when (val current = state) {
         is CoinbaseOnRampState.Paying -> {
             CoinbaseOnRampWebview(
@@ -51,7 +58,7 @@ fun CoinbaseOnRampHandler(
         is CoinbaseOnRampState.Failed -> {
             LaunchedEffect(current) {
                 delay(400) // let the system payment sheet finish its dismiss animation
-                showOnRampFailure(resources, current.error)
+                showOnRampFailure(resources, current.error, weeklyLimit)
                 controller.reset()
             }
         }
@@ -62,7 +69,9 @@ fun CoinbaseOnRampHandler(
     content()
 }
 
-private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebError) {
+private val guestWeeklyLimit = Fiat(fiat = 1_000.0, currencyCode = CurrencyCode.USD)
+
+private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebError, weeklyLimit: String) {
     when (error) {
         // --- Grouped errors ---
 
@@ -134,7 +143,7 @@ private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebErro
         is CoinbaseOnRampWebError.GuestWeeklyTransactionLimitReached -> {
             BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_onrampTransactionLimit),
-                message = resources.getString(R.string.error_description_onrampTransactionLimit),
+                message = resources.getString(R.string.error_description_onrampTransactionLimit, weeklyLimit),
             )
         }
 

@@ -1,5 +1,6 @@
 package com.flipcash.app.tipping.internal
 
+import com.getcode.opencode.exchange.Exchange
 import androidx.lifecycle.viewModelScope
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ChatController
@@ -35,6 +36,7 @@ import kotlin.time.Instant
  */
 @HiltViewModel
 internal class RequestsViewModel @Inject constructor(
+    private val exchange: Exchange,
     chatCoordinator: ChatCoordinator,
     private val chatController: ChatController,
     userManager: UserManager,
@@ -71,7 +73,7 @@ internal class RequestsViewModel @Inject constructor(
 
         val selfId = { userManager.accountId }
         fun reference(metadata: ChatMetadata) =
-            ChatSummary(metadata, unreadCount = 0).toConversationReference(selfId(), emptyMap(), resources)
+            ChatSummary(metadata, unreadCount = 0).toConversationReference(selfId(), emptyMap(), resources, exchange = exchange)
 
         val hostedGroups = chatCoordinator.chatListFeeds()
             .map { feeds ->

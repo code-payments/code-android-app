@@ -168,13 +168,11 @@ private fun SellReceipt(
                 tokenWithBalance = tokenWithBalance.copy(balance = netTransferAmount),
                 showName = false,
                 showLogo = false,
-                showFlag = true,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 styling = rememberTokenBalanceRowStyling(
                     balanceDisplayStyle = TokenBalanceStyle.Large(
                         textStyle = CodeTheme.typography.displaySmall.bolded()
                     ),
-                    flagSize = CodeTheme.dimens.grid.x4,
                 ),
                 contentPadding = PaddingValues(0.dp),
             )

@@ -1,5 +1,6 @@
 package com.flipcash.app.tipping.internal
 
+import com.getcode.opencode.exchange.Exchange
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.flipcash.app.core.data.Loadable
@@ -39,6 +40,7 @@ import javax.inject.Inject
 /** Backs the "Chats" tab: the user's tip DMs and groups. */
 @HiltViewModel
 internal class ChatsViewModel @Inject constructor(
+    private val exchange: Exchange,
     private val chatCoordinator: ChatCoordinator,
     userManager: UserManager,
     tokenCoordinator: TokenCoordinator,
@@ -128,8 +130,8 @@ internal class ChatsViewModel @Inject constructor(
             // re-fetch every sender already on disk.
             senderProfiles: Map<String, UserProfile>?,
         ): Event.ChatsUpdated {
-            val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator)
-            val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator)
+            val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange)
+            val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange)
 
             // The projection sees every chat so the chips, the Archived row and the badge number
             // come from the one function the fixture tests. Hidden chats never reach the feeds, so
@@ -163,12 +165,13 @@ internal class ChatsViewModel @Inject constructor(
 
         // One flow for both lists: two would let a new main list pair with a stale archived one,
         // and archiving the last main chat would flash the no-chats prompt before the Archived row.
+        // A payment preview reads at the display currency's rate, so a new currency or rate redraws the rows.
         combine(
             chatCoordinator.chatListFeeds(),
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
-            ::content,
-        )
+            exchange.observePreferredRate(),
+        ) { feeds, tokens, senderProfiles, _ -> content(feeds, tokens, senderProfiles) }
             // Off the main thread: on a cold launch the first mapping lands while the main thread
             // is drawing the app's first screens, and waiting for it holds the Chats tab blank.
             .flowOn(dispatchers.Default)

@@ -1,5 +1,7 @@
 package com.flipcash.app.myaccount.internal.userprofile
 
+import com.getcode.opencode.exchange.Exchange
+import com.flipcash.app.core.ui.forViewer
 import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.contacts.ContactCoordinator
@@ -19,7 +21,6 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.uuid
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -42,6 +43,7 @@ internal class UserProfileViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
+    private val exchange: Exchange,
     clipboardManager: ClipboardManager,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<UserProfileViewModel.State, UserProfileViewModel.Event>(
@@ -128,10 +130,10 @@ internal class UserProfileViewModel @Inject constructor(
                             TipCardOwner.preferringUsername(profile?.username, userId)
                         )
                     },
-                    usernameMinBalance = minimum.formatted(
-                        rule = Fiat.FormattingRule.Truncated,
-                        suffix = minimum.currencyCode.name,
-                    ),
+                    // Priced in USD, shown in the viewer's currency.
+                    usernameMinBalance = minimum
+                        .forViewer(exchange.preferredRate, exchange.rates())
+                        .formatted(),
                     // Carry the contact (value + verified) so unverified entries still show.
                     phone = profile?.phoneNumber,
                     email = profile?.email,

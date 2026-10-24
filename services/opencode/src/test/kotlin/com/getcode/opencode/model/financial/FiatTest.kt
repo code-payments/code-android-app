@@ -328,4 +328,14 @@ class FiatTest {
         val yen = Fiat(1234.9, CurrencyCode.JPY)
         assertEquals(Fiat(1234.0, CurrencyCode.JPY).quarks, yen.flooredToSmallestUnit().quarks)
     }
+
+    // --- Symbol ---
+
+    @Test
+    fun formattedUsesTheLocalSymbolWithoutACountryPrefix() {
+        assertEquals("$7.30", Fiat(7.30, CurrencyCode.CAD).formatted())
+        assertEquals("$7.30", Fiat(7.30, CurrencyCode.AUD).formatted())
+        assertEquals("¥7.30", Fiat(7.30, CurrencyCode.CNY).formatted())
+        assertEquals("$7.30", Fiat(7.30, CurrencyCode.USD).formatted())
+    }
 }

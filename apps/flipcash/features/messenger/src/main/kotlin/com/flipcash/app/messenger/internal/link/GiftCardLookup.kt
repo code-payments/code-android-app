@@ -1,11 +1,13 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.models.LinkCard
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.opencode.controllers.AccountController
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.transactors.AccountClusterFactory
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.accounts.AccountInfo
@@ -25,6 +27,7 @@ internal class GiftCardLookup @Inject constructor(
     private val accountController: AccountController,
     private val tokenCoordinator: TokenCoordinator,
     private val userManager: UserManager,
+    private val exchange: Exchange,
 ) {
     suspend operator fun invoke(entropy: String): Result<LinkCardResolver.Snapshot> = runCatching {
         val viewer = requireNotNull(userManager.accountCluster) { "signed out" }
@@ -51,7 +54,7 @@ internal class GiftCardLookup @Inject constructor(
                 Fiat(
                     fiat = data.nativeAmount,
                     currencyCode = CurrencyCode.tryValueOf(data.currencyCode) ?: CurrencyCode.USD,
-                ).formatted()
+                ).forViewer(exchange.preferredRate, exchange.rates()).formatted()
             },
             // Mirrors ReceiveGiftCardTransactor.validateClaimEligibility, which treats Unknown as
             // expired. Mapping it to Claimable instead would put "claim" on a card the claim path

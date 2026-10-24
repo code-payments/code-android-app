@@ -2,6 +2,7 @@ package com.flipcash.shared.transactionhistory
 
 import androidx.annotation.StringRes
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import kotlin.time.Instant
 
@@ -112,13 +113,12 @@ data class TransactionDetails(
     val heading: String? = null,
     val subtitle: String?,
     val signedAmountPrefix: String?,
-    val amount: Fiat?,
+    val amount: LocalFiat?,
     val timestamp: Instant,
     val token: Token?,
     val toToken: Token? = null,
     val account: TransactionAccount? = null,
     val status: TransactionStatus,
-    val currencyCode: String?,
     val exchangeRate: Double?,
     val tokenAmount: String?,
     val fee: Fiat? = null,
