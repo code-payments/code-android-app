@@ -332,6 +332,8 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data object DeviceLogs : Menu
         @Serializable
+        data object LinkDesktop : Menu
+        @Serializable
         data object AccountSelection : Menu
         @Serializable
         data object UserProfile : Menu

@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContactMail
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Palette
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.core.R as CoreR
@@ -72,6 +74,16 @@ internal data object DeviceLogs : FullMenuItem<SettingsViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(CoreR.string.title_deviceLogs)
     override val action: SettingsViewModel.Event = SettingsViewModel.Event.OpenScreen(AppRoute.Menu.DeviceLogs)
+}
+
+internal data object LinkDesktop : FullMenuItem<SettingsViewModel.Event>(
+    featureFlag = FeatureFlag.LinkDesktop,
+) {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Computer)
+    override val name: String
+        @Composable get() = "Link a Desktop"
+    override val action: SettingsViewModel.Event = SettingsViewModel.Event.OpenScreen(AppRoute.Menu.LinkDesktop)
 }
 
 internal data object BetaFlags : FullMenuItem<SettingsViewModel.Event>() {

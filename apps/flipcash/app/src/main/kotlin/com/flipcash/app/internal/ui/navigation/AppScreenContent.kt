@@ -20,6 +20,7 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.devicelogs.DeviceLogsScreen
+import com.flipcash.app.myaccount.LinkDesktopScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
@@ -219,6 +220,7 @@ internal fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.TrustedWebsites> { TrustedWebsitesScreen() }
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }
+    annotatedEntry<AppRoute.Menu.LinkDesktop> { LinkDesktopScreen() }
     annotatedEntry<AppRoute.Menu.AccountSelection> { AccountSelectionScreen() }
 
     annotatedEntry<AppRoute.UserFlags> { UserFlagsScreen() }
