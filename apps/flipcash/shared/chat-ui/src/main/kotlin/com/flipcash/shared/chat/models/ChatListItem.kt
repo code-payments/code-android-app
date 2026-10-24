@@ -199,6 +199,11 @@ sealed interface ChatListItem {
          * selected or copied.
          */
         val redacted: Boolean = false,
+        /**
+         * The viewer's own part of a group send ([MessageContent.Cash.multiReceiver]), which the
+         * bubble shows as "You received". Null when the viewer was not one of its recipients.
+         */
+        val receivedPart: MessageContent.Cash.Payment? = null,
     ) : TranscriptMessage {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the

@@ -85,10 +85,12 @@ import com.getcode.navigation.results.navigateForResult
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
 import com.getcode.ui.utils.rememberKeyboardController
+import com.getcode.utils.hexEncodedString
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.filterIsInstance
 import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
 
 @Composable
@@ -201,6 +203,20 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             // expand is the wallet card growing into its own detail, and there
                             // is no card here for it to grow from.
                             AppRoute.Token.Info(action.mint, TokenInfoEntry.Chat)
+                        )
+                    )
+                }
+            }
+
+            is ChatAction.ViewGroupSend -> {
+                val cash = action.bubble.content as? MessageContent.Cash
+                if (cash != null) keyboard.hideIfVisible {
+                    navigator.push(
+                        ChatStep.GroupSendDetails(
+                            tokenName = cash.tokenName,
+                            tokenImageUrl = cash.tokenImageUrl,
+                            senderIdHex = action.bubble.authorId?.hexEncodedString(),
+                            recipientIdsHex = cash.multiReceiver.map { it.receiver.hexEncodedString() },
                         )
                     )
                 }

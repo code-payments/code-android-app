@@ -209,6 +209,19 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * sheet height rather than wrapping its content. [HalfSheet] matches iOS's
      * `ReactorsSheet.presentationDetents([.medium, .large])`.
      */
+    /**
+     * A group send's details (node 11293:6918, frame 10): the currency, who sent it and who it
+     * paid, by name and without amounts. Ids are hex, as the profile map keys them.
+     */
+    @Parcelize
+    @Serializable
+    data class GroupSendDetails(
+        val tokenName: String,
+        val tokenImageUrl: String,
+        val senderIdHex: String?,
+        val recipientIdsHex: List<String>,
+    ) : ChatStep, Sheet, WrapContentSheet
+
     @Parcelize
     @Serializable
     data class Reactors(val chatId: ChatId, val messageId: Long) : ChatStep, Sheet, HalfSheet

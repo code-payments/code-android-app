@@ -48,6 +48,7 @@ import com.flipcash.app.core.tokens.isReserve
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.messenger.internal.groupsend.GroupSendState
+import com.flipcash.app.messenger.internal.screens.cash.GroupSendPerson
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
@@ -1363,6 +1364,20 @@ internal class ChatViewModel @AssistedInject constructor(
         return true
     }
 
+    /**
+     * Someone on a group send's details sheet, by their hex id; null is the viewer. A member whose
+     * profile hasn't resolved reads as the generic name until it does.
+     */
+    internal fun groupSendPerson(userIdHex: String?): GroupSendPerson {
+        if (userIdHex == null || userIdHex == userManager.accountId?.hexEncodedString()) {
+            return GroupSendPerson(resources.getString(R.string.title_you), profile = null)
+        }
+        val profile = senderProfiles.value?.get(userIdHex)
+        val name = profile?.let { nameOrHandle(it.displayName, it.handle) }
+            ?: resources.getString(R.string.title_unnamedUser)
+        return GroupSendPerson(name, profile)
+    }
+
     fun memberParticipant(userId: ID): ChatParticipant.TipUser? =
         senderProfiles.value?.get(userId.hexEncodedString())
             ?.let { ChatParticipant.TipUser(userId, it) }
@@ -1603,6 +1618,8 @@ internal class ChatViewModel @AssistedInject constructor(
                                 ?: stateFlow.value.participant?.name
                                 ?: resources.getString(R.string.title_unnamedUser),
                         ) ?: UndecryptableHint.UpdateApp,
+                        receivedPart = (enriched as? MessageContent.Cash)?.multiReceiver
+                            ?.firstOrNull { it.receiver == userManager.accountId },
                     )
                         // A carded link takes a row of its own, with the prose either side of it
                         // on rows above and below. Reversed because the list is: this page runs

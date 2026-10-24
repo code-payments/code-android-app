@@ -15,6 +15,9 @@ sealed interface ChatAction {
     /** Opens a currency's info screen. */
     data class ViewToken(val mint: Mint) : ChatAction
 
+    /** Opens who a group send ([ChatListItem.ContentBubble] with a multi-receiver cash) paid. */
+    data class ViewGroupSend(val bubble: ChatListItem.ContentBubble) : ChatAction
+
     /**
      * The group gate's Buy: opens the buy screen for [mint] straight away, so the reader comes back
      * to the gate once the buy lands. The gate sends [AddCash] instead when nothing they hold can

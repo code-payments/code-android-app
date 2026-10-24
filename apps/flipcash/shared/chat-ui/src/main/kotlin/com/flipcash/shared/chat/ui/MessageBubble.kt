@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -247,7 +248,23 @@ fun ContentBubble(
                     attention = attention,
                 )
 
-                is MessageContent.Cash -> CashBubble(
+                is MessageContent.Cash -> if (content.multiReceiver.isNotEmpty()) GroupSendBubble(
+                    modifier = modifier,
+                    content = content,
+                    senderName = item.sender?.displayName,
+                    isFromSelf = item.isFromSelf,
+                    receivedPart = item.receivedPart,
+                    position = position,
+                    maxWidth = bubbleMaxWidth,
+                    onClick = if (interactive) {
+                        { actionHandler(ChatAction.ViewGroupSend(item)) }
+                    } else {
+                        null
+                    },
+                    onLongClick = onLongClick?.takeIf { interactive },
+                    onDoubleClick = onDoubleClick?.takeIf { interactive },
+                    attention = attention,
+                ) else CashBubble(
                     modifier = modifier,
                     amount = content.amount,
                     tokenName = content.tokenName,
@@ -1068,6 +1085,111 @@ private fun CashBubble(
                         maxFontSize = CodeTheme.typography.displayMedium.fontSize
                     ),
                     maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * A cash message that paid several members at once (`CashContent.multi_receiver`), node 11293:6918
+ * frames 08 and 09: who sent the total, what each person got, and how many people it went to. A
+ * recipient also sees their own part, which can differ from the per-person line by a cent.
+ */
+@Composable
+private fun GroupSendBubble(
+    content: MessageContent.Cash,
+    senderName: String?,
+    isFromSelf: Boolean,
+    receivedPart: MessageContent.Cash.Payment?,
+    position: BubblePosition,
+    maxWidth: Dp,
+    onClick: (() -> Unit)?,
+    onLongClick: (() -> Unit)?,
+    onDoubleClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    attention: () -> Float = { 0f },
+) {
+    Bubble(
+        isFromSelf = isFromSelf,
+        position = position,
+        minWidth = maxWidth,
+        maxWidth = maxWidth,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        onDoubleClick = onDoubleClick,
+        modifier = modifier,
+        attention = attention,
+    ) {
+        val total = cashInDisplayCurrency(content.amount, content.settledUsd())
+        val parts = content.multiReceiver
+        // Uneven parts differ by one minor unit, so the smallest one with a "~" is the honest
+        // per-person figure; the vectors put the larger parts first.
+        val smallest = parts.minBy { it.nativeAmount }
+        val even = parts.all { it.nativeAmount == smallest.nativeAmount }
+        val each = content.partInDisplayCurrency(smallest).formatted()
+        val secondary = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Medium)
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = CodeTheme.dimens.grid.x5),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+        ) {
+            Text(
+                text = when {
+                    isFromSelf -> stringResource(R.string.subtitle_youSent)
+                    else -> stringResource(
+                        R.string.subtitle_senderSent,
+                        senderName ?: stringResource(R.string.title_unnamedUser),
+                    )
+                },
+                style = secondary,
+                color = CodeTheme.colors.textSecondary,
+            )
+            Text(
+                text = total.formatted(),
+                style = CodeTheme.typography.displayMedium,
+                color = CodeTheme.colors.textMain,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 20.sp,
+                    maxFontSize = CodeTheme.typography.displayMedium.fontSize
+                ),
+                maxLines = 1,
+            )
+            Text(
+                text = stringResource(
+                    if (even) R.string.label_groupSendEach else R.string.label_groupSendEachApprox,
+                    each,
+                ),
+                style = secondary,
+                color = CodeTheme.colors.textSecondary,
+            )
+            if (content.tokenName.isNotBlank() && !LocalInspectionMode.current) {
+                TokenIconWithName(
+                    tokenName = content.tokenName,
+                    tokenImage = content.tokenImageUrl,
+                    imageSize = CodeTheme.dimens.staticGrid.x2,
+                    spacing = CodeTheme.dimens.grid.x1,
+                    textStyle = CodeTheme.typography.caption,
+                    textColor = CodeTheme.colors.textSecondary,
+                )
+            }
+            Text(
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
+                text = pluralStringResource(R.plurals.label_groupSendToPeople, parts.size, parts.size),
+                style = secondary,
+                color = CodeTheme.colors.textSecondary,
+            )
+            if (receivedPart != null) {
+                Text(
+                    text = stringResource(
+                        R.string.label_groupSendYouReceived,
+                        content.partInDisplayCurrency(receivedPart).formatted(),
+                    ),
+                    style = secondary,
+                    color = CodeTheme.colors.textMain,
                 )
             }
         }

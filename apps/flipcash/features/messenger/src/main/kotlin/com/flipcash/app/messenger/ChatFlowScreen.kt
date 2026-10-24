@@ -49,6 +49,7 @@ import com.getcode.theme.CodeTheme
 import com.flipcash.app.messenger.internal.groupsend.GroupSendState
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.GroupSelectPeopleContent
+import com.flipcash.app.messenger.internal.screens.cash.GroupSendDetailsSheet
 import com.flipcash.app.messenger.internal.screens.cash.GroupSendConfirmSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
@@ -185,6 +186,18 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.EditGroupDescription> {
         FlowEditGroupDescriptionScreen()
+    }
+
+    annotatedEntry<ChatStep.GroupSendDetails> { step ->
+        val viewModel = flowSharedViewModel<ChatViewModel>()
+        val dismissSheet = LocalBottomSheetDismissDispatcher.current
+        GroupSendDetailsSheet(
+            tokenName = step.tokenName,
+            tokenImageUrl = step.tokenImageUrl,
+            sender = viewModel.groupSendPerson(step.senderIdHex),
+            recipients = step.recipientIdsHex.map(viewModel::groupSendPerson),
+            onClose = { dismissSheet() },
+        )
     }
 
     annotatedEntry<ChatStep.ReactionPicker> { step ->

@@ -1671,6 +1671,10 @@
         <item quantity="other">%1$s and %2$d Others</item>
     </plurals>
     <string name="label_groupSendTo">to %1$s</string>
+    <plurals name="label_groupSendToPeople">
+        <item quantity="one">to %1$d person</item>
+        <item quantity="other">to %1$d people</item>
+    </plurals>
     <string name="label_groupSendEach">%1$s Each</string>
     <string name="label_groupSendEachApprox">~%1$s Each</string>
     <string name="subtitle_senderSent">%1$s sent</string>
@@ -1678,6 +1682,7 @@
     <string name="label_cashDetails_sent">Sent</string>
     <string name="label_cashDetails_from">From</string>
     <string name="label_cashDetails_to">To</string>
+    <string name="action_groupSendDetailsClose">Close</string>
     <plurals name="label_chat_preview_groupSend_bySender">
         <item quantity="one">%1$s sent %2$s to %3$d person</item>
         <item quantity="other">%1$s sent %2$s to %3$d people</item>

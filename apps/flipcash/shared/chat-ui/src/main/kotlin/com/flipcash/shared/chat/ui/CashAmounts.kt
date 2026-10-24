@@ -37,3 +37,14 @@ fun cashInDisplayCurrency(amount: Fiat, settledUsd: Fiat?): Fiat =
     settledUsd
         ?.let { LocalFiat(usdf = it, nativeAmount = amount).inDisplayCurrency() }
         ?: amount.inDisplayCurrency()
+
+/**
+ * One recipient's [part] of a group send in the viewer's currency, read the way [cashInDisplayCurrency]
+ * reads the whole: from the USD it settled at when the payment was USDF.
+ */
+@Composable
+fun MessageContent.Cash.partInDisplayCurrency(part: MessageContent.Cash.Payment): Fiat =
+    cashInDisplayCurrency(
+        amount = Fiat(part.nativeAmount, amount.currencyCode),
+        settledUsd = Fiat(part.tokenQuarks, CurrencyCode.USD).takeIf { mint == Mint.usdf && part.tokenQuarks > 0 },
+    )
