@@ -70,21 +70,17 @@ fun AmountWithKeypad(
 }
 
 /**
- * The default amount field: centred in its region at display-large, with an optional currency
- * flag that doubles as the currency picker affordance. Only the Coinbase add-money flow passes one;
- * everywhere else the amount is in the viewer's display currency.
+ * The default amount field: centred in its region at display-large. Carries no currency flag or
+ * picker — the amount is always in the viewer's preferred currency.
  */
 @Composable
 fun BoxScope.AmountEntryField(
     amountAnimatedModel: AmountAnimatedInputUiModel,
     prefix: String = "",
     placeholder: String = "",
-    currencyFlag: Int? = null,
     decimalPlaces: Int = 2,
     hint: String = "",
     isError: Boolean = false,
-    isClickable: Boolean = false,
-    onClick: () -> Unit = { },
 ) {
     val networkObserver = LocalNetworkObserver.current
     val networkState by networkObserver.state.collectAsStateWithLifecycle()
@@ -98,13 +94,12 @@ fun BoxScope.AmountEntryField(
         amountText = "",
         placeholder = placeholder,
         captionText = hint,
-        currencyResId = currencyFlag,
+        currencyResId = null,
         isAltCaptionKinIcon = false,
         isAltCaption = isError,
         uiModel = amountAnimatedModel,
         isAnimated = true,
-        isClickable = isClickable,
-        onClick = onClick,
+        isClickable = false,
         networkState = networkState,
         textStyle = CodeTheme.typography.displayLarge,
         decimalPlaces = decimalPlaces,

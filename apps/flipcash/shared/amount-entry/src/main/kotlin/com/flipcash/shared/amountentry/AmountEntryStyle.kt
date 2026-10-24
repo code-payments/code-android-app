@@ -5,11 +5,6 @@ import com.flipcash.app.core.ui.ConfirmationStyle
 data class AmountEntryStyle(
     val actionLabel: AmountEntryLabel,
     val actionStyle: ConfirmationStyle = ConfirmationStyle.Button,
-    /**
-     * Shows the entry currency's flag and lets it open the currency picker. Off everywhere the
-     * amount is in the display currency; the Coinbase add-money flow keeps it, as in production.
-     */
-    val canChangeCurrency: Boolean = false,
     val infoHint: (maxFormatted: String) -> String = { "" },
     val overMaxHint: (maxFormatted: String) -> String = { "" },
     val belowMinHint: ((minFormatted: String) -> String)? = null,
