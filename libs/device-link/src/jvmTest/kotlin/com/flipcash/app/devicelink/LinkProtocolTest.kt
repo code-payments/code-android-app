@@ -126,16 +126,6 @@ class LinkProtocolTest {
     }
 
     @Test
-    fun `vault round-trips through the fake`() = runBlocking {
-        val vault = InMemorySeedVault()
-        assertNull(vault.read())
-        vault.write(seed)
-        assertEquals(seed, vault.read())
-        vault.clear()
-        assertNull(vault.read())
-    }
-
-    @Test
     fun `the phone controller reads the seed only after confirm`() {
         var seedReads = 0
         val states = runLink { invite ->
@@ -154,11 +144,4 @@ class LinkProtocolTest {
         assertEquals(1, seedReads)
         assertEquals(seed, assertIs<DesktopLinkHost.State.Linked>(states.last()).entropyB64)
     }
-}
-
-internal class InMemorySeedVault : SeedVault {
-    private var value: String? = null
-    override suspend fun read() = value
-    override suspend fun write(entropyB64: String) { value = entropyB64 }
-    override suspend fun clear() { value = null }
 }
