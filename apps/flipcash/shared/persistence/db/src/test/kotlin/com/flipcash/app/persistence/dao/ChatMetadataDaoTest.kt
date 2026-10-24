@@ -56,6 +56,7 @@ class ChatMetadataDaoTest {
         description: String? = null,
         pictureJson: MediaItem? = null,
         coverPictureJson: MediaItem? = null,
+        creatorHex: String? = null,
         memberCount: Long = 0,
         rosterVersion: Long = 0,
         rulesJson: ChatRulesSerialized? = null,
@@ -78,6 +79,7 @@ class ChatMetadataDaoTest {
         description = description,
         pictureJson = pictureJson,
         coverPictureJson = coverPictureJson,
+        creatorHex = creatorHex,
         memberCount = memberCount,
         rosterVersion = rosterVersion,
         rulesJson = rulesJson,
@@ -287,6 +289,25 @@ class ChatMetadataDaoTest {
         dao.upsert(entity(chatType = "GROUP", coverPictureJson = null))
 
         assertEquals(cover, dao.getById(CHAT_HEX)?.coverPictureJson)
+    }
+
+    /** A row stored before `creator_hex` existed (DB v38) has none until a sync supplies it. */
+    @Test
+    fun `upsert backfills the creator of a stored group`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", creatorHex = null))
+
+        dao.upsert(entity(chatType = "GROUP", creatorHex = CREATOR_HEX))
+
+        assertEquals(CREATOR_HEX, dao.getById(CHAT_HEX)?.creatorHex)
+    }
+
+    @Test
+    fun `upsert without a creator keeps the stored creator`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", creatorHex = CREATOR_HEX))
+
+        dao.upsert(entity(chatType = "GROUP", creatorHex = null))
+
+        assertEquals(CREATOR_HEX, dao.getById(CHAT_HEX)?.creatorHex)
     }
 
     @Test
@@ -626,5 +647,6 @@ class ChatMetadataDaoTest {
     private companion object {
         const val CHAT_HEX = "aabbccdd"
         const val OTHER_HEX = "eeff0011"
+        const val CREATOR_HEX = "c0ffee01"
     }
 }

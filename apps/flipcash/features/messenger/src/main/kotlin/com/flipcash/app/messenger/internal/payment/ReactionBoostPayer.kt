@@ -15,6 +15,8 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
@@ -50,16 +52,15 @@ internal class ReactionBoostPayer @Inject constructor(
         totalCents: Long,
         onAddMoney: () -> Unit,
     ): Result<Unit> {
-        val owner = userManager.accountCluster
-            ?: return Result.failure(IllegalStateException("no account"))
+        val owner = userManager.accountCluster ?: return failed("no account")
         val plan = when (val planned = plan(author, chat, totalCents)) {
             is ReactionBoostPlan.Pay -> planned
             ReactionBoostPlan.ShareBelowMinimum -> {
                 alert(R.string.error_title_amountTooSmall, R.string.error_description_amountTooSmall)
                 return blocked()
             }
-            ReactionBoostPlan.SelfBoost, null ->
-                return Result.failure(IllegalStateException("cannot boost own message"))
+            ReactionBoostPlan.SelfBoost -> return failed("cannot boost own message")
+            null -> return failed("no account to plan from")
         }
 
         val token = startChattingPayer.observeSelectedToken().first()
@@ -87,9 +88,23 @@ internal class ReactionBoostPayer @Inject constructor(
                     alert(R.string.error_title_amountTooSmall, R.string.error_description_amountTooSmall)
                 is ComputeVerifiedFiatError ->
                     alert(R.string.error_title_staleRates, R.string.error_description_staleRates)
-                else -> alert(R.string.error_title_paymentFailed, R.string.error_description_paymentFailed)
+                else -> alertPaymentFailed()
             }
         }
+    }
+
+    /**
+     * The alert for a boost that can't go out for a reason the user can't act on. Without it the
+     * slider springs back with no explanation.
+     */
+    fun alertPaymentFailed() {
+        alert(R.string.error_title_paymentFailed, R.string.error_description_paymentFailed)
+    }
+
+    private fun failed(reason: String): Result<Unit> {
+        trace(tag = TAG, message = "Boost not sent: $reason", type = TraceType.Error)
+        alertPaymentFailed()
+        return blocked()
     }
 
     private fun alert(title: Int, message: Int) {
@@ -97,4 +112,8 @@ internal class ReactionBoostPayer @Inject constructor(
     }
 
     private fun blocked(): Result<Unit> = Result.failure(StartChattingPayer.PaymentBlocked())
+
+    private companion object {
+        const val TAG = "ReactionBoost"
+    }
 }
