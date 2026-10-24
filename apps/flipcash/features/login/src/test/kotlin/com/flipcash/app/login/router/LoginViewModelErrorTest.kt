@@ -54,6 +54,7 @@ class LoginViewModelErrorTest {
         // android.util.Base64 is stubbed in unit tests; mock it so encodeBase64() doesn't NPE
         mockkStatic(android.util.Base64::class)
         every { android.util.Base64.encodeToString(any(), any()) } answers { java.util.Base64.getEncoder().encodeToString(firstArg()) }
+        every { android.util.Base64.encode(any<ByteArray>(), any()) } answers { java.util.Base64.getEncoder().encode(firstArg<ByteArray>()) }
         // LoginViewModel.init checks the stored account list on construction.
         whenever(authManager.accounts).thenReturn(accountStore)
     }
