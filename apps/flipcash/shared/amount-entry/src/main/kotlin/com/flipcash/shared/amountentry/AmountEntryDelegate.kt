@@ -95,7 +95,9 @@ class AmountEntryDelegate(
         // The keypad enters in the display currency, so the bounds are compared and worded in it
         // too: a USD-priced floor (a regional preset the server only has in dollars) is restated
         // rather than read as if the typed digits were dollars.
-        val entryCurrency = delegateState.currency.code
+        // A flow that keeps the currency picker (Coinbase add-money) takes its bounds as given, as
+        // it did before the display-currency change.
+        val entryCurrency = delegateState.currency.code.takeUnless { currentStyle.canChangeCurrency }
         val max = rawMax.inEntryCurrency(entryCurrency)
         val min = rawMin.inEntryCurrency(entryCurrency)
 
@@ -128,6 +130,7 @@ class AmountEntryDelegate(
             hint = hint,
             canConfirm = delegateState.enteredAmount > 0.0 && confirmAllowed &&
                 (!currentStyle.requireMinimum || !isBelowMin),
+            canChangeCurrency = currentStyle.canChangeCurrency,
             action = AmountEntryAction(
                 label = currentStyle.actionLabel,
                 style = currentStyle.actionStyle,
