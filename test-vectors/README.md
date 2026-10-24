@@ -40,6 +40,7 @@ impl must reproduce the fixtures before the native duplicates are deleted.
 | `kikcode.json` + `kikcode_golden.svg` | `:libs:codes:kikcode` → `testAndroidHostTest` (host JVM) — **green** | *same Kotlin source* → `iosSimulatorArm64Test` (Kotlin/Native) — **green** |
 | `reactions.json` | `:libs:emojis` + `:apps:flipcash:shared:chat` → `testDebugUnitTest` (host JVM); `drawability` via `:libs:emojis` androidTest → `connectedAndroidTest`. Read in place, no per-module copy. Canonical in the orchestrator (#17), not regenerated here | `FlipcashCoreVectors` → xcodebuild on iOS Simulator (copy of the orchestrator fixture) |
 | `reaction-boost-split.json` | `:apps:flipcash:shared:payments` → `testDebugUnitTest` (host JVM). Read in place, no per-module copy. Canonical in the orchestrator (`docs/reaction-boost-split`), not regenerated here | iOS copy of the orchestrator fixture |
+| `group-send-split.json` | `:apps:flipcash:shared:payments` → `testDebugUnitTest` (host JVM), `GroupSendSplitVectorsTest`. Read in place, no per-module copy. Canonical in the orchestrator (`docs/specs/group-send.md`), not regenerated here | iOS copy of the orchestrator fixture |
 
 Why the iOS split: **ed25519** lives in the standalone `CodeCurves` C package → host `swift test`.
 Everything else (**base58**, and later derivation/bonding curve) lives in **FlipcashCore**, whose
