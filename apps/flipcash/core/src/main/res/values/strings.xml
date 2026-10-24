@@ -698,7 +698,7 @@
     <string name="error_description_onrampInvalidCard">The transaction was declined. Please make sure you are using a debit card and the billing address is correct</string>
 
     <string name="error_title_onrampTransactionLimit">Weekly Limit Exceeded</string>
-    <string name="error_description_onrampTransactionLimit">You can only add up to $1,000 per week</string>
+    <string name="error_description_onrampTransactionLimit">You can only add up to %1$s per week</string>
 
     <string name="error_title_onrampTransactionCount">Maximum Purchases Reached</string>
     <string name="error_description_onrampTransactionCount">Each user is limited to 15 purchases total</string>
