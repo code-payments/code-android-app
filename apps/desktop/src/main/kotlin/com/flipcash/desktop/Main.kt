@@ -10,9 +10,11 @@ import kotlinx.coroutines.runBlocking
 import java.lang.management.ManagementFactory
 
 fun main() {
-    installImageLoader()
     val graph = createGraph<DesktopGraph>()
-    runBlocking { graph.devSignIn() }
+    runBlocking {
+        graph.startup()
+        graph.devSignIn()
+    }
     application {
         Window(
             onCloseRequest = ::exitApplication,

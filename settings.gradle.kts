@@ -119,6 +119,7 @@ include(
     ":apps:flipcash:core",
     ":apps:flipcash:core-ui",
     ":apps:flipcash:card-expand",
+    ":apps:flipcash:startup-contract",
     ":libs:test-utils",
     // shared flipcash coordinators/controllers/viewmodels/services
     ":apps:flipcash:shared:amount-entry",

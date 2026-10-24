@@ -47,6 +47,16 @@ dependencies {
     implementation(libs.grpc.okhttp)
     implementation(libs.coil3)
     implementation(libs.coil3.network)
+    implementation(libs.event.bus)
+
+    testImplementation(project(":apps:flipcash:startup-contract"))
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+}
+
+tasks.withType<Test>().configureEach {
+    // No backend in tests: keep the exchange's rate stream from starting when the graph builds it.
+    systemProperty("opencode.processLifecycle.autoStart", "false")
 }
 
 // Dev-only sign-in phrase (see DevSession), forwarded only when local.properties has one. It goes in

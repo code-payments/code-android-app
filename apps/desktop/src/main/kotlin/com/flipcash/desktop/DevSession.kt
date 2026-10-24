@@ -2,8 +2,6 @@ package com.flipcash.desktop
 
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.init
-import com.flipcash.libs.currency.math.Curves
-import com.flipcash.libs.currency.math.initialize
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
@@ -39,11 +37,8 @@ internal object DevSession {
     }
 }
 
-/** Signs in with the dev phrase when one is configured; otherwise the wallet stays signed out. */
+/** Signs in with the dev phrase when one is configured; otherwise the wallet stays signed out. Run [startup] first. */
 internal suspend fun DesktopGraph.devSignIn() {
-    // Android loads the curve tables in its Application; balances throw without them.
-    Curves.initialize()
-    eventRepository // must exist before login so OnLoggedIn reaches the session listeners
     DevSession.signIn(userManager, accountController, DesktopModule.appDir)
         .onSuccess { println("dev session: signed in") }
         .onFailure { println("dev session: not signed in (${it.message})") }

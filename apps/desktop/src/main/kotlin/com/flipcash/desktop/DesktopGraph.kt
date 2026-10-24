@@ -43,4 +43,9 @@ interface DesktopGraph {
     // Android constructs this eagerly in FlipcashApp.onCreate; it is what turns Events.OnLoggedIn into
     // SessionListener.onUserLoggedIn calls.
     val eventRepository: com.getcode.opencode.repositories.EventRepository
+
+    // For DesktopWiringTest: the listener set, and singletons to check are shared across injection sites.
+    val sessionListeners: Set<com.getcode.opencode.providers.SessionListener>
+    val tokenCoordinator: com.flipcash.app.tokens.TokenCoordinator
+    val eventBus: com.hoc081098.channeleventbus.ChannelEventBus
 }
