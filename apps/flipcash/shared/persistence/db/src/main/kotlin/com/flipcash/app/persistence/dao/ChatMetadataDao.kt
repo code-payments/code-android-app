@@ -92,6 +92,9 @@ interface ChatMetadataDao {
             "description = :description, " +
             "picture_json = :pictureJson, " +
             "cover_picture_json = COALESCE(:coverPictureJson, cover_picture_json), " +
+            // Never cleared: the creator is fixed at creation. Refreshed rather than insert-only so
+            // a row stored before the column existed (DB v38) picks it up on the next sync.
+            "creator_hex = COALESCE(:creatorHex, creator_hex), " +
             "rules_json = :rulesJson, " +
             "is_member = :isMember, " +
             "use_e2ee = :useE2ee, " +
@@ -109,6 +112,7 @@ interface ChatMetadataDao {
         description: String?,
         pictureJson: MediaItem?,
         coverPictureJson: MediaItem?,
+        creatorHex: String?,
         rulesJson: ChatRulesSerialized?,
         isMember: Boolean,
         useE2ee: Boolean,
@@ -212,6 +216,7 @@ interface ChatMetadataDao {
             description = entity.description,
             pictureJson = entity.pictureJson,
             coverPictureJson = entity.coverPictureJson,
+            creatorHex = entity.creatorHex,
             rulesJson = entity.rulesJson,
             isMember = entity.isMember,
             useE2ee = entity.useE2ee,

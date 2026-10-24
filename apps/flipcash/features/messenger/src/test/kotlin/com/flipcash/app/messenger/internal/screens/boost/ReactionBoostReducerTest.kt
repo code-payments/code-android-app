@@ -120,4 +120,16 @@ class ReactionBoostReducerTest {
         assertEquals(null, ReactionBoostViewModel.splitCopyOf(group, ReactionBoostSplit.plan(member, member, group, 100)))
         assertEquals(null, ReactionBoostViewModel.splitCopyOf(null, null))
     }
+
+    @Test
+    fun `an unresolved boost names what was missing`() {
+        fun reason(hasAuthor: Boolean, type: ChatType?, hasCreator: Boolean) =
+            ReactionBoostViewModel.unresolvedReason(hasAuthor, type, hasCreator)
+
+        assertEquals("group has no creator", reason(true, ChatType.GROUP, false))
+        assertEquals("no chat metadata", reason(true, null, false))
+        assertEquals("unknown chat type", reason(true, ChatType.UNKNOWN, true))
+        assertEquals("no author", reason(false, ChatType.TIP_DM, false))
+        assertEquals("no author, group has no creator", reason(false, ChatType.GROUP, false))
+    }
 }
