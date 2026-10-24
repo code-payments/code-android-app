@@ -63,6 +63,18 @@ class DeviceLinkVectorTest {
     }
 
     @Test
+    fun theSwiftFacingEntryPointsMatchTheVectors() = cases.forEach { c ->
+        assertEquals(
+            c.str("code"),
+            DeviceLinkVectors.phoneCode(c.hex("phonePublicKey"), c.hex("phoneSecretKey"), c.hex("desktopPublicKey"), c.hex("secret")),
+        )
+        val opened = DeviceLinkVectors.desktopOpenSeed(
+            c.hex("desktopPublicKey"), c.hex("desktopSecretKey"), c.hex("phonePublicKey"), c.hex("secret"), c.hex("sealedSeed"),
+        )
+        assertContentEquals(c.hex("entropy"), opened)
+    }
+
+    @Test
     fun rejectsTamperedSeeds() {
         val c = cases.first()
         val (_, desktop) = c.sessions()

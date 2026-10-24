@@ -43,6 +43,7 @@ kotlin {
             export(project(":libs:currency-math:discrete-curve"))
             export(project(":libs:reporting"))
             export(project(":libs:analytics-events"))
+            export(project(":libs:device-link"))
         }
     }
 
@@ -61,6 +62,7 @@ kotlin {
                 api(project(":libs:currency-math:discrete-curve"))
                 api(project(":libs:reporting"))
                 api(project(":libs:analytics-events"))
+                api(project(":libs:device-link"))
             }
         }
     }

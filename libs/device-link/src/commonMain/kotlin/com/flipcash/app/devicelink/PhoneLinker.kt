@@ -12,7 +12,7 @@ import kotlin.time.Duration.Companion.seconds
  * The phone side of a link. [connect] dials the invite's address and returns the code to compare;
  * the seed only leaves the phone through [Pending.confirm], after the user says the codes match.
  */
-object PhoneLinker {
+internal object PhoneLinker {
     suspend fun connect(invite: LinkInvite): Result<Pending> {
         val selector = SelectorManager(Dispatchers.Default)
         val phone = LinkCrypto.ephemeral()

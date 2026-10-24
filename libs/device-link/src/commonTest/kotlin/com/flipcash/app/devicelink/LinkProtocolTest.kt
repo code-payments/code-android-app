@@ -144,4 +144,22 @@ class LinkProtocolTest {
         assertEquals(1, seedReads)
         assertEquals(seed, assertIs<DesktopLinkHost.State.Linked>(states.last()).entropyB64)
     }
+
+    @Test
+    fun theSwiftFacingSessionLinksWithTheSeedGivenAtConfirm() {
+        val states = runLink { invite ->
+            val seen = Channel<PhoneLinkController.State>(Channel.UNLIMITED)
+            val session = PhoneLinkSession { seen.trySend(it) }
+            try {
+                assertEquals(false, session.scanned("not an invite"))
+                assertTrue(session.scanned(invite.encode()))
+                withTimeout(10_000) { while (seen.receive() !is PhoneLinkController.State.Confirm) Unit }
+                session.confirm(seed)
+                withTimeout(10_000) { while (seen.receive() != PhoneLinkController.State.Linked) Unit }
+            } finally {
+                session.close()
+            }
+        }
+        assertEquals(seed, assertIs<DesktopLinkHost.State.Linked>(states.last()).entropyB64)
+    }
 }
