@@ -1707,12 +1707,10 @@ class SwapViewModel @Inject constructor(
 
                         // The $5 floor is Coinbase's, in dollars; the typed amount is in the
                         // viewer's currency, so the floor is restated before the two are compared.
-                        // The alert keeps the floor in dollars, labelled USD for non-USD viewers.
+                        // The alert keeps the floor in dollars.
                         val minimum = minimumCoinbasePurchaseAmount.forViewer(exchange.preferredRate, exchange.rates())
                         if (amount.currencyCode == minimum.currencyCode && amount < minimum) {
-                            val minimumText = minimumCoinbasePurchaseAmount.formatted(
-                                suffix = CurrencyCode.USD.name.takeIf { amount.currencyCode != CurrencyCode.USD },
-                            )
+                            val minimumText = minimumCoinbasePurchaseAmount.formatted()
                             BottomBarManager.showAlert(
                                 title = resources.getString(R.string.error_title_onrampAmountTooLow, minimumText),
                                 message = resources.getString(R.string.error_description_onrampAmountTooLow, minimumText),
