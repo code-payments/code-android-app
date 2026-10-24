@@ -173,6 +173,7 @@ internal fun GroupSendConfirmSheet(
     token: Token?,
     sendProgress: LoadingSuccessState,
     onConfirm: () -> Unit,
+    onPickToken: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val locked by rememberUpdatedState(!sendProgress.isIdle)
@@ -225,12 +226,11 @@ internal fun GroupSendConfirmSheet(
                 )
             }
 
-            // Shown, not changed here: the token was picked on the amount screen.
             TokenSelectionPill(
                 token = token,
                 textStyle = CodeTheme.typography.textMedium,
                 imageSize = CodeTheme.dimens.staticGrid.x3,
-                onClick = {},
+                onClick = { if (!locked) onPickToken() },
             )
 
             SlideToConfirm(

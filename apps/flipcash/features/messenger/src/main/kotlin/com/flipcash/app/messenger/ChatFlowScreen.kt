@@ -281,6 +281,7 @@ private fun FlowConversationScreen(
 private fun FlowAmountEntryScreen() {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val navigator = LocalCodeNavigator.current
     // Every way out of this step goes through the sheet's own dismissal, which animates it down to
     // Hidden and pops the entry once it settles. Popping the entry directly — navigateBack, or the
     // pop ResultBackNavigator does by default — deletes the scene mid-frame, so the sheet vanishes
@@ -313,6 +314,7 @@ private fun FlowAmountEntryScreen() {
                 token = state.token,
                 sendProgress = state.sendProgress,
                 onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested) },
+                onPickToken = { navigator.push(AppRoute.Sheets.TokenSelection(TokenPurpose.Select)) },
                 onDismiss = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
             )
         }

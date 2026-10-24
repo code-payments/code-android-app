@@ -3815,6 +3815,8 @@ internal class ChatViewModel @AssistedInject constructor(
         val chatId = stateFlow.value.chatId ?: return@launch
         val token = stateFlow.value.token ?: return@launch
         val owner = userManager.accountCluster ?: return@launch
+        // The confirm sheet can change the token after the amount step checked the balance.
+        if (checkBalanceLimit(total)) return@launch
 
         dispatchEvent(Event.SendStateUpdated(loading = true))
 
