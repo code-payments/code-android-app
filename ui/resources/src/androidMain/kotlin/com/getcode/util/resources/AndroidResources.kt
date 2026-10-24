@@ -10,6 +10,7 @@ import androidx.annotation.RawRes
 import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
+import org.jetbrains.compose.resources.StringResource
 import timber.log.Timber
 import java.io.File
 
@@ -23,6 +24,13 @@ class AndroidResources(
 
     override fun getString(@StringRes resourceId: Int, vararg formatArgs: Any): String {
         return context.getString(resourceId, *formatArgs)
+    }
+
+    // Compose resources keep the Android resource name as their key, and every module's resources are
+    // merged into the app package, so the key resolves to the same R entry Android always read.
+    override fun getString(resource: StringResource, vararg formatArgs: Any): String {
+        val id = getIdentifier(resource.key, ResourceType.String) ?: return ""
+        return context.getString(id, *formatArgs)
     }
 
     override fun getRawResource(@RawRes resourceId: Int): String {

@@ -13,7 +13,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import com.flipcash.app.userflags.FieldEditor
 import com.flipcash.app.userflags.internal.EditableEntry
 import com.flipcash.app.userflags.internal.UserFlagsViewModel

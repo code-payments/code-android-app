@@ -1,5 +1,8 @@
 package com.flipcash.shared.transactionhistory
 
+import com.flipcash.shared.transactionhistory.generated.resources.Res
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_inPerson
+import com.flipcash.shared.transactionhistory.generated.resources.title_activity_convert
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
@@ -39,8 +42,8 @@ import org.junit.Test
 class TransactionDetailsMapperTest {
 
     private val resources = FakeResourceHelper()
-        .stub(R.string.title_activity_convert, "%1\$s → %2\$s")
-        .stub(R.string.label_txnDetails_inPerson, "In Person")
+        .stub(Res.string.title_activity_convert, "%1\$s → %2\$s")
+        .stub(Res.string.label_txnDetails_inPerson, "In Person")
     private val mapper = TransactionDetailsMapper(resources)
 
     private val knownUserId: ID = listOf<Byte>(0x0A, 0x0B, 0x0C)

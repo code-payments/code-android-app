@@ -1,7 +1,26 @@
 package com.flipcash.shared.transactionhistory
 
-import com.flipcash.shared.transactionhistory.resources.TxStrings
-import androidx.annotation.StringRes
+import com.flipcash.shared.transactionhistory.generated.resources.Res
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_from
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_status_completed
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_status_failed
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_status_pending
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_status_unknown
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_to
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_buy
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_convert
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_deposit
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_poolPayment
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_sell
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_unknown
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_withdraw
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youGaveCash
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youReceived
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youReceivedCash
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youSent
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youSentCashLink
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youTipped
+import org.jetbrains.compose.resources.StringResource
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import kotlin.time.Instant
@@ -22,20 +41,20 @@ import kotlin.time.Instant
  * received-cash-link counterpart because collecting one is indistinguishable, in the metadata,
  * from taking a bill in person — both arrive as an unattributed `ReceivedCrypto`.
  */
-enum class TransactionKind(@StringRes val headingRes: Int) {
-    Tipped(TxStrings.title_txnDetails_youTipped),
-    Received(TxStrings.title_txnDetails_youReceived),
-    Sent(TxStrings.title_txnDetails_youSent),
-    GaveCash(TxStrings.title_txnDetails_youGaveCash),
-    ReceivedCash(TxStrings.title_txnDetails_youReceivedCash),
-    SentCashLink(TxStrings.title_txnDetails_youSentCashLink),
-    Buy(TxStrings.title_txnDetails_buy),
-    Sell(TxStrings.title_txnDetails_sell),
-    Withdraw(TxStrings.title_txnDetails_withdraw),
-    Deposit(TxStrings.title_txnDetails_deposit),
-    Convert(TxStrings.title_txnDetails_convert),
-    PoolPayment(TxStrings.title_txnDetails_poolPayment),
-    Unknown(TxStrings.title_txnDetails_unknown),
+enum class TransactionKind(val headingRes: StringResource) {
+    Tipped(Res.string.title_txnDetails_youTipped),
+    Received(Res.string.title_txnDetails_youReceived),
+    Sent(Res.string.title_txnDetails_youSent),
+    GaveCash(Res.string.title_txnDetails_youGaveCash),
+    ReceivedCash(Res.string.title_txnDetails_youReceivedCash),
+    SentCashLink(Res.string.title_txnDetails_youSentCashLink),
+    Buy(Res.string.title_txnDetails_buy),
+    Sell(Res.string.title_txnDetails_sell),
+    Withdraw(Res.string.title_txnDetails_withdraw),
+    Deposit(Res.string.title_txnDetails_deposit),
+    Convert(Res.string.title_txnDetails_convert),
+    PoolPayment(Res.string.title_txnDetails_poolPayment),
+    Unknown(Res.string.title_txnDetails_unknown),
 }
 
 /**
@@ -49,9 +68,9 @@ data class TransactionAccount(
     val address: String,
     val direction: Direction,
 ) {
-    enum class Direction(@StringRes val labelRes: Int) {
-        To(TxStrings.label_txnDetails_to),
-        From(TxStrings.label_txnDetails_from),
+    enum class Direction(val labelRes: StringResource) {
+        To(Res.string.label_txnDetails_to),
+        From(Res.string.label_txnDetails_from),
     }
 
     /** Nobody reads the middle of an address; the ends are what someone actually compares. */
@@ -65,11 +84,11 @@ data class TransactionAccount(
 }
 
 /** The entry's settlement state, as the Status row phrases it. */
-enum class TransactionStatus(@StringRes val labelRes: Int) {
-    Pending(TxStrings.label_txnDetails_status_pending),
-    Completed(TxStrings.label_txnDetails_status_completed),
-    Failed(TxStrings.label_txnDetails_status_failed),
-    Unknown(TxStrings.label_txnDetails_status_unknown),
+enum class TransactionStatus(val labelRes: StringResource) {
+    Pending(Res.string.label_txnDetails_status_pending),
+    Completed(Res.string.label_txnDetails_status_completed),
+    Failed(Res.string.label_txnDetails_status_failed),
+    Unknown(Res.string.label_txnDetails_status_unknown),
 }
 
 /**

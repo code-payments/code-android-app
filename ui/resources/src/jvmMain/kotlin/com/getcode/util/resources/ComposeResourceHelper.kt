@@ -2,6 +2,7 @@ package com.getcode.util.resources
 
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.getPluralString
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 
 /**
@@ -14,6 +15,9 @@ class ComposeResourceHelper : ResourceHelper {
 
     override fun getString(resourceId: Int, vararg formatArgs: Any): String =
         runBlocking { getString(ComposeResourceIds.string(resourceId), *formatArgs) }
+
+    override fun getString(resource: StringResource, vararg formatArgs: Any): String =
+        runBlocking { getString(resource, *formatArgs) }
 
     override fun getRawResource(resourceId: Int): String = ""
 

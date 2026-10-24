@@ -1,7 +1,11 @@
 package com.flipcash.shared.transactionhistory
 
-import com.flipcash.app.core.resources.CoreStrings
-import com.flipcash.app.core.resources.CoreDrawables
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.painterResource
+import com.flipcash.core.resources.Res
+import com.getcode.util.resources.ic_chevron_right
+import com.getcode.util.resources.Res as UiRes
+import com.flipcash.core.resources.title_recentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,8 +20,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.getcode.util.resources.painterForResId
-import com.getcode.util.resources.stringRes
 import com.getcode.theme.CodeTheme
 
 /**
@@ -64,13 +66,13 @@ private fun LazyItemScope.RecentActivityHeader(modifier: Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringRes(CoreStrings.title_recentActivity),
+            text = stringResource(Res.string.title_recentActivity),
             style = CodeTheme.typography.screenTitle,
             color = CodeTheme.colors.textMain,
         )
         Icon(
             modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
-            painter = painterForResId(CoreDrawables.ic_chevron_right),
+            painter = painterResource(UiRes.drawable.ic_chevron_right),
             contentDescription = null,
             tint = CodeTheme.colors.textSecondary,
         )

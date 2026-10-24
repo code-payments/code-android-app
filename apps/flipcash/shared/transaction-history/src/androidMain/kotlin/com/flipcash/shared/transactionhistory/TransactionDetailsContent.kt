@@ -1,5 +1,6 @@
 package com.flipcash.shared.transactionhistory
 
+import org.jetbrains.compose.resources.stringResource as composeStringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -159,7 +160,7 @@ private fun Header(
             // A person-to-person entry is titled by the person; everything else by what it was.
             Text(
                 text = details.heading?.takeIf { it.isNotBlank() }
-                    ?: stringResource(details.kind.headingRes),
+                    ?: composeStringResource(details.kind.headingRes),
                 style = CodeTheme.typography.textLarge,
                 color = CodeTheme.colors.textMain,
                 textAlign = TextAlign.Center,
@@ -262,7 +263,7 @@ private fun DetailCard(details: TransactionDetails, modifier: Modifier = Modifie
         details.account?.let { account ->
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
-                label = stringResource(account.direction.labelRes),
+                label = composeStringResource(account.direction.labelRes),
                 amount = account.shortAddress,
             )
         }
@@ -283,7 +284,7 @@ private fun DetailCard(details: TransactionDetails, modifier: Modifier = Modifie
         ReceiptLineItem(
             modifier = Modifier.fillMaxWidth(),
             label = stringResource(R.string.label_txnDetails_status),
-            amount = stringResource(details.status.labelRes),
+            amount = composeStringResource(details.status.labelRes),
         )
     }
 }

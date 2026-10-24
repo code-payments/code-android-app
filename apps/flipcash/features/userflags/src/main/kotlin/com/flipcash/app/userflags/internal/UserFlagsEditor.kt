@@ -95,7 +95,7 @@ private fun UserFlagsEditor(
                     item(contentType = "section_header") { SectionHeader("Overridable") }
                     items(
                         items = state.editableEntries,
-                        key = { it.field.label },
+                        key = { it.field.label.key },
                         contentType = { "editable_row" },
                     ) { entry ->
                         EditableRow(

@@ -1,5 +1,17 @@
 package com.flipcash.app.balance.internal
 
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.painterResource
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_addDollars
+import com.flipcash.core.resources.action_createYourOwnCurrency
+import com.flipcash.core.resources.action_currencyLeaderboard
+import com.flipcash.core.resources.action_withdrawDollars
+import com.flipcash.core.resources.ic_coins_add
+import com.flipcash.core.resources.ic_globe
+import com.flipcash.core.resources.ic_menu_deposit
+import com.flipcash.core.resources.ic_menu_withdraw
+import com.flipcash.core.resources.title_tipOnboarding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,10 +64,6 @@ import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.core.ui.TileButtonStyle
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
-import com.flipcash.app.core.resources.CoreDrawables
-import com.flipcash.app.core.resources.CoreStrings
-import com.getcode.util.resources.painterForResId
-import com.getcode.util.resources.stringRes
 import com.flipcash.shared.transactionhistory.recentActivitySection
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
@@ -213,7 +221,7 @@ internal fun WalletScreenContent(
                     NewUserTutorial(
                         modifier = Modifier.fillMaxWidth()
                             .padding(bottom = CodeTheme.dimens.grid.x5),
-                        title = stringRes(CoreStrings.title_tipOnboarding),
+                        title = stringResource(Res.string.title_tipOnboarding),
                         items = items,
                     ) { item ->
                         when (item) {
@@ -322,8 +330,8 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringRes(CoreStrings.action_createYourOwnCurrency),
-                            icon = painterForResId(CoreDrawables.ic_coins_add),
+                            text = stringResource(Res.string.action_createYourOwnCurrency),
+                            icon = painterResource(Res.drawable.ic_coins_add),
                         ) {
                             dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.CurrencyCreator))
                         }
@@ -333,8 +341,8 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringRes(CoreStrings.action_currencyLeaderboard),
-                            icon = painterForResId(CoreDrawables.ic_globe),
+                            text = stringResource(Res.string.action_currencyLeaderboard),
+                            icon = painterResource(Res.drawable.ic_globe),
                         ) {
                             dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.Discovery))
                         }
@@ -351,8 +359,8 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringRes(CoreStrings.action_addDollars),
-                            icon = painterForResId(CoreDrawables.ic_menu_deposit),
+                            text = stringResource(Res.string.action_addDollars),
+                            icon = painterResource(Res.drawable.ic_menu_deposit),
                         ) {
                             dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
                         }
@@ -362,8 +370,8 @@ internal fun WalletScreenContent(
                                 .weight(1f)
                                 .aspectRatio(1.45f),
                             style = TileButtonStyle.Spread,
-                            text = stringRes(CoreStrings.action_withdrawDollars),
-                            icon = painterForResId(CoreDrawables.ic_menu_withdraw),
+                            text = stringResource(Res.string.action_withdrawDollars),
+                            icon = painterResource(Res.drawable.ic_menu_withdraw),
                         ) {
                             // No preselected mint: the flow opens on the currency picker, which lists
                             // every balance (Dollars included).

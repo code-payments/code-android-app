@@ -3,6 +3,7 @@ package com.getcode.util.resources
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.util.DisplayMetrics
+import org.jetbrains.compose.resources.StringResource
 import java.io.File
 import java.net.URL
 import java.net.URLClassLoader
@@ -17,6 +18,7 @@ class FakeResourceHelper(vararg rClasses: Class<*>) : AndroidResourceHelper {
     }
 
     private val overrides = mutableMapOf<Int, String>()
+    private val keyOverrides = mutableMapOf<String, String>()
 
     fun stub(resourceId: Int, value: String): FakeResourceHelper = apply {
         overrides[resourceId] = value
@@ -27,6 +29,15 @@ class FakeResourceHelper(vararg rClasses: Class<*>) : AndroidResourceHelper {
 
     override fun getString(resourceId: Int, vararg formatArgs: Any): String {
         val template = overrides[resourceId] ?: nameMap[resourceId] ?: return resourceId.toString()
+        return runCatching { template.format(*formatArgs) }.getOrDefault(template)
+    }
+
+    fun stub(resource: StringResource, value: String): FakeResourceHelper = apply {
+        keyOverrides[resource.key] = value
+    }
+
+    override fun getString(resource: StringResource, vararg formatArgs: Any): String {
+        val template = keyOverrides[resource.key] ?: return resource.key
         return runCatching { template.format(*formatArgs) }.getOrDefault(template)
     }
 

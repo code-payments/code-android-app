@@ -1,6 +1,27 @@
 package com.flipcash.app.userflags
 
-import androidx.annotation.StringRes
+import org.jetbrains.compose.resources.StringResource
+import com.flipcash.app.userflags.generated.resources.Res
+import com.flipcash.app.userflags.generated.resources.hint_flag_billExchangeDataTimeout
+import com.flipcash.app.userflags.generated.resources.hint_flag_messageDeleteWindow
+import com.flipcash.app.userflags.generated.resources.hint_flag_messageEditWindow
+import com.flipcash.app.userflags.generated.resources.hint_flag_minHolderAmount
+import com.flipcash.app.userflags.generated.resources.hint_flag_minimumVersion
+import com.flipcash.app.userflags.generated.resources.hint_flag_newCurrencyFeeAmount
+import com.flipcash.app.userflags.generated.resources.hint_flag_newCurrencyPurchaseAmount
+import com.flipcash.app.userflags.generated.resources.hint_flag_withdrawalFeeAmount
+import com.flipcash.app.userflags.generated.resources.label_flag_billExchangeDataTimeout
+import com.flipcash.app.userflags.generated.resources.label_flag_messageDeleteWindow
+import com.flipcash.app.userflags.generated.resources.label_flag_messageEditWindow
+import com.flipcash.app.userflags.generated.resources.label_flag_minHolderAmount
+import com.flipcash.app.userflags.generated.resources.label_flag_minimumVersion
+import com.flipcash.app.userflags.generated.resources.label_flag_newCurrencyFeeAmount
+import com.flipcash.app.userflags.generated.resources.label_flag_newCurrencyPurchaseAmount
+import com.flipcash.app.userflags.generated.resources.label_flag_preferredProvider
+import com.flipcash.app.userflags.generated.resources.label_flag_preferredUsdcLiquidityPool
+import com.flipcash.app.userflags.generated.resources.label_flag_requireCoinbaseEmailVerification
+import com.flipcash.app.userflags.generated.resources.label_flag_supportedOnRampProviders
+import com.flipcash.app.userflags.generated.resources.label_flag_withdrawalFeeAmount
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.insert
@@ -22,8 +43,8 @@ sealed class Field<Stored, Domain>(
     val preferenceKey: Preferences.Key<Stored>,
     val encode: (Domain) -> Stored,
     val decode: (Stored) -> Domain?,
-    @get:StringRes val label: Int,
-    @get:StringRes val hint: Int = label,
+    val label: StringResource,
+    val hint: StringResource = label,
     val format: (Domain) -> String,
     val editFormat: (Domain) -> String = format,
     val editor: FieldEditor<Domain>,
@@ -34,7 +55,7 @@ sealed class Field<Stored, Domain>(
         stringPreferencesKey("override_preferred_provider"),
         encode = { it?.encode() ?: "None" },
         decode = { decodeOnRampProvider(it) },
-        label = FlagStrings.label_flag_preferredProvider,
+        label = Res.string.label_flag_preferredProvider,
         format = { provider -> provider?.displayName() ?: "None" },
         editor = FieldEditor.SingleSelect(
             options = listOf(
@@ -56,7 +77,7 @@ sealed class Field<Stored, Domain>(
                 else -> "${providers.size} selected"
             }
         },
-        label = FlagStrings.label_flag_supportedOnRampProviders,
+        label = Res.string.label_flag_supportedOnRampProviders,
         editor = FieldEditor.MultiSelect(
             options = listOf(
                 "Manual Deposit" to OnRampProvider.ManualDeposit,
@@ -70,8 +91,8 @@ sealed class Field<Stored, Domain>(
         intPreferencesKey("override_min_version"),
         encode = { it ?: 0 },
         decode = { it },
-        label = FlagStrings.label_flag_minimumVersion,
-        hint = FlagStrings.hint_flag_minimumVersion,
+        label = Res.string.label_flag_minimumVersion,
+        hint = Res.string.hint_flag_minimumVersion,
         format = { it.toString() },
         editor = FieldEditor.TextInput(
             keyboard = KeyboardType.Number,
@@ -86,8 +107,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_bill_timeout"),
         encode = { it?.inWholeMilliseconds ?: -1L },
         decode = { if (it < 0) null else it.milliseconds },
-        label = FlagStrings.label_flag_billExchangeDataTimeout,
-        hint = FlagStrings.hint_flag_billExchangeDataTimeout,
+        label = Res.string.label_flag_billExchangeDataTimeout,
+        hint = Res.string.hint_flag_billExchangeDataTimeout,
         format = { it?.let { "${it.inWholeSeconds}s" } ?: "None" },
         editFormat = { it?.inWholeSeconds?.toString() ?: "" },
         editor = FieldEditor.TextInput(
@@ -108,8 +129,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_message_edit_window"),
         encode = { it?.inWholeMilliseconds ?: -1L },
         decode = { if (it < 0) null else it.milliseconds },
-        label = FlagStrings.label_flag_messageEditWindow,
-        hint = FlagStrings.hint_flag_messageEditWindow,
+        label = Res.string.label_flag_messageEditWindow,
+        hint = Res.string.hint_flag_messageEditWindow,
         format = { it?.let { "${it.inWholeSeconds}s" } ?: "None" },
         editFormat = { it?.inWholeSeconds?.toString() ?: "" },
         editor = FieldEditor.TextInput(
@@ -125,8 +146,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_message_delete_window"),
         encode = { it?.inWholeMilliseconds ?: -1L },
         decode = { if (it < 0) null else it.milliseconds },
-        label = FlagStrings.label_flag_messageDeleteWindow,
-        hint = FlagStrings.hint_flag_messageDeleteWindow,
+        label = Res.string.label_flag_messageDeleteWindow,
+        hint = Res.string.hint_flag_messageDeleteWindow,
         format = { it?.let { "${it.inWholeSeconds}s" } ?: "None" },
         editFormat = { it?.inWholeSeconds?.toString() ?: "" },
         editor = FieldEditor.TextInput(
@@ -142,8 +163,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_new_currency_amount"),
         encode = { it.quarks },
         decode = { Fiat(quarks = it) },
-        label = FlagStrings.label_flag_newCurrencyPurchaseAmount,
-        hint = FlagStrings.hint_flag_newCurrencyPurchaseAmount,
+        label = Res.string.label_flag_newCurrencyPurchaseAmount,
+        hint = Res.string.hint_flag_newCurrencyPurchaseAmount,
         format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
         editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
         editor = FieldEditor.TextInput(
@@ -161,8 +182,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_new_fee_amount"),
         encode = { it.quarks },
         decode = { Fiat(quarks = it) },
-        label = FlagStrings.label_flag_newCurrencyFeeAmount,
-        hint = FlagStrings.hint_flag_newCurrencyFeeAmount,
+        label = Res.string.label_flag_newCurrencyFeeAmount,
+        hint = Res.string.hint_flag_newCurrencyFeeAmount,
         format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
         editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
         editor = FieldEditor.TextInput(
@@ -180,8 +201,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_withdrawal_fee_amount"),
         encode = { it.quarks },
         decode = { Fiat(quarks = it) },
-        label = FlagStrings.label_flag_withdrawalFeeAmount,
-        hint = FlagStrings.hint_flag_withdrawalFeeAmount,
+        label = Res.string.label_flag_withdrawalFeeAmount,
+        hint = Res.string.hint_flag_withdrawalFeeAmount,
         format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
         editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
         editor = FieldEditor.TextInput(
@@ -199,7 +220,7 @@ sealed class Field<Stored, Domain>(
         stringPreferencesKey("override_preferred_liquidity_pool"),
         encode = { it.name },
         decode = { runCatching { UsdcLiquidtyPool.valueOf(it) }.getOrNull() },
-        label = FlagStrings.label_flag_preferredUsdcLiquidityPool,
+        label = Res.string.label_flag_preferredUsdcLiquidityPool,
         format = { provider -> provider.displayName() },
         editor = FieldEditor.SingleSelect(
             options = listOf(
@@ -213,7 +234,7 @@ sealed class Field<Stored, Domain>(
         booleanPreferencesKey("override_require_coinbase_email_verification"),
         encode = { it },
         decode = { it },
-        label = FlagStrings.label_flag_requireCoinbaseEmailVerification,
+        label = Res.string.label_flag_requireCoinbaseEmailVerification,
         format = { if (it) "Yes" else "No" },
         editor = FieldEditor.SingleSelect(
             options = listOf("Yes" to true, "No" to false)
@@ -224,8 +245,8 @@ sealed class Field<Stored, Domain>(
         longPreferencesKey("override_min_holder_amount"),
         encode = { it.quarks },
         decode = { Fiat(quarks = it) },
-        label = FlagStrings.label_flag_minHolderAmount,
-        hint = FlagStrings.hint_flag_minHolderAmount,
+        label = Res.string.label_flag_minHolderAmount,
+        hint = Res.string.hint_flag_minHolderAmount,
         format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
         editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
         editor = FieldEditor.TextInput(

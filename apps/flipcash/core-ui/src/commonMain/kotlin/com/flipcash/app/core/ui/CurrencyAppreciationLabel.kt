@@ -1,5 +1,11 @@
 package com.flipcash.app.core.ui
 
+import org.jetbrains.compose.resources.stringResource
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_fromAppreciation
+import com.flipcash.core.resources.label_fromCurrencyAppreciation
+import com.flipcash.core.resources.label_fromCurrencyDepreciation
+import com.flipcash.core.resources.label_fromDepreciation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -12,13 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.money.formattedAppreciation
-import com.flipcash.app.core.resources.CoreStrings
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White20
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.text.AnimatedNumberText
-import com.getcode.util.resources.stringRes
 
 /** Controls the visual treatment of the appreciation badge. */
 enum class AppreciationStyle {
@@ -88,15 +92,15 @@ fun CurrencyAppreciationLabel(
         val label = when (style) {
             AppreciationStyle.Pill ->
                 if (hasAppreciation) {
-                    stringRes(CoreStrings.label_fromAppreciation)
+                    stringResource(Res.string.label_fromAppreciation)
                 } else {
-                    stringRes(CoreStrings.label_fromDepreciation)
+                    stringResource(Res.string.label_fromDepreciation)
                 }
             AppreciationStyle.Classic ->
                 if (hasAppreciation) {
-                    stringRes(CoreStrings.label_fromCurrencyAppreciation)
+                    stringResource(Res.string.label_fromCurrencyAppreciation)
                 } else {
-                    stringRes(CoreStrings.label_fromCurrencyDepreciation)
+                    stringResource(Res.string.label_fromCurrencyDepreciation)
                 }
         }
         Text(

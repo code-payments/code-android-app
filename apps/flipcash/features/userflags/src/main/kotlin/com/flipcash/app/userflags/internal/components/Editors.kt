@@ -19,7 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import com.flipcash.app.userflags.FieldEditor
 import com.flipcash.app.userflags.internal.EditableEntry
 import com.flipcash.app.userflags.internal.UserFlagsViewModel

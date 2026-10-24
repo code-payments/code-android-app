@@ -1,5 +1,16 @@
 package com.flipcash.app.core.ui.onboarding
 
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.painterResource
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.ic_checked_green
+import com.getcode.util.resources.ic_chevron_right
+import com.getcode.util.resources.Res as UiRes
+import com.flipcash.core.resources.ic_nav_tipcard
+import com.flipcash.core.resources.subtitle_addMoney
+import com.flipcash.core.resources.subtitle_scanTipCard
+import com.flipcash.core.resources.title_addMoney
+import com.flipcash.core.resources.title_scanTipCard
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,12 +37,8 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
-import com.flipcash.app.core.resources.CoreDrawables
-import com.flipcash.app.core.resources.CoreStrings
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
-import com.getcode.util.resources.painterForResId
-import com.getcode.util.resources.stringRes
 
 /**
  * A row in a "what's left to do" checklist.
@@ -53,20 +60,20 @@ sealed interface TutorialItem {
 
     class AddMoney(override val isCompleted: Boolean) : Wallet {
         override val title: String
-            @Composable get() = stringRes(CoreStrings.title_addMoney)
+            @Composable get() = stringResource(Res.string.title_addMoney)
         override val description: String
-            @Composable get() = stringRes(CoreStrings.subtitle_addMoney)
+            @Composable get() = stringResource(Res.string.subtitle_addMoney)
         override val icon: Painter
             @Composable get() = rememberVectorPainter(Icons.Outlined.AddCircleOutline)
     }
 
     class ScanTipCard(override val isCompleted: Boolean) : Wallet {
         override val title: String
-            @Composable get() = stringRes(CoreStrings.title_scanTipCard)
+            @Composable get() = stringResource(Res.string.title_scanTipCard)
         override val description: String
-            @Composable get() = stringRes(CoreStrings.subtitle_scanTipCard)
+            @Composable get() = stringResource(Res.string.subtitle_scanTipCard)
         override val icon: Painter
-            @Composable get() = painterForResId(CoreDrawables.ic_nav_tipcard)
+            @Composable get() = painterResource(Res.drawable.ic_nav_tipcard)
     }
 }
 
@@ -137,7 +144,7 @@ private fun OnboardingItemRow(
         Image(
             modifier = Modifier.align(Alignment.Top).size(24.dp),
             painter = if (item.isCompleted) {
-                painterForResId(CoreDrawables.ic_checked_green)
+                painterResource(Res.drawable.ic_checked_green)
             } else {
                 item.icon
             },
@@ -162,7 +169,7 @@ private fun OnboardingItemRow(
         }
         Icon(
             modifier = Modifier.align(Alignment.CenterVertically).size(16.dp),
-            painter = painterForResId(CoreDrawables.ic_chevron_right),
+            painter = painterResource(UiRes.drawable.ic_chevron_right),
             tint = CodeTheme.colors.textSecondary,
             contentDescription = null
         )

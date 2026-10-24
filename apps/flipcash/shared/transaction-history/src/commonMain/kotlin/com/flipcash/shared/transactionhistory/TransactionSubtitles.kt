@@ -1,6 +1,10 @@
 package com.flipcash.shared.transactionhistory
 
-import com.flipcash.shared.transactionhistory.resources.TxStrings
+import com.flipcash.shared.transactionhistory.generated.resources.Res
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_inPerson
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_paidWith
+import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_soldFor
+import com.flipcash.shared.transactionhistory.generated.resources.title_activity_convert
 import com.getcode.util.resources.ResourceHelper
 
 /**
@@ -28,22 +32,22 @@ object TransactionSubtitles {
      * exchanges identities, so "who" is genuinely unanswerable; how it moved is the useful fact.
      */
     fun inPerson(resources: ResourceHelper): String =
-        resources.getString(TxStrings.label_txnDetails_inPerson)
+        resources.getString(Res.string.label_txnDetails_inPerson)
 
     /** [TransactionKind.Buy] — the mint that was spent, which the amount alone never says. */
     fun paidWith(resources: ResourceHelper, tokenName: String): String =
-        resources.getString(TxStrings.label_txnDetails_paidWith, tokenName)
+        resources.getString(Res.string.label_txnDetails_paidWith, tokenName)
 
     /** [TransactionKind.Sell] — the mint that came back. */
     fun soldFor(resources: ResourceHelper, tokenName: String): String =
-        resources.getString(TxStrings.label_txnDetails_soldFor, tokenName)
+        resources.getString(Res.string.label_txnDetails_soldFor, tokenName)
 
     /**
      * [TransactionKind.Convert] — both mints, in the same "from → to" shape the activity row's
      * convert title already uses, so the row and the screen it opens read alike.
      */
     fun converted(resources: ResourceHelper, from: String, to: String): String =
-        resources.getString(TxStrings.title_activity_convert, from, to)
+        resources.getString(Res.string.title_activity_convert, from, to)
 
     /** [TransactionKind.PoolPayment] — the pool that was paid. */
     fun pool(name: String): String? = name.takeIf { it.isNotBlank() }

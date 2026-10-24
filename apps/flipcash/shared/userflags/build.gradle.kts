@@ -1,6 +1,9 @@
+import com.getcode.buildlogic.resources.androidResAsComposeResources
+
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.kotlin.ksp)
 }
 
@@ -14,6 +17,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.jetbrains.compose.runtime)
             implementation(libs.jetbrains.compose.foundation)
+            implementation(libs.jetbrains.compose.components.resources)
             implementation(libs.androidx.annotation)
             implementation(libs.androidx.datastore.preferences.core)
             implementation(libs.javax.inject)
@@ -37,6 +41,14 @@ kotlin {
             implementation(libs.mockito.kotlin)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.flipcash.app.userflags.generated.resources"
+    customDirectory(
+        sourceSetName = "commonMain",
+        directoryProvider = androidResAsComposeResources(),
+    )
 }
 
 dependencies {

@@ -1,5 +1,10 @@
 package com.flipcash.shared.transactionhistory
 
+import com.flipcash.shared.transactionhistory.generated.resources.Res
+import com.flipcash.shared.transactionhistory.generated.resources.title_activity_convert
+import com.flipcash.shared.transactionhistory.generated.resources.title_activity_receivedFrom
+import com.flipcash.shared.transactionhistory.generated.resources.title_activity_sentTo
+import com.flipcash.shared.transactionhistory.generated.resources.title_activity_tipFrom
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
@@ -28,10 +33,10 @@ import org.junit.Test
 class TransactionItemMapperTest {
 
     private val resources = FakeResourceHelper()
-        .stub(R.string.title_activity_tipFrom, "Tip from %1\$s")
-        .stub(R.string.title_activity_sentTo, "Sent to %1\$s")
-        .stub(R.string.title_activity_receivedFrom, "Received from %1\$s")
-        .stub(R.string.title_activity_convert, "%1\$s → %2\$s")
+        .stub(Res.string.title_activity_tipFrom, "Tip from %1\$s")
+        .stub(Res.string.title_activity_sentTo, "Sent to %1\$s")
+        .stub(Res.string.title_activity_receivedFrom, "Received from %1\$s")
+        .stub(Res.string.title_activity_convert, "%1\$s → %2\$s")
     private val mapper = TransactionItemMapper(resources)
 
     private val knownUserId: ID = listOf<Byte>(0x0A, 0x0B, 0x0C)

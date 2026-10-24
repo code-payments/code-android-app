@@ -5,6 +5,7 @@ import androidx.annotation.PluralsRes
 import androidx.annotation.RawRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.staticCompositionLocalOf
+import org.jetbrains.compose.resources.StringResource
 
 /**
  * Looks up app resources by their Android resource ID.
@@ -16,6 +17,9 @@ interface ResourceHelper {
     fun getString(@StringRes resourceId: Int): String
 
     fun getString(@StringRes resourceId: Int, vararg formatArgs: Any): String
+
+    /** Reads a Compose string resource outside composition, for mappers that build display text. */
+    fun getString(resource: StringResource, vararg formatArgs: Any): String
 
     fun getRawResource(@RawRes resourceId: Int): String
 
@@ -48,6 +52,8 @@ private object NoOpResources : ResourceHelper {
     override fun getString(resourceId: Int): String = ""
 
     override fun getString(resourceId: Int, vararg formatArgs: Any): String = ""
+
+    override fun getString(resource: StringResource, vararg formatArgs: Any): String = ""
 
     override fun getRawResource(resourceId: Int): String = ""
 
