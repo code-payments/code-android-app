@@ -22,6 +22,7 @@ import com.flipcash.app.tipping.internal.CreateGroupViewModel
 import com.flipcash.app.tipping.internal.communityCurrencies
 import com.flipcash.app.tipping.internal.withoutUsdf
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tipping.R
@@ -48,7 +49,7 @@ internal fun SelectGroupCurrencySheet(viewModel: CreateGroupViewModel) {
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
-    val tokenViewModel = hiltViewModel<SelectTokenViewModel>()
+    val tokenViewModel = hiltViewModel<HiltSelectTokenViewModel>()
     val tokenState by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
 
     val rowStyling = rememberTokenBalanceRowStyling(

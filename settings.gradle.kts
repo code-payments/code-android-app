@@ -111,6 +111,7 @@ rootProject.name = "Flipcash"
 
 include(
     // app containers
+    ":apps:desktop",
     ":apps:flipcash:app",
     ":apps:flipcash:benchmark",
 
@@ -118,11 +119,13 @@ include(
     ":apps:flipcash:core",
     ":apps:flipcash:core-ui",
     ":apps:flipcash:card-expand",
+    ":apps:flipcash:startup-contract",
     ":libs:test-utils",
     // shared flipcash coordinators/controllers/viewmodels/services
     ":apps:flipcash:shared:amount-entry",
     ":apps:flipcash:shared:accesskey",
     ":apps:flipcash:shared:analytics",
+    ":apps:flipcash:shared:analytics:test-fixtures",
     ":apps:flipcash:shared:appsettings",
     ":apps:flipcash:shared:authentication",
     ":apps:flipcash:shared:activityfeed",

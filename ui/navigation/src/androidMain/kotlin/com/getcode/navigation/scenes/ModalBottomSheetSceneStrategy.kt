@@ -1,0 +1,491 @@
+package com.getcode.navigation.scenes
+
+import android.os.Build
+import com.getcode.libs.parcelable.Parcelable
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.scene.OverlayScene
+import androidx.navigation3.scene.Scene
+import androidx.navigation3.scene.SceneStrategy
+import androidx.navigation3.scene.SceneStrategyScope
+import com.composeunstyled.Sheet
+import com.composeunstyled.SheetDetent
+import com.composeunstyled.UnstyledBottomSheet
+import com.composeunstyled.rememberBottomSheetState
+import com.getcode.animation.LocalSharedTransitionScope
+import com.getcode.navigation.NavMetadataKeys
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.results.NavResultKey
+import com.getcode.navigation.results.NavResultOrCanceled
+import com.getcode.navigation.results.NavResultStore
+import com.getcode.navigation.results.NavigationRetVal
+import com.getcode.navigation.scrim.LocalScrimController
+import com.getcode.navigation.scrim.ScrimOverlay
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.noRippleClickable
+import com.getcode.ui.utils.LocalSheetExpansionState
+import com.getcode.ui.utils.LocalSheetOverhang
+import com.getcode.ui.utils.LocalSheetGesturesState
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+data class BottomSheetProperties(
+    val dismissOnBackPress: Boolean = true,
+    val dismissOnClickOutside: Boolean = true,
+)
+
+private val Expanded = SheetDetent("expanded") { containerHeight, _ ->
+    containerHeight * 0.925f
+}
+
+/**
+ * Resting detent for a [com.getcode.navigation.WrapContentSheet]: the height its content asked for,
+ * never more than [Expanded] would have given it.
+ *
+ * The detent is what sizes the sheet — compose-unstyled lays the sheet out to the detent height, not
+ * to the content — so dropping `fillMaxHeight()` from the sheet body is not enough on its own. This
+ * is the half of wrap-content that makes the sheet hug three lines instead of claiming the screen.
+ */
+private val WrapContent = SheetDetent("wrap-content") { containerHeight, sheetHeight ->
+    sheetHeight.coerceAtMost(containerHeight * 0.925f)
+}
+
+/**
+ * Resting — and, for short content, only — detent for a [com.getcode.navigation.HalfSheet].
+ *
+ * The sheet always fills this detent, so its content is measured against it and does not need to
+ * restate the fraction. [Expanded] joins the detent list only once the content reports that it
+ * overruns this one, so a sheet with nothing below the fold can't be dragged up into dead space, and
+ * stays in it from then on — see [com.getcode.ui.utils.LocalSheetExpansionState].
+ */
+private val Half = SheetDetent("half") { containerHeight, _ ->
+    containerHeight * 0.5f
+}
+
+/**
+ * Resting detent for a [com.getcode.navigation.FullscreenSheet]: the whole container, status bar
+ * included.
+ *
+ * [Expanded]'s 7.5% gap is what tells you a sheet is a layer over something. A route that is a
+ * screen in its own right does not need telling, so it takes the height back.
+ */
+private val Fullscreen = SheetDetent("fullscreen") { containerHeight, _ ->
+    containerHeight
+}
+
+/** An [OverlayScene] that renders an [entry] within an [UnstyledBottomSheet]. */
+internal class ModalBottomSheetScene<T : Any> constructor(
+    override val key: T,
+    override val previousEntries: List<NavEntry<T>>,
+    override val overlaidEntries: List<NavEntry<T>>,
+    private val entry: NavEntry<T>,
+    private val sheetProperties: BottomSheetProperties,
+    private val onBack: () -> Unit,
+    override val metadata: Map<String, Any>,
+    private val navResultStore: NavResultStore,
+    lastNavKey: () -> NavKey?,
+) : OverlayScene<T> {
+
+    private val returnNavKey = lastNavKey()
+
+    override val entries: List<NavEntry<T>> = listOf(entry)
+
+    /** How many sheets sit beneath this one: 0 for a sheet over a plain screen. */
+    private val sheetDepth: Float = previousEntries
+        .count { it.metadata[NavMetadataKeys.IsSheet.key] as? Boolean ?: false }
+        .toFloat()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ModalBottomSheetScene<*>) return false
+        return key == other.key
+    }
+
+    override fun hashCode(): Int = key.hashCode()
+
+    override val content: @Composable (() -> Unit) = {
+        val navigator = LocalCodeNavigator.current
+        key(key) {
+            val isNonDismissable =
+                (metadata[NavMetadataKeys.IsNonDismissable.key] as? Boolean ?: false)
+                        || navigator.sheetDismissDisabled
+
+            val effectiveProperties = if (isNonDismissable) {
+                BottomSheetProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+            } else {
+                sheetProperties
+            }
+
+            val handleBackResult = {
+                val navResultKey =
+                    metadata[NavMetadataKeys.NavResultKey.key] as? NavResultKey<NavigationRetVal<Parcelable>, Parcelable>
+                if (navResultKey != null) {
+                    returnNavKey?.let { navKey ->
+                        navResultStore.deliverOrPersist(
+                            navKey,
+                            navResultKey,
+                            NavResultOrCanceled.Canceled
+                        )
+                    }
+                }
+            }
+
+            var allowDismiss by rememberSaveable { mutableStateOf(!isNonDismissable && !navigator.sheetDragDisabled) }
+
+            val isWrapContent =
+                metadata[NavMetadataKeys.IsWrapContentSheet.key] as? Boolean ?: false
+
+            // A half sheet gains an extra resting detent and opens there; a fullscreen sheet takes
+            // the whole container; a wrap-content sheet rests at its own content height; every other
+            // sheet keeps the two-detent (hidden/expanded) behaviour. Half wins the overlap: those
+            // sheets are sized by the fraction, and wrap-content only strips their `fillMaxHeight()`
+            // further down.
+            val isHalfSheet = metadata[NavMetadataKeys.IsHalfSheet.key] as? Boolean ?: false
+            val isFullscreen =
+                metadata[NavMetadataKeys.IsFullscreenSheet.key] as? Boolean ?: false
+            val restingDetent = when {
+                isHalfSheet -> Half
+                isFullscreen -> Fullscreen
+                isWrapContent -> WrapContent
+                else -> Expanded
+            }
+
+            // Whether the sheet's content overruns [restingDetent]. Half sheets start out
+            // unexpandable and are handed [Expanded] only once their content says it needs it.
+            var contentOverflows by remember { mutableStateOf(false) }
+            // Kept stable: this backs a static local, so a fresh lambda each pass would
+            // needlessly invalidate the whole sheet subtree.
+            //
+            // Latched: once the content overruns [restingDetent], the sheet keeps [Expanded]. A list
+            // that overflows at Half but fits at Expanded stops reporting overflow the moment the
+            // sheet grows to hold it, and withdrawing the detent then drops the sheet back to Half,
+            // where the list overflows again -- the sheet never stays expanded.
+            val setContentOverflows = remember { { overflows: Boolean ->
+                if (overflows) contentOverflows = true
+            } }
+
+            val sheetState = rememberBottomSheetState(
+                initialDetent = SheetDetent.Hidden,
+                detents = listOf(SheetDetent.Hidden, restingDetent),
+                confirmDetentChange = { detent ->
+                    detent != SheetDetent.Hidden || allowDismiss
+                },
+            )
+
+            // Offer the expanded detent only while there is something below the fold to expand into,
+            // so a sheet that already fits can't be dragged up into empty space. Never withdraw it
+            // while the sheet is sitting at (or heading toward) it.
+            LaunchedEffect(isHalfSheet, contentOverflows) {
+                if (!isHalfSheet) return@LaunchedEffect
+                val atExpanded = sheetState.currentDetent == Expanded ||
+                        sheetState.targetDetent == Expanded
+                sheetState.detents = if (contentOverflows || atExpanded) {
+                    listOf(SheetDetent.Hidden, Half, Expanded)
+                } else {
+                    listOf(SheetDetent.Hidden, Half)
+                }
+            }
+
+            // One presentation of the sheet must pop its entry exactly once. Every dismissal ends
+            // with the sheet settled at Hidden, and the settle observer below fires for all of
+            // them — including the explicit paths here and in [pendingSheetDismiss] — so the pop is
+            // funnelled through this guard. Reset when the sheet is (re-)opened.
+            var dismissHandled by remember { mutableStateOf(false) }
+            val finishDismiss = {
+                if (!dismissHandled) {
+                    dismissHandled = true
+                    handleBackResult()
+                    onBack()
+                }
+            }
+
+            // Animate the sheet in on first composition and after
+            // same-route dismiss-replace (sheetGeneration increments).
+            LaunchedEffect(navigator.sheetGeneration) {
+                sheetState.animateTo(restingDetent)
+            }
+
+            // [UnstyledBottomSheet] is a plain sheet with no dismissal callback of its own, so
+            // dragging it closed hides it without telling anyone: the entry stays on the backstack
+            // as an invisible sheet that still swallows every touch through its full-size scrim,
+            // and chrome that hides while a sheet is up (the v2 tab bar) stays hidden until the
+            // next tap lands on that scrim and pops it. Watch the sheet's state rather than the
+            // gesture, so a drag-dismiss pops the entry the same way a scrim tap does.
+            LaunchedEffect(navigator.sheetGeneration) {
+                dismissHandled = false
+                // The sheet starts out Hidden, so a return to Hidden only means "dismissed" once
+                // it has actually been presented.
+                snapshotFlow { sheetState.targetDetent }.first { it != SheetDetent.Hidden }
+                // Settled, not merely targeted: mid-drag the target flips to Hidden and back as the
+                // finger crosses the dismiss threshold.
+                snapshotFlow { sheetState.isIdle && sheetState.currentDetent == SheetDetent.Hidden }
+                    .first { it }
+                finishDismiss()
+            }
+
+            val composeScope = rememberCoroutineScope()
+
+            // The sheet's own height only changes on relayout, never mid-drag, so measure it once
+            // and let [LocalSheetOverhang] subtract the live drag offset at placement time.
+            var sheetHeightPx by remember { mutableFloatStateOf(0f) }
+            val sheetOverhang = remember(sheetState) {
+                { (sheetHeightPx - sheetState.offset).coerceAtLeast(0f) }
+            }
+
+            val dismiss = { hide: Boolean ->
+                if (hide && sheetState.currentDetent != SheetDetent.Hidden) {
+                    composeScope.launch {
+                        sheetState.animateTo(SheetDetent.Hidden)
+                    }.invokeOnCompletion {
+                        finishDismiss()
+                    }
+                } else {
+                    finishDismiss()
+                }
+            }
+
+            // Observe external dismiss requests (e.g. deeplink replacing current sheet).
+            val pendingDismiss = navigator.pendingSheetDismiss
+            if (pendingDismiss != null) {
+                LaunchedEffect(pendingDismiss) {
+                    try {
+                        sheetState.animateTo(SheetDetent.Hidden)
+                    } finally {
+                        Snapshot.withMutableSnapshot {
+                            finishDismiss()
+                            navigator.pendingSheetDismiss = null
+                            pendingDismiss()
+                        }
+                    }
+                }
+            }
+
+            val scrim = LocalScrimController.current
+
+            CompositionLocalProvider(
+                LocalSheetGesturesState provides { enabled ->
+                    allowDismiss = enabled && !navigator.sheetDragDisabled
+                },
+                LocalSheetExpansionState provides setContentOverflows,
+                LocalSheetOverhang provides sheetOverhang,
+                LocalScrimController provides scrim,
+            ) {
+                // A sheet pushed over another sheet leaves the one beneath composed, and both
+                // register a back handler. Only the top of the stack may take back, or back would
+                // close the sheet underneath first.
+                val isTopOfStack = navigator.backStack.size == previousEntries.size + 1
+                BackHandler(enabled = effectiveProperties.dismissOnBackPress && isTopOfStack) {
+                    dismiss(true)
+                }
+
+                // Force light status bar icons in the sheet overlay
+                val view = LocalView.current
+                SideEffect {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        view.rootView.windowInsetsController?.setSystemBarsAppearance(
+                            0, // clear → light (white) icons
+                            android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                        )
+                    }
+                }
+
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        // NavDisplay draws its overlay scenes in reverse, so a sheet pushed over
+                        // another sheet would land under it. Every overlay scene is a sibling in
+                        // NavDisplay's parent, so stacking by depth puts the newest sheet on top.
+                        .zIndex(sheetDepth),
+                ) {
+                    // Scrim tracks sheet position — drawn in draw phase to
+                    // avoid recomposition on every animation frame.
+                    val scrimBaseColor = CodeTheme.colors.scrim
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawBehind {
+                                // Saturate the scrim at the sheet's resting detent, not at fully
+                                // expanded — a half sheet would otherwise open under-dimmed.
+                                val progress = sheetState
+                                    .progress(SheetDetent.Hidden, restingDetent)
+                                    .coerceIn(0f, 1f)
+                                // A bill beneath the sheet already dims the screen with its own
+                                // (constant) scrim, so don't stack a second dim here — otherwise
+                                // opening the sheet would visibly darken the backdrop.
+                                val alpha = if (scrim.visible) 0f else scrimBaseColor.alpha * progress
+                                drawRect(scrimBaseColor.copy(alpha = alpha))
+                            }
+                            .then(
+                                if (effectiveProperties.dismissOnClickOutside) {
+                                    Modifier.noRippleClickable { dismiss(true) }
+                                } else Modifier
+                            ),
+                    )
+
+                    UnstyledBottomSheet(
+                        state = sheetState,
+                        modifier = Modifier.fillMaxSize(),
+                        // Only block dragging for a scrim that puts CONTENT over the sheet; a plain
+                        // bill dim beneath the sheet must not disable the sheet's own gestures.
+                        enabled = !navigator.sheetDragDisabled &&
+                                !(scrim.visible && scrim.overlayContent != null),
+                    ) {
+                        Sheet(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onSizeChanged { sheetHeightPx = it.height.toFloat() }
+                                // Rounded corners read as a card lifted over the screen behind it.
+                                // A fullscreen sheet has no screen behind it to be lifted over, and
+                                // the curves would only carve two notches out of the display's own
+                                // square corners.
+                                .then(
+                                    if (isFullscreen) {
+                                        Modifier
+                                    } else {
+                                        Modifier.clip(
+                                            RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                                        )
+                                    }
+                                )
+                                .background(CodeTheme.colors.surface),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(
+                                        if (!isWrapContent) {
+                                            Modifier.fillMaxHeight()
+                                        } else Modifier
+                                    )
+                                    // Every other sheet rests below the status bar and so never had
+                                    // to think about it. This one reaches it: the surface is drawn
+                                    // behind the bar (no scrim sliver at the top) and the content is
+                                    // inset past it, the way a full-screen route's own app bar
+                                    // insets itself.
+                                    .then(
+                                        if (isFullscreen) {
+                                            Modifier.statusBarsPadding()
+                                        } else Modifier
+                                    ),
+                            ) {
+                                SharedTransitionLayout {
+                                    CompositionLocalProvider(
+                                        LocalBottomSheetDismissDispatcher provides { dismiss(true) },
+                                        LocalSheetNavigator provides navigator,
+                                        LocalSharedTransitionScope provides this,
+                                    ) {
+                                        entry.Content()
+                                    }
+                                    // Only surface the shared scrim inside the sheet when it has
+                                    // CONTENT to show over it. A plain bill dim must not be redrawn
+                                    // here — it would double-dim the sheet and its tap-to-dismiss
+                                    // would close the bill from on top of the sheet.
+                                    if (!isWrapContent && scrim.overlayContent != null) {
+                                        ScrimOverlay(scrim)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } // end key(key)
+    }
+}
+
+/**
+ * A [SceneStrategy] that displays entries that have added [modalBottomSheet] to their [NavEntry.metadata]
+ * within a bottom sheet instance.
+ *
+ * This strategy should always be added before any non-overlay scene strategies.
+ */
+class ModalBottomSheetSceneStrategy<T : Any>(
+    private val navResultStore: NavResultStore,
+    private val lastNavKey: () -> NavKey?,
+) : SceneStrategy<T> {
+
+    override fun SceneStrategyScope<T>.calculateScene(
+        entries: List<NavEntry<T>>,
+    ): Scene<T>? {
+        val lastEntry = entries.lastOrNull() ?: return null
+        val isSheet = lastEntry.metadata[NavMetadataKeys.IsSheet.key] as? Boolean ?: false
+        if (!isSheet) return null
+
+        val overlaidEntries = entries.dropLast(1).let { remainingEntries ->
+            if (lastEntry.metadata[NavMetadataKeys.IsSolitarySheet.key] == true) {
+                remainingEntries.dropLastWhile {
+                    it.metadata.getOrDefault(NavMetadataKeys.IsSheet.key, false) as Boolean
+                }
+            } else {
+                remainingEntries
+            }
+        }.ifEmpty { return null }
+
+        val sheetProperties =
+            lastEntry.metadata[BOTTOM_SHEET_KEY] as? BottomSheetProperties
+                ?: BottomSheetProperties()
+
+        @Suppress("UNCHECKED_CAST")
+        return ModalBottomSheetScene(
+            key = lastEntry.contentKey as T,
+            previousEntries = entries.dropLast(1).ifEmpty { return null },
+            overlaidEntries = overlaidEntries,
+            sheetProperties = sheetProperties,
+            entry = lastEntry,
+            onBack = onBack,
+            metadata = lastEntry.metadata,
+            navResultStore = navResultStore,
+            lastNavKey = lastNavKey,
+        )
+    }
+
+    companion object {
+        fun modalBottomSheet(
+            properties: BottomSheetProperties = BottomSheetProperties(),
+        ): Map<String, Any> = mapOf(BOTTOM_SHEET_KEY to properties)
+
+        internal const val BOTTOM_SHEET_KEY = "bottomsheet"
+    }
+}
+
+val LocalBottomSheetDismissDispatcher = staticCompositionLocalOf { {} }
+
+/**
+ * Provides the outer (root) [CodeNavigator] to inner sheet content.
+ * Used to toggle [CodeNavigator.sheetDragDisabled] from within nested navigators.
+ */
+val LocalSheetNavigator: ProvidableCompositionLocal<CodeNavigator?> =
+    staticCompositionLocalOf { null }

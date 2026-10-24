@@ -37,6 +37,12 @@ internal class OpenCodeExchange @Inject constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    // Declared ahead of init: it hands streamRates to another thread and launches a write to
+    // preferredCurrency, and either can run before initializers further down have.
+    private val _preferredRate = MutableStateFlow(Rate.oneToOne)
+    private val mints = MutableStateFlow<List<Mint>>(emptyList())
+    private var preferredCurrency: CurrencyCode? = null
+
     init {
         // Deferred, not registered in place: this singleton is built off the main thread so its
         // construction stays off the startup path, and its fields below are not yet initialized.
@@ -51,14 +57,10 @@ internal class OpenCodeExchange @Inject constructor(
         }
     }
 
-
-    private val _preferredRate = MutableStateFlow(Rate.oneToOne)
     override val preferredRate: Rate
         get() = _preferredRate.value
 
     override fun observePreferredRate(): Flow<Rate> = _preferredRate
-
-    private val mints = MutableStateFlow<List<Mint>>(emptyList())
 
     override suspend fun setPreferredCurrency(currencyCode: CurrencyCode) {
         preferredCurrency = currencyCode
@@ -72,8 +74,6 @@ internal class OpenCodeExchange @Inject constructor(
     override fun updateUserMints(mints: List<Mint>) {
         this.mints.value = mints
     }
-
-    private var preferredCurrency: CurrencyCode? = null
 
     override fun rates() = verifiedStateManager.rates()
     override fun observeRates(): Flow<Map<CurrencyCode, Rate>> = verifiedStateManager.observeRates()

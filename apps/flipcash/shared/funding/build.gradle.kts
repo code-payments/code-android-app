@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.flipcash.kmp.library)
+    alias(libs.plugins.flipcash.kmp.app.library)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.ksp)
 }
@@ -7,10 +7,15 @@ plugins {
 kotlin {
     android {
         namespace = "${Gradle.flipcashNamespace}.shared.funding"
-        withHostTest {}
         androidResources { enable = true }
     }
     sourceSets {
+        commonMain.dependencies {
+            implementation(project(":apps:flipcash:core"))
+            implementation(project(":services:flipcash"))
+            implementation(project(":services:opencode"))
+            implementation(project(":libs:encryption:keys"))
+        }
         androidMain.dependencies {
             implementation(project.dependencies.platform(libs.compose.bom))
             implementation(libs.bundles.compose)
@@ -41,4 +46,6 @@ kotlin {
 dependencies {
     add("kspAndroid", libs.hilt.android.compiler)
     add("kspAndroid", libs.hilt.compiler)
+    add("kspJvm", libs.dagger.compiler)
+    add("jvmMainImplementation", libs.dagger)
 }

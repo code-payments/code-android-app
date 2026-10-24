@@ -2,6 +2,7 @@ package com.flipcash.app.blob
 
 import android.graphics.Bitmap
 import com.flipcash.shared.common.ui.BlurHash
+import com.flipcash.shared.common.ui.decode
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.math.abs

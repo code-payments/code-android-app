@@ -22,6 +22,7 @@ import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.app.withdrawal.internal.screens.UsdcWithdrawalInformationScreen
 import com.flipcash.app.withdrawal.internal.screens.WithdrawalConfirmationScreen
@@ -105,7 +106,7 @@ private fun withdrawalEntryProvider(): (NavKey) -> NavEntry<NavKey> = entryProvi
 @Composable
 private fun WithdrawalSelectTokenScreen() {
     val flowNavigator = rememberFlowNavigator<WithdrawalStep, WithdrawalResult>()
-    val viewModel = hiltViewModel<SelectTokenViewModel>()
+    val viewModel = hiltViewModel<HiltSelectTokenViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     Column(

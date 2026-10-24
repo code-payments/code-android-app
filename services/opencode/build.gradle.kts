@@ -2,6 +2,17 @@ plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
     alias(libs.plugins.kotlin.ksp)
     id("org.jetbrains.kotlin.plugin.parcelize")
+    alias(libs.plugins.metro)
+}
+
+// Metro generates this module's provider factories for the desktop graph. Through Dagger's factories
+// instead, Metro 1.4.5 drops provider-level @Singleton (it does not read @ScopeMetadata), so each
+// injection site got its own ChannelEventBus.
+metro {
+    interop {
+        includeJavax()
+        includeDagger()
+    }
 }
 
 kotlin {
@@ -80,6 +91,7 @@ kotlin {
 dependencies {
     add("kspAndroid", libs.hilt.android.compiler)
     add("kspAndroid", libs.hilt.compiler)
+    add("jvmMainImplementation", libs.dagger)
 }
 
 // The headless balance test reads its recovery phrase from local.properties (gitignored) or the

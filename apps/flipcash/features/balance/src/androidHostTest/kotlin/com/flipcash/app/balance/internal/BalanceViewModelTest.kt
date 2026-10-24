@@ -1,0 +1,101 @@
+package com.flipcash.app.balance.internal
+
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.MainCoroutineRule
+import com.flipcash.app.core.dispatchers.TestDispatchers
+import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
+import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletRevealCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.app.core.chat.TipHistorySource
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.user.UserManager
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
+import org.junit.Test
+import kotlin.test.assertEquals
+
+/**
+ * Regression coverage for the AddMoneyUX flag removal. That flag was `launched = true`
+ * (always on), so the "deposit-first" add-money path is now unconditional: tapping
+ * "Add Money" must always route through [PurchaseMethodController.presentDepositOptions]
+ * and never fall back to the old currency-discovery route.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+class BalanceViewModelTest {
+
+    @get:Rule
+    val instantExecutorRule = InstantTaskExecutorRule()
+
+    @get:Rule
+    var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
+
+    private val userManager: UserManager = mockk(relaxed = true)
+    private val userFlags: UserFlagsCoordinator = mockk(relaxed = true)
+    private val purchaseMethodController: PurchaseMethodController = mockk(relaxed = true)
+    private val tipHistory: TipHistorySource = mockk(relaxed = true)
+    private val feedCoordinator: ActivityFeedCoordinator = mockk(relaxed = true)
+    private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true) {
+        every { hasAnyBalance } returns flowOf(false)
+    }
+
+    private val walletReveal: WalletRevealCoordinator = mockk(relaxed = true) {
+        every { pending } returns MutableStateFlow(null)
+    }
+
+    private val analytics = RecordingAnalytics()
+
+    private lateinit var dispatchers: TestDispatchers
+
+    private fun createViewModel() = WalletViewModel(
+        userManager = userManager,
+        userFlags = userFlags,
+        dispatchers = dispatchers,
+        purchaseMethodController = purchaseMethodController,
+        analytics = analytics,
+        tipHistory = tipHistory,
+        feedCoordinator = feedCoordinator,
+        tokenCoordinator = tokenCoordinator,
+        walletReveal = walletReveal,
+    )
+
+    @Test
+    fun `PresentDepositOptions always routes through add-money deposit options`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            val route = mockk<AppRoute>(relaxed = true)
+            coEvery { purchaseMethodController.presentDepositOptions(popToRoot = true) } returns route
+
+            val vm = createViewModel()
+            vm.dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
+            advanceUntilIdle()
+
+            // The removed AddMoneyUX flag used to short-circuit to a plain Deposit route;
+            // the add-money sheet must now always be presented.
+            coVerify(exactly = 1) { purchaseMethodController.presentDepositOptions(popToRoot = true) }
+            assertEquals(listOf(AddMoneyEvents.opened(AddMoneySource.BALANCE)), analytics.events)
+        }
+
+    @Test
+    fun `OnPreferredOnRampProviderChanged updates state`() {
+        val provider = mockk<OnRampProvider.Defined>()
+        val updated = WalletViewModel.updateStateForEvent(
+            WalletViewModel.Event.OnPreferredOnRampProviderChanged(provider)
+        )(WalletViewModel.State())
+        assertEquals(provider, updated.preferredOnRampProvider)
+    }
+}

@@ -374,4 +374,5 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
     testImplementation(libs.robolectric)
+    testImplementation(project(":apps:flipcash:startup-contract"))
 }

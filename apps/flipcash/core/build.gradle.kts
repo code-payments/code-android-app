@@ -1,6 +1,9 @@
+import com.getcode.buildlogic.resources.androidResAsComposeResources
+
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.kotlin.ksp)
 }
 
@@ -14,9 +17,19 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":libs:parcelable"))
+            implementation(libs.javax.inject)
+            api(libs.androidx.lifecycle.runtime.common)
+            api(project(":ui:navigation"))
+            api(project(":ui:core"))
+            api(libs.navigation3.runtime)
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.jetbrains.compose.runtime)
+            implementation(libs.jetbrains.compose.foundation)
+            implementation(libs.jetbrains.compose.components.resources)
+            implementation(project(":ui:resources"))
+            api(project(":libs:reporting"))
 
             api(project(":services:flipcash"))
             api(project(":services:opencode"))
@@ -42,6 +55,7 @@ kotlin {
             implementation(libs.firebase.messaging)
             implementation(libs.androidx.localbroadcastmanager)
             implementation(libs.androidx.datastore)
+            implementation(libs.androidx.lifecycle.process)
             implementation(libs.compose.material3)
             api(libs.coil3)
             api(libs.coil3.network)
@@ -66,7 +80,18 @@ kotlin {
     }
 }
 
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "${Gradle.flipcashNamespace}.core.resources"
+    customDirectory(
+        sourceSetName = "commonMain",
+        directoryProvider = androidResAsComposeResources(),
+    )
+}
+
 dependencies {
     add("kspAndroid", libs.hilt.android.compiler)
     add("kspAndroid", libs.hilt.compiler)
+    add("kspJvm", libs.dagger.compiler)
+    add("jvmMainImplementation", libs.dagger)
 }

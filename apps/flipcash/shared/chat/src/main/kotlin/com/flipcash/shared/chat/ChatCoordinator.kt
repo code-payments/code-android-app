@@ -4,6 +4,7 @@ package com.flipcash.shared.chat
 
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.PagingData
+import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
@@ -262,7 +263,7 @@ interface DmChatResolver {
  *
  * Implemented by [com.flipcash.shared.chat.internal.delegates.MessagingDelegate].
  */
-interface MessagingOperations {
+interface MessagingOperations : TipHistorySource {
     /**
      * Returns the other member of a DM (fetching from the server and persisting
      * if not cached locally), or `null` if it can't be resolved. Chat-type
@@ -311,7 +312,7 @@ interface MessagingOperations {
      * [ChatHydrationState.Unavailable], so an unreachable server ends the wait instead of extending
      * it forever.
      */
-    fun hasEverTipped(): Flow<Boolean?>
+    override fun hasEverTipped(): Flow<Boolean?>
 
     /** Observes messages in [chatId] via Paging 3, with remote-mediated page loads. */
     fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>>

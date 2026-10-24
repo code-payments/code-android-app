@@ -14,13 +14,13 @@ import dagger.hilt.components.SingletonComponent
 
 @Module
 @InstallIn(SingletonComponent::class)
-internal abstract class ChatCryptoModule {
+abstract class ChatCryptoModule {
 
     @Binds
-    abstract fun bindChatKeySource(source: DefaultChatKeySource): ChatKeySource
+    internal abstract fun bindChatKeySource(source: DefaultChatKeySource): ChatKeySource
 
     @Binds
-    abstract fun bindGroupKeySource(source: GroupKeyEnvelopes): GroupKeySource
+    internal abstract fun bindGroupKeySource(source: GroupKeyEnvelopes): GroupKeySource
 
     companion object {
         @Provides

@@ -1,0 +1,170 @@
+package com.flipcash.app.core.ui.onboarding
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.fastForEach
+import com.flipcash.app.core.resources.CoreDrawables
+import com.flipcash.app.core.resources.CoreStrings
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
+import com.getcode.util.resources.painterForResId
+import com.getcode.util.resources.stringRes
+
+/**
+ * A row in a "what's left to do" checklist.
+ *
+ * [Wallet] is the family the wallet tab draws, so its call site's `when` stays exhaustive over
+ * the milestones it owns.
+ */
+sealed interface TutorialItem {
+    val title: String
+        @Composable get
+    val description: String
+        @Composable get
+    val icon: Painter
+        @Composable get
+    val isCompleted: Boolean
+
+    /** The wallet tab's new-user milestones. */
+    sealed interface Wallet : TutorialItem
+
+    class AddMoney(override val isCompleted: Boolean) : Wallet {
+        override val title: String
+            @Composable get() = stringRes(CoreStrings.title_addMoney)
+        override val description: String
+            @Composable get() = stringRes(CoreStrings.subtitle_addMoney)
+        override val icon: Painter
+            @Composable get() = rememberVectorPainter(Icons.Outlined.AddCircleOutline)
+    }
+
+    class ScanTipCard(override val isCompleted: Boolean) : Wallet {
+        override val title: String
+            @Composable get() = stringRes(CoreStrings.title_scanTipCard)
+        override val description: String
+            @Composable get() = stringRes(CoreStrings.subtitle_scanTipCard)
+        override val icon: Painter
+            @Composable get() = painterForResId(CoreDrawables.ic_nav_tipcard)
+    }
+}
+
+@Composable
+fun <T : TutorialItem> NewUserTutorial(
+    title: String,
+    items: List<T>,
+    modifier: Modifier = Modifier,
+    onItemClicked: (T) -> Unit,
+) {
+    val completedCount = remember(items) { items.count { it.isCompleted } }
+
+    Column(modifier = modifier) {
+        // Node 9641:17024 pads the header on all four sides rather than putting a gap under it, so
+        // the space between the title and the box belongs to the header.
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .padding(CodeTheme.dimens.grid.x3),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                // Not `screenTitle`: FlipcashDesignSystem overrides it to 20sp/W500 app-wide, and
+                // node 9641:17026 asks for Avenir Demi at 18.
+                style = CodeTheme.typography.textMedium.copy(fontSize = 18.sp),
+                color = CodeTheme.colors.textMain,
+            )
+
+            Text(
+                text = "$completedCount / ${items.count()}",
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+
+        // Node 9641:17028: the box owns the padding and the rows sit flush inside it, spaced by
+        // the same step.
+        Column(
+            modifier = Modifier
+                .clip(CodeTheme.shapes.extraSmall)
+                .background(color = Color.White.copy(0.05f))
+                .padding(CodeTheme.dimens.grid.x3),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+        ) {
+            items.fastForEach { item ->
+                OnboardingItemRow(
+                    item = item,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    onItemClicked(item)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnboardingItemRow(
+    item: TutorialItem,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier.clickable(enabled = !item.isCompleted, onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        Image(
+            modifier = Modifier.align(Alignment.Top).size(24.dp),
+            painter = if (item.isCompleted) {
+                painterForResId(CoreDrawables.ic_checked_green)
+            } else {
+                item.icon
+            },
+            colorFilter = if (!item.isCompleted) ColorFilter.tint(CodeTheme.colors.textMain) else null,
+            contentDescription = null,
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .alpha(if (item.isCompleted) 0.38f else 1f)
+        ) {
+            Text(
+                text = item.title,
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
+            Text(
+                text = item.description,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+        Icon(
+            modifier = Modifier.align(Alignment.CenterVertically).size(16.dp),
+            painter = painterForResId(CoreDrawables.ic_chevron_right),
+            tint = CodeTheme.colors.textSecondary,
+            contentDescription = null
+        )
+    }
+}
