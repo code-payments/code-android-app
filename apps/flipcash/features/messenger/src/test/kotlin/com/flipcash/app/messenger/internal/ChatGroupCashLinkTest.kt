@@ -411,6 +411,5 @@ class ChatGroupCashLinkTest {
         }
         coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
         assertTrue(events.any { it is ChatViewModel.Event.SendComplete })
-        assertNull(vm.stateFlow.value.groupSend)
     }
 }

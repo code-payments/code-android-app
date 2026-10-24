@@ -3,6 +3,7 @@ package com.flipcash.app.messenger
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,7 +46,10 @@ import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostCurrencySh
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostSheet
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostViewModel
 import com.getcode.theme.CodeTheme
+import com.flipcash.app.messenger.internal.groupsend.GroupSendState
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
+import com.flipcash.app.messenger.internal.screens.cash.GroupSelectPeopleContent
+import com.flipcash.app.messenger.internal.screens.cash.GroupSendConfirmSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
@@ -274,6 +278,38 @@ private fun FlowAmountEntryScreen() {
     // No re-shadow: ChatAmountEntryContent reads the inner LocalCodeNavigator, and its
     // navigator.push(AppRoute.Main.RegionSelection) / push(AppRoute.Sheets.TokenSelection)
     // bubble to the app navigator through the dispatcher.
+    // A private group's send carries on past the amount to Select People and its confirm sheet,
+    // in this same sheet. Back steps through them rather than dismissing.
+    val groupSend = state.groupSend
+    BackHandler(enabled = groupSend != null && groupSend.stage != GroupSendState.Stage.Amount) {
+        viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack)
+    }
+    if (groupSend != null && groupSend.stage != GroupSendState.Stage.Amount) {
+        val candidates = state.groupSendCandidates
+        GroupSelectPeopleContent(
+            candidates = candidates,
+            selected = groupSend.selected,
+            onBack = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
+            onToggle = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId)) },
+            onSend = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed) },
+        )
+        if (groupSend.stage == GroupSendState.Stage.Confirm) {
+            GroupSendConfirmSheet(
+                groupSend = groupSend,
+                recipients = groupSend.selected.mapNotNull { id -> candidates.find { it.userId == id } },
+                token = state.token,
+                sendProgress = state.sendProgress,
+                onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested) },
+                onDismiss = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
+            )
+        }
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow.filterIsInstance<ChatViewModel.Event.SendComplete>()
+                .collect { resultBack.returnValue(ChatSendResult) }
+        }
+        return
+    }
+
     ChatAmountEntryContent(
         amountDelegate = viewModel.amountDelegate,
         resolveState = state.resolveState,
