@@ -9,6 +9,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.menu.internal.components.UsernameProgress
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.core.TotalBalanceProvider
@@ -27,6 +28,7 @@ import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.common.ui.profile.joinedLabel
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
@@ -49,8 +51,9 @@ import javax.inject.Inject
  * The minimum-balance gate as the copy quotes it — `$100 USD` rather than `$100.00`. Shared by the
  * card and the sheet so a round threshold never renders two different ways.
  */
-private fun Fiat.formattedGate(): String =
-    formatted(rule = Fiat.FormattingRule.Truncated, suffix = currencyCode.name)
+private fun Fiat.formattedGate(exchange: Exchange): String =
+    forViewer(exchange.preferredRate, exchange.rates())
+        .formatted(rule = Fiat.FormattingRule.Truncated)
 
 @HiltViewModel
 internal class MenuScreenViewModel @Inject constructor(
@@ -65,6 +68,7 @@ internal class MenuScreenViewModel @Inject constructor(
     private val featuredGroupsStore: FeaturedGroupsStore,
     tipPayments: TipPaymentDelegate,
     private val resources: ResourceHelper,
+    private val exchange: Exchange,
 ) :
     BaseViewModel<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
@@ -224,10 +228,10 @@ internal class MenuScreenViewModel @Inject constructor(
                 UsernameGate.Unlocked -> UsernameProgress.Unlocked
                 is UsernameGate.Locked -> UsernameProgress.Locked(
                     fraction = gate.fraction,
-                    remaining = gate.shortfall.formattedGate(),
+                    remaining = gate.shortfall.formattedGate(exchange),
                 )
             }
-            Event.OnUsernameProgressChanged(progress, minimum.formattedGate())
+            Event.OnUsernameProgressChanged(progress, minimum.formattedGate(exchange))
         }
             .distinctUntilChanged()
             .onEach { dispatchEvent(it) }

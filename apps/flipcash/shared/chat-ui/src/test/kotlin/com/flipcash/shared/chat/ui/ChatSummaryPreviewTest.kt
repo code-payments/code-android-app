@@ -327,7 +327,7 @@ class ChatSummaryPreviewTest {
 
     @Test
     fun `cash previews in the viewer's currency, from the USD it settled at`() {
-        // 7,500 ARS that settled as $5 reads as CA$6.85 to a viewer on CAD at 1.37, whatever the
+        // 7,500 ARS that settled as $5 reads as $6.85 to a viewer on CAD at 1.37, whatever the
         // peso has done since — and with no flag or second line in the preview.
         val cad = Rate(fx = 1.37, currency = CurrencyCode.CAD)
         val exchange = mockk<Exchange> {
