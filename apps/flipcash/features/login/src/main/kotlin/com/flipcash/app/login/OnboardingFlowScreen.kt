@@ -50,8 +50,6 @@ import com.flipcash.app.permissions.asContactAccessHandle
 import com.flipcash.app.permissions.internal.contacts.ContactScreenContent
 import com.flipcash.app.permissions.internal.notifications.NotificationRationalePermissionContent
 import com.flipcash.app.permissions.internal.notifications.NotificationScreenContent
-import com.flipcash.app.purchase.internal.PurchaseAccountScreenContent
-import com.flipcash.app.purchase.internal.PurchaseAccountViewModel
 import com.flipcash.features.login.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
@@ -118,16 +116,23 @@ import kotlin.time.Duration.Companion.milliseconds
 fun OnboardingFlowScreen(
     route: AppRoute.OnboardingFlow,
     resultStateRegistry: NavResultStateRegistry,
+    purchaseStep: OnboardingPurchaseStep,
 ) {
     when {
         route.phase == AppRoute.OnboardingFlow.Phase.Permissions ->
-            PermissionsPhaseFlowHost(route, resultStateRegistry)
+            PermissionsPhaseFlowHost(route, resultStateRegistry, purchaseStep)
         route.resumeAt == AppRoute.OnboardingFlow.ResumePoint.PostAccessKey ->
             CompleteExistingUserOnboarding()
         else ->
-            AccountPhaseFlowHost(route, resultStateRegistry)
+            AccountPhaseFlowHost(route, resultStateRegistry, purchaseStep)
     }
 }
+
+/**
+ * The registration purchase screen, supplied by the app so this module doesn't depend on
+ * features/purchase. It calls `onAccountCreated` once the account is paid for.
+ */
+typealias OnboardingPurchaseStep = @Composable (onAccountCreated: () -> Unit) -> Unit
 
 @Composable
 private fun CompleteExistingUserOnboarding() {
@@ -147,6 +152,7 @@ private fun CompleteExistingUserOnboarding() {
 private fun PermissionsPhaseFlowHost(
     route: AppRoute.OnboardingFlow,
     resultStateRegistry: NavResultStateRegistry,
+    purchaseStep: OnboardingPurchaseStep,
 ) {
     val outerNavigator = LocalCodeNavigator.current
     val checker = LocalPermissionChecker.current
@@ -208,7 +214,7 @@ private fun PermissionsPhaseFlowHost(
                 FlowExitReason.Canceled -> Unit
             }
         },
-        entryProvider = onboardingEntryProvider(route),
+        entryProvider = onboardingEntryProvider(route, purchaseStep),
     )
 }
 
@@ -216,6 +222,7 @@ private fun PermissionsPhaseFlowHost(
 private fun AccountPhaseFlowHost(
     route: AppRoute.OnboardingFlow,
     resultStateRegistry: NavResultStateRegistry,
+    purchaseStep: OnboardingPurchaseStep,
 ) {
     val outerNavigator = LocalCodeNavigator.current
 
@@ -235,7 +242,7 @@ private fun AccountPhaseFlowHost(
                 FlowExitReason.Canceled -> Unit
             }
         },
-        entryProvider = onboardingEntryProvider(route),
+        entryProvider = onboardingEntryProvider(route, purchaseStep),
     )
 }
 
@@ -294,6 +301,7 @@ private fun FlowNavigator<OnboardingStep, OnboardingResult>.proceedToNameOrPermi
 
 private fun onboardingEntryProvider(
     route: AppRoute.OnboardingFlow,
+    purchaseStep: OnboardingPurchaseStep,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     // The pre-login landing; flows/screenshots anchor on `login_screen` rather than
     // the step-derived `start_screen`.
@@ -313,7 +321,7 @@ private fun onboardingEntryProvider(
         PhotoAccessKeyScreen()
     }
     annotatedEntry<OnboardingStep.Purchase> {
-        PurchaseStepContent()
+        PurchaseStepContent(purchaseStep)
     }
     annotatedEntry<OnboardingStep.ContactPermission> {
         ContactPermissionStepContent()
@@ -539,24 +547,14 @@ private fun AccessKeyStepContent() {
 }
 
 @Composable
-private fun PurchaseStepContent() {
-    val viewModel = hiltViewModel<PurchaseAccountViewModel>()
+private fun PurchaseStepContent(purchaseStep: OnboardingPurchaseStep) {
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
-    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val userManager = LocalUserManager.current
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<PurchaseAccountViewModel.Event.OnAccountCreated>()
-            .onEach { flowNavigator.proceedToNameOrPermissions(userManager) }
-            .launchIn(this)
-    }
 
     Column {
         AppBarWithTitle()
-        PurchaseAccountScreenContent(state, viewModel::dispatchEvent)
+        purchaseStep { flowNavigator.proceedToNameOrPermissions(userManager) }
     }
-
 
     BackHandler { /* swallow back during onboarding permissions */ }
 }

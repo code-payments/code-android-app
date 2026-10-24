@@ -21,7 +21,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:userflags"))
-    implementation(project(":apps:flipcash:features:purchase"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))

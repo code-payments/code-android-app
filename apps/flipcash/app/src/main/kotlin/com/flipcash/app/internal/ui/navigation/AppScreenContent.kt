@@ -21,6 +21,7 @@ import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.devicelogs.DeviceLogsScreen
 import com.flipcash.app.myaccount.LinkDesktopScreen
+import com.flipcash.app.purchase.OnboardingPurchaseStep
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
@@ -103,7 +104,11 @@ internal fun appEntryProvider(
 
     // Onboarding flow
     annotatedEntry<AppRoute.OnboardingFlow> { key ->
-        OnboardingFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+        OnboardingFlowScreen(
+            route = key,
+            resultStateRegistry = resultStateRegistry,
+            purchaseStep = { onAccountCreated -> OnboardingPurchaseStep(onAccountCreated) },
+        )
     }
 
     // Main
