@@ -1,0 +1,19 @@
+# Taps a Wallet action tile after helpers/scroll_wallet_to_tile.yaml. Requires env: TILE.
+appId: com.flipcash.app.android
+---
+# At the end of the list the bottom action row can sit partly behind the floating nav pill. A
+# label under the pill drops out of the accessibility tree (Add Dollars did; Withdraw Dollars
+# only survived because a sliver of it sits right of the pill), so tapOn by text fails even
+# though the tile's top band is on screen. Tap by text when the label is there, else on the
+# left tile's visible top band (clear of the pill, above its icon/label).
+- runFlow:
+    when:
+      visible: "${TILE}"
+    commands:
+      - tapOn: "${TILE}"
+- runFlow:
+    when:
+      notVisible: "${TILE}"
+    commands:
+      - tapOn:
+          point: "25%, 86%"

@@ -1,6 +1,10 @@
 # Chats tab → the contact's tip conversation. Requires env: CONTACT_NAME.
 appId: com.flipcash.app.android
 ---
+# An unset secret arrives as "" and would otherwise become an empty-regex tap on the status bar.
+- assertTrue:
+    condition: ${typeof CONTACT_NAME !== 'undefined' && CONTACT_NAME.trim().length > 0}
+    label: "CONTACT_NAME is empty: set the MAESTRO_CONTACT_NAME and MAESTRO_CONTACT_PHONE secrets"
 # The list is ordered by recency and carries the account's own self-tip chat, so index 0 is not
 # stably the contact — open it by name.
 - tapOn: { id: nav_chats }

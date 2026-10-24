@@ -6,9 +6,9 @@ tags:
 ---
 # Fund-safe: drives the buy flow to the confirmation screen and stops (never confirms).
 #
-# v2 renames the direct buy to "Get" and only offers it on a currency the account does NOT
-# hold — a held currency's info screen shows Give/Convert/Withdraw instead. So this enters
-# through Discover rather than through the wallet's own deck.
+# The direct buy is a "Buy In" tile on a currency the account does not hold and "Buy More" on
+# one it does (it was "Get" before #1341); it opens the same swap flow, titled by the screen
+# as "You Get" on the receipt. This enters through Discover rather than the wallet's own deck.
 #
 # The payment currency is also picked inline on the amount screen now (seeded with a default),
 # so there is no pushed "Select Payment Currency" step between the amount and the receipt.
