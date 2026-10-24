@@ -8,9 +8,10 @@ tags:
 - runFlow: subflows/login_with_deeplink.yaml
 # Add Dollars is a wallet action tile now, below the card deck and recent activity.
 - runFlow: subflows/navigate_to_wallet.yaml
-- scrollUntilVisible:
-    element: "Add Dollars"
-    direction: DOWN
+- runFlow:
+    file: helpers/scroll_wallet_to_tile.yaml
+    env:
+      TILE: "Add Dollars"
 
 - tapOn: "Add Dollars"
 - extendedWaitUntil:
