@@ -1650,4 +1650,40 @@
     <string name="title_getNotified">Get Notified</string>
     <string name="description_getNotified">We\'ll let you know when your transactions complete, even if you leave the app</string>
     <string name="action_turnOnNotifications">Turn On Notifications</string>
+
+    <!-- Group send, node 11293:6918 -->
+    <string name="title_selectPeople">Select People</string>
+    <string name="header_groupSendMembers">Members</string>
+    <plurals name="action_sendToPeople">
+        <item quantity="one">Send to %1$d Person</item>
+        <item quantity="other">Send to %1$d People</item>
+    </plurals>
+    <string name="title_groupSendMaxPeople">10 People Max</string>
+    <string name="description_groupSendMaxPeople">The maximum number of people you can send to at once is 10 people</string>
+    <!-- Placeholder: the too-small-to-split alert has no design yet -->
+    <string name="error_title_groupSendTooSmall">Amount Too Small</string>
+    <plurals name="error_description_groupSendTooSmall">
+        <item quantity="one">This amount is too small to send to %1$d person. Enter a larger amount</item>
+        <item quantity="other">This amount is too small to split between %1$d people. Pick fewer people or enter a larger amount</item>
+    </plurals>
+    <plurals name="label_groupSendRecipients">
+        <item quantity="one">%1$s and %2$d Other</item>
+        <item quantity="other">%1$s and %2$d Others</item>
+    </plurals>
+    <string name="label_groupSendTo">to %1$s</string>
+    <string name="label_groupSendEach">%1$s Each</string>
+    <string name="label_groupSendEachApprox">~%1$s Each</string>
+    <string name="subtitle_senderSent">%1$s sent</string>
+    <string name="label_groupSendYouReceived">You received %1$s</string>
+    <string name="label_cashDetails_sent">Sent</string>
+    <string name="label_cashDetails_from">From</string>
+    <string name="label_cashDetails_to">To</string>
+    <plurals name="label_chat_preview_groupSend_bySender">
+        <item quantity="one">%1$s sent %2$s to %3$d person</item>
+        <item quantity="other">%1$s sent %2$s to %3$d people</item>
+    </plurals>
+    <plurals name="label_chat_preview_groupSend">
+        <item quantity="one">You sent %1$s to %2$d person</item>
+        <item quantity="other">You sent %1$s to %2$d people</item>
+    </plurals>
 </resources>
