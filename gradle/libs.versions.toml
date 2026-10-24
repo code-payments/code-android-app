@@ -85,6 +85,9 @@ flipcash2-client-protocol = "0.20.0"
 # because it loads its metadata from the AAR's assets rather than from a static instance.
 lib-phone-number-port = "9.0.40"
 zxing = "3.5.4"
+ktor = "3.4.1"
+java-keyring = "1.0.4"
+qrose = "1.3.1"
 
 androidx-benchmark-macro = "1.5.0"
 androidx-profileinstaller = "1.4.1"
@@ -282,6 +285,9 @@ lib-phone-number-port = { module = "io.michaelrocks:libphonenumber-android", ver
 
 # QR / Scanning
 zxing = { module = "com.google.zxing:core", version.ref = "zxing" }
+ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }
+java-keyring = { module = "com.github.javakeyring:java-keyring", version.ref = "java-keyring" }
+qrose = { module = "io.github.alexzhirkevich:qrose", version.ref = "qrose" }
 
 # Logging / Error Tracking
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
