@@ -84,11 +84,17 @@ internal object LinkCrypto {
 
     fun seal(key: ByteArray, plaintext: ByteArray, transcript: ByteArray): ByteArray {
         ensureSodium()
-        val nonce = LibsodiumRandom.buf(NONCE_BYTES)
+        return seal(key, plaintext, transcript, LibsodiumRandom.buf(NONCE_BYTES).toByteArray())
+    }
+
+    /** Fixed-nonce form for the vectors only; production always draws a fresh nonce. */
+    internal fun seal(key: ByteArray, plaintext: ByteArray, transcript: ByteArray, nonce: ByteArray): ByteArray {
+        require(nonce.size == NONCE_BYTES)
+        ensureSodium()
         val ct = AuthenticatedEncryptionWithAssociatedData.xChaCha20Poly1305IetfEncrypt(
-            plaintext.toUByteArray(), transcript.toUByteArray(), nonce, key.toUByteArray(),
+            plaintext.toUByteArray(), transcript.toUByteArray(), nonce.toUByteArray(), key.toUByteArray(),
         )
-        return nonce.toByteArray() + ct.toByteArray()
+        return nonce + ct.toByteArray()
     }
 
     /** Null when the ciphertext was tampered with or sealed under another key or transcript. */
