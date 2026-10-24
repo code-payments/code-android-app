@@ -174,6 +174,24 @@ internal class LinkCardResolver(
     }
 
     /**
+     * Drops every answer that carries an amount, and tells the cards on screen to ask again.
+     *
+     * A cash card and a linked message's payment hold their amount already formatted in the
+     * display currency of the moment they resolved, so a new pick on the Money tab restates them
+     * all at once. Rates are left alone: a tick that moves a figure by a cent is not worth a
+     * request per card.
+     */
+    suspend fun invalidateAmounts() {
+        cashAnswers.clear()
+        messageAnswers.clear()
+        mutex.withLock {
+            cashQueries.clear()
+            messageQueries.clear()
+        }
+        _revision.update { it + 1 }
+    }
+
+    /**
      * Drops every cash link still sitting on [LinkCard.Cash.Claim.Claimable], and reports whether
      * it dropped any.
      *

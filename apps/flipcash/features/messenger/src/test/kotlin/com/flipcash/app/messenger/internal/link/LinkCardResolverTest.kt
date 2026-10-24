@@ -698,6 +698,35 @@ class LinkCardResolverTest {
     }
 
     @Test
+    fun `a new display currency restates a cash card and a linked payment`() = runTest {
+        var amount = "$15.00"
+        val (message, state) = messageCard(card.url)
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.success(snapshot().copy(amount = amount)) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
+            message = { Result.success(state) },
+            wholeCashLink = { it.takeIf { text -> text == card.url }?.let { card.entropy } },
+        )
+        resolver.resolve(card)
+        resolver.resolve(message)
+        val revision = resolver.revision.value
+
+        amount = "CA$20.55"
+        resolver.invalidateAmounts()
+
+        assertTrue(resolver.revision.value > revision)
+        assertNull(resolver.peek(card))
+        assertNull(resolver.peek(message))
+        val cash = (resolver.resolve(card) as LinkCard.Cash).state as LinkCard.Cash.State.Resolved
+        assertEquals("CA$20.55", cash.amount)
+        val linked = (resolver.resolve(message) as LinkCard.Message).state as LinkCard.Message.State.Resolved
+        assertEquals(LinkCard.Message.Body.CashLink("CA$20.55", LinkCard.Cash.Claim.Claimable), linked.message.body)
+    }
+
+    @Test
     fun `a redacted linked message is never read as a cash link`() = runTest {
         val (message, state) = messageCard(card.url, redacted = true)
         val resolved = (cashLinkResolver(backgroundScope, state).resolve(message) as LinkCard.Message).state

@@ -1863,6 +1863,15 @@ internal class ChatViewModel @AssistedInject constructor(
             .onEach { linkCardResolver.markClaiming(it) }
             .launchIn(viewModelScope)
 
+        // A card's amount is formatted when its link resolves, so a currency picked on the Money
+        // tab while this chat is open restates every card that carries one.
+        exchange.observePreferredRate()
+            .map { it.currency }
+            .distinctUntilChanged()
+            .drop(1)
+            .onEach { linkCardResolver.invalidateAmounts() }
+            .launchIn(viewModelScope)
+
         // STARTED rather than a timer of its own, which makes one construct cover both cases worth
         // covering: the first pass runs on every foreground edge, so a reader who put the phone
         // down and came back gets a fresh answer immediately, and the loop then carries the case
