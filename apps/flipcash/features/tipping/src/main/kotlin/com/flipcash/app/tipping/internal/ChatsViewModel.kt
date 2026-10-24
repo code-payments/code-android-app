@@ -165,12 +165,13 @@ internal class ChatsViewModel @Inject constructor(
 
         // One flow for both lists: two would let a new main list pair with a stale archived one,
         // and archiving the last main chat would flash the no-chats prompt before the Archived row.
+        // A payment preview reads at the display currency's rate, so a new currency or rate redraws the rows.
         combine(
             chatCoordinator.chatListFeeds(),
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
-            ::content,
-        )
+            exchange.observePreferredRate(),
+        ) { feeds, tokens, senderProfiles, _ -> content(feeds, tokens, senderProfiles) }
             // Off the main thread: on a cold launch the first mapping lands while the main thread
             // is drawing the app's first screens, and waiting for it holds the Chats tab blank.
             .flowOn(dispatchers.Default)
