@@ -13,7 +13,14 @@ appId: com.flipcash.app.android
           start: "2%, 80%"
           end: "2%, 30%"
           duration: 500
-- swipe:
-    start: "2%, 70%"
-    end: "2%, 50%"
-    duration: 400
+# The label can come into the tree while its row is still at the bottom edge, so keep going to
+# the end of the list: that parks the last row (Add/Withdraw Dollars) as high as it can go.
+# Extra swipes at the end are no-ops. Callers that tap a tile in that row use
+# helpers/tap_wallet_tile.yaml, because the floating nav pill can still cover its label.
+- repeat:
+    times: 2
+    commands:
+      - swipe:
+          start: "2%, 80%"
+          end: "2%, 30%"
+          duration: 500
