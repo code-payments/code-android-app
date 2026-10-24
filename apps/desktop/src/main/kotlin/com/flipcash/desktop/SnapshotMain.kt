@@ -15,6 +15,7 @@ import org.jetbrains.skia.EncodedImageFormat
  */
 fun main(args: Array<String>) {
     val out = File(args.firstOrNull() ?: "wallet.png")
+    installImageLoader()
     val graph = createGraph<DesktopGraph>()
     runBlocking { graph.devSignIn() }
     ImageComposeScene(width = 840, height = 1720, density = Density(2f)) {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import java.lang.management.ManagementFactory
 
 fun main() {
+    installImageLoader()
     val graph = createGraph<DesktopGraph>()
     runBlocking { graph.devSignIn() }
     application {

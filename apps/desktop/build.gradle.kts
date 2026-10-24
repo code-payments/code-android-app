@@ -45,6 +45,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.dagger)
     implementation(libs.grpc.okhttp)
+    implementation(libs.coil3)
+    implementation(libs.coil3.network)
 }
 
 // Dev-only sign-in phrase (see DevSession), forwarded only when local.properties has one. It goes in
