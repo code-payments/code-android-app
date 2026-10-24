@@ -5,6 +5,8 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.app.core.storage.DirectoryPreferencesFiles
 import com.flipcash.app.core.storage.PreferencesFiles
+import com.flipcash.app.devicelink.KeyringSeedVault
+import com.flipcash.app.devicelink.SeedVault
 import com.flipcash.app.funding.PurchaseMethod
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.funding.PurchaseMethodMetadata
@@ -48,6 +50,10 @@ object DesktopModule {
     internal val appDir: File by lazy {
         File(System.getProperty("user.home"), ".flipcash").apply { mkdirs() }
     }
+
+    @Provides
+    @Singleton
+    fun seedVault(): SeedVault = KeyringSeedVault()
 
     @Provides
     @Singleton

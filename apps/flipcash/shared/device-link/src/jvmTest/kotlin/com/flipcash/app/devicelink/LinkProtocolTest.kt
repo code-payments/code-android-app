@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -132,6 +133,26 @@ class LinkProtocolTest {
         assertEquals(seed, vault.read())
         vault.clear()
         assertNull(vault.read())
+    }
+
+    @Test
+    fun `the phone controller reads the seed only after confirm`() {
+        var seedReads = 0
+        val states = runLink { invite ->
+            kotlinx.coroutines.coroutineScope {
+                val controller = PhoneLinkController(this) { seedReads++; seed }
+                controller.onScanned(invite.encode())
+                val confirm = withTimeout(10_000) {
+                    controller.state.first { it is PhoneLinkController.State.Confirm }
+                }
+                assertIs<PhoneLinkController.State.Confirm>(confirm)
+                assertEquals(0, seedReads)
+                controller.confirm()
+                withTimeout(10_000) { controller.state.first { it == PhoneLinkController.State.Linked } }
+            }
+        }
+        assertEquals(1, seedReads)
+        assertEquals(seed, assertIs<DesktopLinkHost.State.Linked>(states.last()).entropyB64)
     }
 }
 

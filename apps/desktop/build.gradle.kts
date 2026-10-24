@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":libs:locale:public"))
     implementation(project(":libs:network:connectivity:public"))
     implementation(project(":libs:encryption:chat-cipher"))
+    implementation(project(":apps:flipcash:shared:device-link"))
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.dagger)
     implementation(libs.grpc.okhttp)
@@ -59,7 +60,7 @@ tasks.withType<Test>().configureEach {
     systemProperty("opencode.processLifecycle.autoStart", "false")
 }
 
-// Dev-only sign-in phrase (see DevSession), forwarded only when local.properties has one. It goes in
+// Dev-only sign-in phrase (see DesktopSession), forwarded only when local.properties has one. It goes in
 // the environment, not a -D flag, so it stays out of the process's command line.
 val devMnemonic = tryReadProperty(rootProject.rootDir, "flipcash.test.mnemonic", "")
     .takeIf { it.isNotBlank() }
@@ -77,10 +78,13 @@ compose.desktop {
 
 tasks.register<JavaExec>("snapshot") {
     group = "application"
-    description = "Renders the wallet screen off-screen to a PNG (-Pout=<file>)."
+    description = "Renders the wallet (or, with -Pscreen=link, the link screen) off-screen to a PNG (-Pout=<file>)."
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.flipcash.desktop.SnapshotMainKt")
-    args(providers.gradleProperty("out").getOrElse(layout.buildDirectory.file("wallet.png").get().asFile.path))
+    args(
+        providers.gradleProperty("out").getOrElse(layout.buildDirectory.file("wallet.png").get().asFile.path),
+        providers.gradleProperty("screen").getOrElse("wallet"),
+    )
 }
 
 tasks.withType<JavaExec>().configureEach {

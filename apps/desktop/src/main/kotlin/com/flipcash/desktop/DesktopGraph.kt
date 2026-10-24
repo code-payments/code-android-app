@@ -39,6 +39,7 @@ interface DesktopGraph {
     val analytics: FlipcashAnalytics
     val userManager: com.flipcash.services.user.UserManager
     val accountController: com.flipcash.services.controllers.AccountController
+    val seedVault: com.flipcash.app.devicelink.SeedVault
 
     // Android constructs this eagerly in FlipcashApp.onCreate; it is what turns Events.OnLoggedIn into
     // SessionListener.onUserLoggedIn calls.

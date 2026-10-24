@@ -11,9 +11,9 @@ import java.lang.management.ManagementFactory
 
 fun main() {
     val graph = createGraph<DesktopGraph>()
-    runBlocking {
+    val signedIn = runBlocking {
         graph.startup()
-        graph.devSignIn()
+        graph.restoreSession()
     }
     application {
         Window(
@@ -21,7 +21,7 @@ fun main() {
             title = "Flipcash",
             state = rememberWindowState(width = 420.dp, height = 860.dp),
         ) {
-            DesktopWalletContent(graph)
+            DesktopApp(graph, signedIn)
             LaunchedEffect(Unit) {
                 val sinceJvmStart = System.currentTimeMillis() -
                     ManagementFactory.getRuntimeMXBean().startTime
