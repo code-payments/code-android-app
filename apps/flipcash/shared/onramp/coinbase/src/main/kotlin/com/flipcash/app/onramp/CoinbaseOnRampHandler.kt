@@ -21,8 +21,10 @@ fun CoinbaseOnRampHandler(
 ) {
     val state by controller.state.collectAsStateWithLifecycle()
     val resources = LocalResources.current
-    // Coinbase sets the guest limit in dollars; it reads in the viewer's own currency.
-    val weeklyLimit = guestWeeklyLimit.inDisplayCurrency().formatted(rule = Fiat.FormattingRule.Truncated)
+    // Coinbase sets the guest limit in dollars; it reads in the viewer's own currency, floored to
+    // the cent so it never states more than Coinbase allows (as on iOS).
+    val weeklyLimit = guestWeeklyLimit.inDisplayCurrency().flooredToSmallestUnit()
+        .formatted(rule = Fiat.FormattingRule.Truncated)
     when (val current = state) {
         is CoinbaseOnRampState.Paying -> {
             CoinbaseOnRampWebview(

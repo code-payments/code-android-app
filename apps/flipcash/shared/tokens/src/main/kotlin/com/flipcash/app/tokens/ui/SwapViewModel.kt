@@ -14,6 +14,7 @@ import com.flipcash.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
+import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
@@ -1707,7 +1708,9 @@ class SwapViewModel @Inject constructor(
 
                         // The $5 floor is Coinbase's, in dollars; the typed amount is in the
                         // viewer's currency, so the floor is restated before the two are compared.
+                        // Rounded half-up to the cent, as on iOS.
                         val minimum = minimumCoinbasePurchaseAmount.forViewer(exchange.preferredRate, exchange.rates())
+                            .let { it.rounded(it.currencyCode.fractionDigits) }
                         if (amount.currencyCode == minimum.currencyCode && amount < minimum) {
                             val minimumText = minimum.formatted()
                             BottomBarManager.showAlert(
