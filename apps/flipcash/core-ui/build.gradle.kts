@@ -23,6 +23,7 @@ kotlin {
             implementation(project(":ui:components"))
             implementation(project(":ui:resources"))
             implementation(project(":ui:theme"))
+            implementation(project(":apps:flipcash:shared:theme"))
 
             implementation(libs.jetbrains.compose.runtime)
             implementation(libs.jetbrains.compose.foundation)

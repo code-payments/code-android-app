@@ -24,14 +24,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.R
 import com.getcode.ui.core.debugBounds
 import com.getcode.ui.core.drawWithGradient
+import com.getcode.ui.components.resources.Res
+import com.getcode.ui.components.resources.action_showLess
+import com.getcode.ui.components.resources.action_showMore
 
 @Composable
 fun ExpandableText(
@@ -132,7 +134,7 @@ private fun ExpandVisibilityButton(
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
         ) {
             Text(
-                text = if (isExpanded) stringResource(R.string.action_showLess) else stringResource(R.string.action_showMore),
+                text = if (isExpanded) stringResource(Res.string.action_showLess) else stringResource(Res.string.action_showMore),
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textMain,
             )

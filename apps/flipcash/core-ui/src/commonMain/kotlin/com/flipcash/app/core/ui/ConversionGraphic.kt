@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.unit.dp
-import com.flipcash.core.R
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.ic_arrow_right
+import com.flipcash.core.resources.ic_coin_dollars
+import com.flipcash.core.resources.ic_usdc_on_solana
 
 /**
  * A coin face the [ConversionGraphic] can show on either side of the arrow.
@@ -50,7 +53,7 @@ fun ConversionGraphic(
             // Nudged onto the coin faces' centre line, which the top alignment above leaves at
             // 50 dp: (100 - 28) / 2.
             modifier = Modifier.padding(top = 36.dp).size(28.dp),
-            painter = painterResource(R.drawable.ic_arrow_right),
+            painter = painterResource(Res.drawable.ic_arrow_right),
             contentDescription = null,
         )
         Coin(to)
@@ -62,13 +65,13 @@ private fun Coin(coin: ConversionCoin) {
     when (coin) {
         ConversionCoin.Dollars -> Image(
             modifier = Modifier.size(100.dp),
-            painter = painterResource(R.drawable.ic_coin_dollars),
+            painter = painterResource(Res.drawable.ic_coin_dollars),
             contentDescription = null,
         )
 
         // Natural size (111x112): the 100 dp coin plus the badge overhanging its corner.
         ConversionCoin.UsdcOnSolana -> Image(
-            painter = painterResource(R.drawable.ic_usdc_on_solana),
+            painter = painterResource(Res.drawable.ic_usdc_on_solana),
             contentDescription = null,
         )
     }

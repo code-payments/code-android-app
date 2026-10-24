@@ -18,12 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.R
+import com.getcode.util.resources.Res
+import com.getcode.util.resources.ic_dropdown
 
 @Composable
 fun TokenSelectionPill(
@@ -64,7 +65,7 @@ fun TokenSelectionPill(
             Image(
                 modifier = Modifier
                     .size(CodeTheme.dimens.grid.x4),
-                painter = painterResource(R.drawable.ic_dropdown),
+                painter = painterResource(Res.drawable.ic_dropdown),
                 contentDescription = ""
             )
         }
@@ -105,7 +106,7 @@ fun TokenSelectionPill(
             Image(
                 modifier = Modifier
                     .width(CodeTheme.dimens.grid.x4),
-                painter = painterResource(R.drawable.ic_dropdown),
+                painter = painterResource(Res.drawable.ic_dropdown),
                 contentDescription = ""
             )
         }

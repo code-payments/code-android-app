@@ -8,9 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.unit.dp
-import com.flipcash.core.R
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.ic_device_frame
+import com.flipcash.core.resources.ic_screen_frame
 
 @Composable
 fun ScreenFrame(
@@ -20,7 +22,7 @@ fun ScreenFrame(
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
         Image(
-            painter = painterResource(id = R.drawable.ic_screen_frame),
+            painter = painterResource(Res.drawable.ic_screen_frame),
             contentDescription = "",
         )
         Box(
@@ -43,7 +45,7 @@ fun DeviceFrame(
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
         Image(
-            painter = painterResource(id = R.drawable.ic_device_frame),
+            painter = painterResource(Res.drawable.ic_device_frame),
             contentDescription = "",
         )
         // Inner viewport clipped to frame edge

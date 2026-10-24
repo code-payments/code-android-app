@@ -24,15 +24,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.shared.common.ui.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
+import com.flipcash.shared.common.ui.resources.Res as CommonUiRes
+import com.flipcash.shared.common.ui.resources.label_balanceRequirementChat
+import com.flipcash.shared.common.ui.resources.label_balanceRequirementCommunityCurrency
+import com.flipcash.shared.common.ui.resources.label_balanceRequirementJoin
+import com.flipcash.shared.common.ui.resources.label_balanceRequirementNone
+import com.flipcash.shared.common.ui.resources.label_yourBalance
+import com.flipcash.shared.common.ui.resources.title_balanceRequirements
+import com.getcode.util.resources.Res as UiRes
+import com.getcode.util.resources.ic_chevron_right
 
 private val RowHeight = 56.dp
 private val CompactRowHeight = 48.dp
@@ -69,7 +77,7 @@ fun BalanceRequirementsCard(
         verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 16.dp),
     ) {
         Text(
-            text = stringResource(R.string.title_balanceRequirements),
+            text = stringResource(CommonUiRes.string.title_balanceRequirements),
             style = if (compact) CodeTheme.typography.textMedium else CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textMain,
         )
@@ -84,14 +92,14 @@ fun BalanceRequirementsCard(
                 RowSeparator()
             }
             RequirementRow(
-                label = stringResource(R.string.label_balanceRequirementJoin),
-                value = join ?: stringResource(R.string.label_balanceRequirementNone),
+                label = stringResource(CommonUiRes.string.label_balanceRequirementJoin),
+                value = join ?: stringResource(CommonUiRes.string.label_balanceRequirementNone),
                 compact = compact,
             )
             RowSeparator()
             RequirementRow(
-                label = stringResource(R.string.label_balanceRequirementChat),
-                value = chat ?: stringResource(R.string.label_balanceRequirementNone),
+                label = stringResource(CommonUiRes.string.label_balanceRequirementChat),
+                value = chat ?: stringResource(CommonUiRes.string.label_balanceRequirementNone),
                 compact = compact,
             )
         }
@@ -118,7 +126,7 @@ fun BalanceRequirementsCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = stringResource(R.string.label_yourBalance),
+                    text = stringResource(CommonUiRes.string.label_yourBalance),
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
                 )
@@ -154,13 +162,13 @@ private fun CommunityCurrencyRow(onClick: () -> Unit, content: @Composable RowSc
     ) {
         Text(
             modifier = Modifier.weight(1f),
-            text = stringResource(R.string.label_balanceRequirementCommunityCurrency),
+            text = stringResource(CommonUiRes.string.label_balanceRequirementCommunityCurrency),
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
         )
         content()
         Icon(
-            painter = painterResource(R.drawable.ic_chevron_right),
+            painter = painterResource(UiRes.drawable.ic_chevron_right),
             contentDescription = null,
             tint = CodeTheme.colors.textSecondary,
         )

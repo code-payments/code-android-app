@@ -19,16 +19,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.app.theme.FlipcashPreview
-import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.ic_notification_preview_icon
+import com.flipcash.core.resources.notification_preview_body
+import com.flipcash.core.resources.notification_preview_title
 
 @Composable
 fun NotificationPreview(
@@ -53,7 +56,7 @@ fun NotificationPreview(
                 .fillMaxHeight()
                 .requiredSize(32.dp)
                 .aspectRatio(1f),
-            painter = painterResource(R.drawable.ic_notification_preview_icon),
+            painter = painterResource(Res.drawable.ic_notification_preview_icon),
             contentDescription = null,
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -96,8 +99,8 @@ fun NotificationPreview(
 fun Preview_Notification() {
     FlipcashPreview {
         NotificationPreview(
-            title = stringResource(R.string.notification_preview_title),
-            body = stringResource(R.string.notification_preview_body),
+            title = stringResource(Res.string.notification_preview_title),
+            body = stringResource(Res.string.notification_preview_body),
         )
     }
 }

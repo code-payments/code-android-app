@@ -1,6 +1,9 @@
+import com.getcode.buildlogic.resources.androidResAsComposeResources
+
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.jetbrains.compose)
     id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
@@ -19,6 +22,7 @@ kotlin {
             implementation(libs.jetbrains.compose.material)
             api(libs.jetbrains.compose.material3)
             implementation(libs.jetbrains.compose.components.resources)
+            implementation(libs.jetbrains.compose.material.icons.extended)
             api(libs.jetbrains.compose.ui.tooling.preview)
             // api: TopScrollEdge and the app bar take a HazeState, so callers need the type.
             api(libs.bundles.haze)
@@ -59,3 +63,12 @@ kotlin {
     }
 }
 
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "${Gradle.codeNamespace}.ui.components.resources"
+    customDirectory(
+        sourceSetName = "commonMain",
+        directoryProvider = androidResAsComposeResources(),
+    )
+}

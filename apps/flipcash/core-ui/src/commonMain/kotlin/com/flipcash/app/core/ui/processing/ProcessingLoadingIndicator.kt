@@ -20,8 +20,7 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.res.painterResource
-import com.flipcash.core.R
+import org.jetbrains.compose.resources.painterResource
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.view.LoadingSuccessState
@@ -29,6 +28,9 @@ import kotlinx.coroutines.isActive
 import kotlin.math.pow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.ic_circle_check_large
+import com.flipcash.core.resources.ic_circle_exclamation_large
 
 @Composable
 fun ProcessingLoadingIndicator(
@@ -96,7 +98,7 @@ fun ProcessingLoadingIndicator(
         when (targetState) {
             LoadingSuccessState.State.Error -> Image(
                 modifier = modifier,
-                painter = painterResource(R.drawable.ic_circle_exclamation_large),
+                painter = painterResource(Res.drawable.ic_circle_exclamation_large),
                 contentDescription = null,
             )
             LoadingSuccessState.State.Idle -> Spacer(modifier)
@@ -110,7 +112,7 @@ fun ProcessingLoadingIndicator(
             )
             LoadingSuccessState.State.Success -> Image(
                 modifier = modifier,
-                painter = painterResource(R.drawable.ic_circle_check_large),
+                painter = painterResource(Res.drawable.ic_circle_check_large),
                 contentDescription = null,
             )
         }

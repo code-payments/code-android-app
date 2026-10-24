@@ -15,14 +15,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.shared.common.ui.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
+import com.flipcash.shared.common.ui.resources.Res
+import com.flipcash.shared.common.ui.resources.text_profileStatEmpty
+import com.flipcash.shared.common.ui.resources.title_profileDateJoined
+import com.flipcash.shared.common.ui.resources.title_profileMinimumToChat
 
 private val StatsCardHeight = 84.dp
 private val LeadingStatWidth = 176.dp
@@ -49,7 +52,7 @@ fun ProfileStatsCard(
     ) {
         Stat(
             modifier = Modifier.width(LeadingStatWidth).fillMaxHeight(),
-            caption = stringResource(R.string.title_profileMinimumToChat),
+            caption = stringResource(Res.string.title_profileMinimumToChat),
             value = minimumToChat,
         )
         Box(
@@ -60,7 +63,7 @@ fun ProfileStatsCard(
         )
         Stat(
             modifier = Modifier.weight(1f).fillMaxHeight(),
-            caption = stringResource(R.string.title_profileDateJoined),
+            caption = stringResource(Res.string.title_profileDateJoined),
             value = joined,
         )
     }
@@ -84,7 +87,7 @@ private fun Stat(
             color = CodeTheme.colors.textSecondary,
         )
         Text(
-            text = value ?: stringResource(R.string.text_profileStatEmpty),
+            text = value ?: stringResource(Res.string.text_profileStatEmpty),
             style = CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textMain,
         )

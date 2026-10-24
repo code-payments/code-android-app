@@ -43,7 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
@@ -51,9 +51,10 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.White50
 import androidx.compose.foundation.clickable
-import com.getcode.util.resources.R
 import kotlin.math.abs
 import kotlinx.coroutines.launch
+import com.getcode.util.resources.Res
+import com.getcode.util.resources.ic_delete
 
 /**
  * Describes a single action revealed behind the row content on swipe.
@@ -111,7 +112,7 @@ fun SwipeActionRow(
                 resetOnDismiss = resetOnDismiss,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_delete),
+                    painter = painterResource(Res.drawable.ic_delete),
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.requiredSize(iconSize),

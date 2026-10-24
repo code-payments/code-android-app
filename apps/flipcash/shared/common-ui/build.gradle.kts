@@ -1,6 +1,9 @@
+import com.getcode.buildlogic.resources.androidResAsComposeResources
+
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.jetbrains.compose)
 }
 
 kotlin {
@@ -13,6 +16,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(libs.jetbrains.compose.components.resources)
             implementation(libs.jetbrains.compose.animation)
             implementation(libs.jetbrains.compose.material)
             implementation(libs.jetbrains.compose.ui.tooling.preview)
@@ -21,6 +25,7 @@ kotlin {
             implementation(project(":ui:theme"))
             implementation(project(":services:flipcash"))
             implementation(project(":services:opencode"))
+            implementation(project(":apps:flipcash:shared:theme"))
 
             implementation(libs.jetbrains.compose.runtime)
             implementation(libs.jetbrains.compose.foundation)
@@ -33,7 +38,6 @@ kotlin {
             implementation(project(":ui:components"))
             implementation(project(":ui:resources"))
             implementation(project(":libs:datetime"))
-            implementation(project(":apps:flipcash:shared:theme"))
             implementation(project.dependencies.platform(libs.compose.bom))
             implementation(libs.bundles.compose)
             implementation(libs.bundles.haze)
@@ -46,4 +50,13 @@ kotlin {
             implementation(libs.robolectric)
         }
     }
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "${Gradle.flipcashNamespace}.shared.common.ui.resources"
+    customDirectory(
+        sourceSetName = "commonMain",
+        directoryProvider = androidResAsComposeResources(),
+    )
 }

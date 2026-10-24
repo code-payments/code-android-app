@@ -10,8 +10,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.resources.Res
+import com.getcode.ui.components.resources.subtitle_beta
 
 @Composable
 fun BetaIndicator(modifier: Modifier = Modifier) {
@@ -30,7 +32,7 @@ fun BetaIndicator(modifier: Modifier = Modifier) {
         )
 
         Text(
-            text = stringResource(R.string.subtitle_beta),
+            text = stringResource(Res.string.subtitle_beta),
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary
         )

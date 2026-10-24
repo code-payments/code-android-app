@@ -21,13 +21,15 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White20
 import com.getcode.ui.theme.CodeToggleSwitch
 import androidx.compose.foundation.clickable
+import com.getcode.util.resources.Res
+import com.getcode.util.resources.ic_chevron_right
 
 private val ListItemIconSize = 24.dp
 
@@ -152,7 +154,7 @@ object ListItemDefaults {
     @Composable
     fun Chevron() {
         Icon(
-            painter = painterResource(id = R.drawable.ic_chevron_right),
+            painter = painterResource(Res.drawable.ic_chevron_right),
             contentDescription = null,
             tint = White20,
         )

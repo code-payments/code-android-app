@@ -20,15 +20,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.app.theme.FlipcashPreview
-import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.title_allowNotifications
 
 @Composable
 fun SwitchPreview(modifier: Modifier = Modifier, checked: Boolean = false) {
@@ -45,7 +46,7 @@ fun SwitchPreview(modifier: Modifier = Modifier, checked: Boolean = false) {
     ) {
         Text(
             modifier = Modifier.weight(1f),
-            text = stringResource(R.string.title_allowNotifications),
+            text = stringResource(Res.string.title_allowNotifications),
             fontSize = 14.sp,
             fontFamily = FontFamily.Default,
             fontWeight = FontWeight.Medium
