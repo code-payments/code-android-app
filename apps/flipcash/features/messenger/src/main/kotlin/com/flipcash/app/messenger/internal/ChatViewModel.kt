@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal
 
 import com.flipcash.shared.chat.ui.settledUsd
+import com.flipcash.shared.chat.ui.partFor
 import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.LinkPreview
@@ -1618,8 +1619,7 @@ internal class ChatViewModel @AssistedInject constructor(
                                 ?: stateFlow.value.participant?.name
                                 ?: resources.getString(R.string.title_unnamedUser),
                         ) ?: UndecryptableHint.UpdateApp,
-                        receivedPart = (enriched as? MessageContent.Cash)?.multiReceiver
-                            ?.firstOrNull { it.receiver == userManager.accountId },
+                        receivedPart = (enriched as? MessageContent.Cash)?.partFor(userManager.accountId),
                     )
                         // A carded link takes a row of its own, with the prose either side of it
                         // on rows above and below. Reversed because the list is: this page runs

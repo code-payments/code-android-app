@@ -272,6 +272,13 @@ fun ContentBubble(
                     isFromSelf = item.isFromSelf,
                     action = content.action,
                     settledUsd = content.settledUsd(),
+                    // A one-person group send names its recipient; everyone else in the group
+                    // reads who sent it rather than "You received".
+                    paidOtherBy = if (!item.isFromSelf && content.receiver != null && item.receivedPart == null) {
+                        item.sender?.displayName ?: stringResource(R.string.title_unnamedUser)
+                    } else {
+                        null
+                    },
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     // Dropped rather than ignored while the transcript is behind a backdrop: with
@@ -996,6 +1003,7 @@ private fun CashBubble(
     maxWidth: Dp,
     action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
     settledUsd: Fiat? = null,
+    paidOtherBy: String? = null,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
@@ -1070,7 +1078,8 @@ private fun CashBubble(
                     MessageContent.Cash.Action.SENT -> R.string.subtitle_youSent
                 }
                 Text(
-                    text = stringResource(subtitleRes),
+                    text = paidOtherBy?.let { stringResource(R.string.subtitle_senderSent, it) }
+                        ?: stringResource(subtitleRes),
                     style = CodeTheme.typography.caption.copy(
                         fontWeight = FontWeight.Medium,
                     ),
