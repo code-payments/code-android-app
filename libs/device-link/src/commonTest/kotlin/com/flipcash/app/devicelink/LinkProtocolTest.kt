@@ -43,7 +43,7 @@ class LinkProtocolTest {
     }
 
     @Test
-    fun `codes match and the seed arrives`() {
+    fun codesMatchAndTheSeedArrives() {
         var phoneCode: String? = null
         val states = runLink { invite ->
             val pending = PhoneLinker.connect(invite).getOrThrow()
@@ -57,13 +57,13 @@ class LinkProtocolTest {
     }
 
     @Test
-    fun `cancelling on the phone sends nothing`() {
+    fun cancellingOnThePhoneSendsNothing() {
         val states = runLink { invite -> PhoneLinker.connect(invite).getOrThrow().cancel() }
         assertEquals(DesktopLinkHost.State.Failed("Cancelled on the phone"), states.last())
     }
 
     @Test
-    fun `a swapped phone key changes the desktop's code`() {
+    fun aSwappedPhoneKeyChangesTheDesktopSCode() {
         // A man in the middle replaces the phone's key on the way to the desktop with one of its own.
         var phoneCode: String? = null
         val states = runLink { invite ->
@@ -85,7 +85,7 @@ class LinkProtocolTest {
     }
 
     @Test
-    fun `tampered seed is rejected`() {
+    fun tamperedSeedIsRejected() {
         val states = runLink { invite ->
             val phone = LinkCrypto.ephemeral()
             val session = LinkCrypto.phoneSession(phone, invite.publicKey, invite.secret)
@@ -103,7 +103,7 @@ class LinkProtocolTest {
     }
 
     @Test
-    fun `a device without the QR secret can't link`() {
+    fun aDeviceWithoutTheQRSecretCanTLink() {
         val states = runLink { invite ->
             val pending = PhoneLinker.connect(
                 LinkInvite(invite.host, invite.port, invite.publicKey, LinkCrypto.secret()),
@@ -114,7 +114,7 @@ class LinkProtocolTest {
     }
 
     @Test
-    fun `invite round-trips and rejects junk`() {
+    fun inviteRoundTripsAndRejectsJunk() {
         val invite = LinkInvite("192.168.1.20", 50123, ByteArray(32) { it.toByte() }, ByteArray(16) { 7 })
         val parsed = LinkInvite.parse(invite.encode())!!
         assertEquals(invite.host, parsed.host)
@@ -126,7 +126,7 @@ class LinkProtocolTest {
     }
 
     @Test
-    fun `the phone controller reads the seed only after confirm`() {
+    fun thePhoneControllerReadsTheSeedOnlyAfterConfirm() {
         var seedReads = 0
         val states = runLink { invite ->
             kotlinx.coroutines.coroutineScope {

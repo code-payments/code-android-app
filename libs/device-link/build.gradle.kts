@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
+
 plugins {
     alias(libs.plugins.flipcash.kmp.library)
 }
@@ -7,6 +9,14 @@ plugins {
 kotlin {
     android {
         namespace = "com.flipcash.libs.devicelink"
+        // No host test: libsodium's Android binding loads its .so from the APK, so it doesn't load
+        // on a JVM host (chat-cipher has the same limit). commonTest runs on jvm, on the Apple
+        // targets natively, and on Android as a device test.
+        withDeviceTestBuilder {
+            sourceSetTreeName = KotlinSourceSetTree.test.name
+        }.configure {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
     }
 
     sourceSets {
@@ -16,9 +26,14 @@ kotlin {
             implementation(libs.sodium.bindings.kmp)
             implementation(libs.ktor.network)
         }
-        jvmTest.dependencies {
+        commonTest.dependencies {
             implementation(kotlin("test"))
-            implementation(libs.kotlinx.coroutines.test)
+        }
+        getByName("androidDeviceTest") {
+            dependencies {
+                implementation(libs.androidx.junit)
+                implementation(libs.androidx.test.runner)
+            }
         }
     }
 }
