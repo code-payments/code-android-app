@@ -2,6 +2,7 @@ package com.flipcash.app.core.chat
 
 import android.os.Parcelable
 import com.flipcash.services.models.chat.ChatId
+import com.getcode.solana.keys.Mint
 import com.getcode.navigation.HalfSheet
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.WrapContentSheet
@@ -224,6 +225,7 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data class GroupSendDetails(
+        val mint: Mint,
         val tokenName: String,
         val tokenImageUrl: String,
         val senderIdHex: String?,

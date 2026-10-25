@@ -21,6 +21,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatSendResult
@@ -202,6 +203,11 @@ private fun chatEntryProvider(
                 // the scene's after-dismiss hook instead, once the sheet itself is gone.
                 navigator.pendingSheetDismiss = {
                     navigator.push(ChatStep.Profile(contact = participant, origin = ProfileOrigin.GroupMember))
+                }
+            },
+            onOpenToken = {
+                navigator.pendingSheetDismiss = {
+                    navigator.push(AppRoute.Token.Info(step.mint, TokenInfoEntry.Chat))
                 }
             },
             onClose = { dismissSheet() },

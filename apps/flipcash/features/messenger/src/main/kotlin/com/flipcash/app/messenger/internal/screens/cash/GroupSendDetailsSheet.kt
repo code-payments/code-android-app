@@ -53,6 +53,7 @@ internal fun GroupSendDetailsSheet(
     sender: GroupSendPerson,
     recipients: List<GroupSendPerson>,
     onOpenProfile: (ChatParticipant.TipUser) -> Unit,
+    onOpenToken: () -> Unit,
     onClose: () -> Unit,
 ) {
     Column(
@@ -70,8 +71,9 @@ internal fun GroupSendDetailsSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5),
         ) {
-            DetailRow(label = stringResource(R.string.label_cashDetails_sent)) {
+            DetailRow(label = stringResource(R.string.label_cashDetails_sent), onClick = onOpenToken) {
                 TokenIconWithName(
+                    modifier = Modifier.weight(1f),
                     tokenName = tokenName,
                     tokenImage = tokenImageUrl,
                     imageSize = CodeTheme.dimens.staticGrid.x8,
@@ -79,7 +81,10 @@ internal fun GroupSendDetailsSheet(
                     textStyle = CodeTheme.typography.textMedium,
                 )
             }
-            DetailRow(label = stringResource(R.string.label_cashDetails_from)) {
+            DetailRow(
+                label = stringResource(R.string.label_cashDetails_from),
+                onClick = sender.participant?.let { { onOpenProfile(it) } },
+            ) {
                 PersonCell(sender)
             }
             recipients.forEachIndexed { index, person ->

@@ -213,6 +213,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 if (cash != null) keyboard.hideIfVisible {
                     navigator.push(
                         ChatStep.GroupSendDetails(
+                            mint = cash.mint,
                             tokenName = cash.tokenName,
                             tokenImageUrl = cash.tokenImageUrl,
                             senderIdHex = action.bubble.authorId?.hexEncodedString(),
