@@ -216,7 +216,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             tokenName = cash.tokenName,
                             tokenImageUrl = cash.tokenImageUrl,
                             senderIdHex = action.bubble.authorId?.hexEncodedString(),
-                            recipientIdsHex = cash.multiReceiver.map { it.receiver.hexEncodedString() },
+                            // A one-recipient group payment names its payee in `receiver`, not `multiReceiver`.
+                            recipientIdsHex = cash.multiReceiver.map { it.receiver }
+                                .ifEmpty { listOfNotNull(cash.receiver) }
+                                .map { it.hexEncodedString() },
                         )
                     )
                 }
