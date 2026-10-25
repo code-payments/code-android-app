@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Text
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,7 @@ import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostSheet
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostViewModel
 import com.getcode.theme.CodeTheme
 import com.flipcash.app.messenger.internal.groupsend.GroupSendState
+import com.flipcash.app.messenger.internal.groupsend.GroupSendStep
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.GroupSelectPeopleContent
 import com.flipcash.app.messenger.internal.screens.cash.GroupSendDetailsSheet
@@ -129,7 +131,7 @@ fun ChatFlowScreen(
         // onRootReached, and so does system back — so this is the one place that has to do it.
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
-        entryProvider = chatEntryProvider(route.openKeyboard),
+        entryProvider = chatEntryProvider(route.openKeyboard, resultStateRegistry),
         // ChatStep.AmountEntry and ChatStep.InviteToGroup are Sheets, so the
         // flow needs the sheet strategy to draw them as such; without it the step would fall
         // through to SinglePane and cover the thread. Amount entry
@@ -146,12 +148,13 @@ fun ChatFlowScreen(
 @Composable
 private fun chatEntryProvider(
     openKeyboard: Boolean,
+    resultStateRegistry: NavResultStateRegistry,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<ChatStep.Conversation> {
         FlowConversationScreen(openKeyboard)
     }
     annotatedEntry<ChatStep.AmountEntry> {
-        FlowAmountEntryScreen()
+        FlowAmountEntryScreen(resultStateRegistry)
     }
     annotatedEntry<ChatStep.InviteToGroup> {
         FlowGroupInviteSheet()
@@ -295,10 +298,11 @@ private fun FlowConversationScreen(
 }
 
 @Composable
-private fun FlowAmountEntryScreen() {
+private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val navigator = LocalCodeNavigator.current
+    // The chat flow's navigator, read before the sheet's own FlowHost below shadows it.
+    val chatNavigator = LocalCodeNavigator.current
     // Every way out of this step goes through the sheet's own dismissal, which animates it down to
     // Hidden and pops the entry once it settles. Popping the entry directly — navigateBack, or the
     // pop ResultBackNavigator does by default — deletes the scene mid-frame, so the sheet vanishes
@@ -306,50 +310,76 @@ private fun FlowAmountEntryScreen() {
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val resultBack = resultBackNavigator<ChatSendResult>(exit = dismissSheet)
 
-    // No re-shadow: ChatAmountEntryContent reads the inner LocalCodeNavigator. Its
-    // push(ChatStep.SendCurrency) stays in this flow, as a half sheet over this one; its
-    // push(AppRoute.Main.RegionSelection) bubbles to the app navigator through the dispatcher.
     // A private group's send carries on past the amount to Select People and its confirm sheet,
-    // in this same sheet. Back steps through them rather than dismissing.
-    val groupSend = state.groupSend
-    BackHandler(enabled = groupSend != null && groupSend.stage != GroupSendState.Stage.Amount) {
-        viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack)
-    }
-    if (groupSend != null && groupSend.stage != GroupSendState.Stage.Amount) {
-        val candidates = state.groupSendCandidates
-        GroupSelectPeopleContent(
-            candidates = candidates,
-            selected = groupSend.selected,
-            onBack = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
-            onToggle = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId)) },
-            onSend = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed) },
-        )
-        if (groupSend.stage == GroupSendState.Stage.Confirm) {
-            GroupSendConfirmSheet(
-                groupSend = groupSend,
-                recipients = groupSend.selected.mapNotNull { id -> candidates.find { it.userId == id } },
-                token = state.token,
-                sendProgress = state.sendProgress,
-                onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested) },
-                onDismiss = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
-            )
-        }
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow.filterIsInstance<ChatViewModel.Event.SendComplete>()
-                .collect { resultBack.returnValue(ChatSendResult) }
-        }
-        return
-    }
+    // in this same sheet. The sheet has its own nav host so Select People slides in over the
+    // amount; the view model's stage decides which step is on top.
+    val inPeople = state.groupSend?.let { it.stage != GroupSendState.Stage.Amount } == true
 
-    ChatAmountEntryContent(
-        amountDelegate = viewModel.amountDelegate,
-        resolveState = state.resolveState,
-        token = state.token,
-        eventFlow = viewModel.eventFlow,
-        onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
-        onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
-        onExit = dismissSheet,
+    FlowHost<GroupSendStep, Parcelable>(
+        initialStack = listOf(GroupSendStep.Amount),
+        resultStateRegistry = resultStateRegistry,
+        onExit = { _, _ -> dismissSheet() },
+        entryProvider = entryProvider {
+            annotatedEntry<GroupSendStep.Amount> {
+                val flowNavigator = rememberFlowNavigator<GroupSendStep, Parcelable>()
+                LaunchedEffect(inPeople) {
+                    if (inPeople) flowNavigator.navigateTo(GroupSendStep.People)
+                }
+                // ChatAmountEntryContent's push(ChatStep.SendCurrency) belongs to the chat flow,
+                // as a half sheet over this one; on this sheet's navigator it would land here.
+                // Its push(AppRoute.Main.RegionSelection) bubbles to the app navigator either way.
+                CompositionLocalProvider(LocalCodeNavigator provides chatNavigator) {
+                    ChatAmountEntryContent(
+                        amountDelegate = viewModel.amountDelegate,
+                        resolveState = state.resolveState,
+                        token = state.token,
+                        eventFlow = viewModel.eventFlow,
+                        onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
+                        onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
+                        onExit = dismissSheet,
+                    )
+                }
+            }
+            annotatedEntry<GroupSendStep.People> {
+                val flowNavigator = rememberFlowNavigator<GroupSendStep, Parcelable>()
+                LaunchedEffect(inPeople) {
+                    if (!inPeople) flowNavigator.back()
+                }
+                // Back goes through the view model, whose stage change pops this step above;
+                // the nav host popping it alone would leave the stage behind.
+                BackHandler { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) }
+                FlowGroupSelectPeople(viewModel) { resultBack.returnValue(ChatSendResult) }
+            }
+        },
     )
+}
+
+@Composable
+private fun FlowGroupSelectPeople(viewModel: ChatViewModel, onSendComplete: () -> Unit) {
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val groupSend = state.groupSend ?: return
+    val candidates = state.groupSendCandidates
+    GroupSelectPeopleContent(
+        candidates = candidates,
+        selected = groupSend.selected,
+        onBack = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
+        onToggle = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId)) },
+        onSend = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed) },
+    )
+    if (groupSend.stage == GroupSendState.Stage.Confirm) {
+        GroupSendConfirmSheet(
+            groupSend = groupSend,
+            recipients = groupSend.selected.mapNotNull { id -> candidates.find { it.userId == id } },
+            token = state.token,
+            sendProgress = state.sendProgress,
+            onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested) },
+            onDismiss = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
+        )
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow.filterIsInstance<ChatViewModel.Event.SendComplete>()
+            .collect { onSendComplete() }
+    }
 }
 
 /**
