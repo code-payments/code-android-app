@@ -42,6 +42,7 @@ import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
+import com.flipcash.app.messenger.internal.request.RequestMoneyScreen
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostAmountViewModel
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostCurrencySheet
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostSheet
@@ -220,6 +221,16 @@ private fun chatEntryProvider(
         )
     }
 
+    annotatedEntry<ChatStep.RequestMoney> { step ->
+        val navigator = LocalCodeNavigator.current
+        RequestMoneyScreen(
+            chatId = step.chatId,
+            onClose = { navigator.pop() },
+            // Request details land with the deck; until then a row has nowhere to go.
+            onOpenRequest = {},
+        )
+    }
+
     annotatedEntry<ChatStep.ReactionPicker> { step ->
         FlowReactionPickerScreen(step.messageId)
     }
@@ -275,6 +286,15 @@ private fun FlowConversationScreen(
                         viewModel.dispatchEvent(ChatViewModel.Event.OnStartMessageInput)
                     }
                 }
+            }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatViewModel.Event.NavigateToRequestMoney>()
+            .collect {
+                val chatId = viewModel.stateFlow.value.chatId ?: return@collect
+                keyboard.hideIfVisible { navigator.push(ChatStep.RequestMoney(chatId)) }
             }
     }
 

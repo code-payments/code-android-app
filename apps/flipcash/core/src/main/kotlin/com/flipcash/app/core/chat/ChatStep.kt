@@ -189,6 +189,15 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * sheet (node 10330:18091), opened from the pill row's "$". The sheet picks which reaction from
      * the viewer's own. Short and fixed, so it wraps its content.
      */
+    /**
+     * Frames 03–06 — a private group's Request Money history, and the create flow behind its New
+     * Request button. A pushed screen: it is somewhere the viewer goes, with its own back stack of
+     * editors, rather than a choice made over the conversation.
+     */
+    @Parcelize
+    @Serializable
+    data class RequestMoney(val chatId: ChatId) : ChatStep
+
     @Parcelize
     @Serializable
     data class ReactionBoost(

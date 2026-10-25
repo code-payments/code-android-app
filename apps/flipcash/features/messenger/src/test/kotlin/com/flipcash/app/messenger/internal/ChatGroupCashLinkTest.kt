@@ -240,6 +240,27 @@ class ChatGroupCashLinkTest {
     }
 
     @Test
+    fun `a private group's cash button offers Send Money or Request Money`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        val events = recordEvents(vm)
+        vm.openGroup(isPrivate = true)
+
+        vm.dispatchEvent(ChatViewModel.Event.OnSendCash)
+        advanceUntilIdle()
+
+        val actions = BottomBarManager.messages.value.single().actions
+        assertTrue(actions.any { it.testTag == "money_action_send" })
+        assertTrue(ChatViewModel.Event.NavigateToAmountEntry !in events)
+
+        actions.first { it.testTag == "money_action_request" }.onClick()
+        advanceUntilIdle()
+
+        assertTrue(ChatViewModel.Event.NavigateToRequestMoney in events)
+        // Asking for money spends nothing, so it skips the balance gate.
+        coVerify(exactly = 0) { startChattingPayer.mayProceed(any(), any()) }
+    }
+
+    @Test
     fun `a group send posts a cash link and reports it`() = runTest(mainCoroutineRule.dispatcher) {
         val vm = createViewModel()
         val events = recordEvents(vm)
@@ -328,6 +349,12 @@ class ChatGroupCashLinkTest {
         vm.dispatchEvent(ChatViewModel.Event.TokenUpdated(token))
         vm.dispatchEvent(ChatViewModel.Event.OnSendCash)
         advanceUntilIdle()
+        // A private group's cash button asks Send Money or Request Money first.
+        BottomBarManager.messages.value.firstOrNull()?.let { sheet ->
+            sheet.actions.first { it.testTag == "money_action_send" }.onClick()
+            BottomBarManager.clear()
+            advanceUntilIdle()
+        }
         vm.amountDelegate.onCurrencyChanged(Currency(code = "USD", name = "US Dollar"))
         vm.amountDelegate.setAmount(total)
     }

@@ -1022,6 +1022,64 @@
     <string name="subtitle_sendMoney_group">Send money to someone in the group, or multiple people</string>
     <string name="action_requestMoney">Request Money</string>
     <string name="subtitle_requestMoney_group">Collect money from people in the group</string>
+    <!-- Request Money history and the create flow, group requests spec frames 03–06 and 25. -->
+    <string name="title_requestMoneyHistory">Request Money</string>
+    <string name="action_newRequest">New Request</string>
+    <string name="header_openRequests">Open Requests</string>
+    <string name="header_previousRequests">Previous Requests</string>
+    <string name="label_requestProgress">%1$s paid, %2$s requested</string>
+    <string name="label_requestCompleted">✓ %1$s paid</string>
+    <string name="title_amountPerPerson">Amount Per Person</string>
+    <string name="title_newRequest">New Request</string>
+    <string name="label_perPerson">per person</string>
+    <string name="label_requestName">Name</string>
+    <string name="label_requestPeople">People</string>
+    <string name="label_requestTiming">Timing</string>
+    <!-- %1$s is the weekday in the device locale: "Saturday Request". -->
+    <string name="label_defaultRequestTitle">%1$s Request</string>
+    <string name="value_requestPeople_everyoneIncludingYou">Everyone, Including You</string>
+    <string name="value_requestPeople_everyoneExceptYou">Everyone Except You</string>
+    <string name="value_requestPeople_choose">Choose People</string>
+    <plurals name="value_requestPeople_someIncludingYou">
+        <item quantity="one">%1$d Person, Including You</item>
+        <item quantity="other">%1$d People, Including You</item>
+    </plurals>
+    <plurals name="value_requestPeople_some">
+        <item quantity="one">%1$d Person</item>
+        <item quantity="other">%1$d People</item>
+    </plurals>
+    <string name="subtitle_requestMarkedPaid">You’ll be marked as paid</string>
+    <plurals name="value_requestDaysToPay">
+        <item quantity="one">%1$d Day To Pay</item>
+        <item quantity="other">%1$d Days To Pay</item>
+    </plurals>
+    <!-- %1$s is a medium date and short time in the device locale: "Until Nov 2, 6:00 PM". -->
+    <string name="value_requestUntil">Until %1$s</string>
+    <string name="subtitle_requestAutoCloses">Request automatically closes after</string>
+    <plurals name="action_requestFromPeople">
+        <item quantity="one">Request %2$s from %1$d Person</item>
+        <item quantity="other">Request %2$s from %1$d People</item>
+    </plurals>
+    <string name="label_selectPeople_you">You</string>
+    <string name="title_requestMaxPeople">100 People Max</string>
+    <string name="description_requestMaxPeople">A request can include up to 100 people.</string>
+    <string name="title_timeToPay">Time To Pay</string>
+    <string name="option_timeToPay_day">1 Day</string>
+    <string name="option_timeToPay_threeDays">3 Days</string>
+    <string name="option_timeToPay_week">1 Week</string>
+    <string name="option_timeToPay_twoWeeks">2 Weeks</string>
+    <string name="option_timeToPay_fourWeeks">4 Weeks</string>
+    <string name="option_timeToPay_custom">Custom</string>
+    <string name="title_sendRequestConfirm">Send Request?</string>
+    <string name="description_sendRequestConfirm">You will receive and hold the money collected</string>
+    <string name="action_sendRequest">Send Request</string>
+    <string name="error_title_cantSendRequest">Can\'t Send Request</string>
+    <string name="error_description_requestDenied">You can\'t request money in this group.</string>
+    <string name="error_description_requestEndsAt">Choose a deadline within the next 4 weeks.</string>
+    <string name="error_description_requestShares">Someone you included is no longer in the group. Check who\'s included and try again.</string>
+    <string name="error_description_requestCurrency">Requests aren\'t available in this currency yet.</string>
+    <!-- Placeholder: the spec names no copy for a network failure or an unreachable result. -->
+    <string name="error_description_requestGeneric">Something went wrong. Please try again</string>
     <string name="label_chat_preview_noMessages">Nothing yet</string>
     <string name="label_isTyping">Is Typing…</string>
 
