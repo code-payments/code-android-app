@@ -254,7 +254,6 @@ fun ContentBubble(
                     content = content,
                     senderName = item.sender?.displayName,
                     isFromSelf = item.isFromSelf,
-                    receivedPart = item.receivedPart,
                     recipients = item.groupSendRecipients,
                     position = position,
                     maxWidth = bubbleMaxWidth,
@@ -1113,7 +1112,6 @@ private fun GroupSendBubble(
     content: MessageContent.Cash,
     senderName: String?,
     isFromSelf: Boolean,
-    receivedPart: MessageContent.Cash.Payment?,
     recipients: String?,
     position: BubblePosition,
     maxWidth: Dp,
@@ -1178,16 +1176,6 @@ private fun GroupSendBubble(
                     ),
                     style = secondary,
                     color = CodeTheme.colors.textSecondary,
-                )
-            }
-            if (receivedPart != null && parts.isNotEmpty()) {
-                Text(
-                    text = stringResource(
-                        R.string.label_groupSendYouReceived,
-                        content.partInDisplayCurrency(receivedPart).formatted(),
-                    ),
-                    style = secondary,
-                    color = CodeTheme.colors.textMain,
                 )
             }
             if (content.tokenName.isNotBlank() && !LocalInspectionMode.current) {

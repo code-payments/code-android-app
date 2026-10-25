@@ -1438,7 +1438,7 @@ internal class ChatViewModel @AssistedInject constructor(
 
     /**
      * The foot line of a group's cash bubble, matching iOS's `ChatItem.groupSend`: a split names its
-     * first recipient and counts the rest, falling back to a head count while that name is unknown,
+     * first recipient (or "You" when the viewer was paid) and counts the rest, falling back to a head count while that name is unknown,
      * and a payment to one other member names them. Null for a payment to the viewer alone, or to
      * one member nobody has a name for yet.
      */
@@ -1457,7 +1457,8 @@ internal class ChatViewModel @AssistedInject constructor(
             return nameOf(receiver)?.let { resources.getString(R.string.label_groupSendTo, it) }
         }
         val others = parts.size - 1
-        return nameOf(parts.first().receiver)
+        val lead = parts.firstOrNull { it.receiver == self } ?: parts.first()
+        return nameOf(lead.receiver)
             ?.let { first ->
                 resources.getString(
                     R.string.label_groupSendTo,

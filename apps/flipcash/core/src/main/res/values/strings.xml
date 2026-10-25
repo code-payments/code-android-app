@@ -1678,7 +1678,6 @@
     <string name="label_groupSendEach">%1$s each</string>
     <string name="label_groupSendEachApprox">~%1$s each</string>
     <string name="subtitle_senderSent">%1$s sent</string>
-    <string name="label_groupSendYouReceived">You received %1$s</string>
     <string name="label_cashDetails_sent">Sent</string>
     <string name="label_cashDetails_from">From</string>
     <string name="label_cashDetails_to">To</string>
