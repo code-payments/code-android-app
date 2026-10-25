@@ -250,7 +250,12 @@ private fun DeckFront(
             .alpha(if (ended) ENDED_ALPHA else 1f)
             .background(CodeTheme.colors.surfaceVariant, PILL_SHAPE)
             .border(1.dp, CodeTheme.colors.border, PILL_SHAPE)
-            .padding(start = 5.dp, end = 12.dp, top = 5.dp, bottom = 5.dp)
+            .padding(
+                start = CodeTheme.dimens.grid.x1,
+                end = CodeTheme.dimens.grid.x2,
+                top = CodeTheme.dimens.grid.x1,
+                bottom = CodeTheme.dimens.grid.x1,
+            )
             .widthIn(max = PILL_MAX_WIDTH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
@@ -380,7 +385,7 @@ internal fun ExpandedRequests(
                 horizontal = CodeTheme.dimens.inset,
                 vertical = CodeTheme.dimens.grid.x2,
             ),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             itemsIndexed(deck, key = { _, request -> request.id.hashCode() }) { index, request ->
                 val title = request.deckTitle
@@ -407,7 +412,7 @@ internal fun ExpandedRequests(
                     .alpha(if (request.isOpen(now)) 1f else ENDED_ALPHA)
                     .background(CodeTheme.colors.surfaceVariant, CARD_SHAPE)
                     .clickable { onOpen(request) }
-                    .padding(14.dp)
+                    .padding(CodeTheme.dimens.grid.x3)
                 val front = index == 0
                 val detail = if (front) Modifier.expandedOnly(visibility) else Modifier
                 PaymentRequestCardContent(

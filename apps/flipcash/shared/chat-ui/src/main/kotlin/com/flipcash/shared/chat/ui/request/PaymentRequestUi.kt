@@ -122,11 +122,11 @@ fun PaymentRequestCardContent(
     val ended = request != null && !request.isOpen(now)
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             Box(
                 modifier = glyphModifier

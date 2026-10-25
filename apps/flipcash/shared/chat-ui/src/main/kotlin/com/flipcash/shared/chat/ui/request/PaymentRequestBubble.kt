@@ -46,7 +46,6 @@ val LocalPaymentRequestCards = compositionLocalOf<PaymentRequestCards?> { null }
 /** Node 12254:1929: the card at its transcript width. */
 internal object PaymentRequestBubbleDefaults {
     val WIDTH: Dp = 264.dp
-    val PADDING: Dp = 14.dp
 }
 
 /** Fetches [id] when the card comes on screen without it, which covers a widget scrolled into view. */
