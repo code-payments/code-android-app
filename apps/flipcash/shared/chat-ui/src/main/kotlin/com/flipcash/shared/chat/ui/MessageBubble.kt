@@ -1197,7 +1197,7 @@ private fun GroupSendBubble(
                     imageSize = CodeTheme.dimens.staticGrid.x2,
                     spacing = CodeTheme.dimens.grid.x1,
                     textStyle = CodeTheme.typography.caption,
-                    textColor = CodeTheme.colors.textSecondary,
+                    textColor = CodeTheme.colors.textMain,
                 )
             }
             Text(
