@@ -236,7 +236,7 @@ class ChatGroupCashLinkTest {
         vm.dispatchEvent(ChatViewModel.Event.OnSendCash)
         advanceUntilIdle()
 
-        assertTrue(ChatViewModel.Event.NavigateToAmountEntry in events)
+        assertTrue(events.any { it is ChatViewModel.Event.NavigateToAmountEntry })
     }
 
     @Test

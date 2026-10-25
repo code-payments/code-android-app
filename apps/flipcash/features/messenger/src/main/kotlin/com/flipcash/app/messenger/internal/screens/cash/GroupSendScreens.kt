@@ -20,11 +20,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -53,11 +55,13 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.view.LoadingSuccessState
+import kotlinx.coroutines.launch
 
 /**
  * Select People, node 11293:6918: the group's members less the sender, checked one by one in the
@@ -169,7 +173,8 @@ private fun MemberCheckRow(
 
 /**
  * The confirm sheet over Select People, node 11293:6918: who is being paid, the total, what each
- * gets, and the swipe. Dismissing it goes back to Select People; it can't be dismissed mid-send.
+ * gets, and the swipe. Closing it goes back to Select People; it can't be closed mid-send. Closed
+ * by its X or back, as the share sheet is, never by a drag or a tap outside it.
  *
  * The token pill swaps this sheet's content for the currency list and back, rather than opening a
  * sheet of its own: this one is a separate window, so a navigation sheet would draw beneath it.
@@ -194,13 +199,31 @@ internal fun GroupSendConfirmSheet(
     val total = groupSend.total ?: return
     val parts = (groupSend.plan as? GroupSendPlan.Pay)?.parts ?: return
     val unknownName = stringResource(R.string.title_unnamedUser)
+    val scope = rememberCoroutineScope()
 
     ModalBottomSheet(
         onDismissRequest = { if (!locked) onDismiss() },
         sheetState = sheetState,
+        sheetGesturesEnabled = false,
+        dragHandle = null,
+        properties = ModalBottomSheetProperties(shouldDismissOnClickOutside = false),
         containerColor = CodeTheme.colors.background,
     ) {
         BackHandler(enabled = pickingCurrency) { pickingCurrency = false }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = CodeTheme.dimens.grid.x3, end = CodeTheme.dimens.inset),
+            contentAlignment = Alignment.CenterEnd,
+        ) {
+            AppBarDefaults.Close {
+                when {
+                    locked -> Unit
+                    pickingCurrency -> pickingCurrency = false
+                    else -> scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+                }
+            }
+        }
         if (pickingCurrency) {
             CurrencyPickerContent(onPicked = { pickingCurrency = false })
             return@ModalBottomSheet

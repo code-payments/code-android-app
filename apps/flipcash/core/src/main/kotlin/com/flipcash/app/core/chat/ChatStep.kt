@@ -51,6 +51,20 @@ sealed interface ChatStep : FlowStep, Parcelable {
     data object AmountEntry : ChatStep, NavigationRetVal<ChatSendResult>, Sheet
 
     /**
+     * [AmountEntry] for a send to a private group's members, which carries on past the amount to
+     * Select People and the confirm. Presented as the share sheet ([ShareMessage]) is: full screen,
+     * closed by its X. Its steps can't be dragged away (see `GroupSendStep`), so a half-picked send
+     * isn't lost to a stray swipe.
+     */
+    @Parcelize
+    @Serializable
+    data object GroupSendAmountEntry :
+        ChatStep,
+        NavigationRetVal<ChatSendResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
+    /**
      * Nodes 10329:12104 and 10330:19549 — share or copy a group's invite link, or send it to
      * recent 1:1 chats.
      *

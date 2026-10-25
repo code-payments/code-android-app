@@ -999,7 +999,8 @@ internal class ChatViewModel @AssistedInject constructor(
         data class PhotosRestored(val photos: List<StagedPhoto>) : Event
         data class RetryMessage(val pendingId: String?, val content: MessageContent) : Event
 
-        data object NavigateToAmountEntry : Event
+        /** @param toMembers whether this is a group send, which opens [ChatStep.GroupSendAmountEntry]. */
+        data class NavigateToAmountEntry(val toMembers: Boolean) : Event
 
         data object PresentDepositOptions : Event
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
@@ -3595,7 +3596,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     )
                 )
                 amountDelegate.reset()
-                dispatchEvent(Event.NavigateToAmountEntry)
+                dispatchEvent(Event.NavigateToAmountEntry(toMembers))
             }.launchIn(viewModelScope)
 
         observeGroupSend()
@@ -4200,7 +4201,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.PhotosRestored -> { state ->
                     state.copy(stagedPhotos = (event.photos + state.stagedPhotos).take(MAX_STAGED_PHOTOS))
                 }
-                Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
+                is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.MentionTapped -> { state -> state }

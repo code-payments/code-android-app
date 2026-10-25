@@ -156,6 +156,9 @@ private fun chatEntryProvider(
     annotatedEntry<ChatStep.AmountEntry> {
         FlowAmountEntryScreen(resultStateRegistry)
     }
+    annotatedEntry<ChatStep.GroupSendAmountEntry> {
+        FlowAmountEntryScreen(resultStateRegistry)
+    }
     annotatedEntry<ChatStep.InviteToGroup> {
         FlowGroupInviteSheet()
     }
@@ -263,10 +266,11 @@ private fun FlowConversationScreen(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<ChatViewModel.Event.NavigateToAmountEntry>()
-            .collect {
+            .collect { event ->
                 // ChatStep.AmountEntry is a FlowStep -> the dispatcher keeps this push on the inner
                 // flow stack and registers the result callback on the inner store (intra-flow).
-                navigator.navigateForResult<ChatSendResult>(ChatStep.AmountEntry) { result ->
+                val step = if (event.toMembers) ChatStep.GroupSendAmountEntry else ChatStep.AmountEntry
+                navigator.navigateForResult<ChatSendResult>(step) { result ->
                     if (result is NavResultOrCanceled.ReturnValue) {
                         viewModel.dispatchEvent(ChatViewModel.Event.OnStartMessageInput)
                     }
