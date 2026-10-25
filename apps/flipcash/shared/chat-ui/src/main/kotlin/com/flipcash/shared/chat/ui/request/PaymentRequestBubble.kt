@@ -25,8 +25,12 @@ class PaymentRequestCards(
     val requests: Map<ID, PaymentRequest>,
     val missing: Set<ID>,
     val now: Instant,
+    /** When the chat screen opened: messages after it arrived while the reader watched. */
+    val openedAt: Instant,
     /** Fetches a request the store doesn't hold; safe to call on every composition. */
     val onNeeded: (ID) -> Unit,
+    /** Refetches a request whether or not the store holds it. */
+    val onRefresh: (ID) -> Unit,
     val onOpen: (ID) -> Unit,
 ) {
     fun stateOf(id: ID, isFromSelf: Boolean, senderId: ID?): RequestCardState = requestCardState(
@@ -50,6 +54,14 @@ internal object PaymentRequestBubbleDefaults {
 internal fun FetchWhenAbsent(id: ID, cards: PaymentRequestCards) {
     val absent = id !in cards.requests && id !in cards.missing
     LaunchedEffect(id, absent) { if (absent) cards.onNeeded(id) }
+}
+
+/** Refetches [id] once when a message about it, sent at [sentAt], arrives while the chat is open. */
+@Composable
+internal fun RefreshOnArrival(id: ID, sentAt: Instant) {
+    val cards = LocalPaymentRequestCards.current ?: return
+    val arrived = sentAt > cards.openedAt
+    LaunchedEffect(id, arrived) { if (arrived) cards.onRefresh(id) }
 }
 
 @Composable

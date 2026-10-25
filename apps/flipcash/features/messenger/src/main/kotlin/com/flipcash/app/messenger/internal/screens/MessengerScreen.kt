@@ -92,6 +92,12 @@ import kotlinx.coroutines.flow.filterIsInstance
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
+import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
+import com.flipcash.app.messenger.internal.request.rememberPaymentRequestCards
+import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
+import com.flipcash.services.models.chat.ChatType
+import com.getcode.utils.base58
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
@@ -428,6 +434,13 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     }
 
     // The group's profile is one tap away; have its cover downloaded before that tap.
+    val requestsViewModel = hiltViewModel<ChatRequestsViewModel>()
+    val requestCards = rememberPaymentRequestCards(
+        viewModel = requestsViewModel,
+        chatId = state.chatId.takeIf { state.chatType == ChatType.GROUP },
+        onOpen = { chatId, id -> keyboard.hideIfVisible { navigator.push(ChatStep.RequestDetails(chatId, id.base58)) } },
+    )
+
     (state.subject as? ChatSubject.Group)?.let { group ->
         PrefetchProfileCover(group.coverPicture, BlobAccessContext.ChatProfile(group.chatId))
     }
@@ -539,6 +552,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 LocalChatMediaProgress provides mediaProgressOf,
                 LocalChatPhotoSources provides photoSources,
                 LocalUpdateAppAction provides updateAppAction,
+                LocalPaymentRequestCards provides requestCards,
             ) {
                 // Held for the saved link previews, 300 ms at most and the first chat only.
                 if (previewsReady) {

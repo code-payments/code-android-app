@@ -198,6 +198,14 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Serializable
     data class RequestMoney(val chatId: ChatId) : ChatStep
 
+    /**
+     * Frames 09, 11, 24 and 35 — one payment request in [chatId]. [requestId] is the request's id
+     * in base58, so the step stays a plain parcelable.
+     */
+    @Parcelize
+    @Serializable
+    data class RequestDetails(val chatId: ChatId, val requestId: String) : ChatStep
+
     @Parcelize
     @Serializable
     data class ReactionBoost(
