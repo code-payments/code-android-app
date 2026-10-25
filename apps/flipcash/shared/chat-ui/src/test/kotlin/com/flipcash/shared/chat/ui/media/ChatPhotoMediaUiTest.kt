@@ -289,13 +289,14 @@ class ChatPhotoMediaUiTest {
         onReply: (() -> Unit)? = {},
         onForward: (() -> Unit)? = {},
         onReact: ((String) -> Unit)? = {},
+        reactionStrip: List<ReactionStrip.Entry> = strip,
     ) {
         rule.setContent {
             DesignSystem {
                 ChatMediaViewer(
                     model = null, fullImageLoaded = loaded, onFullImageLoaded = {},
                     onSave = onSave, onDismiss = {}, onReply = onReply, onForward = onForward,
-                    onReact = onReact, reactionStrip = strip,
+                    onReact = onReact, reactionStrip = reactionStrip,
                     zoomState = zoom, reduceMotion = true,
                 )
             }
@@ -376,6 +377,15 @@ class ChatPhotoMediaUiTest {
         viewer(loaded = true, onReact = null)
         tapPhoto()
         rule.onNodeWithTag(VIEWER_REACT_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun reactIsDisabledWhileTheStripHasNoEntries() {
+        viewer(loaded = true, reactionStrip = emptyList())
+        tapPhoto()
+        rule.onNodeWithTag(VIEWER_REACT_TAG).assertIsNotEnabled()
+        rule.onNodeWithTag(VIEWER_REACT_TAG).performClick()
+        rule.onNodeWithTag(VIEWER_REACT_STRIP_TAG).assertDoesNotExist()
     }
 
     @Test

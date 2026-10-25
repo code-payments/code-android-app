@@ -378,7 +378,8 @@ fun ChatMediaViewer(
                     ViewerPillButton(
                         icon = Icons.Outlined.AddReaction,
                         description = stringResource(R.string.action_addReaction),
-                        enabled = interactive && chromeVisible,
+                        // Nothing to show until the strip's inputs have loaded.
+                        enabled = interactive && chromeVisible && reactionStrip.isNotEmpty(),
                         tag = VIEWER_REACT_TAG,
                         onClick = { stripOpen = !stripOpen },
                     )

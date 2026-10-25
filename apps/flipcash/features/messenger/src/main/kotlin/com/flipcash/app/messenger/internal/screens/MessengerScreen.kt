@@ -62,6 +62,7 @@ import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.reactionStripFor
+import com.flipcash.app.messenger.internal.withLiveSelfReactions
 import com.flipcash.app.messenger.internal.MentionDestination
 import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
@@ -571,7 +572,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         }
     }
 
-    openPhoto?.let { bubble ->
+    openPhoto?.let { opened ->
+        // The bubble the photo opened from is a snapshot; the strip highlights the live picks.
+        val live by remember(opened.messageId) { viewModel.selfReactionsOf(opened.messageId) }
+            .collectAsStateWithLifecycle(initialValue = null)
+        val bubble = opened.withLiveSelfReactions(live)
         ChatPhotoOverlay(
             messageId = bubble.messageId,
             sources = photoSources,

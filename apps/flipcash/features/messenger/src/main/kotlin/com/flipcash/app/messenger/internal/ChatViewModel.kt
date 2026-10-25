@@ -2663,6 +2663,14 @@ internal class ChatViewModel @AssistedInject constructor(
             .launchIn(viewModelScope)
     }
 
+    /**
+     * The viewer's own reactions on [messageId] as they stand now, `null` while nothing is known
+     * beyond the bubble a caller already holds. For a surface that outlives the bubble it was
+     * opened with, like the photo viewer, whose strip would otherwise highlight stale picks.
+     */
+    fun selfReactionsOf(messageId: Long): Flow<List<SelfReaction>?> =
+        reactionOverlay.map { it[messageId]?.selfReactions }.distinctUntilChanged()
+
     private suspend fun loadQuickReactionInputs(): QuickReactionInputs {
         val catalog = emojiCatalogLoader.load()
         val fill = catalog.firstCategoryEntries.map { it.emoji }
@@ -4195,6 +4203,11 @@ private fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): 
  */
 private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State =
     copy(quickReactionStrip = reactionStripFor(selection))
+
+/** This bubble with the viewer's reactions replaced by [live], when the overlay knows better. */
+internal fun ChatListItem.ContentBubble.withLiveSelfReactions(
+    live: List<SelfReaction>?,
+): ChatListItem.ContentBubble = if (live == null) this else copy(selfReactions = live)
 
 /**
  * The quick strip for [bubble]: empty when it can't be reacted to or the inputs haven't loaded.
