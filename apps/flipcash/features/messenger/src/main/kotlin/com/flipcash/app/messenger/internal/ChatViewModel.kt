@@ -4193,20 +4193,28 @@ private fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): 
  * [ChatViewModel.State.quickReactionStrip] rebuilt for the current selection: empty while nothing
  * is selected, while the selected message can't be reacted to, or before the inputs have loaded.
  */
-private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
-    val bubble = selection?.takeIf { it.canReact }
+private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State =
+    copy(quickReactionStrip = reactionStripFor(selection))
+
+/**
+ * The quick strip for [bubble]: empty when it can't be reacted to or the inputs haven't loaded.
+ * Shared by the context menu's strip and the photo viewer's.
+ */
+internal fun ChatViewModel.State.reactionStripFor(
+    bubble: ChatListItem.ContentBubble?,
+): List<ReactionStrip.Entry> {
+    val reactable = bubble?.takeIf { it.canReact }
     val inputs = quickReactionInputs
-    val strip = if (bubble == null || inputs == null) {
+    return if (reactable == null || inputs == null) {
         emptyList()
     } else {
         ReactionStripComposer.compose(
             recentStats = inputs.recentStats,
-            selfReactions = bubble.selfReactions,
+            selfReactions = reactable.selfReactions,
             catalogFillSource = inputs.catalogFill,
             undrawable = inputs.undrawable,
         )
     }
-    return copy(quickReactionStrip = strip)
 }
 
 /**

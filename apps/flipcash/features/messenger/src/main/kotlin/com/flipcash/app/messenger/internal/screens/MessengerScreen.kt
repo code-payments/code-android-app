@@ -61,6 +61,7 @@ import com.flipcash.app.core.links.LocalTrustedWebsites
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.reactionStripFor
 import com.flipcash.app.messenger.internal.MentionDestination
 import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
@@ -577,6 +578,16 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             onClosed = { openPhoto = null },
             onSaveResult = { saved -> viewModel.dispatchEvent(ChatViewModel.Event.PhotoSaveResult(saved)) },
             // The same actions the message's context menu offers, gated by the same capabilities.
+            // React sends the event the menu's strip does, and the strip is built the same way.
+            onReact = if (bubble.canReact) {
+                { emoji ->
+                    viewModel.dispatchEvent(
+                        ChatViewModel.Event.ToggleReaction(bubble.messageId, emoji, clearsSelection = true)
+                    )
+                }
+            } else null,
+            reactionStrip = state.reactionStripFor(bubble),
+            onOpenPicker = { navigator.push(ChatStep.ReactionPicker(bubble.messageId)) },
             // Reply sets the strip the way the menu's Reply does; the overlay closes itself.
             onReply = if (MessageCapability.Reply in bubble.capabilities) {
                 { viewModel.dispatchEvent(ChatViewModel.Event.ReplyRequested(bubble)) }

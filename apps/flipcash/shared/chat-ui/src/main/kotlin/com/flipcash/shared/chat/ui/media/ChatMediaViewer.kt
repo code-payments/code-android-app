@@ -24,10 +24,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import com.flipcash.shared.chat.reactions.ReactionStrip
+import com.flipcash.shared.chat.ui.QuickReactionStrip
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.ZoomIn
+import androidx.compose.material.icons.outlined.AddReaction
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -73,7 +75,9 @@ import kotlin.math.abs
 
 internal const val VIEWER_IMAGE_TAG = "chat_media_viewer_image"
 internal const val VIEWER_CLOSE_TAG = "chat_media_viewer_close"
-internal const val VIEWER_ZOOM_TAG = "chat_media_viewer_zoom"
+internal const val VIEWER_REACT_TAG = "chat_media_viewer_react"
+internal const val VIEWER_REACT_STRIP_TAG = "chat_media_viewer_react_strip"
+internal const val VIEWER_REACT_SCRIM_TAG = "chat_media_viewer_react_scrim"
 internal const val VIEWER_REPLY_TAG = "chat_media_viewer_reply"
 internal const val VIEWER_SAVE_TAG = "chat_media_viewer_save"
 internal const val VIEWER_FORWARD_TAG = "chat_media_viewer_forward"
@@ -86,7 +90,7 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  *
  * Pinch zooms from 1× to 4× with the pan held inside the image's edges; a double tap goes to 2.5×
  * about the tapped point, or back to fit when already zoomed. The viewer opens with no chrome; a
- * single tap shows or hides the close button and the two pills at the bottom (Zoom and Reply on the
+ * single tap shows or hides the close button and the two pills at the bottom (React and Reply on the
  * left, Save and Forward on the right). A one-finger drag that starts while
  * the image is at fit pulls it away; when zoomed the same drag pans instead.
  *
@@ -97,12 +101,16 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  * close button's.
  *
  * [placeholder] (usually the bubble's BlurHash, or the thumbnail already on screen) shows until
- * the full image has loaded, which [onFullImageLoaded] reports. Zoom and Save stay disabled until
- * [fullImageLoaded] is true, since there is nothing worth zooming or saving before then.
+ * the full image has loaded, which [onFullImageLoaded] reports. Save stays disabled until
+ * [fullImageLoaded] is true, since there is nothing worth saving before then.
  *
  * Hostable as a Nav3 entry: it takes plain parameters and calls back for close, save, reply and
  * forward. The host owns what each does; [rememberSavePhoto] is the usual answer to Save.
  *
+ * @param onReact a pick from [reactionStrip]; null hides the React button, for a message that
+ * cannot be reacted to. The button opens the strip above it, and a pick, a tap outside it or
+ * hiding the chrome closes it again.
+ * @param onOpenPicker the strip's "+": the host's full emoji picker.
  * @param onReply Reply; null hides the button, for a message that cannot be replied to.
  * @param onForward Forward; null hides the button, for a message with no link to hand out.
  * @param model what Coil loads for the full image.
@@ -119,6 +127,9 @@ fun ChatMediaViewer(
     onSave: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onReact: ((emoji: String) -> Unit)? = null,
+    reactionStrip: List<ReactionStrip.Entry> = emptyList(),
+    onOpenPicker: () -> Unit = {},
     onReply: (() -> Unit)? = null,
     onForward: (() -> Unit)? = null,
     placeholder: Painter? = null,
@@ -139,6 +150,8 @@ fun ChatMediaViewer(
     val currentOnPullEnd by rememberUpdatedState(onPullEnd)
     val touchSlop = LocalViewConfiguration.current.touchSlop
     var chromeVisible by remember { mutableStateOf(false) }
+    var stripOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(chromeVisible) { if (!chromeVisible) stripOpen = false }
     val chromeShown by animateFloatAsState(
         targetValue = if (chromeVisible) 1f else 0f,
         animationSpec = if (reduceMotion) snap() else tween(200),
@@ -323,7 +336,35 @@ fun ChatMediaViewer(
             onClick = onDismiss,
             modifier = chrome.align(Alignment.TopStart),
         )
-        val center = { Offset(zoomState.container.width / 2f, zoomState.container.height / 2f) }
+        if (stripOpen && onReact != null && reactionStrip.isNotEmpty()) {
+            // A tap anywhere else closes the strip without reacting.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(VIEWER_REACT_SCRIM_TAG)
+                    .pointerInput(Unit) { detectTapGestures { stripOpen = false } },
+            )
+            QuickReactionStrip(
+                entries = reactionStrip,
+                onToggle = { emoji ->
+                    stripOpen = false
+                    onReact(emoji)
+                },
+                onOpenPicker = {
+                    stripOpen = false
+                    onOpenPicker()
+                },
+                modifier = chrome
+                    .align(Alignment.BottomStart)
+                    .navigationBarsPadding()
+                    .padding(
+                        start = CodeTheme.dimens.staticGrid.x4,
+                        bottom = CodeTheme.dimens.staticGrid.x3 + CodeTheme.dimens.staticGrid.x10 +
+                            CodeTheme.dimens.staticGrid.x2,
+                    )
+                    .testTag(VIEWER_REACT_STRIP_TAG),
+            )
+        }
         Row(
             modifier = chrome
                 .align(Alignment.BottomStart)
@@ -333,13 +374,15 @@ fun ChatMediaViewer(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             ViewerPill {
-                ViewerPillButton(
-                    icon = Icons.Outlined.ZoomIn,
-                    description = stringResource(R.string.description_chatMediaZoom),
-                    enabled = fullImageLoaded && interactive && chromeVisible,
-                    tag = VIEWER_ZOOM_TAG,
-                    onClick = { scope.launch { zoomState.toggle(center(), animated = !reduceMotion) } },
-                )
+                if (onReact != null) {
+                    ViewerPillButton(
+                        icon = Icons.Outlined.AddReaction,
+                        description = stringResource(R.string.action_addReaction),
+                        enabled = interactive && chromeVisible,
+                        tag = VIEWER_REACT_TAG,
+                        onClick = { stripOpen = !stripOpen },
+                    )
+                }
                 if (onReply != null) {
                     ViewerPillButton(
                         icon = Icons.AutoMirrored.Filled.Reply,

@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui.media
 
+import com.flipcash.shared.chat.reactions.ReactionStrip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
@@ -286,17 +288,24 @@ class ChatPhotoMediaUiTest {
         onSave: () -> Unit = {},
         onReply: (() -> Unit)? = {},
         onForward: (() -> Unit)? = {},
+        onReact: ((String) -> Unit)? = {},
     ) {
         rule.setContent {
             DesignSystem {
                 ChatMediaViewer(
                     model = null, fullImageLoaded = loaded, onFullImageLoaded = {},
                     onSave = onSave, onDismiss = {}, onReply = onReply, onForward = onForward,
+                    onReact = onReact, reactionStrip = strip,
                     zoomState = zoom, reduceMotion = true,
                 )
             }
         }
     }
+
+    private val strip = listOf(
+        ReactionStrip.Entry(emoji = "\uD83D\uDC4D", highlighted = false),
+        ReactionStrip.Entry(emoji = "\u2764\uFE0F", highlighted = false),
+    )
 
     private fun tapPhoto() {
         rule.onNodeWithTag(VIEWER_IMAGE_TAG).performTouchInput { click(center) }
@@ -304,7 +313,7 @@ class ChatPhotoMediaUiTest {
     }
 
     private val allButtons = listOf(
-        VIEWER_CLOSE_TAG, VIEWER_ZOOM_TAG, VIEWER_REPLY_TAG, VIEWER_SAVE_TAG, VIEWER_FORWARD_TAG,
+        VIEWER_CLOSE_TAG, VIEWER_REACT_TAG, VIEWER_REPLY_TAG, VIEWER_SAVE_TAG, VIEWER_FORWARD_TAG,
     )
 
     @Test
@@ -323,22 +332,21 @@ class ChatPhotoMediaUiTest {
     }
 
     @Test
-    fun saveAndZoomAreDisabledUntilTheFullImageLoads() {
+    fun saveIsDisabledUntilTheFullImageLoads() {
         viewer(loaded = false)
         tapPhoto()
         rule.onNodeWithTag(VIEWER_SAVE_TAG).assertIsNotEnabled()
-        rule.onNodeWithTag(VIEWER_ZOOM_TAG).assertIsNotEnabled()
+        rule.onNodeWithTag(VIEWER_REACT_TAG).assertIsEnabled()
         rule.onNodeWithTag(VIEWER_CLOSE_TAG).assertIsEnabled()
         rule.onNodeWithTag(VIEWER_REPLY_TAG).assertIsEnabled()
         rule.onNodeWithTag(VIEWER_FORWARD_TAG).assertIsEnabled()
     }
 
     @Test
-    fun saveAndZoomAreEnabledOnceLoaded() {
+    fun saveIsEnabledOnceLoaded() {
         viewer(loaded = true)
         tapPhoto()
         rule.onNodeWithTag(VIEWER_SAVE_TAG).assertIsEnabled()
-        rule.onNodeWithTag(VIEWER_ZOOM_TAG).assertIsEnabled()
     }
 
     @Test
@@ -360,21 +368,62 @@ class ChatPhotoMediaUiTest {
         tapPhoto()
         rule.onNodeWithTag(VIEWER_REPLY_TAG).assertDoesNotExist()
         rule.onNodeWithTag(VIEWER_FORWARD_TAG).assertDoesNotExist()
-        rule.onNodeWithTag(VIEWER_ZOOM_TAG).assertExists()
+        rule.onNodeWithTag(VIEWER_SAVE_TAG).assertExists()
     }
 
     @Test
-    fun zoomButtonTogglesZoomAboutTheCenter() {
-        val zoom = ChatMediaZoomState()
-        viewer(loaded = true, zoom = zoom)
+    fun reactIsHiddenWithoutItsHandler() {
+        viewer(loaded = true, onReact = null)
         tapPhoto()
-        assertFalse(zoom.isZoomed)
-        rule.onNodeWithTag(VIEWER_ZOOM_TAG).performClick()
-        rule.waitForIdle()
-        assertTrue(zoom.isZoomed)
-        rule.onNodeWithTag(VIEWER_ZOOM_TAG).performClick()
-        rule.waitForIdle()
-        assertFalse(zoom.isZoomed)
+        rule.onNodeWithTag(VIEWER_REACT_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun reactIsEnabledBeforeTheImageLoads() {
+        viewer(loaded = false)
+        tapPhoto()
+        rule.onNodeWithTag(VIEWER_REACT_TAG).assertIsEnabled()
+    }
+
+    @Test
+    fun reactOpensTheStripAndAPickCallsTheHandlerAndClosesIt() {
+        val picked = mutableListOf<String>()
+        viewer(loaded = true, onReact = { picked += it })
+        tapPhoto()
+        rule.onNodeWithTag(VIEWER_REACT_STRIP_TAG).assertDoesNotExist()
+        rule.onNodeWithTag(VIEWER_REACT_TAG).performClick()
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithTag(VIEWER_REACT_STRIP_TAG).assertExists()
+        rule.onNodeWithTag("quick_reaction_\u2764\uFE0F").performClick()
+        rule.mainClock.advanceTimeBy(1_000)
+        assertEquals(listOf("\u2764\uFE0F"), picked)
+        rule.onNodeWithTag(VIEWER_REACT_STRIP_TAG).assertDoesNotExist()
+        // The viewer stays open with its chrome.
+        rule.onNodeWithTag(VIEWER_SAVE_TAG).assertIsEnabled()
+    }
+
+    @Test
+    fun tappingOutsideTheStripClosesItWithoutReacting() {
+        val picked = mutableListOf<String>()
+        viewer(loaded = true, onReact = { picked += it })
+        tapPhoto()
+        rule.onNodeWithTag(VIEWER_REACT_TAG).performClick()
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithTag(VIEWER_REACT_SCRIM_TAG).performTouchInput { click(topLeft + Offset(10f, 10f)) }
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithTag(VIEWER_REACT_STRIP_TAG).assertDoesNotExist()
+        assertTrue(picked.isEmpty())
+    }
+
+    @Test
+    fun tappingReactAgainClosesTheStrip() {
+        viewer(loaded = true)
+        tapPhoto()
+        rule.onNodeWithTag(VIEWER_REACT_TAG).performClick()
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithTag(VIEWER_REACT_TAG).performClick()
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithTag(VIEWER_REACT_STRIP_TAG).assertDoesNotExist()
     }
 
     @Test

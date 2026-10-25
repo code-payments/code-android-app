@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.ui.media
 
+import com.flipcash.shared.chat.reactions.ReactionStrip
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
@@ -163,6 +164,9 @@ fun ChatPhotoOverlay(
     onClosed: () -> Unit,
     onSaveResult: (saved: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    onReact: ((emoji: String) -> Unit)? = null,
+    reactionStrip: List<ReactionStrip.Entry> = emptyList(),
+    onOpenPicker: () -> Unit = {},
     onReply: (() -> Unit)? = null,
     onForward: (() -> Unit)? = null,
     reduceMotion: Boolean = rememberReducedMotion(),
@@ -235,7 +239,11 @@ fun ChatPhotoOverlay(
             onSave = save,
             // Reply leaves the photo, back into its bubble, as the composer's strip opens.
             onReply = onReply?.let { reply -> { presentation.dismiss(); reply() } },
-            onForward = onForward,
+            // Forward and the picker, like Reply, leave the photo before their screen opens.
+            onForward = onForward?.let { forward -> { presentation.dismiss(); forward() } },
+            onReact = onReact,
+            reactionStrip = reactionStrip,
+            onOpenPicker = { presentation.dismiss(); onOpenPicker() },
             onDismiss = presentation::dismiss,
             zoomState = zoomState,
             reduceMotion = reduceMotion,
