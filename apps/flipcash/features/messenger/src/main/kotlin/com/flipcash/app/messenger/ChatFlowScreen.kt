@@ -227,6 +227,7 @@ private fun chatEntryProvider(
         val navigator = LocalCodeNavigator.current
         RequestMoneyScreen(
             chatId = step.chatId,
+            resultStateRegistry = resultStateRegistry,
             onClose = { navigator.pop() },
             onOpenRequest = { request -> navigator.push(ChatStep.RequestDetails(step.chatId, request.id.base58)) },
         )

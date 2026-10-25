@@ -4,7 +4,13 @@ import com.getcode.theme.White05
 import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
+import android.os.Parcelable
 import androidx.activity.compose.BackHandler
+import androidx.navigation3.runtime.entryProvider
+import com.getcode.navigation.annotatedEntry
+import com.getcode.navigation.flow.FlowHost
+import com.getcode.navigation.flow.rememberFlowNavigator
+import com.getcode.navigation.results.NavResultStateRegistry
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -85,14 +91,17 @@ import kotlin.time.toKotlinInstant
 /**
  * Request Money, frames 03–06 and 25 of the group requests spec: history, then the create flow
  * behind New Request. Its stages live in [RequestMoneyViewModel] rather than as steps of their
- * own, so the draft has one owner and leaving the screen drops it.
+ * own, so the draft has one owner and leaving the screen drops it. The screen hosts its own nav
+ * host so each stage slides in over the last; the stage decides which step is on top.
  */
 @Composable
 internal fun RequestMoneyScreen(
     chatId: ChatId,
+    resultStateRegistry: NavResultStateRegistry,
     onClose: () -> Unit,
     onOpenRequest: (PaymentRequest) -> Unit,
 ) {
+    // Read here, not inside an entry: an entry's hiltViewModel would be scoped to that step.
     val viewModel = hiltViewModel<RequestMoneyViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(chatId) { viewModel.open(chatId) }
@@ -104,62 +113,102 @@ internal fun RequestMoneyScreen(
         }
     }
     val back = { if (!viewModel.back()) onClose() }
-    BackHandler(enabled = state.stage != RequestMoneyViewModel.Stage.History) { back() }
+    val target = stackFor(state.stage)
 
-    when (state.stage) {
-        RequestMoneyViewModel.Stage.History -> {
-            val requests by viewModel.chatRequests.collectAsStateWithLifecycle()
-            RequestHistoryContent(
-                requests = requests,
-                loadingMore = state.loadingPrevious,
-                canLoadMore = !state.previousEnd,
-                onBack = onClose,
-                onNewRequest = viewModel::newRequest,
-                onOpen = onOpenRequest,
-                onLoadMore = viewModel::loadMorePrevious,
-            )
-        }
-        RequestMoneyViewModel.Stage.Amount -> AmountEntryScreen(
-            controller = viewModel.amountDelegate,
-            onConfirm = viewModel::amountEntered,
-            largeHeader = true,
-            appBar = {
-                AppBarWithTitle(
-                    title = stringResource(R.string.title_amountPerPerson),
-                    titleAlignment = Alignment.CenterHorizontally,
-                    onBackIconClicked = back,
+    FlowHost<RequestStep, Parcelable>(
+        initialStack = target,
+        resultStateRegistry = resultStateRegistry,
+        onExit = { _, _ -> onClose() },
+        entryProvider = entryProvider {
+            annotatedEntry<RequestStep.History> {
+                FollowStage(RequestStep.History, target)
+                val requests by viewModel.chatRequests.collectAsStateWithLifecycle()
+                RequestHistoryContent(
+                    requests = requests,
+                    loadingMore = state.loadingPrevious,
+                    canLoadMore = !state.previousEnd,
+                    onBack = onClose,
+                    onNewRequest = viewModel::newRequest,
+                    onOpen = onOpenRequest,
+                    onLoadMore = viewModel::loadMorePrevious,
                 )
-            },
-        )
-        RequestMoneyViewModel.Stage.Summary -> state.draft?.let { draft ->
-            RequestSummaryContent(
-                draft = draft,
-                sending = state.sendProgress.loading,
-                onBack = back,
-                onName = viewModel::editName,
-                onPeople = viewModel::editPeople,
-                onTiming = viewModel::editDeadline,
-                onRequest = viewModel::requestConfirm,
-            )
-        }
-        RequestMoneyViewModel.Stage.People -> state.draft?.let { draft ->
-            val members by viewModel.members.collectAsStateWithLifecycle()
-            GroupSelectPeopleContent(
-                candidates = members,
-                selected = draft.shares,
-                onBack = back,
-                onToggle = { viewModel.toggle(it.userId) },
-                onSend = back,
-                buttonText = stringResource(R.string.action_done),
-                buttonEnabled = draft.canContinue,
-                viewerId = viewModel.viewerId,
-            )
-        }
-        RequestMoneyViewModel.Stage.Name -> state.draft?.let { draft ->
-            RequestNameContent(title = draft.title, onBack = back, onDone = viewModel::rename)
+            }
+            annotatedEntry<RequestStep.Amount> {
+                FollowStage(RequestStep.Amount, target, onBack = back)
+                AmountEntryScreen(
+                    controller = viewModel.amountDelegate,
+                    onConfirm = viewModel::amountEntered,
+                    largeHeader = true,
+                    appBar = {
+                        AppBarWithTitle(
+                            title = stringResource(R.string.title_amountPerPerson),
+                            titleAlignment = Alignment.CenterHorizontally,
+                            onBackIconClicked = back,
+                        )
+                    },
+                )
+            }
+            annotatedEntry<RequestStep.Summary> {
+                FollowStage(RequestStep.Summary, target, onBack = back)
+                state.draft?.let { draft ->
+                    RequestSummaryContent(
+                        draft = draft,
+                        sending = state.sendProgress.loading,
+                        onBack = back,
+                        onName = viewModel::editName,
+                        onPeople = viewModel::editPeople,
+                        onTiming = viewModel::editDeadline,
+                        onRequest = viewModel::requestConfirm,
+                    )
+                }
+                RequestSheets(state, viewModel)
+            }
+            annotatedEntry<RequestStep.People> {
+                FollowStage(RequestStep.People, target, onBack = back)
+                state.draft?.let { draft ->
+                    val members by viewModel.members.collectAsStateWithLifecycle()
+                    GroupSelectPeopleContent(
+                        candidates = members,
+                        selected = draft.shares,
+                        onBack = back,
+                        onToggle = { viewModel.toggle(it.userId) },
+                        onSend = back,
+                        buttonText = stringResource(R.string.action_done),
+                        buttonEnabled = draft.canContinue,
+                        viewerId = viewModel.viewerId,
+                    )
+                }
+            }
+            annotatedEntry<RequestStep.Name> {
+                FollowStage(RequestStep.Name, target, onBack = back)
+                state.draft?.let { draft ->
+                    RequestNameContent(title = draft.title, onBack = back, onDone = viewModel::rename)
+                }
+            }
+        },
+    )
+}
+
+/**
+ * Moves the nav host one step towards [target] from [step]'s entry (see [moveFrom]). Back, when
+ * [onBack] is given, goes through the view model, whose stage change pops the step here; the nav
+ * host popping on its own would leave the stage behind.
+ */
+@Composable
+private fun FollowStage(step: RequestStep, target: List<RequestStep>, onBack: (() -> Unit)? = null) {
+    val flowNavigator = rememberFlowNavigator<RequestStep, Parcelable>()
+    LaunchedEffect(target) {
+        when (val move = moveFrom(step, target)) {
+            StackMove.None -> Unit
+            StackMove.Pop -> flowNavigator.back()
+            is StackMove.Push -> flowNavigator.navigateTo(move.step)
         }
     }
+    if (onBack != null) BackHandler { onBack() }
+}
 
+@Composable
+private fun RequestSheets(state: RequestMoneyViewModel.State, viewModel: RequestMoneyViewModel) {
     when (state.sheet) {
         RequestMoneyViewModel.Sheet.None -> Unit
         RequestMoneyViewModel.Sheet.Deadline -> state.draft?.let { draft ->
