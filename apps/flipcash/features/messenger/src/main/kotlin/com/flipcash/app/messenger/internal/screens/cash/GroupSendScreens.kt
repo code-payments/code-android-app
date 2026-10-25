@@ -47,6 +47,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White10
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.CodeButton
@@ -219,17 +220,24 @@ internal fun GroupSendConfirmSheet(
                     style = CodeTheme.typography.displayMedium,
                     color = CodeTheme.colors.textMain,
                 )
-                Text(
-                    text = eachLabel(parts, total.currencyCode),
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary,
-                )
+                if (parts.size >= 2) {
+                    Text(
+                        text = eachLabel(parts, total.currencyCode),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                }
             }
 
             TokenSelectionPill(
                 token = token,
+                background = White10,
                 textStyle = CodeTheme.typography.textMedium,
                 imageSize = CodeTheme.dimens.staticGrid.x3,
+                contentPadding = PaddingValues(
+                    horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
+                    vertical = CodeTheme.dimens.grid.x1 - 1.dp,
+                ),
                 onClick = { if (!locked) onPickToken() },
             )
 
