@@ -151,6 +151,7 @@ internal fun RequestDeckPill(
                         .matchParentSize()
                         .padding(horizontal = PEEK_INSET * depth)
                         .offset(y = PEEK_STEP * depth)
+                        .background(CodeTheme.colors.background, PILL_SHAPE)
                         .background(
                             if (depth == 1) CodeTheme.colors.surfaceVariant else CodeTheme.colors.surface,
                             PILL_SHAPE,
@@ -203,6 +204,7 @@ private fun DeckFront(request: PaymentRequest, now: Instant, modifier: Modifier 
     val split = request.split
     Row(
         modifier = modifier
+            .background(CodeTheme.colors.background, PILL_SHAPE)
             .alpha(if (ended) ENDED_ALPHA else 1f)
             .background(CodeTheme.colors.surfaceVariant, PILL_SHAPE)
             .border(1.dp, CodeTheme.colors.border, PILL_SHAPE)
@@ -350,6 +352,9 @@ internal fun ExpandedRequests(
                             )
                         }
                     )
+                    // surfaceVariant is translucent; the opaque base keeps the transcript from
+                    // showing through, and sits outside the alpha so ended cards stay solid.
+                    .background(CodeTheme.colors.background, CARD_SHAPE)
                     .alpha(if (request.isOpen(now)) 1f else ENDED_ALPHA)
                     .background(CodeTheme.colors.surfaceVariant, CARD_SHAPE)
                     .clickable { onOpen(request) }

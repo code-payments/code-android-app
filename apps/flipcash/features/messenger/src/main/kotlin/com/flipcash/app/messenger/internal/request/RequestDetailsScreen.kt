@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -252,7 +251,7 @@ private fun RequestDetailsContent(
             ) {
                 Text(
                     text = request.deckTitle.orEmpty(),
-                    style = CodeTheme.typography.displaySmall,
+                    style = CodeTheme.typography.displayCompact,
                     color = CodeTheme.colors.textMain,
                 )
                 Row(
@@ -276,7 +275,7 @@ private fun RequestDetailsContent(
                 }
                 Text(
                     text = request.progressText(),
-                    style = CodeTheme.typography.textMedium,
+                    style = CodeTheme.typography.displaySmall,
                     color = CodeTheme.colors.textMain,
                 )
                 RequestProgressBar(fraction = split.paidFraction, ended = !open)
@@ -311,44 +310,39 @@ private fun ShareRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .padding(bottom = CodeTheme.dimens.grid.x2)
+            .clip(CodeTheme.shapes.medium)
+            .background(CodeTheme.colors.surfaceVariant)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = CodeTheme.dimens.inset),
+            .padding(CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
         MemberAvatar(member, Modifier.requiredSize(CodeTheme.dimens.staticGrid.x6))
         Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (isViewer) stringResource(R.string.title_you) else memberName(member),
-                        style = CodeTheme.typography.textMedium,
-                        color = CodeTheme.colors.textMain,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = when {
-                            share.isPaid -> stringResource(R.string.label_sharePaid)
-                            requestOpen -> stringResource(R.string.label_shareUnpaid)
-                            else -> stringResource(R.string.label_shareUnpaidEnded)
-                        },
-                        style = CodeTheme.typography.textSmall,
-                        color = if (share.isPaid) CodeTheme.colors.success else CodeTheme.colors.textSecondary,
-                    )
-                }
-                Text(
-                    text = share.amount.requestText(),
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textMain,
-                )
-            }
-            HorizontalDivider(color = CodeTheme.colors.divider)
+            Text(
+                text = if (isViewer) stringResource(R.string.title_you) else memberName(member),
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = when {
+                    share.isPaid -> stringResource(R.string.label_sharePaid)
+                    requestOpen -> stringResource(R.string.label_shareUnpaid)
+                    else -> stringResource(R.string.label_shareUnpaidEnded)
+                },
+                style = CodeTheme.typography.textSmall,
+                color = if (share.isPaid) CodeTheme.colors.success else CodeTheme.colors.textSecondary,
+            )
         }
+        Text(
+            text = share.amount.requestText(),
+            style = CodeTheme.typography.textMedium,
+            color = CodeTheme.colors.textMain,
+        )
     }
 }
 

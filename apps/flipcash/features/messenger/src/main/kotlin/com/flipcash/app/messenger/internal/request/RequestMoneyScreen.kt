@@ -1,5 +1,9 @@
 package com.flipcash.app.messenger.internal.request
 
+import com.getcode.theme.White05
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -329,20 +333,16 @@ private fun RequestSummaryContent(
         ) {
             Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
             Text(
-                modifier = Modifier.fillMaxWidth(),
                 text = amount,
                 style = CodeTheme.typography.displayLarge,
                 color = CodeTheme.colors.textMain,
-                textAlign = TextAlign.Center,
             )
             Text(
-                modifier = Modifier.fillMaxWidth(),
                 text = stringResource(R.string.label_perPerson),
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textSecondary,
-                textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(CodeTheme.dimens.grid.x8))
+            Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
             SummaryRow(
                 label = stringResource(R.string.label_requestName),
                 value = draft.title,
@@ -367,32 +367,35 @@ private fun RequestSummaryContent(
 
 @Composable
 private fun SummaryRow(label: String, value: String, detail: String?, onClick: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Row(
-            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-        ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = CodeTheme.dimens.grid.x3)
+            .clip(CodeTheme.shapes.medium)
+            .background(White05)
+            .clickable(onClick = onClick)
+            .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x3),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
+            Text(text = label, style = CodeTheme.typography.caption, color = CodeTheme.colors.textSecondary)
             Text(
-                modifier = Modifier.weight(1f),
-                text = label,
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textSecondary,
+                text = value,
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.textMain,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = value,
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textMain,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (detail != null) {
-                    Text(text = detail, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textSecondary)
-                }
+            if (detail != null) {
+                Text(text = detail, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textSecondary)
             }
         }
-        HorizontalDivider(color = CodeTheme.colors.divider)
+        Icon(
+            painter = painterResource(R.drawable.ic_chevron_right),
+            contentDescription = null,
+            tint = CodeTheme.colors.textSecondary,
+        )
     }
 }
 

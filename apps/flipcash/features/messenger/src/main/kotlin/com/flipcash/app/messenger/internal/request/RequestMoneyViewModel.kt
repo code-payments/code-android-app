@@ -96,7 +96,10 @@ internal class RequestMoneyViewModel @Inject constructor(
             actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_next)),
             actionStyle = ConfirmationStyle.Button,
         ),
-    )
+    ).also { delegate ->
+        // Without a currency the keypad draws a bare number and enters with no fraction digits.
+        exchange.getCurrency(currency.name)?.let(delegate::onCurrencyChanged)
+    }
 
     /** The chat's requests, refetched on open. History reads both sections from these. */
     val chatRequests: StateFlow<List<PaymentRequest>> = _state
