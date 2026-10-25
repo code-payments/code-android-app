@@ -3,11 +3,13 @@ package com.flipcash.shared.chat
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.controllers.PaymentRequestController
+import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.NewSplitRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
+import com.flipcash.services.models.paymentrequest.PaymentRequestPage
 import com.flipcash.services.models.paymentrequest.PaymentRequestSection
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.flipcash.services.models.paymentrequest.newerOf
@@ -52,6 +54,17 @@ class PaymentRequests @Inject constructor(
             .getOrThrow()
         ingest(open.paymentRequests + resolved.paymentRequests)
     }
+
+    /**
+     * One page of [chatId]'s ended requests, most recently ended first, for Request Money history.
+     * [token] is the previous page's; null starts over.
+     */
+    suspend fun resolvedPage(chatId: ChatId, token: PagingToken?): Result<PaymentRequestPage> =
+        controller.getChatPaymentRequests(
+            chatId,
+            PaymentRequestSection.RESOLVED,
+            QueryOptions(limit = RESOLVED_PAGE, token = token),
+        ).onSuccess { ingest(it.paymentRequests) }
 
     /**
      * Refetches one request. The returned details carry `payment_intent_id` for a viewer with an
