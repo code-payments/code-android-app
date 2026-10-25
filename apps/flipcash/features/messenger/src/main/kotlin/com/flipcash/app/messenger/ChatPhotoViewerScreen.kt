@@ -16,7 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.messenger.internal.ChatPhotoViewerViewModel
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ui.media.ChatMediaViewer
-import com.flipcash.shared.chat.ui.media.rememberSharePhoto
+import com.flipcash.shared.chat.ui.media.rememberSavePhoto
 import com.getcode.navigation.core.LocalCodeNavigator
 
 /** The full-screen photo, behind `AppRoute.Messaging.PhotoViewer`. Black, dismissed by back or a pull. */
@@ -27,14 +27,14 @@ fun ChatPhotoViewerScreen(chatId: ChatId, messageId: Long) {
     val photo by viewModel.photo.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
     var fullImageLoaded by remember { mutableStateOf(false) }
-    val share = rememberSharePhoto(photo)
+    val save = rememberSavePhoto(photo) { saved -> viewModel.onSaveResult(saved) }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         ChatMediaViewer(
             model = photo,
             fullImageLoaded = fullImageLoaded,
             onFullImageLoaded = { fullImageLoaded = true },
-            onShare = share,
+            onSave = save,
             onDismiss = { navigator.pop() },
         )
     }

@@ -151,6 +151,9 @@ internal class ChatPhotoPresentation(
  * drags back into it, and goes when it lands. Compose it above the whole screen with the chat
  * still live underneath, only while a photo is open.
  *
+ * [onReply] and [onForward] are null when the message cannot be replied to or linked.
+ * [onSaveResult] reports whether a save reached the gallery, for the host to tell the user.
+ *
  * The caller hides the keyboard first, so the bubble the photo grows from is where it will rest.
  */
 @Composable
@@ -158,7 +161,10 @@ fun ChatPhotoOverlay(
     messageId: Long,
     sources: ChatPhotoSources,
     onClosed: () -> Unit,
+    onSaveResult: (saved: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    onReply: (() -> Unit)? = null,
+    onForward: (() -> Unit)? = null,
     reduceMotion: Boolean = rememberReducedMotion(),
 ) {
     val source = remember(messageId) { sources.sourceOf(messageId) }
@@ -214,7 +220,7 @@ fun ChatPhotoOverlay(
             .build()
     }
     var fullImageLoaded by remember(messageId) { mutableStateOf(false) }
-    val share = rememberSharePhoto(source.fullModel)
+    val save = rememberSavePhoto(source.fullModel, onSaveResult)
 
     Box(
         modifier = modifier
@@ -226,7 +232,10 @@ fun ChatPhotoOverlay(
             model = request,
             fullImageLoaded = fullImageLoaded,
             onFullImageLoaded = { fullImageLoaded = true },
-            onShare = share,
+            onSave = save,
+            // Reply leaves the photo, back into its bubble, as the composer's strip opens.
+            onReply = onReply?.let { reply -> { presentation.dismiss(); reply() } },
+            onForward = onForward,
             onDismiss = presentation::dismiss,
             zoomState = zoomState,
             reduceMotion = reduceMotion,

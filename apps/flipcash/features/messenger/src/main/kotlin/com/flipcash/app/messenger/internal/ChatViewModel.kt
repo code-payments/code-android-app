@@ -1041,6 +1041,9 @@ internal class ChatViewModel @AssistedInject constructor(
         // which has the navigator and has already captured the message.
         data object ShareMessageRequested : Event
 
+        /** A photo the viewer was asked to save has, or has not, reached the gallery. */
+        data class PhotoSaveResult(val saved: Boolean) : Event
+
         data object SubmitEdit : Event
         data object CancelEdit : Event
         data object EditingEnded : Event
@@ -2755,6 +2758,15 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             .launchIn(viewModelScope)
 
+        eventFlow.filterIsInstance<Event.PhotoSaveResult>()
+            .onEach { event ->
+                toastController.showToast(
+                    if (event.saved) R.string.title_chatPhotoSaved else R.string.error_chatPhotoSaveFailed,
+                    replacePrevious = true,
+                )
+            }
+            .launchIn(viewModelScope)
+
         eventFlow.filterIsInstance<Event.CopyMessage>()
             .onEach { event ->
                 clipboardManager.setText(
@@ -4057,6 +4069,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 Event.ShareMessageRequested -> { state ->
                     state.copy(selection = null, confirmingDelete = false)
                 }
+                is Event.PhotoSaveResult -> { state -> state }
                 is Event.EditMessage -> { state ->
                     state.copy(
                         selection = null,

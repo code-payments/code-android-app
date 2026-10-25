@@ -280,44 +280,107 @@ class ChatPhotoMediaUiTest {
 
     // region viewer
 
-    @Test
-    fun shareIsDisabledUntilTheFullImageLoads() {
+    private fun viewer(
+        loaded: Boolean,
+        zoom: ChatMediaZoomState = ChatMediaZoomState(),
+        onSave: () -> Unit = {},
+        onReply: (() -> Unit)? = {},
+        onForward: (() -> Unit)? = {},
+    ) {
         rule.setContent {
             DesignSystem {
                 ChatMediaViewer(
-                    model = null, fullImageLoaded = false, onFullImageLoaded = {},
-                    onShare = {}, onDismiss = {},
+                    model = null, fullImageLoaded = loaded, onFullImageLoaded = {},
+                    onSave = onSave, onDismiss = {}, onReply = onReply, onForward = onForward,
+                    zoomState = zoom, reduceMotion = true,
                 )
             }
         }
-        rule.onNodeWithTag(VIEWER_SHARE_TAG).assertIsNotEnabled()
-        rule.onNodeWithTag(VIEWER_CLOSE_TAG).assertIsEnabled()
+    }
+
+    private fun tapPhoto() {
+        rule.onNodeWithTag(VIEWER_IMAGE_TAG).performTouchInput { click(center) }
+        rule.mainClock.advanceTimeBy(1_000)
+    }
+
+    private val allButtons = listOf(
+        VIEWER_CLOSE_TAG, VIEWER_ZOOM_TAG, VIEWER_REPLY_TAG, VIEWER_SAVE_TAG, VIEWER_FORWARD_TAG,
+    )
+
+    @Test
+    fun opensWithNoChromeEnabled() {
+        viewer(loaded = true)
+        allButtons.forEach { rule.onNodeWithTag(it).assertIsNotEnabled() }
     }
 
     @Test
-    fun shareIsEnabledOnceLoaded() {
-        rule.setContent {
-            DesignSystem {
-                ChatMediaViewer(
-                    model = null, fullImageLoaded = true, onFullImageLoaded = {},
-                    onShare = {}, onDismiss = {},
-                )
-            }
-        }
-        rule.onNodeWithTag(VIEWER_SHARE_TAG).assertIsEnabled()
+    fun singleTapTogglesTheChrome() {
+        viewer(loaded = true)
+        tapPhoto()
+        allButtons.forEach { rule.onNodeWithTag(it).assertIsEnabled() }
+        tapPhoto()
+        allButtons.forEach { rule.onNodeWithTag(it).assertIsNotEnabled() }
+    }
+
+    @Test
+    fun saveAndZoomAreDisabledUntilTheFullImageLoads() {
+        viewer(loaded = false)
+        tapPhoto()
+        rule.onNodeWithTag(VIEWER_SAVE_TAG).assertIsNotEnabled()
+        rule.onNodeWithTag(VIEWER_ZOOM_TAG).assertIsNotEnabled()
+        rule.onNodeWithTag(VIEWER_CLOSE_TAG).assertIsEnabled()
+        rule.onNodeWithTag(VIEWER_REPLY_TAG).assertIsEnabled()
+        rule.onNodeWithTag(VIEWER_FORWARD_TAG).assertIsEnabled()
+    }
+
+    @Test
+    fun saveAndZoomAreEnabledOnceLoaded() {
+        viewer(loaded = true)
+        tapPhoto()
+        rule.onNodeWithTag(VIEWER_SAVE_TAG).assertIsEnabled()
+        rule.onNodeWithTag(VIEWER_ZOOM_TAG).assertIsEnabled()
+    }
+
+    @Test
+    fun buttonsCallTheirHandlers() {
+        var saved = 0
+        var replied = 0
+        var forwarded = 0
+        viewer(loaded = true, onSave = { saved++ }, onReply = { replied++ }, onForward = { forwarded++ })
+        tapPhoto()
+        rule.onNodeWithTag(VIEWER_SAVE_TAG).performClick()
+        rule.onNodeWithTag(VIEWER_REPLY_TAG).performClick()
+        rule.onNodeWithTag(VIEWER_FORWARD_TAG).performClick()
+        assertEquals(listOf(1, 1, 1), listOf(saved, replied, forwarded))
+    }
+
+    @Test
+    fun replyAndForwardAreHiddenWithoutTheirHandlers() {
+        viewer(loaded = true, onReply = null, onForward = null)
+        tapPhoto()
+        rule.onNodeWithTag(VIEWER_REPLY_TAG).assertDoesNotExist()
+        rule.onNodeWithTag(VIEWER_FORWARD_TAG).assertDoesNotExist()
+        rule.onNodeWithTag(VIEWER_ZOOM_TAG).assertExists()
+    }
+
+    @Test
+    fun zoomButtonTogglesZoomAboutTheCenter() {
+        val zoom = ChatMediaZoomState()
+        viewer(loaded = true, zoom = zoom)
+        tapPhoto()
+        assertFalse(zoom.isZoomed)
+        rule.onNodeWithTag(VIEWER_ZOOM_TAG).performClick()
+        rule.waitForIdle()
+        assertTrue(zoom.isZoomed)
+        rule.onNodeWithTag(VIEWER_ZOOM_TAG).performClick()
+        rule.waitForIdle()
+        assertFalse(zoom.isZoomed)
     }
 
     @Test
     fun doubleTapTogglesZoom() {
         val zoom = ChatMediaZoomState()
-        rule.setContent {
-            DesignSystem {
-                ChatMediaViewer(
-                    model = null, fullImageLoaded = true, onFullImageLoaded = {},
-                    onShare = {}, onDismiss = {}, zoomState = zoom, reduceMotion = true,
-                )
-            }
-        }
+        viewer(loaded = true, zoom = zoom)
         assertFalse(zoom.isZoomed)
         rule.onNodeWithTag(VIEWER_IMAGE_TAG).performTouchInput { doubleClick(center) }
         rule.waitForIdle()
@@ -326,27 +389,6 @@ class ChatPhotoMediaUiTest {
         rule.onNodeWithTag(VIEWER_IMAGE_TAG).performTouchInput { doubleClick(center) }
         rule.waitForIdle()
         assertFalse(zoom.isZoomed)
-    }
-
-    @Test
-    fun singleTapTogglesTheButtons() {
-        rule.setContent {
-            DesignSystem {
-                ChatMediaViewer(
-                    model = null, fullImageLoaded = true, onFullImageLoaded = {},
-                    onShare = {}, onDismiss = {}, reduceMotion = true,
-                )
-            }
-        }
-        rule.onNodeWithTag(VIEWER_IMAGE_TAG).performTouchInput { click(center) }
-        rule.mainClock.advanceTimeBy(1_000)
-        rule.onNodeWithTag(VIEWER_CLOSE_TAG).assertIsNotEnabled()
-        rule.onNodeWithTag(VIEWER_SHARE_TAG).assertIsNotEnabled()
-
-        rule.onNodeWithTag(VIEWER_IMAGE_TAG).performTouchInput { click(center) }
-        rule.mainClock.advanceTimeBy(1_000)
-        rule.onNodeWithTag(VIEWER_CLOSE_TAG).assertIsEnabled()
-        rule.onNodeWithTag(VIEWER_SHARE_TAG).assertIsEnabled()
     }
 
     // endregion

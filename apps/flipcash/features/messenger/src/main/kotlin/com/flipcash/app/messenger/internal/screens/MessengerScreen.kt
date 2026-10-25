@@ -73,7 +73,9 @@ import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.BlurredContent
+import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
+import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
@@ -129,7 +131,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // The photo bubbles on screen, and the photo opened over them. The overlay sits above the whole
     // screen rather than being a route, so it can grow out of and shrink back into its bubble.
     val photoSources = remember { ChatPhotoSources() }
-    var openPhotoId by remember { mutableStateOf<Long?>(null) }
+    var openPhoto by remember { mutableStateOf<ChatListItem.ContentBubble?>(null) }
 
     // A private group the viewer is not in has no transcript to show: no key envelope, so nothing
     // to decrypt. A share link or deep link only knows the chat id and lands here first, so once the
@@ -179,7 +181,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             is ChatAction.OpenPhoto -> {
                 // After the keyboard is down, so the bubble the photo grows from has settled.
-                keyboard.hideIfVisible { openPhotoId = action.bubble.messageId }
+                keyboard.hideIfVisible { openPhoto = action.bubble }
             }
 
             is ChatAction.RetryMessage -> {
@@ -568,11 +570,20 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         }
     }
 
-    openPhotoId?.let { id ->
+    openPhoto?.let { bubble ->
         ChatPhotoOverlay(
-            messageId = id,
+            messageId = bubble.messageId,
             sources = photoSources,
-            onClosed = { openPhotoId = null },
+            onClosed = { openPhoto = null },
+            onSaveResult = { saved -> viewModel.dispatchEvent(ChatViewModel.Event.PhotoSaveResult(saved)) },
+            // The same actions the message's context menu offers, gated by the same capabilities.
+            // Reply sets the strip the way the menu's Reply does; the overlay closes itself.
+            onReply = if (MessageCapability.Reply in bubble.capabilities) {
+                { viewModel.dispatchEvent(ChatViewModel.Event.ReplyRequested(bubble)) }
+            } else null,
+            onForward = if (MessageCapability.Link in bubble.capabilities) {
+                { navigator.openMessageShare(bubble.messageId) }
+            } else null,
         )
     }
     }

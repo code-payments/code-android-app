@@ -1,6 +1,8 @@
 package com.flipcash.app.messenger.internal
 
 import androidx.lifecycle.ViewModel
+import com.flipcash.app.core.toast.SystemToastController
+import com.flipcash.core.R
 import androidx.lifecycle.viewModelScope
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ChatCoordinator
@@ -20,10 +22,19 @@ import javax.inject.Inject
 @HiltViewModel
 internal class ChatPhotoViewerViewModel @Inject constructor(
     private val chatCoordinator: ChatCoordinator,
+    private val toastController: SystemToastController,
 ) : ViewModel() {
 
     private val _photo = MutableStateFlow<ChatPhoto?>(null)
     val photo: StateFlow<ChatPhoto?> = _photo
+
+    /** Tells the user how a save went, as a system toast, which is what the chat does for a copy. */
+    fun onSaveResult(saved: Boolean) {
+        toastController.showToast(
+            if (saved) R.string.title_chatPhotoSaved else R.string.error_chatPhotoSaveFailed,
+            replacePrevious = true,
+        )
+    }
 
     private var loaded: Pair<ChatId, Long>? = null
 

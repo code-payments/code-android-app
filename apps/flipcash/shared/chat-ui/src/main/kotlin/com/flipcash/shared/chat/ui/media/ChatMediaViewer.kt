@@ -1,8 +1,6 @@
 package com.flipcash.shared.chat.ui.media
 
 import com.getcode.theme.CodeTheme
-import android.content.Context
-import android.content.Intent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
@@ -15,15 +13,21 @@ import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.IosShare
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.ZoomIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -61,17 +65,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.FileProvider
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import com.flipcash.core.R
 import kotlinx.coroutines.launch
-import java.io.File
 import kotlin.math.abs
 
 internal const val VIEWER_IMAGE_TAG = "chat_media_viewer_image"
 internal const val VIEWER_CLOSE_TAG = "chat_media_viewer_close"
-internal const val VIEWER_SHARE_TAG = "chat_media_viewer_share"
+internal const val VIEWER_ZOOM_TAG = "chat_media_viewer_zoom"
+internal const val VIEWER_REPLY_TAG = "chat_media_viewer_reply"
+internal const val VIEWER_SAVE_TAG = "chat_media_viewer_save"
+internal const val VIEWER_FORWARD_TAG = "chat_media_viewer_forward"
 
 private const val DISMISS_DISTANCE_FRACTION = 0.2f
 private const val MIN_BACKGROUND_ALPHA = 0.2f
@@ -80,8 +85,9 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  * A full-screen photo.
  *
  * Pinch zooms from 1× to 4× with the pan held inside the image's edges; a double tap goes to 2.5×
- * about the tapped point, or back to fit when already zoomed. A single tap hides or shows the
- * close and share buttons. A one-finger drag that starts while
+ * about the tapped point, or back to fit when already zoomed. The viewer opens with no chrome; a
+ * single tap shows or hides the close button and the two pills at the bottom (Zoom and Reply on the
+ * left, Save and Forward on the right). A one-finger drag that starts while
  * the image is at fit pulls it away; when zoomed the same drag pans instead.
  *
  * On its own the pull moves the image down, fading the black behind it, and past a fifth of the
@@ -91,12 +97,14 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  * close button's.
  *
  * [placeholder] (usually the bubble's BlurHash, or the thumbnail already on screen) shows until
- * the full image has loaded, which [onFullImageLoaded] reports. Share stays disabled until
- * [fullImageLoaded] is true, since there is nothing worth sharing before then.
+ * the full image has loaded, which [onFullImageLoaded] reports. Zoom and Save stay disabled until
+ * [fullImageLoaded] is true, since there is nothing worth zooming or saving before then.
  *
- * Hostable as a Nav3 entry: it takes plain parameters and calls back for close and share. The host
- * owns what Share does; [shareImage] is the usual answer.
+ * Hostable as a Nav3 entry: it takes plain parameters and calls back for close, save, reply and
+ * forward. The host owns what each does; [rememberSavePhoto] is the usual answer to Save.
  *
+ * @param onReply Reply; null hides the button, for a message that cannot be replied to.
+ * @param onForward Forward; null hides the button, for a message with no link to hand out.
  * @param model what Coil loads for the full image.
  * @param frame the photo's rect, corners and the opacities, read at layout and draw time so a
  * host can animate them without recomposing. Null fills the container.
@@ -108,9 +116,11 @@ fun ChatMediaViewer(
     model: Any?,
     fullImageLoaded: Boolean,
     onFullImageLoaded: () -> Unit,
-    onShare: () -> Unit,
+    onSave: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onReply: (() -> Unit)? = null,
+    onForward: (() -> Unit)? = null,
     placeholder: Painter? = null,
     zoomState: ChatMediaZoomState = remember { ChatMediaZoomState() },
     reduceMotion: Boolean = rememberReducedMotion(),
@@ -128,7 +138,7 @@ fun ChatMediaViewer(
     val currentOnPull by rememberUpdatedState(onPull)
     val currentOnPullEnd by rememberUpdatedState(onPullEnd)
     val touchSlop = LocalViewConfiguration.current.touchSlop
-    var chromeVisible by remember { mutableStateOf(true) }
+    var chromeVisible by remember { mutableStateOf(false) }
     val chromeShown by animateFloatAsState(
         targetValue = if (chromeVisible) 1f else 0f,
         animationSpec = if (reduceMotion) snap() else tween(200),
@@ -313,15 +323,52 @@ fun ChatMediaViewer(
             onClick = onDismiss,
             modifier = chrome.align(Alignment.TopStart),
         )
-        ViewerButton(
-            icon = Icons.Outlined.IosShare,
-            description = stringResource(R.string.description_chatMediaShare),
-            enabled = fullImageLoaded && interactive,
-            visible = chromeVisible,
-            tag = VIEWER_SHARE_TAG,
-            onClick = onShare,
-            modifier = chrome.align(Alignment.TopEnd),
-        )
+        val center = { Offset(zoomState.container.width / 2f, zoomState.container.height / 2f) }
+        Row(
+            modifier = chrome
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = CodeTheme.dimens.staticGrid.x4, vertical = CodeTheme.dimens.staticGrid.x3),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            ViewerPill {
+                ViewerPillButton(
+                    icon = Icons.Outlined.ZoomIn,
+                    description = stringResource(R.string.description_chatMediaZoom),
+                    enabled = fullImageLoaded && interactive && chromeVisible,
+                    tag = VIEWER_ZOOM_TAG,
+                    onClick = { scope.launch { zoomState.toggle(center(), animated = !reduceMotion) } },
+                )
+                if (onReply != null) {
+                    ViewerPillButton(
+                        icon = Icons.AutoMirrored.Filled.Reply,
+                        description = stringResource(R.string.action_reply),
+                        enabled = interactive && chromeVisible,
+                        tag = VIEWER_REPLY_TAG,
+                        onClick = onReply,
+                    )
+                }
+            }
+            ViewerPill {
+                ViewerPillButton(
+                    icon = Icons.Outlined.Download,
+                    description = stringResource(R.string.description_chatMediaSave),
+                    enabled = fullImageLoaded && interactive && chromeVisible,
+                    tag = VIEWER_SAVE_TAG,
+                    onClick = onSave,
+                )
+                if (onForward != null) {
+                    ViewerPillButton(
+                        icon = ForwardArrow,
+                        description = stringResource(R.string.action_forwardMessage),
+                        enabled = interactive && chromeVisible,
+                        tag = VIEWER_FORWARD_TAG,
+                        onClick = onForward,
+                    )
+                }
+            }
+        }
     }
 
     LaunchedEffect(model) { zoomState.reset() }
@@ -362,27 +409,36 @@ private fun ViewerButton(
     }
 }
 
-/**
- * The directory the share sheet may read chat photos from. `res/xml/file_paths.xml` in the app
- * exposes `cacheDir/chat_media/` through the existing `${applicationId}.fileprovider` authority;
- * a file anywhere else makes [FileProvider] throw.
- */
-fun chatMediaShareDir(context: Context): File =
-    File(context.cacheDir, "chat_media").apply { if (!exists()) mkdirs() }
+/** The capsule behind a group of bottom buttons: dark and translucent, like the close button. */
+@Composable
+private fun ViewerPill(content: @Composable () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.4f)),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
+        verticalAlignment = Alignment.CenterVertically,
+    ) { content() }
+}
 
-/**
- * Opens the system share sheet for [file], a JPEG under [chatMediaShareDir]. Returns false, rather
- * than throwing, when the file is outside the provider's paths or nothing can handle the intent.
- */
-fun shareImage(context: Context, file: File, mimeType: String = "image/jpeg"): Boolean = runCatching {
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val send = Intent(Intent.ACTION_SEND).apply {
-        putExtra(Intent.EXTRA_STREAM, uri)
-        type = mimeType
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+@Composable
+private fun ViewerPillButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    enabled: Boolean,
+    tag: String,
+    onClick: () -> Unit,
+) {
+    IconButton(
+        onClick = onClick,
+        // Hidden buttons fade out at full tint but stop taking taps straight away.
+        enabled = enabled,
+        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x10).testTag(tag),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
+        )
     }
-    context.startActivity(
-        Intent.createChooser(send, context.getString(R.string.title_chatMediaShare))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-    )
-}.isSuccess
+}
