@@ -111,6 +111,9 @@ fun PaymentRequestCardContent(
     title: String?,
     now: Instant,
     modifier: Modifier = Modifier,
+    glyphModifier: Modifier = Modifier,
+    titleModifier: Modifier = Modifier,
+    amountsModifier: Modifier = Modifier,
 ) {
     val loading = request == null || title == null
     val ended = request != null && !request.isOpen(now)
@@ -123,7 +126,7 @@ fun PaymentRequestCardContent(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
-                modifier = Modifier
+                modifier = glyphModifier
                     .size(34.dp)
                     .background(if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success, CircleShape),
                 contentAlignment = Alignment.Center,
@@ -142,7 +145,7 @@ fun PaymentRequestCardContent(
                     color = CodeTheme.colors.textMain,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = if (loading) Modifier.width(120.dp).shimmer(RoundedCornerShape(4.dp)) else Modifier,
+                    modifier = if (loading) Modifier.width(120.dp).shimmer(RoundedCornerShape(4.dp)) else titleModifier,
                 )
             }
         }
@@ -150,7 +153,7 @@ fun PaymentRequestCardContent(
             text = request?.takeUnless { loading }?.progressText().orEmpty(),
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textMain.copy(alpha = 0.75f),
-            modifier = if (loading) Modifier.width(160.dp).shimmer(RoundedCornerShape(4.dp)) else Modifier,
+            modifier = if (loading) Modifier.width(160.dp).shimmer(RoundedCornerShape(4.dp)) else amountsModifier,
         )
         RequestProgressBar(fraction = request?.split?.paidFraction ?: 0f, ended = ended)
         Text(

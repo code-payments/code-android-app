@@ -20,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,6 +36,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,6 +66,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.ui.components.AppBarDefaults
+import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.ButtonState
@@ -83,6 +85,7 @@ internal fun RequestDetailsScreen(
     requestId: String,
     onBack: () -> Unit,
     onOpenScreen: (AppRoute) -> Unit,
+    pushed: Boolean = false,
 ) {
     val viewModel = hiltViewModel<RequestDetailsViewModel>()
     LaunchedEffect(chatId, requestId) { viewModel.open(chatId, requestId) }
@@ -116,22 +119,27 @@ internal fun RequestDetailsScreen(
             AppBarWithTitle(
                 title = stringResource(R.string.title_requestDetails),
                 titleAlignment = Alignment.CenterHorizontally,
+                // Pushed from Request Money's history it goes back; opened from the chat it is a
+                // sheet of its own, closed the way the share sheet is.
+                onBackIconClicked = onBack.takeIf { pushed },
                 endContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isCreatorOnOpen) {
-                            IconButton(
-                                modifier = Modifier.testTag("request_details_options"),
+                            val optionsLabel = stringResource(R.string.cd_requestOptions)
+                            CircularIconButton(
+                                modifier = Modifier.semantics { contentDescription = optionsLabel },
                                 onClick = viewModel::showOptions,
-                            ) {
+                                testTag = "request_details_options",
+                            ) { size ->
                                 Icon(
                                     imageVector = Icons.Filled.MoreHoriz,
-                                    contentDescription = stringResource(R.string.cd_requestOptions),
-                                    tint = CodeTheme.colors.textMain,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.requiredSize(size),
                                 )
                             }
                         }
-                        // Its own sheet, closed the way the share sheet is.
-                        AppBarDefaults.Close(onClick = onBack)
+                        if (!pushed) AppBarDefaults.Close(onClick = onBack)
                     }
                 },
             )

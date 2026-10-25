@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.SharedTransitionScope.ResizeMode.Companion.scaleToBounds
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -34,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -100,7 +102,40 @@ internal fun RequestDeckLayout(modifier: Modifier = Modifier, content: @Composab
 internal val PaymentRequest.deckTitle: String?
     get() = (split?.text as? PaymentRequestText.Plain)?.title
 
-private fun sharedKey(id: ID) = "payment-request-${id.hashCode()}"
+private fun sharedKey(id: ID, part: String) = "payment-request-${id.hashCode()}-$part"
+
+/**
+ * Ties one piece of the front card (the container, the title, the ring or the amounts) to its
+ * counterpart in the other state, so each moves on its own rather than fading with the card.
+ * Text scales to its new bounds, since the pill and the card set it in different styles.
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun Modifier.deckShared(
+    id: ID,
+    part: String,
+    visibility: AnimatedVisibilityScope,
+    shape: androidx.compose.ui.graphics.Shape? = null,
+): Modifier {
+    val transition = LocalDeckTransition.current ?: return this
+    return with(transition) {
+        val state = rememberSharedContentState(sharedKey(id, part))
+        if (shape != null) {
+            this@deckShared.sharedBounds(
+                sharedContentState = state,
+                animatedVisibilityScope = visibility,
+                resizeMode = scaleToBounds(),
+                clipInOverlayDuringTransition = OverlayClip(shape),
+            )
+        } else {
+            this@deckShared.sharedBounds(
+                sharedContentState = state,
+                animatedVisibilityScope = visibility,
+                resizeMode = scaleToBounds(),
+            )
+        }
+    }
+}
 
 /**
  * The app-bar deck (concept B): the front request with up to two cards peeking beneath it. Swipe
@@ -162,11 +197,12 @@ internal fun RequestDeckPill(
             DeckFront(
                 request = front,
                 now = now,
+                visibility = this@AnimatedVisibility,
                 modifier = Modifier
                     .then(
                         if (transition != null) with(transition) {
                             Modifier.sharedBounds(
-                                sharedContentState = rememberSharedContentState(sharedKey(front.id)),
+                                sharedContentState = rememberSharedContentState(sharedKey(front.id, "card")),
                                 animatedVisibilityScope = this@AnimatedVisibility,
                                 clipInOverlayDuringTransition = OverlayClip(PILL_SHAPE),
                             )
@@ -199,7 +235,12 @@ internal fun RequestDeckPill(
 }
 
 @Composable
-private fun DeckFront(request: PaymentRequest, now: Instant, modifier: Modifier = Modifier) {
+private fun DeckFront(
+    request: PaymentRequest,
+    now: Instant,
+    visibility: AnimatedVisibilityScope,
+    modifier: Modifier = Modifier,
+) {
     val ended = !request.isOpen(now)
     val split = request.split
     Row(
@@ -213,7 +254,12 @@ private fun DeckFront(request: PaymentRequest, now: Instant, modifier: Modifier 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
-        RequestRing(request = request, now = now, size = 26.dp)
+        RequestRing(
+            request = request,
+            now = now,
+            size = 26.dp,
+            modifier = Modifier.deckShared(request.id, "glyph", visibility, CircleShape),
+        )
         Column {
             Text(
                 text = request.deckTitle.orEmpty(),
@@ -221,6 +267,7 @@ private fun DeckFront(request: PaymentRequest, now: Instant, modifier: Modifier 
                 color = CodeTheme.colors.textMain,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.deckShared(request.id, "title", visibility),
             )
             if (split != null) {
                 Text(
@@ -232,6 +279,7 @@ private fun DeckFront(request: PaymentRequest, now: Instant, modifier: Modifier 
                     style = CodeTheme.typography.caption,
                     color = CodeTheme.colors.textSecondary,
                     maxLines = 1,
+                    modifier = Modifier.deckShared(request.id, "amounts", visibility),
                 )
             }
         }
@@ -340,7 +388,7 @@ internal fun ExpandedRequests(
                     .then(
                         if (index == 0 && transition != null) with(transition) {
                             Modifier.sharedBounds(
-                                sharedContentState = rememberSharedContentState(sharedKey(request.id)),
+                                sharedContentState = rememberSharedContentState(sharedKey(request.id, "card")),
                                 animatedVisibilityScope = visibility,
                                 clipInOverlayDuringTransition = OverlayClip(CARD_SHAPE),
                             )
@@ -359,7 +407,16 @@ internal fun ExpandedRequests(
                     .background(CodeTheme.colors.surfaceVariant, CARD_SHAPE)
                     .clickable { onOpen(request) }
                     .padding(14.dp)
-                PaymentRequestCardContent(request = request, title = title, now = now, modifier = card)
+                val front = index == 0
+                PaymentRequestCardContent(
+                    request = request,
+                    title = title,
+                    now = now,
+                    modifier = card,
+                    glyphModifier = if (front) Modifier.deckShared(request.id, "glyph", visibility, CircleShape) else Modifier,
+                    titleModifier = if (front) Modifier.deckShared(request.id, "title", visibility) else Modifier,
+                    amountsModifier = if (front) Modifier.deckShared(request.id, "amounts", visibility) else Modifier,
+                )
             }
             item(key = "handle") {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {

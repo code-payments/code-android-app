@@ -202,6 +202,13 @@ private fun chatEntryProvider(
         val viewModel = flowSharedViewModel<ChatViewModel>()
         val dismissSheet = LocalBottomSheetDismissDispatcher.current
         val navigator = LocalCodeNavigator.current
+        // Closed by its X only, as Request details is: no flow host to carry NonDraggableRoute.
+        val sheetNavigator = LocalSheetNavigator.current
+        DisposableEffect(sheetNavigator) {
+            val previous = sheetNavigator?.sheetDragDisabled ?: false
+            sheetNavigator?.sheetDragDisabled = true
+            onDispose { sheetNavigator?.sheetDragDisabled = previous }
+        }
         GroupSendDetailsSheet(
             tokenName = step.tokenName,
             tokenImageUrl = step.tokenImageUrl,
@@ -231,7 +238,7 @@ private fun chatEntryProvider(
             chatId = step.chatId,
             resultStateRegistry = resultStateRegistry,
             onClose = { dismissSheet() },
-            onOpenRequest = { request -> navigator.push(ChatStep.RequestDetails(step.chatId, request.id.base58)) },
+            onOpenScreen = { route -> navigator.navigate(route) },
         )
     }
 

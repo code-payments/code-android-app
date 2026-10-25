@@ -32,11 +32,14 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
@@ -50,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
@@ -69,7 +73,9 @@ import com.flipcash.app.core.ui.DisplayTextInput
 import com.flipcash.app.messenger.internal.screens.cash.GroupSelectPeopleContent
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.app.core.AppRoute
 import com.flipcash.services.models.paymentrequest.PaymentRequest
+import com.getcode.utils.base58
 import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.flipcash.shared.amountentry.AmountEntryScreen
@@ -100,7 +106,7 @@ internal fun RequestMoneyScreen(
     chatId: ChatId,
     resultStateRegistry: NavResultStateRegistry,
     onClose: () -> Unit,
-    onOpenRequest: (PaymentRequest) -> Unit,
+    onOpenScreen: (AppRoute) -> Unit,
 ) {
     // Read here, not inside an entry: an entry's hiltViewModel would be scoped to that step.
     val viewModel = hiltViewModel<RequestMoneyViewModel>()
@@ -123,6 +129,7 @@ internal fun RequestMoneyScreen(
         entryProvider = entryProvider {
             annotatedEntry<RequestStep.History> {
                 FollowStage(RequestStep.History, target)
+                val flowNavigator = rememberFlowNavigator<RequestStep, Parcelable>()
                 val requests by viewModel.chatRequests.collectAsStateWithLifecycle()
                 RequestHistoryContent(
                     requests = requests,
@@ -130,7 +137,7 @@ internal fun RequestMoneyScreen(
                     canLoadMore = !state.previousEnd,
                     onBack = onClose,
                     onNewRequest = viewModel::newRequest,
-                    onOpen = onOpenRequest,
+                    onOpen = { flowNavigator.navigateTo(RequestStep.Details(it.id.base58)) },
                     onLoadMore = viewModel::loadMorePrevious,
                 )
             }
@@ -179,6 +186,16 @@ internal fun RequestMoneyScreen(
                         viewerId = viewModel.viewerId,
                     )
                 }
+            }
+            annotatedEntry<RequestStep.Details> { step ->
+                val flowNavigator = rememberFlowNavigator<RequestStep, Parcelable>()
+                RequestDetailsScreen(
+                    chatId = chatId,
+                    requestId = step.requestId,
+                    onBack = { flowNavigator.back() },
+                    onOpenScreen = onOpenScreen,
+                    pushed = true,
+                )
             }
             annotatedEntry<RequestStep.Name> {
                 FollowStage(RequestStep.Name, target, onBack = back)
@@ -590,7 +607,13 @@ private fun DeadlineRow(label: String, checked: Boolean, onClick: () -> Unit) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CustomDeadlinePicker(initial: Instant?, onPicked: (Instant) -> Unit, onDismiss: () -> Unit) {
+private fun CustomDeadlinePicker(initial: Instant?, onPicked: (Instant) -> Unit, onDismiss: () -> Unit) = PickerTheme {
+    CustomDeadlinePickerContent(initial, onPicked, onDismiss)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomDeadlinePickerContent(initial: Instant?, onPicked: (Instant) -> Unit, onDismiss: () -> Unit) {
     val range = remember { NewRequestDraft.Deadline.customRange(Clock.System.now()) }
     val zone = ZoneId.systemDefault()
     val start = remember { (initial ?: range.start).toJavaInstant().atZone(zone) }
@@ -626,7 +649,9 @@ private fun CustomDeadlinePicker(initial: Instant?, onPicked: (Instant) -> Unit,
     val timeState = rememberTimePickerState(initialHour = start.hour, initialMinute = start.minute)
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = true)) {
         Column(
-            modifier = Modifier.padding(CodeTheme.dimens.inset),
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, CodeTheme.shapes.large)
+                .padding(CodeTheme.dimens.inset),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             TimePicker(state = timeState)
@@ -641,6 +666,58 @@ private fun CustomDeadlinePicker(initial: Instant?, onPicked: (Instant) -> Unit,
             }
         }
     }
+}
+
+/**
+ * Material 3's pickers read `MaterialTheme`, which the app never sets up (it runs on Material 2).
+ * This maps the app's colors and type onto it so the pickers look like the rest of the app.
+ */
+@Composable
+private fun PickerTheme(content: @Composable () -> Unit) {
+    val colors = CodeTheme.colors
+    val type = CodeTheme.typography
+    MaterialTheme(
+        colorScheme = darkColorScheme(
+            primary = colors.textMain,
+            onPrimary = colors.background,
+            primaryContainer = colors.surfaceVariant,
+            onPrimaryContainer = colors.textMain,
+            secondaryContainer = colors.surfaceVariant,
+            onSecondaryContainer = colors.textMain,
+            tertiaryContainer = colors.surfaceVariant,
+            onTertiaryContainer = colors.textMain,
+            background = colors.background,
+            onBackground = colors.textMain,
+            surface = colors.background,
+            onSurface = colors.textMain,
+            surfaceVariant = colors.surfaceVariant,
+            onSurfaceVariant = colors.textSecondary,
+            surfaceContainer = colors.background,
+            surfaceContainerLow = colors.background,
+            surfaceContainerHigh = colors.background,
+            surfaceContainerHighest = colors.surfaceVariant,
+            surfaceTint = Color.Transparent,
+            outline = colors.border,
+            outlineVariant = colors.divider,
+            error = colors.errorText,
+        ),
+        typography = Typography(
+            displayLarge = type.displaySmall,
+            headlineLarge = type.screenTitleLarge,
+            headlineMedium = type.screenTitle,
+            headlineSmall = type.screenTitle,
+            titleLarge = type.screenTitle,
+            titleMedium = type.textLarge,
+            titleSmall = type.textMedium,
+            bodyLarge = type.textLarge,
+            bodyMedium = type.textMedium,
+            bodySmall = type.textSmall,
+            labelLarge = type.textMedium,
+            labelMedium = type.textSmall,
+            labelSmall = type.caption,
+        ),
+        content = content,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

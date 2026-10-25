@@ -34,6 +34,11 @@ internal sealed interface RequestStep : FlowStep, Parcelable, NonDraggableRoute 
     @Parcelize
     @Serializable
     data object Name : RequestStep
+
+    /** A request opened from [History]. Pushed and popped by the nav host; no stage follows it. */
+    @Parcelize
+    @Serializable
+    data class Details(val requestId: String) : RequestStep
 }
 
 /** The back stack that puts [stage] on top: History, then Amount, then Summary and its editors. */
