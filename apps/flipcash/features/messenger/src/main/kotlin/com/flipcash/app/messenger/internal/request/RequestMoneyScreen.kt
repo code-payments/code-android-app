@@ -75,6 +75,7 @@ import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -247,7 +248,8 @@ private fun RequestHistoryContent(
             AppBarWithTitle(
                 title = stringResource(R.string.title_requestMoneyHistory),
                 titleAlignment = Alignment.CenterHorizontally,
-                onBackIconClicked = onBack,
+                // The sheet's root, closed the way the share sheet is.
+                endContent = { AppBarDefaults.Close(onClick = onBack) },
             )
         },
     ) { padding ->

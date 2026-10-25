@@ -64,6 +64,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.ButtonState
@@ -115,19 +116,22 @@ internal fun RequestDetailsScreen(
             AppBarWithTitle(
                 title = stringResource(R.string.title_requestDetails),
                 titleAlignment = Alignment.CenterHorizontally,
-                onBackIconClicked = onBack,
                 endContent = {
-                    if (isCreatorOnOpen) {
-                        IconButton(
-                            modifier = Modifier.testTag("request_details_options"),
-                            onClick = viewModel::showOptions,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.MoreHoriz,
-                                contentDescription = stringResource(R.string.cd_requestOptions),
-                                tint = CodeTheme.colors.textMain,
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isCreatorOnOpen) {
+                            IconButton(
+                                modifier = Modifier.testTag("request_details_options"),
+                                onClick = viewModel::showOptions,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.MoreHoriz,
+                                    contentDescription = stringResource(R.string.cd_requestOptions),
+                                    tint = CodeTheme.colors.textMain,
+                                )
+                            }
                         }
+                        // Its own sheet, closed the way the share sheet is.
+                        AppBarDefaults.Close(onClick = onBack)
                     }
                 },
             )
