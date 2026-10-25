@@ -515,6 +515,13 @@ interface MessagingOperations {
         linkPreview: OutgoingLinkPreview? = null,
     ): Result<ChatMessage>
 
+    /**
+     * Posts the widget for payment request [requestId] to [chatId], once the request exists. A
+     * failed send leaves a pending row the transcript retries like any message, so the request is
+     * never created twice for one post.
+     */
+    suspend fun sendPaymentRequest(chatId: ChatId, requestId: ID): Result<ChatMessage>
+
     /** Retries a failed pending message: resets to SENDING and re-sends to the server. */
     suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage>
 

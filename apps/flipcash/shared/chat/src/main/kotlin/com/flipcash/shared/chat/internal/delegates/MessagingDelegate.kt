@@ -37,6 +37,7 @@ import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewerState
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.DeleteMessageError
 import com.flipcash.services.models.EditMessageError
 import com.flipcash.services.models.GetChatError
@@ -476,6 +477,14 @@ class MessagingDelegate @Inject constructor(
         val withImage = payload(image.item)
         messageDataSource.insertPending(chatId, withImage, senderId, clientMessageId, ordinal = 0)
         return send(chatId, withImage, clientMessageId)
+    }
+
+    override suspend fun sendPaymentRequest(chatId: ChatId, requestId: ID): Result<ChatMessage> {
+        val senderId = userManager.accountId
+            ?: return Result.failure(IllegalStateException("Cannot send message without an account"))
+        val payload = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
+        val (_, clientMessageId) = messageDataSource.insertPending(chatId = chatId, content = payload, senderId = senderId)
+        return send(chatId, payload, clientMessageId)
     }
 
     override suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage> {

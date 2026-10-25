@@ -2,6 +2,7 @@ package com.flipcash.services.chat
 
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.test.runTest
@@ -33,6 +34,22 @@ class GroupContentCryptoTest {
 
         assertEquals(GroupContentCrypto.SCHEME_CHAT_KEY_XCHACHA20POLY1305, sealed.scheme)
         assertEquals(OpenedContent.Plaintext(MessageContent.Text("hi")), crypto.open(chatId, sender, sealed))
+    }
+
+    @Test
+    fun `a payment request widget seals and opens to itself`() = runTest {
+        val widget = MessageContent.Widget(WidgetContent.PaymentRequest(List(32) { 9 }))
+
+        val sealed = crypto.seal(chatId, sender, widget).getOrThrow()
+
+        assertEquals(OpenedContent.Plaintext(widget), crypto.open(chatId, sender, sealed))
+    }
+
+    @Test
+    fun `a share profile widget can't be sealed`() = runTest {
+        val widget = MessageContent.Widget(WidgetContent.ShareProfile("alice"))
+
+        assertTrue(crypto.seal(chatId, sender, widget).isFailure)
     }
 
     @Test

@@ -123,8 +123,9 @@ internal class DmOutgoingEncryption @Inject constructor(
 
         val selfId = userManager.accountId
             ?: return Result.failure(IllegalStateException("No account to encrypt from"))
-        // A sealed message is one Text, one photo, or one Reply around either. Anything else can't
-        // be sealed, and sending it in plaintext would break the chat's promise.
+        // A sealed message is one Text, one photo, one Reply around either, or one payment request
+        // widget. Anything else can't be sealed, and sending it in plaintext would break the
+        // chat's promise.
         val single = content.singleOrNull()
             ?: return Result.failure(IllegalArgumentException("Can't encrypt ${content.size} content items"))
 
