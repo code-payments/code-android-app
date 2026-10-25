@@ -494,7 +494,7 @@ private fun RequestNameContent(title: String, onBack: () -> Unit, onDone: (Strin
         }
     }
     NameEditScaffold(
-        heading = stringResource(R.string.label_requestName),
+        heading = stringResource(R.string.title_requestName),
         placeholder = stringResource(R.string.label_requestName),
         field = field,
         buttonText = stringResource(R.string.action_done),

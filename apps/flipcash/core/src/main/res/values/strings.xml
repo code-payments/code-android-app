@@ -1032,6 +1032,7 @@
     <string name="title_newRequest">New Request</string>
     <string name="label_perPerson">per person</string>
     <string name="label_requestName">Name</string>
+    <string name="title_requestName">What is the request for?</string>
     <string name="label_requestPeople">People</string>
     <string name="label_requestTiming">Timing</string>
     <plurals name="label_requestDaysLeft">
