@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
@@ -248,12 +249,13 @@ fun ContentBubble(
                     attention = attention,
                 )
 
-                is MessageContent.Cash -> if (content.multiReceiver.isNotEmpty()) GroupSendBubble(
+                is MessageContent.Cash -> if (content.multiReceiver.isNotEmpty() || item.groupSendRecipients != null) GroupSendBubble(
                     modifier = modifier,
                     content = content,
                     senderName = item.sender?.displayName,
                     isFromSelf = item.isFromSelf,
                     receivedPart = item.receivedPart,
+                    recipients = item.groupSendRecipients,
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     onClick = if (interactive) {
@@ -1101,9 +1103,10 @@ private fun CashBubble(
 }
 
 /**
- * A cash message that paid several members at once (`CashContent.multi_receiver`), node 11293:6918
- * frames 08 and 09: who sent the total, what each person got, and how many people it went to. A
- * recipient also sees their own part, which can differ from the per-person line by a cent.
+ * A cash message in a group that names who it paid, node 11293:6918 frames 08 and 09, laid out as
+ * iOS's `ChatCashCardCell` lays out a group card: who sent it, the total, what each person got, the
+ * viewer's own part when they were paid, the token, and who it went to at the foot. A payment to one
+ * other member ([MessageContent.Cash.receiver]) draws the same card with no per-person line.
  */
 @Composable
 private fun GroupSendBubble(
@@ -1111,6 +1114,7 @@ private fun GroupSendBubble(
     senderName: String?,
     isFromSelf: Boolean,
     receivedPart: MessageContent.Cash.Payment?,
+    recipients: String?,
     position: BubblePosition,
     maxWidth: Dp,
     onClick: (() -> Unit)?,
@@ -1132,11 +1136,6 @@ private fun GroupSendBubble(
     ) {
         val total = cashInDisplayCurrency(content.amount, content.settledUsd())
         val parts = content.multiReceiver
-        // Uneven parts differ by one minor unit, so the smallest one with a "~" is the honest
-        // per-person figure; the vectors put the larger parts first.
-        val smallest = parts.minBy { it.nativeAmount }
-        val even = parts.all { it.nativeAmount == smallest.nativeAmount }
-        val each = content.partInDisplayCurrency(smallest).formatted()
         val secondary = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Medium)
 
         Column(
@@ -1167,14 +1166,30 @@ private fun GroupSendBubble(
                 ),
                 maxLines = 1,
             )
-            Text(
-                text = stringResource(
-                    if (even) R.string.label_groupSendEach else R.string.label_groupSendEachApprox,
-                    each,
-                ),
-                style = secondary,
-                color = CodeTheme.colors.textSecondary,
-            )
+            if (parts.size >= 2) {
+                // Uneven parts differ by one minor unit, so the smallest one with a "~" is the
+                // honest per-person figure; the vectors put the larger parts first.
+                val smallest = parts.minBy { it.nativeAmount }
+                val even = parts.all { it.nativeAmount == smallest.nativeAmount }
+                Text(
+                    text = stringResource(
+                        if (even) R.string.label_groupSendEach else R.string.label_groupSendEachApprox,
+                        content.partInDisplayCurrency(smallest).formatted(),
+                    ),
+                    style = secondary,
+                    color = CodeTheme.colors.textSecondary,
+                )
+            }
+            if (receivedPart != null && parts.isNotEmpty()) {
+                Text(
+                    text = stringResource(
+                        R.string.label_groupSendYouReceived,
+                        content.partInDisplayCurrency(receivedPart).formatted(),
+                    ),
+                    style = secondary,
+                    color = CodeTheme.colors.textMain,
+                )
+            }
             if (content.tokenName.isNotBlank() && !LocalInspectionMode.current) {
                 TokenIconWithName(
                     tokenName = content.tokenName,
@@ -1186,21 +1201,14 @@ private fun GroupSendBubble(
                 )
             }
             Text(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
-                text = pluralStringResource(R.plurals.label_groupSendToPeople, parts.size, parts.size),
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
+                text = recipients
+                    ?: pluralStringResource(R.plurals.label_groupSendToPeople, parts.size, parts.size),
                 style = secondary,
                 color = CodeTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.MiddleEllipsis,
             )
-            if (receivedPart != null) {
-                Text(
-                    text = stringResource(
-                        R.string.label_groupSendYouReceived,
-                        content.partInDisplayCurrency(receivedPart).formatted(),
-                    ),
-                    style = secondary,
-                    color = CodeTheme.colors.textMain,
-                )
-            }
         }
     }
 }

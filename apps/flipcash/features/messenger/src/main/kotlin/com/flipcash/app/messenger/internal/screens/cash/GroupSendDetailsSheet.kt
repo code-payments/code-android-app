@@ -47,20 +47,20 @@ internal fun GroupSendDetailsSheet(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(top = CodeTheme.dimens.grid.x4, bottom = CodeTheme.dimens.grid.x3),
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4),
+            .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x2),
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
     ) {
         Column(
             modifier = Modifier
                 .weight(1f, fill = false)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5),
         ) {
             DetailRow(label = stringResource(R.string.label_cashDetails_sent)) {
                 TokenIconWithName(
                     tokenName = tokenName,
                     tokenImage = tokenImageUrl,
-                    imageSize = CodeTheme.dimens.staticGrid.x6,
+                    imageSize = CodeTheme.dimens.staticGrid.x8,
                     spacing = CodeTheme.dimens.grid.x3,
                     textStyle = CodeTheme.typography.textMedium,
                 )
@@ -103,7 +103,7 @@ private fun PersonCell(person: GroupSendPerson) {
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
         val avatar = Modifier
-            .requiredSize(CodeTheme.dimens.staticGrid.x6)
+            .requiredSize(CodeTheme.dimens.staticGrid.x8)
             .clip(CircleShape)
         if (person.profile != null) {
             ContactAvatar(userProfile = person.profile, modifier = avatar)

@@ -1437,6 +1437,37 @@ internal class ChatViewModel @AssistedInject constructor(
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     /**
+     * The foot line of a group's cash bubble, matching iOS's `ChatItem.groupSend`: a split names its
+     * first recipient and counts the rest, falling back to a head count while that name is unknown,
+     * and a payment to one other member names them. Null for a payment to the viewer alone, or to
+     * one member nobody has a name for yet.
+     */
+    private fun groupSendRecipients(cash: MessageContent.Cash, profiles: Map<String, UserProfile>?): String? {
+        val self = userManager.accountId
+        fun nameOf(id: ID): String? {
+            if (id == self) return resources.getString(R.string.title_you)
+            val profile = profiles?.get(id.hexEncodedString())
+            if (profile == null || profile.displayName.isBlank()) chatCoordinator.requestSenderProfile(id)
+            return profile?.let { nameOrHandle(it.displayName, it.handle) }
+        }
+
+        val parts = cash.multiReceiver
+        if (parts.size < 2) {
+            val receiver = cash.receiver?.takeIf { it != self } ?: return null
+            return nameOf(receiver)?.let { resources.getString(R.string.label_groupSendTo, it) }
+        }
+        val others = parts.size - 1
+        return nameOf(parts.first().receiver)
+            ?.let { first ->
+                resources.getString(
+                    R.string.label_groupSendTo,
+                    resources.getQuantityString(R.plurals.label_groupSendRecipients, others, first, others),
+                )
+            }
+            ?: resources.getQuantityString(R.plurals.label_groupSendToPeople, parts.size, parts.size)
+    }
+
+    /**
      * The transcript's rows before separators. Cached so a change to the unread boundary or the
      * separator config re-runs only [messages]' separator pass, not the per-message lookups here.
      */
@@ -1620,6 +1651,9 @@ internal class ChatViewModel @AssistedInject constructor(
                                 ?: resources.getString(R.string.title_unnamedUser),
                         ) ?: UndecryptableHint.UpdateApp,
                         receivedPart = (enriched as? MessageContent.Cash)?.partFor(userManager.accountId),
+                        groupSendRecipients = (enriched as? MessageContent.Cash)
+                            ?.takeIf { chatType == ChatType.GROUP }
+                            ?.let { groupSendRecipients(it, profiles) },
                     )
                         // A carded link takes a row of its own, with the prose either side of it
                         // on rows above and below. Reversed because the list is: this page runs
