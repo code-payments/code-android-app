@@ -2,7 +2,10 @@ package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.shared.chat.alerts.LocalReactionAlerts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -59,5 +62,36 @@ internal fun HandleMessageReads(
                     actionHandler(ChatAction.AdvanceReadPointer(messageId))
                 }
             }
+    }
+}
+
+/**
+ * Tells the reaction alerts which messages are on screen, so a reaction on one of them animates its
+ * bubble instead of raising a pill. Cleared when the chat leaves composition.
+ */
+@Composable
+internal fun ReportVisibleToReactionAlerts(
+    chatId: ChatId?,
+    listState: LazyListState,
+    messages: LazyPagingItems<ChatListItem>,
+) {
+    val alerts = LocalReactionAlerts.current ?: return
+    if (chatId == null) return
+    DisposableEffect(chatId, alerts) {
+        onDispose { alerts.clearOnScreen(chatId) }
+    }
+    LaunchedEffect(chatId, listState, messages, alerts) {
+        snapshotFlow {
+            val count = messages.itemCount
+            buildSet {
+                for (info in listState.layoutInfo.visibleItemsInfo) {
+                    if (info.index !in 0 until count) continue
+                    val message = messages.peek(info.index) as? ChatListItem.TranscriptMessage ?: continue
+                    add(message.messageId)
+                }
+            }
+        }
+            .distinctUntilChanged()
+            .collect { visible -> alerts.reportOnScreen(chatId, visible) }
     }
 }
