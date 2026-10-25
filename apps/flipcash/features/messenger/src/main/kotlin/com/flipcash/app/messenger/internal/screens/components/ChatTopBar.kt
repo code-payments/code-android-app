@@ -80,6 +80,7 @@ internal fun ChatTopBar(
     onBarHeightChange: (Dp) -> Unit,
     chatActionHandler: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
+    trailing: @Composable () -> Unit = {},
 ) {
     val bgColor = CodeTheme.colors.background
     val statusBars = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -108,7 +109,7 @@ internal fun ChatTopBar(
             label = "chat top bar",
         ) { target ->
             when (target) {
-                TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler)
+                TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler, trailing)
                 TopBarMode.Editing -> EditingBar(dispatch)
                 is TopBarMode.Selecting -> MessageSelectionBar(
                     selection = target.selection,
@@ -170,6 +171,7 @@ private fun ConversationTitleBar(
     navigator: CodeNavigator,
     state: ChatViewModel.State,
     chatActionHandler: ChatActionHandler,
+    trailing: @Composable () -> Unit,
 ) {
     AppBarWithTitle(
         leftIcon = {
@@ -256,6 +258,9 @@ private fun ConversationTitleBar(
                         )
                     }
                 }
+                // The payment request deck, beside the title rather than in the actions slot, so
+                // the bar keeps its height (group requests spec, concept B).
+                trailing()
             }
         }
     )

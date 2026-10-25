@@ -94,6 +94,10 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
 import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
 import com.flipcash.app.messenger.internal.request.rememberPaymentRequestCards
+import com.flipcash.app.messenger.internal.request.ExpandedRequests
+import com.flipcash.app.messenger.internal.request.RequestDeckLayout
+import com.flipcash.app.messenger.internal.request.RequestDeckPill
+import com.flipcash.app.messenger.internal.request.deckTitle
 import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.utils.base58
@@ -445,7 +449,18 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         PrefetchProfileCover(group.coverPicture, BlobAccessContext.ChatProfile(group.chatId))
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val deck by requestsViewModel.deck.collectAsStateWithLifecycle()
+    val deckExpanded by requestsViewModel.expanded.collectAsStateWithLifecycle()
+    val deckNow by requestsViewModel.now.collectAsStateWithLifecycle()
+    val drawnDeck = remember(deck) { deck.filter { it.deckTitle != null } }
+    val openRequest: (com.flipcash.services.models.paymentrequest.PaymentRequest) -> Unit = { request ->
+        state.chatId?.let { chatId ->
+            requestsViewModel.setExpanded(false)
+            keyboard.hideIfVisible { navigator.push(ChatStep.RequestDetails(chatId, request.id.base58)) }
+        }
+    }
+
+    RequestDeckLayout(modifier = Modifier.fillMaxSize()) {
     CodeScaffold(
         // The input bar rides the keyboard; the message list is inset by it either way.
         modifier = Modifier.imePadding(),
@@ -463,6 +478,17 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     onBarHeightChange = { barHeight = it },
                     chatActionHandler = chatActionHandler,
                     dispatch = viewModel::dispatchEvent,
+                    trailing = {
+                        if (state.chatType == ChatType.GROUP) {
+                            RequestDeckPill(
+                                deck = drawnDeck,
+                                now = deckNow,
+                                expanded = deckExpanded,
+                                onExpand = { keyboard.hideIfVisible { requestsViewModel.setExpanded(true) } },
+                                onCycle = requestsViewModel::cycle,
+                            )
+                        }
+                    },
                 )
                 // Hold the last list through the exit, so the card doesn't empty as it slides away.
                 var lastRequests by remember { mutableStateOf(state.joinRequests) }
@@ -601,6 +627,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
         }
     }
+
+    ExpandedRequests(
+        deck = drawnDeck,
+        now = deckNow,
+        expanded = deckExpanded,
+        top = barHeight,
+        onCollapse = { requestsViewModel.setExpanded(false) },
+        onOpen = openRequest,
+    )
 
     openPhotoId?.let { id ->
         ChatPhotoOverlay(
