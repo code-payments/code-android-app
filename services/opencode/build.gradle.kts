@@ -94,4 +94,6 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(testFixtures(project(":libs:currency-math")))
+    // formatProto tests render a flipcash2 response that carries a payment_intent_id.
+    testImplementation(libs.flipcash2.client.protocol)
 }
