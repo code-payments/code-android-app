@@ -1,8 +1,10 @@
 package com.flipcash.app.messenger.internal.screens.cash
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -11,14 +13,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.UserProfile
@@ -27,8 +32,15 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
-/** One person on the details sheet: who they are, and their profile when it has resolved. */
-internal data class GroupSendPerson(val name: String, val profile: UserProfile?)
+/**
+ * One person on the details sheet: who they are, their profile when it has resolved, and who to
+ * open when their row is tapped. [participant] is null for the viewer and for anyone unresolved.
+ */
+internal data class GroupSendPerson(
+    val name: String,
+    val profile: UserProfile?,
+    val participant: ChatParticipant.TipUser? = null,
+)
 
 /**
  * A group send's details, node 11293:6918 frame 10: the currency it was sent in, who sent it and
@@ -40,6 +52,7 @@ internal fun GroupSendDetailsSheet(
     tokenImageUrl: String,
     sender: GroupSendPerson,
     recipients: List<GroupSendPerson>,
+    onOpenProfile: (ChatParticipant.TipUser) -> Unit,
     onClose: () -> Unit,
 ) {
     Column(
@@ -52,6 +65,7 @@ internal fun GroupSendDetailsSheet(
     ) {
         Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .weight(1f, fill = false)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5),
@@ -69,7 +83,11 @@ internal fun GroupSendDetailsSheet(
                 PersonCell(sender)
             }
             recipients.forEachIndexed { index, person ->
-                DetailRow(label = if (index == 0) stringResource(R.string.label_cashDetails_to) else "") {
+                val participant = person.participant
+                DetailRow(
+                    label = if (index == 0) stringResource(R.string.label_cashDetails_to) else "",
+                    onClick = participant?.let { { onOpenProfile(it) } },
+                ) {
                     PersonCell(person)
                 }
             }
@@ -84,8 +102,17 @@ internal fun GroupSendDetailsSheet(
 }
 
 @Composable
-private fun DetailRow(label: String, content: @Composable () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+private fun DetailRow(
+    label: String,
+    onClick: (() -> Unit)? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             modifier = Modifier.width(64.dp),
             text = label,
@@ -93,12 +120,20 @@ private fun DetailRow(label: String, content: @Composable () -> Unit) {
             color = CodeTheme.colors.textSecondary,
         )
         content()
+        if (onClick != null) {
+            Icon(
+                painter = painterResource(R.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = CodeTheme.colors.textSecondary,
+            )
+        }
     }
 }
 
 @Composable
-private fun PersonCell(person: GroupSendPerson) {
+private fun RowScope.PersonCell(person: GroupSendPerson) {
     Row(
+        modifier = Modifier.weight(1f),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {

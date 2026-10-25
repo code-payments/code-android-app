@@ -191,11 +191,20 @@ private fun chatEntryProvider(
     annotatedEntry<ChatStep.GroupSendDetails> { step ->
         val viewModel = flowSharedViewModel<ChatViewModel>()
         val dismissSheet = LocalBottomSheetDismissDispatcher.current
+        val navigator = LocalCodeNavigator.current
         GroupSendDetailsSheet(
             tokenName = step.tokenName,
             tokenImageUrl = step.tokenImageUrl,
             sender = viewModel.groupSendPerson(step.senderIdHex),
             recipients = step.recipientIdsHex.map(viewModel::groupSendPerson),
+            onOpenProfile = { participant ->
+                // The sheet pops whatever is on top once its hide animation ends, so a push made
+                // alongside dismissSheet() lands first and is the entry that gets popped. Push from
+                // the scene's after-dismiss hook instead, once the sheet itself is gone.
+                navigator.pendingSheetDismiss = {
+                    navigator.push(ChatStep.Profile(contact = participant, origin = ProfileOrigin.GroupMember))
+                }
+            },
             onClose = { dismissSheet() },
         )
     }

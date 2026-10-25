@@ -1369,6 +1369,7 @@ internal class ChatViewModel @AssistedInject constructor(
      * Someone on a group send's details sheet, by their hex id; null is the viewer. A member whose
      * profile hasn't resolved reads as the generic name until it does.
      */
+    @OptIn(ExperimentalStdlibApi::class)
     internal fun groupSendPerson(userIdHex: String?): GroupSendPerson {
         if (userIdHex == null || userIdHex == userManager.accountId?.hexEncodedString()) {
             return GroupSendPerson(resources.getString(R.string.title_you), userManager.profile)
@@ -1376,7 +1377,11 @@ internal class ChatViewModel @AssistedInject constructor(
         val profile = senderProfiles.value?.get(userIdHex)
         val name = profile?.let { nameOrHandle(it.displayName, it.handle) }
             ?: resources.getString(R.string.title_unnamedUser)
-        return GroupSendPerson(name, profile)
+        val participant = profile?.let { resolved ->
+            runCatching { userIdHex.hexToByteArray().toList() }.getOrNull()
+                ?.let { ChatParticipant.TipUser(it, resolved) }
+        }
+        return GroupSendPerson(name, profile, participant)
     }
 
     fun memberParticipant(userId: ID): ChatParticipant.TipUser? =
