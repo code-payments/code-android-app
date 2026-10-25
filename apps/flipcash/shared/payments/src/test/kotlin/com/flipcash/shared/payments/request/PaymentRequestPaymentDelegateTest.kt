@@ -26,6 +26,8 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.LiveSecrets
+import com.getcode.vendor.Base58
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -37,6 +39,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -158,5 +161,39 @@ class PaymentRequestPaymentDelegateTest {
         assertContentEquals(intentBytes, intentId.captured.byteArray)
         assertContentEquals(buildRequestedPaymentMetadata(chatId, requestId.toByteArray()), metadata.captured)
         coVerify(exactly = 2) { paymentRequests.fetch(requestId) }
+    }
+
+    private suspend fun payWith(outcome: Result<Unit>): List<String> {
+        serverReturns(request(), PaymentIntentId(intentBytes))
+        val ready = delegate.prepare(requestId, viewer).getOrThrow() as ShareToPay.Ready
+        coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
+            Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+        } returns outcome.map { mockk() }
+        val lines = mutableListOf<String>()
+        delegate.log = { message, _ -> lines += message }
+        delegate.pay(ready, token, source)
+        return lines
+    }
+
+    private val intentBase58 = Base58.encode(intentBytes)
+
+    @Test
+    fun `a paid share logs its intent id in full and releases it`() = runTest {
+        val lines = payWith(Result.success(Unit))
+
+        assertTrue(lines.single().contains(intentBase58), lines.single())
+        assertFalse(LiveSecrets.isLive(intentBase58))
+    }
+
+    @Test
+    fun `a failed payment logs only the last six characters and keeps the id masked`() = runTest {
+        val lines = payWith(Result.failure(IllegalStateException("boom")))
+
+        assertTrue(lines.single().endsWith("…${intentBase58.takeLast(6)}"), lines.single())
+        assertFalse(intentBase58 in lines.single())
+        assertTrue(LiveSecrets.isLive(intentBase58))
+        LiveSecrets.release(intentBase58)
     }
 }

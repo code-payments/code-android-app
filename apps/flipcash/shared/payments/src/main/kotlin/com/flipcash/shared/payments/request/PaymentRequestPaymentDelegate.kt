@@ -16,6 +16,11 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
+import com.getcode.utils.LiveSecrets
+import com.getcode.utils.TraceType
+import com.getcode.utils.maskedSuffix
+import com.getcode.utils.trace
 import kotlin.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,6 +49,12 @@ class PaymentRequestPaymentDelegate @Inject constructor(
         resolverController, transactionController, tokenCoordinator, verifiedFiatCalculator,
     )
 
+    /** Where the pay outcome is logged; tests swap it to read the line. */
+    @androidx.annotation.VisibleForTesting
+    internal var log: (message: String, type: TraceType) -> Unit = { message, type ->
+        trace(tag = "PaymentRequest", message = message, type = type)
+    }
+
     /** Refetches [requestId] and says whether [viewer] has a share to pay now. */
     suspend fun prepare(requestId: ID, viewer: ID): Result<ShareToPay> =
         paymentRequests.fetch(requestId).map { details ->
@@ -68,14 +79,25 @@ class PaymentRequestPaymentDelegate @Inject constructor(
             ?: return Result.failure(ComputeVerifiedFiatError.StaleRate())
         val priced = payment.price(listOf(ready.share.amount), token, rate)
             .getOrElse { return Result.failure(it) }
+        val intentId = PublicKey(ready.intentId.bytes.toList())
+        // Until the share is paid, anyone who reads the id can use it up, so logs see only its
+        // last characters. Once paid it is harmless and logs in full.
+        val idBase58 = intentId.base58()
+        LiveSecrets.hold(idBase58)
         return payment.pay(
             payees = listOf(request.creator),
             priced = priced,
             token = token,
             source = source,
             appMetadata = buildRequestedPaymentMetadata(request.chatId, request.id.toByteArray()),
-            intentId = PublicKey(ready.intentId.bytes.toList()),
-        ).onSuccess { paymentRequests.fetch(request.id) }
+            intentId = intentId,
+        ).onSuccess {
+            LiveSecrets.release(idBase58)
+            log("paid share under intent $idBase58", TraceType.Log)
+            paymentRequests.fetch(request.id)
+        }.onFailure {
+            log("share payment failed under intent ${idBase58.maskedSuffix()}", TraceType.Error)
+        }
     }
 }
 
