@@ -118,7 +118,7 @@ class PaymentRequestTest {
         assertEquals(StatusLine.HoursLeft(24), request(endsIn = 23.hours + 10.minutes).statusLine(now))
 
     @Test
-    fun `exactly 24 hours left reads 24 hours, not 1 day`() =
+    fun `22 - exactly 24 hours left reads 24 hours, not 1 day`() =
         assertEquals(StatusLine.HoursLeft(24), request(endsIn = 24.hours).statusLine(now))
 
     @Test

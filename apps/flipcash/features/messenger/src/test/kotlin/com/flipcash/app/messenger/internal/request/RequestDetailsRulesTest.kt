@@ -81,4 +81,10 @@ class RequestDetailsRulesTest {
         assertNull(unpaidShareOf(request(PaymentRequestStatus.Expired), debtor, now))
         assertNull(unpaidShareOf(request(endsAt = 400), debtor, now))
     }
+
+    @Test
+    fun `case 20 - Send is hidden when the viewer has no payment intent id`() {
+        assertNull(sendableShareOf(request(), debtor, now, hasPaymentIntent = false))
+        assertEquals(twenty, sendableShareOf(request(), debtor, now, hasPaymentIntent = true)?.amount)
+    }
 }

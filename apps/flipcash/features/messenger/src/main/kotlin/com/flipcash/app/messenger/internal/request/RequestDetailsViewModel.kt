@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.request
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
@@ -22,6 +23,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.flipcash.app.tokens.TokenCoordinator
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.decodeBase58
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -88,6 +90,11 @@ internal class RequestDetailsViewModel @Inject constructor(
         val payProgress: LoadingSuccessState = LoadingSuccessState(),
         /** A close or mark-paid call is out. */
         val working: Boolean = false,
+        /**
+         * The last fetch carried a payment intent id for the viewer. Without one there is nothing
+         * to pay with, so Send stays hidden (case 20). The id itself is not kept here.
+         */
+        val hasPaymentIntent: Boolean = false,
     )
 
     sealed interface Effect {
@@ -146,6 +153,7 @@ internal class RequestDetailsViewModel @Inject constructor(
         val id = _state.value.requestId ?: return
         while (true) {
             requests.fetch(id)
+                .onSuccess { details -> _state.update { it.copy(hasPaymentIntent = details.paymentIntentId != null) } }
             _now.value = Clock.System.now()
             delay(ChatRequestsViewModel.POLL_INTERVAL)
         }
@@ -166,7 +174,7 @@ internal class RequestDetailsViewModel @Inject constructor(
                             ready = found
                             _state.update { it.copy(sheet = Sheet.Pay, payProgress = LoadingSuccessState()) }
                         }
-                        is ShareToPay.NothingToPay -> Unit
+                        is ShareToPay.NothingToPay -> _state.update { it.copy(hasPaymentIntent = false) }
                         is ShareToPay.Closed -> presentClosed()
                     }
                 }
@@ -270,10 +278,7 @@ internal class RequestDetailsViewModel @Inject constructor(
                 .onFailure {
                     // The request may have changed under the action, e.g. closed or paid elsewhere.
                     _state.value.requestId?.let { id -> requests.fetch(id) }
-                    BottomBarManager.showError(
-                        title = resources.getString(R.string.error_title_cashFailedToSend),
-                        message = resources.getString(R.string.error_description_requestGeneric),
-                    )
+                    ErrorUtils.showNetworkError(resources)
                 }
         }
     }
@@ -333,7 +338,14 @@ internal fun canMarkPaid(request: PaymentRequest, userId: ID, viewerId: ID?, now
     return !share.isPaid
 }
 
-/** Whether the viewer has a share to pay on [request] now: the "Send <amount>" button. */
+/**
+ * The share the "Send <amount>" button pays, or null to hide it: the viewer has an unpaid share on
+ * an open request and the server gave them a payment intent id for it.
+ */
+internal fun sendableShareOf(request: PaymentRequest, viewerId: ID?, now: Instant, hasPaymentIntent: Boolean) =
+    if (!hasPaymentIntent) null else unpaidShareOf(request, viewerId, now)
+
+/** Whether the viewer has a share to pay on [request] now. */
 internal fun unpaidShareOf(request: PaymentRequest, viewerId: ID?, now: Instant) =
     if (viewerId == null || !request.isOpen(now)) null
     else request.split?.shareOf(viewerId)?.takeIf { !it.isPaid }

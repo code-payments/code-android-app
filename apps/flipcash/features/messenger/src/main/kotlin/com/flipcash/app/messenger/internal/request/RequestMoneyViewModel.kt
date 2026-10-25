@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.request
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.features.messenger.R
 import com.flipcash.services.chat.GroupContentCrypto
@@ -18,10 +19,15 @@ import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.PaymentRequests
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.shared.chat.PaymentRequestNotSent
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.LoadingSuccessState
@@ -181,10 +187,8 @@ internal class RequestMoneyViewModel @Inject constructor(
         val withMember = if (member in draft.members) draft else draft.copy(members = draft.members + listOf(member))
         val selected = withMember.toggled(member)
         if (selected == null) {
-            BottomBarManager.showInfo(
-                title = resources.getString(R.string.title_requestMaxPeople),
-                message = resources.getString(R.string.description_requestMaxPeople),
-            )
+            val (title, message) = maxPeopleNotice(resources)
+            BottomBarManager.showInfo(title = title, message = message)
             return
         }
         _state.update { it.copy(draft = withMember.copy(selected = selected)) }
@@ -253,12 +257,30 @@ internal class RequestMoneyViewModel @Inject constructor(
                 requests.create(split, key).getOrElse { return@launch failed(it, chatId) }.id
             }
             _state.update { it.copy(draft = it.draft?.copy(createdRequestId = requestId)) }
-            // A failed send stays in the transcript as a pending message with its own retry, which
-            // resends the same request id. Create is never called again for this confirm.
+            // The request is live, so the deck shows it whatever happens here. Only the message is
+            // retried, under the same request id; Create is never called again for this confirm.
             chatCoordinator.sendPaymentRequest(chatId, requestId)
+                .onFailure { cause -> (cause as? PaymentRequestNotSent)?.let { messageNotSent(chatId, requestId, it) } }
             _state.update { it.copy(sheet = Sheet.None, sendProgress = LoadingSuccessState(success = true)) }
             effects.send(Effect.Sent)
         }
+    }
+
+    /** The chat's own "Message Not Sent" error, retrying the same pending row. */
+    private fun messageNotSent(chatId: ChatId, requestId: ID, failure: PaymentRequestNotSent) {
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.title_messageNotSent),
+            message = resources.getString(R.string.description_messageNotSent),
+            actions = listOf(
+                BottomBarAction(text = resources.getString(R.string.action_retry)) {
+                    viewModelScope.launch {
+                        val content = MessageContent.Widget(WidgetContent.PaymentRequest(requestId))
+                        chatCoordinator.retryMessage(chatId, failure.pendingClientIdHex, listOf(content))
+                    }
+                },
+            ),
+            showCancel = true,
+        )
     }
 
     private suspend fun failed(error: Throwable, chatId: ChatId) {
@@ -272,8 +294,10 @@ internal class RequestMoneyViewModel @Inject constructor(
             }
             is CreatePaymentRequestError.InvalidCurrency -> R.string.error_description_requestCurrency
             else -> {
+                // Unreachable results from a private group, and network failures: the app's
+                // generic error.
                 trace(tag = "RequestMoney", message = "create failed: ${error::class.simpleName}", error = error)
-                R.string.error_description_requestGeneric
+                return ErrorUtils.showNetworkError(resources)
             }
         }
         BottomBarManager.showError(

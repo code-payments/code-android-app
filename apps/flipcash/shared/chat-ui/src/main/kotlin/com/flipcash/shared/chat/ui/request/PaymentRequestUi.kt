@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui.request
 
+import androidx.compose.ui.platform.LocalContext
+import android.content.res.Resources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,13 +61,15 @@ fun rememberMinuteClock(): Instant {
 fun Fiat.requestText(): String = inDisplayCurrency().formatted(Fiat.FormattingRule.Truncated)
 
 @Composable
-fun StatusLine.text(): String = when (this) {
-    is StatusLine.DaysLeft -> pluralStringResource(R.plurals.label_requestDaysLeft, days, days)
-    is StatusLine.HoursLeft -> pluralStringResource(R.plurals.label_requestHoursLeft, hours, hours)
-    is StatusLine.MinutesLeft -> pluralStringResource(R.plurals.label_requestMinutesLeft, minutes, minutes)
-    StatusLine.PaidInFull -> stringResource(R.string.label_requestPaidInFull)
-    StatusLine.Closed -> stringResource(R.string.label_requestClosed)
-    StatusLine.Expired -> stringResource(R.string.label_requestExpired)
+fun StatusLine.text(): String = text(LocalContext.current.resources)
+
+fun StatusLine.text(resources: Resources): String = when (this) {
+    is StatusLine.DaysLeft -> resources.getQuantityString(R.plurals.label_requestDaysLeft, days, days)
+    is StatusLine.HoursLeft -> resources.getQuantityString(R.plurals.label_requestHoursLeft, hours, hours)
+    is StatusLine.MinutesLeft -> resources.getQuantityString(R.plurals.label_requestMinutesLeft, minutes, minutes)
+    StatusLine.PaidInFull -> resources.getString(R.string.label_requestPaidInFull)
+    StatusLine.Closed -> resources.getString(R.string.label_requestClosed)
+    StatusLine.Expired -> resources.getString(R.string.label_requestExpired)
 }
 
 /** "$20 paid, $520 requested". */

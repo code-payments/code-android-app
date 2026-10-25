@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.getcode.util.resources.LocalResources
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -297,6 +298,7 @@ private fun RequestSummaryContent(
     onRequest: () -> Unit,
 ) {
     val amount = draft.perPerson?.text().orEmpty()
+    val resources = LocalResources.current
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
@@ -313,12 +315,7 @@ private fun RequestSummaryContent(
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(bottom = CodeTheme.dimens.grid.x2)
                     .testTag("request_summary_send"),
-                text = pluralStringResource(
-                    R.plurals.action_requestFromPeople,
-                    draft.requestedCount,
-                    draft.requestedCount,
-                    amount,
-                ),
+                text = requestButtonText(draft, amount, resources),
                 enabled = draft.canSend,
                 isLoading = sending,
                 onClick = onRequest,
@@ -351,8 +348,8 @@ private fun RequestSummaryContent(
             )
             SummaryRow(
                 label = stringResource(R.string.label_requestPeople),
-                value = peopleValue(draft.people),
-                detail = stringResource(R.string.subtitle_requestMarkedPaid).takeIf { draft.people.markedPaid },
+                value = peopleValue(draft.people, resources),
+                detail = peopleDetail(draft.people, resources),
                 onClick = onPeople,
             )
             SummaryRow(
@@ -397,16 +394,6 @@ private fun SummaryRow(label: String, value: String, detail: String?, onClick: (
             tint = CodeTheme.colors.textSecondary,
         )
     }
-}
-
-@Composable
-private fun peopleValue(people: NewRequestDraft.People): String = when (people) {
-    NewRequestDraft.People.Choose -> stringResource(R.string.value_requestPeople_choose)
-    NewRequestDraft.People.EveryoneIncludingYou -> stringResource(R.string.value_requestPeople_everyoneIncludingYou)
-    NewRequestDraft.People.EveryoneExceptYou -> stringResource(R.string.value_requestPeople_everyoneExceptYou)
-    is NewRequestDraft.People.SomeIncludingYou ->
-        pluralStringResource(R.plurals.value_requestPeople_someIncludingYou, people.others, people.others)
-    is NewRequestDraft.People.Some -> pluralStringResource(R.plurals.value_requestPeople_some, people.count, people.count)
 }
 
 @Composable

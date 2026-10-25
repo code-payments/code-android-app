@@ -57,4 +57,19 @@ class PaymentRequestsMergeTest {
         val incoming = request(5, sealed)
         assertEquals(incoming, PaymentRequests.merge(held, incoming)[id])
     }
+
+    // 11
+    @Test
+    fun `an expired copy of the same version replaces an open one`() {
+        val held = mapOf(id to request(5, plain))
+        val incoming = request(5, plain, PaymentRequestStatus.Expired)
+        assertEquals(PaymentRequestStatus.Expired, PaymentRequests.merge(held, incoming)[id]?.status)
+    }
+
+    // 12
+    @Test
+    fun `an open copy of the same version does not replace an expired one`() {
+        val held = mapOf(id to request(5, plain, PaymentRequestStatus.Expired))
+        assertEquals(PaymentRequestStatus.Expired, PaymentRequests.merge(held, request(5, plain))[id]?.status)
+    }
 }

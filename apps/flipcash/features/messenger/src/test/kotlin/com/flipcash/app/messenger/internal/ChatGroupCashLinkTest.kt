@@ -248,9 +248,12 @@ class ChatGroupCashLinkTest {
         vm.dispatchEvent(ChatViewModel.Event.OnSendCash)
         advanceUntilIdle()
 
-        val actions = BottomBarManager.messages.value.single().actions
-        assertTrue(actions.any { it.testTag == "money_action_send" })
-        assertTrue(ChatViewModel.Event.NavigateToAmountEntry !in events)
+        val sheet = BottomBarManager.messages.value.single()
+        val actions = sheet.actions
+        // The spec's sheet is two rows: no title and no Dismiss.
+        assertEquals("", sheet.title)
+        assertEquals(listOf("money_action_send", "money_action_request"), actions.map { it.testTag })
+        assertTrue(events.none { it is ChatViewModel.Event.NavigateToAmountEntry })
 
         actions.first { it.testTag == "money_action_request" }.onClick()
         advanceUntilIdle()

@@ -2,6 +2,7 @@
 
 package com.flipcash.shared.chat.internal.delegates
 
+import com.flipcash.shared.chat.PaymentRequestNotSent
 import com.flipcash.shared.chat.link.OutgoingLinkPreview
 import com.flipcash.shared.chat.link.LinkPreviewImages
 import com.flipcash.shared.chat.link.LinkPreviewChecks
@@ -59,7 +60,9 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import java.nio.ByteBuffer
 import com.getcode.utils.trace
+import com.getcode.utils.hexEncodedString
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,6 +77,7 @@ import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Handles all per-chat messaging operations: sending and receiving messages,
@@ -484,7 +488,17 @@ class MessagingDelegate @Inject constructor(
             ?: return Result.failure(IllegalStateException("Cannot send message without an account"))
         val payload = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
         val (_, clientMessageId) = messageDataSource.insertPending(chatId = chatId, content = payload, senderId = senderId)
-        return send(chatId, payload, clientMessageId)
+        val pendingClientIdHex = clientMessageId.bytes.toList().hexEncodedString()
+        // The request already exists, so only the message is retried, on the same pending row.
+        var result = send(chatId, payload, clientMessageId)
+        for (attempt in 1..PAYMENT_REQUEST_SEND_RETRIES) {
+            val cause = result.exceptionOrNull() ?: break
+            if (cause is SendMessageError.Denied) break
+            delay(PAYMENT_REQUEST_RETRY_BACKOFF * attempt)
+            messageDataSource.retryPending(chatId, pendingClientIdHex)
+            result = send(chatId, payload, clientMessageId)
+        }
+        return result.recoverCatching { cause -> throw PaymentRequestNotSent(pendingClientIdHex, cause) }
     }
 
     override suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage> {
@@ -811,6 +825,9 @@ class MessagingDelegate @Inject constructor(
 
     private companion object {
         const val TAG = "MessagingDelegate"
+        /** Retries after the first failed send of a payment request's widget. */
+        const val PAYMENT_REQUEST_SEND_RETRIES = 2
+        val PAYMENT_REQUEST_RETRY_BACKOFF = 1.seconds
 
         /** The transcript's page size. */
         const val HISTORY_PAGE_SIZE = 50

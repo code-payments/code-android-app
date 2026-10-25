@@ -133,7 +133,7 @@ internal fun RequestDetailsScreen(
             )
         },
         bottomBar = {
-            val share = current?.let { unpaidShareOf(it, viewerId, now) }
+            val share = current?.let { sendableShareOf(it, viewerId, now, state.hasPaymentIntent) }
             if (share != null) {
                 CodeButton(
                     modifier = Modifier

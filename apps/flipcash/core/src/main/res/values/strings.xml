@@ -1017,7 +1017,6 @@
     <string name="label_paymentRequest_card">Request</string>
     <string name="label_chat_preview_requested">You requested %1$s</string>
     <string name="label_chat_preview_requested_bySender">%1$s requested %2$s</string>
-    <string name="title_moneyActions">Money</string>
     <string name="action_sendMoney">Send Money</string>
     <string name="subtitle_sendMoney_group">Send money to someone in the group, or multiple people</string>
     <string name="action_requestMoney">Request Money</string>
@@ -1072,7 +1071,7 @@
         <item quantity="one">%1$d Person</item>
         <item quantity="other">%1$d People</item>
     </plurals>
-    <string name="subtitle_requestMarkedPaid">You’ll be marked as paid</string>
+    <string name="subtitle_requestMarkedPaid">You\'ll be marked as paid</string>
     <plurals name="value_requestDaysToPay">
         <item quantity="one">%1$d Day To Pay</item>
         <item quantity="other">%1$d Days To Pay</item>
@@ -1102,22 +1101,20 @@
     <string name="error_description_requestEndsAt">Choose a deadline within the next 4 weeks.</string>
     <string name="error_description_requestShares">Someone you included is no longer in the group. Check who\'s included and try again.</string>
     <string name="error_description_requestCurrency">Requests aren\'t available in this currency yet.</string>
-    <!-- Placeholder: the spec names no copy for a network failure or an unreachable result. -->
-    <string name="error_description_requestGeneric">Something went wrong. Please try again</string>
     <!-- Request details, group requests spec frames 09–11, 24, 28, 29 and 33–35. -->
     <string name="title_requestDetails">Request</string>
     <string name="label_requestedBy">Requested by %1$s</string>
     <string name="label_requestedByYou">Requested by you</string>
     <string name="label_sharePaid">✓ Paid</string>
-    <string name="label_shareUnpaid">Hasn’t paid yet</string>
-    <string name="label_shareUnpaidEnded">Didn’t pay</string>
+    <string name="label_shareUnpaid">Hasn\'t paid yet</string>
+    <string name="label_shareUnpaidEnded">Didn\'t pay</string>
     <!-- Under the member's name on the Mark as Paid sheet: "$20 · Hasn't paid yet". -->
-    <string name="label_shareUnpaidAmount">%1$s · Hasn’t paid yet</string>
+    <string name="label_shareUnpaidAmount">%1$s · Hasn\'t paid yet</string>
     <string name="action_sendShare">Send %1$s</string>
     <string name="cd_requestOptions">Request options</string>
     <string name="action_closeRequest">Close Request</string>
     <string name="title_closeRequestConfirm">Close Request?</string>
-    <string name="description_closeRequestConfirm">This will stop payments. Anyone who hasn’t paid will be marked Didn’t pay. Payments already made won’t be affected.</string>
+    <string name="description_closeRequestConfirm">This will stop payments. Anyone who hasn\'t paid will be marked Didn\'t pay. Payments already made won\'t be affected.</string>
     <string name="action_markAsPaid">Mark as Paid</string>
     <string name="title_markPaidConfirm">Mark %1$s as Paid?</string>
     <string name="description_markPaidConfirm">Use this if %1$s paid you outside Flipcash. No money will be sent. This action cannot be reversed.</string>

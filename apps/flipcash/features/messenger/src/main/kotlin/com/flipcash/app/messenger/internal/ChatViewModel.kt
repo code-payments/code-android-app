@@ -3788,8 +3788,9 @@ internal class ChatViewModel @AssistedInject constructor(
 
     /** Node 12243:1009 — Send Money or Request Money, as cards like the Add Money sheet's. */
     private fun presentMoneyActions() {
+        // Two rows and nothing else, as the spec lays the sheet out: no title, no Dismiss.
         BottomBarManager.showMessage(
-            title = resources.getString(R.string.title_moneyActions),
+            title = "",
             actions = listOf(
                 bottomBarCardAction(
                     title = resources.getString(R.string.action_sendMoney),
@@ -3804,10 +3805,6 @@ internal class ChatViewModel @AssistedInject constructor(
                     iconRes = R.drawable.ic_menu_deposit,
                     testTag = "money_action_request",
                     onClick = { dispatchEvent(Event.NavigateToRequestMoney) },
-                ),
-                BottomBarAction(
-                    text = resources.getString(R.string.action_dismiss),
-                    style = BottomBarManager.BottomBarButtonStyle.Text,
                 ),
             ),
         )
