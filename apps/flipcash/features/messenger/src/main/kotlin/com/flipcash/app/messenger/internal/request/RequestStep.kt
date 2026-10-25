@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.request
 
 import android.os.Parcelable
+import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.flow.FlowStep
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -9,8 +10,11 @@ import kotlinx.serialization.Serializable
  * The screens inside Request Money, on the screen's own nav host so each one slides in over the
  * last rather than replacing it. [RequestMoneyViewModel.Stage] decides which is on top; the
  * deadline and confirm sheets are drawn over [Summary], not steps.
+ *
+ * [NonDraggableRoute], as `ReportStep` is: the enclosing route is a sheet, and dragging it away
+ * would drop a half-made request. The app bar's close leaves instead.
  */
-internal sealed interface RequestStep : FlowStep, Parcelable {
+internal sealed interface RequestStep : FlowStep, Parcelable, NonDraggableRoute {
     @Parcelize
     @Serializable
     data object History : RequestStep

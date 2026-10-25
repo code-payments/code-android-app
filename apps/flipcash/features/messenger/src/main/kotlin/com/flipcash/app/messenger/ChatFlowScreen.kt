@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.material3.Text
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -225,20 +226,31 @@ private fun chatEntryProvider(
 
     annotatedEntry<ChatStep.RequestMoney> { step ->
         val navigator = LocalCodeNavigator.current
+        val dismissSheet = LocalBottomSheetDismissDispatcher.current
         RequestMoneyScreen(
             chatId = step.chatId,
             resultStateRegistry = resultStateRegistry,
-            onClose = { navigator.pop() },
+            onClose = { dismissSheet() },
             onOpenRequest = { request -> navigator.push(ChatStep.RequestDetails(step.chatId, request.id.base58)) },
         )
     }
 
     annotatedEntry<ChatStep.RequestDetails> { step ->
         val navigator = LocalCodeNavigator.current
+        val dismissSheet = LocalBottomSheetDismissDispatcher.current
+        // No inner flow host to carry a NonDraggableRoute up to the sheet, so turn the drag off
+        // here, as FlowHost would: the app bar's close is the only way out. The flag is the chat
+        // flow's, shared with a Request Money sheet underneath, so put back what was there.
+        val sheetNavigator = LocalSheetNavigator.current
+        DisposableEffect(sheetNavigator) {
+            val previous = sheetNavigator?.sheetDragDisabled ?: false
+            sheetNavigator?.sheetDragDisabled = true
+            onDispose { sheetNavigator?.sheetDragDisabled = previous }
+        }
         RequestDetailsScreen(
             chatId = step.chatId,
             requestId = step.requestId,
-            onBack = { navigator.pop() },
+            onBack = { dismissSheet() },
             onOpenScreen = { route -> navigator.navigate(route) },
         )
     }
