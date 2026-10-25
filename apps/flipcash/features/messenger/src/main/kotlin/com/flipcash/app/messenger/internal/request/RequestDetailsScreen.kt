@@ -123,7 +123,10 @@ internal fun RequestDetailsScreen(
                 // sheet of its own, closed the way the share sheet is.
                 onBackIconClicked = onBack.takeIf { pushed },
                 endContent = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                    ) {
                         if (isCreatorOnOpen) {
                             val optionsLabel = stringResource(R.string.cd_requestOptions)
                             CircularIconButton(
