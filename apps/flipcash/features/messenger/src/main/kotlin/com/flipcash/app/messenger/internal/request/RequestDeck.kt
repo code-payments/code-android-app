@@ -11,8 +11,12 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
@@ -42,8 +46,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -152,85 +159,99 @@ internal fun RequestDeckPill(
     onCycle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val front = deck.firstOrNull()
+    // Held through the exit, so the pill doesn't empty as it fades out.
+    var shown by remember { mutableStateOf(deck) }
+    if (deck.isNotEmpty()) shown = deck
+    // Arriving and leaving: a fade and a slight scale in place, while the width eases so the title
+    // makes room. A deck that is there when the chat opens starts visible, so it doesn't fade.
     AnimatedVisibility(
-        visible = front != null && !expanded,
-        enter = fadeIn(),
-        exit = fadeOut(),
+        visible = deck.isNotEmpty(),
+        enter = fadeIn(tween(APPEAR_MILLIS)) +
+            scaleIn(tween(APPEAR_MILLIS), initialScale = APPEAR_SCALE) +
+            expandHorizontally(tween(APPEAR_MILLIS), expandFrom = Alignment.End, clip = false),
+        exit = fadeOut(tween(APPEAR_MILLIS)) +
+            scaleOut(tween(APPEAR_MILLIS), targetScale = APPEAR_SCALE) +
+            shrinkHorizontally(tween(APPEAR_MILLIS), shrinkTowards = Alignment.End, clip = false),
         modifier = modifier,
     ) {
-        front ?: return@AnimatedVisibility
-        val transition = LocalDeckTransition.current
-        val density = LocalDensity.current
-        val scope = rememberCoroutineScope()
-        val drag = remember { Animatable(0f) }
-        val pillHeightPx = with(density) { PILL_HEIGHT.toPx() }
-        val canCycle = deck.size > 1
-
-        val label = deckLabel(deck, now)
-        val nextLabel = stringResource(R.string.action_nextRequest)
-        Box(
-            modifier = Modifier
-                .padding(bottom = PEEK_STEP * 2)
-                .clearAndSetSemantics {
-                    contentDescription = label
-                    role = Role.Button
-                    onClick { onExpand(); true }
-                    if (canCycle) customActions = listOf(CustomAccessibilityAction(nextLabel) { onCycle(); true })
-                },
+        AnimatedVisibility(
+            visible = !expanded,
+            enter = fadeIn(),
+            exit = fadeOut(),
         ) {
-            // The peeking cards, back first. Widths step in so the front card's edges stay clear.
-            deck.drop(1).take(2).withIndex().reversed().forEach { (index, _) ->
-                val depth = index + 1
-                Box(
+            val front = shown.firstOrNull() ?: return@AnimatedVisibility
+            val transition = LocalDeckTransition.current
+            val density = LocalDensity.current
+            val scope = rememberCoroutineScope()
+            val drag = remember { Animatable(0f) }
+            val pillHeightPx = with(density) { PILL_HEIGHT.toPx() }
+            val canCycle = shown.size > 1
+
+            val label = deckLabel(shown, now)
+            val nextLabel = stringResource(R.string.action_nextRequest)
+            Box(
+                modifier = Modifier
+                    .padding(bottom = PEEK_STEP * 2)
+                    .clearAndSetSemantics {
+                        contentDescription = label
+                        role = Role.Button
+                        onClick { onExpand(); true }
+                        if (canCycle) customActions = listOf(CustomAccessibilityAction(nextLabel) { onCycle(); true })
+                    },
+            ) {
+                // The peeking cards, back first. Widths step in so the front card's edges stay clear.
+                shown.drop(1).take(2).withIndex().reversed().forEach { (index, _) ->
+                    val depth = index + 1
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .padding(horizontal = PEEK_INSET * depth)
+                            .offset(y = PEEK_STEP * depth)
+                            .background(CodeTheme.colors.background, PILL_SHAPE)
+                            .background(
+                                if (depth == 1) CodeTheme.colors.surfaceVariant else CodeTheme.colors.surface,
+                                PILL_SHAPE,
+                            )
+                            .border(1.dp, CodeTheme.colors.border, PILL_SHAPE),
+                    )
+                }
+                DeckFront(
+                    request = front,
+                    now = now,
+                    visibility = this@AnimatedVisibility,
                     modifier = Modifier
-                        .matchParentSize()
-                        .padding(horizontal = PEEK_INSET * depth)
-                        .offset(y = PEEK_STEP * depth)
-                        .background(CodeTheme.colors.background, PILL_SHAPE)
-                        .background(
-                            if (depth == 1) CodeTheme.colors.surfaceVariant else CodeTheme.colors.surface,
-                            PILL_SHAPE,
+                        .then(
+                            if (transition != null) with(transition) {
+                                Modifier.sharedBounds(
+                                    sharedContentState = rememberSharedContentState(sharedKey(front.id, "card")),
+                                    animatedVisibilityScope = this@AnimatedVisibility,
+                                    clipInOverlayDuringTransition = OverlayClip(PILL_SHAPE),
+                                )
+                            } else Modifier
                         )
-                        .border(1.dp, CodeTheme.colors.border, PILL_SHAPE),
+                        .offset { IntOffset(0, drag.value.roundToInt()) }
+                        .draggable(
+                            orientation = Orientation.Vertical,
+                            state = rememberDraggableState { delta ->
+                                scope.launch {
+                                    // One request: a small elastic pull and nothing more.
+                                    val limit = if (canCycle) pillHeightPx * 1.5f else pillHeightPx * 0.25f
+                                    drag.snapTo((drag.value + delta * if (canCycle) 1f else 0.3f).coerceIn(0f, limit))
+                                }
+                            },
+                            onDragStopped = { velocity ->
+                                val past = drag.value > pillHeightPx * CYCLE_THRESHOLD || velocity > FLING_VELOCITY
+                                if (canCycle && past) {
+                                    onCycle()
+                                    drag.snapTo(0f)
+                                } else {
+                                    drag.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+                                }
+                            },
+                        )
+                        .clickable(onClick = onExpand),
                 )
             }
-            DeckFront(
-                request = front,
-                now = now,
-                visibility = this@AnimatedVisibility,
-                modifier = Modifier
-                    .then(
-                        if (transition != null) with(transition) {
-                            Modifier.sharedBounds(
-                                sharedContentState = rememberSharedContentState(sharedKey(front.id, "card")),
-                                animatedVisibilityScope = this@AnimatedVisibility,
-                                clipInOverlayDuringTransition = OverlayClip(PILL_SHAPE),
-                            )
-                        } else Modifier
-                    )
-                    .offset { IntOffset(0, drag.value.roundToInt()) }
-                    .draggable(
-                        orientation = Orientation.Vertical,
-                        state = rememberDraggableState { delta ->
-                            scope.launch {
-                                // One request: a small elastic pull and nothing more.
-                                val limit = if (canCycle) pillHeightPx * 1.5f else pillHeightPx * 0.25f
-                                drag.snapTo((drag.value + delta * if (canCycle) 1f else 0.3f).coerceIn(0f, limit))
-                            }
-                        },
-                        onDragStopped = { velocity ->
-                            val past = drag.value > pillHeightPx * CYCLE_THRESHOLD || velocity > FLING_VELOCITY
-                            if (canCycle && past) {
-                                onCycle()
-                                drag.snapTo(0f)
-                            } else {
-                                drag.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
-                            }
-                        },
-                    )
-                    .clickable(onClick = onExpand),
-            )
         }
     }
 }
@@ -455,6 +476,8 @@ private val PILL_SHAPE = RoundedCornerShape(18.dp)
 private val CARD_SHAPE = RoundedCornerShape(12.dp)
 private val PILL_HEIGHT = 43.dp
 private val PILL_MAX_WIDTH = 150.dp
+private const val APPEAR_MILLIS = 250
+private const val APPEAR_SCALE = 0.95f
 private val PEEK_STEP = 5.dp
 private val PEEK_INSET = 7.dp
 private const val ENDED_ALPHA = 0.4f

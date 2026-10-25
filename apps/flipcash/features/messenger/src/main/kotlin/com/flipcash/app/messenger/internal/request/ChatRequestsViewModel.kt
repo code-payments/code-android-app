@@ -11,13 +11,11 @@ import com.getcode.opencode.model.core.ID
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -57,24 +55,40 @@ internal class ChatRequestsViewModel @Inject constructor(
     val held: StateFlow<Map<ID, PaymentRequest>> = requests.state
     val missing: StateFlow<Set<ID>> = requests.missing
 
+    private val _deck = MutableStateFlow<List<PaymentRequest>>(emptyList())
+
     /** The deck, front card first. Empty hides it. */
-    val deck: StateFlow<List<PaymentRequest>> = combine(
-        chatId.flatMapLatest { id -> id?.let { requests.inChat(it) } ?: flowOf(emptyList()) },
-        _now,
-        cycled,
-    ) { inChat, now, cycled -> deckOrder(inChat, now).rotated(cycled) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val deck: StateFlow<List<PaymentRequest>> = _deck.asStateFlow()
 
     /** Requests refetched because a message about them arrived, so a re-shown row doesn't refetch. */
     private val refreshed = mutableSetOf<ID>()
 
     init {
         viewModelScope.launch {
+            combine(
+                chatId.flatMapLatest { id -> id?.let { requests.inChat(it) } ?: flowOf(emptyList()) },
+                _now,
+                cycled,
+            ) { inChat, now, cycled -> deckOrder(inChat, now).rotated(cycled) }
+                .collect { _deck.value = it }
+        }
+        viewModelScope.launch {
             while (true) {
                 delay(1.minutes)
                 _now.value = Clock.System.now()
             }
         }
+    }
+
+    /**
+     * Points the deck at [chat] and fills it from the requests already held, so a chat opened with
+     * known requests shows its deck on the first frame instead of fading it in.
+     */
+    fun attach(chat: ChatId) {
+        if (chatId.value == chat) return
+        chatId.value = chat
+        val held = requests.state.value.values.filter { it.chatId == chat }
+        _deck.value = deckOrder(held, _now.value).rotated(cycled.value)
     }
 
     /**
