@@ -104,6 +104,8 @@ fun RequestProgressBar(fraction: Float, ended: Boolean, modifier: Modifier = Mod
  * The request card's contents (frames 07 and 08): label, title, progress line, bar and status
  * line. [title] null draws the placeholders while the request loads. The caller supplies the
  * surface: a chat bubble in the transcript, a full-width card in the expanded deck.
+ * [detailModifier] goes on the pieces the deck pill has no counterpart for (label, bar, status
+ * line), so the deck can fade them apart from the card.
  */
 @Composable
 fun PaymentRequestCardContent(
@@ -114,6 +116,7 @@ fun PaymentRequestCardContent(
     glyphModifier: Modifier = Modifier,
     titleModifier: Modifier = Modifier,
     amountsModifier: Modifier = Modifier,
+    detailModifier: Modifier = Modifier,
 ) {
     val loading = request == null || title == null
     val ended = request != null && !request.isOpen(now)
@@ -138,6 +141,7 @@ fun PaymentRequestCardContent(
                     text = stringResource(R.string.label_paymentRequest_card),
                     style = CodeTheme.typography.caption,
                     color = CodeTheme.colors.textSecondary,
+                    modifier = detailModifier,
                 )
                 Text(
                     text = title.orEmpty(),
@@ -155,12 +159,12 @@ fun PaymentRequestCardContent(
             color = CodeTheme.colors.textMain.copy(alpha = 0.75f),
             modifier = if (loading) Modifier.width(160.dp).shimmer(RoundedCornerShape(4.dp)) else amountsModifier,
         )
-        RequestProgressBar(fraction = request?.split?.paidFraction ?: 0f, ended = ended)
+        RequestProgressBar(fraction = request?.split?.paidFraction ?: 0f, ended = ended, modifier = detailModifier)
         Text(
             text = request?.takeUnless { loading }?.statusLine(now)?.text().orEmpty(),
             style = CodeTheme.typography.caption,
             color = CodeTheme.colors.textSecondary,
-            modifier = if (loading) Modifier.width(100.dp).shimmer(RoundedCornerShape(4.dp)) else Modifier,
+            modifier = if (loading) Modifier.width(100.dp).shimmer(RoundedCornerShape(4.dp)) else detailModifier,
         )
     }
 }

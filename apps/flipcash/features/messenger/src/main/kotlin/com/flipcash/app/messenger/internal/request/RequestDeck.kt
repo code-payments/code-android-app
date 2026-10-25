@@ -10,6 +10,7 @@ import androidx.compose.animation.SharedTransitionScope.ResizeMode.Companion.sca
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -408,6 +409,7 @@ internal fun ExpandedRequests(
                     .clickable { onOpen(request) }
                     .padding(14.dp)
                 val front = index == 0
+                val detail = if (front) Modifier.expandedOnly(visibility) else Modifier
                 PaymentRequestCardContent(
                     request = request,
                     title = title,
@@ -416,12 +418,13 @@ internal fun ExpandedRequests(
                     glyphModifier = if (front) Modifier.deckShared(request.id, "glyph", visibility, CircleShape) else Modifier,
                     titleModifier = if (front) Modifier.deckShared(request.id, "title", visibility) else Modifier,
                     amountsModifier = if (front) Modifier.deckShared(request.id, "amounts", visibility) else Modifier,
+                    detailModifier = detail,
                 )
             }
             item(key = "handle") {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Box(
-                        modifier = Modifier
+                        modifier = Modifier.expandedOnly(visibility)
                             .size(width = 36.dp, height = 5.dp)
                             .background(CodeTheme.colors.textSecondary, RoundedCornerShape(2.5.dp))
                             .clickable(onClick = onCollapse),
@@ -430,6 +433,17 @@ internal fun ExpandedRequests(
             }
         }
     }
+}
+
+/**
+ * For the pieces only the expanded deck shows: they come in once the card is most of the way
+ * open, and go first on collapse, so none of them is drawn squeezed into the pill's bounds.
+ */
+private fun Modifier.expandedOnly(scope: AnimatedVisibilityScope): Modifier = with(scope) {
+    this@expandedOnly.animateEnterExit(
+        enter = fadeIn(tween(DETAIL_FADE_IN_MS, delayMillis = DETAIL_DELAY_MS)),
+        exit = fadeOut(tween(DETAIL_FADE_OUT_MS)),
+    )
 }
 
 private val PILL_SHAPE = RoundedCornerShape(18.dp)
@@ -441,3 +455,8 @@ private val PEEK_INSET = 7.dp
 private const val ENDED_ALPHA = 0.4f
 private const val CYCLE_THRESHOLD = 0.4f
 private const val FLING_VELOCITY = 1_000f
+
+// The card's bounds spring settles in about 300ms; the details start at 60% of that.
+private const val DETAIL_DELAY_MS = 180
+private const val DETAIL_FADE_IN_MS = 120
+private const val DETAIL_FADE_OUT_MS = 90
