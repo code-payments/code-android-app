@@ -86,6 +86,18 @@ interface ChatCipher {
     @Throws(ChatCipherException::class)
     fun decryptGroup(payload: EncryptedPayload, groupKey: ByteArray, chatId: ByteArray, senderId: ByteArray): ByteArray
 
+    /**
+     * Encrypts a serialized `paymentrequest.v1.PaymentRequestText` as `EncryptedPaymentRequestText`
+     * (scheme `CHAT_KEY_XCHACHA20POLY1305`) under [groupKey] and a fresh random nonce. [creatorId] is
+     * the raw `UserId.value` of the request's creator.
+     */
+    @Throws(ChatCipherException::class)
+    fun encryptPaymentRequestText(text: ByteArray, groupKey: ByteArray, chatId: ByteArray, creatorId: ByteArray): EncryptedPayload
+
+    /** @throws ChatCipherException if authentication fails, including the wrong [creatorId] or [chatId]. */
+    @Throws(ChatCipherException::class)
+    fun decryptPaymentRequestText(payload: EncryptedPayload, groupKey: ByteArray, chatId: ByteArray, creatorId: ByteArray): ByteArray
+
     /** Returns `nonce || ciphertext || tag` for a private group's blob. [senderId] is the uploader. */
     @Throws(ChatCipherException::class)
     fun encryptGroupBlob(image: ByteArray, groupKey: ByteArray, chatId: ByteArray, blobId: ByteArray, senderId: ByteArray): ByteArray

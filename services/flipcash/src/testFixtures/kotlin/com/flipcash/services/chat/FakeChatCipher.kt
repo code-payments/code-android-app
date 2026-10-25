@@ -12,6 +12,7 @@ import com.getcode.ed25519kmp.KeyPair
  */
 object FakeChatCipher : ChatCipher {
     private const val HEADER = 32 * 3
+    private const val PAYMENT_REQUEST: Byte = 0x50
 
     override fun chatKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, chatId: ByteArray): ByteArray =
         ByteArray(32) { i -> (ownKeyPair.publicKey[i].toInt() xor peerPublicKey[i].toInt() xor chatId[i].toInt()).toByte() }
@@ -65,6 +66,13 @@ object FakeChatCipher : ChatCipher {
 
     override fun decryptGroup(payload: EncryptedPayload, groupKey: ByteArray, chatId: ByteArray, senderId: ByteArray): ByteArray =
         openWithHeader(payload.ciphertext, groupKey + chatId + senderId)
+
+    // The leading byte stands in for the distinct aad label, so group message bytes never open as request text.
+    override fun encryptPaymentRequestText(text: ByteArray, groupKey: ByteArray, chatId: ByteArray, creatorId: ByteArray) =
+        EncryptedPayload(nonce = ByteArray(24), ciphertext = byteArrayOf(PAYMENT_REQUEST) + groupKey + chatId + creatorId + text)
+
+    override fun decryptPaymentRequestText(payload: EncryptedPayload, groupKey: ByteArray, chatId: ByteArray, creatorId: ByteArray): ByteArray =
+        openWithHeader(payload.ciphertext, byteArrayOf(PAYMENT_REQUEST) + groupKey + chatId + creatorId)
 
     override fun encryptGroupBlob(image: ByteArray, groupKey: ByteArray, chatId: ByteArray, blobId: ByteArray, senderId: ByteArray) =
         groupKey + chatId + blobId + senderId + image
