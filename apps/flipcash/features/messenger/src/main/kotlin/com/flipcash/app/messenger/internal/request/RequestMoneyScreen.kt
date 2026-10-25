@@ -46,6 +46,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -71,6 +72,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.ui.DisplayTextInput
 import com.flipcash.app.messenger.internal.screens.cash.GroupSelectPeopleContent
+import com.flipcash.app.messenger.internal.screens.profile.edit.NameEditScaffold
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.app.core.AppRoute
@@ -476,61 +478,32 @@ private fun deadlineValue(deadline: NewRequestDraft.Deadline): String = when (de
     }
 }
 
+/** The request's name, in the editor the group's name uses. */
 @Composable
 private fun RequestNameContent(title: String, onBack: () -> Unit, onDone: (String) -> Unit) {
     val field = rememberTextFieldState(initialText = title)
-    val focusRequester = remember { FocusRequester() }
-    val trimmed = field.text.trim()
-    var valid by remember { mutableStateOf(trimmed.isNotEmpty()) }
+    var length by remember { mutableIntStateOf(field.text.length) }
+    var valid by remember { mutableStateOf(field.text.isNotBlank()) }
     LaunchedEffect(field) {
         snapshotFlow { field.text.toString() }.collect { text ->
             if (text.length > RequestMoneyViewModel.MAX_TITLE) {
                 field.edit { replace(0, length, text.take(RequestMoneyViewModel.MAX_TITLE)) }
             }
+            length = field.text.length
             valid = text.isNotBlank()
         }
     }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
-    Column {
-        AppBarWithTitle(onBackIconClicked = onBack)
-        CodeScaffold(
-            modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-            topBar = {
-                Text(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.inset),
-                    text = stringResource(R.string.label_requestName),
-                    style = CodeTheme.typography.textLarge,
-                    color = CodeTheme.colors.textMain,
-                )
-            },
-            bottomBar = {
-                CodeButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .imePadding()
-                        .padding(bottom = CodeTheme.dimens.grid.x3),
-                    text = stringResource(R.string.action_done),
-                    enabled = valid,
-                    onClick = { onDone(field.text.toString()) },
-                )
-            },
-        ) { padding ->
-            DisplayTextInput(
-                state = field,
-                placeholder = stringResource(R.string.label_requestName),
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Done,
-                ),
-                onKeyboardAction = { if (valid) onDone(field.text.toString()) },
-            )
-        }
-    }
+    NameEditScaffold(
+        heading = stringResource(R.string.label_requestName),
+        placeholder = stringResource(R.string.label_requestName),
+        field = field,
+        buttonText = stringResource(R.string.action_done),
+        canSubmit = valid,
+        remaining = RequestMoneyViewModel.MAX_TITLE - length,
+        capitalization = KeyboardCapitalization.Sentences,
+        onBack = onBack,
+        onSubmit = { onDone(field.text.toString()) },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
