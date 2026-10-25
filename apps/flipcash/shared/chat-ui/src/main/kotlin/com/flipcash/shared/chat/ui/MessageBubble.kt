@@ -378,7 +378,8 @@ fun ContentBubble(
                         attention = attention,
                     )
 
-                    WidgetContent.Unsupported -> UndecryptableBubble(
+                    // TODO(group-requests): the request card replaces this in the next commit.
+                    is WidgetContent.PaymentRequest, WidgetContent.Unsupported -> UndecryptableBubble(
                         modifier = modifier,
                         hint = item.undecryptableHint,
                         maxWidth = bubbleMaxWidth,

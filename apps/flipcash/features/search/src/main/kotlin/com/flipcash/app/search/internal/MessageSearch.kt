@@ -34,7 +34,8 @@ private fun searchableText(content: MessageContent): String? = when (content) {
     is MessageContent.Media -> content.caption?.text
     is MessageContent.Widget -> when (val widget = content.widget) {
         is WidgetContent.ShareProfile -> widget.username
-        WidgetContent.Unsupported -> null
+        // Its title lives in the request, not the message.
+        is WidgetContent.PaymentRequest, WidgetContent.Unsupported -> null
     }
     else -> null
 }

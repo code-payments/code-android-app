@@ -1,11 +1,13 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.core.R
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.handle
+import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.shared.chat.models.displayText
 import com.flipcash.shared.chat.models.namedUsers
 import com.flipcash.shared.chat.ChatSummary
@@ -37,6 +39,9 @@ import com.getcode.utils.hexEncodedString
  *
  * [exchange] restates a payment's amount in the viewer's currency; without one the amount reads in
  * the currency it was sent in.
+ *
+ * [paymentRequests] supplies the per-person share for a payment request widget's preview; one the
+ * device doesn't hold yet previews as nothing until it arrives.
  */
 fun ChatSummary.toConversationReference(
     selfId: ID?,
@@ -44,6 +49,7 @@ fun ChatSummary.toConversationReference(
     resources: ResourceHelper,
     senderProfiles: Map<String, UserProfile> = emptyMap(),
     exchange: Exchange? = null,
+    paymentRequests: Map<ID, PaymentRequest> = emptyMap(),
 ): ConversationReference {
     val isGroup = metadata.type == ChatType.GROUP
     val other = metadata.members.firstOrNull { it.userId != selfId }
@@ -58,7 +64,7 @@ fun ChatSummary.toConversationReference(
         title = metadata.title,
         isGroup = isGroup,
         chatType = metadata.type,
-        lastMessagePreview = formatPreview(selfId, tokensByMint, resources, senderProfiles, exchange),
+        lastMessagePreview = formatPreview(selfId, tokensByMint, resources, senderProfiles, exchange, paymentRequests),
         hasMessages = metadata.lastMessage != null,
         lastActivity = metadata.lastActivity,
         unreadCount = unreadCount,
@@ -98,6 +104,7 @@ private fun ChatSummary.formatPreview(
     resources: ResourceHelper,
     senderProfiles: Map<String, UserProfile>,
     exchange: Exchange?,
+    paymentRequests: Map<ID, PaymentRequest>,
 ): String? {
     val lastMsg = metadata.lastMessage ?: return null
     val isGroup = metadata.type == ChatType.GROUP
@@ -112,7 +119,7 @@ private fun ChatSummary.formatPreview(
         null
     }
     return lastMsg.content.firstOrNull()
-        ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange) { content ->
+        ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, paymentRequests) { content ->
             content.displayText(resources, selfId) { groupSenderName(it, senderProfiles) }
         }
 }
@@ -130,6 +137,7 @@ private fun MessageContent.previewText(
     tokensByMint: Map<Mint, Token>,
     resources: ResourceHelper,
     exchange: Exchange?,
+    paymentRequests: Map<ID, PaymentRequest>,
     depth: Int = 0,
     systemText: (MessageContent.System) -> String?,
 ): String? = when (this) {
@@ -189,7 +197,7 @@ private fun MessageContent.previewText(
         null
     } else {
         content.firstOrNull()
-            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, depth + 1, systemText)
+            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, paymentRequests, depth + 1, systemText)
     }
 
     // The feed carries the newest message that still has content, so a tombstone only
@@ -212,8 +220,19 @@ private fun MessageContent.previewText(
     is MessageContent.System -> systemText(this)
 
     // A widget this client can't draw previews as nothing, as an undecryptable message does.
-    is MessageContent.Widget -> when (widget) {
+    is MessageContent.Widget -> when (val widget = widget) {
         is WidgetContent.ShareProfile -> resources.getString(R.string.label_chat_preview_sharedProfile)
+        // The per-person share, as the request card's own amounts read.
+        is WidgetContent.PaymentRequest -> paymentRequests[widget.id]?.split?.shares?.firstOrNull()?.amount
+            ?.let { share -> (exchange?.let { share.forViewer(it.preferredRate, it.rates()) } ?: share).formatted() }
+            ?.let { amount ->
+                when {
+                    sentBySelf -> resources.getString(R.string.label_chat_preview_requested, amount)
+                    senderName != null ->
+                        resources.getString(R.string.label_chat_preview_requested_bySender, senderName, amount)
+                    else -> null
+                }
+            }
         WidgetContent.Unsupported -> null
     }
 

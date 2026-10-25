@@ -1798,6 +1798,8 @@ internal class ChatViewModel @AssistedInject constructor(
                     when (body.widget) {
                         is WidgetContent.ShareProfile ->
                             resources.getString(R.string.label_chat_preview_sharedProfile)
+                        is WidgetContent.PaymentRequest ->
+                            resources.getString(R.string.label_paymentRequest_card)
                         WidgetContent.Unsupported -> ""
                     }
                 )

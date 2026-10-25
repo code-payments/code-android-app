@@ -52,10 +52,20 @@ class WidgetAndNeverMappingTest {
     }
 
     @Test
-    fun `a widget can't be built for sending`() {
+    fun `a share profile widget can't be built for sending`() {
         assertFailsWith<IllegalStateException> {
             MessageContent.Widget(WidgetContent.ShareProfile("alice")).asContent()
         }
+    }
+
+    @Test
+    fun `a payment request widget round-trips through the wire form`() {
+        val widget = MessageContent.Widget(WidgetContent.PaymentRequest(List(32) { it.toByte() }))
+
+        val wire = widget.asContent()
+
+        assertEquals(MessagingModel.WidgetContent.TypeCase.PAYMENT_REQUEST, wire.widget.typeCase)
+        assertEquals(widget, wire.toMessageContent())
     }
 
     @Test

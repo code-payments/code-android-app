@@ -10,6 +10,11 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.services.models.paymentrequest.PaymentRequest
+import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
+import com.flipcash.services.models.paymentrequest.PaymentRequestText
+import com.flipcash.services.models.paymentrequest.Share
+import com.flipcash.services.models.paymentrequest.Split
 import com.flipcash.shared.chat.ChatSummary
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
@@ -404,6 +409,50 @@ class ChatSummaryPreviewTest {
 
         assertEquals("Shared a profile", preview(listOf(widget)))
         assertEquals("Shared a profile", preview(listOf(widget), senderId = self))
+    }
+
+    private val requestId: ID = List(32) { 7 }
+
+    private fun request(share: Fiat) = PaymentRequest(
+        id = requestId,
+        creator = other,
+        createdAt = sentAt,
+        status = PaymentRequestStatus.Open,
+        closedAt = null,
+        version = 1,
+        kind = PaymentRequest.Kind.GroupSplit(
+            chatId = ChatId(byteArrayOf(9)),
+            split = Split(
+                text = PaymentRequestText.Plain("Dinner", ""),
+                currency = CurrencyCode.USD,
+                endsAt = Instant.fromEpochSeconds(100_000),
+                shares = listOf(self, other).map { Share(userId = it, amount = share, paid = null) },
+            ),
+        ),
+    )
+
+    @Test
+    fun `a payment request previews as who requested the per-person share`() {
+        val share = Fiat(20.0, CurrencyCode.USD)
+        val amount = share.formatted()
+        every {
+            resources.getString(R.string.label_chat_preview_requested_bySender, "Alice", amount)
+        } returns "Alice requested $amount"
+        every { resources.getString(R.string.label_chat_preview_requested, amount) } returns "You requested $amount"
+        val widget = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
+        val requests = mapOf(requestId to request(share))
+
+        fun groupPreview(senderId: ID) = groupSummary(widget, senderId, "Alice")
+            .toConversationReference(self, emptyMap(), resources, paymentRequests = requests)
+            .lastMessagePreview
+
+        assertEquals("Alice requested $amount", groupPreview(other))
+        assertEquals("You requested $amount", groupPreview(self))
+    }
+
+    @Test
+    fun `a payment request the device doesn't hold yet has nothing to preview`() {
+        assertNull(preview(listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))))
     }
 
     @Test

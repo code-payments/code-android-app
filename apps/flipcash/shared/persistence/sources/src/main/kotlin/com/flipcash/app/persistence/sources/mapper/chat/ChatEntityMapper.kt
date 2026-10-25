@@ -418,9 +418,13 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         items = items,
         caption = caption?.let { MessageContentSerialized.Text(it.text) },
     )
-    is MessageContent.Widget -> MessageContentSerialized.WidgetShareProfile(
-        username = (widget as? WidgetContent.ShareProfile)?.username,
-    )
+    is MessageContent.Widget -> when (val widget = widget) {
+        is WidgetContent.PaymentRequest ->
+            MessageContentSerialized.WidgetPaymentRequest(paymentRequestId = widget.id.base58)
+        else -> MessageContentSerialized.WidgetShareProfile(
+            username = (widget as? WidgetContent.ShareProfile)?.username,
+        )
+    }
     is MessageContent.System -> when (val event = event) {
         is MessageContent.SystemEvent.UserJoined -> MessageContentSerialized.System(
             fallbackText = fallbackText,
@@ -444,6 +448,9 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
 private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
     is MessageContentSerialized.WidgetShareProfile -> MessageContent.Widget(
         username?.let { WidgetContent.ShareProfile(it) } ?: WidgetContent.Unsupported,
+    )
+    is MessageContentSerialized.WidgetPaymentRequest -> MessageContent.Widget(
+        WidgetContent.PaymentRequest(paymentRequestId.decodeBase58().toList()),
     )
     is MessageContentSerialized.Text -> MessageContent.Text(text, linkPreview)
     is MessageContentSerialized.Cash -> MessageContent.Cash(

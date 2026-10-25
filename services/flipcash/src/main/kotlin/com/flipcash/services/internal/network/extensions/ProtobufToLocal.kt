@@ -252,8 +252,11 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
             when (widget.typeCase) {
                 MessagingModel.WidgetContent.TypeCase.SHARE_PROFILE ->
                     WidgetContent.ShareProfile(widget.shareProfile.username.value)
-                // PAYMENT_REQUEST carries only the request id. It renders as unsupported until a
-                // UI consumes payment requests, which also owns the chat/creator mismatch check.
+                // Only the id travels; the card owns the chat/creator mismatch check.
+                MessagingModel.WidgetContent.TypeCase.PAYMENT_REQUEST ->
+                    WidgetContent.PaymentRequest(
+                        widget.paymentRequest.paymentRequestId.value.toByteArray().toList()
+                    )
                 else -> WidgetContent.Unsupported
             }
         )

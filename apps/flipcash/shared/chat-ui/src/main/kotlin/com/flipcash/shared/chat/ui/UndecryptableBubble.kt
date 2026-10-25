@@ -92,7 +92,7 @@ fun unsupportedContentHint(content: MessageContent): UndecryptableHint? = when (
     MessageContent.Unsupported -> UndecryptableHint.UpdateApp
     is MessageContent.Widget -> when (content.widget) {
         WidgetContent.Unsupported -> UndecryptableHint.UpdateApp
-        is WidgetContent.ShareProfile -> null
+        is WidgetContent.ShareProfile, is WidgetContent.PaymentRequest -> null
     }
     else -> null
 }
