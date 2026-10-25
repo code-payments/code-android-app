@@ -1035,6 +1035,30 @@
     <string name="label_requestName">Name</string>
     <string name="label_requestPeople">People</string>
     <string name="label_requestTiming">Timing</string>
+    <plurals name="label_requestDaysLeft">
+        <item quantity="one">%1$d day left to pay</item>
+        <item quantity="other">%1$d days left to pay</item>
+    </plurals>
+    <plurals name="label_requestHoursLeft">
+        <item quantity="one">%1$d hour left to pay</item>
+        <item quantity="other">%1$d hours left to pay</item>
+    </plurals>
+    <plurals name="label_requestMinutesLeft">
+        <item quantity="one">%1$d minute left to pay</item>
+        <item quantity="other">%1$d minutes left to pay</item>
+    </plurals>
+    <string name="label_requestPaidInFull">Paid in full</string>
+    <string name="label_requestClosed">Closed</string>
+    <string name="label_requestExpired">Expired</string>
+    <!-- The app-bar deck's front card: "$180 of $520". -->
+    <string name="label_requestDeckProgress">%1$s of %2$s</string>
+    <!-- Screen reader label for the deck: title, "<paid> of <requested> paid", status line. -->
+    <string name="cd_requestDeck">%1$s, %2$s of %3$s paid, %4$s</string>
+    <plurals name="cd_requestDeckCount">
+        <item quantity="one">%1$d request</item>
+        <item quantity="other">%1$d requests</item>
+    </plurals>
+    <string name="action_nextRequest">Next request</string>
     <!-- %1$s is the weekday in the device locale: "Saturday Request". -->
     <string name="label_defaultRequestTitle">%1$s Request</string>
     <string name="value_requestPeople_everyoneIncludingYou">Everyone, Including You</string>

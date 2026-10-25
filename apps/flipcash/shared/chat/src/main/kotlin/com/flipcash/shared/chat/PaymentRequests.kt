@@ -3,6 +3,7 @@ package com.flipcash.shared.chat
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.controllers.PaymentRequestController
+import com.flipcash.services.models.GetPaymentRequestError
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
@@ -40,6 +41,13 @@ class PaymentRequests @Inject constructor(
 
     val state: StateFlow<Map<ID, PaymentRequest>> = requests.asStateFlow()
 
+    private val _missing = MutableStateFlow<Set<ID>>(emptySet())
+
+    /** Requests a fetch found DENIED or NOT_FOUND. Their cards draw as unsupported and aren't refetched. */
+    val missing: StateFlow<Set<ID>> = _missing.asStateFlow()
+
+    private val inFlight = MutableStateFlow<Set<ID>>(emptySet())
+
     /** The held requests made in [chatId], in no particular order. */
     fun inChat(chatId: ChatId): Flow<List<PaymentRequest>> =
         requests.map { all -> all.values.filter { it.chatId == chatId } }.distinctUntilChanged()
@@ -71,7 +79,25 @@ class PaymentRequests @Inject constructor(
      * unpaid share; keep it for the one payment and do not store or log it.
      */
     suspend fun fetch(id: ID): Result<PaymentRequestDetails> =
-        controller.getPaymentRequest(id).onSuccess { ingest(listOf(it.paymentRequest)) }
+        controller.getPaymentRequest(id)
+            .onSuccess { ingest(listOf(it.paymentRequest)) }
+            .onFailure { if (it is GetPaymentRequestError.Denied || it is GetPaymentRequestError.NotFound) _missing.update { set -> set.plusElement(id) } }
+
+    /**
+     * Fetches [id] for a card that has nothing to show, once: not while a fetch for it is running,
+     * and not after one found it missing.
+     */
+    suspend fun fetchIfAbsent(id: ID) {
+        if (id in requests.value || id in _missing.value) return
+        var claimed = false
+        inFlight.update { held -> claimed = id !in held; held.plusElement(id) }
+        if (!claimed) return
+        try {
+            fetch(id)
+        } finally {
+            inFlight.update { it.minusElement(id) }
+        }
+    }
 
     suspend fun create(request: NewSplitRequest, idempotencyKey: IdempotencyKey): Result<PaymentRequest> =
         controller.createPaymentRequest(request, idempotencyKey).map { ingestOne(it) }
@@ -90,6 +116,7 @@ class PaymentRequests @Inject constructor(
 
     fun clear() {
         requests.value = emptyMap()
+        _missing.value = emptySet()
     }
 
     private suspend fun ingestOne(request: PaymentRequest): PaymentRequest {

@@ -69,6 +69,11 @@ import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.shared.chat.RequestCardState
+import com.flipcash.shared.chat.ui.request.FetchWhenAbsent
+import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
+import com.flipcash.shared.chat.ui.request.PaymentRequestBubbleDefaults
+import com.flipcash.shared.chat.ui.request.PaymentRequestCardBody
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.LinkCard
@@ -378,8 +383,40 @@ fun ContentBubble(
                         attention = attention,
                     )
 
-                    // TODO(group-requests): the request card replaces this in the next commit.
-                    is WidgetContent.PaymentRequest, WidgetContent.Unsupported -> UndecryptableBubble(
+                    is WidgetContent.PaymentRequest -> {
+                        val cards = LocalPaymentRequestCards.current
+                        val state = cards?.stateOf(widget.id, item.isFromSelf, item.senderId)
+                            ?: RequestCardState.Unsupported
+                        if (cards != null) FetchWhenAbsent(widget.id, cards)
+                        if (cards == null || state == RequestCardState.Unsupported) {
+                            UndecryptableBubble(
+                                modifier = modifier,
+                                hint = item.undecryptableHint,
+                                maxWidth = bubbleMaxWidth,
+                                actionLabel = updateAction?.label,
+                                onAction = { updateAction?.onClick?.invoke() },
+                            )
+                        } else {
+                            val width = minOf(bubbleMaxWidth, PaymentRequestBubbleDefaults.WIDTH)
+                            Bubble(
+                                isFromSelf = item.isFromSelf,
+                                position = position,
+                                minWidth = width,
+                                maxWidth = width,
+                                horizontalPadding = PaymentRequestBubbleDefaults.PADDING,
+                                verticalPadding = PaymentRequestBubbleDefaults.PADDING,
+                                onClick = { cards.onOpen(widget.id) }.takeIf { interactive && state is RequestCardState.Ready },
+                                onLongClick = onLongClick?.takeIf { interactive },
+                                onDoubleClick = onDoubleClick?.takeIf { interactive },
+                                modifier = modifier,
+                                attention = attention,
+                            ) {
+                                PaymentRequestCardBody(state, cards.now)
+                            }
+                        }
+                    }
+
+                    WidgetContent.Unsupported -> UndecryptableBubble(
                         modifier = modifier,
                         hint = item.undecryptableHint,
                         maxWidth = bubbleMaxWidth,
