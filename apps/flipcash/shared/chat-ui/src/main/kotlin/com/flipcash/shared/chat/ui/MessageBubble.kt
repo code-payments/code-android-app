@@ -1139,7 +1139,7 @@ private fun GroupSendBubble(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = CodeTheme.dimens.grid.x5),
+                .padding(vertical = CodeTheme.dimens.grid.x2),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         ) {
