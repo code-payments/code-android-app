@@ -1371,7 +1371,7 @@ internal class ChatViewModel @AssistedInject constructor(
      */
     internal fun groupSendPerson(userIdHex: String?): GroupSendPerson {
         if (userIdHex == null || userIdHex == userManager.accountId?.hexEncodedString()) {
-            return GroupSendPerson(resources.getString(R.string.title_you), profile = null)
+            return GroupSendPerson(resources.getString(R.string.title_you), userManager.profile)
         }
         val profile = senderProfiles.value?.get(userIdHex)
         val name = profile?.let { nameOrHandle(it.displayName, it.handle) }
