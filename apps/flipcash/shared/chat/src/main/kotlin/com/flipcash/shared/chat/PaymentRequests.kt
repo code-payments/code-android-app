@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat
 
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.controllers.PaymentRequestController
 import com.flipcash.services.models.QueryOptions
@@ -59,7 +60,7 @@ class PaymentRequests @Inject constructor(
     suspend fun fetch(id: ID): Result<PaymentRequestDetails> =
         controller.getPaymentRequest(id).onSuccess { ingest(listOf(it.paymentRequest)) }
 
-    suspend fun create(request: NewSplitRequest, idempotencyKey: ID): Result<PaymentRequest> =
+    suspend fun create(request: NewSplitRequest, idempotencyKey: IdempotencyKey): Result<PaymentRequest> =
         controller.createPaymentRequest(request, idempotencyKey).map { ingestOne(it) }
 
     suspend fun close(id: ID): Result<PaymentRequest> =

@@ -432,8 +432,8 @@ internal fun ID.asPaymentRequestId(): PaymentRequestModel.PaymentRequestId {
     return PaymentRequestModel.PaymentRequestId.newBuilder().setValue(toByteString()).build()
 }
 
-internal fun ID.asPaymentRequestIdempotencyKey(): PaymentRequestModel.IdempotencyKey {
-    return PaymentRequestModel.IdempotencyKey.newBuilder().setValue(toByteString()).build()
+internal fun IdempotencyKey.asPaymentRequestIdempotencyKey(): PaymentRequestModel.IdempotencyKey {
+    return PaymentRequestModel.IdempotencyKey.newBuilder().setValue(bytes.toByteString()).build()
 }
 
 internal fun NewSplitRequest.asGroupChatPaymentRequest(): PaymentRequestModel.GroupChatPaymentRequest {

@@ -1,5 +1,6 @@
 package com.flipcash.services.internal.network.services
 
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.codeinc.flipcash.gen.paymentrequest.v1.PaymentrequestService
 import com.flipcash.services.internal.network.api.PaymentRequestApi
 import com.flipcash.services.internal.network.extensions.asGroupChatPaymentRequest
@@ -33,7 +34,7 @@ internal class PaymentRequestService @Inject constructor(
     suspend fun createPaymentRequest(
         owner: Ed25519.KeyPair,
         request: NewSplitRequest,
-        idempotencyKey: ID,
+        idempotencyKey: IdempotencyKey,
     ): Result<PaymentRequest> {
         return runCatching {
             api.createPaymentRequest(owner, request.asGroupChatPaymentRequest(), idempotencyKey.asPaymentRequestIdempotencyKey())

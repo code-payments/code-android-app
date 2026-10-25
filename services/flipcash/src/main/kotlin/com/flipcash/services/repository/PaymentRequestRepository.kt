@@ -1,5 +1,6 @@
 package com.flipcash.services.repository
 
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.NewSplitRequest
@@ -18,7 +19,7 @@ interface PaymentRequestRepository {
     suspend fun createPaymentRequest(
         owner: KeyPair,
         request: NewSplitRequest,
-        idempotencyKey: ID,
+        idempotencyKey: IdempotencyKey,
     ): Result<PaymentRequest>
 
     suspend fun getPaymentRequest(

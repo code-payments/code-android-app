@@ -1,5 +1,6 @@
 package com.flipcash.services.internal.repositories
 
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.internal.network.services.PaymentRequestService
 import com.flipcash.services.models.CreatePaymentRequestError
 import com.flipcash.services.models.GetChatPaymentRequestsError
@@ -22,7 +23,7 @@ internal class InternalPaymentRequestRepository(
     override suspend fun createPaymentRequest(
         owner: KeyPair,
         request: NewSplitRequest,
-        idempotencyKey: ID,
+        idempotencyKey: IdempotencyKey,
     ): Result<PaymentRequest> {
         return service.createPaymentRequest(owner, request, idempotencyKey)
             .onFailure {
