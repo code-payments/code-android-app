@@ -1194,7 +1194,7 @@ private fun GroupSendBubble(
                 TokenIconWithName(
                     tokenName = content.tokenName,
                     tokenImage = content.tokenImageUrl,
-                    imageSize = CodeTheme.dimens.staticGrid.x2,
+                    imageSize = CodeTheme.dimens.staticGrid.x4,
                     spacing = CodeTheme.dimens.grid.x1,
                     textStyle = CodeTheme.typography.caption,
                     textColor = CodeTheme.colors.textMain,
