@@ -1104,6 +1104,25 @@
     <string name="error_description_requestCurrency">Requests aren\'t available in this currency yet.</string>
     <!-- Placeholder: the spec names no copy for a network failure or an unreachable result. -->
     <string name="error_description_requestGeneric">Something went wrong. Please try again</string>
+    <!-- Request details, group requests spec frames 09–11, 24, 28, 29 and 33–35. -->
+    <string name="title_requestDetails">Request</string>
+    <string name="label_requestedBy">Requested by %1$s</string>
+    <string name="label_requestedByYou">Requested by you</string>
+    <string name="label_sharePaid">✓ Paid</string>
+    <string name="label_shareUnpaid">Hasn’t paid yet</string>
+    <string name="label_shareUnpaidEnded">Didn’t pay</string>
+    <!-- Under the member's name on the Mark as Paid sheet: "$20 · Hasn't paid yet". -->
+    <string name="label_shareUnpaidAmount">%1$s · Hasn’t paid yet</string>
+    <string name="action_sendShare">Send %1$s</string>
+    <string name="cd_requestOptions">Request options</string>
+    <string name="action_closeRequest">Close Request</string>
+    <string name="title_closeRequestConfirm">Close Request?</string>
+    <string name="description_closeRequestConfirm">This will stop payments. Anyone who hasn’t paid will be marked Didn’t pay. Payments already made won’t be affected.</string>
+    <string name="action_markAsPaid">Mark as Paid</string>
+    <string name="title_markPaidConfirm">Mark %1$s as Paid?</string>
+    <string name="description_markPaidConfirm">Use this if %1$s paid you outside Flipcash. No money will be sent. This action cannot be reversed.</string>
+    <string name="error_title_requestClosed">Request Closed</string>
+    <string name="error_description_requestClosed">This request is no longer accepting payments.</string>
     <string name="label_chat_preview_noMessages">Nothing yet</string>
     <string name="label_isTyping">Is Typing…</string>
 

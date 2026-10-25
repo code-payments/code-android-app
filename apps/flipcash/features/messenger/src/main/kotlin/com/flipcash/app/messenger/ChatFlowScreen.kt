@@ -42,6 +42,7 @@ import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
+import com.flipcash.app.messenger.internal.request.RequestDetailsScreen
 import com.flipcash.app.messenger.internal.request.RequestMoneyScreen
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostAmountViewModel
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostCurrencySheet
@@ -88,6 +89,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import com.getcode.utils.base58
 
 @Composable
 fun ChatFlowScreen(
@@ -226,8 +228,17 @@ private fun chatEntryProvider(
         RequestMoneyScreen(
             chatId = step.chatId,
             onClose = { navigator.pop() },
-            // Request details land with the deck; until then a row has nowhere to go.
-            onOpenRequest = {},
+            onOpenRequest = { request -> navigator.push(ChatStep.RequestDetails(step.chatId, request.id.base58)) },
+        )
+    }
+
+    annotatedEntry<ChatStep.RequestDetails> { step ->
+        val navigator = LocalCodeNavigator.current
+        RequestDetailsScreen(
+            chatId = step.chatId,
+            requestId = step.requestId,
+            onBack = { navigator.pop() },
+            onOpenScreen = { route -> navigator.navigate(route) },
         )
     }
 
