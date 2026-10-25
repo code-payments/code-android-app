@@ -13,6 +13,8 @@ import com.flipcash.shared.chat.RosterUpdateSink
 import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.internal.DataStoreLobbyRequestStore
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
+import com.flipcash.shared.chat.alerts.ReactionAlertController
+import com.flipcash.shared.chat.alerts.ReactionAlertSink
 import com.flipcash.shared.chat.internal.MentionPoolUpdates
 import com.flipcash.shared.chat.internal.MentionSuggestionPool
 import com.flipcash.shared.chat.internal.ServerRosterSearchSource
@@ -92,6 +94,11 @@ abstract class ChatModule {
     internal abstract fun bindMentionPoolUpdates(
         impl: MentionSuggestionPool
     ): MentionPoolUpdates
+
+    @Binds
+    internal abstract fun bindReactionAlertSink(
+        impl: ReactionAlertController
+    ): ReactionAlertSink
 
     @Binds
     @IntoSet
