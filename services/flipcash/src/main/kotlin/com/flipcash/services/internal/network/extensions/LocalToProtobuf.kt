@@ -26,6 +26,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
+import com.flipcash.services.models.paymentrequest.NewSplitRequest
 import com.google.protobuf.Timestamp
 import kotlin.time.Instant
 import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
@@ -412,5 +413,37 @@ internal fun com.flipcash.services.models.chat.KeyEnvelope.asProtoKeyEnvelope():
         .setSchemeValue(scheme)
         .setNonce(nonce.toByteString())
         .setCiphertext(ciphertext.toByteString())
+        .build()
+}
+
+internal fun ID.asPaymentRequestId(): PaymentRequestModel.PaymentRequestId {
+    return PaymentRequestModel.PaymentRequestId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun ID.asPaymentRequestIdempotencyKey(): PaymentRequestModel.IdempotencyKey {
+    return PaymentRequestModel.IdempotencyKey.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun NewSplitRequest.asGroupChatPaymentRequest(): PaymentRequestModel.GroupChatPaymentRequest {
+    val split = PaymentRequestModel.Split.newBuilder()
+        .setEncrypted(
+            PaymentRequestModel.EncryptedPaymentRequestText.newBuilder()
+                .setSchemeValue(text.scheme)
+                .setNonce(text.nonce.toByteString())
+                .setCiphertext(text.ciphertext.toByteString())
+        )
+        .setCurrency(currency.name.lowercase())
+        .setEndsAt(endsAt.asTimestamp())
+        .addAllShares(
+            shares.map { userId ->
+                PaymentRequestModel.Share.newBuilder()
+                    .setUserId(userId.asUserId())
+                    .setNativeAmount(perPerson.decimalValue)
+                    .build()
+            }
+        )
+    return PaymentRequestModel.GroupChatPaymentRequest.newBuilder()
+        .setChatId(chatId.asChatId())
+        .setSplit(split)
         .build()
 }

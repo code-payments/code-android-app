@@ -1,10 +1,12 @@
 package com.flipcash.services.chat
 
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
+import com.codeinc.flipcash.gen.paymentrequest.v1.Model as PaymentRequestModel
 import com.flipcash.services.internal.network.extensions.asContent
 import com.flipcash.services.internal.network.extensions.toMessageContent
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.getcode.chatcipher.ChatCipher
 import com.getcode.chatcipher.ChatCipherException
 import com.getcode.chatcipher.EncryptedPayload
@@ -132,6 +134,64 @@ class GroupContentCrypto @Inject constructor(
         }
         if (plaintext.size.toLong() != expectedSize) return OpenedBlob.Failed(BlobOpenFailure.Length)
         return OpenedBlob.Plaintext(plaintext)
+    }
+
+    /** Seals a request's [title] and [description] that [creatorId], the viewer, asks in [chatId]. */
+    suspend fun sealPaymentRequestText(
+        chatId: ChatId,
+        creatorId: ID,
+        title: String,
+        description: String,
+    ): Result<PaymentRequestText.Encrypted> {
+        val groupKey = keys.key(chatId).getOrElse { return Result.failure(it) }
+        return runCatching {
+            val text = PaymentRequestModel.PaymentRequestText.newBuilder()
+                .setTitle(title)
+                .setDescription(description)
+                .build()
+            val payload = cipher.encryptPaymentRequestText(
+                text = text.toByteArray(),
+                groupKey = groupKey,
+                chatId = chatId.bytes,
+                creatorId = creatorId.toByteArray(),
+            )
+            PaymentRequestText.Encrypted(
+                scheme = PaymentRequestText.SCHEME_CHAT_KEY_XCHACHA20POLY1305,
+                nonce = payload.nonce,
+                ciphertext = payload.ciphertext,
+            )
+        }
+    }
+
+    /**
+     * Opens [text], a request [creatorId] made in [chatId]. Text that is not encrypted comes back as
+     * it is. A key that could not be fetched fails, so the caller can retry; any other failure is
+     * [PaymentRequestText.Undecryptable].
+     */
+    suspend fun openPaymentRequestText(chatId: ChatId, creatorId: ID, text: PaymentRequestText): Result<PaymentRequestText> {
+        if (text !is PaymentRequestText.Encrypted) return Result.success(text)
+        if (text.scheme != PaymentRequestText.SCHEME_CHAT_KEY_XCHACHA20POLY1305) {
+            return Result.success(PaymentRequestText.Undecryptable)
+        }
+        val groupKey = keys.key(chatId).getOrElse { cause ->
+            return if (cause is UntrustedEnvelope) Result.success(PaymentRequestText.Undecryptable) else Result.failure(cause)
+        }
+        val plaintext = try {
+            cipher.decryptPaymentRequestText(
+                payload = EncryptedPayload(nonce = text.nonce, ciphertext = text.ciphertext),
+                groupKey = groupKey,
+                chatId = chatId.bytes,
+                creatorId = creatorId.toByteArray(),
+            )
+        } catch (_: ChatCipherException) {
+            return Result.success(PaymentRequestText.Undecryptable)
+        }
+        val opened = try {
+            PaymentRequestModel.PaymentRequestText.parseFrom(plaintext)
+        } catch (_: InvalidProtocolBufferException) {
+            return Result.success(PaymentRequestText.Undecryptable)
+        }
+        return Result.success(PaymentRequestText.Plain(opened.title, opened.description))
     }
 
     companion object {

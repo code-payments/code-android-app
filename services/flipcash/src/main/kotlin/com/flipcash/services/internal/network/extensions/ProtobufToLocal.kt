@@ -81,6 +81,14 @@ import com.codeinc.flipcash.gen.activity.v1.Model as ActivityModels
 import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.codeinc.flipcash.gen.events.v1.Model as EventModel
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
+import com.codeinc.flipcash.gen.paymentrequest.v1.Model as PaymentRequestModel
+import com.flipcash.services.models.paymentrequest.PaidShare
+import com.flipcash.services.models.paymentrequest.PaymentRequest
+import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
+import com.flipcash.services.models.paymentrequest.PaymentRequestText
+import com.flipcash.services.models.paymentrequest.Share
+import com.flipcash.services.models.paymentrequest.Split
+import com.flipcash.services.models.paymentrequest.shareAmount
 
 internal fun ActivityModels.NotificationId.toId(): ID = value.toByteArray().toList()
 internal fun Common.UserId.toId(): ID = value.toByteArray().toList()
@@ -843,3 +851,60 @@ private fun MessagingModel.SystemContent.toSystemEvent(): MessageContent.SystemE
         }
     else -> null
 }
+
+internal fun PaymentRequestModel.PaymentRequestMetadata.toPaymentRequest(): PaymentRequest = PaymentRequest(
+    id = paymentRequestId.value.toByteArray().toList(),
+    creator = creator.toId(),
+    createdAt = Instant.fromEpochSeconds(createdAt.seconds, createdAt.nanos),
+    status = when (status) {
+        PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_OPEN -> PaymentRequestStatus.Open
+        PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_COMPLETED -> PaymentRequestStatus.Completed
+        PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_CLOSED -> PaymentRequestStatus.Closed
+        PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_EXPIRED -> PaymentRequestStatus.Expired
+        else -> PaymentRequestStatus.Unknown
+    },
+    closedAt = if (hasClosedAt()) Instant.fromEpochSeconds(closedAt.seconds, closedAt.nanos) else null,
+    version = version,
+    kind = groupChat.takeIf { hasGroupChat() }?.toKind() ?: PaymentRequest.Kind.Unsupported,
+)
+
+private fun PaymentRequestModel.GroupChatPaymentRequest.toKind(): PaymentRequest.Kind {
+    if (!hasSplit()) return PaymentRequest.Kind.Unsupported
+    // An unknown currency can't be priced or shown; the request renders as unsupported.
+    val currency = CurrencyCode.tryValueOf(split.currency) ?: return PaymentRequest.Kind.Unsupported
+    val text = when (split.textCase) {
+        PaymentRequestModel.Split.TextCase.PLAINTEXT ->
+            PaymentRequestText.Plain(split.plaintext.title, split.plaintext.description)
+        PaymentRequestModel.Split.TextCase.ENCRYPTED -> PaymentRequestText.Encrypted(
+            scheme = split.encrypted.schemeValue,
+            nonce = split.encrypted.nonce.toByteArray(),
+            ciphertext = split.encrypted.ciphertext.toByteArray(),
+        )
+        else -> PaymentRequestText.Undecryptable
+    }
+    return PaymentRequest.Kind.GroupSplit(
+        chatId = chatId.toChatId(),
+        split = Split(
+            text = text,
+            currency = currency,
+            endsAt = Instant.fromEpochSeconds(split.endsAt.seconds, split.endsAt.nanos),
+            shares = split.sharesList.map { share ->
+                Share(
+                    userId = share.userId.toId(),
+                    amount = shareAmount(share.nativeAmount, currency),
+                    paid = if (share.hasPaid()) share.paid.toPaidShare() else null,
+                )
+            },
+        ),
+    )
+}
+
+private fun PaymentRequestModel.PaidShare.toPaidShare(): PaidShare = PaidShare(
+    paidAt = Instant.fromEpochSeconds(paidAt.seconds, paidAt.nanos),
+    how = when (howCase) {
+        PaymentRequestModel.PaidShare.HowCase.INTENT -> PaidShare.How.Payment
+        PaymentRequestModel.PaidShare.HowCase.MANUAL -> PaidShare.How.Manual
+        PaymentRequestModel.PaidShare.HowCase.CREATOR -> PaidShare.How.Creator
+        else -> PaidShare.How.Unknown
+    },
+)

@@ -2,6 +2,7 @@ package com.flipcash.services.chat
 
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -88,5 +89,35 @@ class GroupContentCryptoTest {
         val sealed = crypto.sealBlob(chatId, sender, blobId, byteArrayOf(1, 2, 3)).getOrThrow()
 
         assertEquals(OpenedBlob.Failed(BlobOpenFailure.Length), crypto.openBlob(chatId, sender, blobId, 4, sealed))
+    }
+
+    @Test
+    fun `request text sealed by its creator opens to itself`() = runTest {
+        val sealed = crypto.sealPaymentRequestText(chatId, sender, "Dinner", "Tacos").getOrThrow()
+        assertEquals(
+            PaymentRequestText.Plain("Dinner", "Tacos"),
+            crypto.openPaymentRequestText(chatId, sender, sealed).getOrThrow(),
+        )
+    }
+
+    @Test
+    fun `request text opened under another creator or chat is undecryptable`() = runTest {
+        val sealed = crypto.sealPaymentRequestText(chatId, sender, "Dinner", "").getOrThrow()
+        assertEquals(PaymentRequestText.Undecryptable, crypto.openPaymentRequestText(chatId, someoneElse, sealed).getOrThrow())
+        assertEquals(PaymentRequestText.Undecryptable, crypto.openPaymentRequestText(otherChat, sender, sealed).getOrThrow())
+    }
+
+    @Test
+    fun `request text with an unknown scheme is undecryptable`() = runTest {
+        val sealed = crypto.sealPaymentRequestText(chatId, sender, "Dinner", "").getOrThrow()
+        val unknown = PaymentRequestText.Encrypted(scheme = 7, nonce = sealed.nonce, ciphertext = sealed.ciphertext)
+        assertEquals(PaymentRequestText.Undecryptable, crypto.openPaymentRequestText(chatId, sender, unknown).getOrThrow())
+    }
+
+    @Test
+    fun `request text waits when the key can't be fetched`() = runTest {
+        val sealed = crypto.sealPaymentRequestText(chatId, sender, "Dinner", "").getOrThrow()
+        key = Result.failure(IOException("offline"))
+        assertTrue(crypto.openPaymentRequestText(chatId, sender, sealed).isFailure)
     }
 }
