@@ -29,7 +29,6 @@ import com.flipcash.app.core.chat.GroupInviteResult
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.chat.ReactionBoostAmountResult
 import com.flipcash.app.core.extensions.openAsSheet
-import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -218,6 +217,9 @@ private fun chatEntryProvider(
     annotatedEntry<ChatStep.ReactionBoostCurrency> {
         ReactionBoostCurrencySheet()
     }
+    annotatedEntry<ChatStep.SendCurrency> {
+        ReactionBoostCurrencySheet()
+    }
     annotatedEntry<ChatStep.ReactionBoostAmount> { step ->
         FlowReactionBoostAmountScreen(step)
     }
@@ -298,9 +300,9 @@ private fun FlowAmountEntryScreen() {
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val resultBack = resultBackNavigator<ChatSendResult>(exit = dismissSheet)
 
-    // No re-shadow: ChatAmountEntryContent reads the inner LocalCodeNavigator, and its
-    // navigator.push(AppRoute.Main.RegionSelection) / push(AppRoute.Sheets.TokenSelection)
-    // bubble to the app navigator through the dispatcher.
+    // No re-shadow: ChatAmountEntryContent reads the inner LocalCodeNavigator. Its
+    // push(ChatStep.SendCurrency) stays in this flow, as a half sheet over this one; its
+    // push(AppRoute.Main.RegionSelection) bubbles to the app navigator through the dispatcher.
     // A private group's send carries on past the amount to Select People and its confirm sheet,
     // in this same sheet. Back steps through them rather than dismissing.
     val groupSend = state.groupSend
@@ -323,7 +325,6 @@ private fun FlowAmountEntryScreen() {
                 token = state.token,
                 sendProgress = state.sendProgress,
                 onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested) },
-                onPickToken = { navigator.push(AppRoute.Sheets.TokenSelection(TokenPurpose.Select)) },
                 onDismiss = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
             )
         }

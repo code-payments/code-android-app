@@ -193,6 +193,14 @@ sealed interface ChatStep : FlowStep, Parcelable {
     ) : ChatStep, Sheet, HalfSheet
 
     /**
+     * The currency picker behind the send sheet's token pill on the amount step. Opens over the
+     * send sheet, which stays up beneath it, and closes on a pick.
+     */
+    @Parcelize
+    @Serializable
+    data object SendCurrency : ChatStep, Sheet, HalfSheet
+
+    /**
      * The keypad behind [ReactionBoost]'s "…" chip, for an amount the presets don't cover. Returns
      * the amount in whole US cents. Opens over the Paid Reactions sheet, which stays up beneath it.
      */

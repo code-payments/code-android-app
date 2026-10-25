@@ -23,7 +23,12 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.flipcash.app.messenger.internal.screens.boost.CurrencyPickerContent
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -165,6 +170,9 @@ private fun MemberCheckRow(
 /**
  * The confirm sheet over Select People, node 11293:6918: who is being paid, the total, what each
  * gets, and the swipe. Dismissing it goes back to Select People; it can't be dismissed mid-send.
+ *
+ * The token pill swaps this sheet's content for the currency list and back, rather than opening a
+ * sheet of its own: this one is a separate window, so a navigation sheet would draw beneath it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -174,13 +182,14 @@ internal fun GroupSendConfirmSheet(
     token: Token?,
     sendProgress: LoadingSuccessState,
     onConfirm: () -> Unit,
-    onPickToken: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val locked by rememberUpdatedState(!sendProgress.isIdle)
+    var pickingCurrency by rememberSaveable { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
-        confirmValueChange = { !locked },
+        // Back or a swipe on the currency list returns to the confirm content, not Select People.
+        confirmValueChange = { !locked && !pickingCurrency },
     )
     val total = groupSend.total ?: return
     val parts = (groupSend.plan as? GroupSendPlan.Pay)?.parts ?: return
@@ -191,6 +200,11 @@ internal fun GroupSendConfirmSheet(
         sheetState = sheetState,
         containerColor = CodeTheme.colors.background,
     ) {
+        BackHandler(enabled = pickingCurrency) { pickingCurrency = false }
+        if (pickingCurrency) {
+            CurrencyPickerContent(onPicked = { pickingCurrency = false })
+            return@ModalBottomSheet
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -238,7 +252,7 @@ internal fun GroupSendConfirmSheet(
                     horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
                     vertical = CodeTheme.dimens.grid.x1 - 1.dp,
                 ),
-                onClick = { if (!locked) onPickToken() },
+                onClick = { if (!locked) pickingCurrency = true },
             )
 
             SlideToConfirm(

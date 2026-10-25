@@ -6,8 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.features.messenger.R
@@ -74,9 +73,9 @@ internal fun ChatAmountEntryContent(
                             .wrapContentHeight(),
                         token = token
                     ) {
-                        navigator.push(
-                            AppRoute.Sheets.TokenSelection(TokenPurpose.Select)
-                        )
+                        // A half sheet over this one, not the app's full-screen picker, so the
+                        // amount stays in view underneath.
+                        navigator.push(ChatStep.SendCurrency)
                     }
                 },
                 // A close X, not an up arrow: this is a sheet over the conversation, and dismissing
