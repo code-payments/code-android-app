@@ -130,6 +130,9 @@ class TransactionController @Inject constructor(
     /**
      * Sends funds directly to another user's vault by resolving their
      * [destinationOwner] into a timelock-derived vault address.
+     *
+     * [intentId] is the id the server issued for this payment, if any. Submitting twice under the
+     * same id lands once, which makes a retry safe. Never log it.
      */
     suspend fun directTransfer(
         amount: VerifiedFiat,
@@ -138,6 +141,7 @@ class TransactionController @Inject constructor(
         destinationOwner: PublicKey,
         appMetadata: ByteArray? = null,
         scope: CoroutineScope = this.scope,
+        intentId: PublicKey? = null,
     ): Result<IntentType> {
         val verifiedState = amount.verifiedState
             ?: return Result.failure(IllegalStateException("No verified state"))
@@ -153,6 +157,7 @@ class TransactionController @Inject constructor(
             destinationOwner = destinationOwner,
             verifiedState = verifiedState,
             appMetadata = appMetadata,
+            intentId = intentId,
         )
 
         return submitIntent(scope, intent, source.authority.keyPair)
