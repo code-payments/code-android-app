@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.blocklist.DmDestinationResolver
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.setText
@@ -78,6 +79,19 @@ class TransactionDetailsViewModel @Inject constructor(
         val counterpartDestination: AppRoute? = null,
     ) {
         val viewsProfile: Boolean get() = counterpartDestination is AppRoute.Messaging.Profile
+
+        /**
+         * Where "View Message" goes when the entry boosted a reaction: the chat, scrolled to and
+         * flashing that message, through the route a message deeplink builds. Read straight off the
+         * stored snapshot — it is not validated, so a deleted message or a chat the viewer has left
+         * lands exactly where a stale message link does.
+         */
+        val boostedMessageRoute: AppRoute? get() = transaction?.details?.boostedReaction?.let { boost ->
+            AppRoute.Messaging.Chat(
+                identifier = ChatIdentifier.ByChatId(boost.chatId),
+                jumpToMessageId = boost.messageId,
+            )
+        }
     }
 
     sealed interface Event {

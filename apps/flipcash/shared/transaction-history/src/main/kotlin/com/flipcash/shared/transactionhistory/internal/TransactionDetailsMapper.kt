@@ -5,6 +5,7 @@ import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageState
 import com.flipcash.app.core.feed.SwapState
 import com.flipcash.services.models.UserProfile
+import com.flipcash.shared.transactionhistory.R
 import com.flipcash.shared.transactionhistory.TransactionAvatar
 import com.flipcash.shared.transactionhistory.TransactionDetails
 import com.flipcash.shared.transactionhistory.TransactionKind
@@ -45,6 +46,26 @@ internal class TransactionDetailsMapper @Inject constructor(
         val counterparty = userIdOf(meta)?.let { profiles[it.hexEncodedString()] }
         val convert = convertOf(meta)
         val kind = kindOf(meta, msg.text)
+        val boost = boostedReactionOf(meta)
+        val counterpartyName = counterparty?.displayName?.takeIf { it.isNotBlank() }
+        val boostLine = boost?.let { boostLineOf(meta, it.emoji.value, source.boostChatName) }
+        // A split boost has nobody to name, so the group takes the name's place; the line then
+        // never repeats it. A counterparty that hasn't resolved doesn't borrow the group's name
+        // either: the boost line alone is the heading.
+        val split = isSplitBoost(meta)
+        val splitChat = source.boostChatName?.takeIf { it.isNotBlank() && split }
+        val heading = when {
+            boost == null -> counterpartyName
+            split -> splitChat ?: boostLine
+            else -> counterpartyName ?: boostLine
+        }
+        val boostSubtitle = when {
+            boost == null -> null
+            split && splitChat != null ->
+                boostLineOf(meta, boost.emoji.value, chatName = null)
+            counterpartyName != null -> boostLine
+            else -> null
+        }
 
         return TransactionDetails(
             // Base58, not the row's hex: this is the value someone pastes into a support ticket or
@@ -54,8 +75,11 @@ internal class TransactionDetailsMapper @Inject constructor(
             avatar = avatarOf(counterparty, convert != null, meta, token, source.toToken),
             // A person entry is titled by the person; everything else falls back to the kind's own
             // heading, which is also what an unresolved counterparty gets.
-            heading = counterparty?.displayName?.takeIf { it.isNotBlank() },
-            subtitle = subtitleOf(kind, token, source.toToken),
+            // The name stays the large heading, with the boost's sentence under it; with no name
+            // the sentence itself is the heading. A boost always sets one, which is what keeps the
+            // kind's format-string heading from ever being drawn.
+            heading = heading,
+            subtitle = boostSubtitle ?: subtitleOf(kind, token, source.toToken),
             signedAmountPrefix = when {
                 meta == null -> null
                 meta.isOutgoing -> "-"
@@ -80,7 +104,24 @@ internal class TransactionDetailsMapper @Inject constructor(
             // The counterpart action opens a conversation or a profile, and both need somebody to
             // open it with.
             canViewInChat = counterparty != null,
+            boostedReaction = boost,
         )
+    }
+
+    /**
+     * The boost's sentence: the emoji, and "in {chat}" when [chatName] is a stored group. A DM is
+     * stored without a title and a missing chat isn't stored, so both arrive as null and drop it.
+     */
+    private fun boostLineOf(meta: MessageMetadata?, emoji: String, chatName: String?): String {
+        val chat = chatName?.takeIf { it.isNotBlank() }
+        val received = meta is MessageMetadata.ReceivedCrypto
+        return when {
+            received && chat != null ->
+                resources.getString(R.string.title_txnDetails_boostReceivedIn, emoji, chat)
+            received -> resources.getString(R.string.title_txnDetails_boostReceived, emoji)
+            chat != null -> resources.getString(R.string.title_txnDetails_youBoostedIn, emoji, chat)
+            else -> resources.getString(R.string.title_txnDetails_youBoosted, emoji)
+        }
     }
 
     /**
@@ -116,12 +157,14 @@ internal class TransactionDetailsMapper @Inject constructor(
  */
 private fun kindOf(meta: MessageMetadata?, text: String): TransactionKind = when (meta) {
     is MessageMetadata.DirectlySentCrypto -> when {
+        meta.boostedReaction != null -> TransactionKind.Boosted
         isUnidentifiedBill(meta) -> TransactionKind.GaveCash
         text.isTipVerb() -> TransactionKind.Tipped
         else -> TransactionKind.Sent
     }
     is MessageMetadata.ReceivedCrypto ->
-        if (isUnidentifiedBill(meta)) TransactionKind.ReceivedCash else TransactionKind.Received
+        if (meta.boostedReaction != null) TransactionKind.BoostReceived
+        else if (isUnidentifiedBill(meta)) TransactionKind.ReceivedCash else TransactionKind.Received
     is MessageMetadata.IndirectlySentCrypto -> TransactionKind.SentCashLink
     is MessageMetadata.WithdrewCrypto -> TransactionKind.Withdraw
     MessageMetadata.DepositedCrypto -> TransactionKind.Deposit

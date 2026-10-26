@@ -3,6 +3,7 @@ package com.flipcash.shared.transactionhistory.internal
 import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageSubstitution
+import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.transactionhistory.R
 import com.flipcash.shared.transactionhistory.TransactionAvatar
@@ -57,6 +58,7 @@ internal class TransactionItemMapper @Inject constructor(
             id = msg.id.hexEncodedString(),
             messageId = msg.id,
             title = convertTitle(resources, source)
+                ?: boostTitle(resources, meta, counterparty, source.boostChatName)
                 ?: resolveTitle(resources, meta, msg.text, msg.textSubstitutions, counterparty, profiles),
             timestamp = msg.timestamp,
             avatar = avatar,
@@ -84,6 +86,51 @@ private fun convertTitle(
     val to = source.toToken?.name?.takeIf { it.isNotBlank() } ?: return null
     return resources.getString(R.string.title_activity_convert, from, to)
 }
+
+/**
+ * The title of a payment that boosted a reaction, or null when [meta] carries no boost.
+ *
+ * The boost wins over every other title, the tip verb and the server's substitutions included, and
+ * it never falls back to the server text: while the counterparty's name is unresolved the row reads
+ * the no-name form, then gains the name when the profile lands.
+ *
+ * A split boost has no counterparty at all, so it is named for the chat it was sent in instead.
+ * [chatName] is only consulted then; a one-payee boost whose profile hasn't landed yet stays
+ * nameless rather than borrowing the chat's name.
+ */
+internal fun boostTitle(
+    resources: ResourceHelper,
+    meta: MessageMetadata?,
+    counterparty: UserProfile?,
+    chatName: String?,
+): String? {
+    val boost = boostedReactionOf(meta) ?: return null
+    val emoji = boost.emoji.value
+    val name = counterparty?.displayName?.takeIf { it.isNotBlank() }
+    val isReceived = meta is MessageMetadata.ReceivedCrypto
+    val chat = chatName?.takeIf { it.isNotBlank() && isSplitBoost(meta) }
+    return when {
+        isReceived && name != null -> resources.getString(R.string.title_activity_boostFrom, emoji, name)
+        isReceived -> resources.getString(R.string.title_activity_boostReceived, emoji)
+        name != null -> resources.getString(R.string.title_activity_boostedFor, emoji, name)
+        chat != null -> resources.getString(R.string.title_activity_boostedIn, emoji, chat)
+        else -> resources.getString(R.string.title_activity_boosted, emoji)
+    }
+}
+
+internal fun boostedReactionOf(meta: MessageMetadata?): BoostedReaction? = when (meta) {
+    is MessageMetadata.DirectlySentCrypto -> meta.boostedReaction
+    is MessageMetadata.ReceivedCrypto -> meta.boostedReaction
+    else -> null
+}
+
+/** A boost that paid both the message's sender and the group's creator names neither. */
+internal fun isSplitBoost(meta: MessageMetadata?): Boolean =
+    boostedReactionOf(meta) != null && userIdOf(meta) == null && when (meta) {
+        is MessageMetadata.DirectlySentCrypto -> meta.phoneNumber == null
+        is MessageMetadata.ReceivedCrypto -> meta.phoneNumber == null
+        else -> false
+    }
 
 /**
  * Resolves the row title.
