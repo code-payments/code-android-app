@@ -40,6 +40,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -436,7 +437,12 @@ private fun DayCell(
             .then(
                 if (enabled) {
                     Modifier
-                        .clickable(role = Role.Button, onClick = onClick)
+                        .clickable(
+                            interactionSource = null,
+                            indication = DayRipple,
+                            role = Role.Button,
+                            onClick = onClick,
+                        )
                         .clearAndSetSemantics {
                             contentDescription = label
                             role = Role.Button
@@ -491,6 +497,9 @@ private fun monthColor(tone: TimeToPay.MonthTone, cover: Float, enabled: Boolean
     tone == TimeToPay.MonthTone.Band && enabled -> MonthInBand
     else -> MonthPlain
 }
+
+/** Clips the press ripple to the 34 dp selection circle; an unbounded ripple centres on the cell. */
+private val DayRipple = ripple(bounded = false, radius = TimeToPayGrid.Circle / 2)
 
 /** The day grid's geometry, matching iOS: rows of 38 dp cells 6 dp apart, a 34 dp circle centred in each. */
 internal object TimeToPayGrid {
