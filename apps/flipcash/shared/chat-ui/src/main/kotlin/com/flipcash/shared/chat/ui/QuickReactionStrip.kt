@@ -63,8 +63,10 @@ import kotlinx.coroutines.launch
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
+import com.getcode.ui.components.glass.floatingGlass
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
@@ -121,6 +123,9 @@ private val PlusGlass = HazeBlurStyle {
  * more to scroll that way, growing in over the first [EdgeFade] of travel so the fade doesn't snap on
  * at the first pixel.
  *
+ * With [glass] the capsule frosts what lies under it, from that [HazeState]'s source, instead of
+ * filling with the flat surface.
+ *
  * It enters as iOS's does: the capsule widens out of the side it hugs ([growsFromEnd] for the
  * trailing side), the "+" riding its growing edge, and the emoji pop in one after another from
  * that side. All of it animates in the draw phase, so the strip's measured size never changes —
@@ -133,6 +138,7 @@ fun QuickReactionStrip(
     onOpenPicker: () -> Unit,
     modifier: Modifier = Modifier,
     growsFromEnd: Boolean = false,
+    glass: HazeState? = null,
 ) {
     if (entries.isEmpty()) return
 
@@ -167,7 +173,7 @@ fun QuickReactionStrip(
                 // Fully opaque a third of the way through the growth, as the iOS capsule is.
                 alpha = (grow.value * 3f).coerceIn(0f, 1f)
             }
-            .background(StripSurface),
+            .then(if (glass != null) Modifier.floatingGlass(glass) else Modifier.background(StripSurface)),
         contentAlignment = Alignment.CenterEnd,
     ) {
         val density = LocalDensity.current

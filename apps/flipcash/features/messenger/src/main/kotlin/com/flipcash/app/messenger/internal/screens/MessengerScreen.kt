@@ -61,6 +61,9 @@ import com.flipcash.app.core.links.LocalTrustedWebsites
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.ownReactionEmoji
+import com.flipcash.app.messenger.internal.reactionStripFor
+import com.flipcash.app.messenger.internal.withLiveSelfReactions
 import com.flipcash.app.messenger.internal.MentionDestination
 import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
@@ -73,7 +76,9 @@ import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.BlurredContent
+import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
+import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
@@ -131,7 +136,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // The photo bubbles on screen, and the photo opened over them. The overlay sits above the whole
     // screen rather than being a route, so it can grow out of and shrink back into its bubble.
     val photoSources = remember { ChatPhotoSources() }
-    var openPhotoId by remember { mutableStateOf<Long?>(null) }
+    var openPhoto by remember { mutableStateOf<ChatListItem.ContentBubble?>(null) }
 
     // A private group the viewer is not in has no transcript to show: no key envelope, so nothing
     // to decrypt. A share link or deep link only knows the chat id and lands here first, so once the
@@ -181,7 +186,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             is ChatAction.OpenPhoto -> {
                 // After the keyboard is down, so the bubble the photo grows from has settled.
-                keyboard.hideIfVisible { openPhotoId = action.bubble.messageId }
+                keyboard.hideIfVisible { openPhoto = action.bubble }
             }
 
             is ChatAction.RetryMessage -> {
@@ -588,11 +593,35 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         }
     }
 
-    openPhotoId?.let { id ->
+    openPhoto?.let { opened ->
+        // The bubble the photo opened from is a snapshot; the strip highlights the live picks.
+        val live by remember(opened.messageId) { viewModel.selfReactionsOf(opened.messageId) }
+            .collectAsStateWithLifecycle(initialValue = null)
+        val bubble = opened.withLiveSelfReactions(live)
         ChatPhotoOverlay(
-            messageId = id,
+            messageId = bubble.messageId,
             sources = photoSources,
-            onClosed = { openPhotoId = null },
+            onClosed = { openPhoto = null },
+            onSaveResult = { saved -> viewModel.dispatchEvent(ChatViewModel.Event.PhotoSaveResult(saved)) },
+            // The same actions the message's context menu offers, gated by the same capabilities.
+            // React sends the event the menu's strip does, and the strip is built the same way.
+            onReact = if (bubble.canReact) {
+                { emoji ->
+                    viewModel.dispatchEvent(
+                        ChatViewModel.Event.ToggleReaction(bubble.messageId, emoji, clearsSelection = true)
+                    )
+                }
+            } else null,
+            reactionStrip = state.reactionStripFor(bubble),
+            ownReactions = bubble.ownReactionEmoji(),
+            onOpenPicker = { navigator.push(ChatStep.ReactionPicker(bubble.messageId)) },
+            // Reply sets the strip the way the menu's Reply does; the overlay closes itself.
+            onReply = if (MessageCapability.Reply in bubble.capabilities) {
+                { viewModel.dispatchEvent(ChatViewModel.Event.ReplyRequested(bubble)) }
+            } else null,
+            onForward = if (MessageCapability.Link in bubble.capabilities) {
+                { navigator.openMessageShare(bubble.messageId) }
+            } else null,
         )
     }
     }

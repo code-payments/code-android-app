@@ -44,7 +44,6 @@ import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
-import com.flipcash.app.messenger.ChatPhotoViewerScreen
 import com.flipcash.app.messenger.E2eeLearnMoreScreen
 import com.flipcash.app.messenger.MuteChatScreen
 import com.flipcash.app.messenger.ProfileScreen
@@ -171,7 +170,6 @@ internal fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.SharePicker> { SharePickerScreen() }
     annotatedEntry<AppRoute.Messaging.ShareProfileToChats> { key -> ShareProfileToChatsScreen(key) }
     annotatedEntry<AppRoute.Messaging.MuteChat> { key -> MuteChatScreen(key.chatId, key.chatType) }
-    annotatedEntry<AppRoute.Messaging.PhotoViewer> { key -> ChatPhotoViewerScreen(key.chatId, key.messageId) }
     annotatedEntry<AppRoute.Messaging.E2eeDmInfo> { E2eeLearnMoreScreen(forGroup = false) }
     annotatedEntry<AppRoute.Messaging.E2eeGroupInfo> { E2eeLearnMoreScreen(forGroup = true) }
     annotatedEntry<AppRoute.Messaging.E2eePrivateGroupInfo> {
