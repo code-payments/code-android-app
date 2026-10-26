@@ -60,6 +60,7 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -88,7 +89,7 @@ import com.getcode.theme.White10
 import com.getcode.ui.theme.CodeButton
 import com.flipcash.shared.chat.ui.media.rememberReducedMotion
 import kotlinx.coroutines.launch
-import kotlin.math.abs
+import kotlin.math.hypot
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -354,18 +355,19 @@ private fun DayGrid(sheet: TimeToPay, reducedMotion: Boolean, onChoose: (LocalDa
                 Row(modifier = Modifier.fillMaxWidth()) {
                     week.forEachIndexed { column, day ->
                         val index = row * 7 + column
-                        // The day the moving circle is over reads black on it.
-                        val underCircle = abs(circle.value.x - column) < 0.5f && abs(circle.value.y - row) < 0.5f
+                        // A day turns black as the moving circle settles over it, not as it passes.
+                        val cover = coverOf(circle.value, column, row)
                         DayCell(
                             modifier = Modifier.weight(1f),
                             day = day,
                             enabled = sheet.enabled(day),
                             mark = when {
-                                underCircle -> TimeToPay.RangeCell.Mark.End
+                                cover > 0f -> TimeToPay.RangeCell.Mark.End
                                 index == startIndex && endIndex != startIndex -> TimeToPay.RangeCell.Mark.Start
                                 else -> TimeToPay.RangeCell.Mark.None
                             },
                             selected = index == endIndex,
+                            cover = cover,
                             month = if (day.dayOfMonth == 1) day.format(monthLabel).uppercase(locale) else null,
                             label = day.format(fullDate),
                             onClick = { onChoose(day) },
@@ -379,6 +381,12 @@ private fun DayGrid(sheet: TimeToPay, reducedMotion: Boolean, onChoose: (LocalDa
 
 private fun cellOf(index: Int) = Offset((index % 7).toFloat(), (index / 7).toFloat())
 
+/** How far the circle at [circle] covers the day at [column], [row]: 1 within a quarter cell, 0 past half. */
+private fun coverOf(circle: Offset, column: Int, row: Int): Float {
+    val distance = hypot(circle.x - column, circle.y - row)
+    return ((0.5f - distance) / 0.25f).coerceIn(0f, 1f)
+}
+
 /** The band, today's circle and the closing-day circle at [circle] (column, row), under the day numbers. */
 private fun DrawScope.rangeLayer(startIndex: Int, endIndex: Int, bandEnd: Float, circle: Offset, gap: Float) {
     val cell = size.width / 7
@@ -389,8 +397,10 @@ private fun DrawScope.rangeLayer(startIndex: Int, endIndex: Int, bandEnd: Float,
     TimeToPay.bandSpans(startIndex, bandEnd).forEach { span ->
         val left = minOf(x(span.from), x(span.to))
         val right = maxOf(x(span.from), x(span.to))
+        // A span narrower than it is tall would draw as a thin capsule at the row's edge; fade it in.
         drawRoundRect(
             color = RangeBand,
+            alpha = ((right - left) / height).coerceIn(0f, 1f),
             topLeft = Offset(left, rowTop(span.row.toFloat()) + (cell - height) / 2),
             size = Size(right - left, height),
             cornerRadius = CornerRadius(height / 2),
@@ -409,6 +419,7 @@ private fun DayCell(
     enabled: Boolean,
     mark: TimeToPay.RangeCell.Mark,
     selected: Boolean,
+    cover: Float,
     month: String?,
     label: String,
     onClick: () -> Unit,
@@ -433,7 +444,7 @@ private fun DayCell(
         contentAlignment = Alignment.Center,
     ) {
         val text = when (mark) {
-            TimeToPay.RangeCell.Mark.End -> Color.Black
+            TimeToPay.RangeCell.Mark.End -> lerp(CodeTheme.colors.textMain, Color.Black, cover)
             TimeToPay.RangeCell.Mark.Start -> White
             TimeToPay.RangeCell.Mark.None ->
                 if (enabled) CodeTheme.colors.textMain else CodeTheme.colors.textSecondary.copy(alpha = 0.5f)
