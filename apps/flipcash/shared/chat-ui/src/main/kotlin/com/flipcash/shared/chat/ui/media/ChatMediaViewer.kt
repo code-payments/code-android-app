@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.ui.QuickReactionStrip
+import com.flipcash.shared.chat.ui.StripSurface
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.outlined.Download
@@ -456,7 +457,7 @@ private fun ViewerButton(
             .padding(CodeTheme.dimens.staticGrid.x2)
             .size(CodeTheme.dimens.staticGrid.x8)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.4f))
+            .background(StripSurface)
             .testTag(tag),
     ) {
         Icon(
@@ -467,13 +468,13 @@ private fun ViewerButton(
     }
 }
 
-/** The capsule behind a group of bottom buttons: dark and translucent, like the close button. */
+/** The capsule behind a group of bottom buttons: the same solid surface as the quick-reaction strip, so it reads over black and over a bright photo. */
 @Composable
 private fun ViewerPill(content: @Composable () -> Unit) {
     Row(
         modifier = Modifier
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.4f)),
+            .background(StripSurface),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
         verticalAlignment = Alignment.CenterVertically,
     ) { content() }
