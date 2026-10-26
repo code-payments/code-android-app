@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource as composeStringResource
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.getcode.ui.components.glass.floatingGlass
@@ -310,7 +311,7 @@ internal fun SearchOriginTabButton(
     }
     val unread by rememberChatListUnreadCount()
     val state = rememberNavigationBarState(selectedTab = tab, chatListUnreadCount = unread)
-    val label = stringResource(tab.label)
+    val label = composeStringResource(tab.label)
     // The glyph sits over the button rather than in it: the button clips to its circle, and the
     // badge has to overhang the corner the way it does on the tab.
     Box(contentAlignment = Alignment.Center) {
