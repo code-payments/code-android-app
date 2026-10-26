@@ -35,7 +35,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -65,10 +64,12 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -83,7 +84,6 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.flipcash.services.models.paymentrequest.PaymentRequest
@@ -213,31 +213,20 @@ internal fun RequestDeckPill(
                     },
             ) {
                 // How far the front card is through being swiped to the back, 0 to 1. The cards behind
-                // move up a slot with it, so the next request is already in place when the swipe lands.
+                // rise a slot with it, so the next request is already in place when the swipe lands.
                 val progress = (drag.value / pillHeightPx).coerceIn(0f, 1f)
-                // Over the second half of the swipe the front card fades as the next one's text comes in.
-                val handover = if (canCycle) ((progress - 0.5f) * 2f).coerceIn(0f, 1f) else 0f
-                // The peeking cards, back first. Widths step in so the front card's edges stay clear.
-                val peeks = shown.drop(1).take(3)
-                peeks.withIndex().reversed().forEach { (index, request) ->
-                    val depth = index + 1 - progress
-                    if (depth > 2f) {
-                        // A third card behind only shows as the others move up.
-                        if (progress == 0f) return@forEach
-                    }
-                    val isBack = index == peeks.lastIndex
+                val insetPx = with(density) { PEEK_INSET.toPx() }
+                val stepPx = with(density) { PEEK_STEP.toPx() }
+                // The card just swiped off, travelling from below the pill to its slot at the back.
+                val swiped = if (canCycle && arrive.value < 1f) shown.last() else null
+                val swipedDepth = (shown.size - 1).coerceAtMost(2).toFloat()
+
+                @Composable
+                fun Card(request: PaymentRequest, layer: GraphicsLayerScope.() -> Unit, depth: Float, content: Boolean) {
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .padding(horizontal = PEEK_INSET * depth)
-                            .offset(y = PEEK_STEP * depth)
-                            .graphicsLayer {
-                                alpha = when {
-                                    depth > 2f -> 1f - (depth - 2f)
-                                    isBack -> arrive.value
-                                    else -> 1f
-                                }
-                            }
+                            .graphicsLayer(layer)
                             .background(CodeTheme.colors.background, PILL_SHAPE)
                             .background(
                                 lerp(
@@ -249,18 +238,49 @@ internal fun RequestDeckPill(
                             )
                             .border(1.dp, CodeTheme.colors.border, PILL_SHAPE),
                     ) {
-                        // The card moving up to the front shows its request as it arrives, so the
-                        // swipe lands on a finished card rather than an empty one.
-                        if (index == 0 && handover > 0f) {
-                            DeckFront(
-                                request = request,
-                                now = now,
-                                visibility = null,
-                                contentAlpha = { handover },
-                                modifier = Modifier.fillMaxSize(),
-                            )
+                        if (content) {
+                            DeckFront(request = request, now = now, visibility = null, modifier = Modifier.fillMaxSize())
                         }
                     }
+                }
+
+                if (swiped != null) {
+                    Card(
+                        request = swiped,
+                        depth = swipedDepth * arrive.value,
+                        content = true,
+                        layer = {
+                            val t = arrive.value
+                            val scale = lerp(1f - DROP_SCALE, slotScale(swipedDepth, insetPx, size.width), t)
+                            scaleX = scale
+                            scaleY = scale
+                            translationY = lerp(pillHeightPx, slotY(swipedDepth, scale, stepPx, size.height), t)
+                            // Past the second slot it tucks out of sight rather than stacking up.
+                            if (shown.size > 3) alpha = 1f - t
+                        },
+                    )
+                }
+                // The peeking cards, back first. Each is a scaled copy of the front slot, so the one
+                // rising into it grows with its glyph, title and amounts as one piece.
+                val peeks = shown.drop(1).take(3)
+                peeks.withIndex().reversed().forEach { (index, request) ->
+                    if (request == swiped) return@forEach
+                    val depth = index + 1 - progress
+                    // A third card behind only shows as the others move up.
+                    if (depth > 2f && progress == 0f) return@forEach
+                    Card(
+                        request = request,
+                        depth = depth,
+                        // The card rising to the front shows its request as soon as the front moves.
+                        content = index == 0 && drag.value > 0f,
+                        layer = {
+                            val scale = slotScale(depth, insetPx, size.width)
+                            scaleX = scale
+                            scaleY = scale
+                            translationY = slotY(depth, scale, stepPx, size.height)
+                            if (depth > 2f) alpha = 1f - (depth - 2f)
+                        },
+                    )
                 }
                 DeckFront(
                     request = front,
@@ -276,36 +296,44 @@ internal fun RequestDeckPill(
                                 )
                             } else Modifier
                         )
-                        .offset { IntOffset(0, drag.value.roundToInt()) }
                         .graphicsLayer {
-                            alpha = 1f - handover
-                            scaleX = 1f - 0.06f * handover
-                            scaleY = scaleX
+                            // Falls back as it goes, so it hands off at the size the back card starts from.
+                            val scale = 1f - DROP_SCALE * progress
+                            scaleX = scale
+                            scaleY = scale
+                            translationY = drag.value
                         }
                         .draggable(
                             orientation = Orientation.Vertical,
                             state = rememberDraggableState { delta ->
                                 scope.launch {
-                                    // One request: a small elastic pull and nothing more.
-                                    val limit = if (canCycle) pillHeightPx * 1.5f else pillHeightPx * 0.25f
-                                    drag.snapTo((drag.value + delta * if (canCycle) 1f else 0.3f).coerceIn(0f, limit))
+                                    val value = drag.value
+                                    val next = if (!canCycle) {
+                                        // One request: a small elastic pull and nothing more.
+                                        (value + delta * 0.3f).coerceIn(0f, pillHeightPx * 0.25f)
+                                    } else if (delta > 0f && value >= pillHeightPx) {
+                                        // Past one pill height the card rubber-bands instead of
+                                        // sliding on into the chat.
+                                        val over = (value - pillHeightPx) / (pillHeightPx * RUBBER_BAND)
+                                        value + delta * 0.5f * (1f - over).coerceAtLeast(0f)
+                                    } else {
+                                        (value + delta).coerceAtLeast(0f)
+                                    }
+                                    drag.snapTo(next)
                                 }
                             },
                             onDragStopped = { velocity ->
                                 val past = drag.value > pillHeightPx * CYCLE_THRESHOLD || velocity > FLING_VELOCITY
                                 if (canCycle && past) {
-                                    // Finish the swipe from where the finger left it, then hand over:
-                                    // the card that moved up becomes the front, and the one swiped away
-                                    // fades in at the back.
-                                    if (drag.value < pillHeightPx) {
-                                        drag.animateTo(pillHeightPx, tween(HANDOVER_MILLIS))
-                                    }
+                                    // Carry the swipe on to one pill height, then hand over: the card that
+                                    // rose becomes the front and the swiped one drops behind to the back.
+                                    drag.animateTo(pillHeightPx, DECK_SPRING, initialVelocity = velocity)
                                     arrive.snapTo(0f)
                                     onCycle()
                                     drag.snapTo(0f)
-                                    arrive.animateTo(1f, tween(ARRIVE_MILLIS))
+                                    arrive.animateTo(1f, DECK_SPRING)
                                 } else {
-                                    drag.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow), initialVelocity = velocity)
+                                    drag.animateTo(0f, DECK_SPRING, initialVelocity = velocity)
                                 }
                             },
                         )
@@ -323,7 +351,6 @@ private fun DeckFront(
     now: Instant,
     visibility: AnimatedVisibilityScope?,
     modifier: Modifier = Modifier,
-    contentAlpha: () -> Float = { 1f },
 ) {
     val ended = !request.isOpen(now)
     val split = request.split
@@ -350,13 +377,12 @@ private fun DeckFront(
             now = now,
             size = RING_SIZE,
             modifier = Modifier
-                .deckShared(request.id, "glyph", visibility, CircleShape)
-                .graphicsLayer { alpha = contentAlpha() },
+                .deckShared(request.id, "glyph", visibility, CircleShape),
         )
         // The text room the widest pill leaves, so a title ellipsizes only at that width and not
         // while the pill eases open around it.
         val textMax = PILL_MAX_WIDTH - RING_SIZE - CodeTheme.dimens.grid.x2
-        Column(modifier = Modifier.graphicsLayer { alpha = contentAlpha() }) {
+        Column {
             Text(
                 text = request.deckTitle.orEmpty(),
                 style = CodeTheme.typography.caption,
@@ -603,8 +629,18 @@ private val PEEK_INSET = 7.dp
 private const val ENDED_ALPHA = 0.4f
 private const val CYCLE_THRESHOLD = 0.4f
 private const val FLING_VELOCITY = 1_000f
-private const val ARRIVE_MILLIS = 150
-private const val HANDOVER_MILLIS = 120
+private const val DROP_SCALE = 0.06f
+// How far past one pill height the front card can be pulled, as a fraction of it.
+private const val RUBBER_BAND = 0.25f
+private val DECK_SPRING = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
+
+/** A card's scale at [depth] in the stack: each slot back steps in by [insetPx] on both sides. */
+private fun slotScale(depth: Float, insetPx: Float, width: Float): Float =
+    if (width == 0f) 1f else 1f - 2f * insetPx * depth / width
+
+/** A card's offset at [depth], scaled about its centre, so each slot back shows [stepPx] below the one in front. */
+private fun slotY(depth: Float, scale: Float, stepPx: Float, height: Float): Float =
+    stepPx * depth + (1f - scale) * height / 2f
 
 // The card's bounds spring settles in about 300ms; the details start at 60% of that.
 private const val DETAIL_DELAY_MS = 180
