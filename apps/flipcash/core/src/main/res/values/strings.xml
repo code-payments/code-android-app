@@ -1122,14 +1122,18 @@
     <string name="option_timeToPay_fourWeeks">4 Weeks</string>
     <string name="option_timeToPay_custom">Custom</string>
     <plurals name="description_timeToPayPreset">
-        <item quantity="one">Closes %1$d day after you send · around %2$s</item>
-        <item quantity="other">Closes %1$d days after you send · around %2$s</item>
+        <item quantity="one">%2$s · closes %1$d day after you send</item>
+        <item quantity="other">%2$s · closes %1$d days after you send</item>
     </plurals>
     <plurals name="description_timeToPayCustom">
-        <item quantity="one">Custom · %1$d day from now</item>
-        <item quantity="other">Custom · %1$d days from now</item>
+        <item quantity="one">Custom · %1$d day</item>
+        <item quantity="other">Custom · %1$d days</item>
     </plurals>
     <string name="description_timeToPayCustomToday">Custom · today</string>
+    <string name="label_timeToPayStarts">Starts</string>
+    <string name="value_timeToPayStarts">Today, on send</string>
+    <string name="label_timeToPayCloses">Closes</string>
+    <string name="value_timeToPayClosesAround">≈ %1$s</string>
     <string name="label_timeToPayTime">Time</string>
     <string name="title_timeToPaySelectTime">Select time</string>
     <string name="cd_timeToPayKeyboard">Type a time</string>

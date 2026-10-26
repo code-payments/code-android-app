@@ -8,13 +8,15 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
 import kotlin.test.Test
+import com.flipcash.app.messenger.internal.request.TimeToPay.RangeCell
+import com.flipcash.app.messenger.internal.request.TimeToPay.RangeCell.Mark
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.toKotlinInstant
 
-/** Spec "Deadline sheet", tests 34–39. UTC so 28 days never cross a clock change. */
+/** Spec "Deadline sheet", tests 34–40. UTC so 28 days never cross a clock change. */
 class TimeToPayTest {
     private val zone = ZoneOffset.UTC
 
@@ -41,6 +43,13 @@ class TimeToPayTest {
         assertEquals(Choice.Preset(Deadline.Preset.Week), sheet.choice)
         assertEquals(date(11, 2), sheet.selectedDay)
         assertNull(sheet.customAt)
+        assertEquals(RangeCell(Mark.Start, leading = false, trailing = true), sheet.range(date(10, 26)))
+        // The band wraps from Sat Oct 31 to Sun Nov 1; the grid rounds it at the row edges.
+        assertEquals(RangeCell(Mark.None, leading = true, trailing = true), sheet.range(date(10, 31)))
+        assertEquals(RangeCell(Mark.None, leading = true, trailing = true), sheet.range(date(11, 1)))
+        assertEquals(RangeCell(Mark.End, leading = true, trailing = false), sheet.range(date(11, 2)))
+        assertEquals(RangeCell.Outside, sheet.range(date(10, 25)))
+        assertEquals(RangeCell.Outside, sheet.range(date(11, 3)))
     }
 
     @Test
@@ -49,6 +58,8 @@ class TimeToPayTest {
 
         assertEquals(Choice.Custom(date(11, 5), LocalTime.of(18, 0)), sheet.choice)
         assertEquals(10, sheet.daysFromNow)
+        assertEquals(RangeCell(Mark.None, leading = true, trailing = true), sheet.range(date(11, 4)))
+        assertEquals(RangeCell(Mark.End, leading = true, trailing = false), sheet.range(date(11, 5)))
     }
 
     @Test
@@ -72,6 +83,17 @@ class TimeToPayTest {
         assertEquals(Choice.Preset(Deadline.Preset.TwoWeeks), sheet.choice)
         assertEquals(date(11, 9), sheet.selectedDay)
         assertEquals(Deadline.Preset.TwoWeeks, sheet.toDeadline())
+        assertEquals(RangeCell(Mark.End, leading = true, trailing = false), sheet.range(date(11, 9)))
+        assertEquals(RangeCell.Outside, sheet.range(date(11, 10)))
+    }
+
+    @Test
+    fun `test 40 - today tapped shows only the end circle`() {
+        val sheet = openedAt(10, 26, 11, 39).chooseDay(date(10, 26))
+
+        assertEquals(Choice.Custom(date(10, 26), LocalTime.of(18, 0)), sheet.choice)
+        assertEquals(RangeCell(Mark.End, leading = false, trailing = false), sheet.range(date(10, 26)))
+        assertEquals(RangeCell.Outside, sheet.range(date(10, 27)))
     }
 
     @Test

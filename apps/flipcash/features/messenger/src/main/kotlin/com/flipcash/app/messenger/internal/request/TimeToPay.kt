@@ -46,6 +46,29 @@ internal data class TimeToPay(
     val customAt: Instant?
         get() = (choice as? Choice.Custom)?.let { ZonedDateTime.of(it.day, it.time, zone).toInstant().toKotlinInstant() }
 
+    /** How [day] draws in the range from today to [selectedDay]. */
+    fun range(day: LocalDate): RangeCell {
+        val end = selectedDay
+        return when {
+            day == end -> RangeCell(RangeCell.Mark.End, leading = day != today, trailing = false)
+            day == today -> RangeCell(RangeCell.Mark.Start, leading = false, trailing = true)
+            day.isAfter(today) && day.isBefore(end) -> RangeCell(RangeCell.Mark.None, leading = true, trailing = true)
+            else -> RangeCell.Outside
+        }
+    }
+
+    /**
+     * One grid day's part of the range: its circle, and which halves the band covers. The band
+     * runs from the centre of the start circle to the centre of the end circle.
+     */
+    data class RangeCell(val mark: Mark, val leading: Boolean, val trailing: Boolean) {
+        enum class Mark { None, Start, End }
+
+        companion object {
+            val Outside = RangeCell(Mark.None, leading = false, trailing = false)
+        }
+    }
+
     /** Calendar days from today to the custom day. */
     val daysFromNow: Long get() = ChronoUnit.DAYS.between(today, selectedDay)
 
