@@ -3,6 +3,7 @@ package com.flipcash.desktop
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.use
+import com.flipcash.app.core.navigation.NavBarButton
 import dev.zacsweers.metro.createGraph
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -10,20 +11,29 @@ import kotlin.system.exitProcess
 import org.jetbrains.skia.EncodedImageFormat
 
 /**
- * Renders the wallet screen off-screen through the same graph as [main] and writes a PNG.
- * Usage: `./gradlew :apps:desktop:snapshot -Pout=<file>`; add `-Pscreen=link` for the link screen,
- * which skips sign-in.
+ * Renders a screen off-screen through the same graph as [main] and writes a PNG.
+ * Usage: `./gradlew :apps:desktop:snapshot -Pout=<file> -Pscreen=chat|money|you|link -Pwidth=<dp> -Pheight=<dp>`.
+ * The link screen skips sign-in. Width picks the layout exactly as resizing the window does.
  */
 fun main(args: Array<String>) {
-    val out = File(args.firstOrNull() ?: "wallet.png")
-    val linkScreen = args.getOrNull(1) == "link"
+    val out = File(args.firstOrNull() ?: "snapshot.png")
+    val screen = args.getOrNull(1) ?: "chat"
+    val width = args.getOrNull(2)?.toIntOrNull() ?: 1040
+    val height = args.getOrNull(3)?.toIntOrNull() ?: 760
+    val linkScreen = screen == "link"
+    val tab = when (screen) {
+        "money", "wallet" -> NavBarButton.Wallet
+        "you" -> NavBarButton.TipCard
+        else -> NavBarButton.Chats
+    }
     val graph = createGraph<DesktopGraph>()
     runBlocking {
         graph.startup()
         if (!linkScreen) graph.restoreSession()
     }
-    ImageComposeScene(width = 840, height = 1720, density = Density(2f)) {
-        if (linkScreen) DesktopLinkContent(graph, onSignedIn = {}) else DesktopWalletContent(graph)
+    val scale = 2f
+    ImageComposeScene(width = (width * scale).toInt(), height = (height * scale).toInt(), density = Density(scale)) {
+        if (linkScreen) DesktopLinkContent(graph, onSignedIn = {}) else DesktopMainContent(graph, initialTab = tab)
     }.use { scene ->
         var nanos = 0L
         repeat(80) {

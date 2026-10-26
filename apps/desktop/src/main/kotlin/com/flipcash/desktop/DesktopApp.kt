@@ -18,12 +18,12 @@ import com.getcode.theme.CodeTheme
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
-/** The wallet when signed in; otherwise the link screen, which stores the phone's seed and signs in. */
+/** The main window when signed in; otherwise the link screen, which stores the phone's seed and signs in. */
 @Composable
 fun DesktopApp(graph: DesktopGraph, signedIn: Boolean) {
     var linked by remember { mutableStateOf(signedIn) }
     if (linked) {
-        DesktopWalletContent(graph)
+        DesktopMainContent(graph)
     } else {
         DesktopLinkContent(graph, onSignedIn = { linked = true })
     }

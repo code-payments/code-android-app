@@ -25,6 +25,10 @@ dependencies {
     implementation(project(":services:opencode"))
     implementation(project(":apps:flipcash:features:balance"))
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:core-ui"))
+    implementation(project(":apps:flipcash:card-expand"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
+    implementation(project(":ui:components"))
     implementation(project(":apps:flipcash:shared:transaction-history"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:funding"))
@@ -78,12 +82,14 @@ compose.desktop {
 
 tasks.register<JavaExec>("snapshot") {
     group = "application"
-    description = "Renders the wallet (or, with -Pscreen=link, the link screen) off-screen to a PNG (-Pout=<file>)."
+    description = "Renders a screen off-screen to a PNG: -Pout=<file> -Pscreen=chat|money|you|link -Pwidth=<dp> -Pheight=<dp>."
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.flipcash.desktop.SnapshotMainKt")
     args(
-        providers.gradleProperty("out").getOrElse(layout.buildDirectory.file("wallet.png").get().asFile.path),
-        providers.gradleProperty("screen").getOrElse("wallet"),
+        providers.gradleProperty("out").getOrElse(layout.buildDirectory.file("snapshot.png").get().asFile.path),
+        providers.gradleProperty("screen").getOrElse("chat"),
+        providers.gradleProperty("width").getOrElse("1040"),
+        providers.gradleProperty("height").getOrElse("760"),
     )
 }
 
