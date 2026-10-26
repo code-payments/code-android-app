@@ -98,6 +98,10 @@ private fun ChatSummary.groupSenderName(senderId: ID, senderProfiles: Map<String
         ?: senderProfiles[senderId.hexEncodedString()]?.displayName?.takeIf { it.isNotBlank() }
 }
 
+/** The payment request the row's preview names, when the last message is one; its share comes from the store. */
+fun ChatSummary.previewedPaymentRequestId(): ID? =
+    ((metadata.lastMessage?.content?.firstOrNull() as? MessageContent.Widget)?.widget as? WidgetContent.PaymentRequest)?.id
+
 private fun ChatSummary.formatPreview(
     selfId: ID?,
     tokensByMint: Map<Mint, Token>,
