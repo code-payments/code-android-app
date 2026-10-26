@@ -53,6 +53,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.getcode.ui.components.AppBarDefaults
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -372,6 +377,7 @@ internal fun ExpandedRequests(
     now: Instant,
     expanded: Boolean,
     top: Dp,
+    pill: Rect?,
     onCollapse: () -> Unit,
     onOpen: (PaymentRequest) -> Unit,
 ) {
@@ -450,16 +456,39 @@ internal fun ExpandedRequests(
                     detailModifier = detail,
                 )
             }
-            item(key = "handle") {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Box(
-                        modifier = Modifier.expandedOnly(visibility)
-                            .size(width = 36.dp, height = 5.dp)
-                            .background(CodeTheme.colors.textSecondary, RoundedCornerShape(2.5.dp))
-                            .clickable(onClick = onCollapse),
+        }
+    }
+    // Where the pill sat: a way out at the spot the card came from. Above the backdrop, in with it,
+    // and out first on collapse so it is gone before the pill lands back there. Remove this call to
+    // drop it.
+    DeckCloseButton(expanded = expanded, pill = pill, onCollapse = onCollapse)
+}
+
+/**
+ * The expanded deck's close button, placed over [pill] (the collapsed pill's last bounds in the
+ * window), its end on the pill's end and centred on the front card.
+ */
+@Composable
+private fun DeckCloseButton(expanded: Boolean, pill: Rect?, onCollapse: () -> Unit) {
+    pill ?: return
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    val cardCenter = with(LocalDensity.current) { PILL_HEIGHT.toPx() / 2 }
+    Box(modifier = Modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInWindow() }) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)),
+            exit = fadeOut(tween(DETAIL_FADE_OUT_MS)),
+            modifier = Modifier.layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
+                layout(constraints.maxWidth, constraints.maxHeight) {
+                    placeable.place(
+                        x = (pill.right - origin.x).roundToInt() - placeable.width,
+                        y = (pill.top + cardCenter - origin.y).roundToInt() - placeable.height / 2,
                     )
                 }
-            }
+            },
+        ) {
+            AppBarDefaults.Close(onClick = onCollapse)
         }
     }
 }

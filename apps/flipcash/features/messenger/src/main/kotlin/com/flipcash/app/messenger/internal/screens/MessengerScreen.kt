@@ -32,6 +32,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -454,11 +457,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val deckNow by requestsViewModel.now.collectAsStateWithLifecycle()
     val drawnDeck = remember(deck) { deck.filter { it.deckTitle != null } }
     val openRequest: (com.flipcash.services.models.paymentrequest.PaymentRequest) -> Unit = { request ->
+        // The deck stays expanded under the details, as it was left: back returns to the list.
         state.chatId?.let { chatId ->
-            requestsViewModel.setExpanded(false)
             keyboard.hideIfVisible { navigator.push(ChatStep.RequestDetails(chatId, request.id.base58)) }
         }
     }
+
+    // The collapsed pill's last bounds, where the expanded deck puts its close button.
+    var deckPill by remember { mutableStateOf<Rect?>(null) }
 
     RequestDeckLayout(modifier = Modifier.fillMaxSize()) {
     CodeScaffold(
@@ -489,6 +495,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                 expanded = deckExpanded,
                                 onExpand = { keyboard.hideIfVisible { requestsViewModel.setExpanded(true) } },
                                 onCycle = requestsViewModel::cycle,
+                                modifier = Modifier.onGloballyPositioned {
+                                    // Kept from the last frame it had a size; it empties while expanded.
+                                    if (it.size.width > 0) deckPill = it.boundsInWindow()
+                                },
                             )
                         }
                     },
@@ -624,6 +634,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         now = deckNow,
         expanded = deckExpanded,
         top = barHeight,
+        pill = deckPill,
         onCollapse = { requestsViewModel.setExpanded(false) },
         onOpen = openRequest,
     )
