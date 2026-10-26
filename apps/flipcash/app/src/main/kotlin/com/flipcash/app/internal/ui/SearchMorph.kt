@@ -147,8 +147,10 @@ internal class SearchMorph(private val navigator: CodeNavigator) {
             onDispose {
                 // Gone without closing through the morph (a back that committed): the button comes
                 // back. A chat pushed over Search keeps Search in the stack, and the field up.
+                // On the root scope: the entry's own is cancelled as the entry leaves, before a
+                // launch on it could run, which left the bar's chrome hidden after a predictive back.
                 if (!closing && navigator.backStack.none { it is AppRoute.Messaging.Search }) {
-                    scope?.launch { fraction.snapTo(0f) }
+                    rootScope?.launch { fraction.snapTo(0f) }
                 }
             }
         }
