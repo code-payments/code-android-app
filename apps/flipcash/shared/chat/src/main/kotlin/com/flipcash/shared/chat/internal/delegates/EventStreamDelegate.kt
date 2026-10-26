@@ -31,6 +31,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.MentionPoolUpdates
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -507,7 +508,7 @@ class EventStreamDelegate @Inject constructor(
             if (msg.senderId == selfId) continue
             for (content in msg.content) {
                 if (content is MessageContent.Cash) {
-                    tokenCoordinator.add(content.mint, content.amount)
+                    content.receivedBy(selfId)?.let { tokenCoordinator.add(content.mint, it) }
                 }
             }
 
@@ -580,4 +581,18 @@ class EventStreamDelegate @Inject constructor(
     }
 
     // endregion
+}
+
+/**
+ * What [userId] was paid by this cash message, for the eager balance update. A group send pays only
+ * the members it lists, each their own part, so the rest of the group gets nothing and a recipient
+ * gets their part rather than the total. A message with no recipients on record is a DM payment,
+ * which pays the one other person in full.
+ */
+internal fun MessageContent.Cash.receivedBy(userId: ID?): Fiat? = when {
+    multiReceiver.isNotEmpty() -> multiReceiver
+        .firstOrNull { it.receiver == userId }
+        ?.let { Fiat(it.nativeAmount, amount.currencyCode) }
+    receiver != null -> amount.takeIf { receiver == userId }
+    else -> amount
 }

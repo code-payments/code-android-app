@@ -32,12 +32,22 @@ import kotlinx.coroutines.flow.onEach
  * The "Pay with" currency picker, drawn as a sheet over the Paid Reactions sheet so the amount and
  * emoji the viewer chose are still there when it closes. Picking a currency moves the wallet's
  * selected token, which is what the Paid Reactions sheet reads its "Pay with" pill from, then
- * closes this sheet only.
+ * closes this sheet only. The chat's send sheet opens it the same way, for its amount pill.
  */
 @Composable
 internal fun ReactionBoostCurrencySheet() {
     // Exit through the sheet so it animates down rather than having its scene deleted mid-frame.
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    CurrencyPickerContent(onPicked = { dismissSheet() })
+}
+
+/**
+ * The compact "Select Currency" list. Picking moves the wallet's selected token, then calls
+ * [onPicked] once the new selection has landed, so whatever reads the selected token already
+ * shows it.
+ */
+@Composable
+internal fun CurrencyPickerContent(onPicked: () -> Unit) {
     val viewModel = hiltViewModel<SelectTokenViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
@@ -93,7 +103,7 @@ internal fun ReactionBoostCurrencySheet() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SelectTokenViewModel.Event.OnTokenChanged>()
-            .onEach { dismissSheet() }
+            .onEach { onPicked() }
             .launchIn(this)
     }
 }

@@ -116,6 +116,7 @@ class ChatReturnToOriginTest {
         linkCardResolver = mockk(relaxed = true),
         cashLinkClaims = mockk(relaxed = true) { every { claimInFlight } returns MutableStateFlow(null) },
         chatCashLinks = mockk(relaxed = true),
+        groupSendPayments = mockk(relaxed = true),
         chatDraftStore = mockk(relaxed = true),
         recentReactionsStore = mockk(relaxed = true),
         toastController = mockk(relaxed = true),

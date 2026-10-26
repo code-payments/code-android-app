@@ -51,6 +51,8 @@ class ChatCoordinatorEagerBalanceTest {
 
     private val selfId = listOf<Byte>(1, 2, 3)
     private val otherId = listOf<Byte>(4, 5, 6)
+    private val thirdId = listOf<Byte>(7, 8, 9)
+    private val fourthId = listOf<Byte>(10, 11, 12)
     private val chatId = ChatId("aabbccdd")
     private val mint = Mint("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaa")
 
@@ -154,6 +156,45 @@ class ChatCoordinatorEagerBalanceTest {
         timestamp = Instant.fromEpochSeconds(1000),
         unreadSeq = 0,
     )
+
+    private fun groupSendMessage(vararg parts: Pair<List<Byte>, Double>) = ChatMessage(
+        messageId = 1L,
+        senderId = otherId,
+        content = listOf(MessageContent.Cash(
+            intentId = listOf(0),
+            amount = Fiat(fiat = parts.sumOf { it.second }, currencyCode = CurrencyCode.CAD),
+            mint = mint,
+            multiReceiver = parts.map { (receiver, native) ->
+                MessageContent.Cash.Payment(receiver = receiver, nativeAmount = native, tokenQuarks = 1L)
+            },
+        )),
+        timestamp = Instant.fromEpochSeconds(1000),
+        unreadSeq = 0,
+    )
+
+    @Test
+    fun `group send credits only the viewer's own part`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(groupSendMessage(selfId to 3.34, thirdId to 3.33)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 1) { tokenCoordinator.add(mint, Fiat(fiat = 3.34, currencyCode = CurrencyCode.CAD)) }
+        }
+    }
+
+    @Test
+    fun `group send the viewer is not part of credits nothing`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(groupSendMessage(thirdId to 2.0, fourthId to 2.0)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any<Fiat>()) }
+        }
+    }
 
     private fun textMessage(senderId: List<Byte>?) = ChatMessage(
         messageId = 2L,

@@ -159,6 +159,7 @@ class ChatGroupAnalyticsTest {
         linkCardResolver = linkCardResolver,
         cashLinkClaims = cashLinkClaims,
         chatCashLinks = mockk(relaxed = true),
+        groupSendPayments = mockk(relaxed = true),
         chatDraftStore = chatDraftStore,
         recentReactionsStore = recentReactionsStore,
         toastController = mockk(relaxed = true),

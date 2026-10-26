@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal
 
 import com.flipcash.shared.chat.ui.settledUsd
+import com.flipcash.shared.chat.ui.partFor
 import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.LinkPreview
@@ -47,6 +48,8 @@ import com.flipcash.app.core.tokens.brandedName
 import com.flipcash.app.core.tokens.isReserve
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.util.Linkify
+import com.flipcash.app.messenger.internal.groupsend.GroupSendState
+import com.flipcash.app.messenger.internal.screens.cash.GroupSendPerson
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.link.ClaimReplyTargets
@@ -153,6 +156,8 @@ import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.payments.ContactPaymentDelegate
+import com.flipcash.shared.payments.group.GroupSendPaymentDelegate
+import com.flipcash.shared.payments.group.GroupSendPlan
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
@@ -285,6 +290,7 @@ internal class ChatViewModel @AssistedInject constructor(
     private val linkCardResolver: LinkCardResolver,
     private val cashLinkClaims: CashLinkClaims,
     private val chatCashLinks: ChatCashLinks,
+    private val groupSendPayments: GroupSendPaymentDelegate,
     private val chatDraftStore: ChatDraftStore,
     private val recentReactionsStore: RecentReactionsStore,
     private val emojiCatalogLoader: EmojiCatalogLoader,
@@ -372,6 +378,11 @@ internal class ChatViewModel @AssistedInject constructor(
         val typingAvatars: List<TypingAvatar> = emptyList(),
         val resolveState: ResolveState = ResolveState.Pending,
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
+        /**
+         * A send from a private group to its members, from the amount sheet's Next to the swipe.
+         * Null for every other send, a public group's cash link included.
+         */
+        val groupSend: GroupSendState? = null,
         val isSelfTyping: Boolean = false,
         val typingConstraints: TypingConstraints = TypingConstraints(),
         val token: Token? = null,
@@ -620,6 +631,17 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val participant: ChatParticipant?
             get() = subject?.asParticipant()
+
+        /**
+         * Cash sent here pays members rather than posting a cash link. Private groups only: they
+         * are where the client holds the whole roster.
+         */
+        val sendsToMembers: Boolean
+            get() = chatType == ChatType.GROUP && (subject as? ChatSubject.Group)?.isPrivate == true
+
+        /** Who Select People lists: the roster, or what this device knows of it, less the viewer. */
+        val groupSendCandidates: List<ChatMember>
+            get() = groupSend?.candidates(members.ifEmpty { knownMembers }).orEmpty()
 
         // Opening the participant's profile (the entry point to blocking) is the tip arm's answer
         // alone. Asking the subject rather than comparing chat types means a new arm has to say.
@@ -977,7 +999,8 @@ internal class ChatViewModel @AssistedInject constructor(
         data class PhotosRestored(val photos: List<StagedPhoto>) : Event
         data class RetryMessage(val pendingId: String?, val content: MessageContent) : Event
 
-        data object NavigateToAmountEntry : Event
+        /** @param toMembers whether this is a group send, which opens [ChatStep.GroupSendAmountEntry]. */
+        data class NavigateToAmountEntry(val toMembers: Boolean) : Event
 
         data object PresentDepositOptions : Event
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
@@ -1001,6 +1024,18 @@ internal class ChatViewModel @AssistedInject constructor(
             val success: Boolean = false,
         ) : Event
         data class SendComplete(val amount: Fiat) : Event
+
+        data class GroupSendUpdated(val groupSend: GroupSendState?) : Event
+        data class OnGroupSendMemberToggled(val member: ID) : Event
+
+        /** Back from Select People to the amount, or from the swipe to Select People. */
+        data object OnGroupSendBack : Event
+
+        /** "Send to N People". */
+        data object OnGroupSendPeopleConfirmed : Event
+
+        /** The swipe on the group send's confirm sheet. */
+        data object OnGroupSendRequested : Event
 
         data object OnSelfTypingStarted : Event
         data object OnSelfTypingStill : Event
@@ -1331,6 +1366,25 @@ internal class ChatViewModel @AssistedInject constructor(
         return true
     }
 
+    /**
+     * Someone on a group send's details sheet, by their hex id; null is the viewer. A member whose
+     * profile hasn't resolved reads as the generic name until it does.
+     */
+    @OptIn(ExperimentalStdlibApi::class)
+    internal fun groupSendPerson(userIdHex: String?): GroupSendPerson {
+        if (userIdHex == null || userIdHex == userManager.accountId?.hexEncodedString()) {
+            return GroupSendPerson(resources.getString(R.string.title_you), userManager.profile)
+        }
+        val profile = senderProfiles.value?.get(userIdHex)
+        val name = profile?.let { nameOrHandle(it.displayName, it.handle) }
+            ?: resources.getString(R.string.title_unnamedUser)
+        val participant = profile?.let { resolved ->
+            runCatching { userIdHex.hexToByteArray().toList() }.getOrNull()
+                ?.let { ChatParticipant.TipUser(it, resolved) }
+        }
+        return GroupSendPerson(name, profile, participant)
+    }
+
     fun memberParticipant(userId: ID): ChatParticipant.TipUser? =
         senderProfiles.value?.get(userId.hexEncodedString())
             ?.let { ChatParticipant.TipUser(userId, it) }
@@ -1387,6 +1441,38 @@ internal class ChatViewModel @AssistedInject constructor(
     val mediaSendProgress: StateFlow<Map<String, MediaSendProgress>> =
         chatCoordinator.observeMediaSendProgress()
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    /**
+     * The foot line of a group's cash bubble, matching iOS's `ChatItem.groupSend`: a split names its
+     * first recipient (or "You" when the viewer was paid) and counts the rest, falling back to a head count while that name is unknown,
+     * and a payment to one member names them ("to You" when that is the viewer). Null for a payment
+     * with no receiver, or to one member nobody has a name for yet.
+     */
+    private fun groupSendRecipients(cash: MessageContent.Cash, profiles: Map<String, UserProfile>?): String? {
+        val self = userManager.accountId
+        fun nameOf(id: ID): String? {
+            if (id == self) return resources.getString(R.string.title_you)
+            val profile = profiles?.get(id.hexEncodedString())
+            if (profile == null || profile.displayName.isBlank()) chatCoordinator.requestSenderProfile(id)
+            return profile?.let { nameOrHandle(it.displayName, it.handle) }
+        }
+
+        val parts = cash.multiReceiver
+        if (parts.size < 2) {
+            val receiver = cash.receiver ?: return null
+            return nameOf(receiver)?.let { resources.getString(R.string.label_groupSendTo, it) }
+        }
+        val others = parts.size - 1
+        val lead = parts.firstOrNull { it.receiver == self } ?: parts.first()
+        return nameOf(lead.receiver)
+            ?.let { first ->
+                resources.getString(
+                    R.string.label_groupSendTo,
+                    resources.getQuantityString(R.plurals.label_groupSendRecipients, others, first, others),
+                )
+            }
+            ?: resources.getQuantityString(R.plurals.label_groupSendToPeople, parts.size, parts.size)
+    }
 
     /**
      * The transcript's rows before separators. Cached so a change to the unread boundary or the
@@ -1571,6 +1657,10 @@ internal class ChatViewModel @AssistedInject constructor(
                                 ?: stateFlow.value.participant?.name
                                 ?: resources.getString(R.string.title_unnamedUser),
                         ) ?: UndecryptableHint.UpdateApp,
+                        receivedPart = (enriched as? MessageContent.Cash)?.partFor(userManager.accountId),
+                        groupSendRecipients = (enriched as? MessageContent.Cash)
+                            ?.takeIf { chatType == ChatType.GROUP }
+                            ?.let { groupSendRecipients(it, profiles) },
                     )
                         // A carded link takes a row of its own, with the prose either side of it
                         // on rows above and below. Reversed because the list is: this page runs
@@ -1747,11 +1837,16 @@ internal class ChatViewModel @AssistedInject constructor(
 
     // Every payment from the conversation is a plain send. The one that opens a tip DM is paid from
     // the person's profile, which is where the recipient's fee applies.
-    private fun amountStyle() = AmountEntryStyle(
+    //
+    // A private group's send picks its people after the amount, so its keypad ends on Next and the
+    // swipe moves to the confirm sheet.
+    private fun amountStyle(toMembers: Boolean = false) = AmountEntryStyle(
         // One label for both kinds of payment. The chat above the keypad already says who this is
         // going to and why; the slider only has to say what the gesture does.
-        actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_swipeToSend)),
-        actionStyle = ConfirmationStyle.Slide,
+        actionLabel = AmountEntryLabel.Plain(
+            resources.getString(if (toMembers) R.string.action_next else R.string.action_swipeToSend)
+        ),
+        actionStyle = if (toMembers) ConfirmationStyle.Button else ConfirmationStyle.Slide,
         infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
         overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
         standingHint = AmountEntryStyle.StandingHint.Ceiling,
@@ -3493,9 +3588,18 @@ internal class ChatViewModel @AssistedInject constructor(
                 ) {
                     return@onEach
                 }
+                val toMembers = stateFlow.value.sendsToMembers
+                amountStyleFlow.value = amountStyle(toMembers)
+                dispatchEvent(
+                    Event.GroupSendUpdated(
+                        GroupSendState(viewerId = userManager.accountId).takeIf { toMembers }
+                    )
+                )
                 amountDelegate.reset()
-                dispatchEvent(Event.NavigateToAmountEntry)
+                dispatchEvent(Event.NavigateToAmountEntry(toMembers))
             }.launchIn(viewModelScope)
+
+        observeGroupSend()
 
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
@@ -3690,6 +3794,107 @@ internal class ChatViewModel @AssistedInject constructor(
         }
     }
 
+    /** Select People and the confirm sheet of a private group's send. See [GroupSendState]. */
+    private fun observeGroupSend() {
+        fun update(transform: (GroupSendState) -> GroupSendState?) {
+            val current = stateFlow.value.groupSend ?: return
+            dispatchEvent(Event.GroupSendUpdated(transform(current)))
+        }
+
+        eventFlow.filterIsInstance<Event.OnGroupSendMemberToggled>()
+            .onEach { (member) ->
+                val groupSend = stateFlow.value.groupSend ?: return@onEach
+                val selected = groupSend.toggled(member)
+                if (selected == null) {
+                    BottomBarManager.showInfo(
+                        title = resources.getString(R.string.title_groupSendMaxPeople),
+                        message = resources.getString(R.string.description_groupSendMaxPeople),
+                    )
+                    return@onEach
+                }
+                update { it.copy(selected = selected) }
+            }.launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.OnGroupSendBack>()
+            .onEach {
+                update {
+                    when (it.stage) {
+                        GroupSendState.Stage.Confirm -> it.copy(stage = GroupSendState.Stage.People)
+                        else -> it.copy(stage = GroupSendState.Stage.Amount)
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.OnGroupSendPeopleConfirmed>()
+            .onEach {
+                val groupSend = stateFlow.value.groupSend ?: return@onEach
+                when (groupSend.plan) {
+                    is GroupSendPlan.Pay -> update { it.copy(stage = GroupSendState.Stage.Confirm) }
+                    // Nothing is priced: a part under one cent can't be sent, whatever the rate.
+                    // The user stays here to pick fewer people or go back and raise the amount.
+                    GroupSendPlan.PartBelowMinimum -> BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_groupSendTooSmall),
+                        message = resources.getQuantityString(
+                            R.plurals.error_description_groupSendTooSmall,
+                            groupSend.selected.size,
+                            groupSend.selected.size,
+                        ),
+                    )
+                    GroupSendPlan.NoRecipients, GroupSendPlan.TooManyRecipients -> Unit
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.OnGroupSendRequested>()
+            .onEach { sendToMembers() }
+            .launchIn(viewModelScope)
+    }
+
+    private fun sendToMembers() = viewModelScope.launch {
+        val groupSend = stateFlow.value.groupSend ?: return@launch
+        val plan = groupSend.plan as? GroupSendPlan.Pay ?: return@launch
+        val total = groupSend.total ?: return@launch
+        val chatId = stateFlow.value.chatId ?: return@launch
+        val token = stateFlow.value.token ?: return@launch
+        val owner = userManager.accountCluster ?: return@launch
+        // The confirm sheet can change the token after the amount step checked the balance.
+        if (checkBalanceLimit(total)) return@launch
+
+        dispatchEvent(Event.SendStateUpdated(loading = true))
+
+        val result = groupSendPayments.send(
+            chatId = chatId,
+            recipients = groupSend.selected,
+            plan = plan,
+            currency = total.currencyCode,
+            token = token,
+            source = owner.withTimelockForToken(token),
+        )
+
+        result.onSuccess {
+            dispatchEvent(Event.SendStateUpdated(success = true))
+            delay(400.milliseconds)
+            analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null))
+            // The send state stays until the sheet has gone, so Select People doesn't flash back to
+            // the keypad on the way out. The next "$" starts a fresh one.
+            dispatchEvent(Dispatchers.Main, Event.SendComplete(total))
+        }.onFailure { cause ->
+            dispatchEvent(Event.SendStateUpdated())
+            analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics))
+            val (title, message) = when (cause) {
+                is ComputeVerifiedFiatError.AmountBelowMinimum ->
+                    R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
+                is ComputeVerifiedFiatError ->
+                    R.string.error_title_staleRates to R.string.error_description_staleRates
+                else ->
+                    R.string.error_title_cashFailedToSend to R.string.error_description_cashFailedToSend
+            }
+            BottomBarManager.showError(
+                title = resources.getString(title),
+                message = resources.getString(message),
+            )
+        }
+    }
+
     private fun checkBalanceLimit(amount: Fiat): Boolean {
         val token = stateFlow.value.token ?: return false
         val rate = exchange.preferredRate
@@ -3731,6 +3936,16 @@ internal class ChatViewModel @AssistedInject constructor(
         if (enteredAmount <= 0) return
 
         val token = stateFlow.value.token ?: return
+
+        val groupSend = stateFlow.value.groupSend
+        if (groupSend != null && fixedAmount == null) {
+            dispatchEvent(
+                Event.GroupSendUpdated(
+                    groupSend.copy(total = amount, stage = GroupSendState.Stage.People)
+                )
+            )
+            return
+        }
 
         if (stateFlow.value.resolveState is ResolveState.Resolved) {
             dispatchEvent(Event.OnSendRequested(
@@ -3986,13 +4201,18 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.PhotosRestored -> { state ->
                     state.copy(stagedPhotos = (event.photos + state.stagedPhotos).take(MAX_STAGED_PHOTOS))
                 }
-                Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
+                is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.MentionTapped -> { state -> state }
                 is Event.OpenMention -> { state -> state }
                 is Event.OnConfirmRequested -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }
+                is Event.GroupSendUpdated -> { state -> state.copy(groupSend = event.groupSend) }
+                is Event.OnGroupSendMemberToggled -> { state -> state }
+                Event.OnGroupSendBack -> { state -> state }
+                Event.OnGroupSendPeopleConfirmed -> { state -> state }
+                Event.OnGroupSendRequested -> { state -> state }
                 is Event.SendStateUpdated -> { state ->
                     state.copy(
                         sendProgress = LoadingSuccessState(

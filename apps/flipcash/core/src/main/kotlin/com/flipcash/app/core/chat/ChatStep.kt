@@ -2,6 +2,7 @@ package com.flipcash.app.core.chat
 
 import android.os.Parcelable
 import com.flipcash.services.models.chat.ChatId
+import com.getcode.solana.keys.Mint
 import com.getcode.navigation.HalfSheet
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.WrapContentSheet
@@ -48,6 +49,20 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object AmountEntry : ChatStep, NavigationRetVal<ChatSendResult>, Sheet
+
+    /**
+     * [AmountEntry] for a send to a private group's members, which carries on past the amount to
+     * Select People and the confirm. Presented as the share sheet ([ShareMessage]) is: full screen,
+     * closed by its X. Its steps can't be dragged away (see `GroupSendStep`), so a half-picked send
+     * isn't lost to a stray swipe.
+     */
+    @Parcelize
+    @Serializable
+    data object GroupSendAmountEntry :
+        ChatStep,
+        NavigationRetVal<ChatSendResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
 
     /**
      * Nodes 10329:12104 and 10330:19549 — share or copy a group's invite link, or send it to
@@ -193,6 +208,14 @@ sealed interface ChatStep : FlowStep, Parcelable {
     ) : ChatStep, Sheet, HalfSheet
 
     /**
+     * The currency picker behind the send sheet's token pill on the amount step. Opens over the
+     * send sheet, which stays up beneath it, and closes on a pick.
+     */
+    @Parcelize
+    @Serializable
+    data object SendCurrency : ChatStep, Sheet, HalfSheet
+
+    /**
      * The keypad behind [ReactionBoost]'s "…" chip, for an amount the presets don't cover. Returns
      * the amount in whole US cents. Opens over the Paid Reactions sheet, which stays up beneath it.
      */
@@ -209,6 +232,20 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * sheet height rather than wrapping its content. [HalfSheet] matches iOS's
      * `ReactorsSheet.presentationDetents([.medium, .large])`.
      */
+    /**
+     * A group send's details (node 11293:6918, frame 10): the currency, who sent it and who it
+     * paid, by name and without amounts. Ids are hex, as the profile map keys them.
+     */
+    @Parcelize
+    @Serializable
+    data class GroupSendDetails(
+        val mint: Mint,
+        val tokenName: String,
+        val tokenImageUrl: String,
+        val senderIdHex: String?,
+        val recipientIdsHex: List<String>,
+    ) : ChatStep, Sheet, WrapContentSheet
+
     @Parcelize
     @Serializable
     data class Reactors(val chatId: ChatId, val messageId: Long) : ChatStep, Sheet, HalfSheet

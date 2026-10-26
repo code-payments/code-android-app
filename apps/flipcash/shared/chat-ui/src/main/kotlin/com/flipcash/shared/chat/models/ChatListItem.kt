@@ -199,6 +199,18 @@ sealed interface ChatListItem {
          * selected or copied.
          */
         val redacted: Boolean = false,
+        /**
+         * The viewer's own part of a cash message that names its recipients
+         * ([MessageContent.Cash.multiReceiver] or [MessageContent.Cash.receiver]), which the bubble
+         * shows as "You received". Null when the message names others and not the viewer.
+         */
+        val receivedPart: MessageContent.Cash.Payment? = null,
+        /**
+         * Who a cash message in a group paid, as the bubble's foot reads it: "to Alex Morgan and
+         * 2 Others", or "to Alex Morgan" for one member. Null outside a group, and for a payment to
+         * the viewer alone, which keeps the plain "You received" card.
+         */
+        val groupSendRecipients: String? = null,
     ) : TranscriptMessage {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the
