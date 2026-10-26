@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -74,6 +74,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -348,8 +349,8 @@ private fun DayGrid(sheet: TimeToPay, reducedMotion: Boolean, onChoose: (LocalDa
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .drawBehind { rangeLayer(startIndex, endIndex, bandEnd.value, circle.value, gap.toPx()) },
-            verticalArrangement = Arrangement.spacedBy(gap),
+                .drawBehind { rangeLayer(startIndex, endIndex, bandEnd.value, circle.value) },
+            verticalArrangement = Arrangement.spacedBy(TimeToPayGrid.RowGap),
         ) {
             days.chunked(7).forEachIndexed { row, week ->
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -369,6 +370,7 @@ private fun DayGrid(sheet: TimeToPay, reducedMotion: Boolean, onChoose: (LocalDa
                             selected = index == endIndex,
                             cover = cover,
                             month = if (day.dayOfMonth == 1) day.format(monthLabel).uppercase(locale) else null,
+                            monthTone = sheet.monthTone(day),
                             label = day.format(fullDate),
                             onClick = { onChoose(day) },
                         )
@@ -388,12 +390,14 @@ private fun coverOf(circle: Offset, column: Int, row: Int): Float {
 }
 
 /** The band, today's circle and the closing-day circle at [circle] (column, row), under the day numbers. */
-private fun DrawScope.rangeLayer(startIndex: Int, endIndex: Int, bandEnd: Float, circle: Offset, gap: Float) {
+private fun DrawScope.rangeLayer(startIndex: Int, endIndex: Int, bandEnd: Float, circle: Offset) {
     val cell = size.width / 7
-    val height = RangeHeight.toPx()
+    val cellHeight = TimeToPayGrid.CellHeight.toPx()
+    val gap = TimeToPayGrid.RowGap.toPx()
+    val height = TimeToPayGrid.Circle.toPx()
     val rtl = layoutDirection == LayoutDirection.Rtl
     fun x(column: Float) = if (rtl) size.width - column * cell else column * cell
-    fun rowTop(row: Float) = row * (cell + gap)
+    fun rowTop(row: Float) = row * (cellHeight + gap)
     TimeToPay.bandSpans(startIndex, bandEnd).forEach { span ->
         val left = minOf(x(span.from), x(span.to))
         val right = maxOf(x(span.from), x(span.to))
@@ -401,16 +405,16 @@ private fun DrawScope.rangeLayer(startIndex: Int, endIndex: Int, bandEnd: Float,
         drawRoundRect(
             color = RangeBand,
             alpha = ((right - left) / height).coerceIn(0f, 1f),
-            topLeft = Offset(left, rowTop(span.row.toFloat()) + (cell - height) / 2),
+            topLeft = Offset(left, rowTop(span.row.toFloat()) + (cellHeight - height) / 2),
             size = Size(right - left, height),
             cornerRadius = CornerRadius(height / 2),
         )
     }
     if (endIndex != startIndex) {
         val start = cellOf(startIndex)
-        drawCircle(RangeStart, height / 2, Offset(x(start.x + 0.5f), rowTop(start.y) + cell / 2))
+        drawCircle(RangeStart, height / 2, Offset(x(start.x + 0.5f), rowTop(start.y) + cellHeight / 2))
     }
-    drawCircle(White, height / 2, Offset(x(circle.x + 0.5f), rowTop(circle.y) + cell / 2))
+    drawCircle(White, height / 2, Offset(x(circle.x + 0.5f), rowTop(circle.y) + cellHeight / 2))
 }
 
 @Composable
@@ -421,13 +425,14 @@ private fun DayCell(
     selected: Boolean,
     cover: Float,
     month: String?,
+    monthTone: TimeToPay.MonthTone,
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
-            .aspectRatio(1f)
+            .height(TimeToPayGrid.CellHeight)
             .then(
                 if (enabled) {
                     Modifier
@@ -449,23 +454,57 @@ private fun DayCell(
             TimeToPay.RangeCell.Mark.None ->
                 if (enabled) CodeTheme.colors.textMain else CodeTheme.colors.textSecondary.copy(alpha = 0.5f)
         }
-        Text(
-            text = day.dayOfMonth.toString(),
-            style = CodeTheme.typography.textMedium.let {
-                if (mark == TimeToPay.RangeCell.Mark.None) it else it.copy(fontWeight = FontWeight.Bold)
-            },
-            color = text,
-        )
-        if (month != null && mark == TimeToPay.RangeCell.Mark.None) {
-            Text(
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 1.dp),
-                text = month,
-                style = CodeTheme.typography.caption.copy(fontSize = CodeTheme.typography.caption.fontSize * 0.75f),
-                color = CodeTheme.colors.textSecondary,
-            )
+        val number = CodeTheme.typography.textMedium.let {
+            if (mark == TimeToPay.RangeCell.Mark.None) it else it.copy(fontWeight = FontWeight.Bold)
+        }
+        if (month == null) {
+            Text(text = day.dayOfMonth.toString(), style = number, color = text)
+        } else {
+            // Label and number centre as one group in the circle, trimmed to their glyphs so the
+            // space above the label matches the space below the number.
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = month,
+                    style = number.copy(
+                        fontSize = MonthLabelSize,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = MonthLabelSize,
+                        lineHeightStyle = TightLines,
+                    ),
+                    color = monthColor(monthTone, cover, enabled),
+                )
+                Text(
+                    text = day.dayOfMonth.toString(),
+                    style = number.copy(lineHeight = number.fontSize, lineHeightStyle = TightLines),
+                    color = text,
+                )
+            }
         }
     }
 }
+
+/** The month label's grey for [tone], blending to the closing circle's as it settles over the day. */
+private fun monthColor(tone: TimeToPay.MonthTone, cover: Float, enabled: Boolean): Color = when {
+    tone == TimeToPay.MonthTone.Start -> MonthOnStart
+    tone == TimeToPay.MonthTone.End || cover > 0f ->
+        lerp(if (tone == TimeToPay.MonthTone.Band) MonthInBand else MonthPlain, MonthOnEnd, cover)
+    tone == TimeToPay.MonthTone.Band && enabled -> MonthInBand
+    else -> MonthPlain
+}
+
+/** The day grid's geometry, matching iOS: rows of 38 dp cells 6 dp apart, a 34 dp circle centred in each. */
+internal object TimeToPayGrid {
+    val CellHeight = 38.dp
+    val RowGap = 6.dp
+    val Circle = 34.dp
+}
+
+private val MonthLabelSize = 8.sp
+private val TightLines = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both)
+private val MonthPlain = Color(0xFF7B7B7B)
+private val MonthInBand = Color(0xFF9E9E9E)
+private val MonthOnEnd = Color(0xFF595959)
+private val MonthOnStart = Color(0xFFD9D9D9)
 
 /** How the sheet's selection moves: a spring, or straight to the new place with reduce motion on. */
 internal object TimeToPayMotion {
@@ -473,7 +512,6 @@ internal object TimeToPayMotion {
         if (reducedMotion) snap() else spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMediumLow)
 }
 
-private val RangeHeight = 34.dp
 private val RangeStart = Color(0xFF6B6B6E)
 private val RangeBand = Color.White.copy(alpha = 0.12f)
 

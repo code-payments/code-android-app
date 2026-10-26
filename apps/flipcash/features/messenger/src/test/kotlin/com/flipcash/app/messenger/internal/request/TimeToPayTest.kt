@@ -10,14 +10,16 @@ import java.time.ZoneOffset
 import kotlin.test.Test
 import androidx.compose.animation.core.SnapSpec
 import com.flipcash.app.messenger.internal.request.TimeToPay.RangeCell
+import com.flipcash.app.messenger.internal.request.TimeToPay.MonthTone
 import com.flipcash.app.messenger.internal.request.TimeToPay.RangeCell.Mark
+import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.toKotlinInstant
 
-/** Spec "Deadline sheet", tests 34–45. UTC so 28 days never cross a clock change. */
+/** Spec "Deadline sheet", tests 34–47. UTC so 28 days never cross a clock change. */
 class TimeToPayTest {
     private val zone = ZoneOffset.UTC
 
@@ -163,6 +165,28 @@ class TimeToPayTest {
             .chooseDay(date(11, 5))
 
         assertEquals(Choice.Custom(date(11, 5), LocalTime.of(9, 15)), sheet.choice)
+    }
+
+    @Test
+    fun `test 46 - Nov 1 labels its month inside the band, rows 44 apart`() {
+        val sheet = openedAt(10, 26, 11, 39)
+
+        assertEquals(MonthTone.Band, sheet.monthTone(date(11, 1)))
+        assertEquals(44.dp, TimeToPayGrid.CellHeight + TimeToPayGrid.RowGap)
+        assertEquals(34.dp, TimeToPayGrid.Circle)
+    }
+
+    @Test
+    fun `test 47 - Nov 1 tapped labels its month on the closing circle`() {
+        val sheet = openedAt(10, 26, 11, 39).chooseDay(date(11, 1))
+
+        assertEquals(MonthTone.End, sheet.monthTone(date(11, 1)))
+    }
+
+    @Test
+    fun `a month label outside the range, or on today's circle, takes that tone`() {
+        assertEquals(MonthTone.Plain, openedAt(10, 26, 11, 39).monthTone(date(12, 1)))
+        assertEquals(MonthTone.Start, openedAt(11, 1, 11, 39).monthTone(date(11, 1)))
     }
 
     @Test

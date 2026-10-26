@@ -59,13 +59,27 @@ internal data class TimeToPay(
         }
     }
 
+    /** The tone of [day]'s month label, for a 1st of the month. */
+    fun monthTone(day: LocalDate): MonthTone {
+        val cell = range(day)
+        return when {
+            cell.mark == RangeCell.Mark.End -> MonthTone.End
+            cell.mark == RangeCell.Mark.Start -> MonthTone.Start
+            cell.leading && cell.trailing -> MonthTone.Band
+            else -> MonthTone.Plain
+        }
+    }
+
+    /** One week row's part of the range band, from [from] to [to] in columns from the row's start. */
+    data class BandSpan(val row: Int, val from: Float, val to: Float)
+
+    /** A month label's colour: on no range, inside the band, on the closing circle, on today's circle. */
+    enum class MonthTone { Plain, Band, End, Start }
+
     /**
      * One grid day's part of the range: its circle, and which halves the band covers. The band
      * runs from the centre of the start circle to the centre of the end circle.
      */
-    /** One week row's part of the range band, from [from] to [to] in columns from the row's start. */
-    data class BandSpan(val row: Int, val from: Float, val to: Float)
-
     data class RangeCell(val mark: Mark, val leading: Boolean, val trailing: Boolean) {
         enum class Mark { None, Start, End }
 
