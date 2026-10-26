@@ -171,22 +171,16 @@ private fun Modifier.deckShared(
 
 /** Where the deck sits and how loud it is. */
 internal enum class DeckPlacement {
-    /** The grey pill in the app bar: the viewer owes nothing. */
+    /** The grey pill in the app bar: the viewer owes nothing, or is scrolled away from the newest messages. */
     Pill,
-
-    /** The green pill in the app bar: the viewer owes, scrolled away from the newest messages. */
-    OwedPill,
 
     /** The full-width card under the app bar: the viewer owes, at the newest messages. */
     Strip,
 }
 
-/** Grey pill when the viewer owes nothing; when they owe, the strip at the newest messages and the green pill away from them. */
-internal fun deckPlacement(owes: Boolean, atNewest: Boolean): DeckPlacement = when {
-    !owes -> DeckPlacement.Pill
-    atNewest -> DeckPlacement.Strip
-    else -> DeckPlacement.OwedPill
-}
+/** The strip while the viewer owes and the timeline is at its newest messages; the grey pill otherwise. */
+internal fun deckPlacement(owes: Boolean, atNewest: Boolean): DeckPlacement =
+    if (owes && atNewest) DeckPlacement.Strip else DeckPlacement.Pill
 
 /**
  * The app-bar deck (concept B): the front request with up to two cards peeking beneath it. Swipe
@@ -207,9 +201,6 @@ internal fun RequestDeckPill(
     // Held through the exit, so the pill doesn't empty as it fades out.
     var shown by remember { mutableStateOf(deck) }
     if (deck.isNotEmpty()) shown = deck
-    // The pill's look is held while the deck is in the strip, so it leaves and comes back as it was.
-    var style by remember { mutableStateOf(placement) }
-    if (placement != DeckPlacement.Strip) style = placement
     // Arriving and leaving: a fade and a slight scale in place, while the width eases so the title
     // makes room. A deck that is there when the chat opens starts visible, so it doesn't fade.
     AnimatedVisibility(
@@ -226,7 +217,7 @@ internal fun RequestDeckPill(
             deck = shown,
             now = now,
             viewerId = viewerId,
-            style = style,
+            style = DeckPlacement.Pill,
             visible = !expanded && placement != DeckPlacement.Strip,
             onExpand = onExpand,
             onCycle = onCycle,
@@ -337,7 +328,7 @@ private fun DeckStack(
         val canCycle = deck.size > 1
         val pillWidth = remember(scope) { PillWidth(scope) }
 
-        val label = deckLabel(deck, now, viewerId)
+        val label = deckLabel(deck, now, viewerId.takeIf { strip })
         val nextLabel = stringResource(R.string.action_nextRequest)
         // The strip's Pay is a button of its own, so the deck's label goes on the rest of its card.
         val deckSemantics = Modifier.clearAndSetSemantics {
@@ -504,7 +495,6 @@ private fun peekColor(style: DeckPlacement, depth: Float): Color {
     val back = (depth - 1f).coerceIn(0f, 1f)
     return when (style) {
         DeckPlacement.Pill -> lerp(CodeTheme.colors.surfaceVariant, CodeTheme.colors.surface, back)
-        DeckPlacement.OwedPill -> lerp(CodeTheme.colors.success, CodeTheme.colors.success.copy(alpha = 0.5f), back)
         DeckPlacement.Strip -> lerp(CodeTheme.colors.surfaceVariant, Color.White.copy(alpha = 0.08f), back)
     }
 }
@@ -523,65 +513,7 @@ private fun DeckCardFront(
 ) {
     when (style) {
         DeckPlacement.Pill -> DeckFront(request = request, now = now, visibility = visibility, modifier = modifier)
-        DeckPlacement.OwedPill -> OwedPillFront(request, now, viewerId, visibility, modifier)
         DeckPlacement.Strip -> StripFront(request, now, viewerId, visibility, onPay, modifier, bodyModifier)
-    }
-}
-
-/**
- * The green app-bar pill (concept node 12670:1372): glyph and "You owe <share> · <title> · <time
- * left>", truncated. A front card the viewer doesn't owe on reads "<title> · <paid> of <requested>".
- */
-@Composable
-private fun OwedPillFront(
-    request: PaymentRequest,
-    now: Instant,
-    viewerId: ID?,
-    visibility: AnimatedVisibilityScope?,
-    modifier: Modifier = Modifier,
-) {
-    val shape = DeckStyle.Pill.shape
-    val share = request.unpaidShareOf(viewerId, now)
-    val title = request.deckTitle.orEmpty()
-    val line = if (share != null) {
-        stringResource(
-            R.string.label_requestDotJoined,
-            stringResource(R.string.label_requestDotJoined, stringResource(R.string.label_requestYouOwe, share.amount.requestText()), title),
-            request.statusLine(now)?.timeLeftText().orEmpty(),
-        )
-    } else {
-        stringResource(R.string.label_requestDotJoined, title, request.progressLabel())
-    }
-    Row(
-        modifier = modifier
-            .background(CodeTheme.colors.success, shape)
-            .padding(
-                start = CodeTheme.dimens.grid.x1,
-                end = CodeTheme.dimens.grid.x3,
-                top = CodeTheme.dimens.grid.x1,
-                bottom = CodeTheme.dimens.grid.x1,
-            )
-            .widthIn(max = PILL_MAX_WIDTH),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
-        Box(
-            modifier = Modifier
-                .deckShared(request.id, "glyph", visibility, CircleShape)
-                .size(RING_SIZE)
-                .background(Color.Black, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = "$", style = CodeTheme.typography.caption, color = CodeTheme.colors.success)
-        }
-        Text(
-            text = line,
-            style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold),
-            color = Color.Black,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.deckShared(request.id, "title", visibility),
-        )
     }
 }
 
@@ -825,7 +757,10 @@ internal fun RequestRing(request: PaymentRequest, now: Instant, size: Dp, modifi
     }
 }
 
-/** "<N> requests, <title>, <paid> of <requested> paid, <status line>", or "You owe <share> for <title>, <status line>". */
+/**
+ * "<N> requests, <title>, <paid> of <requested> paid, <status line>", or in the strip, where
+ * [viewerId] is given, "You owe <share> for <title>, <status line>".
+ */
 @Composable
 private fun deckLabel(deck: List<PaymentRequest>, now: Instant, viewerId: ID?): String {
     val front = deck.first()
@@ -862,7 +797,6 @@ internal fun ExpandedRequests(
     pill: Rect?,
     onCollapse: () -> Unit,
     onOpen: (PaymentRequest) -> Unit,
-    introduced: Set<ID> = emptySet(),
 ) {
     BackHandler(enabled = expanded, onBack = onCollapse)
     // The chat behind goes under its backdrop (chatBackdrop, on the scaffold); this only takes the
@@ -928,27 +862,16 @@ internal fun ExpandedRequests(
                     .padding(CodeTheme.dimens.grid.x3)
                 val front = index == 0
                 val detail = if (front) Modifier.expandedOnly(visibility) else Modifier
-                Box {
-                    PaymentRequestCardContent(
-                        request = request,
-                        title = title,
-                        now = now,
-                        modifier = card,
-                        glyphModifier = if (front) Modifier.deckShared(request.id, "glyph", visibility, CircleShape) else Modifier,
-                        titleModifier = if (front) Modifier.deckShared(request.id, "title", visibility) else Modifier,
-                        amountsModifier = if (front) Modifier.deckShared(request.id, "amounts", visibility) else Modifier,
-                        detailModifier = detail,
-                    )
-                    // A request the deck opened itself for, the first time this device saw it owed.
-                    if (request.id in introduced) {
-                        NewChip(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(CodeTheme.dimens.grid.x2)
-                                .then(detail),
-                        )
-                    }
-                }
+                PaymentRequestCardContent(
+                    request = request,
+                    title = title,
+                    now = now,
+                    modifier = card,
+                    glyphModifier = if (front) Modifier.deckShared(request.id, "glyph", visibility, CircleShape) else Modifier,
+                    titleModifier = if (front) Modifier.deckShared(request.id, "title", visibility) else Modifier,
+                    amountsModifier = if (front) Modifier.deckShared(request.id, "amounts", visibility) else Modifier,
+                    detailModifier = detail,
+                )
             }
         }
     }
@@ -956,19 +879,6 @@ internal fun ExpandedRequests(
     // and out first on collapse so it is gone before the pill lands back there. Remove this call to
     // drop it.
     DeckCloseButton(expanded = expanded, pill = pill, onCollapse = onCollapse)
-}
-
-/** The green "NEW" chip on a request the deck opened itself for. */
-@Composable
-private fun NewChip(modifier: Modifier = Modifier) {
-    Text(
-        text = stringResource(R.string.label_requestNew),
-        style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Bold),
-        color = Color.Black,
-        modifier = modifier
-            .background(CodeTheme.colors.success, PAY_SHAPE)
-            .padding(horizontal = CodeTheme.dimens.grid.x2, vertical = 2.dp),
-    )
 }
 
 /**

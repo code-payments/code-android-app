@@ -5,9 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.deckOrder
-import com.flipcash.services.models.paymentrequest.unpaidShareOf
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.chat.OwedRequestIntroStore
 import com.flipcash.shared.chat.PaymentRequests
 import com.getcode.opencode.model.core.ID
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +32,6 @@ import kotlin.time.Instant
 internal class ChatRequestsViewModel @Inject constructor(
     private val requests: PaymentRequests,
     private val userManager: UserManager,
-    private val intros: OwedRequestIntroStore,
 ) : ViewModel() {
 
     val viewerId: ID? get() = userManager.accountId
@@ -123,49 +120,12 @@ internal class ChatRequestsViewModel @Inject constructor(
 
     fun setExpanded(expanded: Boolean) {
         _expanded.value = expanded && deck.value.isNotEmpty()
-        if (!expanded) _introduced.value = emptySet()
-    }
-
-    private val _introduced = MutableStateFlow<Set<ID>>(emptySet())
-
-    /** The owed requests the deck opened itself for, each marked "NEW" until it collapses. */
-    val introduced: StateFlow<Set<ID>> = _introduced.asStateFlow()
-
-    /**
-     * Opens the deck by itself for owed requests this device hasn't opened it for, the nearest
-     * deadline in front, and collapses it after [INTRO_HOLD] unless something collapsed it first.
-     * Call once the chat has settled.
-     */
-    suspend fun introduceOwed(screenReader: Boolean, reducedMotion: Boolean) {
-        val now = _now.value
-        val owed = deck.value.filter { it.unpaidShareOf(viewerId, now) != null }.map { it.id }
-        val fresh = requestsToIntroduce(owed, intros.shown(), screenReader, reducedMotion)
-        if (fresh.isEmpty()) return
-        intros.markShown(fresh)
-        val front = deck.value.indexOfFirst { it.id == fresh.first() }
-        if (front > 0) cycled.update { it + front }
-        _introduced.value = fresh.toSet()
-        setExpanded(true)
-        delay(INTRO_HOLD)
-        if (_introduced.value.isNotEmpty()) setExpanded(false)
     }
 
     companion object {
         val POLL_INTERVAL = 45.seconds
-        val INTRO_HOLD = 2.5.seconds
     }
 }
-
-/**
- * The owed requests, in deck order, the deck should open itself for: those this device hasn't
- * shown, and none while a screen reader is on or motion is reduced.
- */
-internal fun requestsToIntroduce(
-    owed: List<ID>,
-    shown: Set<ID>,
-    screenReader: Boolean,
-    reducedMotion: Boolean,
-): List<ID> = if (screenReader || reducedMotion) emptyList() else owed.filterNot { it in shown }
 
 internal fun <T> List<T>.rotated(by: Int): List<T> {
     if (size < 2) return this

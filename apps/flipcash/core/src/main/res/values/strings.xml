@@ -1065,12 +1065,10 @@
         <item quantity="one">%1$d minute left</item>
         <item quantity="other">%1$d minutes left</item>
     </plurals>
-    <!-- The owed deck: "You owe $20", then "You owe $20 · 2 days left" and "You owe $20 · Dinner · 2 days left". -->
+    <!-- The owed deck: "You owe $20", then "You owe $20 · 2 days left". -->
     <string name="label_requestYouOwe">You owe %1$s</string>
-    <string name="label_requestDotJoined">%1$s · %2$s</string>
     <string name="action_requestPay">Pay</string>
     <string name="cd_requestPayShare">Pay %1$s</string>
-    <string name="label_requestNew">NEW</string>
     <string name="cd_requestOwed">You owe %1$s for %2$s, %3$s</string>
     <!-- The app-bar deck's front card: "$180 of $520". -->
     <string name="label_requestDeckProgress">%1$s of %2$s</string>

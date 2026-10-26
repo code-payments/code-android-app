@@ -121,7 +121,6 @@ internal fun MessageList(
     onOriginsReached: (Set<Long>) -> Unit = {},
     onReachedNewest: () -> Unit = {},
     onAtNewestChanged: (Boolean) -> Unit = {},
-    onSettled: () -> Unit = {},
     hazeState: HazeState? = null,
 ) {
     val keyboard = rememberKeyboardController()
@@ -212,15 +211,13 @@ internal fun MessageList(
                 .collect { atNewest -> if (atNewest && currentReturnStack.isNotEmpty()) currentOnReachedNewest() }
         }
         // Whether the newest message is on screen, however the list got there, for the request deck
-        // to sit in the strip or shrink to the app bar. Settled is the list's first position.
+        // to sit in the strip or shrink to the app bar.
         val currentOnAtNewestChanged by rememberUpdatedState(onAtNewestChanged)
-        val currentOnSettled by rememberUpdatedState(onSettled)
         LaunchedEffect(listState) {
             snapshotFlow { !hasPositioned || listState.firstVisibleItemIndex == 0 }
                 .distinctUntilChanged()
                 .collect { currentOnAtNewestChanged(it) }
         }
-        LaunchedEffect(hasPositioned) { if (hasPositioned) currentOnSettled() }
         // A tap on the button that found no origin left in the chat goes to the bottom, as one with
         // an empty stack does.
         LaunchedEffect(state.newestRequests) {
