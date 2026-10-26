@@ -22,11 +22,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -98,9 +102,13 @@ internal fun RequestMoneyScreen(
     }
     val back = { if (!viewModel.back()) onClose() }
     val target = stackFor(state.stage)
+    // Seeded once. FlowHost re-seeds, without a transition, when initialStack changes before
+    // the stack has moved, so passing the live target swapped History for Amount unanimated.
+    // FollowStage makes every move after the first frame.
+    val initialStack = remember { target }
 
     FlowHost<RequestStep, Parcelable>(
-        initialStack = target,
+        initialStack = initialStack,
         resultStateRegistry = resultStateRegistry,
         onExit = { _, _ -> onClose() },
         entryProvider = entryProvider {
@@ -251,14 +259,14 @@ private fun RequestHistoryContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x4),
+            contentPadding = PaddingValues(CodeTheme.dimens.grid.x5),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
             item {
                 CodeButton(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(vertical = CodeTheme.dimens.grid.x2)
+                        .padding(bottom = CodeTheme.dimens.grid.x3)
                         .testTag("request_money_new"),
                     text = stringResource(R.string.action_newRequest),
                     onClick = onNewRequest,
@@ -269,7 +277,12 @@ private fun RequestHistoryContent(
                 items(open, key = { it.id }) { RequestHistoryRow(it, onClick = { onOpen(it) }) }
             }
             if (previous.isNotEmpty()) {
-                item { SectionHeader(stringResource(R.string.header_previousRequests)) }
+                item {
+                    SectionHeader(
+                        text = stringResource(R.string.header_previousRequests),
+                        modifier = Modifier.padding(top = if (open.isEmpty()) 0.dp else CodeTheme.dimens.grid.x3),
+                    )
+                }
                 items(previous, key = { it.id }) { RequestHistoryRow(it, onClick = { onOpen(it) }) }
             }
             if (canLoadMore && !loadingMore) {
@@ -281,17 +294,16 @@ private fun RequestHistoryContent(
 }
 
 @Composable
-private fun SectionHeader(text: String) {
+private fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
-        modifier = Modifier
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(top = CodeTheme.dimens.grid.x4, bottom = CodeTheme.dimens.grid.x1),
+        modifier = modifier,
         text = text,
-        style = CodeTheme.typography.caption,
+        style = CodeTheme.typography.textSmall,
         color = CodeTheme.colors.textSecondary,
     )
 }
 
+/** A card per request, as on iOS: title and date on one line, amounts under, a chevron at the end. */
 @Composable
 private fun RequestHistoryRow(request: PaymentRequest, onClick: () -> Unit) {
     val split = request.split ?: return
@@ -305,30 +317,47 @@ private fun RequestHistoryRow(request: PaymentRequest, onClick: () -> Unit) {
     } else {
         stringResource(R.string.label_requestProgress, split.paid.text(), split.requested.text())
     }
-    Column(
+    val shape = RoundedCornerShape(12.dp)
+    Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.06f), shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = CodeTheme.dimens.inset),
+            .padding(CodeTheme.dimens.grid.x4)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
-        Row(
-            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
                 Text(
+                    modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
                     text = title,
-                    style = CodeTheme.typography.textMedium,
+                    style = CodeTheme.typography.textLarge,
                     color = CodeTheme.colors.textMain,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(text = date, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textSecondary)
+                Text(
+                    modifier = Modifier.alignByBaseline(),
+                    text = date,
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    maxLines = 1,
+                )
             }
             Text(text = progress, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textSecondary)
         }
-        HorizontalDivider(color = CodeTheme.colors.divider)
+        Icon(
+            modifier = Modifier.size(14.dp),
+            painter = painterResource(R.drawable.ic_chevron_right),
+            contentDescription = null,
+            tint = CodeTheme.colors.textSecondary,
+        )
     }
 }
 
