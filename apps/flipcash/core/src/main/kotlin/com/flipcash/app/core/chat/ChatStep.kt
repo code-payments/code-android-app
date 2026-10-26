@@ -202,11 +202,12 @@ sealed interface ChatStep : FlowStep, Parcelable {
     /**
      * Frames 09, 11, 24 and 35 — one payment request in [chatId]. [requestId] is the request's id
      * in base58, so the step stays a plain parcelable. A full sheet like [RequestMoney], closed
-     * only from its app bar; `ChatFlowScreen` turns the drag-to-dismiss off.
+     * only from its app bar; `ChatFlowScreen` turns the drag-to-dismiss off. [pay] opens it
+     * straight into paying the viewer's share, as the deck's Pay button does.
      */
     @Parcelize
     @Serializable
-    data class RequestDetails(val chatId: ChatId, val requestId: String) :
+    data class RequestDetails(val chatId: ChatId, val requestId: String, val pay: Boolean = false) :
         ChatStep,
         Sheet,
         FullscreenSheet

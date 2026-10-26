@@ -191,12 +191,23 @@ fun PaymentRequest.statusLine(now: Instant): StatusLine = when (resolvedStatus(n
 }
 
 /**
- * The app-bar deck's default order: open requests by deadline, nearest first, then requests that
- * ended within the last 24 hours, most recently ended first. Anything else is left out.
+ * The viewer's share to pay on this request now: unpaid, on an open request, or null. The creator
+ * owes nothing, even on a share of their own that reads unpaid.
  */
-fun deckOrder(requests: Collection<PaymentRequest>, now: Instant): List<PaymentRequest> {
+fun PaymentRequest.unpaidShareOf(viewerId: ID?, now: Instant): Share? =
+    if (viewerId == null || viewerId == creator || !isOpen(now)) null
+    else split?.shareOf(viewerId)?.takeIf { !it.isPaid }
+
+/**
+ * The app-bar deck's default order: open requests [viewerId] owes on, then other open requests,
+ * each by deadline, nearest first, then requests that ended within the last 24 hours, most
+ * recently ended first. Anything else is left out.
+ */
+fun deckOrder(requests: Collection<PaymentRequest>, now: Instant, viewerId: ID? = null): List<PaymentRequest> {
     val inDeck = requests.filter { it.isInDeck(now) }
     val (open, ended) = inDeck.partition { it.isOpen(now) }
-    return open.sortedBy { it.split?.endsAt } +
+    val (owed, other) = open.partition { it.unpaidShareOf(viewerId, now) != null }
+    return owed.sortedBy { it.split?.endsAt } +
+        other.sortedBy { it.split?.endsAt } +
         ended.sortedByDescending { it.resolvedClosedAt(now) }
 }

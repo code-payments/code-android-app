@@ -7,11 +7,13 @@ import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.LobbyRequestStore
+import com.flipcash.shared.chat.OwedRequestIntroStore
 import com.flipcash.shared.chat.LobbyUpdateSink
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.RosterUpdateSink
 import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.internal.DataStoreLobbyRequestStore
+import com.flipcash.shared.chat.internal.DataStoreOwedRequestIntroStore
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
 import com.flipcash.shared.chat.internal.MentionPoolUpdates
 import com.flipcash.shared.chat.internal.MentionSuggestionPool
@@ -51,6 +53,11 @@ abstract class ChatModule {
     abstract fun bindChatArchiveStore(
         impl: RealChatArchiveStore
     ): ChatArchiveStore
+
+    @Binds
+    internal abstract fun bindOwedRequestIntroStore(
+        impl: DataStoreOwedRequestIntroStore
+    ): OwedRequestIntroStore
 
     @Binds
     internal abstract fun bindLobbyRequestStore(

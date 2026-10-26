@@ -9,6 +9,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.paymentrequest.PaymentRequest
+import com.flipcash.services.models.paymentrequest.unpaidShareOf
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.PaymentRequests
@@ -157,6 +158,15 @@ internal class RequestDetailsViewModel @Inject constructor(
             _now.value = Clock.System.now()
             delay(ChatRequestsViewModel.POLL_INTERVAL)
         }
+    }
+
+    private var paidOnOpen = false
+
+    /** The deck's Pay button: [payTapped] once, as the screen opens, and not again on its return. */
+    fun payOnOpen() {
+        if (paidOnOpen) return
+        paidOnOpen = true
+        payTapped()
     }
 
     /** "Send <share>": refetch for the intent id, then show the swipe sheet if there is still a share to pay. */
@@ -347,5 +357,4 @@ internal fun sendableShareOf(request: PaymentRequest, viewerId: ID?, now: Instan
 
 /** Whether the viewer has a share to pay on [request] now. */
 internal fun unpaidShareOf(request: PaymentRequest, viewerId: ID?, now: Instant) =
-    if (viewerId == null || !request.isOpen(now)) null
-    else request.split?.shareOf(viewerId)?.takeIf { !it.isPaid }
+    request.unpaidShareOf(viewerId, now)

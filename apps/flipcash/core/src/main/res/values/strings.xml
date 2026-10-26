@@ -1052,6 +1052,26 @@
     <string name="label_requestPaidInFull">Paid in full</string>
     <string name="label_requestClosed">Closed</string>
     <string name="label_requestExpired">Expired</string>
+    <!-- The owed deck's time left: the status line without "to pay". -->
+    <plurals name="label_requestDaysLeftShort">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
+    <plurals name="label_requestHoursLeftShort">
+        <item quantity="one">%1$d hour left</item>
+        <item quantity="other">%1$d hours left</item>
+    </plurals>
+    <plurals name="label_requestMinutesLeftShort">
+        <item quantity="one">%1$d minute left</item>
+        <item quantity="other">%1$d minutes left</item>
+    </plurals>
+    <!-- The owed deck: "You owe $20", then "You owe $20 · 2 days left" and "You owe $20 · Dinner · 2 days left". -->
+    <string name="label_requestYouOwe">You owe %1$s</string>
+    <string name="label_requestDotJoined">%1$s · %2$s</string>
+    <string name="action_requestPay">Pay</string>
+    <string name="cd_requestPayShare">Pay %1$s</string>
+    <string name="label_requestNew">NEW</string>
+    <string name="cd_requestOwed">You owe %1$s for %2$s, %3$s</string>
     <!-- The app-bar deck's front card: "$180 of $520". -->
     <string name="label_requestDeckProgress">%1$s of %2$s</string>
     <!-- Screen reader label for the deck: title, "<paid> of <requested> paid", status line. -->

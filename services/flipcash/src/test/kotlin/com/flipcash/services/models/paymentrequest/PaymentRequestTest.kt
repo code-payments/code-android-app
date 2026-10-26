@@ -168,6 +168,26 @@ class PaymentRequestTest {
     }
 
     @Test
+    fun `23 - a request the viewer owes on sorts before an earlier one they paid`() {
+        val viewer = 2
+        val owed5d = request(id = 1, endsIn = 5.days, shares = listOf(share(1, paid = true), share(viewer)))
+        val paid2d = request(id = 2, endsIn = 2.days, shares = listOf(share(1), share(viewer, paid = true)))
+        assertEquals(listOf(owed5d, paid2d), deckOrder(listOf(paid2d, owed5d), now, member(viewer)))
+        assertEquals(Fiat(20, CurrencyCode.USD), owed5d.unpaidShareOf(member(viewer), now)?.amount)
+    }
+
+    @Test
+    fun `24 - the creator, a payer, or an ended request owes nothing`() {
+        val r = request(shares = listOf(share(1), share(2, paid = true)))
+        assertNull(r.unpaidShareOf(creator, now))
+        assertNull(r.unpaidShareOf(member(2), now))
+        assertNull(r.unpaidShareOf(member(5), now))
+        assertNull(r.unpaidShareOf(null, now))
+        assertNull(request(status = PaymentRequestStatus.Expired).unpaidShareOf(member(2), now))
+        assertNull(request(endsIn = (-1).minutes).unpaidShareOf(member(2), now))
+    }
+
+    @Test
     fun `a request with no split has no share for anyone`() {
         val r = request().copy(kind = PaymentRequest.Kind.Unsupported)
         assertNull(r.split)

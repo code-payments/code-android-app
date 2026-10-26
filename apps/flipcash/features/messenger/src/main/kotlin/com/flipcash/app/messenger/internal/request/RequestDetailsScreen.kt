@@ -84,9 +84,13 @@ internal fun RequestDetailsScreen(
     onBack: () -> Unit,
     onOpenScreen: (AppRoute) -> Unit,
     pushed: Boolean = false,
+    payOnOpen: Boolean = false,
 ) {
     val viewModel = hiltViewModel<RequestDetailsViewModel>()
-    LaunchedEffect(chatId, requestId) { viewModel.open(chatId, requestId) }
+    LaunchedEffect(chatId, requestId) {
+        viewModel.open(chatId, requestId)
+        if (payOnOpen) viewModel.payOnOpen()
+    }
 
     // Fetch on open and every 45 s while the screen is visible with the app in the foreground.
     val lifecycle = LocalLifecycleOwner.current.lifecycle
