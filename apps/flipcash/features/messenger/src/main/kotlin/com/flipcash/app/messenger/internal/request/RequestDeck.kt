@@ -8,6 +8,8 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.SharedTransitionScope.ResizeMode.Companion.scaleToBounds
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -65,6 +67,7 @@ import com.flipcash.shared.chat.ui.ActionCapsuleButton
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -171,29 +174,27 @@ private fun Modifier.deckShared(
 
 /** Where the deck sits and how loud it is. */
 internal enum class DeckPlacement {
-    /** The grey pill in the app bar: the viewer owes nothing, or is scrolled away from the newest messages. */
+    /** The grey pill in the app bar: the viewer owes nothing, or the strip has collapsed into it. */
     Pill,
 
-    /** The full-width card under the app bar: the viewer owes, at the newest messages. */
+    /** The full-width card under the app bar: the viewer owes. */
     Strip,
-}
 
-/** The strip while the viewer owes and the timeline is at its newest messages; the grey pill otherwise. */
-internal fun deckPlacement(owes: Boolean, atNewest: Boolean): DeckPlacement =
-    if (owes && atNewest) DeckPlacement.Strip else DeckPlacement.Pill
+    /** Every request as a card over the transcript. */
+    Expanded,
+}
 
 /**
  * The app-bar deck (concept B): the front request with up to two cards peeking beneath it. Swipe
- * down cycles; tap expands. Hidden while [expanded], when the front card is over the transcript,
- * and while [placement] puts it in the strip, which it moves to and from as one shared element.
+ * down cycles; tap expands. Shown while [transition] is at the pill; the front card moves from
+ * there to the strip and the expanded list as one shared element.
  */
 @Composable
 internal fun RequestDeckPill(
     deck: List<PaymentRequest>,
     now: Instant,
     viewerId: ID?,
-    placement: DeckPlacement,
-    expanded: Boolean,
+    transition: Transition<DeckPlacement>,
     onExpand: () -> Unit,
     onCycle: () -> Unit,
     modifier: Modifier = Modifier,
@@ -218,7 +219,7 @@ internal fun RequestDeckPill(
             now = now,
             viewerId = viewerId,
             style = DeckPlacement.Pill,
-            visible = !expanded && placement != DeckPlacement.Strip,
+            transition = transition,
             onExpand = onExpand,
             onCycle = onCycle,
             onPay = {},
@@ -236,24 +237,30 @@ internal fun RequestDeckStrip(
     deck: List<PaymentRequest>,
     now: Instant,
     viewerId: ID?,
-    placement: DeckPlacement,
-    expanded: Boolean,
+    transition: Transition<DeckPlacement>,
+    rest: DeckPlacement,
     onExpand: () -> Unit,
     onCycle: () -> Unit,
     onPay: (PaymentRequest) -> Unit,
+    onHeightChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var shown by remember { mutableStateOf(deck) }
     if (deck.isNotEmpty()) shown = deck
-    val inStrip = placement == DeckPlacement.Strip && deck.isNotEmpty()
-    AnimatedVisibility(
-        visible = inStrip,
-        enter = expandVertically(spring(stiffness = Spring.StiffnessMedium), expandFrom = Alignment.Top),
-        exit = shrinkVertically(spring(stiffness = Spring.StiffnessMedium), shrinkTowards = Alignment.Top),
+    // Linear, so a scroll that seeks it into the pill takes its height off at the scroll's pace.
+    transition.AnimatedVisibility(
+        visible = {
+            deck.isNotEmpty() &&
+                (it == DeckPlacement.Strip || it == DeckPlacement.Expanded && rest == DeckPlacement.Strip)
+        },
+        enter = expandVertically(tween(STRIP_MILLIS, easing = LinearEasing), expandFrom = Alignment.Top),
+        exit = shrinkVertically(tween(STRIP_MILLIS, easing = LinearEasing), shrinkTowards = Alignment.Top),
         modifier = modifier,
     ) {
         Box(
             modifier = Modifier
+                // Its whole height, padding included: the scroll that collapses it into the pill.
+                .onSizeChanged { onHeightChange(it.height) }
                 .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .padding(top = CodeTheme.dimens.grid.x2)
@@ -264,7 +271,7 @@ internal fun RequestDeckStrip(
                 now = now,
                 viewerId = viewerId,
                 style = DeckPlacement.Strip,
-                visible = !expanded && inStrip,
+                transition = transition,
                 onExpand = onExpand,
                 onCycle = onCycle,
                 onPay = onPay,
@@ -291,8 +298,8 @@ private val DeckPlacement.deckStyle: DeckStyle
 
 /**
  * The front request with up to two cards peeking beneath it, in one of the deck's placements.
- * Swipe down cycles; tap expands. [visible] fades it in and out, and is the scope its front card
- * moves between placements in.
+ * Swipe down cycles; tap expands. Shown while [transition] is at [style], whose scope its front
+ * card moves between placements in.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -301,15 +308,15 @@ private fun DeckStack(
     now: Instant,
     viewerId: ID?,
     style: DeckPlacement,
-    visible: Boolean,
+    transition: Transition<DeckPlacement>,
     onExpand: () -> Unit,
     onCycle: () -> Unit,
     onPay: (PaymentRequest) -> Unit,
 ) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(),
-        exit = fadeOut(),
+    transition.AnimatedVisibility(
+        visible = { it == style },
+        enter = fadeIn(tween(STRIP_MILLIS)),
+        exit = fadeOut(tween(STRIP_MILLIS)),
     ) {
         val front = deck.firstOrNull() ?: return@AnimatedVisibility
         val geometry = style.deckStyle
@@ -494,7 +501,7 @@ private fun DeckStack(
 private fun peekColor(style: DeckPlacement, depth: Float): Color {
     val back = (depth - 1f).coerceIn(0f, 1f)
     return when (style) {
-        DeckPlacement.Pill -> lerp(CodeTheme.colors.surfaceVariant, CodeTheme.colors.surface, back)
+        DeckPlacement.Pill, DeckPlacement.Expanded -> lerp(CodeTheme.colors.surfaceVariant, CodeTheme.colors.surface, back)
         DeckPlacement.Strip -> lerp(CodeTheme.colors.surfaceVariant, Color.White.copy(alpha = 0.08f), back)
     }
 }
@@ -512,7 +519,7 @@ private fun DeckCardFront(
     bodyModifier: Modifier = Modifier,
 ) {
     when (style) {
-        DeckPlacement.Pill -> DeckFront(request = request, now = now, visibility = visibility, modifier = modifier)
+        DeckPlacement.Pill, DeckPlacement.Expanded -> DeckFront(request = request, now = now, visibility = visibility, modifier = modifier)
         DeckPlacement.Strip -> StripFront(request, now, viewerId, visibility, onPay, modifier, bodyModifier)
     }
 }
@@ -793,6 +800,7 @@ internal fun ExpandedRequests(
     deck: List<PaymentRequest>,
     now: Instant,
     expanded: Boolean,
+    transition: Transition<DeckPlacement>,
     top: Dp,
     pill: Rect?,
     onCollapse: () -> Unit,
@@ -802,15 +810,15 @@ internal fun ExpandedRequests(
     // The chat behind goes under its backdrop (chatBackdrop, on the scaffold); this only takes the
     // tap that collapses, over the whole screen, the bar's back button and title included. Held
     // through the collapse, so a tap mid-way lands here rather than on the bar behind.
-    AnimatedVisibility(visible = expanded, enter = fadeIn(), exit = fadeOut()) {
+    transition.AnimatedVisibility(visible = { it == DeckPlacement.Expanded }, enter = fadeIn(), exit = fadeOut()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) { detectTapGestures { onCollapse() } },
         )
     }
-    AnimatedVisibility(
-        visible = expanded && deck.isNotEmpty(),
+    transition.AnimatedVisibility(
+        visible = { it == DeckPlacement.Expanded && deck.isNotEmpty() },
         enter = fadeIn(),
         exit = fadeOut(),
         modifier = Modifier.padding(top = top),
@@ -937,6 +945,9 @@ private val RING_SIZE = 26.dp
 private val STRIP_RING_SIZE = 40.dp
 private val PAY_SHAPE = RoundedCornerShape(50)
 private const val APPEAR_MILLIS = 250
+
+/** The strip's move to and from the pill, which a scroll seeks through. */
+private const val STRIP_MILLIS = 300
 private const val APPEAR_SCALE = 0.95f
 private val PEEK_STEP = 5.dp
 private val PEEK_INSET = 7.dp

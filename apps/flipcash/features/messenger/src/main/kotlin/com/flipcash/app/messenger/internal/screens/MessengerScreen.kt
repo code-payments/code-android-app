@@ -2,7 +2,7 @@ package com.flipcash.app.messenger.internal.screens
 
 import com.flipcash.services.models.paymentrequest.unpaidShareOf
 import com.flipcash.app.messenger.internal.request.RequestDeckStrip
-import com.flipcash.app.messenger.internal.request.deckPlacement
+import com.flipcash.app.messenger.internal.request.rememberDeckHostState
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.core.rememberTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.shared.chat.ui.media.ChatPhotoOverlay
@@ -29,6 +30,7 @@ import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.messenger.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -461,10 +464,21 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val deckExpanded by requestsViewModel.expanded.collectAsStateWithLifecycle()
     val deckNow by requestsViewModel.now.collectAsStateWithLifecycle()
     val drawnDeck = remember(deck) { deck.filter { it.deckTitle != null } }
-    var atNewest by remember { mutableStateOf(true) }
     val viewerId = requestsViewModel.viewerId
-    val owes = drawnDeck.any { it.unpaidShareOf(viewerId, deckNow) != null }
-    val deckPlacement = deckPlacement(owes = owes, atNewest = atNewest)
+    // One per visit: reopening the chat while still owing brings the strip back.
+    val owed = drawnDeck.filter { it.unpaidShareOf(viewerId, deckNow) != null }.map { it.id }.toSet()
+    val deckHosts = rememberDeckHostState(deckChat, owed)
+    val deckTransition = rememberTransition(deckHosts.transition, label = "request deck")
+    // Read here rather than in the effect, so expanding recomposes this scope and reaches the hosts.
+    val expandedNow = deckExpanded
+    SideEffect {
+        deckHosts.owing(owed, hasDeck = drawnDeck.isNotEmpty())
+        deckHosts.expanded = expandedNow
+    }
+    val expandDeck = {
+        // Partway into the pill, a tap waits for the scroll to settle it.
+        if (!deckHosts.collapsing) keyboard.hideIfVisible { requestsViewModel.setExpanded(true) }
+    }
     val openRequest: (com.flipcash.services.models.paymentrequest.PaymentRequest) -> Unit = { request ->
         // The deck stays expanded while the details slide over it; the step minimizes it once covered.
         state.chatId?.let { chatId ->
@@ -502,9 +516,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                 deck = drawnDeck,
                                 now = deckNow,
                                 viewerId = viewerId,
-                                placement = deckPlacement,
-                                expanded = deckExpanded,
-                                onExpand = { keyboard.hideIfVisible { requestsViewModel.setExpanded(true) } },
+                                transition = deckTransition,
+                                onExpand = expandDeck,
                                 onCycle = requestsViewModel::cycle,
                                 modifier = Modifier.onGloballyPositioned {
                                     // Kept from the last frame it had a size; it empties while expanded.
@@ -519,9 +532,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         deck = drawnDeck,
                         now = deckNow,
                         viewerId = viewerId,
-                        placement = deckPlacement,
-                        expanded = deckExpanded,
-                        onExpand = { keyboard.hideIfVisible { requestsViewModel.setExpanded(true) } },
+                        transition = deckTransition,
+                        rest = deckHosts.rest.host,
+                        onExpand = expandDeck,
                         onCycle = requestsViewModel::cycle,
                         onPay = { request ->
                             state.chatId?.let { chatId ->
@@ -530,6 +543,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                 }
                             }
                         },
+                        onHeightChange = { deckHosts.stripPx = it.toFloat() },
                     )
                 }
                 // Hold the last list through the exit, so the card doesn't empty as it slides away.
@@ -616,6 +630,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("chat_message_list")
+                            .nestedScroll(deckHosts.scrollConnection)
                             .softTopEdge(ChatTopEdge.blurHold(barHeight))
                             .hazeSource(hazeState)
                             // Inside the edge blur and the haze, so a photo landing under the bars
@@ -639,7 +654,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         onReturnToOrigin = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnToOrigin) },
                         onOriginsReached = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnOriginsReached(it)) },
                         onReachedNewest = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnStackCleared) },
-                        onAtNewestChanged = { atNewest = it },
                         hazeState = hazeState,
                     )
                 }
@@ -663,6 +677,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         deck = drawnDeck,
         now = deckNow,
         expanded = deckExpanded,
+        transition = deckTransition,
         top = barHeight,
         pill = deckPill,
         onCollapse = { requestsViewModel.setExpanded(false) },
