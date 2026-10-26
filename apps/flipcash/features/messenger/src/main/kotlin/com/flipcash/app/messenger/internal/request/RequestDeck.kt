@@ -376,12 +376,13 @@ internal fun ExpandedRequests(
     onOpen: (PaymentRequest) -> Unit,
 ) {
     BackHandler(enabled = expanded, onBack = onCollapse)
+    // The chat behind goes under its backdrop (chatBackdrop, on the scaffold); this only takes the
+    // tap that collapses, over the whole screen, the bar's back button and title included. Held
+    // through the collapse, so a tap mid-way lands here rather than on the bar behind.
     AnimatedVisibility(visible = expanded, enter = fadeIn(), exit = fadeOut()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = top)
-                .background(CodeTheme.colors.scrim)
                 .pointerInput(Unit) { detectTapGestures { onCollapse() } },
         )
     }
@@ -397,6 +398,8 @@ internal fun ExpandedRequests(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
+                // Between the cards is outside them too; a card's own click consumes its taps.
+                .pointerInput(Unit) { detectTapGestures { onCollapse() } }
                 .draggable(
                     orientation = Orientation.Vertical,
                     state = rememberDraggableState { },

@@ -6,8 +6,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -34,9 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -64,6 +59,8 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.MentionDestination
 import com.flipcash.app.messenger.internal.link.CashCardTap
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
+import com.flipcash.app.messenger.internal.screens.components.deckBackdropSpec
+import com.flipcash.app.messenger.internal.screens.components.chatBackdrop
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
 import com.flipcash.app.messenger.internal.screens.components.GatedLandingRow
@@ -466,7 +463,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     RequestDeckLayout(modifier = Modifier.fillMaxSize()) {
     CodeScaffold(
         // The input bar rides the keyboard; the message list is inset by it either way.
-        modifier = Modifier.imePadding(),
+        // The expanded request deck raises its cards over the whole screen, the bars included.
+        modifier = Modifier
+            .imePadding()
+            .chatBackdrop(behind = deckExpanded, animationSpec = deckBackdropSpec(deckExpanded)),
         // The list runs the full height and passes under both bars, each of which fades it out
         // against the background at its own edge.
         barPlacement = ScaffoldBarPlacement.Overlay,
@@ -533,20 +533,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             // as its rows are, and a tap on it dismisses the selection as a tap on them does. An
             // edit raises a message too, but it is the composer doing the editing, so it stays sharp.
             val behindBackdrop = state.selection != null && state.editing == null
-            val dimAlpha by animateFloatAsState(
-                targetValue = if (behindBackdrop) 0.4f else 1f,
-                label = "composerDim",
-            )
-            val dimBlur by animateDpAsState(
-                targetValue = if (behindBackdrop) 8.dp else 0.dp,
-                label = "composerBlur",
-            )
             Box {
-                Box(
-                    modifier = Modifier
-                        .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
-                        .graphicsLayer { alpha = dimAlpha },
-                ) {
+                Box(modifier = Modifier.chatBackdrop(behind = behindBackdrop)) {
                     UserControlBottomBar(
                         state = state,
                         hazeState = hazeState,
