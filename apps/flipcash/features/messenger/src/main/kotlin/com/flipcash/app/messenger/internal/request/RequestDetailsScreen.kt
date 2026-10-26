@@ -17,9 +17,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import com.flipcash.shared.chat.ui.ActionCapsuleButton
+import com.flipcash.shared.chat.ui.ActionCapsule
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -36,8 +38,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,8 +65,6 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
-import com.getcode.ui.components.AppBarDefaults
-import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.ButtonState
@@ -123,26 +121,27 @@ internal fun RequestDetailsScreen(
                 // sheet of its own, closed the way the share sheet is.
                 onBackIconClicked = onBack.takeIf { pushed },
                 endContent = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                    ) {
-                        if (isCreatorOnOpen) {
-                            val optionsLabel = stringResource(R.string.cd_requestOptions)
-                            CircularIconButton(
-                                modifier = Modifier.semantics { contentDescription = optionsLabel },
-                                onClick = viewModel::showOptions,
-                                testTag = "request_details_options",
-                            ) { size ->
-                                Icon(
-                                    imageVector = Icons.Filled.MoreHoriz,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.requiredSize(size),
+                    // One capsule for the options and the close, as iOS combines them.
+                    val showsClose = !pushed
+                    if (isCreatorOnOpen || showsClose) {
+                        ActionCapsule {
+                            if (isCreatorOnOpen) {
+                                ActionCapsuleButton(
+                                    icon = Icons.Filled.MoreHoriz,
+                                    description = stringResource(R.string.cd_requestOptions),
+                                    onClick = viewModel::showOptions,
+                                    tag = "request_details_options",
+                                )
+                            }
+                            if (showsClose) {
+                                ActionCapsuleButton(
+                                    icon = Icons.Filled.Close,
+                                    description = stringResource(R.string.cd_close),
+                                    onClick = onBack,
+                                    tag = "action_close",
                                 )
                             }
                         }
-                        if (!pushed) AppBarDefaults.Close(onClick = onBack)
                     }
                 },
             )

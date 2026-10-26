@@ -1113,6 +1113,7 @@
     <string name="label_shareUnpaidAmount">%1$s · Hasn\'t paid yet</string>
     <string name="action_sendShare">Send %1$s</string>
     <string name="cd_requestOptions">Request options</string>
+    <string name="cd_close">Close</string>
     <string name="action_closeRequest">Close Request</string>
     <string name="title_closeRequestConfirm">Close Request?</string>
     <string name="description_closeRequestConfirm">This will stop payments. Anyone who hasn\'t paid will be marked Didn\'t pay. Payments already made won\'t be affected.</string>

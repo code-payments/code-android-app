@@ -53,7 +53,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.getcode.ui.components.AppBarDefaults
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.Icons
+import com.flipcash.shared.chat.ui.ActionCapsule
+import com.flipcash.shared.chat.ui.ActionCapsuleButton
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.layout
@@ -488,7 +491,15 @@ private fun DeckCloseButton(expanded: Boolean, pill: Rect?, onCollapse: () -> Un
                 }
             },
         ) {
-            AppBarDefaults.Close(onClick = onCollapse)
+            // The same capsule Request details closes with.
+            ActionCapsule {
+                ActionCapsuleButton(
+                    icon = Icons.Filled.Close,
+                    description = stringResource(R.string.cd_close),
+                    onClick = onCollapse,
+                    tag = "request_deck_close",
+                )
+            }
         }
     }
 }
