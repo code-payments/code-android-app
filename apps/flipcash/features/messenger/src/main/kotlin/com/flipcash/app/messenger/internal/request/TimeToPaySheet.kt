@@ -55,12 +55,13 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -403,12 +404,27 @@ private fun DrawScope.rangeLayer(startIndex: Int, endIndex: Int, bandEnd: Float,
         val left = minOf(x(span.from), x(span.to))
         val right = maxOf(x(span.from), x(span.to))
         // A span narrower than it is tall would draw as a thin capsule at the row's edge; fade it in.
-        drawRoundRect(
+        val top = rowTop(span.row.toFloat()) + (cellHeight - height) / 2
+        val cap = CornerRadius(height / 2)
+        val roundLeft = if (rtl) span.roundTo else span.roundFrom
+        val roundRight = if (rtl) span.roundFrom else span.roundTo
+        drawPath(
+            path = Path().apply {
+                addRoundRect(
+                    RoundRect(
+                        left = left,
+                        top = top,
+                        right = right,
+                        bottom = top + height,
+                        topLeftCornerRadius = if (roundLeft) cap else CornerRadius.Zero,
+                        bottomLeftCornerRadius = if (roundLeft) cap else CornerRadius.Zero,
+                        topRightCornerRadius = if (roundRight) cap else CornerRadius.Zero,
+                        bottomRightCornerRadius = if (roundRight) cap else CornerRadius.Zero,
+                    )
+                )
+            },
             color = RangeBand,
             alpha = ((right - left) / height).coerceIn(0f, 1f),
-            topLeft = Offset(left, rowTop(span.row.toFloat()) + (cellHeight - height) / 2),
-            size = Size(right - left, height),
-            cornerRadius = CornerRadius(height / 2),
         )
     }
     if (endIndex != startIndex) {

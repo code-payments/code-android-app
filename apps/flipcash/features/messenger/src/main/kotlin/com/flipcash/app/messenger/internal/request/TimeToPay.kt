@@ -70,8 +70,18 @@ internal data class TimeToPay(
         }
     }
 
-    /** One week row's part of the range band, from [from] to [to] in columns from the row's start. */
-    data class BandSpan(val row: Int, val from: Float, val to: Float)
+    /**
+     * One week row's part of the range band, from [from] to [to] in columns from the row's start.
+     * An end is rounded only where the range wraps past the row's edge; where it meets the start or
+     * end circle it is square, so the band runs straight up to the circle.
+     */
+    data class BandSpan(
+        val row: Int,
+        val from: Float,
+        val to: Float,
+        val roundFrom: Boolean = false,
+        val roundTo: Boolean = false,
+    )
 
     /** A month label's colour: on no range, inside the band, on the closing circle, on today's circle. */
     enum class MonthTone { Plain, Band, End, Start }
@@ -172,7 +182,17 @@ internal data class TimeToPay(
                 val rowStart = row * 7f
                 val start = maxOf(from, rowStart)
                 val end = minOf(to, rowStart + 7)
-                if (end > start) BandSpan(row, start - rowStart, end - rowStart) else null
+                if (end > start) {
+                    BandSpan(
+                        row = row,
+                        from = start - rowStart,
+                        to = end - rowStart,
+                        roundFrom = from < rowStart,
+                        roundTo = to > rowStart + 7,
+                    )
+                } else {
+                    null
+                }
             }
         }
 

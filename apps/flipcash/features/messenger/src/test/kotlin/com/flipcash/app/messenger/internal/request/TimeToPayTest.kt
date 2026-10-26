@@ -142,13 +142,27 @@ class TimeToPayTest {
     fun `test 43 - the band follows the end across a week`() {
         // Oct 26 is index 1 of a Sunday grid; Nov 2 is index 8, the second row.
         assertEquals(
-            listOf(TimeToPay.BandSpan(0, 1.5f, 7f), TimeToPay.BandSpan(1, 0f, 1.5f)),
+            listOf(
+                TimeToPay.BandSpan(0, 1.5f, 7f, roundTo = true),
+                TimeToPay.BandSpan(1, 0f, 1.5f, roundFrom = true),
+            ),
             TimeToPay.bandSpans(startIndex = 1, endIndex = 8f),
         )
         // Partway back to Oct 30 the band has left the second row.
         assertEquals(listOf(TimeToPay.BandSpan(0, 1.5f, 6f)), TimeToPay.bandSpans(startIndex = 1, endIndex = 5.5f))
         // Ending on today draws no band.
         assertEquals(emptyList(), TimeToPay.bandSpans(startIndex = 1, endIndex = 1f))
+    }
+
+    @Test
+    fun `test 48 - the band runs square up to the start and end circles`() {
+        // One row, Oct 26 to Oct 30: both ends sit under a circle, so neither is rounded.
+        assertEquals(listOf(TimeToPay.BandSpan(0, 1.5f, 5.5f)), TimeToPay.bandSpans(startIndex = 1, endIndex = 5f))
+        // Wrapping to Nov 2: only the ends at the row edges are rounded.
+        val wrapped = TimeToPay.bandSpans(startIndex = 1, endIndex = 8f)
+        assertEquals(listOf(false to true, true to false), wrapped.map { it.roundFrom to it.roundTo })
+        // Mid-slide, the end under the moving circle stays square.
+        assertEquals(listOf(false to false), TimeToPay.bandSpans(startIndex = 1, endIndex = 3.4f).map { it.roundFrom to it.roundTo })
     }
 
     @Test
