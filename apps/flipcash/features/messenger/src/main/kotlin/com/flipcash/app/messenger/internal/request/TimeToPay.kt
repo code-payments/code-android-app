@@ -17,11 +17,13 @@ import kotlin.time.toKotlinInstant
  * sheet away drops it, so the draft keeps its previous [Deadline].
  *
  * @param now when the sheet opened; the grid, the custom bounds and the readout are measured from it.
+ * @param setTime the last time the user set in the Time row, which a tapped day keeps.
  */
 internal data class TimeToPay(
     val now: Instant,
     val zone: ZoneId,
     val choice: Choice,
+    val setTime: LocalTime? = null,
 ) {
     sealed interface Choice {
         data class Preset(val preset: Deadline.Preset) : Choice
@@ -61,6 +63,9 @@ internal data class TimeToPay(
      * One grid day's part of the range: its circle, and which halves the band covers. The band
      * runs from the centre of the start circle to the centre of the end circle.
      */
+    /** One week row's part of the range band, from [from] to [to] in columns from the row's start. */
+    data class BandSpan(val row: Int, val from: Float, val to: Float)
+
     data class RangeCell(val mark: Mark, val leading: Boolean, val trailing: Boolean) {
         enum class Mark { None, Start, End }
 
@@ -69,26 +74,36 @@ internal data class TimeToPay(
         }
     }
 
+    /**
+     * The Time row's value. A preset closes at the time of day the request is sent, so it reads
+     * the current time.
+     */
+    val time: LocalTime
+        get() = when (choice) {
+            is Choice.Preset -> now.local().toLocalTime().truncatedTo(ChronoUnit.MINUTES)
+            is Choice.Custom -> choice.time
+        }
+
     /** Calendar days from today to the custom day. */
     val daysFromNow: Long get() = ChronoUnit.DAYS.between(today, selectedDay)
 
     fun choosePreset(preset: Deadline.Preset): TimeToPay = copy(choice = Choice.Preset(preset))
 
     /**
-     * Makes [day] the custom choice, keeping the last custom time or 6:00 PM, moved inside the
-     * custom bounds.
+     * Makes [day] the custom choice, keeping the last time the user set or 6:00 PM, moved inside
+     * the custom bounds.
      */
     fun chooseDay(day: LocalDate): TimeToPay {
         if (!enabled(day)) return this
-        val time = (choice as? Choice.Custom)?.time ?: DEFAULT_TIME
-        return copy(choice = clamped(day, time))
+        return copy(choice = clamped(day, setTime ?: DEFAULT_TIME))
     }
 
-    /** The Time row's new time for the custom day, moved inside the custom bounds. */
-    fun chooseTime(time: LocalTime): TimeToPay {
-        val custom = choice as? Choice.Custom ?: return this
-        return copy(choice = clamped(custom.day, time))
-    }
+    /**
+     * The Time row's new time, moved inside the custom bounds. On a preset it clears the chip:
+     * the preset's closing day at [time] becomes the custom choice.
+     */
+    fun chooseTime(time: LocalTime): TimeToPay =
+        copy(choice = clamped(selectedDay, time), setTime = time.truncatedTo(ChronoUnit.MINUTES))
 
     /** What Done applies to the draft. */
     fun toDeadline(): Deadline = when (choice) {
@@ -125,10 +140,28 @@ internal data class TimeToPay(
                     Choice.Custom(it.toLocalDate(), it.toLocalTime().truncatedTo(ChronoUnit.MINUTES))
                 }
             }
-            return TimeToPay(now, zone, choice)
+            return TimeToPay(now, zone, choice, setTime = (choice as? Choice.Custom)?.time)
         }
 
         /** The grid's 35 days, from the locale's first weekday of the week that holds [today]. */
+        /**
+         * The range band as one span per week row, in column units, from the centre of the start
+         * cell at [startIndex] to the centre of the (possibly moving) end at [endIndex]. A range
+         * that wraps ends at one row's edge and starts again at the next row's edge. Drawing a
+         * span per row rather than a piece per cell keeps a moving band free of seams.
+         */
+        fun bandSpans(startIndex: Int, endIndex: Float): List<BandSpan> {
+            val from = startIndex + 0.5f
+            val to = endIndex + 0.5f
+            if (to <= from) return emptyList()
+            return (startIndex / 7..(to.toInt().coerceAtMost(GRID_DAYS - 1)) / 7).mapNotNull { row ->
+                val rowStart = row * 7f
+                val start = maxOf(from, rowStart)
+                val end = minOf(to, rowStart + 7)
+                if (end > start) BandSpan(row, start - rowStart, end - rowStart) else null
+            }
+        }
+
         fun grid(today: LocalDate, firstDayOfWeek: DayOfWeek): List<LocalDate> {
             val start = today.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
             return List(GRID_DAYS) { start.plusDays(it.toLong()) }

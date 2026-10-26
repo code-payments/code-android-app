@@ -8,6 +8,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
 import kotlin.test.Test
+import androidx.compose.animation.core.SnapSpec
 import com.flipcash.app.messenger.internal.request.TimeToPay.RangeCell
 import com.flipcash.app.messenger.internal.request.TimeToPay.RangeCell.Mark
 import kotlin.test.assertEquals
@@ -16,7 +17,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.toKotlinInstant
 
-/** Spec "Deadline sheet", tests 34–40. UTC so 28 days never cross a clock change. */
+/** Spec "Deadline sheet", tests 34–45. UTC so 28 days never cross a clock change. */
 class TimeToPayTest {
     private val zone = ZoneOffset.UTC
 
@@ -43,6 +44,8 @@ class TimeToPayTest {
         assertEquals(Choice.Preset(Deadline.Preset.Week), sheet.choice)
         assertEquals(date(11, 2), sheet.selectedDay)
         assertNull(sheet.customAt)
+        // The Time row shows for a preset too: it closes at the time of day the request is sent.
+        assertEquals(LocalTime.of(11, 39), sheet.time)
         assertEquals(RangeCell(Mark.Start, leading = false, trailing = true), sheet.range(date(10, 26)))
         // The band wraps from Sat Oct 31 to Sun Nov 1; the grid rounds it at the row edges.
         assertEquals(RangeCell(Mark.None, leading = true, trailing = true), sheet.range(date(10, 31)))
@@ -83,6 +86,7 @@ class TimeToPayTest {
         assertEquals(Choice.Preset(Deadline.Preset.TwoWeeks), sheet.choice)
         assertEquals(date(11, 9), sheet.selectedDay)
         assertEquals(Deadline.Preset.TwoWeeks, sheet.toDeadline())
+        assertEquals(LocalTime.of(11, 39), sheet.time)
         assertEquals(RangeCell(Mark.End, leading = true, trailing = false), sheet.range(date(11, 9)))
         assertEquals(RangeCell.Outside, sheet.range(date(11, 10)))
     }
@@ -113,6 +117,52 @@ class TimeToPayTest {
             .chooseDay(date(11, 7))
 
         assertEquals(Choice.Custom(date(11, 7), LocalTime.of(9, 15)), sheet.choice)
+    }
+
+    @Test
+    fun `test 41 - changing a preset's time makes its day custom at that time`() {
+        val sheet = openedAt(10, 26, 11, 39).chooseTime(LocalTime.of(9, 0))
+
+        assertEquals(Choice.Custom(date(11, 2), LocalTime.of(9, 0)), sheet.choice)
+        assertEquals(Deadline.Custom(LocalDateTime.of(2026, 11, 2, 9, 0).toInstant(zone).toKotlinInstant()), sheet.toDeadline())
+    }
+
+    @Test
+    fun `test 42 - a later time on 4 Weeks stops at now plus 28 days less 5 minutes`() {
+        val sheet = openedAt(10, 26, 11, 39)
+            .choosePreset(Deadline.Preset.FourWeeks)
+            .chooseTime(LocalTime.of(18, 0))
+
+        assertEquals(Choice.Custom(date(11, 23), LocalTime.of(11, 34)), sheet.choice)
+    }
+
+    @Test
+    fun `test 43 - the band follows the end across a week`() {
+        // Oct 26 is index 1 of a Sunday grid; Nov 2 is index 8, the second row.
+        assertEquals(
+            listOf(TimeToPay.BandSpan(0, 1.5f, 7f), TimeToPay.BandSpan(1, 0f, 1.5f)),
+            TimeToPay.bandSpans(startIndex = 1, endIndex = 8f),
+        )
+        // Partway back to Oct 30 the band has left the second row.
+        assertEquals(listOf(TimeToPay.BandSpan(0, 1.5f, 6f)), TimeToPay.bandSpans(startIndex = 1, endIndex = 5.5f))
+        // Ending on today draws no band.
+        assertEquals(emptyList(), TimeToPay.bandSpans(startIndex = 1, endIndex = 1f))
+    }
+
+    @Test
+    fun `test 44 - reduce motion moves the selection without animating`() {
+        assertTrue(TimeToPayMotion.spec<Float>(reducedMotion = true) is SnapSpec)
+        assertFalse(TimeToPayMotion.spec<Float>(reducedMotion = false) is SnapSpec)
+    }
+
+    @Test
+    fun `test 45 - a tapped day keeps the time set on a preset`() {
+        val sheet = openedAt(10, 26, 11, 39)
+            .chooseTime(LocalTime.of(9, 15))
+            .choosePreset(Deadline.Preset.TwoWeeks)
+            .chooseDay(date(11, 5))
+
+        assertEquals(Choice.Custom(date(11, 5), LocalTime.of(9, 15)), sheet.choice)
     }
 
     @Test

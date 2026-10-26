@@ -13,7 +13,7 @@ import androidx.compose.ui.platform.LocalContext
  * unreadable setting means animations are on.
  */
 @Composable
-internal fun rememberReducedMotion(): Boolean {
+fun rememberReducedMotion(): Boolean {
     val resolver = LocalContext.current.contentResolver
     return remember(resolver) {
         runCatching {

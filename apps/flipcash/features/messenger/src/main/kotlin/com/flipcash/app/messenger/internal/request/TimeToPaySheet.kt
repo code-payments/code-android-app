@@ -1,5 +1,12 @@
 package com.flipcash.app.messenger.internal.request
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,7 +41,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,8 +52,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
@@ -73,6 +86,9 @@ import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White10
 import com.getcode.ui.theme.CodeButton
+import com.flipcash.shared.chat.ui.media.rememberReducedMotion
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -86,7 +102,8 @@ import kotlin.time.toJavaInstant
 
 /**
  * Time To Pay: Starts and Closes with a summary, the preset chips, a grid of the days a request can
- * run to with the range drawn across it, a Time row for a custom day and Done. Figma row H (nodes
+ * run to with the range drawn across it, the Time row and Done. The chip highlight, the closing-day
+ * circle and the band move to a new choice rather than swapping. Figma row H (nodes
  * 12704:67, 12704:204, 12708:236). Done applies the choice; any other dismissal keeps [current].
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +116,7 @@ internal fun TimeToPaySheet(
     val zone = remember { ZoneId.systemDefault() }
     var sheet by remember { mutableStateOf(TimeToPay.of(current, Clock.System.now(), zone)) }
     var pickingTime by remember { mutableStateOf(false) }
+    val reducedMotion = rememberReducedMotion()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -122,12 +140,11 @@ internal fun TimeToPaySheet(
             RangeFields(sheet)
             PresetChips(
                 selected = (sheet.choice as? TimeToPay.Choice.Preset)?.preset,
+                reducedMotion = reducedMotion,
                 onChoose = { sheet = sheet.choosePreset(it) },
             )
-            DayGrid(sheet, onChoose = { sheet = sheet.chooseDay(it) })
-            (sheet.choice as? TimeToPay.Choice.Custom)?.let { custom ->
-                TimeRow(time = custom.time, onClick = { pickingTime = true })
-            }
+            DayGrid(sheet, reducedMotion, onChoose = { sheet = sheet.chooseDay(it) })
+            TimeRow(time = sheet.time, onClick = { pickingTime = true })
             CodeButton(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(R.string.action_done),
@@ -136,10 +153,9 @@ internal fun TimeToPaySheet(
         }
     }
 
-    val custom = sheet.choice as? TimeToPay.Choice.Custom
-    if (pickingTime && custom != null) {
+    if (pickingTime) {
         TimeDialog(
-            initial = custom.time,
+            initial = sheet.time,
             onPicked = { pickingTime = false; sheet = sheet.chooseTime(it) },
             onDismiss = { pickingTime = false },
         )
@@ -225,43 +241,97 @@ private fun RangeField(label: String, value: String, outlined: Boolean, modifier
     }
 }
 
+/**
+ * The preset chips. One white highlight slides to the chosen chip and fades out when the choice
+ * becomes custom.
+ */
 @Composable
-private fun PresetChips(selected: Deadline.Preset?, onChoose: (Deadline.Preset) -> Unit) {
+private fun PresetChips(selected: Deadline.Preset?, reducedMotion: Boolean, onChoose: (Deadline.Preset) -> Unit) {
+    val bounds = remember { mutableStateMapOf<Deadline.Preset, Rect>() }
+    val highlight = remember { Animatable(Rect.Zero, Rect.VectorConverter) }
+    val shown = remember { Animatable(0f) }
+    var placed by remember { mutableStateOf(false) }
+    val target = selected?.let { bounds[it] }
+    LaunchedEffect(selected, target) {
+        val spec = TimeToPayMotion.spec<Float>(reducedMotion)
+        when {
+            selected == null -> shown.animateTo(0f, spec)
+            target == null -> Unit
+            !placed -> {
+                highlight.snapTo(target)
+                shown.snapTo(1f)
+                placed = true
+            }
+            else -> {
+                launch { highlight.animateTo(target, TimeToPayMotion.spec(reducedMotion)) }
+                shown.animateTo(1f, spec)
+            }
+        }
+    }
     Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .drawBehind {
+                bounds.values.forEach { chip ->
+                    drawRoundRect(White10, chip.topLeft, chip.size, CornerRadius(chip.height / 2))
+                }
+                val chip = highlight.value
+                drawRoundRect(White, chip.topLeft, chip.size, CornerRadius(chip.height / 2), alpha = shown.value)
+            },
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
     ) {
         Deadline.Preset.entries.forEach { preset ->
             val isSelected = preset == selected
+            val color by animateColorAsState(
+                targetValue = if (isSelected) Color.Black else CodeTheme.colors.textMain,
+                animationSpec = TimeToPayMotion.spec(reducedMotion),
+                label = "chip text",
+            )
             Text(
                 modifier = Modifier
+                    .onPlaced { bounds[preset] = Rect(it.positionInParent(), it.size.toSize()) }
                     .clip(CircleShape)
-                    .background(if (isSelected) White else White10)
                     .clickable(role = Role.Button) { onChoose(preset) }
                     .semantics { this.selected = isSelected }
                     .padding(horizontal = 10.dp, vertical = 7.dp),
                 text = stringResource(preset.label),
                 style = CodeTheme.typography.caption,
-                color = if (isSelected) Color.Black else CodeTheme.colors.textMain,
+                color = color,
                 maxLines = 1,
             )
         }
     }
 }
 
+/**
+ * The days a request can run to. The range draws over the grid as one layer: the band as one span
+ * per week row, today's grey circle, and one white closing-day circle that slides to a new day,
+ * across rows when the change crosses a week.
+ */
 @Composable
-private fun DayGrid(sheet: TimeToPay, onChoose: (LocalDate) -> Unit) {
+private fun DayGrid(sheet: TimeToPay, reducedMotion: Boolean, onChoose: (LocalDate) -> Unit) {
     val locale = Locale.getDefault()
     val days = remember(sheet.today) { TimeToPay.grid(sheet.today, WeekFields.of(locale).firstDayOfWeek) }
     val monthLabel = remember { DateTimeFormatter.ofPattern("MMM", locale) }
     val fullDate = remember { DateTimeFormatter.ofPattern(bestPattern("EEEEMMMMd"), locale) }
+    val startIndex = days.indexOf(sheet.today)
+    val endIndex = days.indexOf(sheet.selectedDay)
+    // The end as a grid index for the band, and as a column and row for the circle.
+    val bandEnd = remember { Animatable(endIndex.toFloat()) }
+    val circle = remember { Animatable(cellOf(endIndex), Offset.VectorConverter) }
+    LaunchedEffect(endIndex) {
+        launch { bandEnd.animateTo(endIndex.toFloat(), TimeToPayMotion.spec(reducedMotion)) }
+        circle.animateTo(cellOf(endIndex), TimeToPayMotion.spec(reducedMotion))
+    }
+    val gap = CodeTheme.dimens.grid.x1
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(White05)
             .padding(CodeTheme.dimens.grid.x2),
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+        verticalArrangement = Arrangement.spacedBy(gap),
     ) {
         Row(modifier = Modifier.fillMaxWidth().semantics { invisibleToUser() }) {
             days.take(7).forEach { day ->
@@ -274,43 +344,79 @@ private fun DayGrid(sheet: TimeToPay, onChoose: (LocalDate) -> Unit) {
                 )
             }
         }
-        days.chunked(7).forEach { week ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                week.forEachIndexed { index, day ->
-                    DayCell(
-                        modifier = Modifier.weight(1f),
-                        day = day,
-                        enabled = sheet.enabled(day),
-                        range = sheet.range(day),
-                        firstInRow = index == 0,
-                        lastInRow = index == week.lastIndex,
-                        month = if (day.dayOfMonth == 1) day.format(monthLabel).uppercase(locale) else null,
-                        label = day.format(fullDate),
-                        onClick = { onChoose(day) },
-                    )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawBehind { rangeLayer(startIndex, endIndex, bandEnd.value, circle.value, gap.toPx()) },
+            verticalArrangement = Arrangement.spacedBy(gap),
+        ) {
+            days.chunked(7).forEachIndexed { row, week ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    week.forEachIndexed { column, day ->
+                        val index = row * 7 + column
+                        // The day the moving circle is over reads black on it.
+                        val underCircle = abs(circle.value.x - column) < 0.5f && abs(circle.value.y - row) < 0.5f
+                        DayCell(
+                            modifier = Modifier.weight(1f),
+                            day = day,
+                            enabled = sheet.enabled(day),
+                            mark = when {
+                                underCircle -> TimeToPay.RangeCell.Mark.End
+                                index == startIndex && endIndex != startIndex -> TimeToPay.RangeCell.Mark.Start
+                                else -> TimeToPay.RangeCell.Mark.None
+                            },
+                            selected = index == endIndex,
+                            month = if (day.dayOfMonth == 1) day.format(monthLabel).uppercase(locale) else null,
+                            label = day.format(fullDate),
+                            onClick = { onChoose(day) },
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+private fun cellOf(index: Int) = Offset((index % 7).toFloat(), (index / 7).toFloat())
+
+/** The band, today's circle and the closing-day circle at [circle] (column, row), under the day numbers. */
+private fun DrawScope.rangeLayer(startIndex: Int, endIndex: Int, bandEnd: Float, circle: Offset, gap: Float) {
+    val cell = size.width / 7
+    val height = RangeHeight.toPx()
+    val rtl = layoutDirection == LayoutDirection.Rtl
+    fun x(column: Float) = if (rtl) size.width - column * cell else column * cell
+    fun rowTop(row: Float) = row * (cell + gap)
+    TimeToPay.bandSpans(startIndex, bandEnd).forEach { span ->
+        val left = minOf(x(span.from), x(span.to))
+        val right = maxOf(x(span.from), x(span.to))
+        drawRoundRect(
+            color = RangeBand,
+            topLeft = Offset(left, rowTop(span.row.toFloat()) + (cell - height) / 2),
+            size = Size(right - left, height),
+            cornerRadius = CornerRadius(height / 2),
+        )
+    }
+    if (endIndex != startIndex) {
+        val start = cellOf(startIndex)
+        drawCircle(RangeStart, height / 2, Offset(x(start.x + 0.5f), rowTop(start.y) + cell / 2))
+    }
+    drawCircle(White, height / 2, Offset(x(circle.x + 0.5f), rowTop(circle.y) + cell / 2))
+}
+
 @Composable
 private fun DayCell(
     day: LocalDate,
     enabled: Boolean,
-    range: TimeToPay.RangeCell,
-    firstInRow: Boolean,
-    lastInRow: Boolean,
+    mark: TimeToPay.RangeCell.Mark,
+    selected: Boolean,
     month: String?,
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val selected = range.mark == TimeToPay.RangeCell.Mark.End
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .drawBehind { rangeBand(range, firstInRow, lastInRow) }
             .then(
                 if (enabled) {
                     Modifier
@@ -326,25 +432,20 @@ private fun DayCell(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        val (fill, text) = when (range.mark) {
-            TimeToPay.RangeCell.Mark.End -> White to Color.Black
-            TimeToPay.RangeCell.Mark.Start -> RangeStart to White
-            TimeToPay.RangeCell.Mark.None -> Color.Transparent to
+        val text = when (mark) {
+            TimeToPay.RangeCell.Mark.End -> Color.Black
+            TimeToPay.RangeCell.Mark.Start -> White
+            TimeToPay.RangeCell.Mark.None ->
                 if (enabled) CodeTheme.colors.textMain else CodeTheme.colors.textSecondary.copy(alpha = 0.5f)
         }
-        Box(
-            modifier = Modifier.size(RangeHeight).clip(CircleShape).background(fill),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = day.dayOfMonth.toString(),
-                style = CodeTheme.typography.textMedium.let {
-                    if (range.mark == TimeToPay.RangeCell.Mark.None) it else it.copy(fontWeight = FontWeight.Bold)
-                },
-                color = text,
-            )
-        }
-        if (month != null && range.mark == TimeToPay.RangeCell.Mark.None) {
+        Text(
+            text = day.dayOfMonth.toString(),
+            style = CodeTheme.typography.textMedium.let {
+                if (mark == TimeToPay.RangeCell.Mark.None) it else it.copy(fontWeight = FontWeight.Bold)
+            },
+            color = text,
+        )
+        if (month != null && mark == TimeToPay.RangeCell.Mark.None) {
             Text(
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 1.dp),
                 text = month,
@@ -355,39 +456,10 @@ private fun DayCell(
     }
 }
 
-/**
- * The cell's piece of the range band: from its centre to whichever edges the range crosses. At a
- * row's edge the band ends rounded, so a range that wraps reads as one band across both rows.
- */
-private fun DrawScope.rangeBand(range: TimeToPay.RangeCell, firstInRow: Boolean, lastInRow: Boolean) {
-    if (!range.leading && !range.trailing) return
-    val height = RangeHeight.toPx()
-    val top = (size.height - height) / 2
-    val centre = size.width / 2
-    val rtl = layoutDirection == LayoutDirection.Rtl
-    // In RTL the leading edge is on the right.
-    val startEdge = if (range.leading) (if (rtl) size.width else 0f) else centre
-    val endEdge = if (range.trailing) (if (rtl) 0f else size.width) else centre
-    val round = CornerRadius(height / 2)
-    val roundLeading = range.leading && firstInRow
-    val roundTrailing = range.trailing && lastInRow
-    val roundLeft = if (rtl) roundTrailing else roundLeading
-    val roundRight = if (rtl) roundLeading else roundTrailing
-    val path = Path().apply {
-        addRoundRect(
-            RoundRect(
-                left = minOf(startEdge, endEdge),
-                top = top,
-                right = maxOf(startEdge, endEdge),
-                bottom = top + height,
-                topLeftCornerRadius = if (roundLeft) round else CornerRadius.Zero,
-                bottomLeftCornerRadius = if (roundLeft) round else CornerRadius.Zero,
-                topRightCornerRadius = if (roundRight) round else CornerRadius.Zero,
-                bottomRightCornerRadius = if (roundRight) round else CornerRadius.Zero,
-            )
-        )
-    }
-    drawPath(path, RangeBand)
+/** How the sheet's selection moves: a spring, or straight to the new place with reduce motion on. */
+internal object TimeToPayMotion {
+    fun <T> spec(reducedMotion: Boolean): AnimationSpec<T> =
+        if (reducedMotion) snap() else spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMediumLow)
 }
 
 private val RangeHeight = 34.dp
