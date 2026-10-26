@@ -62,16 +62,20 @@ object ReactionAlertPillSpec {
     val StackAvatarSize = 32.dp
     val StackOverlap = 10.dp
 
-    /** The black glass tint of iOS's `glassEffect(.regular.tint(black 0.55))`. */
-    const val TINT_ALPHA = 0.55f
+    /**
+     * iOS's dark-tinted glass lands a few steps lighter than the app background (about 30 over 24),
+     * not darker, so the tint is a near-black grey rather than black.
+     */
+    val Tint = Color(0xFF222224)
+    const val TINT_ALPHA = 0.6f
 
-    /** Used where there is no backdrop to blur: a translucent black that still reads as one surface. */
-    const val FLAT_ALPHA = 0.88f
+    /** Used where there is no backdrop to blur: the same grey, nearly opaque. */
+    const val FLAT_ALPHA = 0.94f
 
     val GlassStyle = HazeBlurStyle {
         blurRadius(24.dp)
-        backgroundColor(Color.Black)
-        colorEffects(listOf(HazeColorEffect.tint(Color.Black.copy(alpha = TINT_ALPHA))))
+        backgroundColor(Tint)
+        colorEffects(listOf(HazeColorEffect.tint(Tint.copy(alpha = TINT_ALPHA))))
     }
 }
 
@@ -95,7 +99,7 @@ fun ReactionAlertPill(
     val glass = if (hazeState != null) {
         Modifier.hazeBlur(HazeInput.Sources(hazeState), ReactionAlertPillSpec.GlassStyle)
     } else {
-        Modifier.background(Color.Black.copy(alpha = ReactionAlertPillSpec.FLAT_ALPHA))
+        Modifier.background(ReactionAlertPillSpec.Tint.copy(alpha = ReactionAlertPillSpec.FLAT_ALPHA))
     }
     Box(
         modifier = modifier
