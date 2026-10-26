@@ -1,6 +1,8 @@
 package com.flipcash.shared.chat.alerts
 
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.MediaItem
+import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.chat.ReactionUpdate
 
 /** What one pill shows. Titles are composed by the UI from these fields, so they can be localised. */
@@ -16,6 +18,10 @@ data class ReactionAlertContent(
     val emojis: List<String>,
     /** The boost this alert reports, for [Kind.Boost]. */
     val boostCents: Long? = null,
+    /** The actors' ids, parallel to [actorNames]: what authorizes re-minting an expired photo URL. */
+    val actorIds: List<ID> = emptyList(),
+    /** The actors' profile pictures, parallel to [actorNames]. Null where the actor has none. */
+    val actorPhotos: List<MediaItem?> = emptyList(),
 ) {
     enum class Kind { Reaction, Boost, Several }
 
@@ -40,6 +46,8 @@ data class ReactionAlertContent(
                 actorNames = listOf(event.actorName),
                 emojis = listOf(event.emoji),
                 boostCents = if (boosted) event.boostDeltaCents else null,
+                actorIds = listOf(event.actor),
+                actorPhotos = listOf(event.actorPhoto),
             )
         }
     }
@@ -136,6 +144,8 @@ class ReactionAlertQueue {
                 else -> incoming.kind
             },
             actorNames = names,
+            actorIds = if (isNewActor) held.actorIds + incoming.actorIds else held.actorIds,
+            actorPhotos = if (isNewActor) held.actorPhotos + incoming.actorPhotos else held.actorPhotos,
             emojis = emojis,
             boostCents = if (several) null else incoming.boostCents,
             quote = incoming.quote.ifEmpty { held.quote },

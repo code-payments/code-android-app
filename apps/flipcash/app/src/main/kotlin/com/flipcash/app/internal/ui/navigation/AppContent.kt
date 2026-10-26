@@ -325,7 +325,7 @@ internal fun AppContent(
         searchMorph.Overlay(hazeState)
 
         // Top of the app, over the status bar and the camera cutout, so it shows on any screen.
-        ReactionAlertHost(controller = reactionAlerts)
+        ReactionAlertHost(controller = reactionAlerts, hazeState = hazeState)
 
         // The expanded currency-info overlay is hosted INSIDE the wallet nav entry (see CardExpandHost),
         // not here — so a pushed Give/Convert/Withdraw naturally covers it (correct z-order) and the deck

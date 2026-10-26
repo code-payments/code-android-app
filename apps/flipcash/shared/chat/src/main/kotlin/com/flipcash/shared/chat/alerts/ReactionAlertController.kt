@@ -70,8 +70,8 @@ class ReactionAlertController internal constructor(
     )
 
     companion object {
-        /** Text fade (120 ms) and height collapse, then the width back into the island (200 ms). */
-        const val CLOSE_MILLIS = 260L + 200L
+        /** The banner's exit (220 ms), plus a frame, before the next one drops in. */
+        const val CLOSE_MILLIS = 230L
     }
 
     private val queue = ReactionAlertQueue()

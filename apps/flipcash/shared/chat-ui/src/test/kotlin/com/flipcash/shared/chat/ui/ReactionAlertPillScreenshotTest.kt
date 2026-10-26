@@ -26,7 +26,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
- * Renders each pill state of Figma `Alert/Reaction pill` (node 12643:117) to `build/screenshots/`.
+ * Renders each banner state to `build/screenshots/`.
  * Not an assertion test: it shows layout and copy for comparison with the design. Animation is off
  * so each file is the settled state.
  */
@@ -44,30 +44,22 @@ class ReactionAlertPillScreenshotTest {
     private fun content(kind: Kind, actors: List<String?> = listOf("Chloe"), emojis: List<String> = listOf("🔥"), boost: Long? = null) =
         ReactionAlertContent(chat, 1, kind, "Ballers", quote, actors, emojis, boost)
 
-    @Test fun rest() = render(content(Kind.Reaction), ReactionAlertPhase.Rest, "alert_rest.png")
+    @Test fun reaction() = render(content(Kind.Reaction), "alert_reaction.png")
 
-    @Test fun compactReaction() = render(content(Kind.Reaction), ReactionAlertPhase.Compact, "alert_compact_reaction.png")
+    @Test fun boost() = render(content(Kind.Boost, boost = 500), "alert_boost.png")
 
-    @Test fun compactBoost() = render(content(Kind.Boost, boost = 500), ReactionAlertPhase.Compact, "alert_compact_boost.png")
-
-    @Test fun expandedReaction() = render(content(Kind.Reaction), ReactionAlertPhase.Expanded, "alert_expanded_reaction.png")
-
-    @Test fun expandedBoost() = render(content(Kind.Boost, boost = 500), ReactionAlertPhase.Expanded, "alert_expanded_boost.png")
-
-    @Test fun expandedStacked() = render(
+    @Test fun stacked() = render(
         content(Kind.Several, actors = listOf("Chloe", "Sam", "Jo"), emojis = listOf("🔥", "❤️", "😂")),
-        ReactionAlertPhase.Expanded,
-        "alert_expanded_stacked.png",
+        "alert_stacked.png",
     )
 
-    @Test fun expandedInActiveChat() =
-        render(content(Kind.Reaction), ReactionAlertPhase.Expanded, "alert_expanded_this_chat.png", inActiveChat = true)
+    @Test fun inActiveChat() = render(content(Kind.Reaction), "alert_this_chat.png", inActiveChat = true)
 
-    private fun render(content: ReactionAlertContent, phase: ReactionAlertPhase, fileName: String, inActiveChat: Boolean = false) {
+    private fun render(content: ReactionAlertContent, fileName: String, inActiveChat: Boolean = false) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             Frame {
-                ReactionAlertPill(content, phase, inActiveChat, animate = false)
+                ReactionAlertPill(content, inActiveChat, animate = false)
             }
         }
         repeat(10) { composeRule.mainClock.advanceTimeByFrame() }

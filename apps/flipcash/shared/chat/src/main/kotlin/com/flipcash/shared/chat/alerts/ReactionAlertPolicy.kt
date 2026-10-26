@@ -2,6 +2,7 @@ package com.flipcash.shared.chat.alerts
 
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.ReactionUpdate
 import com.getcode.opencode.model.core.ID
@@ -20,6 +21,8 @@ data class ReactionAlertEvent(
     val actorName: String?,
     val chatName: String?,
     val quote: String,
+    /** The actor's profile picture, when the roster or the profile cache has one. */
+    val actorPhoto: MediaItem? = null,
 )
 
 /**

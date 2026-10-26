@@ -1,13 +1,9 @@
 package com.flipcash.shared.chat.ui
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,14 +15,16 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -37,132 +35,104 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.core.R
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.chat.alerts.ReactionAlertContent
 import com.flipcash.shared.chat.alerts.ReactionAlertContent.Kind
+import com.flipcash.shared.common.ui.ContactAvatar
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 
-/** The pill's three resting shapes. The host walks Rest -> Compact -> Expanded and back. */
-enum class ReactionAlertPhase { Rest, Compact, Expanded }
-
-private val PillBlack = Color.Black
 private val TextMain = Color.White
 private val TextDim = Color.White.copy(alpha = 0.5f)
 private val BoostGreen = Color(0xFF34C759)
-private val AvatarPalette = listOf(Color(0xFFE8996B), Color(0xFF739EF2), Color(0xFF8CD18C))
+private val AvatarPalette = listOf(
+    Color(0xFFE8996B), Color(0xFF739EF2), Color(0xFF8CD18C), Color(0xFFD68CC8), Color(0xFFF0C864),
+)
 
-/** Figma `Alert/Reaction pill` (node 12643:117): widths from the Compact and Expanded variants. */
+/** The iOS `AlertPill` banner's measurements, so the two platforms draw the same card. */
 object ReactionAlertPillSpec {
-    val CompactWidth = 236.dp
-    val ExpandedWidth = 378.dp
-    val CompactHeight = 36.dp
-    val ExpandedRadius = 44.dp
+    val MaxWidth = 378.dp
+    val CornerRadius = 28.dp
+    val HorizontalPadding = 18.dp
+    val VerticalPadding = 14.dp
+    val AvatarSize = 40.dp
+    val StackAvatarSize = 32.dp
+    val StackOverlap = 10.dp
 
-    /** Motion table: grow width 0-180 ms, then open on a spring (stiffness 380, damping 0.78). */
-    const val GROW_MILLIS = 180
-    const val STIFFNESS = 380f
-    const val DAMPING = 0.78f
+    /** The black glass tint of iOS's `glassEffect(.regular.tint(black 0.55))`. */
+    const val TINT_ALPHA = 0.55f
 
-    fun <T> openSpring(): FiniteAnimationSpec<T> = spring(dampingRatio = DAMPING, stiffness = STIFFNESS)
+    /** Used where there is no backdrop to blur: a translucent black that still reads as one surface. */
+    const val FLAT_ALPHA = 0.88f
+
+    val GlassStyle = HazeBlurStyle {
+        blurRadius(24.dp)
+        backgroundColor(Color.Black)
+        colorEffects(listOf(HazeColorEffect.tint(Color.Black.copy(alpha = TINT_ALPHA))))
+    }
 }
 
 /**
- * The alert pill, drawn for [phase]. [restWidth] x [restHeight] is the island or cutout it grows out
- * of; [expandedTopInset] pushes the expanded content below a corner hole.
+ * The alert banner: a dark glass card with the reactor's avatar, the chat name, the title, the
+ * quoted message and the emoji or boost amount. [hazeState] is the app's blur source; without one the
+ * card is a flat translucent black.
  *
- * With [animate] false the sizes jump, which is Reduce Motion's crossfade-in-place and the
- * screenshot tests' fixed frame.
+ * With [animate] false the text swap on a merge is instant, for the screenshot tests.
  */
 @Composable
 fun ReactionAlertPill(
     content: ReactionAlertContent,
-    phase: ReactionAlertPhase,
     inActiveChat: Boolean,
     modifier: Modifier = Modifier,
-    restWidth: Dp = 125.dp,
-    restHeight: Dp = 36.dp,
-    expandedTopInset: Dp = 0.dp,
-    maxWidth: Dp = ReactionAlertPillSpec.ExpandedWidth,
+    maxWidth: Dp = ReactionAlertPillSpec.MaxWidth,
+    hazeState: HazeState? = null,
     animate: Boolean = true,
 ) {
-    val expandedWidth = minOf(ReactionAlertPillSpec.ExpandedWidth, maxWidth)
-    val targetWidth = when (phase) {
-        ReactionAlertPhase.Rest -> restWidth
-        ReactionAlertPhase.Compact -> minOf(ReactionAlertPillSpec.CompactWidth, expandedWidth)
-        ReactionAlertPhase.Expanded -> expandedWidth
-    }
-    val targetRadius = when (phase) {
-        ReactionAlertPhase.Rest -> restHeight / 2
-        ReactionAlertPhase.Compact -> ReactionAlertPillSpec.CompactHeight / 2
-        ReactionAlertPhase.Expanded -> ReactionAlertPillSpec.ExpandedRadius
-    }
-    val widthSpec: FiniteAnimationSpec<Dp> = if (animate) {
-        if (phase == ReactionAlertPhase.Expanded) ReactionAlertPillSpec.openSpring()
-        else tween(ReactionAlertPillSpec.GROW_MILLIS)
+    val shape = RoundedCornerShape(ReactionAlertPillSpec.CornerRadius)
+    val glass = if (hazeState != null) {
+        Modifier.hazeBlur(HazeInput.Sources(hazeState), ReactionAlertPillSpec.GlassStyle)
     } else {
-        tween(0)
+        Modifier.background(Color.Black.copy(alpha = ReactionAlertPillSpec.FLAT_ALPHA))
     }
-    val width by animateDpAsState(targetWidth, widthSpec, label = "alertWidth")
-    val radius by animateDpAsState(
-        targetRadius,
-        if (animate) ReactionAlertPillSpec.openSpring() else tween(0),
-        label = "alertRadius",
-    )
-
     Box(
         modifier = modifier
-            .width(width)
-            .clip(RoundedCornerShape(radius))
-            .background(PillBlack)
-            .then(if (animate) Modifier.animateContentSize(ReactionAlertPillSpec.openSpring()) else Modifier),
+            .widthIn(max = minOf(ReactionAlertPillSpec.MaxWidth, maxWidth))
+            .fillMaxWidth()
+            .clip(shape)
+            .then(glass)
+            .border(0.5.dp, Color.White.copy(alpha = 0.12f), shape),
     ) {
         Crossfade(
-            targetState = phase,
-            animationSpec = tween(if (animate) 120 else 0),
-            label = "alertPhase",
+            targetState = content,
+            animationSpec = tween(if (animate) 150 else 0),
+            label = "alertContent",
         ) { shown ->
-            when (shown) {
-                ReactionAlertPhase.Rest -> Spacer(Modifier.height(restHeight))
-                ReactionAlertPhase.Compact -> CompactRow(content)
-                ReactionAlertPhase.Expanded -> ExpandedColumn(content, inActiveChat, expandedTopInset)
-            }
+            AlertRow(shown, inActiveChat)
         }
     }
 }
 
 @Composable
-private fun CompactRow(content: ReactionAlertContent) {
+private fun AlertRow(content: ReactionAlertContent, inActiveChat: Boolean) {
     Row(
         modifier = Modifier
-            .height(ReactionAlertPillSpec.CompactHeight)
-            .padding(start = 6.dp, end = 12.dp),
+            .fillMaxWidth()
+            .padding(
+                horizontal = ReactionAlertPillSpec.HorizontalPadding,
+                vertical = ReactionAlertPillSpec.VerticalPadding,
+            ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        AlertAvatar(content.actorNames.first(), index = 0, size = 24.dp, textSize = 10)
-        Spacer(Modifier.weight(1f))
-        when (content.kind) {
-            Kind.Boost -> Text(
-                text = boostCentsText(content.boostCents ?: 0, wholeDollars = true),
-                color = BoostGreen,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            else -> Text(
-                text = content.emojis.last(),
-                color = TextMain,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
+        if (content.kind == Kind.Several) {
+            AvatarStack(content)
+        } else {
+            AlertAvatar(content, index = 0, size = ReactionAlertPillSpec.AvatarSize, textSize = 16)
         }
-    }
-}
-
-@Composable
-private fun ExpandedColumn(content: ReactionAlertContent, inActiveChat: Boolean, topInset: Dp) {
-    Column(
-        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp + topInset, bottom = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(modifier = Modifier.fillMaxWidthCompat(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = if (inActiveChat) stringResource(R.string.alert_thisChat) else content.chatName.orEmpty(),
                 color = TextDim,
@@ -170,64 +140,48 @@ private fun ExpandedColumn(content: ReactionAlertContent, inActiveChat: Boolean,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
             )
-            Text(
-                text = stringResource(R.string.alert_now),
-                color = TextDim,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
+            // Shrinks to fit before it would ellipsize: the title is never wrapped or cut.
+            androidx.compose.material3.Text(
+                text = title(content),
+                color = TextMain,
+                fontFamily = androidx.compose.material.LocalTextStyle.current.fontFamily,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = 15.sp, stepSize = 0.5.sp),
             )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidthCompat(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (content.kind == Kind.Several) {
-                AvatarStack(content)
-            } else {
-                AlertAvatar(content.actorNames.first(), index = 0, size = 40.dp, textSize = 16)
-            }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (content.quote.isNotEmpty()) {
                 Text(
-                    text = title(content),
-                    color = TextMain,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
+                    text = content.quote,
+                    color = TextDim,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    softWrap = false,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (content.quote.isNotEmpty()) {
-                    Text(
-                        text = "“${content.quote}”",
-                        color = TextDim,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
-            when (content.kind) {
-                Kind.Reaction -> Text(content.emojis.last(), color = TextMain, fontSize = 30.sp, fontWeight = FontWeight.SemiBold)
-                Kind.Boost -> Text(
-                    text = "+" + boostCentsText(content.boostCents ?: 0),
-                    color = BoostGreen,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                )
-                Kind.Several -> Text(
-                    text = content.trailingEmojis.joinToString(""),
-                    color = TextMain,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    textAlign = TextAlign.End,
-                )
-            }
+        }
+        when (content.kind) {
+            Kind.Reaction -> Text(content.emojis.last(), color = TextMain, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Kind.Boost -> Text(
+                text = "+" + boostCentsText(content.boostCents ?: 0),
+                color = BoostGreen,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
+            // The newest two; the title already counts everyone.
+            Kind.Several -> Text(
+                text = content.emojis.takeLast(2).joinToString(""),
+                color = TextMain,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                textAlign = TextAlign.End,
+            )
         }
     }
 }
@@ -245,53 +199,66 @@ private fun title(content: ReactionAlertContent): String {
     }
 }
 
+/** Smaller than a lone avatar and overlapped lightly, with the first reactor on top. */
 @Composable
 private fun AvatarStack(content: ReactionAlertContent) {
-    Box {
-        val shown = content.actorNames.take(3)
-        shown.forEachIndexed { index, name ->
+    val size = ReactionAlertPillSpec.StackAvatarSize
+    val step = size - ReactionAlertPillSpec.StackOverlap
+    val shown = content.actorNames.take(3)
+    Box(modifier = Modifier.width(size + step * (shown.size - 1)).height(size)) {
+        shown.indices.forEach { index ->
             AlertAvatar(
-                name = name,
+                content = content,
                 index = index,
-                size = 40.dp,
-                textSize = 16,
+                size = size,
+                textSize = 13,
                 ring = true,
-                modifier = Modifier.offset(x = 26.dp * index),
+                modifier = Modifier
+                    .offset(x = step * index)
+                    .zIndex((shown.size - index).toFloat()),
             )
         }
-        // Reserve the stack's width: the avatars are offset, so Box would measure only the first.
-        Spacer(Modifier.width(40.dp + 26.dp * (shown.size - 1)).height(40.dp))
     }
 }
 
-/** The actor's initial on a palette fill. Swap for the profile photo when one is available. */
+/** The actor's profile photo, else their initial on a palette fill. */
 @Composable
 private fun AlertAvatar(
-    name: String?,
+    content: ReactionAlertContent,
     index: Int,
     size: Dp,
     textSize: Int,
     modifier: Modifier = Modifier,
     ring: Boolean = false,
 ) {
-    val fill = AvatarPalette[(name?.hashCode()?.let { Math.floorMod(it, AvatarPalette.size) } ?: index)]
+    val name = content.actorNames.getOrNull(index)
+    val photo = content.actorPhotos.getOrNull(index)
+    val fill = AvatarPalette[Math.floorMod(name?.hashCode() ?: index, AvatarPalette.size)]
+    val ringWidth = if (ring) 2.dp else 0.dp
     Box(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(if (ring) PillBlack else fill)
-            .padding(if (ring) 2.dp else 0.dp)
+            .background(Color.Black.copy(alpha = 0.6f))
+            .padding(ringWidth)
             .clip(CircleShape)
             .background(fill),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = name?.trim()?.firstOrNull()?.uppercase() ?: "?",
-            color = Color.Black,
-            fontSize = textSize.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
+        if (photo != null) {
+            ContactAvatar(
+                image = photo,
+                displayName = name.orEmpty(),
+                access = BlobAccessContext.profile(content.actorIds.getOrNull(index)),
+                modifier = Modifier.size(size - ringWidth * 2),
+            )
+        } else {
+            Text(
+                text = name?.trim()?.firstOrNull()?.uppercase() ?: "?",
+                color = Color.Black,
+                fontSize = textSize.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
-
-private fun Modifier.fillMaxWidthCompat(): Modifier = this.then(Modifier.fillMaxWidth())

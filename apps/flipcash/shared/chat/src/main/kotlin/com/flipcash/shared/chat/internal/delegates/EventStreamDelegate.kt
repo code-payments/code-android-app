@@ -27,6 +27,7 @@ import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.EventSequenceTracker
 import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.alerts.ActorBoostTotals
+import com.flipcash.shared.chat.alerts.ReactionActorProfiles
 import com.flipcash.shared.chat.alerts.ReactionAlertEvent
 import com.flipcash.shared.chat.alerts.ReactionAlertPolicy
 import com.flipcash.shared.chat.alerts.ReactionAlertSink
@@ -99,6 +100,7 @@ class EventStreamDelegate @Inject constructor(
     private val exchange: Exchange,
     private val mentionPool: MentionPoolUpdates = MentionPoolUpdates.None,
     private val reactionAlerts: ReactionAlertSink = ReactionAlertSink.None,
+    private val actorProfiles: ReactionActorProfiles = ReactionActorProfiles.None,
 ) : EventStreamOperations {
 
 
@@ -619,7 +621,9 @@ class EventStreamDelegate @Inject constructor(
         val selfId = userManager.accountId
         when (ReactionAlertPolicy.decide(reactionUpdate, selfId, local)) {
             ReactionAlertPolicy.Decision.Drop -> Unit
-            ReactionAlertPolicy.Decision.Alert -> emitAlert(chatId, reactionUpdate, local, previous)
+            // Off the stream's path: resolving the actor's photo may go to the network.
+            ReactionAlertPolicy.Decision.Alert -> scope?.launch { emitAlert(chatId, reactionUpdate, local, previous) }
+                ?: emitAlert(chatId, reactionUpdate, local, previous)
             ReactionAlertPolicy.Decision.NeedsMessage -> {
                 // Not cached: ask the server, off the stream's path, and drop the alert on failure.
                 scope?.launch {
@@ -641,8 +645,16 @@ class EventStreamDelegate @Inject constructor(
     ) {
         val selfId = userManager.accountId
         val members = runCatching { memberDataSource.getMembersForChat(chatId) }.getOrDefault(emptyList())
-        val actorName = members.firstOrNull { it.userId == reactionUpdate.actor }
-            ?.userProfile?.displayName?.takeIf { it.isNotBlank() }
+        val member = members.firstOrNull { it.userId == reactionUpdate.actor }?.userProfile
+        var actorName = member?.displayName?.takeIf { it.isNotBlank() }
+        var actorPhoto = member?.profilePicture
+        if (actorName == null || actorPhoto == null) {
+            // The roster of a large group is partial, and a member row may lack a photo: ask the
+            // profile cache, which fetches what it does not hold.
+            val resolved = runCatching { actorProfiles.resolve(reactionUpdate.actor) }.getOrNull()
+            actorName = actorName ?: resolved?.displayName?.takeIf { it.isNotBlank() }
+            actorPhoto = actorPhoto ?: resolved?.profilePicture
+        }
         val chatName = runCatching { metadataDataSource.getTitle(chatId) }.getOrNull()?.takeIf { it.isNotBlank() }
             ?: members.firstOrNull { it.userId != selfId }?.userProfile?.displayName?.takeIf { it.isNotBlank() }
         reactionAlerts.offer(
@@ -658,6 +670,7 @@ class EventStreamDelegate @Inject constructor(
                     null
                 },
                 actorName = actorName,
+                actorPhoto = actorPhoto,
                 chatName = chatName,
                 quote = ReactionAlertPolicy.quoteOf(message),
             ),
