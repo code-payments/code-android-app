@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.SharedTransitionScope.ResizeMode.Companion.scaleToBounds
 import androidx.compose.animation.core.Animatable
@@ -47,10 +46,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CoroutineScope
+import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material.icons.filled.Close
@@ -197,8 +199,13 @@ internal fun RequestDeckPill(
             val scope = rememberCoroutineScope()
             val drag = remember { Animatable(0f) }
             val arrive = remember { Animatable(1f) }
+            // Where the swipe was let go: how far the front card had travelled, and how far through
+            // the swipe that was. The hand-over starts every card from there.
+            var releaseDrag by remember { mutableFloatStateOf(0f) }
+            var releaseProgress by remember { mutableFloatStateOf(1f) }
             val pillHeightPx = with(density) { PILL_HEIGHT.toPx() }
             val canCycle = shown.size > 1
+            val pillWidth = remember(scope) { PillWidth(scope) }
 
             val label = deckLabel(shown, now)
             val nextLabel = stringResource(R.string.action_nextRequest)
@@ -220,6 +227,9 @@ internal fun RequestDeckPill(
                 // The card just swiped off, travelling from below the pill to its slot at the back.
                 val swiped = if (canCycle && arrive.value < 1f) shown.last() else null
                 val swipedDepth = (shown.size - 1).coerceAtMost(2).toFloat()
+                // How far each card still has to rise after a hand-over: the swipe was let go short of
+                // a full pill height, so the cards behind finish the step on the same spring.
+                val handover = (1f - releaseProgress) * (1f - arrive.value)
 
                 @Composable
                 fun Card(request: PaymentRequest, layer: GraphicsLayerScope.() -> Unit, depth: Float, content: Boolean) {
@@ -227,6 +237,9 @@ internal fun RequestDeckPill(
                         modifier = Modifier
                             .matchParentSize()
                             .graphicsLayer(layer)
+                            // The request rising from behind is wider or narrower than the pill until
+                            // the swipe is let go; it shows clipped to the card until then.
+                            .clip(PILL_SHAPE)
                             .background(CodeTheme.colors.background, PILL_SHAPE)
                             .background(
                                 lerp(
@@ -251,10 +264,10 @@ internal fun RequestDeckPill(
                         content = true,
                         layer = {
                             val t = arrive.value
-                            val scale = lerp(1f - DROP_SCALE, slotScale(swipedDepth, insetPx, size.width), t)
+                            val scale = lerp(1f - DROP_SCALE * releaseProgress, slotScale(swipedDepth, insetPx, size.width), t)
                             scaleX = scale
                             scaleY = scale
-                            translationY = lerp(pillHeightPx, slotY(swipedDepth, scale, stepPx, size.height), t)
+                            translationY = lerp(releaseDrag, slotY(swipedDepth, scale, stepPx, size.height), t)
                             // Past the second slot it tucks out of sight rather than stacking up.
                             if (shown.size > 3) alpha = 1f - t
                         },
@@ -265,9 +278,9 @@ internal fun RequestDeckPill(
                 val peeks = shown.drop(1).take(3)
                 peeks.withIndex().reversed().forEach { (index, request) ->
                     if (request == swiped) return@forEach
-                    val depth = index + 1 - progress
+                    val depth = index + 1 - progress + handover
                     // A third card behind only shows as the others move up.
-                    if (depth > 2f && progress == 0f) return@forEach
+                    if (depth >= 3f) return@forEach
                     Card(
                         request = request,
                         depth = depth,
@@ -287,6 +300,7 @@ internal fun RequestDeckPill(
                     now = now,
                     visibility = this@AnimatedVisibility,
                     modifier = Modifier
+                        .then(pillWidth.modifier)
                         .then(
                             if (transition != null) with(transition) {
                                 Modifier.sharedBounds(
@@ -298,10 +312,11 @@ internal fun RequestDeckPill(
                         )
                         .graphicsLayer {
                             // Falls back as it goes, so it hands off at the size the back card starts from.
-                            val scale = 1f - DROP_SCALE * progress
+                            // Just after a hand-over it is still rising out of the slot behind.
+                            val scale = (1f - DROP_SCALE * progress) * slotScale(handover, insetPx, size.width)
                             scaleX = scale
                             scaleY = scale
-                            translationY = drag.value
+                            translationY = drag.value + slotY(handover, scale, stepPx, size.height)
                         }
                         .draggable(
                             orientation = Orientation.Vertical,
@@ -325,12 +340,14 @@ internal fun RequestDeckPill(
                             onDragStopped = { velocity ->
                                 val past = drag.value > pillHeightPx * CYCLE_THRESHOLD || velocity > FLING_VELOCITY
                                 if (canCycle && past) {
-                                    // Carry the swipe on to one pill height, then hand over: the card that
-                                    // rose becomes the front and the swiped one drops behind to the back.
-                                    drag.animateTo(pillHeightPx, DECK_SPRING, initialVelocity = velocity)
+                                    // Hand over on release: the card that rose becomes the front and the
+                                    // swiped one drops behind to the back, each from where it was, while
+                                    // the pill eases to the new front's width on the same spring.
+                                    releaseDrag = drag.value
+                                    releaseProgress = (drag.value / pillHeightPx).coerceIn(0f, 1f)
+                                    drag.snapTo(0f)
                                     arrive.snapTo(0f)
                                     onCycle()
-                                    drag.snapTo(0f)
                                     arrive.animateTo(1f, DECK_SPRING)
                                 } else {
                                     drag.animateTo(0f, DECK_SPRING, initialVelocity = velocity)
@@ -356,8 +373,6 @@ private fun DeckFront(
     val split = request.split
     Row(
         modifier = modifier
-            // Eases between requests of different lengths when the deck cycles.
-            .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
             .background(CodeTheme.colors.background, PILL_SHAPE)
             .alpha(if (ended) ENDED_ALPHA else 1f)
             .background(CodeTheme.colors.surfaceVariant, PILL_SHAPE)
@@ -409,6 +424,30 @@ private fun DeckFront(
                 )
             }
         }
+    }
+}
+
+/**
+ * The deck's width, sprung to each new front's natural width on the spring the cards move on, so
+ * the pill and every card stretched to it ease together from the moment a swipe is let go. The
+ * front surface draws at the eased width and its content clips inside it.
+ */
+private class PillWidth(private val scope: CoroutineScope) {
+    private val width = Animatable(0f)
+    private var target = 0
+
+    val modifier: Modifier = Modifier.layout { measurable, constraints ->
+        val natural = constraints.constrainWidth(measurable.maxIntrinsicWidth(constraints.maxHeight))
+        if (natural != target) {
+            val first = target == 0
+            target = natural
+            scope.launch {
+                if (first) width.snapTo(natural.toFloat()) else width.animateTo(natural.toFloat(), DECK_SPRING)
+            }
+        }
+        val current = if (width.value == 0f) natural else width.value.roundToInt()
+        val placeable = measurable.measure(constraints.copy(minWidth = current, maxWidth = current))
+        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     }
 }
 
@@ -633,6 +672,7 @@ private const val DROP_SCALE = 0.06f
 // How far past one pill height the front card can be pulled, as a fraction of it.
 private const val RUBBER_BAND = 0.25f
 private val DECK_SPRING = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
+
 
 /** A card's scale at [depth] in the stack: each slot back steps in by [insetPx] on both sides. */
 private fun slotScale(depth: Float, insetPx: Float, width: Float): Float =
