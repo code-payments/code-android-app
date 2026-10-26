@@ -83,13 +83,17 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import com.flipcash.services.models.paymentrequest.StatusLine
 import com.flipcash.services.models.paymentrequest.unpaidShareOf
+import com.flipcash.services.models.paymentrequest.ViewerStanding
+import com.flipcash.services.models.paymentrequest.viewerStanding
+import com.flipcash.shared.chat.ui.request.PaidBadge
+import com.flipcash.shared.chat.ui.request.ViewerStatusLine
+import com.flipcash.shared.chat.ui.request.description
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -335,7 +339,7 @@ private fun DeckStack(
         val canCycle = deck.size > 1
         val pillWidth = remember(scope) { PillWidth(scope) }
 
-        val label = deckLabel(deck, now, viewerId.takeIf { strip })
+        val label = deckLabel(deck, now, viewerId, strip)
         val nextLabel = stringResource(R.string.action_nextRequest)
         // The strip's Pay is a button of its own, so the deck's label goes on the rest of its card.
         val deckSemantics = Modifier.clearAndSetSemantics {
@@ -519,14 +523,14 @@ private fun DeckCardFront(
     bodyModifier: Modifier = Modifier,
 ) {
     when (style) {
-        DeckPlacement.Pill, DeckPlacement.Expanded -> DeckFront(request = request, now = now, visibility = visibility, modifier = modifier)
+        DeckPlacement.Pill, DeckPlacement.Expanded -> DeckFront(request = request, now = now, viewerId = viewerId, visibility = visibility, modifier = modifier)
         DeckPlacement.Strip -> StripFront(request, now, viewerId, visibility, onPay, modifier, bodyModifier)
     }
 }
 
 /**
  * The strip's front card (concept node 12670:1262): glyph, title, "You owe <share> · <time left>"
- * and Pay; or "<paid> of <requested>" and no Pay on a card the viewer doesn't owe on.
+ * and Pay; or the viewer's status line and no Pay on a card the viewer doesn't owe on.
  */
 @Composable
 private fun StripFront(
@@ -540,6 +544,7 @@ private fun StripFront(
 ) {
     val shape = DeckStyle.Strip.shape
     val share = request.unpaidShareOf(viewerId, now)
+    val standing = request.viewerStanding(viewerId, now)
     val ended = !request.isOpen(now)
     Row(
         modifier = modifier
@@ -561,6 +566,7 @@ private fun StripFront(
                 request = request,
                 now = now,
                 size = STRIP_RING_SIZE,
+                paid = standing is ViewerStanding.Paid,
                 modifier = Modifier.deckShared(request.id, "glyph", visibility, CircleShape),
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -572,25 +578,31 @@ private fun StripFront(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.deckShared(request.id, "title", visibility),
                 )
-                val line = if (share != null) {
+                val lineStyle = CodeTheme.typography.textSmall.copy(fontWeight = FontWeight.Medium)
+                if (share != null) {
                     val owe = stringResource(R.string.label_requestYouOwe, share.amount.requestText())
                     val timeLeft = request.statusLine(now)?.timeLeftText().orEmpty()
                     val success = CodeTheme.colors.success
-                    buildAnnotatedString {
-                        withStyle(SpanStyle(color = success)) { append(owe) }
-                        if (timeLeft.isNotEmpty()) append(" · $timeLeft")
-                    }
+                    Text(
+                        text = buildAnnotatedString {
+                            withStyle(SpanStyle(color = success)) { append(owe) }
+                            if (timeLeft.isNotEmpty()) append(" · $timeLeft")
+                        },
+                        style = lineStyle,
+                        color = CodeTheme.colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.deckShared(request.id, "amounts", visibility),
+                    )
                 } else {
-                    AnnotatedString(request.progressLabel())
+                    ViewerStatusLine(
+                        request = request,
+                        standing = standing,
+                        style = lineStyle,
+                        color = CodeTheme.colors.textSecondary,
+                        modifier = Modifier.deckShared(request.id, "amounts", visibility),
+                    )
                 }
-                Text(
-                    text = line,
-                    style = CodeTheme.typography.textSmall.copy(fontWeight = FontWeight.Medium),
-                    color = CodeTheme.colors.textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.deckShared(request.id, "amounts", visibility),
-                )
             }
         }
         if (share != null) {
@@ -617,13 +629,6 @@ private fun StripFront(
     }
 }
 
-/** "<paid> of <requested>". */
-@Composable
-private fun PaymentRequest.progressLabel(): String {
-    val split = split ?: return ""
-    return stringResource(R.string.label_requestDeckProgress, split.paid.requestText(), split.requested.requestText())
-}
-
 /** The status line without "to pay" ("2 days left"); the ended lines as they are. */
 @Composable
 private fun StatusLine.timeLeftText(): String = when (this) {
@@ -637,11 +642,13 @@ private fun StatusLine.timeLeftText(): String = when (this) {
 private fun DeckFront(
     request: PaymentRequest,
     now: Instant,
+    viewerId: ID?,
     visibility: AnimatedVisibilityScope?,
     modifier: Modifier = Modifier,
 ) {
     val ended = !request.isOpen(now)
     val split = request.split
+    val standing = request.viewerStanding(viewerId, now)
     Row(
         modifier = modifier
             .background(CodeTheme.colors.background, PILL_SHAPE)
@@ -662,6 +669,7 @@ private fun DeckFront(
             request = request,
             now = now,
             size = RING_SIZE,
+            paid = standing is ViewerStanding.Paid,
             modifier = Modifier
                 .deckShared(request.id, "glyph", visibility, CircleShape),
         )
@@ -680,15 +688,11 @@ private fun DeckFront(
                     .deckShared(request.id, "title", visibility),
             )
             if (split != null) {
-                Text(
-                    text = stringResource(
-                        R.string.label_requestDeckProgress,
-                        split.paid.requestText(),
-                        split.requested.requestText(),
-                    ),
+                ViewerStatusLine(
+                    request = request,
+                    standing = standing,
                     style = CodeTheme.typography.caption,
                     color = CodeTheme.colors.textSecondary,
-                    maxLines = 1,
                     modifier = Modifier
                         .measuredUpTo(textMax)
                         .deckShared(request.id, "amounts", visibility),
@@ -738,7 +742,13 @@ private fun Modifier.measuredUpTo(max: Dp): Modifier = layout { measurable, cons
  * the request has ended; full once it completed; a closed request shows "✓".
  */
 @Composable
-internal fun RequestRing(request: PaymentRequest, now: Instant, size: Dp, modifier: Modifier = Modifier) {
+internal fun RequestRing(
+    request: PaymentRequest,
+    now: Instant,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    paid: Boolean = false,
+) {
     val status = request.resolvedStatus(now)
     val ended = status != PaymentRequestStatus.Open
     val fraction = if (status == PaymentRequestStatus.Completed) 1f else request.split?.paidFraction ?: 0f
@@ -761,23 +771,33 @@ internal fun RequestRing(request: PaymentRequest, now: Instant, size: Dp, modifi
             style = if (size > 30.dp) CodeTheme.typography.textMedium else CodeTheme.typography.caption,
             color = Color.Black,
         )
+        if (paid) PaidBadge(glyph = size, ended = ended)
     }
 }
 
 /**
- * "<N> requests, <title>, <paid> of <requested> paid, <status line>", or in the strip, where
- * [viewerId] is given, "You owe <share> for <title>, <status line>".
+ * "<N> requests, <title>, <viewer status>, <paid> of <requested> paid, <status line>", the viewer
+ * status left out with no share; or in the [strip], on a share still owed, "You owe <share> for
+ * <title>, <status line>".
  */
 @Composable
-private fun deckLabel(deck: List<PaymentRequest>, now: Instant, viewerId: ID?): String {
+private fun deckLabel(deck: List<PaymentRequest>, now: Instant, viewerId: ID?, strip: Boolean): String {
     val front = deck.first()
     val split = front.split
-    val share = front.unpaidShareOf(viewerId, now)
+    val share = front.unpaidShareOf(viewerId, now)?.takeIf { strip }
+    val standing = front.viewerStanding(viewerId, now).description()
     val main = if (share != null) stringResource(
         R.string.cd_requestOwed,
         share.amount.requestText(),
         front.deckTitle.orEmpty(),
         front.statusLine(now).text(),
+    ) else if (standing != null) stringResource(
+        R.string.cd_requestDeckViewer,
+        front.deckTitle.orEmpty(),
+        standing,
+        split?.paid?.requestText().orEmpty(),
+        split?.requested?.requestText().orEmpty(),
+        front.statusLine(now)?.text().orEmpty(),
     ) else stringResource(
         R.string.cd_requestDeck,
         front.deckTitle.orEmpty(),
@@ -799,6 +819,7 @@ private fun deckLabel(deck: List<PaymentRequest>, now: Instant, viewerId: ID?): 
 internal fun ExpandedRequests(
     deck: List<PaymentRequest>,
     now: Instant,
+    viewerId: ID?,
     expanded: Boolean,
     transition: Transition<DeckPlacement>,
     top: Dp,
@@ -879,6 +900,7 @@ internal fun ExpandedRequests(
                     titleModifier = if (front) Modifier.deckShared(request.id, "title", visibility) else Modifier,
                     amountsModifier = if (front) Modifier.deckShared(request.id, "amounts", visibility) else Modifier,
                     detailModifier = detail,
+                    standing = request.viewerStanding(viewerId, now),
                 )
             }
         }

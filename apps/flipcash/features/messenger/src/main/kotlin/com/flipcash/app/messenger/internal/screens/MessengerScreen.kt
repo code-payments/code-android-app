@@ -676,6 +676,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     ExpandedRequests(
         deck = drawnDeck,
         now = deckNow,
+        viewerId = viewerId,
         expanded = deckExpanded,
         transition = deckTransition,
         top = barHeight,

@@ -193,4 +193,33 @@ class PaymentRequestTest {
         assertNull(r.split)
         assertFalse(r.isInDeck(now))
     }
+
+    @Test
+    fun `29 - the viewer paid their share`() =
+        assertEquals(
+            ViewerStanding.Paid(Fiat(5, CurrencyCode.USD)),
+            request(listOf(share(2, 5, paid = true), share(3, 40))).viewerStanding(member(2), now),
+        )
+
+    @Test
+    fun `30 - the viewer owes their share`() =
+        assertEquals(
+            ViewerStanding.Owes(Fiat(5, CurrencyCode.USD)),
+            request(listOf(share(2, 5), share(3, 40))).viewerStanding(member(2), now),
+        )
+
+    @Test
+    fun `31 - the viewer created the request, even with a share of their own`() =
+        assertEquals(ViewerStanding.Creator, request(listOf(share(1, paid = true), share(2))).viewerStanding(creator, now))
+
+    @Test
+    fun `32 - the viewer has no share`() =
+        assertEquals(ViewerStanding.NoShare, request().viewerStanding(member(7), now))
+
+    @Test
+    fun `an unpaid share on an ended request owes nothing`() =
+        assertEquals(
+            ViewerStanding.NoShare,
+            request(listOf(share(2)), status = PaymentRequestStatus.Expired, endsIn = (-1).hours).viewerStanding(member(2), now),
+        )
 }

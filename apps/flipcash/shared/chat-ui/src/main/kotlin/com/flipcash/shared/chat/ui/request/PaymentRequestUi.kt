@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,6 +33,7 @@ import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.core.ui.shimmer
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.StatusLine
+import com.flipcash.services.models.paymentrequest.ViewerStanding
 import com.flipcash.services.models.paymentrequest.statusLine
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
@@ -105,7 +107,8 @@ fun RequestProgressBar(fraction: Float, ended: Boolean, modifier: Modifier = Mod
  * line. [title] null draws the placeholders while the request loads. The caller supplies the
  * surface: a chat bubble in the transcript, a full-width card in the expanded deck.
  * [detailModifier] goes on the pieces the deck pill has no counterpart for (label, bar, status
- * line), so the deck can fade them apart from the card.
+ * line), so the deck can fade them apart from the card. [standing], given in the deck, puts the
+ * viewer's part at the footer's trailing end and the paid badge on the glyph.
  */
 @Composable
 fun PaymentRequestCardContent(
@@ -117,6 +120,7 @@ fun PaymentRequestCardContent(
     titleModifier: Modifier = Modifier,
     amountsModifier: Modifier = Modifier,
     detailModifier: Modifier = Modifier,
+    standing: ViewerStanding? = null,
 ) {
     val loading = request == null || title == null
     val ended = request != null && !request.isOpen(now)
@@ -135,6 +139,7 @@ fun PaymentRequestCardContent(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(text = "$", style = CodeTheme.typography.textLarge, color = Color.Black)
+                if (standing is ViewerStanding.Paid) PaidBadge(glyph = 34.dp, ended = ended)
             }
             Column {
                 Text(
@@ -160,11 +165,31 @@ fun PaymentRequestCardContent(
             modifier = if (loading) Modifier.width(160.dp).shimmer(RoundedCornerShape(4.dp)) else amountsModifier,
         )
         RequestProgressBar(fraction = request?.split?.paidFraction ?: 0f, ended = ended, modifier = detailModifier)
-        Text(
-            text = request?.takeUnless { loading }?.statusLine(now)?.text().orEmpty(),
-            style = CodeTheme.typography.caption,
-            color = CodeTheme.colors.textSecondary,
-            modifier = if (loading) Modifier.width(100.dp).shimmer(RoundedCornerShape(4.dp)) else detailModifier,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        ) {
+            Text(
+                text = request?.takeUnless { loading }?.statusLine(now)?.text().orEmpty(),
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textSecondary,
+                modifier = if (loading) Modifier.width(100.dp).shimmer(RoundedCornerShape(4.dp)) else detailModifier,
+            )
+            val viewer = standing?.takeUnless { loading }?.text()
+            if (viewer != null) {
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = viewer,
+                    style = CodeTheme.typography.caption,
+                    color = when (standing) {
+                        is ViewerStanding.Paid, is ViewerStanding.Owes -> CodeTheme.colors.success
+                        else -> CodeTheme.colors.textSecondary
+                    },
+                    maxLines = 1,
+                    modifier = detailModifier,
+                )
+            }
+        }
     }
 }

@@ -1067,6 +1067,11 @@
     </plurals>
     <!-- The owed deck: "You owe $20", then "You owe $20 · 2 days left". -->
     <string name="label_requestYouOwe">You owe %1$s</string>
+    <string name="label_requestYouPaid">✓ You paid %1$s</string>
+    <string name="label_requestYourRequest">Your request</string>
+    <string name="cd_requestYouPaid">you paid %1$s</string>
+    <string name="cd_requestYouOwe">you owe %1$s</string>
+    <string name="cd_requestYourRequest">your request</string>
     <string name="action_requestPay">Pay</string>
     <string name="cd_requestPayShare">Pay %1$s</string>
     <string name="cd_requestOwed">You owe %1$s for %2$s, %3$s</string>
@@ -1074,6 +1079,8 @@
     <string name="label_requestDeckProgress">%1$s of %2$s</string>
     <!-- Screen reader label for the deck: title, "<paid> of <requested> paid", status line. -->
     <string name="cd_requestDeck">%1$s, %2$s of %3$s paid, %4$s</string>
+    <!-- As cd_requestDeck, with the viewer's standing ("you paid $5") after the title. -->
+    <string name="cd_requestDeckViewer">%1$s, %2$s, %3$s of %4$s paid, %5$s</string>
     <plurals name="cd_requestDeckCount">
         <item quantity="one">%1$d request</item>
         <item quantity="other">%1$d requests</item>

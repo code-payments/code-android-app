@@ -198,6 +198,29 @@ fun PaymentRequest.unpaidShareOf(viewerId: ID?, now: Instant): Share? =
     if (viewerId == null || viewerId == creator || !isOpen(now)) null
     else split?.shareOf(viewerId)?.takeIf { !it.isPaid }
 
+/** Where the viewer stands on a request, shown on every deck card. */
+sealed interface ViewerStanding {
+    data class Paid(val share: Fiat) : ViewerStanding
+    data class Owes(val share: Fiat) : ViewerStanding
+    data object Creator : ViewerStanding
+    data object NoShare : ViewerStanding
+}
+
+/**
+ * [viewerId]'s standing: the creator first, then a paid share (however it was paid), then a share
+ * still owed on an open request. An unpaid share on an ended request owes nothing.
+ */
+fun PaymentRequest.viewerStanding(viewerId: ID?, now: Instant): ViewerStanding {
+    if (viewerId == null) return ViewerStanding.NoShare
+    if (viewerId == creator) return ViewerStanding.Creator
+    val share = split?.shareOf(viewerId) ?: return ViewerStanding.NoShare
+    return when {
+        share.isPaid -> ViewerStanding.Paid(share.amount)
+        isOpen(now) -> ViewerStanding.Owes(share.amount)
+        else -> ViewerStanding.NoShare
+    }
+}
+
 /**
  * The app-bar deck's default order: open requests [viewerId] owes on, then other open requests,
  * each by deadline, nearest first, then requests that ended within the last 24 hours, most
