@@ -7,6 +7,10 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.foundation.border
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
@@ -26,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -495,19 +500,28 @@ private fun ViewerPillButton(
     onClick: () -> Unit,
     emoji: List<String> = emptyList(),
 ) {
+    if (emoji.isNotEmpty()) {
+        // Not an IconButton: that pins its content to a 40dp square, which would clip the stack.
+        Box(
+            modifier = Modifier
+                .height(CodeTheme.dimens.staticGrid.x10)
+                .widthIn(min = CodeTheme.dimens.staticGrid.x10)
+                .clip(CircleShape)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .semantics { contentDescription = description }
+                .testTag(tag),
+            contentAlignment = Alignment.Center,
+        ) { ReactionGlyphs(emoji, dimmed = !enabled) }
+        return
+    }
     IconButton(
         onClick = onClick,
-        // Hidden buttons fade out at full tint but stop taking taps straight away.
         enabled = enabled,
-        modifier = (if (emoji.isEmpty()) Modifier else Modifier.widthIn(min = CodeTheme.dimens.staticGrid.x10))
-            .then(if (emoji.isEmpty()) Modifier.size(CodeTheme.dimens.staticGrid.x10) else Modifier.height(CodeTheme.dimens.staticGrid.x10))
+        modifier = Modifier
+            .size(CodeTheme.dimens.staticGrid.x10)
             .semantics { contentDescription = description }
             .testTag(tag),
     ) {
-        if (emoji.isNotEmpty()) {
-            ReactionGlyphs(emoji, dimmed = !enabled)
-            return@IconButton
-        }
         Icon(
             imageVector = icon,
             contentDescription = description,
@@ -516,30 +530,62 @@ private fun ViewerPillButton(
     }
 }
 
-/** The user's own reactions drawn as text: up to three overlapping, else the first two and "+N". */
+/**
+ * The user's own reactions as a stack of chips: each emoji sits in its own circle, ringed in the
+ * glass tint's opaque equivalent so each chip is cut out of the one beneath it. Up to three show;
+ * more show the first two and a "+N" chip. Later chips sit on top of earlier ones.
+ */
 @Composable
 private fun ReactionGlyphs(emoji: List<String>, dimmed: Boolean) {
     val shown = if (emoji.size > 3) emoji.take(2) else emoji
-    Row(
-        modifier = Modifier.padding(horizontal = CodeTheme.dimens.staticGrid.x1).graphicsLayer { alpha = if (dimmed) 0.4f else 1f },
-        verticalAlignment = Alignment.CenterVertically,
+    val count = shown.size + if (emoji.size > 3) 1 else 0
+    val backdrop = CodeTheme.colors.background
+    val ringTint = lerp(backdrop, Color.White, 0.18f)
+    val chipTint = lerp(backdrop, Color.White, 0.32f)
+    val chipSize = 28.dp
+    // Each chip starts 65% of its width after the last, so neighbours overlap by 35%.
+    val stride = chipSize * 0.65f
+    Box(
+        modifier = Modifier
+            .padding(horizontal = CodeTheme.dimens.staticGrid.x2)
+            .width(chipSize + stride * (count - 1))
+            .height(chipSize)
+            .graphicsLayer { alpha = if (dimmed) 0.4f else 1f },
     ) {
         shown.forEachIndexed { index, glyph ->
-            Text(
-                text = glyph,
-                fontSize = 18.sp,
-                modifier = Modifier.then(if (index == 0) Modifier else Modifier.offset(x = (-6 * index).dp)).testTag(VIEWER_REACT_GLYPH_TAG),
-            )
+            ReactionChip(chipSize, chipTint, ringTint, Modifier.offset(x = stride * index)) {
+                Text(text = glyph, fontSize = 14.sp, modifier = Modifier.testTag(VIEWER_REACT_GLYPH_TAG))
+            }
         }
         if (emoji.size > 3) {
-            Text(
-                text = "+${emoji.size - 2}",
-                color = Color.White,
-                fontSize = 13.sp,
-                modifier = Modifier.offset(x = (-12).dp).testTag(VIEWER_REACT_MORE_TAG),
-            )
+            ReactionChip(chipSize, chipTint, ringTint, Modifier.offset(x = stride * shown.size)) {
+                Text(
+                    text = "+${emoji.size - 2}",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    modifier = Modifier.testTag(VIEWER_REACT_MORE_TAG),
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun ReactionChip(
+    size: androidx.compose.ui.unit.Dp,
+    fill: Color,
+    ring: Color,
+    modifier: Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(fill)
+            .border(2.dp, ring, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) { content() }
 }
 
 @Composable
