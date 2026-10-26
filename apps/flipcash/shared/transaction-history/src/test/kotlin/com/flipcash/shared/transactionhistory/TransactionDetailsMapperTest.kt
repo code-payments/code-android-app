@@ -44,6 +44,8 @@ class TransactionDetailsMapperTest {
     private val resources = FakeResourceHelper()
         .stub(R.string.title_activity_convert, "%1\$s → %2\$s")
         .stub(R.string.label_txnDetails_inPerson, "In Person")
+        .stub(R.string.title_txnDetails_youBoosted, "You boosted")
+        .stub(R.string.title_txnDetails_boostReceived, "Boost received")
     private val mapper = TransactionDetailsMapper(resources)
 
     private val knownUserId: ID = listOf<Byte>(0x0A, 0x0B, 0x0C)
@@ -329,20 +331,20 @@ class TransactionDetailsMapperTest {
     // --- Boosted reaction: header and receipt rows (H1-H6, C1-C4) ---
 
     @Test
-    fun `H1 a sent boost is headed You boosted with the counterparty's name beneath`() {
+    fun `H1 a sent boost keeps the name as heading with You boosted beneath`() {
         val d = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost))
         assertEquals(TransactionKind.Boosted, d.kind)
         assertEquals(R.string.title_txnDetails_youBoosted, d.kind.headingRes)
-        assertNull(d.heading)
-        assertEquals("Sally The Streamer", d.subtitle)
+        assertEquals("Sally The Streamer", d.heading)
+        assertEquals("You boosted", d.subtitle)
     }
 
     @Test
-    fun `H2 a received boost is headed Boost received`() {
+    fun `H2 a received boost has Boost received beneath the name`() {
         val d = map(MessageMetadata.ReceivedCrypto(userId = knownUserId, boostedReaction = boost))
         assertEquals(TransactionKind.BoostReceived, d.kind)
-        assertEquals(R.string.title_txnDetails_boostReceived, d.kind.headingRes)
-        assertEquals("Sally The Streamer", d.subtitle)
+        assertEquals("Sally The Streamer", d.heading)
+        assertEquals("Boost received", d.subtitle)
     }
 
     @Test
@@ -355,14 +357,15 @@ class TransactionDetailsMapperTest {
     }
 
     @Test
-    fun `H4 a split boost names its chat where a counterparty would go`() {
+    fun `H4 a split boost puts its chat name where a counterparty would go`() {
         val d = map(MessageMetadata.DirectlySentCrypto(boostedReaction = boost), chatName = "Design Team")
         assertEquals(TransactionKind.Boosted, d.kind)
-        assertEquals("Design Team", d.subtitle)
+        assertEquals("Design Team", d.heading)
+        assertEquals("You boosted", d.subtitle)
     }
 
     @Test
-    fun `H5 a split boost whose chat is not stored keeps the no-counterparty header`() {
+    fun `H5 a split boost whose chat is not stored is headed You boosted alone`() {
         val d = map(MessageMetadata.DirectlySentCrypto(boostedReaction = boost))
         assertEquals(TransactionKind.Boosted, d.kind)
         assertNull(d.heading)

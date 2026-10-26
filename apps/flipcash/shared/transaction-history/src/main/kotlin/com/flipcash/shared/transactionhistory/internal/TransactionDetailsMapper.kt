@@ -48,8 +48,8 @@ internal class TransactionDetailsMapper @Inject constructor(
         val boost = boostedReactionOf(meta)
         val counterpartyName = counterparty?.displayName?.takeIf { it.isNotBlank() }
         // A split boost has nobody to name, so the chat takes the name's place; a one-payee boost
-        // keeps the person. Not stored locally: nothing, the header as it is for no counterparty.
-        val boostSubtitle = counterpartyName
+        // keeps the person. Not stored locally: no name, and the kind heading stands alone.
+        val boostName = counterpartyName
             ?: source.boostChatName?.takeIf { it.isNotBlank() && isSplitBoost(meta) }
         // A DM is stored without a title; its name is the partner's, as in the chat list.
         val chatName = source.boostChatName?.takeIf { it.isNotBlank() }
@@ -63,11 +63,11 @@ internal class TransactionDetailsMapper @Inject constructor(
             avatar = avatarOf(counterparty, convert != null, meta, token, source.toToken),
             // A person entry is titled by the person; everything else falls back to the kind's own
             // heading, which is also what an unresolved counterparty gets.
-            // A boost keeps its own kind heading ("You boosted"), so the name moves to the line
-            // under it rather than replacing it.
-            heading = counterparty?.displayName?.takeIf { it.isNotBlank() && boost == null },
-            subtitle = if (boost != null) {
-                boostSubtitle ?: subtitleOf(kind, token, source.toToken)
+            // The name stays the large heading; a boost's own heading ("You boosted") goes on the
+            // line under it. With no name, that heading stands alone.
+            heading = if (boost != null) boostName else counterpartyName,
+            subtitle = if (boost != null && boostName != null) {
+                resources.getString(kind.headingRes)
             } else {
                 subtitleOf(kind, token, source.toToken)
             },
