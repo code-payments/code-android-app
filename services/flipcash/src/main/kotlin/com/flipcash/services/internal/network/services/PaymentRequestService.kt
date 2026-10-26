@@ -1,9 +1,13 @@
 package com.flipcash.services.internal.network.services
 
-import com.codeinc.flipcash.gen.paymentrequest.v1.Model
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.codeinc.flipcash.gen.paymentrequest.v1.PaymentrequestService
 import com.flipcash.services.internal.network.api.PaymentRequestApi
+import com.flipcash.services.internal.network.extensions.asGroupChatPaymentRequest
+import com.flipcash.services.internal.network.extensions.asPaymentRequestId
+import com.flipcash.services.internal.network.extensions.asPaymentRequestIdempotencyKey
 import com.flipcash.services.internal.network.extensions.toFlaggedCategory
+import com.flipcash.services.internal.network.extensions.toPaymentRequest
 import com.flipcash.services.internal.network.extensions.toPagingToken
 import com.flipcash.services.models.ClosePaymentRequestError
 import com.flipcash.services.models.CreatePaymentRequestError
@@ -12,6 +16,9 @@ import com.flipcash.services.models.GetPaymentRequestError
 import com.flipcash.services.models.MarkPaymentRequestPaidError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.paymentrequest.NewSplitRequest
+import com.flipcash.services.models.paymentrequest.PaymentIntentId
+import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
 import com.flipcash.services.models.paymentrequest.PaymentRequestSection
@@ -26,15 +33,15 @@ internal class PaymentRequestService @Inject constructor(
 ) {
     suspend fun createPaymentRequest(
         owner: Ed25519.KeyPair,
-        groupChat: Model.GroupChatPaymentRequest,
-        idempotencyKey: Model.IdempotencyKey,
-    ): Result<Model.PaymentRequestMetadata> {
+        request: NewSplitRequest,
+        idempotencyKey: IdempotencyKey,
+    ): Result<PaymentRequest> {
         return runCatching {
-            api.createPaymentRequest(owner, groupChat, idempotencyKey)
+            api.createPaymentRequest(owner, request.asGroupChatPaymentRequest(), idempotencyKey.asPaymentRequestIdempotencyKey())
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    PaymentrequestService.CreatePaymentRequestResponse.Result.OK -> Result.success(response.paymentRequest)
+                    PaymentrequestService.CreatePaymentRequestResponse.Result.OK -> Result.success(response.paymentRequest.toPaymentRequest())
                     PaymentrequestService.CreatePaymentRequestResponse.Result.DENIED -> Result.failure(CreatePaymentRequestError.Denied())
                     PaymentrequestService.CreatePaymentRequestResponse.Result.CHAT_NOT_SUPPORTED -> Result.failure(CreatePaymentRequestError.ChatNotSupported())
                     PaymentrequestService.CreatePaymentRequestResponse.Result.ENCRYPTION_NOT_ALLOWED -> Result.failure(CreatePaymentRequestError.EncryptionNotAllowed())
@@ -55,16 +62,16 @@ internal class PaymentRequestService @Inject constructor(
 
     suspend fun getPaymentRequest(
         owner: Ed25519.KeyPair,
-        paymentRequestId: Model.PaymentRequestId,
+        paymentRequestId: ID,
     ): Result<PaymentRequestDetails> {
         return runCatching {
-            api.getPaymentRequest(owner, paymentRequestId)
+            api.getPaymentRequest(owner, paymentRequestId.asPaymentRequestId())
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
                     PaymentrequestService.GetPaymentRequestResponse.Result.OK -> Result.success(PaymentRequestDetails(
-                        paymentRequest = response.paymentRequest,
-                        paymentIntentId = if (response.hasPaymentIntentId()) response.paymentIntentId else null,
+                        paymentRequest = response.paymentRequest.toPaymentRequest(),
+                        paymentIntentId = if (response.hasPaymentIntentId()) PaymentIntentId(response.paymentIntentId.value.toByteArray()) else null,
                     ))
                     PaymentrequestService.GetPaymentRequestResponse.Result.DENIED -> Result.failure(GetPaymentRequestError.Denied())
                     PaymentrequestService.GetPaymentRequestResponse.Result.NOT_FOUND -> Result.failure(GetPaymentRequestError.NotFound())
@@ -90,7 +97,7 @@ internal class PaymentRequestService @Inject constructor(
             onSuccess = { response ->
                 when (response.result) {
                     PaymentrequestService.GetChatPaymentRequestsResponse.Result.OK -> Result.success(PaymentRequestPage(
-                        paymentRequests = response.paymentRequestsList,
+                        paymentRequests = response.paymentRequestsList.map { it.toPaymentRequest() },
                         pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
                         hasMore = response.hasMore,
                     ))
@@ -108,14 +115,14 @@ internal class PaymentRequestService @Inject constructor(
 
     suspend fun closePaymentRequest(
         owner: Ed25519.KeyPair,
-        paymentRequestId: Model.PaymentRequestId,
-    ): Result<Model.PaymentRequestMetadata> {
+        paymentRequestId: ID,
+    ): Result<PaymentRequest> {
         return runCatching {
-            api.closePaymentRequest(owner, paymentRequestId)
+            api.closePaymentRequest(owner, paymentRequestId.asPaymentRequestId())
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    PaymentrequestService.ClosePaymentRequestResponse.Result.OK -> Result.success(response.paymentRequest)
+                    PaymentrequestService.ClosePaymentRequestResponse.Result.OK -> Result.success(response.paymentRequest.toPaymentRequest())
                     PaymentrequestService.ClosePaymentRequestResponse.Result.DENIED -> Result.failure(ClosePaymentRequestError.Denied())
                     PaymentrequestService.ClosePaymentRequestResponse.Result.NOT_FOUND -> Result.failure(ClosePaymentRequestError.NotFound())
                     PaymentrequestService.ClosePaymentRequestResponse.Result.UNRECOGNIZED -> Result.failure(ClosePaymentRequestError.Unrecognized())
@@ -130,15 +137,15 @@ internal class PaymentRequestService @Inject constructor(
 
     suspend fun markPaid(
         owner: Ed25519.KeyPair,
-        paymentRequestId: Model.PaymentRequestId,
+        paymentRequestId: ID,
         userId: ID,
-    ): Result<Model.PaymentRequestMetadata> {
+    ): Result<PaymentRequest> {
         return runCatching {
-            api.markPaid(owner, paymentRequestId, userId)
+            api.markPaid(owner, paymentRequestId.asPaymentRequestId(), userId)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    PaymentrequestService.MarkPaidResponse.Result.OK -> Result.success(response.paymentRequest)
+                    PaymentrequestService.MarkPaidResponse.Result.OK -> Result.success(response.paymentRequest.toPaymentRequest())
                     PaymentrequestService.MarkPaidResponse.Result.DENIED -> Result.failure(MarkPaymentRequestPaidError.Denied())
                     PaymentrequestService.MarkPaidResponse.Result.NOT_FOUND -> Result.failure(MarkPaymentRequestPaidError.NotFound())
                     PaymentrequestService.MarkPaidResponse.Result.NOT_OPEN -> Result.failure(MarkPaymentRequestPaidError.NotOpen())

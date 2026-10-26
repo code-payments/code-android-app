@@ -41,8 +41,6 @@ import com.flipcash.shared.chat.ui.BubblePosition
 import com.getcode.ui.components.chat.TypingDots
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -202,15 +200,6 @@ internal fun MessageRow(
         }
     }
 
-    val dimAlpha by animateFloatAsState(
-        targetValue = if (focused) 1f else 0.4f,
-        label = "messageDim",
-    )
-    val dimBlur by animateDpAsState(
-        targetValue = if (focused) 0.dp else 8.dp,
-        label = "messageBlur",
-    )
-
     // The row answers the finger before the long-press resolves: it dips while held,
     // then springs up and stays lifted for as long as it is the selected message.
     val pressed by interactionSource.collectIsPressedAsState()
@@ -236,14 +225,6 @@ internal fun MessageRow(
     // The selected message's own pills stay behind the backdrop with the rest of the transcript,
     // so they take the same dim and blur the other rows do.
     val pillsBehindBackdrop = selecting && focused
-    val pillDimAlpha by animateFloatAsState(
-        targetValue = if (pillsBehindBackdrop) 0.4f else 1f,
-        label = "pillDim",
-    )
-    val pillDimBlur by animateDpAsState(
-        targetValue = if (pillsBehindBackdrop) 8.dp else 0.dp,
-        label = "pillBlur",
-    )
 
     val swipe = rememberSwipeToReply(
         enabled = bubble != null &&
@@ -263,10 +244,7 @@ internal fun MessageRow(
     Box(
         modifier = Modifier
             .padding(bottom = bottomSpacing)
-            // Unbounded: the rectangle treatment would clip the blur at the row's own
-            // edges and leave a hard seam between neighbouring rows.
-            .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
-            .graphicsLayer { alpha = dimAlpha }
+            .chatBackdrop(behind = !focused)
             // No row gestures while the backdrop is up: the rows are behind it, and a
             // press there would move the selection out from under the message the bar —
             // or the composer — is already acting on.
@@ -494,8 +472,7 @@ internal fun MessageRow(
                                 BoxWithConstraints(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .blur(pillDimBlur, BlurredEdgeTreatment.Unbounded)
-                                        .graphicsLayer { alpha = pillDimAlpha }
+                                        .chatBackdrop(behind = pillsBehindBackdrop)
                                         .addIf(selecting) { Modifier.blockPointerInput() },
                                 ) {
                                     ReactionPillRow(

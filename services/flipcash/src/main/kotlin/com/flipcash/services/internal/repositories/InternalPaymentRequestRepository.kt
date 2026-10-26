@@ -1,12 +1,14 @@
 package com.flipcash.services.internal.repositories
 
-import com.codeinc.flipcash.gen.paymentrequest.v1.Model
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.internal.network.services.PaymentRequestService
 import com.flipcash.services.models.CreatePaymentRequestError
 import com.flipcash.services.models.GetChatPaymentRequestsError
 import com.flipcash.services.models.GetPaymentRequestError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.paymentrequest.NewSplitRequest
+import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
 import com.flipcash.services.models.paymentrequest.PaymentRequestSection
@@ -20,10 +22,10 @@ internal class InternalPaymentRequestRepository(
 ) : PaymentRequestRepository {
     override suspend fun createPaymentRequest(
         owner: KeyPair,
-        groupChat: Model.GroupChatPaymentRequest,
-        idempotencyKey: Model.IdempotencyKey,
-    ): Result<Model.PaymentRequestMetadata> {
-        return service.createPaymentRequest(owner, groupChat, idempotencyKey)
+        request: NewSplitRequest,
+        idempotencyKey: IdempotencyKey,
+    ): Result<PaymentRequest> {
+        return service.createPaymentRequest(owner, request, idempotencyKey)
             .onFailure {
                 if (it !is CreatePaymentRequestError.Denied && it !is CreatePaymentRequestError.TextModerated) {
                     ErrorUtils.handleError(it)
@@ -33,7 +35,7 @@ internal class InternalPaymentRequestRepository(
 
     override suspend fun getPaymentRequest(
         owner: KeyPair,
-        paymentRequestId: Model.PaymentRequestId,
+        paymentRequestId: ID,
     ): Result<PaymentRequestDetails> {
         return service.getPaymentRequest(owner, paymentRequestId)
             .onFailure { if (it !is GetPaymentRequestError.NotFound) ErrorUtils.handleError(it) }
@@ -51,17 +53,17 @@ internal class InternalPaymentRequestRepository(
 
     override suspend fun closePaymentRequest(
         owner: KeyPair,
-        paymentRequestId: Model.PaymentRequestId,
-    ): Result<Model.PaymentRequestMetadata> {
+        paymentRequestId: ID,
+    ): Result<PaymentRequest> {
         return service.closePaymentRequest(owner, paymentRequestId)
             .onFailure { ErrorUtils.handleError(it) }
     }
 
     override suspend fun markPaid(
         owner: KeyPair,
-        paymentRequestId: Model.PaymentRequestId,
+        paymentRequestId: ID,
         userId: ID,
-    ): Result<Model.PaymentRequestMetadata> {
+    ): Result<PaymentRequest> {
         return service.markPaid(owner, paymentRequestId, userId)
             .onFailure { ErrorUtils.handleError(it) }
     }

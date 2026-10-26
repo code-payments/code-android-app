@@ -1,8 +1,10 @@
 package com.flipcash.services.controllers
 
-import com.codeinc.flipcash.gen.paymentrequest.v1.Model
+import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.paymentrequest.NewSplitRequest
+import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
 import com.flipcash.services.models.paymentrequest.PaymentRequestSection
@@ -15,13 +17,13 @@ class PaymentRequestController @Inject constructor(
     private val repository: PaymentRequestRepository,
     private val userManager: UserManager,
 ) {
-    suspend fun createPaymentRequest(groupChat: Model.GroupChatPaymentRequest, idempotencyKey: Model.IdempotencyKey): Result<Model.PaymentRequestMetadata> {
+    suspend fun createPaymentRequest(request: NewSplitRequest, idempotencyKey: IdempotencyKey): Result<PaymentRequest> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
-        return repository.createPaymentRequest(owner, groupChat, idempotencyKey)
+        return repository.createPaymentRequest(owner, request, idempotencyKey)
     }
 
-    suspend fun getPaymentRequest(paymentRequestId: Model.PaymentRequestId): Result<PaymentRequestDetails> {
+    suspend fun getPaymentRequest(paymentRequestId: ID): Result<PaymentRequestDetails> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
         return repository.getPaymentRequest(owner, paymentRequestId)
@@ -33,13 +35,13 @@ class PaymentRequestController @Inject constructor(
         return repository.getChatPaymentRequests(owner, chatId, section, queryOptions)
     }
 
-    suspend fun closePaymentRequest(paymentRequestId: Model.PaymentRequestId): Result<Model.PaymentRequestMetadata> {
+    suspend fun closePaymentRequest(paymentRequestId: ID): Result<PaymentRequest> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
         return repository.closePaymentRequest(owner, paymentRequestId)
     }
 
-    suspend fun markPaid(paymentRequestId: Model.PaymentRequestId, userId: ID): Result<Model.PaymentRequestMetadata> {
+    suspend fun markPaid(paymentRequestId: ID, userId: ID): Result<PaymentRequest> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
         return repository.markPaid(owner, paymentRequestId, userId)

@@ -3,6 +3,7 @@ package com.flipcash.app.core.chat
 import android.os.Parcelable
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.solana.keys.Mint
+import com.getcode.navigation.FullscreenSheet
 import com.getcode.navigation.HalfSheet
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.WrapContentSheet
@@ -189,6 +190,28 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * sheet (node 10330:18091), opened from the pill row's "$". The sheet picks which reaction from
      * the viewer's own. Short and fixed, so it wraps its content.
      */
+    /**
+     * Frames 03–06 — a private group's Request Money history, and the create flow behind its New
+     * Request button, on a back stack of its own. Presented as [ShareMessage] is, a full sheet
+     * with a close at its root; its steps are non-draggable, so the close is the only way out.
+     */
+    @Parcelize
+    @Serializable
+    data class RequestMoney(val chatId: ChatId) : ChatStep, Sheet, FullscreenSheet
+
+    /**
+     * Frames 09, 11, 24 and 35 — one payment request in [chatId]. [requestId] is the request's id
+     * in base58, so the step stays a plain parcelable. A full sheet like [RequestMoney], closed
+     * only from its app bar; `ChatFlowScreen` turns the drag-to-dismiss off. [pay] opens it
+     * straight into paying the viewer's share, as the deck's Pay button does.
+     */
+    @Parcelize
+    @Serializable
+    data class RequestDetails(val chatId: ChatId, val requestId: String, val pay: Boolean = false) :
+        ChatStep,
+        Sheet,
+        FullscreenSheet
+
     @Parcelize
     @Serializable
     data class ReactionBoost(

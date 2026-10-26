@@ -24,6 +24,7 @@ import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.map
 import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.funding.bottomBarCardAction
 import com.flipcash.analytics.CashLinkChoice
 import com.flipcash.analytics.GroupAccess as AnalyticsGroupAccess
 import com.flipcash.analytics.GroupGateFunding
@@ -1001,6 +1002,8 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** @param toMembers whether this is a group send, which opens [ChatStep.GroupSendAmountEntry]. */
         data class NavigateToAmountEntry(val toMembers: Boolean) : Event
+        /** Request Money history, for a private group. */
+        data object NavigateToRequestMoney : Event
 
         data object PresentDepositOptions : Event
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
@@ -1801,6 +1804,8 @@ internal class ChatViewModel @AssistedInject constructor(
                     when (body.widget) {
                         is WidgetContent.ShareProfile ->
                             resources.getString(R.string.label_chat_preview_sharedProfile)
+                        is WidgetContent.PaymentRequest ->
+                            resources.getString(R.string.label_paymentRequest_card)
                         WidgetContent.Unsupported -> ""
                     }
                 )
@@ -3601,22 +3606,9 @@ internal class ChatViewModel @AssistedInject constructor(
             // Event.OnSendRequested).
             .filter { stateFlow.value.participant != null || stateFlow.value.chatType == ChatType.GROUP }
             .onEach {
-                if (!startChattingPayer.mayProceed(
-                        onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
-                        onDiscoverCurrencies = { dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery, asSheet = true)) },
-                    )
-                ) {
-                    return@onEach
-                }
-                val toMembers = stateFlow.value.sendsToMembers
-                amountStyleFlow.value = amountStyle(toMembers)
-                dispatchEvent(
-                    Event.GroupSendUpdated(
-                        GroupSendState(viewerId = userManager.accountId).takeIf { toMembers }
-                    )
-                )
-                amountDelegate.reset()
-                dispatchEvent(Event.NavigateToAmountEntry(toMembers))
+                // A private group can also ask its members for money, so the button offers both.
+                // Only sending spends anything, so only sending runs the balance gate.
+                if (stateFlow.value.sendsToMembers) presentMoneyActions() else startSend()
             }.launchIn(viewModelScope)
 
         observeGroupSend()
@@ -3812,6 +3804,49 @@ internal class ChatViewModel @AssistedInject constructor(
             mediaUploads.remove(it.id)
             captureFiles.remove(it.id)?.delete()
         }
+    }
+
+    /** Node 12243:1009 — Send Money or Request Money, as cards like the Add Money sheet's. */
+    private fun presentMoneyActions() {
+        // Two rows and nothing else, as the spec lays the sheet out: no title, no Dismiss.
+        BottomBarManager.showMessage(
+            title = "",
+            actions = listOf(
+                bottomBarCardAction(
+                    title = resources.getString(R.string.action_sendMoney),
+                    subtitle = resources.getString(R.string.subtitle_sendMoney_group),
+                    iconRes = R.drawable.ic_menu_withdraw,
+                    testTag = "money_action_send",
+                    onClick = { viewModelScope.launch { startSend() } },
+                ),
+                bottomBarCardAction(
+                    title = resources.getString(R.string.action_requestMoney),
+                    subtitle = resources.getString(R.string.subtitle_requestMoney_group),
+                    iconRes = R.drawable.ic_menu_deposit,
+                    testTag = "money_action_request",
+                    onClick = { dispatchEvent(Event.NavigateToRequestMoney) },
+                ),
+            ),
+        )
+    }
+
+    private suspend fun startSend() {
+        if (!startChattingPayer.mayProceed(
+                onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
+                onDiscoverCurrencies = { dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery, asSheet = true)) },
+            )
+        ) {
+            return
+        }
+        val toMembers = stateFlow.value.sendsToMembers
+        amountStyleFlow.value = amountStyle(toMembers)
+        dispatchEvent(
+            Event.GroupSendUpdated(
+                GroupSendState(viewerId = userManager.accountId).takeIf { toMembers }
+            )
+        )
+        amountDelegate.reset()
+        dispatchEvent(Event.NavigateToAmountEntry(toMembers))
     }
 
     /** Select People and the confirm sheet of a private group's send. See [GroupSendState]. */
@@ -4222,6 +4257,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     state.copy(stagedPhotos = (event.photos + state.stagedPhotos).take(MAX_STAGED_PHOTOS))
                 }
                 is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
+                Event.NavigateToRequestMoney -> { state -> state }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.MentionTapped -> { state -> state }

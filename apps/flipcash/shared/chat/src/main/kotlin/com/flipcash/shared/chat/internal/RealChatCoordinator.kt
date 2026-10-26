@@ -12,6 +12,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.LobbyUpdateSink
+import com.flipcash.shared.chat.PaymentRequests
 import com.flipcash.shared.chat.RosterUpdateSink
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
@@ -105,6 +106,7 @@ class RealChatCoordinator @Inject constructor(
     private val mediaSender: ChatMediaSending = ChatMediaSending.None,
     private val lobbyUpdates: LobbyUpdateSink = LobbyUpdateSink.None,
     private val rosterUpdates: RosterUpdateSink = RosterUpdateSink.None,
+    private val paymentRequests: PaymentRequests? = null,
 ) : ChatCoordinator,
     SessionListener,
     DefaultLifecycleObserver,
@@ -428,6 +430,7 @@ class RealChatCoordinator @Inject constructor(
         reactionsDelegate.clearAll()
         lobbyUpdates.clear()
         rosterUpdates.clear()
+        paymentRequests?.clear()
         cluster.value = null
         supervisorJob.cancel()
         trace(tag = TAG, message = "teardown complete", type = TraceType.Process)

@@ -68,7 +68,10 @@ internal class IntentTransfer(
             )
         }
 
-        /** Creates a direct transfer to a known recipient's vault. */
+        /**
+         * Creates a direct transfer to a known recipient's vault, under [intentId] when the server
+         * issued one (a payment request's share) and a fresh id otherwise.
+         */
         fun create(
             amount: LocalFiat,
             mint: Mint,
@@ -77,6 +80,7 @@ internal class IntentTransfer(
             destinationOwner: PublicKey,
             verifiedState: VerifiedState,
             appMetadata: ByteArray? = null,
+            intentId: PublicKey? = null,
         ): IntentTransfer {
             val transfer = ActionPublicTransfer.newInstance(
                 owner = sourceCluster.authority.keyPair,
@@ -87,7 +91,7 @@ internal class IntentTransfer(
             )
 
             return IntentTransfer(
-                id = PublicKey.generate(),
+                id = intentId ?: PublicKey.generate(),
                 metadata = TransactionMetadata.SendPublicPayment(
                     source = sourceCluster.vaultPublicKey,
                     destination = destination,

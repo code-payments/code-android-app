@@ -276,6 +276,22 @@ class ChatEntityMapperTest {
         )
     }
 
+    @Test
+    fun `a payment request widget survives the round trip through the message row`() {
+        val widget = MessageContent.Widget(WidgetContent.PaymentRequest(List(32) { it.toByte() }))
+        val message = ChatMessage(
+            messageId = 1,
+            senderId = listOf(0xAB.toByte()),
+            content = listOf(widget),
+            timestamp = Instant.fromEpochSeconds(1_000),
+            unreadSeq = 1,
+        )
+
+        val entity = mapper.toEntity(CHAT_HEX, message)
+
+        assertEquals(listOf<MessageContent>(widget), mapper.toMessage(entity).content)
+    }
+
     private fun groupMetadata() = ChatMetadata(
         chatId = ChatId(CHAT_HEX),
         type = ChatType.GROUP,

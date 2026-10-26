@@ -31,6 +31,8 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.flow.combine
+import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.services.models.paymentrequest.PaymentRequest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -49,6 +51,7 @@ internal class ChatsViewModel @Inject constructor(
     private val archiveStore: ChatArchiveStore,
     private val lobbyRequests: LobbyRequests,
     private val hostLobbies: HostLobbies,
+    private val paymentRequests: PaymentRequests,
 ) : BaseViewModel<ChatsViewModel.State, ChatsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -129,9 +132,11 @@ internal class ChatsViewModel @Inject constructor(
             // Null on the first-frame draw if the table has not been read yet: asking then would
             // re-fetch every sender already on disk.
             senderProfiles: Map<String, UserProfile>?,
+            requests: Map<ID, PaymentRequest>,
         ): Event.ChatsUpdated {
-            val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange)
-            val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange)
+            val fetchRequest: (ID) -> Unit = { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } }
+            val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest)
+            val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest)
 
             // The projection sees every chat so the chips, the Archived row and the badge number
             // come from the one function the fixture tests. Hidden chats never reach the feeds, so
@@ -159,6 +164,7 @@ internal class ChatsViewModel @Inject constructor(
                     feeds = feeds,
                     tokens = tokenCoordinator.cachedTokens(),
                     senderProfiles = chatCoordinator.currentSenderProfiles(),
+                    requests = paymentRequests.state.value,
                 )
             )
         }
@@ -171,7 +177,8 @@ internal class ChatsViewModel @Inject constructor(
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
             exchange.observePreferredRate(),
-        ) { feeds, tokens, senderProfiles, _ -> content(feeds, tokens, senderProfiles) }
+            paymentRequests.state,
+        ) { feeds, tokens, senderProfiles, _, requests -> content(feeds, tokens, senderProfiles, requests) }
             // Off the main thread: on a cold launch the first mapping lands while the main thread
             // is drawing the app's first screens, and waiting for it holds the Chats tab blank.
             .flowOn(dispatchers.Default)

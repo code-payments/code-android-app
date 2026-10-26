@@ -254,6 +254,11 @@ sealed interface MessageContentSerialized {
     @SerialName("widget_share_profile")
     data class WidgetShareProfile(val username: String?) : MessageContentSerialized
 
+    // Mirrors WidgetContent.PaymentRequest; [paymentRequestId] is base58.
+    @Serializable
+    @SerialName("widget_payment_request")
+    data class WidgetPaymentRequest(val paymentRequestId: String) : MessageContentSerialized
+
     // Mirrors MessageContent.System. [joinedUser] is set for a UserJoined event, and
     // [admittedBy] when someone let them in; both hex-encoded. Rows stored before the event was
     // kept have neither and decode as fallback-only.

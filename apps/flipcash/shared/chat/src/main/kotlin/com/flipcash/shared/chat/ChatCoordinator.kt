@@ -515,6 +515,14 @@ interface MessagingOperations {
         linkPreview: OutgoingLinkPreview? = null,
     ): Result<ChatMessage>
 
+    /**
+     * Posts the widget for payment request [requestId] to [chatId], once the request exists. A
+     * failed send is retried on the same pending row; after the last retry the failure is a
+     * [PaymentRequestNotSent] naming that row, so it can be retried again with [retryMessage].
+     * The request is never created twice for one post.
+     */
+    suspend fun sendPaymentRequest(chatId: ChatId, requestId: ID): Result<ChatMessage>
+
     /** Retries a failed pending message: resets to SENDING and re-sends to the server. */
     suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage>
 
@@ -680,3 +688,10 @@ interface ChatCoordinator :
 
 class NoDmChatInitializedException(e164: String) : Exception("No DM chat for $e164")
 class FailedToGenerateChatIdException(identifier: String?) : Exception("Failed to generate chat ID for $identifier")
+
+/**
+ * A payment request's widget message that still failed after its retries. The request itself
+ * exists; retry the pending row [pendingClientIdHex] with [ChatCoordinator.retryMessage].
+ */
+class PaymentRequestNotSent(val pendingClientIdHex: String, cause: Throwable) :
+    Exception("payment request message not sent", cause)

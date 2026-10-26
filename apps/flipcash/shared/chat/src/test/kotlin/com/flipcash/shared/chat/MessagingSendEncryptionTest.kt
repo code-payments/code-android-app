@@ -518,4 +518,32 @@ class MessagingSendEncryptionTest {
         assertEquals(true, delegate.sendMessage(chatId, "hello group", replyToMessageId = null).isFailure)
         coVerify(exactly = 0) { controller.sendMessage(chatId, any(), any()) }
     }
+
+    @Test
+    fun `a payment request message that keeps failing is retried on its row, then names it`() = runTest {
+        storedChat(privateGroup())
+        answerSends()
+        coEvery { controller.sendMessage(chatId, any(), any()) } returns Result.failure(IOException("offline"))
+
+        val result = delegate.sendPaymentRequest(chatId, requestId = List(16) { 4 })
+
+        // The first send and two retries, all on the same pending row; Create is not this layer's.
+        coVerify(exactly = 3) { controller.sendMessage(chatId, any(), any()) }
+        coVerify(exactly = 2) { messages.retryPending(chatId, any()) }
+        coVerify(exactly = 1) { messages.insertPending(chatId, any(), selfId) }
+        assertIs<PaymentRequestNotSent>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `a payment request message that goes through on a retry succeeds`() = runTest {
+        storedChat(privateGroup())
+        answerSends()
+        var calls = 0
+        coEvery { controller.sendMessage(chatId, any(), any()) } answers {
+            if (++calls == 1) Result.failure(IOException("offline")) else Result.success(serverCopy(secondArg()))
+        }
+
+        assertEquals(true, delegate.sendPaymentRequest(chatId, requestId = List(16) { 4 }).isSuccess)
+        assertEquals(2, calls)
+    }
 }

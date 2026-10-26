@@ -102,7 +102,7 @@ private val GrowSpring = spring<Float>(dampingRatio = 0.9f, stiffness = 900f)
 private val PopSpring = spring<Float>(dampingRatio = 0.65f, stiffness = 1200f)
 
 /** iOS's pre-glass strip surface. */
-private val StripSurface = Color(0xFF303030)
+internal val StripSurface = Color(0xFF303030)
 
 /** The "+"'s frost over the emoji passing under it: a blur tinted back toward the strip. */
 private val PlusGlass = HazeBlurStyle {

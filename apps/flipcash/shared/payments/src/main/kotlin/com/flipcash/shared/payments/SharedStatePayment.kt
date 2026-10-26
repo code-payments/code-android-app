@@ -11,6 +11,7 @@ import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.PublicKey
 
 /**
  * Pays several people in one intent, each their own fiat amount. Shared by reaction boosts and
@@ -50,6 +51,8 @@ internal class SharedStatePayment(
     /**
      * Pays each of [payees] its [priced] amount from [source]: one payee is a single transfer, more
      * are one multi-transfer in the order given. Debits the local balance by every part.
+     *
+     * [intentId] applies to a single transfer only: the id the server issued for the payment.
      */
     suspend fun pay(
         payees: List<ID>,
@@ -57,6 +60,7 @@ internal class SharedStatePayment(
         token: Token,
         source: AccountCluster,
         appMetadata: ByteArray?,
+        intentId: PublicKey? = null,
     ): Result<Unit> = runCatching {
         require(payees.size == priced.size) { "${payees.size} payees for ${priced.size} amounts" }
         val destinations = payees.map { resolverController.resolve(it).getOrThrow() }
@@ -68,8 +72,10 @@ internal class SharedStatePayment(
                 source = source,
                 destinationOwner = destinations.single(),
                 appMetadata = appMetadata,
+                intentId = intentId,
             ).getOrThrow()
         } else {
+            require(intentId == null) { "An issued intent id pays one payee" }
             transactionController.directMultiTransfer(
                 payments = destinations.zip(priced.map { it.localFiat }),
                 verifiedState = requireNotNull(priced.first().verifiedState),

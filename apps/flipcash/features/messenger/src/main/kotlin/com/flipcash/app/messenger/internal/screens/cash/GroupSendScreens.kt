@@ -71,6 +71,10 @@ internal fun GroupSelectPeopleContent(
     onBack: () -> Unit,
     onToggle: (ChatMember) -> Unit,
     onSend: () -> Unit,
+    buttonText: String = pluralStringResource(R.plurals.action_sendToPeople, selected.size, selected.size),
+    buttonEnabled: Boolean = selected.isNotEmpty(),
+    /** Shown as "You" rather than by name, for a list the viewer is on. */
+    viewerId: ID? = null,
 ) {
     val selectedIds = selected.toSet()
     CodeScaffold(
@@ -88,13 +92,14 @@ internal fun GroupSelectPeopleContent(
                     .navigationBarsPadding()
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(bottom = CodeTheme.dimens.grid.x2),
-                text = pluralStringResource(R.plurals.action_sendToPeople, selected.size, selected.size),
-                enabled = selected.isNotEmpty(),
+                text = buttonText,
+                enabled = buttonEnabled,
                 onClick = onSend,
             )
         },
     ) { innerPadding ->
         val unknownName = stringResource(R.string.title_unnamedUser)
+        val you = stringResource(R.string.label_selectPeople_you)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -114,7 +119,11 @@ internal fun GroupSelectPeopleContent(
             items(candidates, key = { it.userId }) { member ->
                 MemberCheckRow(
                     member = member,
-                    name = chatterName(member.userProfile.displayName, member.userProfile.username, unknownName),
+                    name = if (member.userId == viewerId) {
+                        you
+                    } else {
+                        chatterName(member.userProfile.displayName, member.userProfile.username, unknownName)
+                    },
                     selected = member.userId in selectedIds,
                     onClick = { onToggle(member) },
                 )

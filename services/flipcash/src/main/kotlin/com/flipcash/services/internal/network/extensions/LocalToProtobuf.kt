@@ -19,6 +19,7 @@ import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewMode
+import com.flipcash.services.models.chat.WidgetContent
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
@@ -26,6 +27,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
+import com.flipcash.services.models.paymentrequest.NewSplitRequest
 import com.google.protobuf.Timestamp
 import kotlin.time.Instant
 import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
@@ -194,8 +196,19 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                     }
             )
             .build()
-        // Server-authored and receive-only: no client path builds one, so reaching this is a bug.
-        is MessageContent.Widget -> error("Widget messages are receive-only and are never sent by a client")
+        // A client sends only the payment request widget; share-profile is server-authored.
+        is MessageContent.Widget -> when (val widget = widget) {
+            is WidgetContent.PaymentRequest -> MessagingModel.Content.newBuilder()
+                .setWidget(
+                    MessagingModel.WidgetContent.newBuilder().setPaymentRequest(
+                        MessagingModel.PaymentRequestWidget.newBuilder()
+                            .setPaymentRequestId(widget.id.asPaymentRequestId())
+                    )
+                )
+                .build()
+            is WidgetContent.ShareProfile, WidgetContent.Unsupported ->
+                error("Only a payment request widget is ever sent by a client")
+        }
         // Only ever decoded from a type this build doesn't know, so it has no wire form to send.
         is MessageContent.Unsupported -> error("Unsupported content is decode-only; it has no wire form")
         is MessageContent.System -> {
@@ -412,5 +425,37 @@ internal fun com.flipcash.services.models.chat.KeyEnvelope.asProtoKeyEnvelope():
         .setSchemeValue(scheme)
         .setNonce(nonce.toByteString())
         .setCiphertext(ciphertext.toByteString())
+        .build()
+}
+
+internal fun ID.asPaymentRequestId(): PaymentRequestModel.PaymentRequestId {
+    return PaymentRequestModel.PaymentRequestId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun IdempotencyKey.asPaymentRequestIdempotencyKey(): PaymentRequestModel.IdempotencyKey {
+    return PaymentRequestModel.IdempotencyKey.newBuilder().setValue(bytes.toByteString()).build()
+}
+
+internal fun NewSplitRequest.asGroupChatPaymentRequest(): PaymentRequestModel.GroupChatPaymentRequest {
+    val split = PaymentRequestModel.Split.newBuilder()
+        .setEncrypted(
+            PaymentRequestModel.EncryptedPaymentRequestText.newBuilder()
+                .setSchemeValue(text.scheme)
+                .setNonce(text.nonce.toByteString())
+                .setCiphertext(text.ciphertext.toByteString())
+        )
+        .setCurrency(currency.name.lowercase())
+        .setEndsAt(endsAt.asTimestamp())
+        .addAllShares(
+            shares.map { userId ->
+                PaymentRequestModel.Share.newBuilder()
+                    .setUserId(userId.asUserId())
+                    .setNativeAmount(perPerson.decimalValue)
+                    .build()
+            }
+        )
+    return PaymentRequestModel.GroupChatPaymentRequest.newBuilder()
+        .setChatId(chatId.asChatId())
+        .setSplit(split)
         .build()
 }

@@ -1014,6 +1014,159 @@
     <string name="label_chat_preview_sentCash_bySender">%1$s sent %2$s</string>
     <string name="label_chat_preview_tippedCash_bySender">%1$s tipped %2$s</string>
     <string name="label_chat_preview_sharedProfile">Shared a profile</string>
+    <string name="label_paymentRequest_card">Request</string>
+    <string name="label_chat_preview_sentRequest">You sent request for %1$s</string>
+    <string name="label_chat_preview_sentRequest_bySender">%1$s sent request for %2$s</string>
+    <string name="label_chat_preview_sentRequest_untitled">You sent request</string>
+    <string name="label_chat_preview_sentRequest_untitled_bySender">%1$s sent request</string>
+    <string name="action_sendMoney">Send Money</string>
+    <string name="subtitle_sendMoney_group">Send money to someone in the group, or multiple people</string>
+    <string name="action_requestMoney">Request Money</string>
+    <string name="subtitle_requestMoney_group">Collect money from people in the group</string>
+    <!-- Request Money history and the create flow, group requests spec frames 03–06 and 25. -->
+    <string name="title_requestMoneyHistory">Request Money</string>
+    <string name="action_newRequest">New Request</string>
+    <string name="header_openRequests">Open Requests</string>
+    <string name="header_previousRequests">Previous Requests</string>
+    <string name="label_requestProgress">%1$s paid, %2$s requested</string>
+    <string name="label_requestCompleted">✓ %1$s paid</string>
+    <string name="title_amountPerPerson">Amount Per Person</string>
+    <string name="title_newRequest">New Request</string>
+    <string name="label_perPerson">per person</string>
+    <string name="label_requestName">Name</string>
+    <string name="title_requestName">What is the request for?</string>
+    <string name="label_requestPeople">People</string>
+    <string name="label_requestTiming">Timing</string>
+    <plurals name="label_requestDaysLeft">
+        <item quantity="one">%1$d day left to pay</item>
+        <item quantity="other">%1$d days left to pay</item>
+    </plurals>
+    <plurals name="label_requestHoursLeft">
+        <item quantity="one">%1$d hour left to pay</item>
+        <item quantity="other">%1$d hours left to pay</item>
+    </plurals>
+    <plurals name="label_requestMinutesLeft">
+        <item quantity="one">%1$d minute left to pay</item>
+        <item quantity="other">%1$d minutes left to pay</item>
+    </plurals>
+    <string name="label_requestPaidInFull">Paid in full</string>
+    <string name="label_requestClosed">Closed</string>
+    <string name="label_requestExpired">Expired</string>
+    <!-- The owed deck's time left: the status line without "to pay". -->
+    <plurals name="label_requestDaysLeftShort">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
+    <plurals name="label_requestHoursLeftShort">
+        <item quantity="one">%1$d hour left</item>
+        <item quantity="other">%1$d hours left</item>
+    </plurals>
+    <plurals name="label_requestMinutesLeftShort">
+        <item quantity="one">%1$d minute left</item>
+        <item quantity="other">%1$d minutes left</item>
+    </plurals>
+    <!-- The owed deck: "You owe $20", then "You owe $20 · 2 days left". -->
+    <string name="label_requestYouOwe">You owe %1$s</string>
+    <string name="label_requestYouPaid">✓ You paid %1$s</string>
+    <string name="label_requestYourRequest">Your request</string>
+    <string name="cd_requestYouPaid">you paid %1$s</string>
+    <string name="cd_requestYouOwe">you owe %1$s</string>
+    <string name="cd_requestYourRequest">your request</string>
+    <string name="action_requestPay">Pay</string>
+    <string name="cd_requestPayShare">Pay %1$s</string>
+    <string name="cd_requestOwed">You owe %1$s for %2$s, %3$s</string>
+    <!-- The app-bar deck's front card: "$180 of $520". -->
+    <string name="label_requestDeckProgress">%1$s of %2$s</string>
+    <!-- Screen reader label for the deck: title, "<paid> of <requested> paid", status line. -->
+    <string name="cd_requestDeck">%1$s, %2$s of %3$s paid, %4$s</string>
+    <!-- As cd_requestDeck, with the viewer's standing ("you paid $5") after the title. -->
+    <string name="cd_requestDeckViewer">%1$s, %2$s, %3$s of %4$s paid, %5$s</string>
+    <plurals name="cd_requestDeckCount">
+        <item quantity="one">%1$d request</item>
+        <item quantity="other">%1$d requests</item>
+    </plurals>
+    <string name="action_nextRequest">Next request</string>
+    <!-- %1$s is the weekday in the device locale: "Saturday Request". -->
+    <string name="label_defaultRequestTitle">%1$s Request</string>
+    <string name="value_requestPeople_everyoneIncludingYou">Everyone, Including You</string>
+    <string name="value_requestPeople_everyoneExceptYou">Everyone Except You</string>
+    <string name="value_requestPeople_choose">Choose People</string>
+    <plurals name="value_requestPeople_someIncludingYou">
+        <item quantity="one">%1$d Person, Including You</item>
+        <item quantity="other">%1$d People, Including You</item>
+    </plurals>
+    <plurals name="value_requestPeople_some">
+        <item quantity="one">%1$d Person</item>
+        <item quantity="other">%1$d People</item>
+    </plurals>
+    <string name="subtitle_requestMarkedPaid">You\'ll be marked as paid</string>
+    <plurals name="value_requestDaysToPay">
+        <item quantity="one">%1$d Day To Pay</item>
+        <item quantity="other">%1$d Days To Pay</item>
+    </plurals>
+    <!-- %1$s is a medium date and short time in the device locale: "Until Nov 2, 6:00 PM". -->
+    <string name="value_requestUntil">Until %1$s</string>
+    <string name="subtitle_requestAutoCloses">Request automatically closes after</string>
+    <plurals name="action_requestFromPeople">
+        <item quantity="one">Request %2$s from %1$d Person</item>
+        <item quantity="other">Request %2$s from %1$d People</item>
+    </plurals>
+    <string name="label_selectPeople_you">You</string>
+    <string name="title_requestMaxPeople">100 People Max</string>
+    <string name="description_requestMaxPeople">A request can include up to 100 people.</string>
+    <string name="title_timeToPay">Time To Pay</string>
+    <string name="option_timeToPay_day">1 Day</string>
+    <string name="option_timeToPay_threeDays">3 Days</string>
+    <string name="option_timeToPay_week">1 Week</string>
+    <string name="option_timeToPay_twoWeeks">2 Weeks</string>
+    <string name="option_timeToPay_fourWeeks">4 Weeks</string>
+    <string name="option_timeToPay_custom">Custom</string>
+    <plurals name="description_timeToPayPreset">
+        <item quantity="one">%2$s · closes %1$d day after you send</item>
+        <item quantity="other">%2$s · closes %1$d days after you send</item>
+    </plurals>
+    <plurals name="description_timeToPayCustom">
+        <item quantity="one">Custom · %1$d day</item>
+        <item quantity="other">Custom · %1$d days</item>
+    </plurals>
+    <string name="description_timeToPayCustomToday">Custom · today</string>
+    <string name="label_timeToPayStarts">Starts</string>
+    <string name="value_timeToPayStarts">Today, on send</string>
+    <string name="label_timeToPayCloses">Closes</string>
+    <string name="value_timeToPayClosesAround">≈ %1$s</string>
+    <string name="label_timeToPayTime">Time</string>
+    <string name="title_timeToPaySelectTime">Select time</string>
+    <string name="cd_timeToPayKeyboard">Type a time</string>
+    <string name="cd_timeToPayDial">Pick a time on the dial</string>
+    <string name="action_timeToPayOk">OK</string>
+    <string name="title_sendRequestConfirm">Send Request?</string>
+    <string name="description_sendRequestConfirm">You will receive and hold the money collected</string>
+    <string name="action_sendRequest">Send Request</string>
+    <string name="error_title_cantSendRequest">Can\'t Send Request</string>
+    <string name="error_description_requestDenied">You can\'t request money in this group.</string>
+    <string name="error_description_requestEndsAt">Choose a deadline within the next 4 weeks.</string>
+    <string name="error_description_requestShares">Someone you included is no longer in the group. Check who\'s included and try again.</string>
+    <string name="error_description_requestCurrency">Requests aren\'t available in this currency yet.</string>
+    <!-- Request details, group requests spec frames 09–11, 24, 28, 29 and 33–35. -->
+    <string name="title_requestDetails">Request</string>
+    <string name="label_requestedBy">Requested by %1$s</string>
+    <string name="label_requestedByYou">Requested by you</string>
+    <string name="label_sharePaid">✓ Paid</string>
+    <string name="label_shareUnpaid">Hasn\'t paid yet</string>
+    <string name="label_shareUnpaidEnded">Didn\'t pay</string>
+    <!-- Under the member's name on the Mark as Paid sheet: "$20 · Hasn't paid yet". -->
+    <string name="label_shareUnpaidAmount">%1$s · Hasn\'t paid yet</string>
+    <string name="action_sendShare">Send %1$s</string>
+    <string name="cd_requestOptions">Request options</string>
+    <string name="cd_close">Close</string>
+    <string name="action_closeRequest">Close Request</string>
+    <string name="title_closeRequestConfirm">Close Request?</string>
+    <string name="description_closeRequestConfirm">This will stop payments. Anyone who hasn\'t paid will be marked Didn\'t pay. Payments already made won\'t be affected.</string>
+    <string name="action_markAsPaid">Mark as Paid</string>
+    <string name="title_markPaidConfirm">Mark %1$s as Paid?</string>
+    <string name="description_markPaidConfirm">Use this if %1$s paid you outside Flipcash. No money will be sent. This action cannot be reversed.</string>
+    <string name="error_title_requestClosed">Request Closed</string>
+    <string name="error_description_requestClosed">This request is no longer accepting payments.</string>
     <string name="label_chat_preview_noMessages">Nothing yet</string>
     <string name="label_isTyping">Is Typing…</string>
 
