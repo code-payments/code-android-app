@@ -201,6 +201,7 @@ internal fun App(
                                     TransactionNotificationPromptHost(viewModel.notificationPrompt)
                                     CoinbaseOnRampHandler {
                                         AppContent(
+                                            reactionAlerts = viewModel.reactionAlerts,
                                             codeNavigator = codeNavigator,
                                             resultStateRegistry = resultStateRegistry,
                                             barManager = barManager,

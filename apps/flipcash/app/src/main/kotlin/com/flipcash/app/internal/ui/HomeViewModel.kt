@@ -33,6 +33,7 @@ internal class HomeViewModel @Inject constructor(
     featureFlagController: FeatureFlagController,
     userFlags: UserFlagsCoordinator,
     val notificationPrompt: com.flipcash.app.tokens.TransactionNotificationPrompt,
+    val reactionAlerts: com.flipcash.shared.chat.alerts.ReactionAlertController,
 ) : ViewModel() {
 
     /**
