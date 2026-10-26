@@ -178,4 +178,20 @@ class ChatReactionsReducerTest {
     fun `the photo viewer's strip is empty until the inputs load`() {
         assertEquals(emptyList(), ChatViewModel.State(messagePolicy = unbounded).reactionStripFor(bubble(1)))
     }
+
+    @Test
+    fun `own reactions follow the pill row's order, then newest first, and track the live picks`() {
+        val a = SelfReaction("🦑", Instant.fromEpochSeconds(1))
+        val b = SelfReaction("🔥", Instant.fromEpochSeconds(3))
+        val c = SelfReaction("👍", Instant.fromEpochSeconds(2))
+        val pill = { e: String -> com.flipcash.shared.chat.reactions.ReactionPill(e, 1, true, false) }
+        val opened = bubble(1).copy(reactionPills = listOf(pill("👍"), pill("🦑")))
+
+        assertEquals(emptyList(), opened.ownReactionEmoji())
+        assertEquals(
+            listOf("👍", "🦑", "🔥"),
+            opened.withLiveSelfReactions(listOf(a, b, c)).ownReactionEmoji(),
+        )
+        assertEquals(listOf("🔥", "👍"), bubble(1).withLiveSelfReactions(listOf(c, b)).ownReactionEmoji())
+    }
 }

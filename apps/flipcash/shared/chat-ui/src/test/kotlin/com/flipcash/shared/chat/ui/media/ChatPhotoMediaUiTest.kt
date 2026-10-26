@@ -12,6 +12,10 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
@@ -290,13 +294,14 @@ class ChatPhotoMediaUiTest {
         onForward: (() -> Unit)? = {},
         onReact: ((String) -> Unit)? = {},
         reactionStrip: List<ReactionStrip.Entry> = strip,
+        ownReactions: List<String> = emptyList(),
     ) {
         rule.setContent {
             DesignSystem {
                 ChatMediaViewer(
                     model = null, fullImageLoaded = loaded, onFullImageLoaded = {},
                     onSave = onSave, onDismiss = {}, onReply = onReply, onForward = onForward,
-                    onReact = onReact, reactionStrip = reactionStrip,
+                    onReact = onReact, reactionStrip = reactionStrip, ownReactions = ownReactions,
                     zoomState = zoom, reduceMotion = true,
                 )
             }
@@ -386,6 +391,60 @@ class ChatPhotoMediaUiTest {
         rule.onNodeWithTag(VIEWER_REACT_TAG).assertIsNotEnabled()
         rule.onNodeWithTag(VIEWER_REACT_TAG).performClick()
         rule.onNodeWithTag(VIEWER_REACT_STRIP_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun reactShowsTheAddIconWhenThereAreNoOwnReactions() {
+        viewer(loaded = true)
+        tapPhoto()
+        rule.onAllNodesWithTag(VIEWER_REACT_GLYPH_TAG, useUnmergedTree = true).assertCountEquals(0)
+        rule.onNodeWithTag(VIEWER_REACT_TAG).assert(hasContentDescription("Add reaction"))
+    }
+
+    @Test
+    fun reactShowsOneOwnEmojiAndDescribesIt() {
+        viewer(loaded = true, ownReactions = listOf("\uD83D\uDD25"))
+        tapPhoto()
+        rule.onAllNodesWithTag(VIEWER_REACT_GLYPH_TAG, useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithTag(VIEWER_REACT_TAG, useUnmergedTree = true)
+            .assert(hasContentDescription("Add reaction, your reactions: \uD83D\uDD25", substring = true))
+    }
+
+    @Test
+    fun reactShowsThreeOwnEmojiWithoutAMoreLabel() {
+        viewer(loaded = true, ownReactions = listOf("a", "b", "c"))
+        tapPhoto()
+        rule.onAllNodesWithTag(VIEWER_REACT_GLYPH_TAG, useUnmergedTree = true).assertCountEquals(3)
+        rule.onAllNodesWithTag(VIEWER_REACT_MORE_TAG, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun reactShowsTwoOwnEmojiAndAMoreLabelBeyondThree() {
+        viewer(loaded = true, ownReactions = listOf("a", "b", "c", "d", "e"))
+        tapPhoto()
+        rule.onAllNodesWithTag(VIEWER_REACT_GLYPH_TAG, useUnmergedTree = true).assertCountEquals(2)
+        rule.onNodeWithTag(VIEWER_REACT_MORE_TAG, useUnmergedTree = true).assertTextEquals("+3")
+        rule.onNodeWithTag(VIEWER_REACT_TAG, useUnmergedTree = true)
+            .assert(hasContentDescription("a b c d e", substring = true))
+    }
+
+    @Test
+    fun reactUpdatesWhenTheOwnReactionsChangeAfterAPick() {
+        val own = androidx.compose.runtime.mutableStateOf(emptyList<String>())
+        rule.setContent {
+            DesignSystem {
+                ChatMediaViewer(
+                    model = null, fullImageLoaded = true, onFullImageLoaded = {},
+                    onSave = {}, onDismiss = {}, onReact = {}, reactionStrip = strip,
+                    ownReactions = own.value, zoomState = ChatMediaZoomState(), reduceMotion = true,
+                )
+            }
+        }
+        tapPhoto()
+        rule.onAllNodesWithTag(VIEWER_REACT_GLYPH_TAG, useUnmergedTree = true).assertCountEquals(0)
+        own.value = listOf("\uD83D\uDC4D")
+        rule.waitForIdle()
+        rule.onAllNodesWithTag(VIEWER_REACT_GLYPH_TAG, useUnmergedTree = true).assertCountEquals(1)
     }
 
     @Test

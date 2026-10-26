@@ -1112,6 +1112,7 @@
     <string name="action_clearEmojiSearch">Clear search</string>
     <string name="action_chooseSkinTone">Choose skin tone</string>
     <string name="action_addReaction">Add reaction</string>
+    <string name="description_chatMediaReactWith">%1$s, your reactions: %2$s</string>
 
     <string name="label_unknownContact">Unknown Contact</string>
     <string name="title_allowFullContactAccess">Allow Full Contact Access</string>

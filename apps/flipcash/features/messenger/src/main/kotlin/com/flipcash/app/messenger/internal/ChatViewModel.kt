@@ -4210,6 +4210,22 @@ internal fun ChatListItem.ContentBubble.withLiveSelfReactions(
 ): ChatListItem.ContentBubble = if (live == null) this else copy(selfReactions = live)
 
 /**
+ * The emoji the viewer reacted to this bubble with, in the pill row's order where the row knows
+ * them, then newest first. Read from the same live [ChatListItem.ContentBubble.selfReactions] the
+ * strip's highlight uses, so the photo viewer's React button never has a second source.
+ */
+internal fun ChatListItem.ContentBubble.ownReactionEmoji(): List<String> {
+    val rank = reactionPills.withIndex().associate { it.value.emoji to it.index }
+    return selfReactions.withIndex()
+        .sortedWith(
+            compareBy<IndexedValue<SelfReaction>> { rank[it.value.emoji] ?: Int.MAX_VALUE }
+                .thenByDescending { it.value.reactedAt }
+                .thenBy { it.index },
+        )
+        .map { it.value.emoji }
+}
+
+/**
  * The quick strip for [bubble]: empty when it can't be reacted to or the inputs haven't loaded.
  * Shared by the context menu's strip and the photo viewer's.
  */

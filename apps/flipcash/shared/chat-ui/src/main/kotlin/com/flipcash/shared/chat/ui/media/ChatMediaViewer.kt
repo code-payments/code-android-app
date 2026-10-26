@@ -20,6 +20,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -76,6 +84,8 @@ import kotlin.math.abs
 internal const val VIEWER_IMAGE_TAG = "chat_media_viewer_image"
 internal const val VIEWER_CLOSE_TAG = "chat_media_viewer_close"
 internal const val VIEWER_REACT_TAG = "chat_media_viewer_react"
+internal const val VIEWER_REACT_GLYPH_TAG = "chat_media_viewer_react_glyph"
+internal const val VIEWER_REACT_MORE_TAG = "chat_media_viewer_react_more"
 internal const val VIEWER_REACT_STRIP_TAG = "chat_media_viewer_react_strip"
 internal const val VIEWER_REACT_SCRIM_TAG = "chat_media_viewer_react_scrim"
 internal const val VIEWER_REPLY_TAG = "chat_media_viewer_reply"
@@ -107,6 +117,8 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  * Hostable as a Nav3 entry: it takes plain parameters and calls back for close, save, reply and
  * forward. The host owns what each does; [rememberSavePhoto] is the usual answer to Save.
  *
+ * @param ownReactions the emoji the viewer has reacted with, in the order the pill row shows them;
+ * the React button draws them in place of its icon.
  * @param onReact a pick from [reactionStrip]; null hides the React button, for a message that
  * cannot be reacted to. The button opens the strip above it, and a pick, a tap outside it or
  * hiding the chrome closes it again.
@@ -129,6 +141,7 @@ fun ChatMediaViewer(
     modifier: Modifier = Modifier,
     onReact: ((emoji: String) -> Unit)? = null,
     reactionStrip: List<ReactionStrip.Entry> = emptyList(),
+    ownReactions: List<String> = emptyList(),
     onOpenPicker: () -> Unit = {},
     onReply: (() -> Unit)? = null,
     onForward: (() -> Unit)? = null,
@@ -377,7 +390,8 @@ fun ChatMediaViewer(
                 if (onReact != null) {
                     ViewerPillButton(
                         icon = Icons.Outlined.AddReaction,
-                        description = stringResource(R.string.action_addReaction),
+                        emoji = ownReactions,
+                        description = reactDescription(ownReactions),
                         // Nothing to show until the strip's inputs have loaded.
                         enabled = interactive && chromeVisible && reactionStrip.isNotEmpty(),
                         tag = VIEWER_REACT_TAG,
@@ -472,17 +486,57 @@ private fun ViewerPillButton(
     enabled: Boolean,
     tag: String,
     onClick: () -> Unit,
+    emoji: List<String> = emptyList(),
 ) {
     IconButton(
         onClick = onClick,
         // Hidden buttons fade out at full tint but stop taking taps straight away.
         enabled = enabled,
-        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x10).testTag(tag),
+        modifier = (if (emoji.isEmpty()) Modifier else Modifier.widthIn(min = CodeTheme.dimens.staticGrid.x10))
+            .then(if (emoji.isEmpty()) Modifier.size(CodeTheme.dimens.staticGrid.x10) else Modifier.height(CodeTheme.dimens.staticGrid.x10))
+            .semantics { contentDescription = description }
+            .testTag(tag),
     ) {
+        if (emoji.isNotEmpty()) {
+            ReactionGlyphs(emoji, dimmed = !enabled)
+            return@IconButton
+        }
         Icon(
             imageVector = icon,
             contentDescription = description,
             tint = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
         )
     }
+}
+
+/** The user's own reactions drawn as text: up to three overlapping, else the first two and "+N". */
+@Composable
+private fun ReactionGlyphs(emoji: List<String>, dimmed: Boolean) {
+    val shown = if (emoji.size > 3) emoji.take(2) else emoji
+    Row(
+        modifier = Modifier.padding(horizontal = CodeTheme.dimens.staticGrid.x1).graphicsLayer { alpha = if (dimmed) 0.4f else 1f },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        shown.forEachIndexed { index, glyph ->
+            Text(
+                text = glyph,
+                fontSize = 18.sp,
+                modifier = Modifier.then(if (index == 0) Modifier else Modifier.offset(x = (-6 * index).dp)).testTag(VIEWER_REACT_GLYPH_TAG),
+            )
+        }
+        if (emoji.size > 3) {
+            Text(
+                text = "+${emoji.size - 2}",
+                color = Color.White,
+                fontSize = 13.sp,
+                modifier = Modifier.offset(x = (-12).dp).testTag(VIEWER_REACT_MORE_TAG),
+            )
+        }
+    }
+}
+
+@Composable
+private fun reactDescription(own: List<String>): String {
+    val base = stringResource(R.string.action_addReaction)
+    return if (own.isEmpty()) base else stringResource(R.string.description_chatMediaReactWith, base, own.joinToString(" "))
 }

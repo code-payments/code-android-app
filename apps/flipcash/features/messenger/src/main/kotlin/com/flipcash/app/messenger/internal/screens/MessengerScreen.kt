@@ -61,6 +61,7 @@ import com.flipcash.app.core.links.LocalTrustedWebsites
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.ownReactionEmoji
 import com.flipcash.app.messenger.internal.reactionStripFor
 import com.flipcash.app.messenger.internal.withLiveSelfReactions
 import com.flipcash.app.messenger.internal.MentionDestination
@@ -592,6 +593,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 }
             } else null,
             reactionStrip = state.reactionStripFor(bubble),
+            ownReactions = bubble.ownReactionEmoji(),
             onOpenPicker = { navigator.push(ChatStep.ReactionPicker(bubble.messageId)) },
             // Reply sets the strip the way the menu's Reply does; the overlay closes itself.
             onReply = if (MessageCapability.Reply in bubble.capabilities) {
