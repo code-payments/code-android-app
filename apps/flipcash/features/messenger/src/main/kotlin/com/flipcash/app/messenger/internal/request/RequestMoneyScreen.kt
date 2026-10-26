@@ -11,7 +11,6 @@ import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultStateRegistry
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,56 +20,35 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.getcode.util.resources.LocalResources
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.ui.DisplayTextInput
 import com.flipcash.app.messenger.internal.screens.cash.GroupSelectPeopleContent
 import com.flipcash.app.messenger.internal.screens.profile.edit.NameEditScaffold
 import com.flipcash.features.messenger.R
@@ -89,13 +67,10 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.time.Clock
-import kotlin.time.Instant
 import kotlin.time.toJavaInstant
-import kotlin.time.toKotlinInstant
 
 /**
  * Request Money, frames 03–06 and 25 of the group requests spec: history, then the create flow
@@ -232,7 +207,7 @@ private fun RequestSheets(state: RequestMoneyViewModel.State, viewModel: Request
     when (state.sheet) {
         RequestMoneyViewModel.Sheet.None -> Unit
         RequestMoneyViewModel.Sheet.Deadline -> state.draft?.let { draft ->
-            DeadlineSheet(
+            TimeToPaySheet(
                 current = draft.deadline,
                 onChoose = viewModel::chooseDeadline,
                 onDismiss = viewModel::dismissSheet,
@@ -503,193 +478,6 @@ private fun RequestNameContent(title: String, onBack: () -> Unit, onDone: (Strin
         capitalization = KeyboardCapitalization.Sentences,
         onBack = onBack,
         onSubmit = { onDone(field.text.toString()) },
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DeadlineSheet(
-    current: NewRequestDraft.Deadline,
-    onChoose: (NewRequestDraft.Deadline) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var pickingCustom by rememberSaveable { mutableStateOf(false) }
-    if (pickingCustom) {
-        CustomDeadlinePicker(
-            initial = (current as? NewRequestDraft.Deadline.Custom)?.at,
-            onPicked = { pickingCustom = false; onChoose(NewRequestDraft.Deadline.Custom(it)) },
-            onDismiss = { pickingCustom = false },
-        )
-        return
-    }
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = CodeTheme.colors.background,
-    ) {
-        Column(modifier = Modifier.navigationBarsPadding().padding(bottom = CodeTheme.dimens.grid.x4)) {
-            Text(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = CodeTheme.dimens.grid.x3),
-                text = stringResource(R.string.title_timeToPay),
-                style = CodeTheme.typography.screenTitle,
-                color = CodeTheme.colors.textMain,
-                textAlign = TextAlign.Center,
-            )
-            val presets = listOf(
-                NewRequestDraft.Deadline.Preset.Day to R.string.option_timeToPay_day,
-                NewRequestDraft.Deadline.Preset.ThreeDays to R.string.option_timeToPay_threeDays,
-                NewRequestDraft.Deadline.Preset.Week to R.string.option_timeToPay_week,
-                NewRequestDraft.Deadline.Preset.TwoWeeks to R.string.option_timeToPay_twoWeeks,
-                NewRequestDraft.Deadline.Preset.FourWeeks to R.string.option_timeToPay_fourWeeks,
-            )
-            presets.forEach { (preset, label) ->
-                DeadlineRow(stringResource(label), checked = current == preset) { onChoose(preset) }
-            }
-            DeadlineRow(
-                stringResource(R.string.option_timeToPay_custom),
-                checked = current is NewRequestDraft.Deadline.Custom,
-            ) { pickingCustom = true }
-        }
-    }
-}
-
-@Composable
-private fun DeadlineRow(label: String, checked: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x3),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            modifier = Modifier.weight(1f),
-            text = label,
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-        )
-        if (checked) Image(painter = painterResource(R.drawable.ic_checked), contentDescription = null)
-    }
-}
-
-/**
- * The platform date picker, then its time picker, bounded to the spec's custom range. Not in the
- * design; the spec asks for the standard pickers.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CustomDeadlinePicker(initial: Instant?, onPicked: (Instant) -> Unit, onDismiss: () -> Unit) = PickerTheme {
-    CustomDeadlinePickerContent(initial, onPicked, onDismiss)
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CustomDeadlinePickerContent(initial: Instant?, onPicked: (Instant) -> Unit, onDismiss: () -> Unit) {
-    val range = remember { NewRequestDraft.Deadline.customRange(Clock.System.now()) }
-    val zone = ZoneId.systemDefault()
-    val start = remember { (initial ?: range.start).toJavaInstant().atZone(zone) }
-    var pickedDate by remember { mutableStateOf<java.time.LocalDate?>(null) }
-
-    val date = pickedDate
-    if (date == null) {
-        val earliest = range.start.toJavaInstant().atZone(zone).toLocalDate()
-        val latest = range.endInclusive.toJavaInstant().atZone(zone).toLocalDate()
-        val dateState = rememberDatePickerState(
-            initialSelectedDateMillis = start.toLocalDate().atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli(),
-            selectableDates = object : SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                    val day = java.time.Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneId.of("UTC")).toLocalDate()
-                    return !day.isBefore(earliest) && !day.isAfter(latest)
-                }
-            },
-        )
-        DatePickerDialog(
-            onDismissRequest = onDismiss,
-            confirmButton = {
-                TextButton(onClick = {
-                    dateState.selectedDateMillis?.let {
-                        pickedDate = java.time.Instant.ofEpochMilli(it).atZone(ZoneId.of("UTC")).toLocalDate()
-                    }
-                }) { Text(stringResource(R.string.action_next)) }
-            },
-            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-        ) { DatePicker(state = dateState) }
-        return
-    }
-
-    val timeState = rememberTimePickerState(initialHour = start.hour, initialMinute = start.minute)
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = true)) {
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh, CodeTheme.shapes.large)
-                .padding(CodeTheme.dimens.inset),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            TimePicker(state = timeState)
-            Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-                TextButton(onClick = {
-                    val at = ZonedDateTime.of(date, java.time.LocalTime.of(timeState.hour, timeState.minute), zone)
-                        .toInstant()
-                        .toKotlinInstant()
-                    onPicked(at.coerceIn(range.start, range.endInclusive))
-                }) { Text(stringResource(R.string.action_done)) }
-            }
-        }
-    }
-}
-
-/**
- * Material 3's pickers read `MaterialTheme`, which the app never sets up (it runs on Material 2).
- * This maps the app's colors and type onto it so the pickers look like the rest of the app.
- */
-@Composable
-private fun PickerTheme(content: @Composable () -> Unit) {
-    val colors = CodeTheme.colors
-    val type = CodeTheme.typography
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = colors.textMain,
-            onPrimary = colors.background,
-            primaryContainer = colors.surfaceVariant,
-            onPrimaryContainer = colors.textMain,
-            secondaryContainer = colors.surfaceVariant,
-            onSecondaryContainer = colors.textMain,
-            tertiaryContainer = colors.surfaceVariant,
-            onTertiaryContainer = colors.textMain,
-            background = colors.background,
-            onBackground = colors.textMain,
-            surface = colors.background,
-            onSurface = colors.textMain,
-            surfaceVariant = colors.surfaceVariant,
-            onSurfaceVariant = colors.textSecondary,
-            surfaceContainer = colors.background,
-            surfaceContainerLow = colors.background,
-            surfaceContainerHigh = colors.background,
-            surfaceContainerHighest = colors.surfaceVariant,
-            surfaceTint = Color.Transparent,
-            outline = colors.border,
-            outlineVariant = colors.divider,
-            error = colors.errorText,
-        ),
-        typography = Typography(
-            displayLarge = type.displaySmall,
-            headlineLarge = type.screenTitleLarge,
-            headlineMedium = type.screenTitle,
-            headlineSmall = type.screenTitle,
-            titleLarge = type.screenTitle,
-            titleMedium = type.textLarge,
-            titleSmall = type.textMedium,
-            bodyLarge = type.textLarge,
-            bodyMedium = type.textMedium,
-            bodySmall = type.textSmall,
-            labelLarge = type.textMedium,
-            labelMedium = type.textSmall,
-            labelSmall = type.caption,
-        ),
-        content = content,
     )
 }
 
