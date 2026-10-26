@@ -1015,8 +1015,10 @@
     <string name="label_chat_preview_tippedCash_bySender">%1$s tipped %2$s</string>
     <string name="label_chat_preview_sharedProfile">Shared a profile</string>
     <string name="label_paymentRequest_card">Request</string>
-    <string name="label_chat_preview_requested">You requested %1$s</string>
-    <string name="label_chat_preview_requested_bySender">%1$s requested %2$s</string>
+    <string name="label_chat_preview_sentRequest">You sent request for %1$s</string>
+    <string name="label_chat_preview_sentRequest_bySender">%1$s sent request for %2$s</string>
+    <string name="label_chat_preview_sentRequest_untitled">You sent request</string>
+    <string name="label_chat_preview_sentRequest_untitled_bySender">%1$s sent request</string>
     <string name="action_sendMoney">Send Money</string>
     <string name="subtitle_sendMoney_group">Send money to someone in the group, or multiple people</string>
     <string name="action_requestMoney">Request Money</string>

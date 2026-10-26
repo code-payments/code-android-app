@@ -432,22 +432,42 @@ class ChatSummaryPreviewTest {
     )
 
     @Test
-    fun `a payment request previews as who requested the per-person share`() {
-        val share = Fiat(20.0, CurrencyCode.USD)
-        val amount = share.formatted()
+    fun `a payment request previews as who sent it and its title`() {
         every {
-            resources.getString(R.string.label_chat_preview_requested_bySender, "Alice", amount)
-        } returns "Alice requested $amount"
-        every { resources.getString(R.string.label_chat_preview_requested, amount) } returns "You requested $amount"
+            resources.getString(R.string.label_chat_preview_sentRequest_bySender, "Alice", "Dinner")
+        } returns "Alice sent request for Dinner"
+        every { resources.getString(R.string.label_chat_preview_sentRequest, "Dinner") } returns "You sent request for Dinner"
         val widget = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
-        val requests = mapOf(requestId to request(share))
+        val requests = mapOf(requestId to request(Fiat(20.0, CurrencyCode.USD)))
 
         fun groupPreview(senderId: ID) = groupSummary(widget, senderId, "Alice")
             .toConversationReference(self, emptyMap(), resources, paymentRequests = requests)
             .lastMessagePreview
 
-        assertEquals("Alice requested $amount", groupPreview(other))
-        assertEquals("You requested $amount", groupPreview(self))
+        assertEquals("Alice sent request for Dinner", groupPreview(other))
+        assertEquals("You sent request for Dinner", groupPreview(self))
+    }
+
+    @Test
+    fun `a payment request whose title can't be opened previews without it`() {
+        every {
+            resources.getString(R.string.label_chat_preview_sentRequest_untitled_bySender, "Alice")
+        } returns "Alice sent request"
+        every { resources.getString(R.string.label_chat_preview_sentRequest_untitled) } returns "You sent request"
+        val widget = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
+        val held = request(Fiat(20.0, CurrencyCode.USD))
+        val requests = mapOf(
+            requestId to held.copy(kind = (held.kind as PaymentRequest.Kind.GroupSplit).let { kind ->
+                kind.copy(split = kind.split.copy(text = PaymentRequestText.Undecryptable))
+            }),
+        )
+
+        fun groupPreview(senderId: ID) = groupSummary(widget, senderId, "Alice")
+            .toConversationReference(self, emptyMap(), resources, paymentRequests = requests)
+            .lastMessagePreview
+
+        assertEquals("Alice sent request", groupPreview(other))
+        assertEquals("You sent request", groupPreview(self))
     }
 
     @Test

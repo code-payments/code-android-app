@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.handle
 import com.flipcash.services.models.paymentrequest.PaymentRequest
+import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.flipcash.shared.chat.models.displayText
 import com.flipcash.shared.chat.models.namedUsers
 import com.flipcash.shared.chat.ChatSummary
@@ -226,17 +227,19 @@ private fun MessageContent.previewText(
     // A widget this client can't draw previews as nothing, as an undecryptable message does.
     is MessageContent.Widget -> when (val widget = widget) {
         is WidgetContent.ShareProfile -> resources.getString(R.string.label_chat_preview_sharedProfile)
-        // The per-person share, as the request card's own amounts read.
-        is WidgetContent.PaymentRequest -> paymentRequests[widget.id]?.split?.shares?.firstOrNull()?.amount
-            ?.let { share -> (exchange?.let { share.forViewer(it.preferredRate, it.rates()) } ?: share).formatted() }
-            ?.let { amount ->
-                when {
-                    sentBySelf -> resources.getString(R.string.label_chat_preview_requested, amount)
-                    senderName != null ->
-                        resources.getString(R.string.label_chat_preview_requested_bySender, senderName, amount)
-                    else -> null
-                }
+        // Who sent it and its title; a title that can't be opened drops the "for" part.
+        is WidgetContent.PaymentRequest -> paymentRequests[widget.id]?.let { request ->
+            val title = (request.split?.text as? PaymentRequestText.Plain)?.title?.takeIf { it.isNotBlank() }
+            when {
+                sentBySelf && title != null -> resources.getString(R.string.label_chat_preview_sentRequest, title)
+                sentBySelf -> resources.getString(R.string.label_chat_preview_sentRequest_untitled)
+                senderName != null && title != null ->
+                    resources.getString(R.string.label_chat_preview_sentRequest_bySender, senderName, title)
+                senderName != null ->
+                    resources.getString(R.string.label_chat_preview_sentRequest_untitled_bySender, senderName)
+                else -> null
             }
+        }
         WidgetContent.Unsupported -> null
     }
 
