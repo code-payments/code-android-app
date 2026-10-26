@@ -25,6 +25,11 @@ data class ActivityFeedMessageWithToken(
      * the entry isn't a split boost or the chat isn't stored (never fetched to name a row).
      */
     val boostChatName: String? = null,
+    /**
+     * Whether the boosted chat is in the local chat store at all. A DM is stored without a title,
+     * so [boostChatName] alone can't tell "a DM" from "not stored".
+     */
+    val boostChatLocal: Boolean = false,
 )
 
 data class ActivityFeedMessage(

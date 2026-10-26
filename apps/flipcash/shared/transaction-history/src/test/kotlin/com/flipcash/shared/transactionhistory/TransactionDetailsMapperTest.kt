@@ -80,11 +80,15 @@ class TransactionDetailsMapperTest {
         token: Token? = null,
         toToken: Token? = null,
         amount: LocalFiat = twentyDollars,
+        chatName: String? = null,
+        chatLocal: Boolean = chatName != null,
     ): TransactionDetails = mapper.map(
         ActivityFeedMessageWithToken(
             feedMessage(metadata, text, state, amount),
             token = token,
             toToken = toToken,
+            boostChatName = chatName,
+            boostChatLocal = chatLocal,
         ) to cached
     )
 
@@ -320,5 +324,85 @@ class TransactionDetailsMapperTest {
         val details = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId))
         assertNull(details.boostedReaction)
         assertTrue(details.canViewInChat)
+    }
+
+    // --- Boosted reaction: header and receipt rows (H1-H6, C1-C4) ---
+
+    @Test
+    fun `H1 a sent boost is headed You boosted with the counterparty's name beneath`() {
+        val d = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost))
+        assertEquals(TransactionKind.Boosted, d.kind)
+        assertEquals(R.string.title_txnDetails_youBoosted, d.kind.headingRes)
+        assertNull(d.heading)
+        assertEquals("Sally The Streamer", d.subtitle)
+    }
+
+    @Test
+    fun `H2 a received boost is headed Boost received`() {
+        val d = map(MessageMetadata.ReceivedCrypto(userId = knownUserId, boostedReaction = boost))
+        assertEquals(TransactionKind.BoostReceived, d.kind)
+        assertEquals(R.string.title_txnDetails_boostReceived, d.kind.headingRes)
+        assertEquals("Sally The Streamer", d.subtitle)
+    }
+
+    @Test
+    fun `H3 a boost that is also a tip keeps the boost heading`() {
+        val d = map(
+            MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost),
+            text = "Tipped",
+        )
+        assertEquals(TransactionKind.Boosted, d.kind)
+    }
+
+    @Test
+    fun `H4 a split boost names its chat where a counterparty would go`() {
+        val d = map(MessageMetadata.DirectlySentCrypto(boostedReaction = boost), chatName = "Design Team")
+        assertEquals(TransactionKind.Boosted, d.kind)
+        assertEquals("Design Team", d.subtitle)
+    }
+
+    @Test
+    fun `H5 a split boost whose chat is not stored keeps the no-counterparty header`() {
+        val d = map(MessageMetadata.DirectlySentCrypto(boostedReaction = boost))
+        assertEquals(TransactionKind.Boosted, d.kind)
+        assertNull(d.heading)
+        assertNull(d.subtitle)
+    }
+
+    @Test
+    fun `H6 without a boost the header is unchanged`() {
+        val d = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId))
+        assertEquals(TransactionKind.Sent, d.kind)
+        assertEquals("Sally The Streamer", d.heading)
+    }
+
+    @Test
+    fun `C1 a boost in a stored group shows the Reaction and Chat rows`() {
+        val d = map(MessageMetadata.DirectlySentCrypto(boostedReaction = boost), chatName = "Design Team")
+        assertEquals("\uD83D\uDD25", d.reaction)
+        assertEquals("Design Team", d.chatName)
+    }
+
+    @Test
+    fun `C2 a boost whose chat is not stored shows Reaction only`() {
+        val d = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost))
+        assertEquals("\uD83D\uDD25", d.reaction)
+        assertNull(d.chatName)
+    }
+
+    @Test
+    fun `C3 a DM boost names the chat for the partner`() {
+        val d = map(
+            MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost),
+            chatLocal = true,
+        )
+        assertEquals("Sally The Streamer", d.chatName)
+    }
+
+    @Test
+    fun `C4 without a boost neither row shows`() {
+        val d = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId), chatName = "Design Team")
+        assertNull(d.reaction)
+        assertNull(d.chatName)
     }
 }

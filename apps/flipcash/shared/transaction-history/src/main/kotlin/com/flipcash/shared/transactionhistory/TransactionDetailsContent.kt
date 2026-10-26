@@ -253,6 +253,20 @@ private fun DetailCard(details: TransactionDetails, modifier: Modifier = Modifie
             label = stringResource(R.string.label_txnDetails_date),
             amount = details.timestamp.format("M/d/yyyy h:mm a"),
         )
+        details.reaction?.let {
+            ReceiptLineItem(
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.label_txnDetails_reaction),
+                amount = it,
+            )
+        }
+        details.chatName?.let {
+            ReceiptLineItem(
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.label_txnDetails_chat),
+                amount = it,
+            )
+        }
         details.tokenAmount?.let {
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),

@@ -295,10 +295,16 @@ class ActivityFeedCoordinator @Inject internal constructor(
         convertOf(meta)?.toMint?.let { tokens[Mint(it.bytes)] }
 
     /** A split boost's chat name, read from the local chat store only — never fetched. */
-    private fun boostChatNameOf(meta: MessageMetadata?, chatNames: Map<String, String>): String? {
+    private fun boostChatNameOf(meta: MessageMetadata?, chatNames: Map<String, String?>): String? {
         if (!isSplitBoost(meta)) return null
         val chatId = boostedReactionOf(meta)?.chatId ?: return null
         return chatNames[chats.chatIdHex(chatId)]
+    }
+
+    /** Whether a boost's chat is stored locally, whatever its kind. */
+    private fun boostChatLocalOf(meta: MessageMetadata?, chatNames: Map<String, String?>): Boolean {
+        val chatId = boostedReactionOf(meta)?.chatId ?: return false
+        return chatNames.containsKey(chats.chatIdHex(chatId))
     }
 
     private fun counterpartyOf(meta: NotificationMetadata?): ID? = when (meta) {
@@ -355,7 +361,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
         msg: ActivityFeedMessage,
         resolved: Resolvers,
     ): ResolvedTransaction {
-        val (profiles, tokens, _) = resolved
+        val (profiles, tokens, chatNames) = resolved
         val counterparty = counterpartyOf(msg.metadata)
         counterparty
             ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
@@ -375,6 +381,11 @@ class ActivityFeedCoordinator @Inject internal constructor(
                     message = msg,
                     token = token,
                     toToken = destinationToken,
+                    // Any boost, not only a split one: the receipt's Chat row names the chat of a
+                    // DM boost too. Local store only, never fetched.
+                    boostChatName = boostedReactionOf(msg.metadata)?.chatId
+                        ?.let { chatNames[chats.chatIdHex(it)] },
+                    boostChatLocal = boostChatLocalOf(msg.metadata, chatNames),
                 ) to profiles
             ),
             message = msg,
@@ -390,7 +401,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
      *
      * Starts empty so rows render before the chat store answers.
      */
-    private val chatNames: Flow<Map<String, String>> = chats.observeMemberTitles()
+    private val chatNames: Flow<Map<String, String?>> = chats.observeMemberChats()
         .onStart { emit(emptyMap()) }
 
     /**
@@ -415,7 +426,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
     private data class Resolvers(
         val profiles: Map<String, UserProfile>,
         val tokens: Map<Mint, Token>,
-        val chatNames: Map<String, String>,
+        val chatNames: Map<String, String?>,
     )
 
     /**
