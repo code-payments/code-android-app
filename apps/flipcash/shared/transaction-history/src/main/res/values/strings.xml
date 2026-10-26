@@ -22,8 +22,10 @@
 
     <!-- Transaction details headings: what the entry was, stated in the user's own voice. -->
     <string name="title_txnDetails_youTipped">You tipped</string>
-    <string name="title_txnDetails_youBoosted">You boosted</string>
-    <string name="title_txnDetails_boostReceived">Boost received</string>
+    <string name="title_txnDetails_youBoosted">You boosted %1$s</string>
+    <string name="title_txnDetails_youBoostedIn">You boosted %1$s in %2$s</string>
+    <string name="title_txnDetails_boostReceived">Boost %1$s received</string>
+    <string name="title_txnDetails_boostReceivedIn">Boost %1$s received in %2$s</string>
     <string name="title_txnDetails_youReceived">You received</string>
     <string name="title_txnDetails_youSent">You sent</string>
     <string name="title_txnDetails_youGaveCash">You gave cash</string>
@@ -60,8 +62,6 @@
     <string name="label_txnDetails_status_unknown">Unknown</string>
 
     <!-- Transaction details actions. -->
-    <string name="label_txnDetails_reaction">Reaction</string>
-    <string name="label_txnDetails_chat">Chat</string>
     <string name="action_txnDetails_viewInChat">View in Chat</string>
     <string name="action_txnDetails_viewMessage">View Message</string>
     <string name="action_txnDetails_viewProfile">View Profile</string>

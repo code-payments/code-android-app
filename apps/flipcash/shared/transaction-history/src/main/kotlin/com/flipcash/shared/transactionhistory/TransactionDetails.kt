@@ -111,9 +111,6 @@ enum class TransactionStatus(@StringRes val labelRes: Int) {
  * @param boostedReaction The reaction this payment boosted, when it did. Its presence swaps the
  * chat button for "View Message", which opens the boosted message — and shows it even on a split
  * boost, which has no counterparty for [canViewInChat] to open.
- * @param reaction The boosted emoji, for the receipt's Reaction row.
- * @param chatName The boosted chat's display name from the local store, for the Chat row; null
- * (row omitted) when the chat isn't stored.
  */
 data class TransactionDetails(
     val id: String,
@@ -135,6 +132,4 @@ data class TransactionDetails(
     val canCancel: Boolean = false,
     val canViewInChat: Boolean = false,
     val boostedReaction: BoostedReaction? = null,
-    val reaction: String? = null,
-    val chatName: String? = null,
 )

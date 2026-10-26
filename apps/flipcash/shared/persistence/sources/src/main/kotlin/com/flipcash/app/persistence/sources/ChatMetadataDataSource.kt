@@ -51,22 +51,6 @@ class ChatMetadataDataSource @Inject constructor(
             }
             .distinctUntilChanged()
 
-    /**
-     * Every chat the viewer is a member of, keyed by chat-id hex, with its title (null for a DM,
-     * whose title is the counterparty's profile). Unlike [observeMemberTitles] a titleless chat is
-     * present, so a caller can tell "stored, but a DM" from "not stored".
-     */
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun observeMemberChats(): Flow<Map<String, String?>> =
-        FlipcashDatabase.observeInstance()
-            .flatMapLatest { database ->
-                database?.chatMetadataDao()?.observeAll()?.map { rows ->
-                    rows.filter { it.isMember }
-                        .associate { it.chatIdHex to it.title?.takeIf { t -> t.isNotBlank() } }
-                } ?: flowOf(emptyMap())
-            }
-            .distinctUntilChanged()
-
     /** One chat's row by [chatId], re-emitted on change; `null` while it is not stored. */
     fun observeById(chatId: ChatId): Flow<ChatMetadataEntity?> =
         db?.chatMetadataDao()?.observeById(mapper.chatIdHex(chatId)) ?: emptyFlow()

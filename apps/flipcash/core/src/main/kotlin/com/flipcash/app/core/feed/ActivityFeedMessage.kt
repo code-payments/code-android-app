@@ -21,15 +21,11 @@ data class ActivityFeedMessageWithToken(
     val token: Token?,
     val toToken: Token? = null,
     /**
-     * The display name of the chat a split boost was sent in, from the local chat store; null when
-     * the entry isn't a split boost or the chat isn't stored (never fetched to name a row).
+     * The display name of the group a boost was sent in, from the local chat store; null when the
+     * entry isn't a boost, the chat is a DM (stored without a title) or isn't stored at all (never
+     * fetched).
      */
     val boostChatName: String? = null,
-    /**
-     * Whether the boosted chat is in the local chat store at all. A DM is stored without a title,
-     * so [boostChatName] alone can't tell "a DM" from "not stored".
-     */
-    val boostChatLocal: Boolean = false,
 )
 
 data class ActivityFeedMessage(
