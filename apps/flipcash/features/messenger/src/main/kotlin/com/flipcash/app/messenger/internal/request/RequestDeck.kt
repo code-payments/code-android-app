@@ -348,11 +348,14 @@ private fun DeckFront(
         RequestRing(
             request = request,
             now = now,
-            size = 26.dp,
+            size = RING_SIZE,
             modifier = Modifier
                 .deckShared(request.id, "glyph", visibility, CircleShape)
                 .graphicsLayer { alpha = contentAlpha() },
         )
+        // The text room the widest pill leaves, so a title ellipsizes only at that width and not
+        // while the pill eases open around it.
+        val textMax = PILL_MAX_WIDTH - RING_SIZE - CodeTheme.dimens.grid.x2
         Column(modifier = Modifier.graphicsLayer { alpha = contentAlpha() }) {
             Text(
                 text = request.deckTitle.orEmpty(),
@@ -360,7 +363,9 @@ private fun DeckFront(
                 color = CodeTheme.colors.textMain,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.deckShared(request.id, "title", visibility),
+                modifier = Modifier
+                    .measuredUpTo(textMax)
+                    .deckShared(request.id, "title", visibility),
             )
             if (split != null) {
                 Text(
@@ -372,10 +377,23 @@ private fun DeckFront(
                     style = CodeTheme.typography.caption,
                     color = CodeTheme.colors.textSecondary,
                     maxLines = 1,
-                    modifier = Modifier.deckShared(request.id, "amounts", visibility),
+                    modifier = Modifier
+                        .measuredUpTo(textMax)
+                        .deckShared(request.id, "amounts", visibility),
                 )
             }
         }
+    }
+}
+
+/**
+ * Measures the content as if [max] wide were free, then reports no more than the room it has, so
+ * a container easing open clips the content rather than re-wrapping or ellipsizing it each frame.
+ */
+private fun Modifier.measuredUpTo(max: Dp): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(maxWidth = max.roundToPx()))
+    layout(placeable.width.coerceAtMost(constraints.maxWidth), placeable.height) {
+        placeable.placeRelative(0, 0)
     }
 }
 
@@ -577,6 +595,7 @@ private val PILL_SHAPE = RoundedCornerShape(18.dp)
 private val CARD_SHAPE = RoundedCornerShape(12.dp)
 private val PILL_HEIGHT = 43.dp
 private val PILL_MAX_WIDTH = 150.dp
+private val RING_SIZE = 26.dp
 private const val APPEAR_MILLIS = 250
 private const val APPEAR_SCALE = 0.95f
 private val PEEK_STEP = 5.dp
