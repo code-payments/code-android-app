@@ -26,6 +26,11 @@ import com.flipcash.services.models.GetDeltaError
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.EventSequenceTracker
 import com.flipcash.shared.chat.EventStreamOperations
+import com.flipcash.shared.chat.alerts.ActorBoostTotals
+import com.flipcash.shared.chat.alerts.ReactionActorProfiles
+import com.flipcash.shared.chat.alerts.ReactionAlertEvent
+import com.flipcash.shared.chat.alerts.ReactionAlertPolicy
+import com.flipcash.shared.chat.alerts.ReactionAlertSink
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.MentionPoolUpdates
@@ -94,6 +99,8 @@ class EventStreamDelegate @Inject constructor(
     private val analytics: FlipcashAnalytics,
     private val exchange: Exchange,
     private val mentionPool: MentionPoolUpdates = MentionPoolUpdates.None,
+    private val reactionAlerts: ReactionAlertSink = ReactionAlertSink.None,
+    private val actorProfiles: ReactionActorProfiles = ReactionActorProfiles.None,
 ) : EventStreamOperations {
 
 
@@ -134,6 +141,9 @@ class EventStreamDelegate @Inject constructor(
      * delegate persists rather than sharing an instance with it.
      */
     private val reactionStates: MutableMap<ChatId, MutableMap<Long, ReactionState>> = mutableMapOf()
+
+    /** Each actor's last boost total per emoji, for the alert's delta ([ReactionAlertPolicy.boostDeltaCents]). */
+    private val actorBoostTotals = ActorBoostTotals()
 
     /**
      * Gets or creates the message's [ReactionState], seeding a new one from Room. The state is
@@ -326,6 +336,7 @@ class EventStreamDelegate @Inject constructor(
     }
 
     internal fun clearAll() {
+        actorBoostTotals.clear()
         sequenceTracker.clearAll()
         reactionStates.clear()
         typingTracker.clear()
@@ -469,6 +480,7 @@ class EventStreamDelegate @Inject constructor(
         if (update.reactionUpdates.isNotEmpty()) {
             val touchedMessageIds = mutableSetOf<Long>()
             for (reactionUpdate in update.reactionUpdates) {
+                alertFor(chatId, reactionUpdate)
                 reactionState(chatId, reactionUpdate.messageId).applyUpdate(
                     emoji = reactionUpdate.emoji.value,
                     actorIsSelf = reactionUpdate.actor == userManager.accountId,
@@ -578,6 +590,91 @@ class EventStreamDelegate @Inject constructor(
             performDeltaSync(chatId)
         }
         sequenceTracker.setGapFillJob(chatId, job)
+    }
+
+    // endregion
+
+    // region Reaction alerts
+
+    /**
+     * Applies the trigger rules to [reactionUpdate] and hands a qualifying one to [reactionAlerts].
+     * Runs before the update reaches [ReactionState], and always records the actor's total so the
+     * next boost has a previous one to subtract. Foreground and on-screen gating is the sink's.
+     */
+    private suspend fun alertFor(chatId: ChatId, reactionUpdate: ReactionUpdate) {
+        val emoji = reactionUpdate.emoji.value
+        val local = messageDataSource.getMessage(chatId, reactionUpdate.messageId)
+        val previous = actorBoostTotals.previous(chatId, reactionUpdate.messageId, emoji, reactionUpdate.actor)
+            ?: local?.reactions?.reactions
+                ?.firstOrNull { it.emoji.value == emoji }
+                ?.sampleReactors
+                ?.firstOrNull { it.userId == reactionUpdate.actor }
+                ?.boostCents
+        if (reactionUpdate.action == ReactionUpdate.Action.REMOVED) {
+            actorBoostTotals.record(chatId, reactionUpdate.messageId, emoji, reactionUpdate.actor, 0)
+        } else {
+            actorBoostTotals.record(
+                chatId, reactionUpdate.messageId, emoji, reactionUpdate.actor, reactionUpdate.actorBoostCents,
+            )
+        }
+
+        val selfId = userManager.accountId
+        when (ReactionAlertPolicy.decide(reactionUpdate, selfId, local)) {
+            ReactionAlertPolicy.Decision.Drop -> Unit
+            // Off the stream's path: resolving the actor's photo may go to the network.
+            ReactionAlertPolicy.Decision.Alert -> scope?.launch { emitAlert(chatId, reactionUpdate, local, previous) }
+                ?: emitAlert(chatId, reactionUpdate, local, previous)
+            ReactionAlertPolicy.Decision.NeedsMessage -> {
+                // Not cached: ask the server, off the stream's path, and drop the alert on failure.
+                scope?.launch {
+                    val fetched = messagingController.getMessage(chatId, reactionUpdate.messageId).getOrNull()
+                        ?: return@launch
+                    if (ReactionAlertPolicy.decide(reactionUpdate, selfId, fetched) == ReactionAlertPolicy.Decision.Alert) {
+                        emitAlert(chatId, reactionUpdate, fetched, previous)
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun emitAlert(
+        chatId: ChatId,
+        reactionUpdate: ReactionUpdate,
+        message: ChatMessage?,
+        previousActorTotal: Long?,
+    ) {
+        val selfId = userManager.accountId
+        val members = runCatching { memberDataSource.getMembersForChat(chatId) }.getOrDefault(emptyList())
+        val member = members.firstOrNull { it.userId == reactionUpdate.actor }?.userProfile
+        var actorName = member?.displayName?.takeIf { it.isNotBlank() }
+        var actorPhoto = member?.profilePicture
+        if (actorName == null || actorPhoto == null) {
+            // The roster of a large group is partial, and a member row may lack a photo: ask the
+            // profile cache, which fetches what it does not hold.
+            val resolved = runCatching { actorProfiles.resolve(reactionUpdate.actor) }.getOrNull()
+            actorName = actorName ?: resolved?.displayName?.takeIf { it.isNotBlank() }
+            actorPhoto = actorPhoto ?: resolved?.profilePicture
+        }
+        val chatName = runCatching { metadataDataSource.getTitle(chatId) }.getOrNull()?.takeIf { it.isNotBlank() }
+            ?: members.firstOrNull { it.userId != selfId }?.userProfile?.displayName?.takeIf { it.isNotBlank() }
+        reactionAlerts.offer(
+            ReactionAlertEvent(
+                chatId = chatId,
+                messageId = reactionUpdate.messageId,
+                emoji = reactionUpdate.emoji.value,
+                actor = reactionUpdate.actor,
+                action = reactionUpdate.action,
+                boostDeltaCents = if (reactionUpdate.action == ReactionUpdate.Action.BOOSTED) {
+                    ReactionAlertPolicy.boostDeltaCents(reactionUpdate.actorBoostCents, previousActorTotal)
+                } else {
+                    null
+                },
+                actorName = actorName,
+                actorPhoto = actorPhoto,
+                chatName = chatName,
+                quote = ReactionAlertPolicy.quoteOf(message),
+            ),
+        )
     }
 
     // endregion

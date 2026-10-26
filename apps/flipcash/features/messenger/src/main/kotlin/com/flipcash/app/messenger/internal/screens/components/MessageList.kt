@@ -144,6 +144,7 @@ internal fun MessageList(
         // True while the list is being carried to a new newest row, so the jump button stays down.
         var autoScrolling by remember { mutableStateOf(false) }
         HandleMessageReads(listState, messages, enabled = hasPositioned)
+        ReportVisibleToReactionAlerts(state.chatId, listState, messages)
         // The first drag or fling after the list has settled. Not isScrollInProgress, which is
         // also true through the animated and instant scrolls the list makes itself (opening,
         // auto-scroll, the jump button): only a finger starts a DragInteraction, and a fling

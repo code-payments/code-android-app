@@ -1,5 +1,6 @@
 package com.flipcash.app.core.feed
 
+import com.flipcash.services.models.BoostedReaction
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -19,6 +20,12 @@ data class ActivityFeedMessageWithToken(
     val message: ActivityFeedMessage,
     val token: Token?,
     val toToken: Token? = null,
+    /**
+     * The display name of the group a boost was sent in, from the local chat store; null when the
+     * entry isn't a boost, the chat is a DM (stored without a title) or isn't stored at all (never
+     * fetched).
+     */
+    val boostChatName: String? = null,
 )
 
 data class ActivityFeedMessage(
@@ -103,6 +110,8 @@ sealed interface MessageMetadata {
     data class DirectlySentCrypto(
         val phoneNumber: String? = null,
         val userId: ID? = null,
+        // Defaulted so a row persisted before this field existed still decodes (as null).
+        val boostedReaction: BoostedReaction? = null,
     ) : MessageMetadata
 
     @Serializable
@@ -115,6 +124,8 @@ sealed interface MessageMetadata {
     data class ReceivedCrypto(
         val phoneNumber: String? = null,
         val userId: ID? = null,
+        // Defaulted so a row persisted before this field existed still decodes (as null).
+        val boostedReaction: BoostedReaction? = null,
     ) : MessageMetadata
 
     /**

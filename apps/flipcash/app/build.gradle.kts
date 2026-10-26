@@ -235,6 +235,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:chat-ui"))
+    debugImplementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
     implementation(libs.phantom.connect) {

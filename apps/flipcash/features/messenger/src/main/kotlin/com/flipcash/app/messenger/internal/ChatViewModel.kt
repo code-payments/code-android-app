@@ -1079,6 +1079,9 @@ internal class ChatViewModel @AssistedInject constructor(
         // which has the navigator and has already captured the message.
         data object ShareMessageRequested : Event
 
+        /** A photo the viewer was asked to save has, or has not, reached the gallery. */
+        data class PhotoSaveResult(val saved: Boolean) : Event
+
         data object SubmitEdit : Event
         data object CancelEdit : Event
         data object EditingEnded : Event
@@ -2760,6 +2763,14 @@ internal class ChatViewModel @AssistedInject constructor(
             .launchIn(viewModelScope)
     }
 
+    /**
+     * The viewer's own reactions on [messageId] as they stand now, `null` while nothing is known
+     * beyond the bubble a caller already holds. For a surface that outlives the bubble it was
+     * opened with, like the photo viewer, whose strip would otherwise highlight stale picks.
+     */
+    fun selfReactionsOf(messageId: Long): Flow<List<SelfReaction>?> =
+        reactionOverlay.map { it[messageId]?.selfReactions }.distinctUntilChanged()
+
     private suspend fun loadQuickReactionInputs(): QuickReactionInputs {
         val catalog = emojiCatalogLoader.load()
         val fill = catalog.firstCategoryEntries.map { it.emoji }
@@ -2851,6 +2862,15 @@ internal class ChatViewModel @AssistedInject constructor(
                 clipboardManager.setText(
                     text = Linkify.message(chatId, event.messageId),
                     label = resources.getString(R.string.title_clipboardLabelMessageLink),
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.PhotoSaveResult>()
+            .onEach { event ->
+                toastController.showToast(
+                    if (event.saved) R.string.title_chatPhotoSaved else R.string.error_chatPhotoSaveFailed,
+                    replacePrevious = true,
                 )
             }
             .launchIn(viewModelScope)
@@ -4313,6 +4333,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 Event.ShareMessageRequested -> { state ->
                     state.copy(selection = null, confirmingDelete = false)
                 }
+                is Event.PhotoSaveResult -> { state -> state }
                 is Event.EditMessage -> { state ->
                     state.copy(
                         selection = null,
@@ -4436,20 +4457,49 @@ private fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): 
  * [ChatViewModel.State.quickReactionStrip] rebuilt for the current selection: empty while nothing
  * is selected, while the selected message can't be reacted to, or before the inputs have loaded.
  */
-private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State {
-    val bubble = selection?.takeIf { it.canReact }
+private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State =
+    copy(quickReactionStrip = reactionStripFor(selection))
+
+/** This bubble with the viewer's reactions replaced by [live], when the overlay knows better. */
+internal fun ChatListItem.ContentBubble.withLiveSelfReactions(
+    live: List<SelfReaction>?,
+): ChatListItem.ContentBubble = if (live == null) this else copy(selfReactions = live)
+
+/**
+ * The emoji the viewer reacted to this bubble with, in the pill row's order where the row knows
+ * them, then newest first. Read from the same live [ChatListItem.ContentBubble.selfReactions] the
+ * strip's highlight uses, so the photo viewer's React button never has a second source.
+ */
+internal fun ChatListItem.ContentBubble.ownReactionEmoji(): List<String> {
+    val rank = reactionPills.withIndex().associate { it.value.emoji to it.index }
+    return selfReactions.withIndex()
+        .sortedWith(
+            compareBy<IndexedValue<SelfReaction>> { rank[it.value.emoji] ?: Int.MAX_VALUE }
+                .thenByDescending { it.value.reactedAt }
+                .thenBy { it.index },
+        )
+        .map { it.value.emoji }
+}
+
+/**
+ * The quick strip for [bubble]: empty when it can't be reacted to or the inputs haven't loaded.
+ * Shared by the context menu's strip and the photo viewer's.
+ */
+internal fun ChatViewModel.State.reactionStripFor(
+    bubble: ChatListItem.ContentBubble?,
+): List<ReactionStrip.Entry> {
+    val reactable = bubble?.takeIf { it.canReact }
     val inputs = quickReactionInputs
-    val strip = if (bubble == null || inputs == null) {
+    return if (reactable == null || inputs == null) {
         emptyList()
     } else {
         ReactionStripComposer.compose(
             recentStats = inputs.recentStats,
-            selfReactions = bubble.selfReactions,
+            selfReactions = reactable.selfReactions,
             catalogFillSource = inputs.catalogFill,
             undrawable = inputs.undrawable,
         )
     }
-    return copy(quickReactionStrip = strip)
 }
 
 /**

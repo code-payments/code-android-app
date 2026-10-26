@@ -1265,6 +1265,7 @@
     <string name="action_clearEmojiSearch">Clear search</string>
     <string name="action_chooseSkinTone">Choose skin tone</string>
     <string name="action_addReaction">Add reaction</string>
+    <string name="description_chatMediaReactWith">%1$s, your reactions: %2$s</string>
 
     <string name="label_unknownContact">Unknown Contact</string>
     <string name="title_allowFullContactAccess">Allow Full Contact Access</string>
@@ -1739,8 +1740,9 @@
     <string name="label_marketCapChartAccessibility">Price curve for %1$s with %2$s purchased</string>
     <!-- Chat photo messages -->
     <string name="description_chatMediaClose">Close</string>
-    <string name="description_chatMediaShare">Share</string>
-    <string name="title_chatMediaShare">Share photo</string>
+    <string name="description_chatMediaSave">Save</string>
+    <string name="title_chatPhotoSaved">Saved to Photos</string>
+    <string name="error_chatPhotoSaveFailed">Couldn\'t save the photo</string>
     <string name="description_chatPhotoRemove">Remove photo</string>
     <string name="description_chatLinkPreviewRemove">Remove link preview</string>
     <string name="description_chatLinkPreviewLoading">Loading preview for %1$s</string>
@@ -1843,4 +1845,12 @@
         <item quantity="one">You sent %1$s to %2$d person</item>
         <item quantity="other">You sent %1$s to %2$d people</item>
     </plurals>
+    <string name="alert_reaction_title">%1$s reacted to your message</string>
+    <string name="alert_boost_title">%1$s boosted their %2$s</string>
+    <plurals name="alert_several_title">
+        <item quantity="one">%1$s and %2$d other reacted</item>
+        <item quantity="other">%1$s and %2$d others reacted</item>
+    </plurals>
+    <string name="alert_someone">Someone</string>
+    <string name="alert_thisChat">This chat ↓</string>
 </resources>

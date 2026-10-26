@@ -8,7 +8,10 @@ import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.Emoji
+import com.flipcash.shared.transactionhistory.TransactionDetails
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.shared.transactionhistory.ResolvedTransaction
@@ -124,5 +127,41 @@ class TransactionDetailsViewModelTest {
 
         assertNull(vm.stateFlow.value.counterpartDestination)
         assertFalse(vm.stateFlow.value.viewsProfile)
+    }
+
+    // --- "View Message": the route is read off the stored boost snapshot (D1-D3). ---
+
+    private val boost = BoostedReaction(chatId = dmChatId, messageId = 77L, emoji = Emoji("\uD83D\uDD25"))
+    private val boostRoute = AppRoute.Messaging.Chat(
+        identifier = ChatIdentifier.ByChatId(dmChatId),
+        jumpToMessageId = 77L,
+    )
+
+    private fun stateWith(boost: BoostedReaction?, canViewInChat: Boolean): TransactionDetailsViewModel.State {
+        val details = mockk<TransactionDetails>(relaxed = true) {
+            every { boostedReaction } returns boost
+            every { this@mockk.canViewInChat } returns canViewInChat
+        }
+        val transaction = mockk<ResolvedTransaction>(relaxed = true) { every { this@mockk.details } returns details }
+        return TransactionDetailsViewModel.State(transaction = transaction)
+    }
+
+    @Test
+    fun `D1 a boost with a counterparty opens the boosted message in its chat`() {
+        val state = stateWith(boost, canViewInChat = true)
+        assertEquals(boostRoute, state.boostedMessageRoute)
+    }
+
+    @Test
+    fun `D2 a split boost opens the same route with no counterparty`() {
+        val state = stateWith(boost, canViewInChat = false)
+        assertEquals(boostRoute, state.boostedMessageRoute)
+    }
+
+    @Test
+    fun `D3 without a boost there is no message route and the chat button is as before`() {
+        val state = stateWith(null, canViewInChat = true)
+        assertNull(state.boostedMessageRoute)
+        assertTrue(state.transaction!!.details.canViewInChat)
     }
 }
