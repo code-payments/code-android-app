@@ -80,6 +80,7 @@ internal class TransactionDetailsMapper @Inject constructor(
             // The counterpart action opens a conversation or a profile, and both need somebody to
             // open it with.
             canViewInChat = counterparty != null,
+            boostedReaction = boostedReactionOf(meta),
         )
     }
 

@@ -62,6 +62,8 @@ fun TransactionDetailsContent(
     onBack: () -> Unit = { },
     onCopyId: () -> Unit = { },
     onViewInChat: () -> Unit = { },
+    /** Opens the boosted message in its chat; the button shows whenever the entry boosted one. */
+    onViewMessage: () -> Unit = { },
     /** The button opens the counterparty's profile rather than a chat, because no DM exists yet. */
     viewsProfile: Boolean = false,
     onCancel: () -> Unit = { },
@@ -104,7 +106,15 @@ fun TransactionDetailsContent(
 
             IdCard(id = details.id, onCopyId = onCopyId)
 
-            if (details.canViewInChat) {
+            if (details.boostedReaction != null) {
+                CodeButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.action_txnDetails_viewMessage),
+                    buttonState = ButtonState.Filled05,
+                    shape = CodeTheme.shapes.extraSmall,
+                    onClick = onViewMessage,
+                )
+            } else if (details.canViewInChat) {
                 CodeButton(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(

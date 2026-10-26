@@ -6,7 +6,10 @@ import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageState
 import com.flipcash.app.core.feed.SwapState
 import com.flipcash.app.core.feed.SwappedCryptoMetadata
+import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.Emoji
 import com.flipcash.shared.transactionhistory.internal.TransactionDetailsMapper
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -290,4 +293,32 @@ class TransactionDetailsMapperTest {
     }
 
     // endregion
+
+    // --- Boosted reaction: the "View Message" button's inputs (D1-D3) ---
+
+    private val boost = BoostedReaction(
+        chatId = ChatId(ByteArray(32) { 9 }),
+        messageId = 7L,
+        emoji = Emoji("\uD83D\uDD25"),
+    )
+
+    @Test
+    fun `D1 a boost with a counterparty carries the boost for View Message`() {
+        val details = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost))
+        assertEquals(boost, details.boostedReaction)
+    }
+
+    @Test
+    fun `D2 a split boost carries the boost although there is nobody to view in chat`() {
+        val details = map(MessageMetadata.DirectlySentCrypto(boostedReaction = boost))
+        assertEquals(boost, details.boostedReaction)
+        assertFalse(details.canViewInChat)
+    }
+
+    @Test
+    fun `D3 without a boost the existing button logic is untouched`() {
+        val details = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId))
+        assertNull(details.boostedReaction)
+        assertTrue(details.canViewInChat)
+    }
 }

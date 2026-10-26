@@ -1,6 +1,7 @@
 package com.flipcash.shared.transactionhistory
 
 import androidx.annotation.StringRes
+import com.flipcash.services.models.BoostedReaction
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -105,6 +106,9 @@ enum class TransactionStatus(@StringRes val labelRes: Int) {
  * @param canCancel Whether the movement can still be pulled back — an open cash link, and nothing
  * else. Drawn as the app bar's end action.
  * @param canViewInChat Whether the counterparty's conversation can be opened from here.
+ * @param boostedReaction The reaction this payment boosted, when it did. Its presence swaps the
+ * chat button for "View Message", which opens the boosted message — and shows it even on a split
+ * boost, which has no counterparty for [canViewInChat] to open.
  */
 data class TransactionDetails(
     val id: String,
@@ -125,4 +129,5 @@ data class TransactionDetails(
     val received: Fiat? = null,
     val canCancel: Boolean = false,
     val canViewInChat: Boolean = false,
+    val boostedReaction: BoostedReaction? = null,
 )

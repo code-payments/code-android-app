@@ -7,7 +7,10 @@ import com.flipcash.app.core.feed.MessageState
 import com.flipcash.app.core.feed.MessageSubstitution
 import com.flipcash.app.core.feed.SwapState
 import com.flipcash.app.core.feed.SwappedCryptoMetadata
+import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.Emoji
 import com.flipcash.shared.transactionhistory.internal.TransactionItemMapper
 import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.FakeResourceHelper
@@ -32,6 +35,11 @@ class TransactionItemMapperTest {
         .stub(R.string.title_activity_sentTo, "Sent to %1\$s")
         .stub(R.string.title_activity_receivedFrom, "Received from %1\$s")
         .stub(R.string.title_activity_convert, "%1\$s → %2\$s")
+        .stub(R.string.title_activity_boostedFor, "Boosted %1\$s for %2\$s")
+        .stub(R.string.title_activity_boostFrom, "Boost %1\$s from %2\$s")
+        .stub(R.string.title_activity_boostedIn, "Boosted %1\$s in %2\$s")
+        .stub(R.string.title_activity_boosted, "Boosted %1\$s")
+        .stub(R.string.title_activity_boostReceived, "Boost %1\$s received")
     private val mapper = TransactionItemMapper(resources)
 
     private val knownUserId: ID = listOf<Byte>(0x0A, 0x0B, 0x0C)
@@ -432,5 +440,114 @@ class TransactionItemMapperTest {
         val item = mapper.map(ActivityFeedMessageWithToken(msg, usdfToken()) to emptyMap())
 
         assertEquals(null, item.fee)
+    }
+
+    // --- Boosted reaction titles (cases 1-8 of the spec) ---
+
+    private fun boost(emoji: String) = BoostedReaction(
+        chatId = ChatId(ByteArray(32) { 9 }),
+        messageId = 7L,
+        emoji = Emoji(emoji),
+    )
+
+    private fun title(
+        metadata: MessageMetadata?,
+        serverTitle: String,
+        profiles: Map<String, UserProfile> = cached,
+        chatName: String? = null,
+        substitutions: List<MessageSubstitution> = emptyList(),
+    ): String {
+        val msg = feedMessage(metadata = metadata)
+            .copy(text = serverTitle, textSubstitutions = substitutions)
+        return mapper.map(
+            ActivityFeedMessageWithToken(msg, token = null, boostChatName = chatName) to profiles
+        ).title
+    }
+
+    private val fire = "\uD83D\uDD25"
+    private val thumbs = "\uD83D\uDC4D\uD83C\uDFFD"
+
+    @Test
+    fun `1 sent boost names the payee`() {
+        val meta = MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost(fire))
+        assertEquals("Boosted $fire for Sally The Streamer", title(meta, "Sent to Sally The Streamer"))
+    }
+
+    @Test
+    fun `2 received boost names the payer`() {
+        val meta = MessageMetadata.ReceivedCrypto(userId = knownUserId, boostedReaction = boost(fire))
+        assertEquals("Boost $fire from Sally The Streamer", title(meta, "Received from Sally The Streamer"))
+    }
+
+    @Test
+    fun `3 split boost is named for its chat`() {
+        val meta = MessageMetadata.DirectlySentCrypto(boostedReaction = boost(fire))
+        assertEquals(
+            "Boosted $fire in Design Team",
+            title(meta, "Sent", profiles = emptyMap(), chatName = "Design Team"),
+        )
+    }
+
+    @Test
+    fun `4 split boost with no chat in the store is just the emoji`() {
+        val meta = MessageMetadata.DirectlySentCrypto(boostedReaction = boost(fire))
+        assertEquals("Boosted $fire", title(meta, "Sent", profiles = emptyMap(), chatName = null))
+    }
+
+    @Test
+    fun `5 received boost with an unresolved name reads as received`() {
+        val meta = MessageMetadata.ReceivedCrypto(userId = knownUserId, boostedReaction = boost(fire))
+        assertEquals("Boost $fire received", title(meta, "Received", profiles = emptyMap()))
+    }
+
+    @Test
+    fun `6 a boost wins over the tip verb`() {
+        val meta = MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost(thumbs))
+        assertEquals("Boosted $thumbs for Sally The Streamer", title(meta, "Tipped Sally The Streamer"))
+    }
+
+    @Test
+    fun `7 a tip without a boost is unchanged`() {
+        val meta = MessageMetadata.DirectlySentCrypto(userId = knownUserId)
+        assertEquals("Tipped Sally The Streamer", title(meta, "Tipped"))
+    }
+
+    @Test
+    fun `8 a receive without a boost is unchanged`() {
+        val meta = MessageMetadata.ReceivedCrypto(userId = knownUserId)
+        assertEquals("Received from Sally The Streamer", title(meta, "Received"))
+    }
+
+    @Test
+    fun `a boost never shows the server title while the name is unresolved`() {
+        val meta = MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost(fire))
+        assertEquals("Boosted $fire", title(meta, "Sent to Sally", profiles = emptyMap()))
+    }
+
+    @Test
+    fun `a boost wins over server substitutions`() {
+        val meta = MessageMetadata.ReceivedCrypto(userId = knownUserId, boostedReaction = boost(fire))
+        val subs = listOf(MessageSubstitution.UserId(fallback = "Sally", userId = knownUserId))
+        assertEquals(
+            "Boost $fire from Sally The Streamer",
+            title(meta, "{0} sent you", substitutions = subs),
+        )
+    }
+
+    @Test
+    fun `a one-payee boost whose name has not landed does not borrow the chat name`() {
+        val meta = MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost(fire))
+        assertEquals("Boosted $fire", title(meta, "Sent", profiles = emptyMap(), chatName = "Design Team"))
+    }
+
+    @Test
+    fun `a split boost keeps the amount, sign and no-counterparty avatar`() {
+        val meta = MessageMetadata.DirectlySentCrypto(boostedReaction = boost(fire))
+        val msg = feedMessage(metadata = meta)
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token = usdfToken()) to emptyMap())
+
+        assertEquals("-", item.signedAmountPrefix)
+        assertEquals(TransactionAvatar.TokenIcon(usdfToken()), item.avatar)
+        assertEquals(msg.amount, item.amount)
     }
 }
