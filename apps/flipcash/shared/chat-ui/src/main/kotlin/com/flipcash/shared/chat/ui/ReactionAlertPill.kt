@@ -39,15 +39,13 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.chat.alerts.ReactionAlertContent
 import com.flipcash.shared.chat.alerts.ReactionAlertContent.Kind
 import com.flipcash.shared.common.ui.ContactAvatar
+import com.getcode.theme.CodeTheme
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 
-private val TextMain = Color.White
-private val TextDim = Color.White.copy(alpha = 0.5f)
-private val BoostGreen = Color(0xFF34C759)
 private val AvatarPalette = listOf(
     Color(0xFFE8996B), Color(0xFF739EF2), Color(0xFF8CD18C), Color(0xFFD68CC8), Color(0xFFF0C864),
 )
@@ -60,7 +58,6 @@ object ReactionAlertPillSpec {
     val VerticalPadding = 14.dp
     val AvatarSize = 40.dp
     val StackAvatarSize = 32.dp
-    val StackOverlap = 10.dp
 
     /**
      * iOS's dark-tinted glass lands a few steps lighter than the app background (about 30 over 24),
@@ -139,29 +136,30 @@ private fun AlertRow(content: ReactionAlertContent, inActiveChat: Boolean) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = if (inActiveChat) stringResource(R.string.alert_thisChat) else content.chatName.orEmpty(),
-                color = TextDim,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             // Shrinks to fit before it would ellipsize: the title is never wrapped or cut.
             androidx.compose.material3.Text(
                 text = title(content),
-                color = TextMain,
-                fontFamily = androidx.compose.material.LocalTextStyle.current.fontFamily,
-                fontWeight = FontWeight.SemiBold,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textMain,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis,
-                autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = 15.sp, stepSize = 0.5.sp),
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 11.sp,
+                    maxFontSize = CodeTheme.typography.textSmall.fontSize,
+                    stepSize = 0.5.sp,
+                ),
             )
             if (content.quote.isNotEmpty()) {
                 Text(
                     text = content.quote,
-                    color = TextDim,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
+                    style = CodeTheme.typography.caption,
+                    color = CodeTheme.colors.textSecondary,
                     maxLines = 1,
                     softWrap = false,
                     overflow = TextOverflow.Ellipsis,
@@ -169,20 +167,18 @@ private fun AlertRow(content: ReactionAlertContent, inActiveChat: Boolean) {
             }
         }
         when (content.kind) {
-            Kind.Reaction -> Text(content.emojis.last(), color = TextMain, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Kind.Reaction -> Text(content.emojis.last(), color = CodeTheme.colors.textMain, fontSize = 30.sp, maxLines = 1)
             Kind.Boost -> Text(
                 text = "+" + boostCentsText(content.boostCents ?: 0),
-                color = BoostGreen,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.success,
                 maxLines = 1,
             )
             // The newest two; the title already counts everyone.
             Kind.Several -> Text(
                 text = content.emojis.takeLast(2).joinToString(""),
-                color = TextMain,
+                color = CodeTheme.colors.textMain,
                 fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 textAlign = TextAlign.End,
             )
@@ -207,7 +203,7 @@ private fun title(content: ReactionAlertContent): String {
 @Composable
 private fun AvatarStack(content: ReactionAlertContent) {
     val size = ReactionAlertPillSpec.StackAvatarSize
-    val step = size - ReactionAlertPillSpec.StackOverlap
+    val step = size - CodeTheme.dimens.staticGrid.x2
     val shown = content.actorNames.take(3)
     Box(modifier = Modifier.width(size + step * (shown.size - 1)).height(size)) {
         shown.indices.forEach { index ->
@@ -238,7 +234,7 @@ private fun AlertAvatar(
     val name = content.actorNames.getOrNull(index)
     val photo = content.actorPhotos.getOrNull(index)
     val fill = AvatarPalette[Math.floorMod(name?.hashCode() ?: index, AvatarPalette.size)]
-    val ringWidth = if (ring) 2.dp else 0.dp
+    val ringWidth = if (ring) CodeTheme.dimens.thickBorder else 0.dp
     Box(
         modifier = modifier
             .size(size)
