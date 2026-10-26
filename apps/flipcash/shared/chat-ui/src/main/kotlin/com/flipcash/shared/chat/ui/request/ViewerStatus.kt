@@ -12,7 +12,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.layout.IntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasureScope
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -20,6 +26,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
@@ -82,28 +89,47 @@ fun ViewerStatusLine(
     FirstThatFits(full, short, style, color, modifier)
 }
 
-/** [full] when it fits on one line, otherwise [short], ellipsized. */
+/**
+ * [full] when it fits on one line, otherwise [short], ellipsized. A plain layout rather than a
+ * subcompose one, because the deck's pill sizes itself to this line's intrinsic width.
+ */
 @Composable
-private fun FirstThatFits(
+internal fun FirstThatFits(
     full: AnnotatedString,
     short: AnnotatedString,
     style: TextStyle,
     color: Color,
     modifier: Modifier,
 ) {
-    SubcomposeLayout(modifier) { constraints ->
-        val whole = subcompose("full") {
+    Layout(
+        modifier = modifier,
+        content = {
             Text(text = full, style = style, color = color, maxLines = 1, softWrap = false)
-        }.single().measure(constraints.copy(minWidth = 0, maxWidth = Int.MAX_VALUE))
-        val placeable = if (whole.width <= constraints.maxWidth) {
-            whole
-        } else {
-            subcompose("short") {
-                Text(text = short, style = style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }.single().measure(constraints.copy(minWidth = 0))
-        }
-        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+            Text(text = short, style = style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        measurePolicy = FirstThatFitsPolicy,
+    )
+}
+
+private object FirstThatFitsPolicy : MeasurePolicy {
+    override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints): MeasureResult {
+        val (full, short) = measurables
+        val whole = full.measure(constraints.copy(minWidth = 0, maxWidth = Constraints.Infinity))
+        val placeable = if (whole.width <= constraints.maxWidth) whole else short.measure(constraints.copy(minWidth = 0))
+        return layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     }
+
+    override fun IntrinsicMeasureScope.maxIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int): Int =
+        measurables[0].maxIntrinsicWidth(height)
+
+    override fun IntrinsicMeasureScope.minIntrinsicWidth(measurables: List<IntrinsicMeasurable>, height: Int): Int =
+        measurables[1].minIntrinsicWidth(height)
+
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int =
+        measurables.maxOf { it.maxIntrinsicHeight(width) }
+
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<IntrinsicMeasurable>, width: Int): Int =
+        measurables.maxOf { it.minIntrinsicHeight(width) }
 }
 
 /**
