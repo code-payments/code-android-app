@@ -34,7 +34,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.ui.QuickReactionStrip
-import com.flipcash.shared.chat.ui.StripSurface
+import com.getcode.ui.components.glass.floatingGlass
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.outlined.Download
@@ -183,6 +186,7 @@ fun ChatMediaViewer(
     )
     if (onPainter != null) SideEffect { onPainter(painter) }
 
+    val hazeState = rememberHazeState()
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -203,6 +207,7 @@ fun ChatMediaViewer(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(hazeState)
                 .testTag(VIEWER_IMAGE_TAG)
                 .pointerInput(zoomState, reduceMotion) {
                     detectTapGestures(
@@ -347,6 +352,7 @@ fun ChatMediaViewer(
             enabled = interactive,
             visible = chromeVisible,
             tag = VIEWER_CLOSE_TAG,
+            hazeState = hazeState,
             onClick = onDismiss,
             modifier = chrome.align(Alignment.TopStart),
         )
@@ -368,6 +374,7 @@ fun ChatMediaViewer(
                     stripOpen = false
                     onOpenPicker()
                 },
+                glass = hazeState,
                 modifier = chrome
                     .align(Alignment.BottomStart)
                     .navigationBarsPadding()
@@ -387,7 +394,7 @@ fun ChatMediaViewer(
                 .padding(horizontal = CodeTheme.dimens.staticGrid.x4, vertical = CodeTheme.dimens.staticGrid.x3),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            ViewerPill {
+            ViewerPill(hazeState) {
                 if (onReact != null) {
                     ViewerPillButton(
                         icon = Icons.Outlined.AddReaction,
@@ -409,7 +416,7 @@ fun ChatMediaViewer(
                     )
                 }
             }
-            ViewerPill {
+            ViewerPill(hazeState) {
                 ViewerPillButton(
                     icon = Icons.Outlined.Download,
                     description = stringResource(R.string.description_chatMediaSave),
@@ -446,6 +453,7 @@ private fun ViewerButton(
     visible: Boolean,
     tag: String,
     onClick: () -> Unit,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
     IconButton(
@@ -456,8 +464,7 @@ private fun ViewerButton(
             .statusBarsPadding()
             .padding(CodeTheme.dimens.staticGrid.x2)
             .size(CodeTheme.dimens.staticGrid.x8)
-            .clip(CircleShape)
-            .background(StripSurface)
+            .floatingGlass(hazeState)
             .testTag(tag),
     ) {
         Icon(
@@ -468,13 +475,12 @@ private fun ViewerButton(
     }
 }
 
-/** The capsule behind a group of bottom buttons: the same solid surface as the quick-reaction strip, so it reads over black and over a bright photo. */
+/** The capsule behind a group of bottom buttons: frosted glass over the photo, as the viewer's other chrome. */
 @Composable
-private fun ViewerPill(content: @Composable () -> Unit) {
+private fun ViewerPill(hazeState: HazeState, content: @Composable () -> Unit) {
     Row(
         modifier = Modifier
-            .clip(CircleShape)
-            .background(StripSurface),
+            .floatingGlass(hazeState),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
         verticalAlignment = Alignment.CenterVertically,
     ) { content() }
