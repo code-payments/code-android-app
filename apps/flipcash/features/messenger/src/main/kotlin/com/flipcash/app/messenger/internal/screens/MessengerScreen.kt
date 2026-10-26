@@ -52,6 +52,7 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
+import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.links.ExternalLinkUriHandler
@@ -438,7 +439,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     }
 
     // The group's profile is one tap away; have its cover downloaded before that tap.
-    val requestsViewModel = hiltViewModel<ChatRequestsViewModel>()
+    // The flow's, so the Request details step can minimize the deck once it covers the chat.
+    val requestsViewModel = flowSharedViewModel<ChatRequestsViewModel>()
     val requestCards = rememberPaymentRequestCards(
         viewModel = requestsViewModel,
         chatId = state.chatId.takeIf { state.chatType == ChatType.GROUP },
@@ -457,7 +459,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val deckNow by requestsViewModel.now.collectAsStateWithLifecycle()
     val drawnDeck = remember(deck) { deck.filter { it.deckTitle != null } }
     val openRequest: (com.flipcash.services.models.paymentrequest.PaymentRequest) -> Unit = { request ->
-        // The deck stays expanded under the details, as it was left: back returns to the list.
+        // The deck stays expanded while the details slide over it; the step minimizes it once covered.
         state.chatId?.let { chatId ->
             keyboard.hideIfVisible { navigator.push(ChatStep.RequestDetails(chatId, request.id.base58)) }
         }

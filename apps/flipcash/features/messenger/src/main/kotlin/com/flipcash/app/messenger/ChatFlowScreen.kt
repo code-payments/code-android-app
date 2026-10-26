@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -43,6 +44,7 @@ import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
+import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
 import com.flipcash.app.messenger.internal.request.RequestDetailsScreen
 import com.flipcash.app.messenger.internal.request.RequestMoneyScreen
 import com.flipcash.app.messenger.internal.screens.boost.ReactionBoostAmountViewModel
@@ -85,6 +87,7 @@ import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.utils.LocalSheetOverhang
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
@@ -253,6 +256,16 @@ private fun chatEntryProvider(
             val previous = sheetNavigator?.sheetDragDisabled ?: false
             sheetNavigator?.sheetDragDisabled = true
             onDispose { sheetNavigator?.sheetDragDisabled = previous }
+        }
+        // Opened from the expanded deck, which stays as it was while the sheet rises over it. Once
+        // the sheet is fully up, snap the deck minimized where nobody sees it, so coming back shows
+        // the chat with the deck in the app bar and no collapse playing as the sheet leaves.
+        val requests = flowSharedViewModel<ChatRequestsViewModel>()
+        val overhang = LocalSheetOverhang.current
+        LaunchedEffect(requests) {
+            snapshotFlow { overhang() }.first { it > 1f }
+            snapshotFlow { overhang() }.first { it <= 1f }
+            requests.setExpanded(false)
         }
         RequestDetailsScreen(
             chatId = step.chatId,
