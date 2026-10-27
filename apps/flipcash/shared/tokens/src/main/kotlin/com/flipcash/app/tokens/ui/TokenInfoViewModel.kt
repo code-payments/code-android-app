@@ -474,12 +474,14 @@ class TokenInfoViewModel @Inject constructor(
                         subtitle = resources.getString(R.string.subtitle_moreDeposit, name),
                         iconRes = R.drawable.ic_menu_deposit,
                         testTag = "more_action_deposit",
-                        // Dollars opens the deposit-method choice (USDC intro, other currencies);
+                        // Dollars opens the add-money options (debit card, Phantom, other wallet);
                         // any other currency opens its own deposit address.
                         onClick = {
-                            val route = if (mint == Mint.usdf) AppRoute.Transfers.Deposit()
-                            else AppRoute.Transfers.Deposit(mint = mint)
-                            dispatchEvent(Event.OpenScreen(route))
+                            if (mint == Mint.usdf) {
+                                dispatchEvent(Event.PresentDepositOptions)
+                            } else {
+                                dispatchEvent(Event.OpenScreen(AppRoute.Transfers.Deposit(mint = mint)))
+                            }
                         },
                     )
                 }
