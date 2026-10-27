@@ -1,17 +1,15 @@
 package com.flipcash.app.tokens.ui
 
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.services.models.Community
 import com.flipcash.services.models.chat.ChatMetadata
-import java.math.BigDecimal
-import java.math.RoundingMode
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Locale
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.Token
 
 /** Chats Currency Info previews before "View All". */
 const val TopCommunityChatsPreviewCount = 3
-
-private const val QuarksPerToken = 10_000_000_000L
 
 /**
  * The chats a Currency Info page lists, in the server's ranking. A failed call and an empty list
@@ -20,32 +18,36 @@ private const val QuarksPerToken = 10_000_000_000L
 fun Result<Community>.topCommunityChats(): List<ChatMetadata> =
     getOrNull()?.topHolderChats.orEmpty()
 
-/** The values behind a chat row's "<amount> of <name> held by N members" line. */
-data class CommunityChatHoldings(val amount: String, val memberCount: Long)
+/**
+ * What a chat row's "<amount> of <name> held by N members" line shows: [amount] is the fiat value
+ * of the chat's holdings in the viewer's currency, or null when the line is just "N members".
+ */
+data class CommunityChatHoldings(val amount: String?, val memberCount: Long)
 
 /**
- * Null when the server sent no holdings for the chat, so the row shows no subtitle rather than a
- * made-up zero.
+ * The holdings quarks valued on the bonding curve at [token]'s current supply, then shown in the
+ * viewer's currency like the hero balance. Null amount when the server sent no holdings or [token]
+ * is not known, matching iOS, which still shows the member count.
  */
-fun ChatMetadata.communityHoldings(locale: Locale = Locale.getDefault()): CommunityChatHoldings? {
-    val summary = holdingsSummary ?: return null
-    return CommunityChatHoldings(
-        amount = formatQuarksCompact(summary.quarks, locale),
-        memberCount = rosterSummary.memberCount,
-    )
+fun ChatMetadata.communityHoldings(
+    token: Token?,
+    preferredRate: Rate,
+    rates: Map<CurrencyCode, Rate>,
+): CommunityChatHoldings {
+    val amount = holdingsSummary?.let { summary ->
+        token ?: return@let null
+        runCatching { Fiat.tokenBalance(summary.quarks, token) }.getOrNull()
+            ?.forViewer(preferredRate, rates)
+            ?.formatted(Fiat.FormattingRule.Truncated)
+    }
+    return CommunityChatHoldings(amount = amount, memberCount = rosterSummary.memberCount)
 }
 
-/** A token amount from raw [quarks], abbreviated: 950, 1.2K, 3.4M, 5B. Rounds down. */
-fun formatQuarksCompact(quarks: Long, locale: Locale = Locale.getDefault()): String {
-    val tokens = BigDecimal(quarks).divide(BigDecimal(QuarksPerToken))
-    val (scaled, suffix) = when {
-        tokens >= BigDecimal(1_000_000_000) -> tokens.movePointLeft(9) to "B"
-        tokens >= BigDecimal(1_000_000) -> tokens.movePointLeft(6) to "M"
-        tokens >= BigDecimal(1_000) -> tokens.movePointLeft(3) to "K"
-        else -> tokens to ""
-    }
-    val format = DecimalFormat("#,##0.#", DecimalFormatSymbols(locale)).apply {
-        roundingMode = RoundingMode.DOWN
-    }
-    return format.format(scaled) + suffix
-}
+/** A ranked chat with the line its row shows. */
+data class CommunityChatEntry(val chat: ChatMetadata, val holdings: CommunityChatHoldings)
+
+fun List<ChatMetadata>.asEntries(
+    token: Token?,
+    preferredRate: Rate,
+    rates: Map<CurrencyCode, Rate>,
+): List<CommunityChatEntry> = map { CommunityChatEntry(it, it.communityHoldings(token, preferredRate, rates)) }

@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.emitAll
 import javax.inject.Inject
 
 @HiltViewModel
@@ -77,7 +78,7 @@ class TokenInfoViewModel @Inject constructor(
         /** Bounded per-token recent activity preview (newest first) for the v2 currency-info screen. */
         val transactions: List<TransactionListItem> = emptyList(),
         /** Public groups gated on this currency, ranked by the server. Empty hides the section. */
-        val communityChats: List<ChatMetadata> = emptyList(),
+        val communityChats: List<CommunityChatEntry> = emptyList(),
     ) {
         /** True when the user holds a displayable balance in some token other than [mint], which could fund a buy of it. */
         val hasFundableBalance: Boolean
@@ -129,7 +130,7 @@ class TokenInfoViewModel @Inject constructor(
         data object OnConvert : Event
         data object OnMore : Event
         data object OnRankingInfo : Event
-        data class OnCommunityChatsLoaded(val chats: List<ChatMetadata>) : Event
+        data class OnCommunityChatsLoaded(val chats: List<CommunityChatEntry>) : Event
         data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object Exit : Event
@@ -395,9 +396,13 @@ class TokenInfoViewModel @Inject constructor(
             .flatMapLatest { mint ->
                 kotlinx.coroutines.flow.flow {
                     // USDF has no community; a failed call and an empty list both hide the section.
-                    emit(
-                        if (mint == Mint.usdf) emptyList()
-                        else communityController.getCommunity(mint).topCommunityChats()
+                    val chats = if (mint == Mint.usdf) emptyList()
+                    else communityController.getCommunity(mint).topCommunityChats()
+                    val token = tokenCoordinator.cachedToken(mint)
+                    // Re-value when the viewer's currency or rates change.
+                    emitAll(
+                        exchange.observePreferredRate()
+                            .map { rate -> chats.asEntries(token, rate, exchange.rates()) }
                     )
                 }
             }

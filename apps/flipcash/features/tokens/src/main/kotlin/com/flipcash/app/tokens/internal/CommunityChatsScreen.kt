@@ -51,14 +51,15 @@ fun CommunityChatsScreen(mint: Mint) {
                 vertical = CodeTheme.dimens.grid.x2,
             ),
         ) {
-            items(state.chats, key = { it.chatId.toString() }) { chat ->
+            items(state.chats, key = { it.chat.chatId.toString() }) { entry ->
                 CommunityChatRow(
-                    chat = chat,
+                    chat = entry.chat,
+                    holdings = entry.holdings,
                     currencyName = state.currencyName,
                     onClick = {
                         navigator.push(
                             AppRoute.Messaging.Chat(
-                                identifier = ChatIdentifier.ByChatId(chat.chatId),
+                                identifier = ChatIdentifier.ByChatId(entry.chat.chatId),
                                 openOnProfile = true,
                             )
                         )

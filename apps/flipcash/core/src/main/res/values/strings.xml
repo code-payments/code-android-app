@@ -1873,6 +1873,10 @@
         <item quantity="one">%1$s of %2$s held by %3$d member</item>
         <item quantity="other">%1$s of %2$s held by %3$d members</item>
     </plurals>
+    <plurals name="subtitle_communityChatMembers">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
     <string name="title_selectRecipient">Select Recipient</string>
     <string name="title_shareCurrency">Share %1$s</string>
     <string name="title_recentChats">Recent Chats</string>

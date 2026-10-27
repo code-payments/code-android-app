@@ -6,17 +6,16 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.HoldingsSummary
 import com.flipcash.services.models.chat.RosterSummary
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
-import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.time.Instant
 
 class CommunityChatsTest {
-    private val us = Locale.US
-    private val quarksPerToken = 10_000_000_000L
-
     private fun chat(holdings: HoldingsSummary?, members: Long = 14) = ChatMetadata(
         chatId = ChatId(ByteArray(32)),
         type = ChatType.GROUP,
@@ -27,32 +26,43 @@ class CommunityChatsTest {
         holdingsSummary = holdings,
     )
 
-    @Test
-    fun `quarks format as abbreviated token amounts`() {
-        assertEquals("0", formatQuarksCompact(0, us))
-        assertEquals("950", formatQuarksCompact(950 * quarksPerToken, us))
-        assertEquals("1.2K", formatQuarksCompact(1_250 * quarksPerToken, us))
-        assertEquals("3.4M", formatQuarksCompact(3_450_000 * quarksPerToken, us))
-        assertEquals("500M", formatQuarksCompact(500_000_000 * quarksPerToken, us))
-    }
+    private val usd = Rate.oneToOne
+    private val usdf = Token.usdf
+
+    private fun summary(quarks: Long) = HoldingsSummary(
+        mint = Mint.usdf,
+        quarks = quarks,
+        holderCount = 9,
+        asOf = Instant.fromEpochSeconds(0),
+    )
 
     @Test
-    fun `row text uses holdings quarks and roster member count`() {
-        val summary = HoldingsSummary(
-            mint = Mint.usdf,
-            quarks = 1_250 * quarksPerToken,
-            holderCount = 9,
-            asOf = Instant.fromEpochSeconds(0),
-        )
+    fun `holdings are valued in fiat and drop a zero fraction`() {
         assertEquals(
-            CommunityChatHoldings(amount = "1.2K", memberCount = 14),
-            chat(summary).communityHoldings(us),
+            CommunityChatHoldings(amount = "$10,840", memberCount = 14),
+            chat(summary(10_840_000_000)).communityHoldings(usdf, usd, emptyMap()),
         )
     }
 
     @Test
-    fun `row has no holdings text when the server sent none`() {
-        assertNull(chat(null).communityHoldings(us))
+    fun `holdings keep cents when there is a fraction`() {
+        assertEquals(
+            "$1,250.50",
+            chat(summary(1_250_500_000)).communityHoldings(usdf, usd, emptyMap()).amount,
+        )
+    }
+
+    @Test
+    fun `row falls back to the member count when the server sent no holdings`() {
+        assertEquals(
+            CommunityChatHoldings(amount = null, memberCount = 14),
+            chat(null).communityHoldings(usdf, usd, emptyMap()),
+        )
+    }
+
+    @Test
+    fun `row falls back to the member count when the token is unknown`() {
+        assertNull(chat(summary(10_000_000)).communityHoldings(null, usd, emptyMap()).amount)
     }
 
     @Test

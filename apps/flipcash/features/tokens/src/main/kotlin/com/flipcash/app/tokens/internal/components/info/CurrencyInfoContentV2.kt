@@ -250,18 +250,19 @@ internal fun CurrencyInfoContentV2(
                             },
                         )
                     }
-                    items(state.communityChats.take(TopCommunityChatsPreviewCount), key = { it.chatId.toString() }) { chat ->
+                    items(state.communityChats.take(TopCommunityChatsPreviewCount), key = { it.chat.chatId.toString() }) { entry ->
                         CommunityChatRow(
                             modifier = Modifier
                                 .fillParentMaxWidth()
                                 .padding(horizontal = inset),
-                            chat = chat,
+                            chat = entry.chat,
+                            holdings = entry.holdings,
                             currencyName = token.name,
                             onClick = {
                                 dispatch(
                                     TokenInfoViewModel.Event.OpenScreen(
                                         AppRoute.Messaging.Chat(
-                                            identifier = ChatIdentifier.ByChatId(chat.chatId),
+                                            identifier = ChatIdentifier.ByChatId(entry.chat.chatId),
                                             openOnProfile = true,
                                         )
                                     )

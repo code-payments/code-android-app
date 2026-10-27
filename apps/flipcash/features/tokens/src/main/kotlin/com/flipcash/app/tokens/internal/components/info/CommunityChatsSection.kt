@@ -20,7 +20,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.tokens.ui.communityHoldings
+import com.flipcash.app.tokens.ui.CommunityChatHoldings
 import com.flipcash.features.tokens.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatMetadata
@@ -68,11 +68,11 @@ internal fun CommunityChatsHeader(
 @Composable
 internal fun CommunityChatRow(
     chat: ChatMetadata,
+    holdings: CommunityChatHoldings,
     currencyName: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val holdings = chat.communityHoldings()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -97,21 +97,25 @@ internal fun CommunityChatRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (holdings != null) {
-                Text(
-                    text = pluralStringResource(
+            Text(
+                text = holdings.amount?.let {
+                    pluralStringResource(
                         R.plurals.subtitle_communityChatHoldings,
                         holdings.memberCount.toInt(),
-                        holdings.amount,
+                        it,
                         currencyName,
                         holdings.memberCount.toInt(),
-                    ),
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+                    )
+                } ?: pluralStringResource(
+                    R.plurals.subtitle_communityChatMembers,
+                    holdings.memberCount.toInt(),
+                    holdings.memberCount.toInt(),
+                ),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

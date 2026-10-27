@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.CommunityController
-import com.flipcash.services.models.chat.ChatMetadata
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.solana.keys.Mint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,10 +19,11 @@ import javax.inject.Inject
 class CommunityChatsViewModel @Inject constructor(
     private val communityController: CommunityController,
     private val tokenCoordinator: TokenCoordinator,
+    private val exchange: Exchange,
 ) : ViewModel() {
     data class State(
         val currencyName: String = "",
-        val chats: List<ChatMetadata> = emptyList(),
+        val chats: List<CommunityChatEntry> = emptyList(),
     )
 
     private val _state = MutableStateFlow(State())
@@ -35,7 +36,10 @@ class CommunityChatsViewModel @Inject constructor(
         _state.update { it.copy(currencyName = tokenCoordinator.cachedToken(mint)?.name.orEmpty()) }
         viewModelScope.launch {
             val chats = communityController.getCommunity(mint).topCommunityChats()
-            _state.update { it.copy(chats = chats) }
+            val token = tokenCoordinator.cachedToken(mint)
+            exchange.observePreferredRate().collect { rate ->
+                _state.update { it.copy(chats = chats.asEntries(token, rate, exchange.rates())) }
+            }
         }
     }
 }
