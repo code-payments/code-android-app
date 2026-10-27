@@ -245,6 +245,9 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Transactions(val mint: Mint) : Token
         @Serializable
         data class MarketCapExplainer(val mint: Mint) : Token
+        /** "Top Community Chats": View All from Currency Info. */
+        @Serializable
+        data class CommunityChats(val mint: Mint) : Token
         @Serializable
         data class Swap(
             val purpose: SwapPurpose,

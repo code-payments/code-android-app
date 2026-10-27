@@ -44,6 +44,7 @@ import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
+import com.flipcash.app.tokens.internal.CommunityChatsScreen
 import com.flipcash.app.messenger.CurrencySendScreen
 import com.flipcash.app.messenger.E2eeLearnMoreScreen
 import com.flipcash.app.messenger.MuteChatScreen
@@ -187,6 +188,7 @@ internal fun appEntryProvider(
     annotatedEntry<AppRoute.Token.Transactions>(testTag = "transaction_history_screen") { key ->
         TransactionHistoryScreen(key.mint)
     }
+    annotatedEntry<AppRoute.Token.CommunityChats>(testTag = "community_chats_screen") { key -> CommunityChatsScreen(key.mint) }
     annotatedEntry<AppRoute.Token.MarketCapExplainer>(testTag = "market_cap_explainer_screen") { key ->
         MarketCapExplainerScreen(key.mint)
     }

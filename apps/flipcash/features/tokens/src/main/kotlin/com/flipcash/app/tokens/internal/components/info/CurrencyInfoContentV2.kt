@@ -58,7 +58,10 @@ import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.getcode.opencode.model.financial.Token
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
-import com.flipcash.shared.transactionhistory.recentActivitySection
+import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.tokens.ui.CurrencyActionTile
+import com.flipcash.app.tokens.ui.TopCommunityChatsPreviewCount
+import com.flipcash.app.tokens.ui.currencyActionTiles
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SocialLink
@@ -225,34 +228,47 @@ internal fun CurrencyInfoContentV2(
                         isHeld = isHeld,
                         tokenMint = token.address,
                         shortfall = shortfall,
-                        convertEnabled = state.canConvert,
                         dispatch = dispatch,
                     )
                 }
 
-                // 3. Recent transactions (only when held and non-empty) — shared with the wallet screen.
-                if (isHeld && state.transactions.isNotEmpty()) {
-                    recentActivitySection(
-                        transactions = state.transactions,
-                        modifier = Modifier
-                            .clickable {
+                // 3. Top community chats (hidden when empty or the call failed)
+                if (state.communityChats.isNotEmpty()) {
+                    item {
+                        CommunityChatsHeader(
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(horizontal = inset)
+                                .padding(top = grid.x5),
+                            onInfo = { dispatch(TokenInfoViewModel.Event.OnRankingInfo) },
+                            onViewAll = {
                                 dispatch(
                                     TokenInfoViewModel.Event.OpenScreen(
-                                        AppRoute.Token.Transactions(token.address)
+                                        AppRoute.Token.CommunityChats(token.address)
                                     )
                                 )
-                            }
-                            .padding(horizontal = inset)
-                            .padding(top = grid.x5, bottom = grid.x1),
-                        itemPadding = PaddingValues(horizontal = inset),
-                        onItemClick = { item ->
-                            dispatch(
-                                TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Sheets.TransactionDetails(item.messageId)
+                            },
+                        )
+                    }
+                    items(state.communityChats.take(TopCommunityChatsPreviewCount), key = { it.chatId.toString() }) { chat ->
+                        CommunityChatRow(
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(horizontal = inset),
+                            chat = chat,
+                            currencyName = token.name,
+                            onClick = {
+                                dispatch(
+                                    TokenInfoViewModel.Event.OpenScreen(
+                                        AppRoute.Messaging.Chat(
+                                            identifier = ChatIdentifier.ByChatId(chat.chatId),
+                                            openOnProfile = true,
+                                        )
+                                    )
                                 )
-                            )
-                        },
-                    )
+                            },
+                        )
+                    }
                 }
 
                 // 4. Market cap (non-USDF only)
@@ -350,117 +366,46 @@ private fun CurrencyActionTiles(
     isHeld: Boolean,
     tokenMint: Mint,
     shortfall: Fiat?,
-    convertEnabled: Boolean,
     dispatch: (TokenInfoViewModel.Event) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val giveTile: @Composable RowScope.() -> Unit = {
-        ActionTile(
-            modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_cash),
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.ic_banknote),
-                    contentDescription = null,
-                    tint = CodeTheme.colors.textMain,
-                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                )
-            },
-            onClick = {
-                dispatch(
-                    TokenInfoViewModel.Event.OpenScreen(
-                        AppRoute.Sheets.Give(mint = tokenMint, fromTokenInfo = true)
-                    )
-                )
-            },
-        )
-    }
-
-    val convertTile: @Composable RowScope.() -> Unit = {
-        ActionTile(
-            modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_convert),
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.ic_convert),
-                    contentDescription = null,
-                    tint = CodeTheme.colors.textMain,
-                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                )
-            },
-            onClick = { dispatch(TokenInfoViewModel.Event.OnConvert) },
-            enabled = convertEnabled,
-        )
-    }
-
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
-        when {
-            !isHeld -> {
-                // Single full-width "Buy In" tile
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_buyIn),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_arrow_down),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                        )
-                    },
-                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
-                )
+        currencyActionTiles(tokenMint, isHeld).forEach { tile ->
+            val (label, icon) = when (tile) {
+                CurrencyActionTile.Send -> R.string.action_send to R.drawable.ic_arrow_up_large
+                CurrencyActionTile.Buy -> R.string.action_buy to R.drawable.ic_arrow_down
+                CurrencyActionTile.BuyIn -> R.string.action_buyIn to R.drawable.ic_arrow_down
+                CurrencyActionTile.Transactions -> R.string.action_transactions to R.drawable.ic_transactions
+                CurrencyActionTile.More -> R.string.action_more to R.drawable.ic_more_horizontal
             }
-
-            // Dollars keeps Withdraw: there is no "buy more" of the cash reserve, and cashing
-            // out is the action people come to this screen for.
-            tokenMint == Mint.usdf -> {
-                giveTile()
-                convertTile()
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_withdraw),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_arrow_up_large),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+            ActionTile(
+                modifier = Modifier.weight(1f),
+                label = stringResource(label),
+                icon = {
+                    Icon(
+                        painter = painterResource(icon),
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textMain,
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                    )
+                },
+                onClick = {
+                    when (tile) {
+                        CurrencyActionTile.Send -> dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(AppRoute.Sheets.CurrencySend(tokenMint))
                         )
-                    },
-                    onClick = {
-                        // Preselect the currency being viewed: Dollars detours through the
-                        // "Withdraw as USDC" intro, anything else opens straight on the amount screen.
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Transfers.Withdrawal(preselectedMint = tokenMint)
-                            )
+                        CurrencyActionTile.Buy, CurrencyActionTile.BuyIn ->
+                            dispatch(TokenInfoViewModel.Event.OnBuy(shortfall))
+                        CurrencyActionTile.Transactions -> dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(AppRoute.Token.Transactions(tokenMint))
                         )
-                    },
-                )
-            }
-
-            // Held non-USDF token: Give + Buy More + Convert
-            else -> {
-                giveTile()
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_buyMore),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_arrow_down),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                        )
-                    },
-                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
-                )
-                convertTile()
-            }
+                        CurrencyActionTile.More -> dispatch(TokenInfoViewModel.Event.OnMore)
+                    }
+                },
+            )
         }
     }
 }

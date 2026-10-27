@@ -15,6 +15,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:shareable"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:transaction-history"))
     implementation(libs.bundles.haze)

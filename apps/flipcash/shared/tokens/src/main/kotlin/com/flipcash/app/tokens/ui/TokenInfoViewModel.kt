@@ -128,6 +128,7 @@ class TokenInfoViewModel @Inject constructor(
         data class OnBuy(val shortFall: Fiat? = null) : Event
         data object OnConvert : Event
         data object OnMore : Event
+        data object OnRankingInfo : Event
         data class OnCommunityChatsLoaded(val chats: List<ChatMetadata>) : Event
         data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
@@ -411,8 +412,24 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.Share>()
             .mapNotNull { stateFlow.value.token.dataOrNull }
-            .map { Shareable.TokenInfo(it) }
-            .onEach { shareController.present(it) }
+            .onEach { token ->
+                // The sheet offers the system share, copy, and recent chats; the system share
+                // sheet it opens is `shareController` with this same shareable.
+                dispatchEvent(
+                    Event.OpenScreen(AppRoute.Messaging.ShareCurrencyToChats(token.address, token.name))
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnRankingInfo>()
+            .onEach {
+                val name = stateFlow.value.token.dataOrNull?.name ?: return@onEach
+                BottomBarManager.showInfo(
+                    title = resources.getString(R.string.title_howChatsAreRanked),
+                    message = resources.getString(R.string.description_howChatsAreRanked, name),
+                )
+            }
             .launchIn(viewModelScope)
     }
 
@@ -424,8 +441,7 @@ class TokenInfoViewModel @Inject constructor(
         val state = stateFlow.value
         val mint = state.mint ?: return
         val name = state.token.dataOrNull?.name ?: return
-        val rows = if (mint == Mint.usdf) listOf(MoreRow.Convert, MoreRow.Withdraw)
-        else listOf(MoreRow.Convert, MoreRow.Withdraw, MoreRow.Deposit)
+        val rows = moreRows(mint)
         BottomBarManager.showMessage(
             title = "",
             actions = rows.map { row ->
@@ -460,8 +476,6 @@ class TokenInfoViewModel @Inject constructor(
             },
         )
     }
-
-    private enum class MoreRow { Convert, Withdraw, Deposit }
 
     companion object {
         /** Rows shown in the token info screen's per-token recent-activity preview. */
@@ -506,6 +520,7 @@ class TokenInfoViewModel @Inject constructor(
                 Event.OnConvert -> { state -> state }
                 is Event.LoadHistoricalDataForPeriod -> { state -> state }
                 is Event.Share -> { state -> state }
+                Event.OnRankingInfo -> { state -> state }
                 is Event.Exit -> { state -> state }
             }
         }
