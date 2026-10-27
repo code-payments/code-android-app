@@ -129,7 +129,7 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 45, to = 46, spec = FlipcashDatabase.Migration45To46::class), // chat_metadata.can_invite (default 0)
         // chat_metadata moderation: can_silence, can_ban (default 0), silence_until_epoch_ms
         // (nullable), silence_forever (default 0)
-        AutoMigration(from = 46, to = 47),
+        AutoMigration(from = 46, to = 47, spec = FlipcashDatabase.Migration46To47::class),
     ],
     version = 47,
 )
@@ -306,6 +306,17 @@ abstract class FlipcashDatabase : RoomDatabase() {
      * on every private group created before the upgrade until its viewer state version moves.
      */
     class Migration45To46 : AutoMigrationSpec {
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL(Migration36To37.REARM_VIEWER_STATE)
+        }
+    }
+
+    /**
+     * Re-arms the viewer-state gate so the new `can_silence` and `can_ban` columns can be filled,
+     * for the same reason as [Migration36To37]: they arrive as 0 and an unchanged version would
+     * otherwise be dropped, hiding the host's moderation actions on every chat that predates the upgrade.
+     */
+    class Migration46To47 : AutoMigrationSpec {
         override fun onPostMigrate(connection: SQLiteConnection) {
             connection.execSQL(Migration36To37.REARM_VIEWER_STATE)
         }

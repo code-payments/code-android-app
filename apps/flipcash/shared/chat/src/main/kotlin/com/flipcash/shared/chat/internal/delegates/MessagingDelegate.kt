@@ -157,13 +157,29 @@ class MessagingDelegate @Inject constructor(
     }
 
     override suspend fun hydrateChat(chatId: ChatId): ChatHydration {
-        if (metadataDataSource.exists(chatId)) return ChatHydration.Stored
+        if (metadataDataSource.exists(chatId)) {
+            refreshGroupViewerState(chatId)
+            return ChatHydration.Stored
+        }
         val metadata = chatController.getChat(chatId).getOrElse { cause ->
             if (cause is GetChatError.NotFound) return ChatHydration.Absent
             trace(tag = TAG, message = "Hydrate failed for $chatId", type = TraceType.Error)
             return ChatHydration.Unavailable
         }
         return ChatHydration.Fetched(ChatMembership(metadata = metadata, isMember = null))
+    }
+
+    /**
+     * A stored group's grants are only ever written by a fetch or a viewer-state event, and the
+     * server sends the latter when the state changes. A chat stored before the moderation columns
+     * existed would therefore keep no grant until something unrelated moved, hiding the host's
+     * Silence and Remove. Reading the chat again on open fills them; the version gate in
+     * [ChatMetadataDataSource.updateViewerState] drops it if the stored state is already newer.
+     */
+    private suspend fun refreshGroupViewerState(chatId: ChatId) {
+        if (metadataDataSource.getChatType(chatId) != ChatType.GROUP) return
+        val viewerState = chatController.getChat(chatId).getOrNull()?.viewerState ?: return
+        metadataDataSource.updateViewerState(chatId, viewerState)
     }
 
     override fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>> {
