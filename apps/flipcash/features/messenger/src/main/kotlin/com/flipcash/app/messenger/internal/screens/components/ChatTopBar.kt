@@ -563,6 +563,14 @@ private fun MessageOverflow(actions: List<MessageAction>, overflowOnly: List<Mes
             actions.forEach { action ->
                 DropdownMenuItem(
                     text = { OverflowLabel(action.label, action.isDestructive) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = action.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(CodeTheme.dimens.grid.x5),
+                            tint = if (action.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain,
+                        )
+                    },
                     onClick = {
                         expanded = false
                         action.onClick()
