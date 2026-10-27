@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.alerts
 
+import com.flipcash.services.models.chat.ReactionUpdate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -72,28 +73,82 @@ class ReactionAlertControllerTest {
     }
 
     @Test
-    fun `off screen message in the open chat shows with this chat label`() = runTest {
+    fun `off screen message in the open chat draws no pill`() = runTest {
         val c = controller()
         c.reportOnScreen(CHAT, setOf(11L))
         c.offer(alertEvent(messageId = 10))
         runCurrent()
-        assertEquals(true, c.state.value?.inActiveChat)
-        c.reset()
+        assertNull(c.state.value)
     }
 
     @Test
-    fun `on screen in another chat still shows`() = runTest {
+    fun `reaction in another chat shows with the chat name`() = runTest {
         val c = controller()
         c.reportOnScreen(OTHER_CHAT, setOf(10L))
         c.offer(alertEvent(messageId = 10, chatId = CHAT))
         runCurrent()
         assertNotNull(c.state.value)
-        assertEquals(false, c.state.value?.inActiveChat)
+        assertEquals(CHAT, c.state.value?.content?.chatId)
         c.reset()
     }
 
     @Test
-    fun `tap in the open chat scrolls, elsewhere opens`() = runTest {
+    fun `no chat open shows the pill`() = runTest {
+        val c = controller()
+        c.offer(alertEvent())
+        runCurrent()
+        assertNotNull(c.state.value)
+        c.reset()
+    }
+
+    @Test
+    fun `opening a chat closes its showing pill`() = runTest {
+        val c = controller()
+        c.offer(alertEvent())
+        runCurrent()
+        assertNotNull(c.state.value)
+        c.reportOnScreen(CHAT, setOf(10L))
+        assertNull(c.state.value)
+        c.reset()
+    }
+
+    @Test
+    fun `opening a chat drops its queued pills and keeps others`() = runTest {
+        val c = controller()
+        c.offer(alertEvent(messageId = 10, chatId = CHAT))
+        c.offer(alertEvent(messageId = 11, chatId = CHAT))
+        c.offer(alertEvent(messageId = 12, chatId = OTHER_CHAT))
+        runCurrent()
+        c.reportOnScreen(CHAT, emptySet())
+        assertNull(c.state.value)
+        advanceTimeBy(ReactionAlertController.CLOSE_MILLIS + 1)
+        assertEquals(OTHER_CHAT, c.state.value?.content?.chatId)
+        assertEquals(12, c.state.value?.content?.messageId)
+        c.reset()
+    }
+
+    @Test
+    fun `boost in the open chat draws no pill`() = runTest {
+        val c = controller()
+        c.reportOnScreen(CHAT, setOf(99L))
+        c.offer(alertEvent(messageId = 10, action = ReactionUpdate.Action.BOOSTED, boostDeltaCents = 500))
+        runCurrent()
+        assertNull(c.state.value)
+    }
+
+    @Test
+    fun `boost in another chat shows with the amount`() = runTest {
+        val c = controller()
+        c.reportOnScreen(OTHER_CHAT, emptySet())
+        c.offer(alertEvent(messageId = 10, action = ReactionUpdate.Action.BOOSTED, boostDeltaCents = 500))
+        runCurrent()
+        assertEquals(ReactionAlertContent.Kind.Boost, c.state.value?.content?.kind)
+        assertEquals(500L, c.state.value?.content?.boostCents)
+        c.reset()
+    }
+
+    @Test
+    fun `tap opens the chat at the message`() = runTest {
         val c = controller()
         val seen = mutableListOf<ReactionAlertAction>()
         backgroundScope.launch { c.actions.collect { a -> seen += a } }
@@ -103,13 +158,6 @@ class ReactionAlertControllerTest {
         c.onTap()
         runCurrent()
         assertEquals(listOf<ReactionAlertAction>(ReactionAlertAction.OpenChat(CHAT, 10)), seen)
-        c.reportOnScreen(CHAT, setOf(99L))
-        c.offer(alertEvent(messageId = 12))
-        advanceTimeBy(ReactionAlertController.CLOSE_MILLIS + 1)
-        runCurrent()
-        c.onTap()
-        runCurrent()
-        assertEquals(ReactionAlertAction.ScrollTo(CHAT, 12), seen.last())
         c.reset()
     }
 }

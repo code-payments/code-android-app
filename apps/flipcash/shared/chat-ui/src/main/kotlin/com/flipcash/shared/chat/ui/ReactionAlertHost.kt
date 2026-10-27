@@ -147,7 +147,6 @@ fun ReactionAlertHost(
 
         ReactionAlertPill(
             content = current.content,
-            inActiveChat = current.inActiveChat,
             maxWidth = maxWidth - 24.dp,
             hazeState = hazeState,
             animate = animate,

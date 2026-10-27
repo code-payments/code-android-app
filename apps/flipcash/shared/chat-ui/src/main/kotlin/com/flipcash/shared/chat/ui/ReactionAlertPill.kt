@@ -86,7 +86,6 @@ object ReactionAlertPillSpec {
 @Composable
 fun ReactionAlertPill(
     content: ReactionAlertContent,
-    inActiveChat: Boolean,
     modifier: Modifier = Modifier,
     maxWidth: Dp = ReactionAlertPillSpec.MaxWidth,
     hazeState: HazeState? = null,
@@ -111,13 +110,13 @@ fun ReactionAlertPill(
             animationSpec = tween(if (animate) 150 else 0),
             label = "alertContent",
         ) { shown ->
-            AlertRow(shown, inActiveChat)
+            AlertRow(shown)
         }
     }
 }
 
 @Composable
-private fun AlertRow(content: ReactionAlertContent, inActiveChat: Boolean) {
+private fun AlertRow(content: ReactionAlertContent) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -135,7 +134,7 @@ private fun AlertRow(content: ReactionAlertContent, inActiveChat: Boolean) {
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                text = if (inActiveChat) stringResource(R.string.alert_thisChat) else content.chatName.orEmpty(),
+                text = content.chatName.orEmpty(),
                 style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
                 maxLines = 1,

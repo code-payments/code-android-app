@@ -1852,5 +1852,4 @@
         <item quantity="other">%1$s and %2$d others reacted</item>
     </plurals>
     <string name="alert_someone">Someone</string>
-    <string name="alert_thisChat">This chat ↓</string>
 </resources>
