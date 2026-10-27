@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.features.messenger.R
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
@@ -26,13 +27,16 @@ import javax.inject.Inject
 internal class SilenceUserViewModel @Inject constructor(
     private val chatController: ChatController,
     private val resources: ResourceHelper,
+    private val toastController: SystemToastController,
 ) : ViewModel() {
 
-    fun silence(chatId: ChatId, userId: ID, option: SilenceOption) {
+    fun silence(chatId: ChatId, userId: ID, firstName: String, option: SilenceOption) {
         viewModelScope.launch {
             // Scoped to the sheet's entry, which is gone by the time the answer lands.
             withContext(NonCancellable) {
-                chatController.silenceUser(chatId, userId, option.toSilenceState()).onFailure {
+                chatController.silenceUser(chatId, userId, option.toSilenceState()).onSuccess {
+                    toastController.showToast(option.toastRes, firstName, replacePrevious = true)
+                }.onFailure {
                     trace("failed to silence user - ${it.localizedMessage}")
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_failedToSilence),

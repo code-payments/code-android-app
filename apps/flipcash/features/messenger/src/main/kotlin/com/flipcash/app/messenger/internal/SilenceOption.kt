@@ -18,11 +18,13 @@ internal enum class SilenceOption(
     /** How long from now the silence runs, or `null` for the indefinite option. */
     val duration: Duration?,
     val labelRes: Int,
+    /** The toast confirming this option once the server has applied it; takes the member's name. */
+    val toastRes: Int,
 ) {
-    OneHour(1.hours, R.string.action_muteFor_oneHour),
-    EightHours(8.hours, R.string.action_muteFor_eightHours),
-    OneWeek(7.days, R.string.action_muteFor_oneWeek),
-    Forever(null, R.string.action_silenceFor_forever);
+    OneHour(1.hours, R.string.action_muteFor_oneHour, R.string.toast_silenced_oneHour),
+    EightHours(8.hours, R.string.action_muteFor_eightHours, R.string.toast_silenced_eightHours),
+    OneWeek(7.days, R.string.action_muteFor_oneWeek, R.string.toast_silenced_oneWeek),
+    Forever(null, R.string.action_silenceFor_forever, R.string.toast_silenced_forever);
 
     /** The silence this option asks for, measured from [now] on the tap rather than when the sheet opened. */
     fun toSilenceState(now: Instant = Clock.System.now()): SilenceState =

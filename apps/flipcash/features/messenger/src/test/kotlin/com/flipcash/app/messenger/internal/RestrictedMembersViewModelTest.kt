@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.app.core.toast.SystemToastController
+import com.flipcash.features.messenger.R
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.UserProfile
@@ -13,6 +15,7 @@ import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -36,6 +39,7 @@ class RestrictedMembersViewModelTest {
 
     private val chatController = mockk<ChatController>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
+    private val toasts = mockk<SystemToastController>(relaxed = true)
     private val chatId = ChatId(ByteArray(32) { 3 }.toList())
 
     private val soon = SilenceState.Until(Clock.System.now() + 1.hours)
@@ -72,7 +76,7 @@ class RestrictedMembersViewModelTest {
     private fun loaded(vararg users: RestrictedUser): RestrictedMembersViewModel {
         coEvery { chatController.getRestrictedUsers(chatId, any()) } returns
             Result.success(RestrictedUsersPage(users.toList(), null, false))
-        return RestrictedMembersViewModel(chatController, resources).also { it.load(chatId) }
+        return RestrictedMembersViewModel(chatController, resources, toasts).also { it.load(chatId) }
     }
 
     @Test
@@ -91,7 +95,7 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.getRestrictedUsers(chatId, QueryOptions(token = listOf(9))) } returns
             Result.success(RestrictedUsersPage(listOf(removed), null, false))
 
-        val vm = RestrictedMembersViewModel(chatController, resources).also { it.load(chatId) }
+        val vm = RestrictedMembersViewModel(chatController, resources, toasts).also { it.load(chatId) }
 
         assertEquals(listOf(silencedOnly, removed), vm.state.value.users)
     }
@@ -107,7 +111,7 @@ class RestrictedMembersViewModelTest {
     @Test
     fun `a failed read is flagged and can be retried`() {
         coEvery { chatController.getRestrictedUsers(chatId, any()) } returns Result.failure(Throwable("down"))
-        val vm = RestrictedMembersViewModel(chatController, resources).also { it.load(chatId) }
+        val vm = RestrictedMembersViewModel(chatController, resources, toasts).also { it.load(chatId) }
 
         assertTrue(vm.state.value.failed)
         assertFalse(vm.state.value.loading)
@@ -123,7 +127,7 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.success(Unit)
         val vm = loaded(silencedOnly, silencedForever)
 
-        vm.unsilence(chatId, silencedOnly.userProfile.userId!!)
+        vm.unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada")
 
         assertEquals(listOf(silencedForever), vm.state.value.rows(RestrictedKind.Silenced))
         assertTrue(vm.state.value.pending.isEmpty())
@@ -135,7 +139,7 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.success(Unit)
         val vm = loaded(removedAndSilenced)
 
-        vm.unsilence(chatId, removedAndSilenced.userProfile.userId!!)
+        vm.unsilence(chatId, removedAndSilenced.userProfile.userId!!, "Ada")
 
         assertEquals(listOf(removedAndSilenced.copy(silence = null)), vm.state.value.rows(RestrictedKind.Removed))
     }
@@ -157,9 +161,29 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.failure(Throwable("denied"))
         val vm = loaded(silencedOnly)
 
-        vm.unsilence(chatId, silencedOnly.userProfile.userId!!)
+        vm.unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada")
 
         assertEquals(listOf(silencedOnly), vm.state.value.rows(RestrictedKind.Silenced))
         assertTrue(vm.state.value.pending.isEmpty())
+    }
+
+    @Test
+    fun `unsilence toasts the member once the server has accepted it`() {
+        coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.success(Unit)
+        val vm = loaded(silencedOnly)
+
+        vm.unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada")
+
+        verify(exactly = 1) { toasts.showToast(R.string.toast_unsilenced, "Ada", replacePrevious = true) }
+    }
+
+    @Test
+    fun `a failed unsilence shows no toast`() {
+        coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.failure(Throwable("denied"))
+        val vm = loaded(silencedOnly)
+
+        vm.unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada")
+
+        verify(exactly = 0) { toasts.showToast(any<Int>(), *anyVararg(), replacePrevious = any()) }
     }
 }

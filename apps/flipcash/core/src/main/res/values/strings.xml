@@ -966,6 +966,11 @@
     <string name="title_silenceUser">Silence %1$s</string>
     <string name="subtitle_silenceUser">They can still read and react in %1$s, but can\'t send messages. Only they\'re told</string>
     <string name="action_silenceFor_forever">Forever</string>
+    <string name="toast_silenced_oneHour">%1$s is silenced for 1 hour</string>
+    <string name="toast_silenced_eightHours">%1$s is silenced for 8 hours</string>
+    <string name="toast_silenced_oneWeek">%1$s is silenced for 1 week</string>
+    <string name="toast_silenced_forever">%1$s is silenced</string>
+    <string name="toast_unsilenced">%1$s can send messages again</string>
     <string name="error_title_failedToSilence">Something Went Wrong</string>
     <string name="error_description_failedToSilence">We were unable to silence this member. Please try again</string>
     <string name="action_silenceMember">Silence %1$s…</string>
@@ -982,6 +987,8 @@
     <string name="action_unban">Unban</string>
     <string name="title_noSilencedMembers">No one is silenced</string>
     <string name="title_noRemovedMembers">No one has been removed</string>
+    <string name="description_noSilencedMembers">Silenced members can read the group but can\'t send messages. Silence someone from their profile</string>
+    <string name="description_noRemovedMembers">Removed members can\'t rejoin the group. Remove someone from their profile</string>
     <string name="error_title_failedToLoadRestricted">Something Went Wrong</string>
     <string name="error_description_failedToLoadRestricted">We were unable to load this list. Please try again</string>
     <string name="error_title_failedToUnsilence">Something Went Wrong</string>

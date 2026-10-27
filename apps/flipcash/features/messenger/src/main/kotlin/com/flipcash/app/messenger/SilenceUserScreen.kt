@@ -19,7 +19,7 @@ fun SilenceUserScreen(chatId: ChatId, userId: ID, firstName: String, groupTitle:
         firstName = firstName,
         groupTitle = groupTitle,
         onSilence = {
-            viewModel.silence(chatId, userId, it)
+            viewModel.silence(chatId, userId, firstName, it)
             dismissSheet()
         },
         onDismiss = dismissSheet,

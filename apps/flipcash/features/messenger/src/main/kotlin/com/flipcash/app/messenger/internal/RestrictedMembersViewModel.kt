@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.features.messenger.R
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.QueryOptions
@@ -34,6 +35,7 @@ internal enum class RestrictedKind { Silenced, Removed }
 internal class RestrictedMembersViewModel @Inject constructor(
     private val chatController: ChatController,
     private val resources: ResourceHelper,
+    private val toastController: SystemToastController,
 ) : ViewModel() {
 
     data class State(
@@ -81,11 +83,12 @@ internal class RestrictedMembersViewModel @Inject constructor(
         }
     }
 
-    fun unsilence(chatId: ChatId, userId: ID) = run(
+    fun unsilence(chatId: ChatId, userId: ID, name: String) = run(
         userId = userId,
         call = { chatController.unsilenceUser(chatId, userId) },
         // A removed member who is also silenced stays in Removed, now without the silence.
         apply = { u -> if (u.ban != null) u.copy(silence = null) else null },
+        onSuccess = { toastController.showToast(R.string.toast_unsilenced, name, replacePrevious = true) },
         titleRes = R.string.error_title_failedToUnsilence,
         messageRes = R.string.error_description_failedToUnsilence,
     )
@@ -103,6 +106,7 @@ internal class RestrictedMembersViewModel @Inject constructor(
         userId: ID,
         call: suspend () -> Result<Unit>,
         apply: (RestrictedUser) -> RestrictedUser?,
+        onSuccess: () -> Unit = {},
         titleRes: Int,
         messageRes: Int,
     ) {
@@ -119,6 +123,7 @@ internal class RestrictedMembersViewModel @Inject constructor(
                             },
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure {
                     trace("failed to update restriction - ${it.localizedMessage}")
