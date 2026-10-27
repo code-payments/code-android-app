@@ -119,6 +119,11 @@ class ChatMetadataDataSource @Inject constructor(
         )
     }
 
+    /** Stores the moderation grants a fresh read of [chatId] reported, ahead of any version gate. */
+    suspend fun updateModerationGrants(chatId: ChatId, canSilence: Boolean, canBan: Boolean) {
+        db?.chatMetadataDao()?.updateModerationGrants(mapper.chatIdHex(chatId), canSilence, canBan)
+    }
+
     /** Forgets the viewer state for [chatId], version included. Leaving a chat clears its mute. */
     suspend fun clearViewerState(chatId: ChatId) {
         db?.chatMetadataDao()?.clearViewerState(mapper.chatIdHex(chatId))

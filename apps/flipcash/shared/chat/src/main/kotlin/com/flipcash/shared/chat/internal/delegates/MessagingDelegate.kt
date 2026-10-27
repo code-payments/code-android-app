@@ -173,13 +173,13 @@ class MessagingDelegate @Inject constructor(
      * A stored group's grants are only ever written by a fetch or a viewer-state event, and the
      * server sends the latter when the state changes. A chat stored before the moderation columns
      * existed would therefore keep no grant until something unrelated moved, hiding the host's
-     * Silence and Remove. Reading the chat again on open fills them; the version gate in
-     * [ChatMetadataDataSource.updateViewerState] drops it if the stored state is already newer.
+     * Silence and Remove. Reading the chat again on open fills them. They are written outside the
+     * version gate, which would drop a read whose version the row already holds.
      */
     private suspend fun refreshGroupViewerState(chatId: ChatId) {
         if (metadataDataSource.getChatType(chatId) != ChatType.GROUP) return
-        val viewerState = chatController.getChat(chatId).getOrNull()?.viewerState ?: return
-        metadataDataSource.updateViewerState(chatId, viewerState)
+        val moderation = chatController.getChat(chatId).getOrNull()?.viewerState?.permissions?.moderation ?: return
+        metadataDataSource.updateModerationGrants(chatId, moderation.canSilence, moderation.canBan)
     }
 
     override fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>> {

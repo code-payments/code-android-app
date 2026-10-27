@@ -421,6 +421,19 @@ class ChatMetadataDaoTest {
         assertEquals(3L, stored.viewerStateVersion)
     }
 
+    /** An upgraded chat holds the version the server still reports; the grants must land anyway. */
+    @Test
+    fun `moderation grants land on a row whose version is already current`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 14))
+
+        dao.updateModerationGrants(CHAT_HEX, canSilence = true, canBan = true)
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(true, stored.canSilence)
+        assertEquals(true, stored.canBan)
+        assertEquals(14L, stored.viewerStateVersion)
+    }
+
     /**
      * The same gate an upsert goes through. A `ChatMetadata` rebuilt from this row reports the
      * version it was read at, so pushing it back must be a no-op rather than a re-application.

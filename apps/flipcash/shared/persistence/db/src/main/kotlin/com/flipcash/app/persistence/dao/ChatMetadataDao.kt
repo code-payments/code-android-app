@@ -183,6 +183,17 @@ interface ChatMetadataDao {
     )
 
     /**
+     * Writes the moderation grants alone, whatever version the row holds.
+     *
+     * The grants are the server's answer to who the viewer is in this chat, not an event with an
+     * order to protect, and the columns arrive as 0 on a chat stored before they existed. Going
+     * through [updateViewerStateIfNewer] would drop a fresh read whose version the row already holds,
+     * which is every upgraded chat whose viewer state has not moved since.
+     */
+    @Query("UPDATE chat_metadata SET can_silence = :canSilence, can_ban = :canBan WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateModerationGrants(chatIdHex: String, canSilence: Boolean, canBan: Boolean)
+
+    /**
      * Drops the viewer state, version and all.
      *
      * Leaving a chat clears the mute server-side, and the server sends nothing to say so. The
