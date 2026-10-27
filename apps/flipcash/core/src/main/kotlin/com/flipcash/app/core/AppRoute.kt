@@ -196,7 +196,22 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class TokenSelection(val purpose: TokenPurpose) : Sheets
         @Serializable
-        data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Sheets
+        data class Give(
+            val mint: Mint? = null,
+            val fromTokenInfo: Boolean = false,
+            /**
+             * An amount in the viewer's preferred currency to give as-is. When set, the screen
+             * skips its own amount entry and goes straight to the bill.
+             */
+            val amount: Double? = null,
+        ) : Sheets
+
+        /**
+         * Send from Currency Info: an amount of [mint], then a recipient from the viewer's DMs.
+         * Dismisses back to Currency Info after the send.
+         */
+        @Serializable
+        data class CurrencySend(val mint: Mint) : Sheets
 
         /** Full unified paged activity history — the "dive in" from the wallet's recent-activity preview. */
         @Serializable

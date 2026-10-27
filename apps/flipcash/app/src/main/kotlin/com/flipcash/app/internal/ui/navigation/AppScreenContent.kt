@@ -125,7 +125,7 @@ internal fun appEntryProvider(
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
     // Route type is `Give` but the screen is the Cash/Give screen the flows call cash_screen.
-    annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { key -> CashScreen(key.mint, key.fromTokenInfo) }
+    annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { key -> CashScreen(key.mint, key.fromTokenInfo, key.amount) }
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
     annotatedEntry<AppRoute.Sheets.ActivityHistory> { ActivityHistoryScreen() }

@@ -1,5 +1,6 @@
 package com.flipcash.app.cash
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -30,6 +32,8 @@ import kotlinx.coroutines.flow.onEach
 fun CashScreen(
     selectedMint: Mint?,
     fromTokenInfo: Boolean,
+    // Set when another screen already collected the amount: the bill is made for it, with no entry.
+    presetAmount: Double? = null,
 ) {
     val navigator = LocalCodeNavigator.current
     val session = LocalSessionController.current!!
@@ -53,7 +57,18 @@ fun CashScreen(
             .launchIn(this)
     }
 
-    Column(
+    if (presetAmount != null) {
+        // The entry is never shown: once the token and currency have loaded, type the amount into
+        // the delegate and give, the same path the Next button takes.
+        LaunchedEffect(viewModel, presetAmount) {
+            viewModel.stateFlow
+                .first { it.token != null && it.currencyModel.selected != null }
+            viewModel.amountDelegate.state.first { it.currency.selected != null }
+            viewModel.amountDelegate.prefill(presetAmount)
+            viewModel.dispatchEvent(CashScreenViewModel.Event.OnGive)
+        }
+        Box(modifier = Modifier.fillMaxSize())
+    } else Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
