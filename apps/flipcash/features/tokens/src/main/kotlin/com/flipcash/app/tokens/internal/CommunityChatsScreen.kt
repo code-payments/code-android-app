@@ -11,6 +11,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Arrangement
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
@@ -50,9 +52,11 @@ fun CommunityChatsScreen(mint: Mint) {
                 horizontal = CodeTheme.dimens.inset,
                 vertical = CodeTheme.dimens.grid.x2,
             ),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             items(state.chats, key = { it.chat.chatId.toString() }) { entry ->
                 CommunityChatRow(
+                    card = true,
                     chat = entry.chat,
                     holdings = entry.holdings,
                     currencyName = state.currencyName,

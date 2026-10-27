@@ -20,6 +20,14 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.background
 import com.flipcash.app.tokens.ui.CommunityChatHoldings
 import com.flipcash.features.tokens.R
 import com.flipcash.services.models.chat.BlobAccessContext
@@ -72,31 +80,47 @@ internal fun CommunityChatRow(
     currencyName: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * The View All card (node 11622:3267, drawn at 0.65 and scaled here): a 5% white fill, 18dp
+     * corners, 16/12 padding, a 42dp photo, 16/12sp text and a trailing chevron.
+     */
+    card: Boolean = false,
 ) {
-    Row(
-        modifier = modifier
+    val rowModifier = if (card) {
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    } else {
+        modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = CodeTheme.dimens.grid.x2),
+            .padding(vertical = CodeTheme.dimens.grid.x2)
+    }
+    Row(
+        modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+        horizontalArrangement = Arrangement.spacedBy(if (card) 12.dp else CodeTheme.dimens.grid.x3),
     ) {
         ContactAvatar(
             image = chat.picture,
             displayName = chat.title.orEmpty(),
             access = BlobAccessContext.ChatProfile(chat.chatId),
             modifier = Modifier
-                .requiredSize(CodeTheme.dimens.staticGrid.x10)
+                .requiredSize(if (card) 42.dp else CodeTheme.dimens.staticGrid.x10)
                 .clip(CircleShape),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = chat.title.orEmpty(),
-                style = CodeTheme.typography.textMedium,
+                style = CodeTheme.typography.textMedium.let { if (card) it.copy(fontSize = 16.sp) else it },
                 color = CodeTheme.colors.textMain,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (card) Spacer(Modifier.height(3.dp))
             Text(
                 text = holdings.amount?.let {
                     pluralStringResource(
@@ -111,10 +135,18 @@ internal fun CommunityChatRow(
                     holdings.memberCount.toInt(),
                     holdings.memberCount.toInt(),
                 ),
-                style = CodeTheme.typography.textSmall,
-                color = CodeTheme.colors.textSecondary,
+                style = CodeTheme.typography.textSmall.let { if (card) it.copy(fontSize = 12.sp) else it },
+                color = if (card) Color.White.copy(alpha = 0.55f) else CodeTheme.colors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (card) {
+            Icon(
+                painter = painterResource(R.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.55f),
+                modifier = Modifier.size(16.dp),
             )
         }
     }
