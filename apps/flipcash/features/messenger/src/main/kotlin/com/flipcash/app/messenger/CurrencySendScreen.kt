@@ -42,6 +42,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
+import com.getcode.ui.components.glass.floatingGlass
+import com.getcode.ui.components.BottomScrollEdge
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -179,6 +186,14 @@ private fun SelectRecipientContent(
         snapshotFlow { query.text.toString() }.collect(onQueryChanged)
     }
 
+    // Same arrangement as Edit Featured Groups: the list runs edge to edge behind the bottom
+    // button, a progressive blur (BottomScrollEdge) fades what passes under it, and the button
+    // sits on floatingGlass over the same haze source.
+    val density = LocalDensity.current
+    val hazeState = rememberHazeState()
+    val listState = rememberLazyListState()
+    var barHeight by remember { mutableStateOf(0.dp) }
+
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
@@ -187,36 +202,63 @@ private fun SelectRecipientContent(
                 onBackIconClicked = onBack,
             )
         },
-        bottomBar = {
-            // Pinned, and present with an empty list too: it is the way out when there is no one to pay.
-            CodeButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(bottom = CodeTheme.dimens.grid.x2),
-                text = stringResource(R.string.action_orGiveAsCash),
-                buttonState = ButtonState.Filled10,
-                onClick = onGiveAsCash,
-            )
-        },
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(top = innerPadding.calculateTopPadding()),
         ) {
-            SearchInput(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(vertical = CodeTheme.dimens.grid.x2),
-                state = query,
-            )
-            LazyColumn(contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x4)) {
-                items(recipients.orEmpty(), key = { it.chatId.toString() }) { chat ->
-                    RecipientRow(chat = chat, onClick = { onPick(chat) })
+            Column(modifier = Modifier.fillMaxSize()) {
+                SearchInput(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .padding(vertical = CodeTheme.dimens.grid.x2),
+                    state = query,
+                )
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .hazeSource(hazeState),
+                    // The button's height and the nav bar, so the last row scrolls fully clear.
+                    contentPadding = PaddingValues(bottom = barHeight),
+                ) {
+                    items(recipients.orEmpty(), key = { it.chatId.toString() }) { chat ->
+                        RecipientRow(chat = chat, onClick = { onPick(chat) })
+                    }
                 }
+            }
+
+            BottomScrollEdge(
+                hazeState = hazeState,
+                visible = true,
+                height = barHeight,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+
+            // Pinned, and present with an empty list too: it is the way out when there is no one to pay.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { barHeight = with(density) { it.height.toDp() } },
+            ) {
+                CodeButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .padding(
+                            top = CodeTheme.dimens.staticGrid.x3,
+                            bottom = CodeTheme.dimens.grid.x2,
+                        )
+                        .floatingGlass(hazeState, CodeTheme.shapes.small),
+                    text = stringResource(R.string.action_orGiveAsCash),
+                    buttonState = ButtonState.Filled10,
+                    onClick = onGiveAsCash,
+                )
             }
         }
     }
