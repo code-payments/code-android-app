@@ -1858,4 +1858,22 @@
         <item quantity="other">%1$s and %2$d others reacted</item>
     </plurals>
     <string name="alert_someone">Someone</string>
+    <string name="action_more">More</string>
+    <string name="action_transactions">Transactions</string>
+    <string name="action_orGiveAsCash">Or Give As Cash</string>
+    <string name="subtitle_moreConvert">Convert %1$s to another community currency on Flipcash</string>
+    <string name="subtitle_moreWithdraw">Withdraw %1$s to a different Solana crypto wallet</string>
+    <string name="subtitle_moreDeposit">Deposit %1$s from a different Solana crypto wallet</string>
+    <string name="title_topCommunityChats">Top Community Chats</string>
+    <string name="action_viewAll">View All</string>
+    <string name="title_howChatsAreRanked">How Chats Are Ranked</string>
+    <string name="description_howChatsAreRanked">Chats are ranked by the total amount of %1$s held by their members. Chats with higher combined holdings appear higher.</string>
+    <string name="action_ok">OK</string>
+    <plurals name="subtitle_communityChatHoldings">
+        <item quantity="one">%1$s of %2$s held by %3$d member</item>
+        <item quantity="other">%1$s of %2$s held by %3$d members</item>
+    </plurals>
+    <string name="title_selectRecipient">Select Recipient</string>
+    <string name="title_shareCurrency">Share %1$s</string>
+    <string name="title_recentChats">Recent Chats</string>
 </resources>

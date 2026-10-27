@@ -15,6 +15,9 @@ import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.tokens.R
+import com.flipcash.app.funding.bottomBarCardAction
+import com.flipcash.services.controllers.CommunityController
+import com.flipcash.services.models.chat.ChatMetadata
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.AccountController
@@ -52,6 +55,7 @@ class TokenInfoViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val purchaseMethodController: PurchaseMethodController,
     private val feedCoordinator: ActivityFeedCoordinator,
+    private val communityController: CommunityController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
@@ -72,6 +76,8 @@ class TokenInfoViewModel @Inject constructor(
         val fundableBalanceMints: Set<Mint> = emptySet(),
         /** Bounded per-token recent activity preview (newest first) for the v2 currency-info screen. */
         val transactions: List<TransactionListItem> = emptyList(),
+        /** Public groups gated on this currency, ranked by the server. Empty hides the section. */
+        val communityChats: List<ChatMetadata> = emptyList(),
     ) {
         /** True when the user holds a displayable balance in some token other than [mint], which could fund a buy of it. */
         val hasFundableBalance: Boolean
@@ -121,6 +127,8 @@ class TokenInfoViewModel @Inject constructor(
         data object Share : Event
         data class OnBuy(val shortFall: Fiat? = null) : Event
         data object OnConvert : Event
+        data object OnMore : Event
+        data class OnCommunityChatsLoaded(val chats: List<ChatMetadata>) : Event
         data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object Exit : Event
@@ -380,12 +388,80 @@ class TokenInfoViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnMintProvided>()
+            .map { it.mint }
+            .distinctUntilChanged()
+            .flatMapLatest { mint ->
+                kotlinx.coroutines.flow.flow {
+                    // USDF has no community; a failed call and an empty list both hide the section.
+                    emit(
+                        if (mint == Mint.usdf) emptyList()
+                        else communityController.getCommunity(mint).topCommunityChats()
+                    )
+                }
+            }
+            .onEach { dispatchEvent(Event.OnCommunityChatsLoaded(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnMore>()
+            .onEach { presentMore() }
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.Share>()
             .mapNotNull { stateFlow.value.token.dataOrNull }
             .map { Shareable.TokenInfo(it) }
             .onEach { shareController.present(it) }
             .launchIn(viewModelScope)
     }
+
+    /**
+     * Convert, Withdraw and Deposit as card rows, styled as the group chat's Send/Request sheet:
+     * no title, no Dismiss.
+     */
+    private fun presentMore() {
+        val state = stateFlow.value
+        val mint = state.mint ?: return
+        val name = state.token.dataOrNull?.name ?: return
+        val rows = if (mint == Mint.usdf) listOf(MoreRow.Convert, MoreRow.Withdraw)
+        else listOf(MoreRow.Convert, MoreRow.Withdraw, MoreRow.Deposit)
+        BottomBarManager.showMessage(
+            title = "",
+            actions = rows.map { row ->
+                when (row) {
+                    MoreRow.Convert -> bottomBarCardAction(
+                        title = resources.getString(R.string.action_convert),
+                        subtitle = resources.getString(R.string.subtitle_moreConvert, name),
+                        iconRes = R.drawable.ic_convert,
+                        testTag = "more_action_convert",
+                        onClick = { dispatchEvent(Event.OnConvert) },
+                    )
+                    MoreRow.Withdraw -> bottomBarCardAction(
+                        title = resources.getString(R.string.action_withdraw),
+                        subtitle = resources.getString(R.string.subtitle_moreWithdraw, name),
+                        iconRes = R.drawable.ic_menu_withdraw,
+                        testTag = "more_action_withdraw",
+                        onClick = {
+                            dispatchEvent(
+                                Event.OpenScreen(AppRoute.Transfers.Withdrawal(preselectedMint = mint))
+                            )
+                        },
+                    )
+                    MoreRow.Deposit -> bottomBarCardAction(
+                        title = resources.getString(R.string.action_deposit),
+                        subtitle = resources.getString(R.string.subtitle_moreDeposit, name),
+                        iconRes = R.drawable.ic_menu_deposit,
+                        testTag = "more_action_deposit",
+                        // No per-mint deposit exists yet: this opens the account's USDC deposit.
+                        onClick = { dispatchEvent(Event.OpenScreen(AppRoute.Transfers.Deposit())) },
+                    )
+                }
+            },
+        )
+    }
+
+    private enum class MoreRow { Convert, Withdraw, Deposit }
 
     companion object {
         /** Rows shown in the token info screen's per-token recent-activity preview. */
@@ -423,6 +499,8 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.OnTransactionHistoryEnabled -> { state -> state.copy(showTransactionHistory = event.enabled) }
 
                 is Event.OnMarketCapPeriodSelected -> { state -> state.copy(selectedPeriod = event.period) }
+                is Event.OnCommunityChatsLoaded -> { state -> state.copy(communityChats = event.chats) }
+                Event.OnMore -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.OnBuy -> { state -> state }
                 Event.OnConvert -> { state -> state }
