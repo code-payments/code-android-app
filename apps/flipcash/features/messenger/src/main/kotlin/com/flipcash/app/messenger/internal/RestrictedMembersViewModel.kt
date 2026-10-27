@@ -107,13 +107,13 @@ internal class RestrictedMembersViewModel @Inject constructor(
         messageRes: Int,
     ) {
         if (userId in _state.value.pending) return
-        _state.update { it.copy(pending = it.pending + userId) }
+        _state.update { it.copy(pending = it.pending + setOf(userId)) }
         viewModelScope.launch {
             call()
                 .onSuccess {
                     _state.update { s ->
                         s.copy(
-                            pending = s.pending - userId,
+                            pending = s.pending - setOf(userId),
                             users = s.users.mapNotNull { u ->
                                 if (u.userProfile.userId == userId) apply(u) else u
                             },
@@ -122,7 +122,7 @@ internal class RestrictedMembersViewModel @Inject constructor(
                 }
                 .onFailure {
                     trace("failed to update restriction - ${it.localizedMessage}")
-                    _state.update { s -> s.copy(pending = s.pending - userId) }
+                    _state.update { s -> s.copy(pending = s.pending - setOf(userId)) }
                     BottomBarManager.showError(
                         title = resources.getString(titleRes),
                         message = resources.getString(messageRes),

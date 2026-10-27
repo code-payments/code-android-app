@@ -28,8 +28,8 @@ import com.flipcash.app.messenger.internal.screens.openMessageShare
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.flipcash.app.messenger.internal.MemberModerationViewModel
+import com.flipcash.services.models.chat.ChatId
+import com.getcode.opencode.model.core.ID
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material3.Icon
@@ -84,6 +84,8 @@ internal fun ChatTopBar(
     onBarHeightChange: (Dp) -> Unit,
     chatActionHandler: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
+    /** Asks the host to confirm a removal: chat, member, first name, group title. Supplied by the screen so the bar needs no Hilt. */
+    onConfirmRemove: (ChatId, ID, String, String) -> Unit = { _, _, _, _ -> },
     trailing: @Composable () -> Unit = {},
 ) {
     val bgColor = CodeTheme.colors.background
@@ -92,7 +94,6 @@ internal fun ChatTopBar(
     // from the composition it is created in, and the bar is composed after a long-press that leaves
     // the IME already up — a controller created there would read it as hidden.
     val keyboard = rememberKeyboardController()
-    val moderation = hiltViewModel<MemberModerationViewModel>()
     Box {
         // A message action takes the bar over rather than stacking a second one over it, so the
         // conversation's own actions can't be reached while one is pending. The takeover holds
@@ -160,7 +161,7 @@ internal fun ChatTopBar(
                         {
                             state.chatId?.let { chatId ->
                                 dispatch(ChatViewModel.Event.ClearMessageSelection)
-                                moderation.confirmRemove(chatId, userId, firstName, groupTitle)
+                                onConfirmRemove(chatId, userId, firstName, groupTitle)
                             }
                         }
                     },

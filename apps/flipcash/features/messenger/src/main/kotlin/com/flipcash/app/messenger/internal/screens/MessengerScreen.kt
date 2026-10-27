@@ -67,6 +67,7 @@ import com.flipcash.app.core.links.LocalTrustedWebsites
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.MemberModerationViewModel
 import com.flipcash.app.messenger.internal.ownReactionEmoji
 import com.flipcash.app.messenger.internal.reactionStripFor
 import com.flipcash.app.messenger.internal.withLiveSelfReactions
@@ -459,6 +460,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // The group's profile is one tap away; have its cover downloaded before that tap.
     // The flow's, so the Request details step can minimize the deck once it covers the chat.
     val requestsViewModel = flowSharedViewModel<ChatRequestsViewModel>()
+    val moderation = hiltViewModel<MemberModerationViewModel>()
     val requestCards = rememberPaymentRequestCards(
         viewModel = requestsViewModel,
         chatId = state.chatId.takeIf { state.chatType == ChatType.GROUP },
@@ -528,6 +530,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     onBarHeightChange = { barHeight = it },
                     chatActionHandler = chatActionHandler,
                     dispatch = viewModel::dispatchEvent,
+                    onConfirmRemove = moderation::confirmRemove,
                     trailing = {
                         if (state.chatType == ChatType.GROUP) {
                             RequestDeckPill(

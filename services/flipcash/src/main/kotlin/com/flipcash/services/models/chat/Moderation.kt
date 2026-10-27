@@ -44,6 +44,8 @@ fun SilenceState?.isActiveAt(now: kotlin.time.Instant = kotlin.time.Clock.System
     null -> false
     SilenceState.Forever -> true
     is SilenceState.Until -> until > now
+    // Unreachable for the sealed type; keeps relaxed test doubles from throwing.
+    else -> false
 }
 
 /** The viewer's own silence in this chat, or null when none is set. See [isActiveAt]. */
