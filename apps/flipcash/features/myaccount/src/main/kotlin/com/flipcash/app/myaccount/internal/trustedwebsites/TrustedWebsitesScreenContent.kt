@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.links.TrustedWebsite
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.EmptyState
 import com.getcode.util.formatLocalized
 import kotlin.time.Instant
 
@@ -103,25 +104,11 @@ private fun TrustedWebsiteRow(
     }
 }
 
-/** Same treatment as the Blocked screen's empty state. */
 @Composable
 private fun EmptyTrustedWebsites(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(horizontal = CodeTheme.dimens.inset),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
-        Text(
-            text = stringResource(R.string.title_trustedWebsitesEmpty),
-            style = CodeTheme.typography.textLarge,
-            color = CodeTheme.colors.textMain,
-        )
-        Text(
-            modifier = Modifier.fillMaxWidth(0.8f),
-            text = stringResource(R.string.description_trustedWebsitesEmpty),
-            style = CodeTheme.typography.caption,
-            color = CodeTheme.colors.textSecondary,
-            textAlign = TextAlign.Center,
-        )
-    }
+    EmptyState(
+        modifier = modifier,
+        title = stringResource(R.string.title_trustedWebsitesEmpty),
+        description = stringResource(R.string.description_trustedWebsitesEmpty),
+    )
 }
