@@ -42,7 +42,8 @@ data class FeaturedGroupItem(
 /**
  * The groups a person has chosen to feature, under the stats on their profile. An empty list
  * draws nothing, heading and divider included, unless [showWhenEmpty] is set: the section then
- * stays with a "None yet" body that takes no taps.
+ * stays with a "None yet" body that takes no taps. [showDivider] draws the rule above the heading;
+ * the owner's own profile leaves it off.
  *
  * Rows arrive as [FeaturedGroupItem]s and report the tap by id; what opening a group does is the
  * caller's.
@@ -53,11 +54,14 @@ fun FeaturedGroupsSection(
     onOpen: (ChatId) -> Unit,
     modifier: Modifier = Modifier,
     showWhenEmpty: Boolean = false,
+    showDivider: Boolean = true,
 ) {
     if (groups.isEmpty() && !showWhenEmpty) return
 
     Column(modifier = modifier.fillMaxWidth()) {
-        HorizontalDivider(color = CodeTheme.colors.divider)
+        if (showDivider) {
+            HorizontalDivider(color = CodeTheme.colors.divider)
+        }
         Text(
             modifier = Modifier.padding(vertical = CodeTheme.dimens.staticGrid.x5),
             text = stringResource(R.string.title_featuredGroups),

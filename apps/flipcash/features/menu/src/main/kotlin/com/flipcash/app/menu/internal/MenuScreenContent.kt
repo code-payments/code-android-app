@@ -168,6 +168,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                                     profileState.profile.username,
                                     state.favoritesReadFor,
                                 ),
+                                showDivider = false,
                                 onOpen = { chatId ->
                                     viewModel.dispatchEvent(
                                         Event.OpenScreen(
