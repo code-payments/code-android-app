@@ -136,4 +136,18 @@ class HostLobbiesTest {
         assertTrue(lobbies.deny(chat, listOf(1)).isFailure)
         assertEquals(listOf(listOf<Byte>(1)), ids())
     }
+
+    @Test
+    fun `reload refetches the lobbies held and no others`() = runTest {
+        val other = ChatId("bb")
+        lobbies.apply(chat, listOf(LobbyUpdate.MemberEntered(older), LobbyUpdate.MemberEntered(newer)))
+        // The server has since admitted `newer`; the stream that would have said so was down.
+        coEvery { chatController.getLobbyMembers(chat, any()) } returns
+            Result.success(LobbyPage(listOf(older), null, hasMore = false))
+
+        lobbies.reload()
+
+        assertEquals(listOf(listOf<Byte>(1)), ids())
+        coVerify(exactly = 0) { chatController.getLobbyMembers(other, any()) }
+    }
 }

@@ -177,7 +177,7 @@ class RealChatCoordinator @Inject constructor(
         // don't get one.
         scope.launch { messagingDelegate.openKeyPending() }
         eventStreamDelegate.open()
-        eventStreamDelegate.startHeartbeat { syncFeeds() }
+        eventStreamDelegate.startHeartbeat(::resync)
     }
 
     // endregion
@@ -255,7 +255,7 @@ class RealChatCoordinator @Inject constructor(
             .filter { foregrounded.value }
             .onEach {
                 trace(tag = TAG, message = "Network connected, re-syncing chat feed", type = TraceType.Process)
-                syncFeeds()
+                resync()
                 eventStreamDelegate.open()
             }
             .launchIn(scope)
@@ -286,9 +286,9 @@ class RealChatCoordinator @Inject constructor(
         scope.launch {
             if (cluster.value != null) {
                 trace(tag = TAG, message = "Lifecycle resumed, syncing chat feed", type = TraceType.Process)
-                syncFeeds()
+                resync()
                 eventStreamDelegate.open()
-                eventStreamDelegate.startHeartbeat { syncFeeds() }
+                eventStreamDelegate.startHeartbeat(::resync)
             }
         }
     }
@@ -357,6 +357,15 @@ class RealChatCoordinator @Inject constructor(
      * overlap rather than queue. A group feed that fails is traced and dropped by
      * [GroupFeedDelegate.performGroupFeedSync]; it cannot take the DM list down with it.
      */
+    /**
+     * For a stream coming back after a gap: what it missed is not replayed, so the feeds and the
+     * hosted lobbies are fetched again. A lobby's LobbyUpdates arrive only on the stream.
+     */
+    private fun resync() {
+        syncFeeds()
+        scope.launch { lobbyUpdates.reload() }
+    }
+
     private fun syncFeeds(fresh: Boolean = false) {
         if (feedSyncJob?.isActive == true) {
             // Shared with the one in flight, so a foreground, a reconnect or a heartbeat landing
