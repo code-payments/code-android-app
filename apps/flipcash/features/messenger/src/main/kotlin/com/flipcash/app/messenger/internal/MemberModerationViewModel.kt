@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.features.messenger.R
 import com.flipcash.services.controllers.ChatController
+import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -25,13 +26,14 @@ import javax.inject.Inject
 internal class MemberModerationViewModel @Inject constructor(
     private val chatController: ChatController,
     private val resources: ResourceHelper,
+    private val groupRosters: GroupRosters,
 ) : ViewModel() {
 
     /**
      * Asks the host to confirm removing [userId] from [chatId] with the app's bottom-bar alert, the
      * one Block uses. Confirming bans them: the contract has no kick that lets them back in, which
-     * is why the subtitle says so. On success there is nothing more to do, because the roster drops
-     * them through the `MemberLeft` update every member receives.
+     * is why the subtitle says so. On success the member leaves the held roster at once; the other members hear of it as a
+     * count-only `MembershipChanged`, which makes [GroupRosters] read the roster again.
      */
     fun confirmRemove(chatId: ChatId, userId: ID, firstName: String, groupTitle: String) {
         BottomBarManager.showAlert(
@@ -50,7 +52,9 @@ internal class MemberModerationViewModel @Inject constructor(
         viewModelScope.launch {
             // The alert closes on the tap and this scope can go with the screen before the answer lands.
             withContext(NonCancellable) {
-                chatController.banUser(chatId, userId).onFailure {
+                chatController.banUser(chatId, userId).onSuccess {
+                    groupRosters.remove(chatId, userId)
+                }.onFailure {
                     trace("failed to remove member - ${it.localizedMessage}")
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_failedToRemoveMember),
