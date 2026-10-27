@@ -138,7 +138,7 @@ internal fun cardTileTag(subject: ShareToChatsSubject): String? =
  * link has no card.
  */
 internal fun showsCardTile(subject: ShareToChatsSubject, onShowCard: (() -> Unit)?): Boolean =
-    onShowCard != null && subject !is ShareToChatsSubject.Message
+    onShowCard != null && subject !is ShareToChatsSubject.Message && subject !is ShareToChatsSubject.Currency
 
 /**
  * What [GroupInviteSheet] hands out: a group's invite link, a person's profile link, or a link to
@@ -167,6 +167,9 @@ internal sealed interface ShareToChatsSubject {
      * carried: the recipient's app draws the message card from it.
      */
     data object Message : ShareToChatsSubject
+
+    /** A currency's page link, from Currency Info. Like a message link it has no card to show. */
+    data class Currency(val name: String) : ShareToChatsSubject
 }
 
 /**
@@ -294,6 +297,7 @@ internal fun GroupInviteSheet(
                                                 preview = subject.preview,
                                             )
                                             ShareToChatsSubject.Message -> Shareable.MessageLink(inviteUrl)
+                                            is ShareToChatsSubject.Currency -> Shareable.MessageLink(inviteUrl)
                                         }
                                     )
                                 }
@@ -385,13 +389,13 @@ internal fun GroupInviteSheet(
                     )
                 }
                 .onSizeChanged { headerHeight = with(density) { it.height.toDp() } },
-            title = stringResource(
-                when (subject) {
-                    is ShareToChatsSubject.User -> R.string.title_shareProfileToChats
-                    is ShareToChatsSubject.Message -> R.string.title_shareMessageToChats
-                    is ShareToChatsSubject.Group -> R.string.title_invitePeople
-                }
-            ),
+            title = when (subject) {
+                is ShareToChatsSubject.Currency ->
+                    stringResource(R.string.title_shareCurrency, subject.name)
+                is ShareToChatsSubject.User -> stringResource(R.string.title_shareProfileToChats)
+                is ShareToChatsSubject.Message -> stringResource(R.string.title_shareMessageToChats)
+                is ShareToChatsSubject.Group -> stringResource(R.string.title_invitePeople)
+            },
             titleAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(HeaderPadding),
             endContent = { AppBarDefaults.Close(hazeState = hazeState, onClick = onDismiss) },

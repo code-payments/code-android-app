@@ -549,6 +549,14 @@ sealed interface AppRoute : NavKey, Parcelable {
             val directChatId: ChatId?,
         ) : Messaging, com.getcode.navigation.Sheet, com.getcode.navigation.FullscreenSheet
 
+        /** "Share <name>" from Currency Info: the page link shared, copied, or sent into recent chats. */
+        @Serializable
+        @Parcelize
+        data class ShareCurrencyToChats(
+            val mint: Mint,
+            val name: String,
+        ) : Messaging, com.getcode.navigation.Sheet, com.getcode.navigation.FullscreenSheet
+
         /**
          * What end-to-end encryption covers in a DM, opened from the DM profile's footer. A
          * [com.getcode.navigation.WrapContentSheet], for the reason [MuteChat] is one.

@@ -77,3 +77,37 @@ fun ShareProfileToChatsScreen(route: AppRoute.Messaging.ShareProfileToChats) {
         },
     )
 }
+
+/** Currency Info's "Share <name>" sheet, behind `AppRoute.Messaging.ShareCurrencyToChats`. */
+@Composable
+fun ShareCurrencyToChatsScreen(route: AppRoute.Messaging.ShareCurrencyToChats) {
+    val viewModel = hiltViewModel<GroupInviteViewModel>()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val navigator = LocalCodeNavigator.current
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val keyboard = rememberKeyboardController()
+
+    val link = remember(route.mint) { Linkify.tokenInfo(route.mint) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.invited.collect { chatId ->
+            keyboard.hideIfVisible {
+                navigator.pendingSheetDismiss = {
+                    navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId)))
+                }
+            }
+        }
+    }
+
+    GroupInviteSheet(
+        inviteUrl = link,
+        subject = ShareToChatsSubject.Currency(route.name),
+        state = state,
+        onShare = {},
+        onCopy = { viewModel.copyProfileLink(link) },
+        onToggle = viewModel::toggle,
+        onMessageChanged = viewModel::onMessageChanged,
+        onInvite = { viewModel.invite(link) },
+        onDismiss = dismissSheet,
+    )
+}
