@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.screens.profile
 import androidx.annotation.StringRes
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 
 /** The one primary action pinned to the bottom of another user's profile. */
@@ -46,17 +47,38 @@ internal fun ProfilePinnedAction.opensChatUnderneath(dmChatId: ChatId?, chatUnde
 /**
  * The rows under another user's profile, in order: the reversible and routine first, the one that
  * ends the conversation last. Muting is the DM's, so it only appears once one exists.
+ *
+ * [group] is the group chat the profile sits in, when it sits in one; its Silence and Remove follow
+ * as their own section, each only when the viewer holds the grant, and neither on the group's creator.
  */
-internal fun profileMenuItems(isBlocked: Boolean, hasDm: Boolean): List<ChatProfileAction> =
+internal fun profileMenuItems(
+    isBlocked: Boolean,
+    hasDm: Boolean,
+    group: ProfileGroup? = null,
+    userId: ID? = null,
+): List<ChatProfileAction> = buildList {
     if (isBlocked) {
-        listOf(ChatProfileAction.Report, ChatProfileAction.Unblock)
+        add(ChatProfileAction.Report)
+        add(ChatProfileAction.Unblock)
     } else {
-        buildList {
-            if (hasDm) add(ChatProfileAction.Mute)
-            add(ChatProfileAction.Report)
-            add(ChatProfileAction.Block)
-        }
+        if (hasDm) add(ChatProfileAction.Mute)
+        add(ChatProfileAction.Report)
+        add(ChatProfileAction.Block)
     }
+    if (group != null && userId != null && userId != group.creatorId) {
+        if (group.canSilence) add(ChatProfileAction.Silence)
+        if (group.canBan) add(ChatProfileAction.Remove)
+    }
+}
+
+/** The group chat a profile was opened inside, and what the viewer may do to its members. */
+internal data class ProfileGroup(
+    val chatId: ChatId,
+    val title: String,
+    val creatorId: ID?,
+    val canSilence: Boolean,
+    val canBan: Boolean,
+)
 
 /**
  * The string behind the pinned button. Only [ProfilePinnedAction.StartChatting] takes an argument,

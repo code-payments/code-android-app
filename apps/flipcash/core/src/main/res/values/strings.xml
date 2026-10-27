@@ -971,6 +971,9 @@
     <string name="action_silenceMember">Silence %1$s…</string>
     <string name="action_removeMemberNamed">Remove %1$s…</string>
     <string name="action_removeMember">Remove</string>
+    <string name="action_silenceMemberShort">Silence…</string>
+    <string name="action_removeFromGroup">Remove from Group</string>
+    <string name="title_menuSection_inGroup">In %1$s</string>
     <string name="prompt_title_removeMember">Remove %1$s?</string>
     <string name="prompt_description_removeMember">They\'ll leave %1$s and can\'t rejoin until you unban them. Their messages stay in the chat</string>
     <string name="error_title_failedToRemoveMember">Something Went Wrong</string>
