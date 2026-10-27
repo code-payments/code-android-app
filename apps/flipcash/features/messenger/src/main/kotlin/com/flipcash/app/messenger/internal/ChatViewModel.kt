@@ -238,6 +238,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
@@ -2449,6 +2450,16 @@ internal class ChatViewModel @AssistedInject constructor(
                 }
             }
             .onEach { dispatchEvent(Event.SilenceLapsed) }
+            .launchIn(viewModelScope)
+
+        // The pill giving way to the composer is the one moment worth a word. Read off the
+        // silenced/not edge of the state, so a host's unsilence and a timer lapse that land together
+        // are one lift, and a chat opened already free of silence has no edge to toast.
+        stateFlow.map { it.silence != null }
+            .distinctUntilChanged()
+            .scan(false to false) { (_, was), isSilenced -> was to isSilenced }
+            .filter { (was, isSilenced) -> was && !isSilenced }
+            .onEach { toastController.showToast(R.string.toast_silenceLifted, replacePrevious = true) }
             .launchIn(viewModelScope)
 
         // The profile footer's claim. Decided by the policy from the chat's metadata, so the

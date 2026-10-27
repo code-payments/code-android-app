@@ -970,6 +970,7 @@
     <string name="toast_silenced_eightHours">%1$s is silenced for 8 hours</string>
     <string name="toast_silenced_oneWeek">%1$s is silenced for 1 week</string>
     <string name="toast_silenced_forever">%1$s is silenced</string>
+    <string name="toast_silenceLifted">You are now able to chat again</string>
     <string name="toast_unsilenced">%1$s can send messages again</string>
     <string name="error_title_failedToSilence">Something Went Wrong</string>
     <string name="error_description_failedToSilence">We were unable to silence this member. Please try again</string>
