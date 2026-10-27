@@ -63,6 +63,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.material.icons.automirrored.outlined.VolumeOff
+import androidx.compose.material.icons.outlined.PersonOff
+import com.getcode.ui.components.SubmenuDropdownMenu
+import com.getcode.ui.components.SubmenuRow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -134,6 +138,8 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
         // Only a private group has invite links, and the answer is the server's, not the cached chat's.
         if (group?.isPrivate == true && isMember) state.chatId?.let(inviteHost::refresh)
     }
+    val moderation = state.viewerState?.permissions?.moderation
+    val canModerate = isMember && (moderation?.canSilence == true || moderation?.canBan == true)
     // A private group's non-member has no chat to open: no envelope, no transcript. The profile is
     // where they ask in, and where they wait.
     val privateJoin = PrivateGroupJoin.resolve(
@@ -479,12 +485,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         }
                         GroupProfileMenu(
                             expanded = menuOpen,
-                            items = groupProfileMenuActions(isMember),
+                            items = groupProfileMenuActions(
+                                isMember,
+                                canModerate = canModerate,
+                            ),
                             isPrivate = group?.isPrivate == true,
                             anchorHeight = anchorHeight,
                             onDismiss = { menuOpen = false },
+                            onSilenced = { flowNavigator.navigateTo(ChatStep.SilencedMembers) },
+                            onRemoved = { flowNavigator.navigateTo(ChatStep.RemovedMembers) },
                             onItem = { item ->
                                 when (item) {
+                                    GroupProfileMenuAction.Moderation -> Unit
                                     GroupProfileMenuAction.Encryption -> navigator.push(
                                         if (group?.isPrivate == true) {
                                             AppRoute.Messaging.E2eePrivateGroupInfo
@@ -536,7 +548,10 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     }
 }
 
-/** The ⋯ button's menu: Encryption and Mute, then a divider and the red Report. */
+/**
+ * The ⋯ button's menu: Encryption and Mute, the host's Moderation row, then a divider and the red
+ * Report. Moderation swaps the menu in place for Silenced and Removed; see [SubmenuDropdownMenu].
+ */
 @Composable
 internal fun GroupProfileMenu(
     expanded: Boolean,
@@ -545,35 +560,70 @@ internal fun GroupProfileMenu(
     anchorHeight: androidx.compose.ui.unit.Dp,
     onDismiss: () -> Unit,
     onItem: (GroupProfileMenuAction) -> Unit,
+    onSilenced: () -> Unit,
+    onRemoved: () -> Unit,
 ) {
-    DropdownMenu(
+    SubmenuDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        containerColor = CodeTheme.colors.brandLight,
-        shape = CodeTheme.shapes.extraLarge,
+        submenuTitle = stringResource(R.string.title_moderation),
         offset = DpOffset(x = 0.dp, y = -anchorHeight),
-    ) {
-        items.forEachIndexed { index, item ->
-            if (index > 0 && items[index - 1].isDestructive != item.isDestructive) {
-                HorizontalDivider(color = CodeTheme.colors.divider)
-            }
-            val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
-            DropdownMenuItem(
-                leadingIcon = { Icon(imageVector = item.icon(isPrivate), contentDescription = null, tint = tint) },
-                text = {
-                    Text(
-                        text = stringResource(item.labelRes()),
-                        style = CodeTheme.typography.textSmall,
-                        color = tint,
+        root = { openSubmenu ->
+            items.forEachIndexed { index, item ->
+                if (index > 0 && items[index - 1].isDestructive != item.isDestructive) {
+                    HorizontalDivider(color = CodeTheme.colors.divider)
+                }
+                if (item == GroupProfileMenuAction.Moderation) {
+                    SubmenuRow(
+                        label = stringResource(item.labelRes()),
+                        icon = item.icon(isPrivate),
+                        onClick = openSubmenu,
                     )
-                },
-                onClick = {
-                    onDismiss()
-                    onItem(item)
-                },
+                    return@forEachIndexed
+                }
+                val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
+                DropdownMenuItem(
+                    leadingIcon = { Icon(imageVector = item.icon(isPrivate), contentDescription = null, tint = tint) },
+                    text = {
+                        Text(
+                            text = stringResource(item.labelRes()),
+                            style = CodeTheme.typography.textSmall,
+                            color = tint,
+                        )
+                    },
+                    onClick = {
+                        onDismiss()
+                        onItem(item)
+                    },
+                )
+            }
+        },
+        submenu = {
+            ModerationEntry(R.string.title_silencedMembers, Icons.AutoMirrored.Outlined.VolumeOff) {
+                onDismiss()
+                onSilenced()
+            }
+            ModerationEntry(R.string.title_removedMembers, Icons.Outlined.PersonOff) {
+                onDismiss()
+                onRemoved()
+            }
+        },
+    )
+}
+
+@Composable
+private fun ModerationEntry(@androidx.annotation.StringRes label: Int, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+    DropdownMenuItem(
+        leadingIcon = { Icon(imageVector = icon, contentDescription = null, tint = CodeTheme.colors.textMain) },
+        text = {
+            Text(
+                text = stringResource(label),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textMain,
             )
-        }
-    }
+        },
+        onClick = onClick,
+    )
 }
 
 /** How long the requirement amounts wait for their token's name before showing without it. */

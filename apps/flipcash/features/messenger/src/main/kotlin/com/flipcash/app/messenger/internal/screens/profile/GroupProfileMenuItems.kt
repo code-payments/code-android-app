@@ -5,6 +5,7 @@ import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.flipcash.features.messenger.R
 
@@ -17,6 +18,7 @@ import com.flipcash.features.messenger.R
 internal enum class GroupProfileMenuAction {
     Encryption,
     Mute,
+    Moderation,
     Report;
 
     /** Report is drawn in the destructive colour, after a divider. */
@@ -26,6 +28,7 @@ internal enum class GroupProfileMenuAction {
     fun labelRes(): Int = when (this) {
         Encryption -> R.string.title_encryption
         Mute -> R.string.title_muteChat
+        Moderation -> R.string.title_moderation
         Report -> R.string.title_report
     }
 
@@ -33,6 +36,7 @@ internal enum class GroupProfileMenuAction {
     fun icon(isPrivate: Boolean = false): ImageVector = when (this) {
         Encryption -> if (isPrivate) Icons.Filled.Lock else Icons.Outlined.LockOpen
         Mute -> Icons.Outlined.NotificationsOff
+        Moderation -> Icons.Outlined.Shield
         Report -> Icons.Outlined.Feedback
     }
 }
@@ -44,8 +48,9 @@ internal enum class GroupProfileMenuAction {
  * there: a group you have already left is the one you are most likely to report. Invite, Edit and
  * Leave are not here; they live on the profile's own buttons.
  */
-internal fun groupProfileMenuActions(isMember: Boolean): List<GroupProfileMenuAction> = buildList {
+internal fun groupProfileMenuActions(isMember: Boolean, canModerate: Boolean = false): List<GroupProfileMenuAction> = buildList {
     add(GroupProfileMenuAction.Encryption)
     if (isMember) add(GroupProfileMenuAction.Mute)
+    if (canModerate) add(GroupProfileMenuAction.Moderation)
     add(GroupProfileMenuAction.Report)
 }

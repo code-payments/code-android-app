@@ -74,6 +74,8 @@ import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.ProfileGroup
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.JoinRequestsScreen
+import com.flipcash.app.messenger.internal.screens.profile.RestrictedMembersScreen
+import com.flipcash.app.messenger.internal.RestrictedKind
 import com.flipcash.app.messenger.internal.screens.profile.MembersScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupCoverScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupDescriptionScreen
@@ -210,6 +212,12 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.JoinRequests> {
         JoinRequestsScreen(flowSharedViewModel<ChatViewModel>())
+    }
+    annotatedEntry<ChatStep.SilencedMembers> {
+        RestrictedMembersScreen(RestrictedKind.Silenced, flowSharedViewModel<ChatViewModel>())
+    }
+    annotatedEntry<ChatStep.RemovedMembers> {
+        RestrictedMembersScreen(RestrictedKind.Removed, flowSharedViewModel<ChatViewModel>())
     }
     annotatedEntry<ChatStep.Members> {
         MembersScreen(flowSharedViewModel<ChatViewModel>())
