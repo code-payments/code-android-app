@@ -480,7 +480,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
     // Before the deck is read, so requests already held are there on the first frame.
     val deckChat = state.chatId.takeIf { state.chatType == ChatType.GROUP }
-    remember(deckChat) { deckChat?.let(requestsViewModel::attach) }
+    remember(deckChat) { deckChat?.also(requestsViewModel::attach) }
     val deck by requestsViewModel.deck.collectAsStateWithLifecycle()
     val deckExpanded by requestsViewModel.expanded.collectAsStateWithLifecycle()
     val deckNow by requestsViewModel.now.collectAsStateWithLifecycle()
